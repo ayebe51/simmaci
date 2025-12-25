@@ -1,0 +1,152 @@
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import {
+  FileText,
+  LayoutDashboard,
+  Menu,
+  School,
+  Settings,
+  Upload,
+  User,
+  LogOut,
+  Users,
+  AlertTriangle,
+  FileBarChart
+} from "lucide-react"
+import { useState } from "react"
+import { Link, useLocation } from "react-router-dom"
+import { NotificationDropdown } from "@/components/common/NotificationDropdown"
+
+interface AppShellProps {
+  children: React.ReactNode
+}
+
+export default function AppShell({ children }: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const location = useLocation()
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
+
+  const navItems = [
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Data Madrasah", href: "/dashboard/master/schools", icon: School },
+    { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
+    { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
+    { label: "Import EMIS", href: "/dashboard/import", icon: Upload },
+    { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
+    { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
+    { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText }, // Add this
+    { label: "Manajemen User", href: "/dashboard/users", icon: Users },
+    { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
+    { label: "Laporan", href: "/dashboard/reports", icon: FileBarChart },
+    { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
+  ]
+
+  return (
+    <div className="flex h-screen w-full bg-gray-50/50">
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-20 flex flex-col border-r bg-background transition-all duration-300 ease-in-out md:static",
+          sidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
+        )}
+      >
+        {/* Sidebar Header */}
+        <div className="flex h-16 items-center border-b px-6">
+          <Link to="/dashboard" className="flex items-center gap-2 font-bold text-lg">
+            <img src="/logo-icon.png" alt="Logo" className="h-8 w-8 object-contain" />
+            <span className={cn("truncate", !sidebarOpen && "hidden")}>
+              SIM Maarif
+            </span>
+          </Link>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="grid gap-1 px-2">
+            {navItems.map((item, index) => {
+              const isActive = location.pathname.startsWith(item.href)
+              
+              const userStr = localStorage.getItem("user")
+              const user = userStr ? JSON.parse(userStr) : null
+              const isSuperAdmin = user?.role === "super_admin"
+
+              // Restrictions: Generator and Users only for super_admin
+              if (!isSuperAdmin && (
+                  item.label === "Generator SK" || 
+                  item.label === "Manajemen User" ||
+                  item.label === "Pengaturan"
+              )) {
+                  return null
+              }
+
+              return (
+                <Link
+                  key={index}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
+                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
+        {/* User Footer */}
+        <div className="border-t p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+               <User className="h-4 w-4 text-gray-500"/>
+            </div>
+            <div className="flex flex-col overflow-hidden">
+                <span className="truncate text-sm font-medium">Admin Maarif</span>
+                <span className="truncate text-xs text-muted-foreground">admin@maarif.nu</span>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mt-2 w-full justify-start text-muted-foreground hover:text-red-500"
+            onClick={() => {
+                localStorage.removeItem("token")
+                localStorage.removeItem("user")
+                window.location.href = "/login"
+            }}
+          >
+             <LogOut className="mr-2 h-4 w-4"/> Sign Out
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content Wrapper */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex h-16 items-center gap-4 border-b bg-background px-6 shadow-sm">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex">
+             <Menu className="h-5 w-5"/>
+             <span className="sr-only">Toggle Sidebar</span>
+          </Button>
+           {/* Mobile Menu Toggle (reusing same logic roughly) */}
+           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden">
+             <Menu className="h-5 w-5"/>
+          </Button>
+          
+          <div className="ml-auto flex items-center gap-2">
+             <NotificationDropdown />
+             <span className="text-sm font-medium text-muted-foreground border-l pl-4 ml-2">Tahun Ajaran: 2024/2025</span>
+          </div>
+        </header>
+
+        {/* Main Content View with Scroll */}
+        <main className="flex-1 overflow-y-auto p-6">
+           {children}
+        </main>
+      </div>
+    </div>
+  )
+}

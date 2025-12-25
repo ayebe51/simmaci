@@ -111,4 +111,4 @@ npm run dev
 ## 📄 Lisensi
 
 Hak Cipta © 2025 LP Ma'arif NU Cilacap.
-Dikembangkan oleh **[Nama Anda/Developer]**.
+Dikembangkan oleh **Ahmad Ayub Nu'man**.

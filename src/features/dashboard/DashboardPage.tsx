@@ -11,13 +11,13 @@ import { SkeletonCard, SkeletonChart } from "./components/SkeletonLoaders"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 import { api } from "@/lib/api"
-// ...
+// Convex real-time query
+import { useQuery } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<{name: string, role: string} | null>(null)
   const [alerts, setAlerts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [statsData, setStatsData] = useState<any>({
       schoolCount: -1,
       teacherCount: -1,
@@ -34,12 +34,15 @@ export default function DashboardPage() {
       recentActivities: [] as any[]
   })
 
+  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
+  const convexStats = useQuery(convexApi.dashboard.getStats)
+
   useEffect(() => {
     // Load User
     const u = localStorage.getItem("user")
     if (u) setUser(JSON.parse(u))
 
-    // Fetch Stats
+    // Fetch detailed stats from NestJS (for complex aggregations)
     const loadStats = async () => {
         try {
             const data = await api.getDashboardStats()
@@ -49,23 +52,38 @@ export default function DashboardPage() {
         }
     }
     loadStats()
-
-    // Check Headmaster Tenure Expiry (Keep existing logic or verify if needed backend)
-    // ... (Existing alert logic kept as is for now as it relies on local storage of 'app_teachers' which we might want to migrate later, but let's keep it for now if it works on frontend mock data or just leave it empty if 'app_teachers' is empty)
   }, [])
 
+  // Merge Convex real-time data with existing stats
+  const mergedStats = convexStats ? {
+    ...statsData,
+    schoolCount: convexStats.totalSchools,
+    teacherCount: convexStats.totalTeachers,
+    studentCount: convexStats.totalStudents,
+    skCount: convexStats.totalSk,
+  } : statsData
+
   const stats = [
-    { title: "Total Sekolah", value: statsData.schoolCount, icon: School, color: "text-blue-500" },
-    { title: "Total Guru/PTK", value: statsData.teacherCount, icon: Users, color: "text-green-500" },
-    { title: "Total Siswa", value: statsData.studentCount, icon: Users, color: "text-orange-500" },
-    { title: "Pengajuan SK", value: statsData.skCount, icon: FileText, color: "text-purple-500", desc: "Menunggu persetujuan / Total" },
+    { title: "Total Sekolah", value: mergedStats.schoolCount, icon: School, color: "text-blue-500" },
+    { title: "Total Guru/PTK", value: mergedStats.teacherCount, icon: Users, color: "text-green-500" },
+    { title: "Total Siswa", value: mergedStats.studentCount, icon: Users, color: "text-orange-500" },
+    { title: "Pengajuan SK", value: mergedStats.skCount, icon: FileText, color: "text-purple-500", desc: "Menunggu persetujuan / Total" },
   ]
+
 //... (Rest of render)
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-         <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+         <div className="flex items-center gap-3">
+           <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+           {convexStats && (
+             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-100 border border-green-300 rounded-full">
+               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+               <span className="text-xs font-semibold text-green-700">LIVE</span>
+             </div>
+           )}
+         </div>
          <p className="text-muted-foreground">
             Selamat datang, <span className="font-semibold text-foreground">{user?.name || "Admin"}</span> ({user?.role === 'super_admin' ? 'Super Admin' : 'Operator'}).
          </p>

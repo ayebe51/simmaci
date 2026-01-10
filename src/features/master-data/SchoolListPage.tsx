@@ -19,6 +19,9 @@ import { api } from "@/lib/api"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PhoneInput } from "@/components/common/PhoneInput"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 interface School {
   id: string
@@ -38,21 +41,35 @@ export default function SchoolListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("")
   const [filterJamiyyah, setFilterJamiyyah] = useState("")
-  const [schools, setSchools] = useState<School[]>([])
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
+  // 🔥 REAL-TIME CONVEX QUERY
+  const convexSchools = useQuery(convexApi.schools.list, {
+    kecamatan: filterKecamatan || undefined,
+  })
+
+  // Mutations
+  const updateSchoolMutation = useMutation(convexApi.schools.update)
+  const createSchoolMutation = useMutation(convexApi.schools.create)
+
+  // Map Convex data to School interface
+  const schools = (convexSchools || []).map((s: any) => ({
+    id: s._id,
+    nsm: s.nsm || "",
+    npsn: s.npsn || "",
+    nama: s.nama || "",
+    alamat: s.alamat || "",
+    kecamatan: s.kecamatan || "",
+    kepala: s.kepalaMadrasah || "",
+    noHpKepala: s.telepon || "",
+    statusJamiyyah: s.akreditasi || "",
+    akreditasi: s.akreditasi || "",
+  }))
+
   const loadSchools = async () => {
-    try {
-      const data = await api.getSchools()
-      setSchools(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error("Failed to load schools", error)
-    }
+    // No longer needed - Convex auto-updates!
   }
 
-  useEffect(() => {
-    loadSchools()
-  }, [])
 
   // PERMISSION: Filter by Unit Kerja for Operators
   const [userUnit] = useState<string | null>(() => {

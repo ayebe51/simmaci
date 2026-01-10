@@ -1,0 +1,9 @@
+Starting School Import...
+Total rows in sheet: 941
+Checking row 0: ["kecamatan","nama satuan pendidikan","nsm/nss","npsn","status","jumlah siswa",null,null,null,null,null,"jumlah","nama kepala madrasah","nomor wa kepala madrasah","status (jam'iyyah/jama'ah)"]
+Format detected at row 0
+Processing User Format
+Header: ["kecamatan","nama satuan pendidikan","nsm/nss","npsn","status","jumlah siswa","","","","","","jumlah","nama kepala madrasah","nomor wa kepala madrasah","status (jam'iyyah/jama'ah)"]
+Indices - Nama: 1, NSM: 2, NPSN: 3, Status: 4, Jamiyyah: 14
+Prepared 100 schools for saving.
+Successfully saved 100 schools.

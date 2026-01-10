@@ -19,7 +19,9 @@ import ExcelImportModal from "./components/ExcelImportModal"
 import { api } from "@/lib/api"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
-
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 
 interface Teacher {
@@ -43,7 +45,34 @@ export default function TeacherListPage() {
   const [filterKecamatan, setFilterKecamatan] = useState("")
   const [filterCertified, setFilterCertified] = useState("all") // all, true, false
   
-  const [teachers, setTeachers] = useState<Teacher[]>([])
+  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
+  const convexTeachers = useQuery(convexApi.teachers.list, {
+    unitKerja: filterKecamatan || undefined,
+    kecamatan: filterKecamatan || undefined,
+    isCertified: filterCertified,
+  })
+
+  // Mutations for real-time updates
+  const updateTeacherMutation = useMutation(convexApi.teachers.update)
+  const removeTeacherMutation = useMutation(convexApi.teachers.remove)
+
+  // Map Convex data to existing Teacher interface
+  const teachers = (convexTeachers || []).map((t: any) => ({
+    id: t._id,
+    nuptk: t.nuptk || "",
+    nama: t.nama || "",
+    status: t.status || "",
+    mapel: t.mapel || "",
+    satminkal: t.unitKerja || "",
+    phoneNumber: t.phoneNumber,
+    isCertified: t.isCertified || false,
+    isActive: t.isActive !== false,
+    pdpkpnu: t.pdpkpnu || "Belum",
+    kecamatan: t.kecamatan,
+    birthPlace: t.tempatLahir,
+    birthDate: t.tanggalLahir,
+  }))
+
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
   const [isImportModalOpen, setIsImportModalOpen] = useState(false) // Import modal state
 
@@ -64,42 +93,25 @@ export default function TeacherListPage() {
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Teacher; direction: 'asc' | 'desc' } | null>(null);
 
+  // Note: loadTeachers now handled by Convex real-time query!
   const loadTeachers = async () => {
-      try {
-          const data = await api.getTeachers(
-              userUnit || undefined, 
-              filterKecamatan || undefined, 
-              filterCertified
-          )
-          setTeachers(data)
-      } catch (e) {
-          console.error(e)
-      }
+    // No longer needed - Convex auto-updates!
+    // Kept for Excel import success callback compatibility
   }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        loadTeachers()
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [userUnit, filterKecamatan, filterCertified])
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     const newStatus = !currentStatus
     
-    // Optimistic Update
-    const updated = teachers.map(t => 
-        t.id === id ? { ...t, isActive: newStatus } : t
-    )
-    setTeachers(updated)
-    
     try {
-      // Persist to backend database
-      await api.updateTeacher(id, { isActive: newStatus })
+      // 🔥 Real-time Convex mutation - all users see change instantly!
+      await updateTeacherMutation({ 
+        id: id as any, 
+        isActive: newStatus 
+      })
+      // UI updates automatically via Convex subscription!
     } catch (e: any) {
-      // Rollback on error
       console.error('Failed to update teacher status:', e)
-      setTeachers(teachers)
       alert('Gagal mengupdate status guru. Silakan coba lagi.')
     }
   }

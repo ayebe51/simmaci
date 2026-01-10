@@ -1,0 +1,3 @@
+Error: SQLITE_CONSTRAINT: UNIQUE constraint failed: teacher.nuptk
+Stack: QueryFailedError: SQLITE_CONSTRAINT: UNIQUE constraint failed: teacher.nuptk
+    at Statement.handler (D:\SIMMACI\backend\node_modules\typeorm\driver\src\driver\sqlite\SqliteQueryRunner.ts:133:29)

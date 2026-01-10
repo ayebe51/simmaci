@@ -17,6 +17,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api } from "@/lib/api"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import ExcelImportModal from "./components/ExcelImportModal"
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 interface Student {
   id: string
@@ -29,7 +32,6 @@ interface Student {
 
 export default function StudentListPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [students, setStudents] = useState<Student[]>([])
   
   // Manual Add Logic
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -52,22 +54,29 @@ export default function StudentListPage() {
     return null
   })
 
+  // 🔥 REAL-TIME CONVEX QUERY
+  const convexStudents = useQuery(convexApi.students.list, {
+    namaSekolah: userUnit || undefined,
+  })
+
+  // Map Convex data to Student interface
+  const students = (convexStudents || []).map((s: any) => ({
+    id: s._id,
+    nisn: s.nisn || "",
+    nama: s.nama || "",
+    kelas: s.kelas || "",
+    sekolah: s.namaSekolah || "",
+    jk: s.jenisKelamin === "Perempuan" ? "P" : "L",
+  }))
+
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
   const loadStudents = async () => {
-    try {
-      // Pass schoolId if userUnit is set (for operators)
-      const data = await api.getStudents(userUnit || undefined) 
-      setStudents(data)
-    } catch (e) {
-      console.error(e)
-    }
+    // No longer needed - Convex auto-updates!
+    // Kept for compatibility
   }
 
-  useEffect(() => {
-    loadStudents()
-  }, [userUnit])
 
   const filtered = students.filter(s => {
     // 1. Role Filter

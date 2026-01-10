@@ -55,6 +55,7 @@ export default function TeacherListPage() {
   // Mutations for real-time updates
   const updateTeacherMutation = useMutation(convexApi.teachers.update)
   const removeTeacherMutation = useMutation(convexApi.teachers.remove)
+  const createTeacherMutation = useMutation(convexApi.teachers.create)
 
   // Map Convex data to existing Teacher interface
   const teachers = (convexTeachers || []).map((t: any) => ({

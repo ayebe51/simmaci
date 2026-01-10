@@ -111,6 +111,5 @@ npm run dev
 
 ## 📄 Lisensi
 
-Hak Cipta © 2025 **Ahmad Ayub Nu'man**.
+Hak Cipta © 2025 **Ahmad Ayub Nu'man** untuk LP Ma'arif NU Cilacap.  
 Aplikasi ini dilindungi oleh hak cipta. Dilarang keras menggandakan, mendistribusikan ulang, atau mengklaim kepemilikan tanpa izin tertulis dari pengembang.
-Dikembangkan oleh **Ahmad Ayub Nu'man**.

@@ -18,7 +18,7 @@ export const register = mutation({
     name: v.string(),
     password: v.string(),
     role: v.optional(v.string()),
-    unitKerja: v.optional(v.string()),
+    unit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if user exists
@@ -37,7 +37,7 @@ export const register = mutation({
       name: args.name,
       passwordHash: hashPassword(args.password),
       role: args.role || "operator",
-      unitKerja: args.unitKerja,
+      unit: args.unit,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -81,7 +81,7 @@ export const login = mutation({
         email: user.email,
         name: user.name,
         role: user.role,
-        unitKerja: user.unitKerja,
+        unitKerja: user.unit, // Map to frontend format
       },
       token: user._id, // Using user ID as token for simplicity
     };
@@ -103,7 +103,7 @@ export const getCurrentUser = query({
       email: user.email,
       name: user.name,
       role: user.role,
-      unitKerja: user.unitKerja,
+      unitKerja: user.unit, // Map to frontend format
       isActive: user.isActive,
     };
   },
@@ -129,7 +129,7 @@ export const createDefaultAdmin = mutation({
       name: "Admin Maarif",
       passwordHash: hashPassword("admin123"),
       role: "super_admin",
-      unitKerja: undefined,
+      unit: undefined,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -157,7 +157,7 @@ export const listUsers = query({
       email: u.email,
       name: u.name,
       role: u.role,
-      unitKerja: u.unitKerja,
+      unitKerja: u.unit, // Map to frontend format
       isActive: u.isActive,
       createdAt: u.createdAt,
     }));

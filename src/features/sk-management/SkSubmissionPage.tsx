@@ -11,7 +11,7 @@ import { ArrowLeft, Save, FileText, BadgeCheck } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
 
@@ -24,7 +24,7 @@ function getRomanMonth(monthIndex: number): string {
 
 export function getNextSkNumber(): string {
     const stored = localStorage.getItem("sk_counter");
-    let current = stored ? parseInt(stored) : 0;
+    const current = stored ? parseInt(stored) : 0;
     
     // Generate Number Logic Inlined
     const paddedNum = String(current + 1).padStart(3, "0");
@@ -35,7 +35,7 @@ export function getNextSkNumber(): string {
 
 export function incrementSkCounter() {
     const stored = localStorage.getItem("sk_counter");
-    let current = stored ? parseInt(stored) : 0;
+    const current = stored ? parseInt(stored) : 0;
     localStorage.setItem("sk_counter", String(current + 1));
 }
 
@@ -55,7 +55,8 @@ export default function SkSubmissionPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState("single")
-  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const fileInputRef = useRef<HTMLInputElement>(null)
+   
   const [isSuperAdmin] = useState(() => {
     try {
         const str = localStorage.getItem("user");
@@ -75,7 +76,31 @@ export default function SkSubmissionPage() {
   const onSubmit = async (data: SkFormValues) => {
     setIsSubmitting(true)
     try {
-        await api.createSk(data)
+        // Handle File Upload
+        // Handle File Upload
+        const finalKeterangan = data.keterangan || "";
+        let finalSuratPermohonanUrl = "";
+
+        const file = fileInputRef.current?.files?.[0]
+        if (file) {
+            toast.info("Mengupload dokumen...")
+            const uploadRes = await api.uploadFile(file)
+            const fileUrl = uploadRes.url || uploadRes.fileUrl || uploadRes.path || uploadRes.secure_url
+            
+            if (fileUrl) {
+                finalSuratPermohonanUrl = fileUrl;
+            }
+        }
+
+        // Map frontend 'jenisSk' to backend 'jenis'
+        const payload = {
+            ...data,
+            jenis: data.jenisSk,
+            keterangan: finalKeterangan,
+            suratPermohonanUrl: finalSuratPermohonanUrl
+        }
+
+        await api.createSk(payload)
         toast.success("SK Berhasil diajukan!")
         navigate("/dashboard/sk")
     } catch (err: any) {
@@ -186,10 +211,12 @@ export default function SkSubmissionPage() {
     
                  <div className="grid gap-2">
                     <Label htmlFor="dokumen">Upload Dokumen Pendukung (PDF)</Label>
-                    <div className="rounded-md border border-dashed p-6 text-center hover:bg-slate-50">
+                    <div className="rounded-md border border-dashed p-6 text-center hover:bg-slate-50 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                         <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                         <p className="text-sm text-muted-foreground">Klik untuk upload surat permohonan / rekomendasi</p>
-                        <Input type="file" className="hidden" id="dokumen" accept=".pdf" />
+                        <Input type="file" className="hidden" id="dokumen" accept=".pdf" ref={fileInputRef} onChange={(e) => {
+                             if(e.target.files?.[0]) toast.success(`File terpilih: ${e.target.files[0].name}`)
+                        }}/>
                     </div>
                  </div>
     
@@ -207,37 +234,7 @@ export default function SkSubmissionPage() {
                     </div>
                 )}
 
-                {/* FEATURE: Upload Signed SK - Only for Super Admin */}
-                {isSuperAdmin && (
-                    <div className="rounded-md border p-4 bg-green-50 space-y-4 border-green-200">
-                        <h3 className="font-medium text-sm flex items-center text-green-800">
-                            <BadgeCheck className="w-4 h-4 mr-2 text-green-600"/> 
-                            Admin Area: Upload SK yang Sudah Ditandatangani
-                        </h3>
-                        <p className="text-xs text-green-700">
-                            Upload file final yang sudah ditandatangani di sini. File ini akan tersedia untuk didownload oleh operator yang mengajukan.
-                        </p>
 
-                        <div className="grid w-full max-w-sm items-center gap-1.5">
-                            <Label htmlFor="signedSk" className="text-green-800">File SK Final (PDF)</Label>
-                            <Input 
-                                id="signedSk" 
-                                type="file" 
-                                accept=".pdf" 
-                                onChange={(e) => {
-                                    if(e.target.files?.[0]) {
-                                        alert("File SK Final disiapkan untuk upload. (Simulasi)")
-                                    }
-                                }}
-                            />
-                        </div>
-                        <div className="grid w-full max-w-sm items-center gap-1.5">
-                            <Label htmlFor="sigImage">Upload Scan Tanda Tangan (Opsional)</Label>
-                            <Input id="sigImage" type="file" accept="image/png, image/jpeg" />
-                            <p className="text-[10px] text-muted-foreground">Format PNG transparan disarankan. Maks 2MB.</p>
-                        </div>
-                    </div>
-                )}
     
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => navigate("/dashboard/sk")}>Batal</Button>

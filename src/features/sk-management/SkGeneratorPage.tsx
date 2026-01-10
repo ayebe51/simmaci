@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
@@ -13,25 +12,166 @@ import {
 } from "@/components/ui/table"
 import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle } from "lucide-react"
 import { useState, useEffect } from "react"
-import { saveAs } from "file-saver"
+// Removed: import { saveAs } from "file-saver" - using native browser download instead
 import JSZip from "jszip"
+import PizZip from "pizzip"
+import Docxtemplater from "docxtemplater"
 import { Link } from "react-router-dom"
 
-// Mock Zip Generator (Inlined)
-export const generateBulkSkZip = async (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _templateFile: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _candidates: any[],
-  filename = "SK_Masal_Maarif.zip"
-) => {
-    // Basic mock implementation to allow build
-    const zip = new JSZip()
-    // In real app, we would use docxtemplater with _templateFile here
-    zip.file("README.txt", "Tanda tangan digital dalam proses.")
-    const content = await zip.generateAsync({ type: "blob" })
-    saveAs(content, filename)
+// Helper to load base64 template to binary string
+const loadTemplate = (key: string): string | null => {
+    const base64 = localStorage.getItem(key + "_blob")
+    if (!base64) return null
+    // Remove data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,
+    const block = base64.split(";base64,");
+    const realData = block[1] ? block[1] : Base64String(base64) ? base64 : null; // simplified
+    if (!realData) return null
+    return atob(realData)
 }
+
+// Simple Base64 check
+const Base64String = (str: string) => {
+    try {
+        return btoa(atob(str)) === str;
+    } catch {
+        return false;
+    }
+}
+
+
+const generateBulkSkZip = async (
+  candidates: any[],
+  filename = "SK_Masal_Maarif.zip",
+  debugData?: any // Added for debugging
+) => {
+    const zip = new JSZip()
+    const folder = zip.folder("SK_Generated")
+    
+    // Add Debug File
+    if (debugData) {
+        folder?.file("DEBUG_DATA_MAPPING.json", JSON.stringify(debugData, null, 2))
+    }
+    
+    // Cache templates to avoid repeated localStorage reads/decodes
+    const templateCache: Record<string, string | null> = {}
+    
+    // Mapping Jenis SK to Template ID
+    // Updated to accept full data object for complex logic
+    const getTemplateId = (data: any) => {
+        const jenis = (data.jenisSk || data.status || "").toLowerCase()
+        const jabatan = (data.jabatan || "").toLowerCase()
+        // const status = (data.statusKepegawaian || "").toLowerCase() // not reliable if undefined
+        const nip = (data.nip || "").replace(/[^0-9]/g, "")
+
+        if (jenis.includes("tetap yayasan") || jenis.includes("gty")) return "sk_template_gty"
+        if (jenis.includes("tidak tetap") || jenis.includes("gtt")) return "sk_template_gtt"
+        
+        // Complex Kamad Logic
+        if (jenis.includes("kepala") || jenis.includes("kamad")) {
+             if (jabatan.includes("plt") || jabatan.includes("pelaksana")) {
+                 return "sk_template_kamad_plt"
+             }
+             // PNS Check: Valid NIP usually means PNS. 
+             // Also check statusKepegawaian if available, but NIP > 10 digits is strong signal
+             const isPns = nip.length > 10 || (data.statusKepegawaian || "").includes("PNS") || (data.statusKepegawaian || "").includes("ASN")
+             
+             if (isPns) return "sk_template_kamad_pns"
+             return "sk_template_kamad_nonpns"
+        }
+        
+        return "sk_template_tendik" // Default to Tendik
+    }
+
+    let successCount = 0;
+    const errors: string[] = []
+
+    for (const data of candidates) {
+        try {
+            const templateId = getTemplateId(data)
+            
+            if (templateCache[templateId] === undefined) {
+                templateCache[templateId] = loadTemplate(templateId)
+            }
+
+            const content = templateCache[templateId]
+            if (!content) {
+                errors.push(`Template tidak ditemukan untuk ${data.nama} (ID: ${templateId}). Upload di Settings.`)
+                continue
+            }
+
+            const pzip = new PizZip(content);
+            const doc = new Docxtemplater(pzip, {
+                paragraphLoop: true,
+                linebreaks: true,
+                // Fix: Return empty string instead of "undefined" text
+                nullGetter: (part) => {
+                     // console.warn("Missing tag:", part.value) 
+                     return "" 
+                }
+            });
+
+            // Render
+            doc.render(data);
+
+            const out = doc.getZip().generate({
+                type: "uint8array",
+                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            });
+
+            
+            const safeName = (data.nama || "document").replace(/[^a-z0-9]/gi, '_').substring(0, 50)
+            folder?.file(`${safeName}_SK.docx`, out)
+            successCount++
+
+        } catch (error: any) {
+            console.error("Gen Error", error)
+            errors.push(`Gagal generate untuk ${data.nama}: ${error.message}`)
+        }
+    }
+
+    if (errors.length > 0) {
+        folder?.file("ERRORS_REPORT.txt", errors.join("\n"))
+    }
+    
+    
+    if (successCount === 0 && errors.length > 0) {
+        alert(`Gagal Generate SK!\n\n${errors[0]}\n\n(Cek file ERRORS_REPORT.txt di dalam ZIP untuk detail lengkap)`)
+    }
+
+    // CRITICAL FIX: Wrap ZIP generation in try-catch
+    try {
+        const content = await zip.generateAsync({ type: "blob" })
+        
+        // FIXED: Use native browser download with Chrome compatibility
+        const url = URL.createObjectURL(content)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        link.type = 'application/zip' // Chrome needs explicit type
+        link.rel = 'noopener' // Security best practice
+        link.style.display = 'none'
+        document.body.appendChild(link)
+        
+        // Force click for download
+        link.click()
+        
+        // Cleanup after download triggered (increased delay for Chrome)
+        setTimeout(() => {
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+        }, 250)
+        
+        console.log(`✅ ZIP saved: ${filename}, Size: ${content.size} bytes`)
+    } catch (zipError: any) {
+        console.error("❌ CRITICAL: ZIP Generation Failed!", zipError)
+        alert(`CRITICAL ERROR: Gagal membuat file ZIP!\n\nError: ${zipError.message}\n\nSilakan cek console untuk detail.`)
+        throw zipError // Re-throw to prevent false success
+    }
+    
+    return { successCount, errorCount: errors.length }
+}
+
+import { api } from "@/lib/api"
 
 export default function SkGeneratorPage() {
   const [teachers, setTeachers] = useState<any[]>([])
@@ -40,16 +180,55 @@ export default function SkGeneratorPage() {
   // const [templateFile, setTemplateFile] = useState<File | null>(null) // Deprecated: Local state
   const [isGenerating, setIsGenerating] = useState(false)
   const [hasStoredTemplate, setHasStoredTemplate] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
-  // Load teachers from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("app_teachers")
-    if (stored) {
-      setTeachers(JSON.parse(stored))
+  const [nomorMulai, setNomorMulai] = useState("0001")
+  const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{TANGGAL}/{BULAN}/{TAHUN}")
+  
+  // New States for Surat Masuk & Validity
+  const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
+  const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
+  const [tahunAjaran, setTahunAjaran] = useState("2024/2025")
+  const [tanggalPenetapan, setTanggalPenetapan] = useState("")
+  // New: Global Kecamatan Fallback
+  const [defaultKecamatan, setDefaultKecamatan] = useState("") 
+
+  // Helper function to calculate +1 Year
+  const calculateValidityDate = (startDateStr: string): string => {
+      const date = parseIndonesianDate(startDateStr)
+      if (!date) return "-"
+      const newDate = new Date(date)
+      newDate.setFullYear(newDate.getFullYear() + 1)
+      return newDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
+  }
+  
+  const fetchTeachers = async () => {
+    setIsLoading(true)
+    try {
+        const data = await api.getTeachers()
+        setTeachers(data)
+    } catch(e) {
+        console.error("Failed to load teachers", e)
+    } finally {
+        setIsLoading(false)
     }
+  }
+
+  // Load teachers from API
+  useEffect(() => {
+    fetchTeachers()
     
-    // Check for stored template
-    if (localStorage.getItem("sk_template_blob")) {
+    // Check for ANY stored template
+    if (
+        localStorage.getItem("sk_template_gty_blob") || 
+        localStorage.getItem("sk_template_gtt_blob") || 
+        localStorage.getItem("sk_template_kamad_blob") || 
+        localStorage.getItem("sk_template_tendik_blob")
+    ) {
         setHasStoredTemplate(true)
     }
   }, [])
@@ -62,14 +241,19 @@ export default function SkGeneratorPage() {
     (t.unitKerja?.toLowerCase() || "").includes(searchTerm.toLowerCase()))
   )
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const currentData = filteredTeachers.slice(startIndex, startIndex + itemsPerPage)
+
   // Selection Logic
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = new Set(filteredTeachers.map(t => t.id))
-      setSelectedIds(allIds)
-    } else {
-      setSelectedIds(new Set())
-    }
+  const handleSelectAllForPage = (checked: boolean) => {
+    const next = new Set(selectedIds)
+    currentData.forEach(t => {
+        if (checked) next.add(t.id)
+        else next.delete(t.id)
+    })
+    setSelectedIds(next)
   }
 
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
@@ -96,8 +280,248 @@ export default function SkGeneratorPage() {
     setSelectedIds(next)
   }
 
+
+
+  // --- SMART LOGIC: Template Inspector & Validator ---
+  const inspectTemplate = () => {
+      const templateId = "sk_template_gty" 
+      const content = loadTemplate(templateId) || loadTemplate("sk_template_tendik")
+      
+      if (!content) {
+          alert("Tidak ada template yang tersimpan. Upload dulu!")
+          return
+      }
+
+      try {
+          const zip = new PizZip(content)
+          const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true })
+          const text = doc.getFullText()
+          // Robust Regex: Matches {VAR}, {{VAR}}, { VAR }, {Variable Name}
+          const matchedTags = text.match(/\{{1,2}[^{}\n\r]+\}{1,2}/g) || []
+          
+          // Clean tags: remove braces and trim whitespace
+          const uniqueTags = Array.from(new Set(matchedTags.map(t => t.replace(/[\{\}]/g, '').trim())))
+
+          // Create a dummy data object with ALL available keys to check against
+          const sampleData = {
+              ...teachers[0], // base props
+              jenisSk: "SK Guru Tetap",
+              // Uppercase
+              NAMA: "Sample", NAMA_LENGKAP: "Sample", NAMA_GURU: "Sample",
+              NIP: "123", NUPTK: "123", NOMOR_INDUK: "123", "NOMOR INDUK MAARIF": "123",
+              JABATAN: "Guru", UNIT_KERJA: "Madrasah", "UNIT KERJA": "Madrasah", STATUS: "Aktif",
+              TTL: "City, 01-01-1990", "TEMPAT/TANGGAL LAHIR": "City, 01-01-1990",
+              PENDIDIKAN: "S1", TMT: "2010-01-01",
+              KECAMATAN: "Cilacap", NOMOR_SURAT: "123/SK/2025", TANGGAL_PENETAPAN: "01 Januari 2025",
+              NOMOR: "123", TANGGAL: "01", BULAN: "Januari", TAHUN: "2025", "TANGGAL LENGKAP": "01 Januari 2025",
+              // Lowercase
+              nama: "x", nip: "x", nuptk: "x", nomor_induk: "x",
+              jabatan: "x", unit_kerja: "x", status: "x", ttl: "x", pendidikan: "x", tmt: "x",
+              kecamatan: "x", nomor_surat: "x", tanggal_penetapan: "x",
+              // Title
+              Nama: "x", Nip: "x", Nuptk: "x", Nomor_Induk: "x", Jabatan: "x", Unit_Kerja: "x",
+              Status: "x", Ttl: "x", Pendidikan: "x", Tmt: "x",
+              Kecamatan: "x", Nomor_Surat: "x", Tanggal_Penetapan: "x",
+              KETUA_NAMA: "x", KETUA_NIP: "x", SEKRETARIS_NAMA: "x", SEKRETARIS_NIP: "x"
+          }
+
+          const availableKeys = new Set(Object.keys(sampleData))
+          
+          const found = []
+          const missing = []
+
+          uniqueTags.forEach(tag => {
+              if (availableKeys.has(tag)) found.push(tag)
+              else missing.push(tag)
+          })
+
+          let msg = `[HASIL ANALISA TEMPLATE]\n\n`
+          
+          if (uniqueTags.length === 0) {
+              msg += `❌ TIDAK DITEMUKAN VARIABEL APAPUN!\n\n`
+              msg += `Saya tidak menemukan tanda kurung { } atau {{ }} di dalam file Word anda.\n`
+              msg += `Pastikan anda menulis variabel seperti ini: {NAMA}, {NIP}, dll.\n`
+              msg += `Jangan gunakan [ ] atau < >.`
+              alert(msg)
+              return
+          }
+
+          msg += `Ditemukan ${uniqueTags.length} variabel: ${uniqueTags.join(", ")}\n`
+
+          if (found.length > 0) {
+              msg += `\n✅ BERHASIL MATCH (${found.length}):\n${found.join(", ")}\n`
+          }
+
+          if (missing.length > 0) {
+              msg += `\n⚠️ TIDAK DIKENALI (${missing.length}):\n${missing.join(", ")}\n`
+              msg += `\nSOLUSI: Rename variabel di Word anda menjadi salah satu ini:\n`
+              msg += `NAMA, NUPTK, TTL, PENDIDIKAN, TMT, JABATAN, UNIT_KERJA, KECAMATAN, NOMOR_SURAT, TANGGAL_PENETAPAN\n`
+          } else {
+              msg += `\n🎉 SEMPURNA! Semua variabel valid.`
+          }
+
+          alert(msg)
+
+      } catch (e: any) {
+          alert("Error: " + e.message)
+      }
+  }
+
+  // Duplicate handleGenerate removed
+
+
+  // --- SMART LOGIC: Explain Classification ---
+  const explainClassification = (t: any) => {
+      const p = (t.pendidikanTerakhir || "").toLowerCase()
+      const n = (t.nama || "").toLowerCase()
+      const tmt = t.tmt
+
+      let log = `[Analisa Logika SK - ${t.nama}]\n`
+
+      // 1. Check Education / Title
+      const educationKeywords = ["s1", "s.1", "sarjana", "s2", "s.2", "magister", "s3", "s.3", "doktor", "div", "d4"]
+      const titleKeywords = ["s.pd", "s.ag", "s.e", "s.kom", "s.h", "s.sos", "s.hum", "s.ip", "m.pd", "m.ag", "m.e", "m.kom", "dra.", "drs.", "lc.", "b.a"]
+
+      const hasEdu = educationKeywords.some(k => p.includes(k))
+      const hasTitle = titleKeywords.some(k => n.includes(k))
+
+      log += `1. Cek Pendidikan/Gelar:\n`
+      log += `   - Data Pendidikan: "${t.pendidikanTerakhir}" -> ${hasEdu ? "LULUS (S1+)" : "TIDAK (Belum S1)"}\n`
+      log += `   - Cek Gelar di Nama: "${t.nama}" -> ${hasTitle ? "LULUS (Ada Gelar)" : "TIDAK"}\n`
+
+      if (!hasEdu && !hasTitle) {
+          log += `\nKESIMPULAN: TENDIK\n(Karena tidak ditemukan tanda S1 atau gelar akademik)`
+          alert(log)
+          return
+      }
+
+      // 2. Check Tenure
+      log += `\n2. Cek Masa Kerja (TMT):\n`
+      let tmtDate = new Date()
+       if (tmt && typeof tmt === 'string' && tmt.includes("/")) {
+          const parts = tmt.split("/")
+          if (parts.length === 3) tmtDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+      } else if (tmt) {
+          tmtDate = new Date(tmt)
+      }
+
+      const now = new Date()
+      let yearsDiff = now.getFullYear() - tmtDate.getFullYear()
+      const m = now.getMonth() - tmtDate.getMonth()
+      if (m < 0 || (m === 0 && now.getDate() < tmtDate.getDate())) yearsDiff--
+
+      log += `   - TMT Tercatat: ${t.tmt || 'Kosong'} (Dibaca: ${tmtDate.toDateString()})\n`
+      log += `   - Masa Kerja: ${yearsDiff} Tahun\n`
+      log += `   - Syarat GTY: Minimal 2 Tahun\n`
+
+      if (yearsDiff >= 2) {
+          log += `\nKESIMPULAN: GTY (Guru Tetap Yayasan)\n(Berpendidikan S1/Gelar DAN Masa Kerja >= 2 Tahun)`
+      } else {
+          log += `\nKESIMPULAN: GTT (Guru Tidak Tetap)\n(Berpendidikan S1/Gelar tapi Masa Kerja < 2 Tahun)`
+      }
+      
+      alert(log)
+  }
+
+  // --- HELPER: Parse Date Robustly ---
+  const parseIndonesianDate = (dateStr: any): Date | null => {
+      if (!dateStr) return null
+      
+      const str = String(dateStr).trim()
+
+      
+      // 0. Excel Serial Date check (Simple 5 digit number)
+      if (/^\d{5}$/.test(str)) {
+          try {
+             const serial = parseInt(str, 10);
+             // Convert Excel serial to JS Date (rough approximation sufficient for dates)
+             // (serial - 25569) * 86400 * 1000
+             return new Date((serial - 25569) * 86400 * 1000);
+          } catch (e) {
+              console.error("Failed to parse serial date", e);
+          }
+      }
+
+      // 1. Try Standard Date
+      const d = new Date(str)
+      if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d // Avoid plain numbers being treated as ms timestamp unless filtered above
+
+      // 2. Try DD/MM/YYYY or DD-MM-YYYY
+      const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+      if (parts) {
+          // parts[1] is Day, parts[2] is Month, parts[3] is Year
+          return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
+      }
+
+      // 3. Try Indonesian/English Month Names with varying delimiters (space, dash, slash)
+      // e.g. "15 Juli 2020", "18-Jul-2011", "01/Des/2023"
+      const months: {[key: string]: string} = {
+          'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
+          'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',
+          'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+          'jul': '07', 'aug': '08', 'agt': '08', 'sep': '09', 'oct': '10', 'okt': '10', 'nov': '11', 'dec': '12', 'des': '12'
+      }
+
+      // Split by space, dash, or slash
+      const txtParts = str.split(/[\s\-\/]+/)
+      
+      if (txtParts.length >= 3) {
+          const day = txtParts[0].replace(/[^0-9]/g, '')
+          const monthTxt = txtParts[1].toLowerCase()
+          const year = txtParts[2].replace(/[^0-9]/g, '')
+          
+          if (months[monthTxt] && year && day) {
+              return new Date(`${year}-${months[monthTxt]}-${day}`)
+          }
+      }
+
+      return null
+  }
+
+  // --- LOGIC: Determine Jenis SK ---
+  const determineJenisSk = (pendidikan: string, tmt: string, nama: string, jabatan: string) => {
+      const p = (pendidikan || "").toLowerCase()
+      const n = (nama || "").toLowerCase()
+      const j = (jabatan || "").toLowerCase()
+
+      // 0. Check Kamad
+      if (j.includes("kepala") || j.includes("kamad")) return "SK Kepala Madrasah"
+
+      // Keywords for S1 or above (Check Pendidikan AND Name titles)
+      const educationKeywords = ["s1", "s.1", "sarjana", "s2", "s.2", "magister", "s3", "s.3", "doktor", "div", "d4"]
+      const titleKeywords = ["s.pd", "s.ag", "s.e", "s.kom", "s.h", "s.sos", "s.hum", "s.ip", "m.pd", "m.ag", "m.e", "m.kom", "dra.", "drs.", "lc.", "b.a"]
+      
+      const isSarjana = educationKeywords.some(k => p.includes(k)) || 
+                        titleKeywords.some(k => n.includes(k))
+
+      if (!isSarjana) return "SK Tenaga Kependidikan"
+
+      // Check Tenure
+      const tmtDate = parseIndonesianDate(tmt) || new Date()
+      const now = new Date()
+      let yearsDiff = now.getFullYear() - tmtDate.getFullYear()
+      const m = now.getMonth() - tmtDate.getMonth()
+      if (m < 0 || (m === 0 && now.getDate() < tmtDate.getDate())) yearsDiff--
+
+      if (yearsDiff >= 2) return "SK Guru Tetap Yayasan"
+      else return "SK Guru Tidak Tetap"
+  }
+
+  // --- HELPER: Roman Numerals ---
+  const toRoman = (num: number): string => {
+      const roman = {M:1000,CM:900,D:500,CD:400,C:100,XC:90,L:50,XL:40,X:10,IX:9,V:5,IV:4,I:1}
+      let str = '', i
+      for ( i in roman ) {
+          while ( num >= roman[i as keyof typeof roman] ) {
+              str += i
+              num -= roman[i as keyof typeof roman]
+          }
+      }
+      return str
+  }
+
+  // Generate Handler
   const handleGenerate = async () => {
-    if (!hasStoredTemplate) return alert("Mohon upload template SK (Word) terlebih dahulu di menu Pengaturan.")
     if (selectedIds.size === 0) return alert("Pilih minimal satu data guru.")
 
     setIsGenerating(true)
@@ -109,33 +533,280 @@ export default function SkGeneratorPage() {
       const settingsStr = localStorage.getItem("app_settings")
       const settings = settingsStr ? JSON.parse(settingsStr) : {}
 
-      // Map teacher data to template keys clearly
-      const mappedData = selectedData.map(t => ({
-          ...t,
-          NAMA: t.nama,
-          NIP: t.nip,
-          JABATAN: t.mapel,
-          UNIT_KERJA: t.unitKerja,
-          STATUS: t.status,
-          
-          // Inject Global Signers
-          KETUA_NAMA: settings.signerKetuaName || "H. Munib",
-          KETUA_NIP: settings.signerKetuaNip || "-",
-          SEKRETARIS_NAMA: settings.signerSekretarisName || "-",
-          SEKRETARIS_NIP: settings.signerSekretarisNip || "-"
-      }))
+      // PREPARE DATE COMPONENTS
+      // Default to today if empty
+      const finalTanggalPenetapan = tanggalPenetapan || new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})
       
-      // Retrieve stored blob for generation (mock logic here still just passes "true" essentially)
-      // In real implementation: const blob = dataURLtoBlob(localStorage.getItem("sk_template_blob"))
-      const templateBlob = "mock_blob" 
+      // Try to parse day, month, year from string like "01 Januari 2025" or ISO
+      // Simple parse assume: DD Month YYYY or YYYY-MM-DD
+      const dateObj = parseIndonesianDate(tanggalPenetapan) || new Date()
+      const dd = String(dateObj.getDate()).padStart(2, '0')
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0') // 07
+      const mmAngka = String(dateObj.getMonth() + 1) // 7
+      const mmRoma = toRoman(dateObj.getMonth() + 1)
+      const yyyy = dateObj.getFullYear()
 
-      await generateBulkSkZip(templateBlob, mappedData)
-      alert("SK berhasil digenerate dan didownload!")
-    } catch (error) {
-      console.error(error)
-      alert("Gagal generate SK: " + error)
-    } finally {
+      // Calculate +1 Year Validity
+      const tanggalHabisBerlaku = calculateValidityDate(finalTanggalPenetapan)
+      const tanggalSuratMasukFormatted = parseIndonesianDate(tanggalSuratMasuk) 
+            ? parseIndonesianDate(tanggalSuratMasuk)!.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'})
+            : (tanggalSuratMasuk || "-")
+
+      // Map teacher data to template keys clearly
+      const mappedData = selectedData.map((t, idx) => {
+              const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir, t.tmt, t.nama, (t as any).jabatan)
+              
+              const tmt = t.tmt || ''
+          const tmtParsed = parseIndonesianDate(tmt)
+          const tmtFormatted = tmtParsed 
+                ? tmtParsed.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) 
+                : (tmt || '-')
+
+          // Auto-Numbering Logic
+          // Parse Start Number
+          let currentSeq = parseInt(nomorMulai) || 1
+          currentSeq += idx // Increment
+          const seqStr = String(currentSeq).padStart(4, '0')
+          
+          const generatedNomor = nomorFormat
+              .replace(/{NO}/g, seqStr)
+              .replace(/{NOMOR}/g, seqStr)
+              .replace(/{SEQ}/g, seqStr)
+              .replace(/{HL}/g, dd)
+              .replace(/{DD}/g, dd)
+              .replace(/{TANGGAL}/g, dd)
+              .replace(/{MM}/g, mm)
+              .replace(/{BL}/g, mmAngka) // "7"
+              .replace(/{BULAN}/g, mmAngka) // "7" (User Request)
+              .replace(/{BL_ROMA}/g, mmRoma)
+              .replace(/{TH}/g, String(yyyy))
+              .replace(/{YYYY}/g, String(yyyy))
+              .replace(/{TAHUN}/g, String(yyyy))
+
+
+          // Fallback Kecamatan Logic:
+          // 1. Teacher Data (highest priority) -> 2. Global Input -> 3. "....."
+          const rawKecamatan = (t as any).kecamatan
+          const kecamatan = (rawKecamatan && rawKecamatan.length > 2) ? rawKecamatan : (defaultKecamatan || ".....")
+
+
+          // TTL Construction
+          const birthPlace = (t as any).birthPlace || ""
+          const birthDate = (t as any).birthDate || ""
+          let ttl = "-"
+          if(birthPlace || birthDate) {
+              ttl = `${birthPlace}, ${birthDate}`
+          }
+
+          return {
+            ...t,
+            jenisSk: derivedJenisSk,
+
+            // Uppercase
+            NAMA: t.nama,
+            NOMOR_SURAT: generatedNomor,
+            TANGGAL_PENETAPAN: finalTanggalPenetapan,
+            KECAMATAN: kecamatan,
+            
+            // Extensive Aliases (Kitchen Sink)
+            NOMOR: seqStr,
+            "NOMOR INDUK MAARIF": t.nuptk || t.nip || '-',
+            "UNIT KERJA": (t as any).satminkal || "LP Maarif NU Cilacap",
+            "TEMPAT/TANGGAL LAHIR": ttl,
+            "TANGGAL LENGKAP": finalTanggalPenetapan,
+            TANGGAL: dd,
+            BULAN: mmAngka,
+            NAMA_BULAN: dateObj.toLocaleDateString('id-ID', {month: 'long'}),
+            TAHUN: String(yyyy),
+            
+            // Request Letter & Validity
+            NOMOR_SURAT_MASUK: nomorSuratMasuk || "-",
+            NOMOR_SURAT_PERMOHONAN: nomorSuratMasuk || "-",
+            NO_SURAT_PERMOHONAN: nomorSuratMasuk || "-",
+            NOMOR_PERMOHONAN: nomorSuratMasuk || "-",
+            NO_PERMOHONAN: nomorSuratMasuk || "-",
+            
+            TANGGAL_SURAT_MASUK: tanggalSuratMasukFormatted,
+            TANGGAL_SURAT_PERMOHONAN: tanggalSuratMasukFormatted,
+            TGL_SURAT_PERMOHONAN: tanggalSuratMasukFormatted,
+            TANGGAL_PERMOHONAN: tanggalSuratMasukFormatted,
+            TGL_PERMOHONAN: tanggalSuratMasukFormatted,
+            
+            TAHUN_AJARAN: tahunAjaran,
+            TAHUN_PELAJARAN: tahunAjaran,
+            TH_AJARAN: tahunAjaran,
+            TH_PELAJARAN: tahunAjaran,
+            
+            TANGGAL_HABIS_BERLAKU: tanggalHabisBerlaku,
+            TANGGAL_BERAKHIR: tanggalHabisBerlaku,
+            "TANGGAL > 1 TAHUN SEJAK PENETAPAN": tanggalHabisBerlaku,
+            MASA_BERLAKU: tanggalHabisBerlaku,
+
+            NAMA_LENGKAP: t.nama,
+            NAMA_GURU: t.nama,
+            NIP: t.nip || t.nuptk || '-',
+            NUPTK: t.nuptk || '-',
+            NOMOR_INDUK: t.nuptk || t.nip || '-',
+            JABATAN: t.mapel === '-' ? 'Guru' : t.mapel,
+            UNIT_KERJA: (t as any).satminkal || "LP Maarif NU Cilacap",
+            STATUS: t.status,
+            TTL: ttl,
+            PENDIDIKAN: (t as any).pendidikanTerakhir || '-',
+            TMT: tmtFormatted,
+            TANGGAL_MULAI_TUGAS: tmtFormatted,
+            TGL_MULAI_TUGAS: tmtFormatted,
+
+            // Lowercase
+            nama: t.nama,
+            nip: t.nip || t.nuptk || '-',
+            nuptk: t.nuptk || '-',
+            nomor_induk: t.nuptk || t.nip || '-',
+            jabatan: t.mapel === '-' ? 'Guru' : t.mapel,
+            unit_kerja: (t as any).satminkal || "LP Maarif NU Cilacap",
+            status: t.status,
+            ttl: ttl,
+            pendidikan: (t as any).pendidikanTerakhir || '-',
+            tmt: tmtFormatted,
+
+            pangkat: (t as any).pangkat || "-", // Fallback common field
+            golongan: (t as any).golongan || "-",
+
+            // --- KITCHEN SINK ALIASES (Space, TitleCase, dots) ---
+            "Nomor Surat Permohonan": nomorSuratMasuk || "-",
+            "No. Surat Permohonan": nomorSuratMasuk || "-",
+            "Nomor Permohonan": nomorSuratMasuk || "-",
+            "No Surat Permohonan": nomorSuratMasuk || "-",
+
+            "Tanggal Surat Permohonan": tanggalSuratMasukFormatted,
+            "Tgl. Surat Permohonan": tanggalSuratMasukFormatted,
+            "Tanggal Permohonan": tanggalSuratMasukFormatted,
+            "Tgl Surat Permohonan": tanggalSuratMasukFormatted,
+            
+            "Tahun Ajaran": tahunAjaran,
+            "Th. Ajaran": tahunAjaran,
+            "Th Ajaran": tahunAjaran,
+            
+            "Kecamatan": kecamatan,
+            // "KECAMATAN_SEKOLAH" moved below
+            "KECAMATAN": kecamatan, // Ensure Uppercase overrides
+            
+            // --- ALL CAPS SPACES (User might format like this) ---
+            "NOMOR SURAT PERMOHONAN": nomorSuratMasuk || "-",
+            "NO SURAT PERMOHONAN": nomorSuratMasuk || "-",
+            "TANGGAL SURAT PERMOHONAN": tanggalSuratMasukFormatted,
+            "TGL SURAT PERMOHONAN": tanggalSuratMasukFormatted,
+            "TAHUN AJARAN": tahunAjaran,
+            "TH AJARAN": tahunAjaran,
+            "TAHUN PELAJARAN": tahunAjaran,
+            "TH PELAJARAN": tahunAjaran,
+            
+            // Title Case Space
+            "Tahun Pelajaran": tahunAjaran,
+            "Th Pelajaran": tahunAjaran,
+
+            // Inject Global Signers
+            KETUA_NAMA: settings.signerKetuaName || "H. Munib",
+            KETUA_NIP: settings.signerKetuaNip || "-",
+            SEKRETARIS_NAMA: settings.signerSekretarisName || "-",
+            SEKRETARIS_NIP: settings.signerSekretarisNip || "-"
+        }
+      })
+      
+      console.log("MAPPED DATA SAMPLE:", mappedData[0]) // Debug Log
+      
+      const res = await generateBulkSkZip(mappedData, "SK_Masal_Maarif.zip", mappedData) // Pass mappedData as debug info
+      if (res.successCount > 0) {
+          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\n${res.errorCount > 0 ? "Beberapa gagal, cek log." : ""}`)
+          
+          // --- TEMPORARILY DISABLED: AUTO ARCHIVE & DELETE  ---
+          // REASON: Backend /sk endpoint returns 500 error, blocking ZIP generation  
+          // TODO: Fix backend issue before re-enabling
+          /*
+          let archivedCount = 0
+          
+          // 0. Fetch existing SKs to prevent duplicates
+          let existingSkList: any[] = []
+          try {
+             existingSkList = await api.getSkList()
+          } catch(e) { console.warn("Failed to check duplicates", e) }
+
+          for (const item of mappedData) {
+              try {
+                  // 1. Check Duplicate
+                  const isDup = existingSkList.some(ex => 
+                      ex.nama === item.nama && 
+                      ex.jenis === item.jenisSk &&
+                      ex.status !== 'Rejected' // Allow retrying rejected ones
+                  )
+                  
+                  if (isDup) {
+                      console.log(`Skipping duplicate SK for ${item.nama}`)
+                      continue;
+                  }
+
+                  // 2. Archive to SK History
+                  await api.createSk({
+                      jenis: item.jenisSk,
+                      jenisPengajuan: "new",
+                      status: "Approved",
+                      nama: item.nama,
+                      niy: item.nuptk || "-",
+                      jabatan: item.JABATAN,
+                      unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap", // CRITICAL FIX: Use mapped UNIT_KERJA field
+                      nomorSurat: item.NOMOR_SURAT,
+                      fileUrl: "Generated via Bulk ZIP",
+                      keterangan: (item as any).suratPermohonanUrl 
+                        ? `Permohonan: ${(item as any).suratPermohonanUrl}` 
+                        : "Generated via SK Generator"
+                  })
+
+                  // 2. Remove from Queue (Teacher Data)
+                  if ((item as any).id) {
+                      await api.deleteTeacher((item as any).id)
+                  }
+                  archivedCount++
+              } catch (err) {
+                  console.error("Auto-archive failed:", item.nama, err)
+              }
+          }
+
+          if (archivedCount > 0) {
+              console.log(`Archived & Deleted ${archivedCount} teachers from queue.`)
+              fetchTeachers() // Refresh list immediately
+          }
+          */
+          // -------------------------------------------
+
+          // Auto-Increment Logic for Next Batch
+          const NextStartNumber = (parseInt(nomorMulai) || 0) + res.successCount
+          setNomorMulai(String(NextStartNumber).padStart(4, '0'))
+      }
+      
       setIsGenerating(false)
+    } catch (e: any) {
+        console.error("❌ Critical Gen Error:", e)
+        alert(`Terjadi kesalahan sistem saat generate!\n\nError: ${e.message || e}\n\nCek console untuk detail lengkap.`)
+        setIsGenerating(false)
+    }
+  }
+
+
+  const handleReset = async () => {
+    if (!confirm("⚠️ PERINGATAN KERAS!\n\nApakah anda yakin ingin MENGHAPUS SEMUA DATA GURU?\nTindakan ini tidak dapat dibatalkan.")) return
+    
+    // Double confirmation
+    if(!confirm("Yakin? Data akan hilang selamanya.")) return
+
+    setIsLoading(true)
+    try {
+        await api.deleteAllTeachers()
+        alert("Semua data guru berhasil dihapus.")
+        fetchTeachers() // Refresh list
+    } catch (e: any) {
+        console.error(e)
+        alert("Gagal menghapus data: " + e.message)
+    } finally {
+        setIsLoading(false)
     }
   }
 
@@ -146,47 +817,171 @@ export default function SkGeneratorPage() {
             <h1 className="text-2xl font-bold tracking-tight">Generator SK Masal</h1>
             <p className="text-muted-foreground">Pilih data guru dan terbitkan SK secara otomatis.</p>
         </div>
-         <Button variant="outline" asChild>
-            <Link to="/dashboard/settings">
-                <Settings className="mr-2 h-4 w-4" /> Atur Template & Tanda Tangan
-            </Link>
-        </Button>
+        <div className="flex gap-2">
+            <Button variant="destructive" onClick={handleReset} disabled={isLoading}>
+                <Archive className="mr-2 h-4 w-4" /> Hapus Semua Data
+            </Button>
+             <Button variant="outline" asChild>
+                <Link to="/dashboard/settings">
+                    <Settings className="mr-2 h-4 w-4" /> Atur Template & Tanda Tangan
+                </Link>
+            </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="active">
-        <TabsList>
-          <TabsTrigger value="active">SK Aktif (Tahun Ini)</TabsTrigger>
-          <TabsTrigger value="archive">Arsip SK (Tahun Lalu)</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="active" className="space-y-4">
-            {/* Template Status Indicator */}
-            {hasStoredTemplate ? (
-                 <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 border border-green-200 rounded-md text-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    <span className="font-medium">Template SK Siap Digunakan</span>
-                    <span className="text-green-600/80">({localStorage.getItem("sk_template_name")})</span>
-                 </div>
-            ) : (
-                <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-700 border border-amber-200 rounded-md text-sm">
-                    <Archive className="h-4 w-4" />
-                    <span className="font-medium">Template belum ada.</span>
-                    <Link to="/dashboard/settings" className="underline hover:text-amber-800">Upload di Pengaturan</Link>
+      {/* Removed Tabs wrapper - Archive moved to Arsip SK Unit page */}
+      <div className="space-y-4">
+        {/* GLOBAL SETTINGS CARD */}
+        <Card className="mb-4 bg-slate-50/50 border-blue-100">
+            <CardHeader className="pb-3 border-b bg-slate-50">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-700">
+                    <Settings className="h-4 w-4 text-blue-600"/> Pengaturan Surat Keputusan (Global)
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 grid sm:grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Format Nomor Surat (Otomatis)</label>
+                    <div className="flex gap-2">
+                        <Input 
+                            value={nomorMulai}
+                            onChange={e => setNomorMulai(e.target.value)}
+                            placeholder="Start (0001)"
+                            className="w-20 bg-white"
+                            title="Nomor Awal"
+                        />
+                        <Input 
+                            value={nomorFormat}
+                            onChange={e => setNomorFormat(e.target.value)}
+                            placeholder="Format: {NO}/SK/{BL_ROMA}/{TH}"
+                            className="flex-1 bg-white"
+                        />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                        Gunakan kode: <code>{"{NOMOR}"}</code> (urut), <code>{"{BL_ROMA}"}</code> (III), <code>{"{TANGGAL}"}</code> (01), <code>{"{BULAN}"}</code> (07), <code>{"{TAHUN}"}</code> (2025). 
+                        <br/> Preview: <span className="font-mono bg-slate-100 px-1">{nomorFormat.replace('{NOMOR}', nomorMulai).replace('{NO}', nomorMulai).replace('{BL_ROMA}', 'VII').replace('{TH}', '2025').replace('{TAHUN}', '2025')}</span>
+                    </p>
                 </div>
-            )}
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tanggal Penetapan</label>
+
+                    <Input 
+                        placeholder="Contoh: 1 Juli 2025" 
+                        value={tanggalPenetapan}
+                        onChange={e => setTanggalPenetapan(e.target.value)}
+                        className="bg-white"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Otomatis mengganti <code>{"{TANGGAL_PENETAPAN}"}</code>.</p>
+                </div>
+                
+                {/* SURAT MASUK & TAHUN AJARAN */}
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-2 mt-2">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">No. Surat Permohonan</label>
+                        <Input 
+                            value={nomorSuratMasuk}
+                            onChange={e => setNomorSuratMasuk(e.target.value)}
+                            placeholder="Contoh: 005/MWC/..."
+                            className="bg-white"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tgl. Surat Permohonan</label>
+                         <Input 
+                            value={tanggalSuratMasuk}
+                            onChange={e => setTanggalSuratMasuk(e.target.value)}
+                            placeholder="Contoh: 20 Juni 2025"
+                            className="bg-white"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tahun Ajaran</label>
+                         <Input 
+                            value={tahunAjaran}
+                            onChange={e => setTahunAjaran(e.target.value)}
+                            placeholder="Contoh: 2024/2025"
+                            className="bg-white"
+                        />
+                    </div>
+                     <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Kecamatan (Default)</label>
+                         <Input 
+                            value={defaultKecamatan}
+                            onChange={e => setDefaultKecamatan(e.target.value)}
+                            placeholder="Isi jika kecamatan di data guru kosong"
+                            className="bg-white"
+                        />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        {/* GUIDANCE BOX */}
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md mb-4">
+            <div className="flex justify-between items-start">
+                <div>
+                     <h3 className="font-bold text-blue-800 mb-1">Panduan Template Word</h3>
+                     <p className="text-sm text-blue-700 mb-2">
+                        Agar data terisi otomatis, anda <strong>WAJIB</strong> menggunakan tanda kurung <code>{"{ }"}</code> di file Word.
+                        <br/><span className="text-xs opacity-75">Klik kode dibawah untuk copy:</span>
+                    </p>
+                </div>
+                <div>
+                     {hasStoredTemplate ? (
+                         <div className="flex items-center gap-2 text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
+                            <CheckCircle className="h-3 w-3" /> Template Aktif: {localStorage.getItem("sk_template_name")}
+                         </div>
+                     ) : (
+                         <div className="flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                            <Archive className="h-3 w-3" /> Template Belum Ada
+                         </div>
+                     )}
+                </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mb-3">
+                {["{NAMA}", "{NIP}", "{TTL}", "{PENDIDIKAN}", "{TMT}", "{JABATAN}", "{UNIT_KERJA}", "{KECAMATAN}", "{NOMOR_SURAT}", "{NOMOR}", "{TANGGAL_PENETAPAN}", "{TANGGAL_HABIS_BERLAKU}", "{NOMOR_SURAT_MASUK}", "{TANGGAL_SURAT_MASUK}", "{TAHUN_AJARAN}"].map(tag => (
+                    <span key={tag} 
+                          onClick={() => {navigator.clipboard.writeText(tag); alert(`Copied: ${tag}`)}}
+                          className="bg-white px-2 py-1 rounded border text-xs font-mono font-bold select-all cursor-pointer hover:bg-slate-100 shadow-sm transition-colors text-blue-800" 
+                          title="Klik untuk copy">
+                        {tag}
+                    </span>
+                ))}
+            </div>
+            
+            <div className="flex gap-2">
+                 <Button variant="outline" size="sm" onClick={inspectTemplate} className="gap-2 bg-white hover:bg-slate-100 text-blue-700 border-blue-300 h-8 text-xs">
+                    <Search className="h-3 w-3" />
+                    Analisa Template & Cek Variabel
+                </Button>
+                {!hasStoredTemplate && (
+                    <Link to="/dashboard/settings">
+                        <Button variant="default" size="sm" className="h-8 text-xs">Upload Template dulu</Button>
+                    </Link>
+                )}
+            </div>
+        </div>
 
             {/* Step 2: Select Data (Now Main Step) */}
             <Card>
                 <CardHeader className="pb-3 card-header-compact">
                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <CardTitle className="text-base">Pilih Data Penerima SK ({selectedIds.size} dipilih)</CardTitle>
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-base">Pilih Data Penerima SK ({selectedIds.size} dipilih)</CardTitle>
+                             <Button variant="ghost" size="icon" onClick={() => fetchTeachers()} title="Refresh Data">
+                                <Search className="h-4 w-4" /> {/* Reusing search icon as refresh temporarily or import RefreshCw */}
+                            </Button>
+                        </div>
                          <div className="relative">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Cari nama..."
                                 className="pl-9 w-[250px]"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setCurrentPage(1); // Reset to page 1 on search
+                                }}
                             />
                         </div>
                     </div>
@@ -198,24 +993,38 @@ export default function SkGeneratorPage() {
                                 <TableRow>
                                     <TableHead className="w-[50px]">
                                         <Checkbox 
-                                            checked={selectedIds.size === filteredTeachers.length && filteredTeachers.length > 0}
-                                            onCheckedChange={(c) => handleSelectAll(!!c)}
+                                            checked={
+                                                currentData.length > 0 && 
+                                                currentData.every(t => selectedIds.has(t.id))
+                                            }
+                                            onCheckedChange={(c) => handleSelectAllForPage(!!c)}
                                         />
                                     </TableHead>
                                     <TableHead>Nama Lengkap</TableHead>
+                                    <TableHead>Pendidikan</TableHead>
                                     <TableHead>NIP/NIY</TableHead>
                                     <TableHead>Jabatan</TableHead>
                                     <TableHead>Unit Kerja</TableHead>
                                     <TableHead>Status</TableHead>
+                                    <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredTeachers.length === 0 ? (
+                                {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-24 text-center">Data kosong. Lakukan input SK atau upload kolektif dulu.</TableCell>
+                                        <TableCell colSpan={8} className="h-24 text-center">
+                                            <Loader2 className="h-6 w-6 animate-spin mx-auto"/>
+                                            <span className="text-xs text-muted-foreground">Memuat data guru...</span>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : currentData.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="h-24 text-center">
+                                            {searchTerm ? "Tidak ada data yang cocok dengan pencarian." : "Data kosong. Lakukan input SK atau upload kolektif dulu."}
+                                        </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredTeachers.map((t) => (
+                                    currentData.map((t) => (
                                         <TableRow key={t.id} data-state={selectedIds.has(t.id) ? "selected" : ""}>
                                             <TableCell>
                                                 <Checkbox 
@@ -224,16 +1033,61 @@ export default function SkGeneratorPage() {
                                                 />
                                             </TableCell>
                                             <TableCell className="font-medium">{t.nama}</TableCell>
-                                            <TableCell>{t.nip}</TableCell>
-                                            <TableCell>{t.mapel}</TableCell>
-                                            <TableCell>{t.unitKerja}</TableCell>
-                                            <TableCell>{t.status}</TableCell>
+                                            <TableCell>{t.pendidikanTerakhir || '-'}</TableCell>
+                                            <TableCell>{t.nip || '-'}</TableCell>
+                                            <TableCell>{t.mapel || '-'}</TableCell>
+                                            <TableCell>{t.unitKerja || '-'}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    {t.status}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                 <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-6 w-6 text-blue-500 hover:text-blue-700"
+                                                    title="Analisa Logika (AI)"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        explainClassification(t)
+                                                    }}
+                                                 >
+                                                    <span className="text-xs font-bold">(?)</span>
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}
                             </TableBody>
                         </Table>
                     </div>
+
+                    {/* Pagination Controls */}
+                     <div className="flex items-center justify-end space-x-2 py-4">
+                        <div className="flex-1 text-sm text-muted-foreground">
+                            Halaman {currentPage} dari {totalPages} ({filteredTeachers.length} data)
+                        </div>
+                        <div className="space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Sebelumnya
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                            >
+                                Selanjutnya
+                            </Button>
+                        </div>
+                    </div>
+
                 </CardContent>
             </Card>
 
@@ -261,35 +1115,7 @@ export default function SkGeneratorPage() {
                     )}
                 </div>
             )}
-        </TabsContent>
-
-        <TabsContent value="archive">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Arsip SK Tahun Sebelumnya</CardTitle>
-                    <CardDescription>Download arsip surat keputusan dari tahun ajaran yang telah lewat dalam format PDF/ZIP.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {["2023/2024", "2022/2023", "2021/2022"].map(year => (
-                        <div key={year} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition">
-                            <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded bg-amber-100 flex items-center justify-center">
-                                    <Archive className="h-5 w-5 text-amber-600" />
-                                </div>
-                                <div>
-                                    <h4 className="font-semibold">Arsip SK Tahun {year}</h4>
-                                    <p className="text-sm text-muted-foreground">Semester Ganjil & Genap • {Math.floor(Math.random() * 50) + 10} MB</p>
-                                </div>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => alert(`Mendownload arsip ${year}...`)}>
-                                <FileDown className="mr-2 h-4 w-4" /> Download ZIP
-                            </Button>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   )
 }

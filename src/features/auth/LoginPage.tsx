@@ -57,10 +57,10 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
-            SIM Maarif NU
+            SIMMACI
           </CardTitle>
           <CardDescription>
-            Sistem Informasi Manajemen Pendidikan
+            Sistem Informasi Manajemen Maarif NU Cilacap 
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>

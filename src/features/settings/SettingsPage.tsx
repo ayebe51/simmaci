@@ -168,34 +168,98 @@ export default function SettingsPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Template Generator SK</CardTitle>
-                    <CardDescription>Upload file Word (.docx) yang akan digunakan sebagai master template untuk Generator SK.</CardDescription>
+                    <CardDescription>Upload file Word (.docx) untuk masing-masing jenis SK.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="border border-dashed p-6 rounded-lg bg-slate-50 flex flex-col items-center justify-center gap-3">
-                        {hasTemplate ? (
-                            <div className="text-center space-y-2">
-                                <div className="mx-auto bg-green-100 p-3 rounded-full w-fit">
-                                    <CheckCircle className="h-6 w-6 text-green-600" />
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {[
+                            { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY" },
+                            { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT" },
+                            { id: "sk_template_tendik", label: "SK Tenaga Kependidikan", desc: "Template untuk Staff/TU" },
+                            { id: "sk_template_kamad_pns", label: "SK Kamad (PNS)", desc: "Khusus Kepala Sekolah PNS" },
+                            { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS" },
+                            { id: "sk_template_kamad_plt", label: "SK Kamad (PLT)", desc: "Khusus Pelaksana Tugas (PLT)" },
+                        ].map((template) => {
+                            const hasFile = !!localStorage.getItem(template.id + "_blob")
+                            const fileName = localStorage.getItem(template.id + "_name") || "template.docx"
+
+                            return (
+                                <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
+                                    <div className="mb-3">
+                                        <h3 className="font-semibold text-sm text-slate-800">{template.label}</h3>
+                                        <p className="text-xs text-muted-foreground">{template.desc}</p>
+                                    </div>
+                                    
+                                    {hasFile ? (
+                                        <div className="flex items-center gap-3 p-3 bg-white border rounded">
+                                            <div className="bg-green-100 p-2 rounded-full text-green-600">
+                                                <CheckCircle className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-medium truncate">{fileName}</p>
+                                                <p className="text-[10px] text-green-600">Siap digunakan</p>
+                                            </div>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                                onClick={() => {
+                                                    if(confirm("Hapus template ini?")) {
+                                                        localStorage.removeItem(template.id + "_blob")
+                                                        localStorage.removeItem(template.id + "_name")
+                                                        window.location.reload() // Quick refresh to update UI state
+                                                    }
+                                                }}
+                                            >
+                                                x
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative">
+                                            <div className="text-center space-y-1">
+                                                <Download className="mx-auto h-4 w-4 text-muted-foreground" />
+                                                <span className="text-xs text-slate-500 block">Upload .docx</span>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                accept=".docx"
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) {
+                                                        const reader = new FileReader()
+                                                        reader.onload = (evt) => {
+                                                            const base64 = evt.target?.result as string
+                                                            localStorage.setItem(template.id + "_blob", base64)
+                                                            localStorage.setItem(template.id + "_name", file.name)
+                                                            alert(`Template ${template.label} berhasil disimpan!`)
+                                                            window.location.reload()
+                                                        }
+                                                        reader.readAsDataURL(file)
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                                <h3 className="font-semibold text-green-700">Template Tersimpan</h3>
-                                <p className="text-sm text-gray-500">File: {localStorage.getItem("sk_template_name") || "template_master.docx"}</p>
-                            </div>
-                        ) : (
-                             <p className="text-center text-sm text-muted-foreground">Belum ada template tersimpan.</p>
-                        )}
-                        
-                        <div className="w-full max-w-sm">
-                             <Label htmlFor="templateUpload" className="sr-only">Upload Template</Label>
-                             <Input 
-                                id="templateUpload" 
-                                type="file" 
-                                accept=".docx" 
-                                onChange={handleTemplateUpload}
-                             />
-                             <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                                Gunakan placeholder: {'{{NAMA}}, {{NIP}}, {{JABATAN}}, {{UNIT_KERJA}}, {{STATUS}}, {{KETUA_NAMA}}, {{SEKRETARIS_NAMA}}'}
-                             </p>
-                        </div>
+                            )
+                        })}
+                    </div>
+                
+                    <div className="bg-blue-50 p-4 rounded-md text-xs text-blue-700 space-y-2 border border-blue-100">
+                         <p className="font-semibold">Bantuan Placeholder:</p>
+                         <p>Gunakan kode berikut di dalam file Word anda, sistem akan otomatis menggantinya:</p>
+                         <div className="grid grid-cols-2 gap-2 font-mono">
+                             <span>{`{{NAMA}}`} - Nama Lengkap</span>
+                             <span>{`{{NIP}}`} - NIP/PegID</span>
+                             <span>{`{{JABATAN}}`} - Jabatan</span>
+                             <span>{`{{UNIT_KERJA}}`} - Unit Kerja</span>
+                             <span>{`{{STATUS}}`} - Status Kepegawaian</span>
+                             <span>{`{{TTL}}`} - Tempat, Tgl Lahir</span>
+                             <span>{`{{PENDIDIKAN}}`} - Pendidikan Terakhir</span>
+                             <span>{`{{KETUA_NAMA}}`} - Nama Ketua</span>
+                             <span>{`{{SEKRETARIS_NAMA}}`} - Nama Sekretaris</span>
+                         </div>
                     </div>
                 </CardContent>
             </Card>

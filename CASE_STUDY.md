@@ -52,3 +52,7 @@ Project ini mendemonstrasikan kemampuan Full Stack Development meliputi:
 - **API Design:** RESTful standard dengan error handling dan response wrapping yang konsisten.
 - **Security Best Practices:** Password hashing, env protection, dan request validation.
 - **Modern UI/UX:** Fokus pada kegunaan (usability) bagi pengguna non-teknis (admin sekolah).
+
+---
+
+**Developed by Ahmad Ayub Nu'man**

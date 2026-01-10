@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 
 interface User {
   id: string
@@ -48,6 +49,30 @@ export default function UserListPage() {
   const fetchUsers = async () => {
       try {
           const data = await api.getUsers() // Returns backend user entities
+          console.log("DEBUG: Users Data:", data);
+
+          if (!Array.isArray(data)) {
+             console.error("Data users is not array:", data);
+             // handle edge case where data might be wrapped
+             const realData = (data as any).data || data;
+             if(Array.isArray(realData)) {
+                 // proceed with realData
+                 const mapped: User[] = realData.map((u: any) => ({
+                    id: u.id,
+                    name: u.name || u.username,
+                    email: u.username,
+                    role: u.role,
+                    status: "active",
+                    unitKerja: u.unitKerja
+                }))
+                setUsers(mapped)
+                return;
+             }
+             
+             toast.error("Format data user salah (Not Array)");
+             return;
+          }
+
           // Map backend to frontend
           const mapped: User[] = data.map((u: any) => ({
               id: u.id,
@@ -58,8 +83,9 @@ export default function UserListPage() {
               unitKerja: u.unitKerja
           }))
           setUsers(mapped)
-      } catch (err) {
-          toast.error("Gagal mengambil data user.")
+      } catch (err: any) {
+          console.error("Fetch Users Error:", err)
+          toast.error("Gagal load user: " + (err.response?.data?.message || err.message))
       }
   }
 
@@ -135,20 +161,24 @@ export default function UserListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Manajemen User</h1>
-          <p className="text-muted-foreground">
-            Kelola akses Operator Sekolah dan Admin.
-          </p>
-        </div>
-        <div className="flex gap-2">
-            <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-                <DialogTrigger asChild>
-                    <Button onClick={resetForm}>
-                        <Plus className="mr-2 h-4 w-4" /> Tambah User
-                    </Button>
-                </DialogTrigger>
+      <SoftPageHeader
+        title="Manajemen User"
+        description="Kelola akses Operator Sekolah dan Admin"
+      >
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
+          <DialogTrigger asChild>
+            <button
+              onClick={resetForm}
+              className="group cursor-pointer rounded-lg bg-pastel-purple p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:bg-pastel-lavender"
+            >
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pastel-lavender">
+                  <Plus className="h-5 w-5 text-gray-700" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">Tambah User</span>
+              </div>
+            </button>
+          </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editingUser ? "Edit User" : "Tambah User Baru"}</DialogTitle>
@@ -211,8 +241,8 @@ export default function UserListPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
-      </div>
+        </SoftPageHeader>
+      
 
       <Card>
         <CardHeader className="pb-3">

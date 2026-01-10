@@ -4,59 +4,24 @@ import { useEffect, useState } from "react"
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
 
-export function DashboardCharts() {
-  const [statusData, setStatusData] = useState<any[]>([])
-  const [unitData, setUnitData] = useState<any[]>([])
+interface DashboardChartsProps {
+    data?: {
+        status: { name: string, value: number }[]
+        units: { name: string, jumlah: number }[]
+    }
+}
+
+export function DashboardCharts({ data }: DashboardChartsProps) {
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
-    const teachersStr = localStorage.getItem("app_teachers")
-    if (teachersStr) {
-      const teachers = JSON.parse(teachersStr)
-      if (Array.isArray(teachers)) {
-        // 1. Process Status Kepegawaian (Pie Chart)
-        const statusCounts: Record<string, number> = {}
-        teachers.forEach((t: any) => {
-            if (!t.isActive) return
-            const s = (t.status || "Lainnya").toUpperCase()
-            // Grouping logic
-            let label = s
-            if (s.includes("GTY")) label = "GTY"
-            else if (s.includes("GTT")) label = "GTT"
-            else if (s.includes("PNS") || s.includes("PPPK")) label = "ASN"
-            else if (s.includes("HONOR")) label = "HONORER"
-            
-            statusCounts[label] = (statusCounts[label] || 0) + 1
-        })
-        
-        const pData = Object.keys(statusCounts).map(key => ({
-            name: key,
-            value: statusCounts[key]
-        }))
-        setStatusData(pData)
-
-        // 2. Process Unit Kerja Distribution (Bar Chart - Top 5)
-        const unitCounts: Record<string, number> = {}
-        teachers.forEach((t: any) => {
-             if (!t.isActive) return
-             const u = t.unitKerja || "Tanpa Unit"
-             unitCounts[u] = (unitCounts[u] || 0) + 1
-        })
-        
-        const bData = Object.keys(unitCounts).map(key => ({
-            name: key.replace("MI Ma'arif", "MI").replace("MTs Ma'arif", "MTs").substring(0, 15), // Shorten name
-            jumlah: unitCounts[key]
-        }))
-        .sort((a,b) => b.jumlah - a.jumlah)
-        .slice(0, 5) // Top 5
-        
-        setUnitData(bData)
-      }
-    }
   }, [])
 
-  if (!isClient) return null // Prevent hydration mismatch if any
+  if (!isClient) return null // Prevent hydration mismatch
+
+  const statusData = data?.status || []
+  const unitData = data?.units || []
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">

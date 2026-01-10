@@ -6,12 +6,16 @@ import { useEffect, useState } from "react"
 
 // Defines the internal schema we expect
 const TARGET_SCHEMA = [
-    { key: "nisn", label: "NISN", required: false },
+    { key: "nisn", label: "NISN", required: true },
+    { key: "nik", label: "NIK", required: true },
     { key: "name", label: "Nama Lengkap", required: true },
     { key: "gender", label: "Jenis Kelamin (L/P)", required: true },
+    { key: "birthPlace", label: "Tempat Lahir", required: false },
+    { key: "birthDate", label: "Tanggal Lahir", required: false },
     { key: "class", label: "Kelas", required: true },
     { key: "fatherName", label: "Nama Ayah", required: false },
     { key: "motherName", label: "Nama Ibu", required: false },
+    { key: "address", label: "Alamat", required: false },
 ]
 
 interface MappingStepProps {

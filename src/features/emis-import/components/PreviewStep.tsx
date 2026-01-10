@@ -31,14 +31,19 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
               newRow[targetKey] = row[sourceHeader]
           })
 
-          // Simple Validation Logic
-          if (!newRow.name) {
-              newRow._errors.push("Nama wajib diisi")
-          }
-           // Use 'class' instead of 'kelas', and 'gender' instead of 'jenis_kelamin' based on previous mapping schema change
-          if (!newRow.class) { 
-               newRow._errors.push("Kelas wajib diisi")
-          }
+          // Validation Logic
+          if (!newRow.nisn) newRow._errors.push("NISN wajib diisi")
+          else if (!/^\d{10}$/.test(String(newRow.nisn))) newRow._errors.push("Format NISN salah (10 digit)")
+
+          if (!newRow.nik) newRow._errors.push("NIK wajib diisi")
+          else if (!/^\d{16}$/.test(String(newRow.nik))) newRow._errors.push("Format NIK salah (16 digit)")
+
+          if (!newRow.name) newRow._errors.push("Nama wajib diisi")
+          if (!newRow.gender) newRow._errors.push("JK wajib diisi")
+          if (!newRow.class) newRow._errors.push("Kelas wajib diisi")
+          
+          if (!newRow.birthDate) newRow._errors.push("Tgl Lahir wajib diisi")
+          if (!newRow.birthPlace) newRow._errors.push("Tempat Lahir wajib diisi")
 
           return newRow
       })

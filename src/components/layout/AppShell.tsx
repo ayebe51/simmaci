@@ -6,12 +6,14 @@ import {
   Menu,
   School,
   Settings,
-  Upload,
   User,
   LogOut,
   Users,
   AlertTriangle,
-  FileBarChart
+  FileBarChart,
+  Trophy,
+  Crown,
+  Gavel
 } from "lucide-react"
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
@@ -32,10 +34,12 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "Data Madrasah", href: "/dashboard/master/schools", icon: School },
     { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
     { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
-    { label: "Import EMIS", href: "/dashboard/import", icon: Upload },
     { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
     { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
-    { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText }, // Add this
+    { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
+    { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
+    { label: "Approval Yayasan", href: "/dashboard/approval/yayasan", icon: Gavel },
+    { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
     { label: "Manajemen User", href: "/dashboard/users", icon: Users },
     { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
     { label: "Laporan", href: "/dashboard/reports", icon: FileBarChart },
@@ -56,7 +60,7 @@ export default function AppShell({ children }: AppShellProps) {
           <Link to="/dashboard" className="flex items-center gap-2 font-bold text-lg">
             <img src="/logo-icon.png" alt="Logo" className="h-8 w-8 object-contain" />
             <span className={cn("truncate", !sidebarOpen && "hidden")}>
-              SIM Maarif
+              SIMMACI
             </span>
           </Link>
         </div>
@@ -65,7 +69,10 @@ export default function AppShell({ children }: AppShellProps) {
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="grid gap-1 px-2">
             {navItems.map((item, index) => {
-              const isActive = location.pathname.startsWith(item.href)
+              // Exact match has priority, then check if it's a child route
+              const isExactMatch = location.pathname === item.href
+              const isChildRoute = location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard'
+              const isActive = isExactMatch || isChildRoute
               
               const userStr = localStorage.getItem("user")
               const user = userStr ? JSON.parse(userStr) : null

@@ -1,0 +1,98 @@
+[
+  {
+    "nuptk": "TMP-1766796594642637",
+    "nama": "ILZAM HABIK, M.Pd",
+    "status": "Honorer",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Sudah",
+    "gender": "L",
+    "birthPlace": "Cilacap",
+    "birthDate": "8 Mei 1989",
+    "phoneNumber": "087736597101",
+    "isCertified": false
+  },
+  {
+    "nuptk": "TMP-1766796594644101",
+    "nama": "NOFI NUR PRATIWI, S.Pd",
+    "status": "Sertifikasi",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Belum",
+    "gender": "P",
+    "birthPlace": "Cilacap",
+    "birthDate": "01 November 1989",
+    "phoneNumber": "085723442377",
+    "isCertified": true
+  },
+  {
+    "nuptk": "TMP-1766796594645722",
+    "nama": "WAHYUDI, S.Pd",
+    "status": "Sertifikasi",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Sudah",
+    "gender": "L",
+    "birthPlace": "Cilacap",
+    "birthDate": "26 Februari 1992",
+    "phoneNumber": "088227956225",
+    "isCertified": true
+  },
+  {
+    "nuptk": "TMP-1766796594647449",
+    "nama": "KHAIRIANSYAH AKBAR, S.Pd",
+    "status": "Honorer",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Sudah",
+    "gender": "L",
+    "birthPlace": "Ciamis",
+    "birthDate": "28 Juni 1996",
+    "phoneNumber": "081221643307",
+    "isCertified": false
+  },
+  {
+    "nuptk": "TMP-1766796594648290",
+    "nama": "MUHAMMAD ALWAN LUTHFI HAKIM, S.Sos",
+    "status": "Honorer",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Sudah",
+    "gender": "L",
+    "birthPlace": "Cilacap",
+    "birthDate": "28 Januari 1997",
+    "phoneNumber": "088216450293",
+    "isCertified": false
+  },
+  {
+    "nuptk": "TMP-1766796594649790",
+    "nama": "NOVITA TRIYANASARI, S.Pd",
+    "status": "Honorer",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Belum",
+    "gender": "P",
+    "birthPlace": "Cilacap",
+    "birthDate": "10 November 1997",
+    "phoneNumber": "085655957842",
+    "isCertified": false
+  },
+  {
+    "nuptk": "TMP-1766796594650988",
+    "nama": "WAHYULI MINANURROHMAN, S.Pd",
+    "status": "Honorer",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Belum",
+    "gender": "L",
+    "birthPlace": "Cilacap",
+    "birthDate": "01 Juli 1995",
+    "phoneNumber": "082115362440",
+    "isCertified": false
+  },
+  {
+    "nuptk": "TMP-1766796594653370",
+    "nama": "ANI RIANTI, S.E.",
+    "status": "Honorer",
+    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
+    "pdpkpnu": "Belum",
+    "gender": "P",
+    "birthPlace": "Cilacap",
+    "birthDate": "19 September 1999",
+    "phoneNumber": "085727304190",
+    "isCertified": false
+  }
+]

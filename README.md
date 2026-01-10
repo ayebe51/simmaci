@@ -1,6 +1,7 @@
 # SIM Maarif NU Cilacap - Sistem Informasi Manajemen Pendidikan
 
-![Project Banner](https://placehold.co/1200x400/1e293b/ffffff?text=SIM+Maarif+NU+Cilacap)
+# SIM Maarif NU Cilacap
+> Sistem Informasi Manajemen Pendidikan & Generator SK Digital
 
 **SIM Maarif NU Cilacap** adalah platform berbasis web yang dikembangkan untuk mendigitalkan proses administrasi dan manajemen data di lingkungan LP Ma'arif NU Cilacap. Aplikasi ini mengintegrasikan pengelolaan Data Induk (Sekolah, Guru, Siswa) dengan sistem otomatisasi Surat Keputusan (SK) Digital.
 
@@ -110,5 +111,6 @@ npm run dev
 
 ## 📄 Lisensi
 
-Hak Cipta © 2025 LP Ma'arif NU Cilacap.
-Dikembangkan oleh **[Nama Anda/Developer]**.
+Hak Cipta © 2025 **Ahmad Ayub Nu'man**.
+Aplikasi ini dilindungi oleh hak cipta. Dilarang keras menggandakan, mendistribusikan ulang, atau mengklaim kepemilikan tanpa izin tertulis dari pengembang.
+Dikembangkan oleh **Ahmad Ayub Nu'man**.

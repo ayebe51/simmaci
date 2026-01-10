@@ -39,6 +39,22 @@ export default {
   			card: {
   				DEFAULT: "hsl(var(--card))",
   				foreground: "hsl(var(--card-foreground))"
+  			},
+  			// Soft Pastel Colors (Zenith-inspired)
+  			pastel: {
+  				purple: '#E6D9F2',
+  				lavender: '#D4BDEC',
+  				cream: '#F5EFE6',
+  				peach: '#FFE5D9',
+  				blue: '#D4E9F7',
+  				mint: '#D5F0E3',
+  				pink: '#FFD6E8',
+  			},
+  			// Status Badge Colors
+  			status: {
+  				high: '#FF6B9D',
+  				medium: '#FDB750',
+  				low: '#69E3A0',
   			}
   		},
   		borderRadius: {

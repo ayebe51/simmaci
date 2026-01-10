@@ -1,32 +1,100 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, CheckCircle, FileText, AlertTriangle, XCircle } from "lucide-react"
-import { useNavigate } from "react-router-dom"
+import { ArrowLeft, CheckCircle, FileText, AlertTriangle, XCircle, Printer } from "lucide-react"
+import { useNavigate, useParams } from "react-router-dom"
 import StatusBadge from "@/components/shared/StatusBadge"
 import type { StatusType } from "@/components/shared/StatusBadge"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Separator } from "@/components/ui/separator"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
+
+interface SkDetail {
+  id: string
+  nomorSurat: string
+  jenis: string
+  nama: string
+  niy: string
+  unitKerja: string
+  jenisPengajuan: string
+  status: string // Raw backend status
+  createdAt: string
+  fileUrl?: string
+  keterangan?: string
+}
 
 export default function SkDetailPage() {
   const navigate = useNavigate()
-  // const { id } = useParams() // Use when API is ready
+  const { id } = useParams()
   
-  // Simulated State (In real app, fetch by ID)
-  const [currentStatus, setCurrentStatus] = useState<StatusType>("submitted") 
-  const [isAdmin] = useState(true) // Simulate Admin Role
-
-  const timelines = [
-    { status: "draft", label: "Draft", date: "20 Mei 2024 09:00", active: true, completed: true },
-    { status: "submitted", label: "Diajukan", date: "20 Mei 2024 10:30", active: true, completed: true },
-    { status: "verified", label: "Verifikasi Admin", date: "21 Mei 2024 08:00", active: currentStatus === "verified" || currentStatus === "issued", completed: currentStatus === "issued" },
-    { status: "issued", label: "SK Terbit", date: "-", active: currentStatus === "issued", completed: currentStatus === "issued" },
-  ]
-
-  const handleAction = (action: "approve" | "reject" | "revise") => {
-      if (action === "approve") setCurrentStatus("issued")
-      if (action === "reject") setCurrentStatus("rejected")
-      if (action === "revise") setCurrentStatus("revision")
+  const [sk, setSk] = useState<SkDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAdmin] = useState(true) // TODO: Check actual role via api.getUser() or context
+  
+  // Helper to map backend status to frontend badge status
+  const getBadgeStatus = (backendStatus: string): StatusType => {
+      const lower = backendStatus?.toLowerCase() || "";
+      if (lower === "pending") return "submitted";
+      if (lower === "approved") return "issued";
+      if (lower === "rejected") return "rejected";
+      return "draft";
   }
+
+  // Fetch Data
+  useEffect(() => {
+    if (!id) return;
+    fetchDetail();
+  }, [id])
+
+  const fetchDetail = async () => {
+      try {
+          setIsLoading(true)
+          const data = await api.getSkDetail(id!)
+          setSk(data)
+      } catch (e) {
+          console.error("Failed to fetch SK Detail", e)
+          toast.error("Gagal memuat detail SK")
+      } finally {
+          setIsLoading(false)
+      }
+  }
+
+  const handleAction = async (action: "approve" | "reject" | "revise") => {
+      console.log("[DEBUG] handleAction called with action:", action, "| SK id:", id);
+      
+      // Confirmation
+      const confirmMsg = action === 'approve' ? 'Menyetujui' : action === 'reject' ? 'Menolak' : 'Merevisi';
+      const confirmed = window.confirm(`Apakah Anda yakin ingin ${confirmMsg} SK ini?`);
+      
+      console.log("[DEBUG] User confirmed:", confirmed);
+      if(!confirmed) return;
+
+      try {
+          let status = "";
+          if (action === "approve") status = "Approved";
+          else if (action === "reject") status = "Rejected";
+          else if (action === "revise") status = "Pending"; // Return to Pending/Draft
+
+          console.log("[DEBUG] Calling api.updateSkStatus with id:", id, "status:", status);
+          toast.info(`Memproses ${confirmMsg}...`);
+          
+          const result = await api.updateSkStatus(id!, status);
+          console.log("[DEBUG] API updateSkStatus result:", result);
+          
+          toast.success(`SK Berhasil di-${status}`);
+          await fetchDetail(); // Re-fetch to get updated status
+      } catch (e: any) {
+          console.error("[ERROR] handleAction failed:", e);
+          const errorMessage = e?.response?.data?.message || e?.message || "Error tidak diketahui";
+          toast.error(`Gagal memproses tindakan: ${errorMessage}`);
+      }
+  }
+
+  if (isLoading) return <div className="p-8 text-center text-muted-foreground">Memuat data SK...</div>
+  if (!sk) return <div className="p-8 text-center text-muted-foreground">Data SK tidak ditemukan.</div>
+
+  const badgeStatus = getBadgeStatus(sk.status);
+  const isIssued = badgeStatus === "issued";
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -35,14 +103,20 @@ export default function SkDetailPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
             </Button>
             <div className="flex gap-2">
-                 {currentStatus === "issued" && (
+                 {isIssued && (
                     <Button variant="outline" onClick={() => handleAction("revise")}>
                         <AlertTriangle className="mr-2 h-4 w-4 text-orange-500" /> Ajukan Revisi
                     </Button>
                  )}
-                 <Button variant="outline">
-                    <FileText className="mr-2 h-4 w-4" /> Download PDF
-                 </Button>
+                 {sk.fileUrl ? (
+                     <Button variant="outline" onClick={() => window.open(sk.fileUrl, '_blank')}>
+                        <Printer className="mr-2 h-4 w-4" /> Cetak / Download
+                     </Button>
+                 ) : (
+                     <Button variant="outline" disabled>
+                        <FileText className="mr-2 h-4 w-4" /> PDF Belum Tersedia
+                     </Button>
+                 )}
             </div>
        </div>
 
@@ -53,64 +127,90 @@ export default function SkDetailPage() {
                 <CardHeader>
                     <div className="flex justify-between items-start">
                         <div>
-                            <CardTitle className="text-xl">SK Kepala Madrasah</CardTitle>
-                            <CardDescription>Nomor: SK/2024/001</CardDescription>
+                            <CardTitle className="text-xl">{sk.jenis}</CardTitle>
+                            <CardDescription>Nomor: {sk.nomorSurat || "Belum Terbit"}</CardDescription>
                         </div>
-                        <StatusBadge status={currentStatus} className="text-sm px-3 py-1" />
+                        <StatusBadge status={badgeStatus} className="text-sm px-3 py-1" />
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <p className="text-muted-foreground">Nama Lengkap</p>
-                            <p className="font-medium">Ahmad Dahlan</p>
+                            <p className="font-medium">{sk.nama}</p>
+                        </div>
+                         <div>
+                            <p className="text-muted-foreground">NIY / NUPTK</p>
+                            <p className="font-medium">{sk.niy || "-"}</p>
                         </div>
                         <div>
                             <p className="text-muted-foreground">Tanggal Pengajuan</p>
-                            <p className="font-medium">20 Mei 2024</p>
+                            <p className="font-medium">
+                                {new Date(sk.createdAt).toLocaleDateString('id-ID', {
+                                    day: 'numeric', month: 'long', year: 'numeric'
+                                })}
+                            </p>
                         </div>
                          <div>
                             <p className="text-muted-foreground">Unit Kerja</p>
-                            <p className="font-medium">MI Ma'arif NU 01 Cilacap</p>
+                            <p className="font-medium">{sk.unitKerja}</p>
                         </div>
                          <div>
                             <p className="text-muted-foreground">Jenis Pengajuan</p>
-                            <p className="font-medium">Perpanjangan</p>
+                            <p className="font-medium">{sk.jenisPengajuan}</p>
+                        </div>
+                         <div className="col-span-2">
+                            <p className="text-muted-foreground">Keterangan / Pesan</p>
+                            <p className="font-medium text-slate-700 bg-slate-50 p-2 rounded block mt-1">
+                                {sk.keterangan || "-"}
+                            </p>
                         </div>
                     </div>
                     
                     <Separator />
 
                     <div>
-                        <h4 className="mb-2 font-semibold">Dokumen Lampiran</h4>
-                        <div className="flex items-center justify-between rounded-md border p-3 hover:bg-slate-50 cursor-pointer">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded bg-red-100 p-2">
-                                    <FileText className="h-4 w-4 text-red-600" />
-                                </div>
-                                <div className="text-sm">
-                                    <p className="font-medium">Surat_Permohonan.pdf</p>
-                                    <p className="text-xs text-muted-foreground">2.4 MB</p>
-                                </div>
+                        <h4 className="mb-2 font-semibold">Preview SK</h4>
+                        {sk.fileUrl && (sk.fileUrl.startsWith('http') || sk.fileUrl.startsWith('/')) ? (
+                             <div className="rounded-md border p-0 overflow-hidden bg-slate-100 h-[600px]">
+                                <iframe 
+                                    src={sk.fileUrl} 
+                                    className="w-full h-full" 
+                                    title="Preview SK"
+                                />
+                             </div>
+                        ) : sk.fileUrl ? (
+                             <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground bg-slate-50">
+                                <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                <p>Preview tidak tersedia.</p>
+                                <p className="text-sm font-medium mt-1">{sk.fileUrl}</p> 
+                                <p className="text-xs mt-1 text-slate-500">File SK ini digenerate secara massal (ZIP). Silakan cek file yang sudah didownload.</p>
                             </div>
-                            <Button variant="ghost" size="sm">Lihat</Button>
-                        </div>
+                        ) : (
+                            <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground bg-slate-50">
+                                <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                <p>File SK belum digenerate.</p>
+                                <p className="text-xs mt-1">Silakan minta Admin untuk memproses.</p>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Admin Actions Area (Only visible if Admin) */}
-            {isAdmin && currentStatus === "submitted" && (
+            {/* Admin Actions Area */}
+            {isAdmin && badgeStatus === "submitted" && (
                  <Card className="border-blue-200 bg-blue-50/50">
                     <CardHeader>
-                        <CardTitle className="text-lg">Tindakan Admin</CardTitle>
-                        <CardDescription>Silakan verifikasi data sebelum menyetujui.</CardDescription>
+                        <CardTitle className="text-lg text-blue-800">Tindakan Admin</CardTitle>
+                        <CardDescription className="text-blue-600">
+                            Silakan periksa data sebelum memberikan persetujuan.
+                        </CardDescription>
                     </CardHeader>
                      <CardContent className="flex gap-3">
-                        <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleAction("approve")}>
-                            <CheckCircle className="mr-2 h-4 w-4" /> Setujui & Terbitkan
+                        <Button className="bg-green-600 hover:bg-green-700 flex-1" onClick={() => handleAction("approve")}>
+                            <CheckCircle className="mr-2 h-4 w-4" /> Setujui
                         </Button>
-                        <Button variant="destructive" onClick={() => handleAction("reject")}>
+                        <Button variant="destructive" className="flex-1" onClick={() => handleAction("reject")}>
                             <XCircle className="mr-2 h-4 w-4" /> Tolak
                         </Button>
                      </CardContent>
@@ -118,23 +218,26 @@ export default function SkDetailPage() {
             )}
         </div>
 
-        {/* Timeline */}
+        {/* Sidebar Info */}
         <div className="space-y-6">
              <Card>
                 <CardHeader>
-                    <CardTitle className="text-base">Riwayat Status</CardTitle>
+                    <CardTitle className="text-base">Metadata</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="relative border-l border-slate-200 ml-3 space-y-8 pb-1">
-                        {timelines.map((item, i) => (
-                             <div key={i} className="relative pl-6">
-                                <span className={`absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full border ring-4 ring-white ${item.completed ? 'bg-primary border-primary' : 'bg-slate-300 border-slate-300'}`} />
-                                <div className="flex flex-col">
-                                    <span className={`text-sm font-medium ${item.completed ? 'text-foreground' : 'text-muted-foreground'}`}>{item.label}</span>
-                                    <span className="text-xs text-muted-foreground">{item.date}</span>
-                                </div>
-                            </div>
-                        ))}
+                <CardContent className="space-y-4 text-sm">
+                    <div>
+                        <span className="text-muted-foreground block text-xs uppercase tracking-wider">ID Sistem</span>
+                        <span className="font-mono text-xs text-slate-600 truncate block bg-slate-100 p-1 rounded">{sk.id}</span>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground block text-xs uppercase tracking-wider">Status Database</span>
+                        <span className="font-mono text-xs">{sk.status}</span>
+                    </div>
+                    <Separator />
+                    <div className="pt-2">
+                        <p className="text-xs text-muted-foreground text-center">
+                            Jika data salah, silakan hubungi Administrator PUSAT.
+                        </p>
                     </div>
                 </CardContent>
              </Card>

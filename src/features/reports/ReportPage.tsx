@@ -1,35 +1,61 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FileBarChart, Printer, Search } from "lucide-react"
+import { Printer, Search, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { api } from "@/lib/api"
+import { toast } from "sonner"
 
 export default function ReportPage() {
   const [reportType, setReportType] = useState("teachers_by_unit")
   const [selectedUnit, setSelectedUnit] = useState("all")
   const [units, setUnits] = useState<string[]>([])
   const [previewData, setPreviewData] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [allData, setAllData] = useState<any[]>([])
   
-  // Load initial data
+  // Load real data from API
   useEffect(() => {
-    const teachersStr = localStorage.getItem("app_teachers")
-    if (teachersStr) {
-      const teachers = JSON.parse(teachersStr)
-      // Extract unique Units
-      const uniqueUnits = Array.from(new Set(teachers.map((t: any) => t.unitKerja || "-"))).sort() as string[]
-      setUnits(uniqueUnits)
-      generatePreview(teachers, reportType, selectedUnit)
-    }
+    loadData()
   }, [])
+
+  const loadData = async () => {
+      setIsLoading(true)
+      try {
+          // Fetch from API
+          const res = await api.getTeachers();
+          const teachers = Array.isArray(res) ? res : (res as any).data || [];
+          
+          // Map Backend Fields to Report Format
+          const mapped = teachers.map((t: any) => ({
+              ...t,
+              // Fix: API returns 'unitKerja', not 'satminkal'. Use t.unitKerja first.
+              unitKerja: t.unitKerja || t.satminkal || "Tanpa Unit",
+              nip: t.nuptk || t.nip || "-"
+          }));
+
+          setAllData(mapped);
+
+          // Extract unique Units
+          const uniqueUnits = Array.from(new Set(mapped.map((t: any) => t.unitKerja))).sort() as string[]
+          setUnits(uniqueUnits)
+          
+          generatePreview(mapped, reportType, selectedUnit)
+      } catch (e) {
+          console.error(e)
+          toast.error("Gagal memuat data guru")
+      } finally {
+          setIsLoading(false)
+      }
+  }
 
   // Regenerate when filters change
   useEffect(() => {
-    const teachersStr = localStorage.getItem("app_teachers")
-    if (teachersStr) {
-        generatePreview(JSON.parse(teachersStr), reportType, selectedUnit)
+    if (allData.length > 0) {
+        generatePreview(allData, reportType, selectedUnit)
     }
-  }, [reportType, selectedUnit])
+  }, [reportType, selectedUnit, allData])
 
   const generatePreview = (teachers: any[], type: string, unit: string) => {
       if (type === "teachers_by_unit") {
@@ -66,10 +92,10 @@ export default function ReportPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Laporan & Rekapitulasi</h1>
           <p className="text-muted-foreground">
-            Cetak laporan data guru dan statistik kepegawaian.
+            Cetak laporan data guru dan statistik kepegawaian (Realtime Data).
           </p>
         </div>
-        <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
           <Printer className="mr-2 h-4 w-4" /> Cetak Laporan (PDF)
         </Button>
       </div>
@@ -77,7 +103,9 @@ export default function ReportPage() {
       {/* FILTERS - HIDDEN ON PRINT */}
       <Card className="print:hidden">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Search className="w-5 h-5"/> Filter Laporan</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="w-5 h-5"/> Filter Laporan
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row gap-4">
             <div className="w-full md:w-1/3 space-y-2">
@@ -113,7 +141,7 @@ export default function ReportPage() {
 
       {/* REPORT PREVIEW - VISIBLE ON PRINT */}
       <div className="print:block bg-white p-8 sm:p-0 min-h-[500px]">
-          {/* HEADER CETAK (Only visible on print via CSS or just standardized here) */}
+          {/* HEADER CETAK */}
           <div className="hidden print:block mb-8 border-b-2 border-black pb-4 text-center">
               <h2 className="text-2xl font-bold uppercase">Lembaga Pendidikan Ma'arif NU Cilacap</h2>
               <p className="text-sm">Jl. Masjid No. 09, Cilacap Tengah, Kabupaten Cilacap</p>
@@ -130,7 +158,7 @@ export default function ReportPage() {
                         <TableHeader>
                             <TableRow className="bg-slate-100 print:bg-gray-200">
                                 <TableHead className="w-[50px] font-bold text-black border print:border-black">No</TableHead>
-                                <TableHead className="font-bold text-black border print:border-black">NIP / NIY</TableHead>
+                                <TableHead className="font-bold text-black border print:border-black">NIP / NUPTK</TableHead>
                                 <TableHead className="font-bold text-black border print:border-black">Nama Lengkap</TableHead>
                                 <TableHead className="font-bold text-black border print:border-black">Status</TableHead>
                                 <TableHead className="font-bold text-black border print:border-black">Unit Kerja</TableHead>
@@ -138,7 +166,9 @@ export default function ReportPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {previewData.length === 0 ? (
+                            {isLoading ? (
+                                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="animate-spin inline mr-2"/> Memuat Data...</TableCell></TableRow>
+                            ) : previewData.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={6} className="text-center h-24">Tidak ada data.</TableCell>
                                 </TableRow>
@@ -146,7 +176,7 @@ export default function ReportPage() {
                                 previewData.map((rox, i) => (
                                     <TableRow key={i} className="print:break-inside-avoid">
                                         <TableCell className="border print:border-black">{i + 1}</TableCell>
-                                        <TableCell className="border print:border-black">{rox.nip || '-'}</TableCell>
+                                        <TableCell className="border print:border-black">{rox.nip}</TableCell>
                                         <TableCell className="font-medium border print:border-black">{rox.nama}</TableCell>
                                         <TableCell className="border print:border-black">{rox.status}</TableCell>
                                         <TableCell className="border print:border-black">{rox.unitKerja}</TableCell>
@@ -169,7 +199,9 @@ export default function ReportPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                             {previewData.map((rox, i) => (
+                             {isLoading ? (
+                                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="animate-spin inline mr-2"/> Memuat Statistik...</TableCell></TableRow>
+                             ) : previewData.map((rox, i) => (
                                 <TableRow key={i} className="print:break-inside-avoid">
                                     <TableCell className="border print:border-black">{i + 1}</TableCell>
                                     <TableCell className="font-medium border print:border-black">{rox.name}</TableCell>

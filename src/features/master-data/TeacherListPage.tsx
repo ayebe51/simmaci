@@ -9,37 +9,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import ExcelImportModal from "./components/ExcelImportModal"
 import { api } from "@/lib/api"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
+
 
 interface Teacher {
   id: string
-  nip: string
+  nuptk: string
   nama: string
   status: string
   mapel: string
-  unitKerja: string
-  sertifikasi: boolean
+  satminkal: string
+  phoneNumber?: string
+  isCertified: boolean
   isActive: boolean
+  pdpkpnu: string
+  kecamatan?: string
+  birthPlace?: string
+  birthDate?: string
 }
-
-// Dummy Data
-const dummyTeachers: Teacher[] = [
-  { id: "1", nip: "198501012010011001", nama: "Drs. H. Ahmad Fauzi, M.Pd", status: "PNS", mapel: "PAI", unitKerja: "MTs Ma'arif NU Cilacap", sertifikasi: true, isActive: true },
-  { id: "2", nip: "-", nama: "Siti Aminah, S.Pd", status: "GTY", mapel: "Matematika", unitKerja: "MI Ma'arif 01", sertifikasi: true, isActive: true },
-  { id: "3", nip: "-", nama: "Rudi Hartono, S.Or", status: "GTT", mapel: "PJOK", unitKerja: "MTs Ma'arif NU Cilacap", sertifikasi: false, isActive: true },
-]
 
 export default function TeacherListPage() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [filterKecamatan, setFilterKecamatan] = useState("")
+  const [filterCertified, setFilterCertified] = useState("all") // all, true, false
+  
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false) // Import modal state
 
   // PERMISSION: Filter by Unit Kerja for Operators
   const [userUnit] = useState<string | null>(() => {
@@ -55,9 +61,16 @@ export default function TeacherListPage() {
     return null
   })
 
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Teacher; direction: 'asc' | 'desc' } | null>(null);
+
   const loadTeachers = async () => {
       try {
-          const data = await api.getTeachers(userUnit || undefined) // api is imported
+          const data = await api.getTeachers(
+              userUnit || undefined, 
+              filterKecamatan || undefined, 
+              filterCertified
+          )
           setTeachers(data)
       } catch (e) {
           console.error(e)
@@ -65,33 +78,100 @@ export default function TeacherListPage() {
   }
 
   useEffect(() => {
-    loadTeachers()
-  }, [userUnit])
+    const timer = setTimeout(() => {
+        loadTeachers()
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [userUnit, filterKecamatan, filterCertified])
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus
+    
     // Optimistic Update
     const updated = teachers.map(t => 
-        t.id === id ? { ...t, isActive: !currentStatus } : t
+        t.id === id ? { ...t, isActive: newStatus } : t
     )
     setTeachers(updated)
-
-    // TODO: Connect to API for status update
-    // await api.updateTeacherStatus(id, !currentStatus)
+    
+    try {
+      // Persist to backend database
+      await api.updateTeacher(id, { isActive: newStatus })
+    } catch (e: any) {
+      // Rollback on error
+      console.error('Failed to update teacher status:', e)
+      setTeachers(teachers)
+      alert('Gagal mengupdate status guru. Silakan coba lagi.')
+    }
   }
 
   const filtered = teachers.filter(t => {
       // 1. Role Filter
-      if (userUnit && t.unitKerja !== userUnit) return false
+      if (userUnit && t.satminkal?.toLowerCase() !== userUnit.toLowerCase()) return false
 
-      const matchesSearch = t.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            t.unitKerja.toLowerCase().includes(searchTerm.toLowerCase())
-      
-      const matchesStatus = activeFilter === "all" ? true :
-                            activeFilter === "active" ? t.isActive : 
-                            !t.isActive
+      // 2. Active Status Filter
+      if (activeFilter === "active" && !t.isActive) return false
+      if (activeFilter === "inactive" && t.isActive) return false
 
-      return matchesSearch && matchesStatus
+      // 3. Search Filter
+      const term = searchTerm.toLowerCase()
+      return (t.nama || "").toLowerCase().includes(term) || (t.nuptk || "").includes(searchTerm)
   })
+
+  // Get unique kecamatan for filter dropdown
+  const uniqueKecamatan = useMemo(() => {
+    const kecs = teachers.map(t => t.kecamatan).filter(Boolean);
+    return Array.from(new Set(kecs)).sort();
+  }, [teachers]);
+
+  const sortedTeachers = useMemo(() => {
+    const sortableItems = [...filtered];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        // Handle undefined values
+        const aValue = a[sortConfig.key] || "";
+        const bValue = b[sortConfig.key] || "";
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : 1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filtered, sortConfig]);
+
+  // Pagination Logic
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const totalPages = Math.ceil(sortedTeachers.length / itemsPerPage)
+
+  const paginatedTeachers = sortedTeachers.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+  )
+
+  useEffect(() => {
+      setCurrentPage(1)
+  }, [searchTerm, activeFilter, sortConfig])
+
+  // Sort Handler
+  const requestSort = (key: keyof Teacher) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (name: keyof Teacher) => {
+      if (!sortConfig || sortConfig.key !== name) {
+          return <ArrowUpDown className="ml-2 h-4 w-4" />
+      }
+      return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+  }
 
   const getStatusColor = (status: string) => {
       switch(status) {
@@ -101,101 +181,216 @@ export default function TeacherListPage() {
       }
   }
 
-  // Manual Add Logic
+  // Manual Add/Edit Logic
   const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState<Partial<Teacher>>({
-      nama: "", nip: "", status: "GTY", unitKerja: "", mapel: ""
+      nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
   })
 
-  const handleAdd = async () => {
+  const handleSave = async () => {
       if(!formData.nama) {
           alert("Nama wajib diisi!")
           return
       }
 
       try {
-        await api.createTeacher({
-            nip: formData.nip || "-",
+        console.log("[DEBUG] formData before payload:", formData);
+        const payload = {
+            nuptk: formData.nuptk || "-",
             nama: formData.nama,
             status: formData.status || "Lainnya",
-            unitKerja: formData.unitKerja || "-",
-            mapel: formData.mapel || "-"
-        })
+            satminkal: formData.satminkal || "-",
+            phoneNumber: formData.phoneNumber || null,
+            pdpkpnu: formData.pdpkpnu || "Belum",
+            birthPlace: formData.birthPlace || null,
+            birthDate: formData.birthDate || null
+        }
+        console.log("[DEBUG] Payload being sent:", payload);
+
+        if (isEditMode && formData.id) {
+            await api.updateTeacher(formData.id, payload)
+            alert("Berhasil memperbarui data guru")
+        } else {
+            await api.createTeacher(payload)
+            alert("Berhasil menambah guru")
+        }
         
         loadTeachers()
-        setIsAddOpen(false)
-        setFormData({ nip: "", nama: "", status: "", unitKerja: "", mapel: "" })
-        alert("Berhasil menambah guru")
+        closeDialog()
       } catch (e) {
           alert("Gagal menyimpan guru")
       }
   }
 
+  const openAdd = () => {
+      setIsEditMode(false)
+      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "" })
+      setIsAddOpen(true)
+  }
+
+  const openEdit = (teacher: Teacher) => {
+      setIsEditMode(true)
+      setFormData(teacher)
+      setIsAddOpen(true)
+  }
+
+  const closeDialog = () => {
+      setIsAddOpen(false)
+      setIsEditMode(false)
+      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "" })
+  }
+
+  const handleExport = async () => {
+      try {
+          const blob = await api.exportTeachers(
+              userUnit || undefined, 
+              filterKecamatan || undefined, 
+              filterCertified
+          )
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `Data_Guru_${new Date().toISOString().split('T')[0]}.xlsx`);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
+      } catch (e: any) {
+          console.error(e)
+          alert("Gagal mengexport data.")
+      }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Data Guru & Tenaga Kependidikan</h1>
-          <p className="text-muted-foreground">
-            Manajemen data PTK di lingkungan LP Ma'arif NU Cilacap.
-          </p>
-        </div>
-        <div className="flex gap-2">
-            <Button onClick={() => setIsAddOpen(true)}>
-             <Plus className="mr-2 h-4 w-4" /> Tambah Manual
-            </Button>
-            <Button variant="outline">
-                <FileSpreadsheet className="mr-2 h-4 w-4" /> Import Excel
-            </Button>
-        </div>
-      </div>
+      <SoftPageHeader
+        title="Data Guru & Tenaga Kependidikan"
+        description="Manajemen data guru dan tenaga kependidikan di lingkungan LP Ma'arif NU Cilacap"
+        actions={[
+          {
+            label: 'Export Excel',
+            onClick: handleExport,
+            variant: 'mint',
+            icon: <Download className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Download Template',
+            onClick: async () => {
+              try {
+                const blob = await api.downloadTeacherTemplate();
+                const url = window.URL.createObjectURL(new Blob([blob]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'TEMPLATE_IMPORT_DATA_GURU.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.parentNode?.removeChild(link);
+                window.URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error('Failed to download template:', error);
+                alert('Gagal mendownload template. Silakan coba lagi.');
+              }
+            },
+            variant: 'purple',
+            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Tambah Manual',
+            onClick: openAdd,
+            variant: 'cream',
+            icon: <Plus className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Import Excel',
+            onClick: () => setIsImportModalOpen(true),
+            variant: 'blue',
+            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
+          }
+        ]}
+      />
 
       <Card>
         <CardHeader className="pb-3">
-             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                 <div className="relative w-full sm:w-auto">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari nama, NIP, atau unit kerja..."
-                        className="pl-9 w-full sm:w-[300px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col sm:flex-row gap-2 w-full">
+                   <div className="relative w-full sm:w-[250px]">
+                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                       <Input
+                           placeholder="Cari nama atau unit kerja..."
+                           className="pl-9"
+                           value={searchTerm}
+                           onChange={(e) => setSearchTerm(e.target.value)}
+                       />
+                   </div>
+                   
+                   <Select value={filterKecamatan} onValueChange={setFilterKecamatan}>
+                       <SelectTrigger className="w-full sm:w-[180px]">
+                           <SelectValue placeholder="Semua Kecamatan" />
+                       </SelectTrigger>
+                       <SelectContent>
+                           {uniqueKecamatan.filter((k): k is string => Boolean(k)).map(k => (
+                               <SelectItem key={k} value={k}>{k}</SelectItem>
+                           ))}
+                       </SelectContent>
+                   </Select>
+
+                   <Select value={filterCertified} onValueChange={setFilterCertified}>
+                       <SelectTrigger className="w-full sm:w-[150px]">
+                           <SelectValue placeholder="Sertifikasi" />
+                       </SelectTrigger>
+                       <SelectContent>
+                           <SelectItem value="all">Semua Status</SelectItem>
+                           <SelectItem value="true">Sertifikasi</SelectItem>
+                           <SelectItem value="false">Belum Sertifikasi</SelectItem>
+                       </SelectContent>
+                   </Select>
                 </div>
-                <Tabs value={activeFilter} onValueChange={setActiveFilter} className="w-full sm:w-auto">
-                    <TabsList>
-                        <TabsTrigger value="active">Aktif</TabsTrigger>
-                        <TabsTrigger value="inactive">Non-Aktif / Resign</TabsTrigger>
-                        <TabsTrigger value="all">Semua</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
+               <Tabs value={activeFilter} onValueChange={setActiveFilter} className="w-full sm:w-auto min-w-[300px]">
+                   <TabsList className="grid w-full grid-cols-3">
+                       <TabsTrigger value="active">Aktif</TabsTrigger>
+                       <TabsTrigger value="inactive">Non-Aktif / Resign</TabsTrigger>
+                       <TabsTrigger value="all">Semua</TabsTrigger>
+                   </TabsList>
+               </Tabs>
+           </div>
         </CardHeader>
         <CardContent>
             <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>NIP/NIY</TableHead>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Sertifikasi</TableHead>
-                      <TableHead>Mapel</TableHead>
-                      <TableHead>Unit Kerja</TableHead>
+                      <TableHead onClick={() => requestSort('nuptk')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Nomor Induk {getSortIcon('nuptk')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('nama')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Nama {getSortIcon('nama')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('status')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Status {getSortIcon('status')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('isCertified')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Sertifikasi {getSortIcon('isCertified')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('pdpkpnu')} className="cursor-pointer hover:bg-muted/50 transition-colors text-center">
+                          <div className="flex items-center justify-center">PDPKPNU {getSortIcon('pdpkpnu')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('satminkal')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Satminkal {getSortIcon('satminkal')}</div>
+                      </TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.length === 0 ? (
+                    {paginatedTeachers.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={7} className="h-24 text-center">
                                 Tidak ada data guru ditemukan.
                             </TableCell>
                         </TableRow>
                     ) : (
-                        filtered.map((item) => (
+                        paginatedTeachers.map((item) => (
                           <TableRow key={item.id} className={!item.isActive ? "bg-slate-50 opacity-60" : ""}>
-                            <TableCell className="font-medium">{item.nip}</TableCell>
+                            <TableCell className="font-medium">{item.nuptk}</TableCell>
                             <TableCell>
                                 <div className="flex flex-col">
                                     <span className="font-medium">{item.nama}</span>
@@ -208,16 +403,30 @@ export default function TeacherListPage() {
                                 </Badge>
                             </TableCell>
                             <TableCell>
-                                {item.sertifikasi ? (
+                                {item.isCertified ? (
                                     <div className="flex items-center text-green-600 text-xs">
                                         <BadgeCheck className="mr-1 h-3 w-3" /> Sertifikasi
                                     </div>
-                                ) : (
+                                ) : item.status === 'PNS' ? (
                                     <span className="text-xs text-muted-foreground">-</span>
+                                ) : (
+                                    <Badge variant="outline" className="text-xs">
+                                        Honorer
+                                    </Badge>
                                 )}
                             </TableCell>
-                            <TableCell>{item.mapel}</TableCell>
-                            <TableCell>{item.unitKerja}</TableCell>
+                            <TableCell className="text-center">
+                                {item.pdpkpnu === 'Sudah' ? (
+                                    <div className="flex justify-center text-green-600">
+                                        <Check className="h-5 w-5" />
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-center text-red-500">
+                                        <X className="h-5 w-5" />
+                                    </div>
+                                )}
+                            </TableCell>
+                            <TableCell>{item.satminkal}</TableCell>
                             <TableCell className="text-right space-x-2">
                                 <Button 
                                     variant="ghost" 
@@ -228,7 +437,7 @@ export default function TeacherListPage() {
                                 >
                                     {item.isActive ? <UserMinus className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-800"><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-800" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -236,42 +445,108 @@ export default function TeacherListPage() {
                   </TableBody>
                 </Table>
             </div>
+            
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="flex-1 text-sm text-muted-foreground">
+                    Halaman {currentPage} dari {totalPages} ({filtered.length} data)
+                </div>
+                <div className="space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                    >
+                        First
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        Prev
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                    >
+                        Last
+                    </Button>
+                </div>
+            </div>
+
         </CardContent>
       </Card>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Tambah Guru Manual</DialogTitle>
+                <DialogTitle>{isEditMode ? 'Edit' : 'Tambah'} Guru Manual</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="nama" className="text-right">Nama</Label>
-                    <Input id="nama" className="col-span-3" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
+                    <Input id="nama" className="col-span-3" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="nip" className="text-right">NIP/NIY</Label>
-                    <Input id="nip" className="col-span-3" value={formData.nip} onChange={e => setFormData({...formData, nip: e.target.value})} />
+                    <Label htmlFor="nuptk" className="text-right">Nomor Induk Ma'arif</Label>
+                    <Input id="nuptk" className="col-span-3" value={formData.nuptk || ""} onChange={e => setFormData({...formData, nuptk: e.target.value})} placeholder="NUPTK 16 digit atau NIM Ma'arif" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status" className="text-right">Status</Label>
-                    <Input id="status" className="col-span-3" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} placeholder="PNS / GTY / GTT" />
+                    <Input id="status" className="col-span-3" value={formData.status || ""} onChange={e => setFormData({...formData, status: e.target.value})} placeholder="PNS / GTY / GTT" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="unitKerja" className="text-right">Unit Kerja</Label>
-                    <Input id="unitKerja" className="col-span-3" value={formData.unitKerja} onChange={e => setFormData({...formData, unitKerja: e.target.value})} />
+                    <Label htmlFor="satminkal" className="text-right">Satminkal</Label>
+                    <Input id="satminkal" className="col-span-3" value={formData.satminkal || ""} onChange={e => setFormData({...formData, satminkal: e.target.value})} placeholder="Nama satuan pendidikan" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="mapel" className="text-right">Mapel</Label>
-                    <Input id="mapel" className="col-span-3" value={formData.mapel} onChange={e => setFormData({...formData, mapel: e.target.value})} />
+                    <Label htmlFor="phoneNumber" className="text-right">Nomor HP</Label>
+                    <Input id="phoneNumber" className="col-span-3" value={formData.phoneNumber || ""} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} placeholder="081234567890" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="pdpkpnu" className="text-right">PDPKPNU</Label>
+                    <Input id="pdpkpnu" className="col-span-3" value={formData.pdpkpnu || ""} onChange={e => setFormData({...formData, pdpkpnu: e.target.value})} placeholder="Sudah / Belum" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="birthPlace" className="text-right">Tempat Lahir</Label>
+                    <Input id="birthPlace" className="col-span-3" value={formData.birthPlace || ""} onChange={e => setFormData({...formData, birthPlace: e.target.value})} placeholder="Contoh: Cilacap" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="birthDate" className="text-right">Tanggal Lahir</Label>
+                    <Input id="birthDate" type="date" className="col-span-3" value={formData.birthDate || ""} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
-                <Button onClick={handleAdd}>Simpan</Button>
+                <Button variant="outline" onClick={closeDialog}>Batal</Button>
+                <Button onClick={handleSave}>Simpan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Excel Import Modal */}
+      <ExcelImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={loadTeachers}
+        title="Import Data Guru"
+        description="Upload file Excel (.xlsx) untuk import data guru"
+        onFileImport={async (file) => {
+          await api.importTeachers(file)
+        }}
+      />
     </div>
   )
 }

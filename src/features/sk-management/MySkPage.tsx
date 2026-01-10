@@ -3,55 +3,104 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Download, FileText, Search } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 
 import { api } from "@/lib/api"
-// ...
+
+interface SkDocument {
+  id: string
+  nomorSurat?: string
+  nama: string
+  jabatan: string
+  status: string
+  [key: string]: any
+}
+
+interface HeadmasterApproval {
+  id: string
+  periode: number
+  status: string
+  skUrl?: string
+  teacher?: { nama: string }
+  school?: { nama: string }
+  [key: string]: any
+}
 
 export default function MySkPage() {
-  const [skList, setSkList] = useState<any[]>([])
-  const [filteredSk, setFilteredSk] = useState<any[]>([])
+  const [skList, setSkList] = useState<SkDocument[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [user, setUser] = useState<any>(null)
+  const [user] = useState<any>(() => {
+    try {
+        const str = localStorage.getItem("user")
+        return str ? JSON.parse(str) : null
+    } catch { return null }
+  })
 
-  useEffect(() => {
-    // 1. Get User
-    const userStr = localStorage.getItem("user")
-    if (userStr) setUser(JSON.parse(userStr))
+  const [headmasterSkList, setHeadmasterSkList] = useState<HeadmasterApproval[]>([])
 
-    // 2. Fetch SK Data
-    fetchSk()
-  }, [])
+  // Pagination States
+  const [currentSkPage, setCurrentSkPage] = useState(1)
+  const [currentHmPage, setCurrentHmPage] = useState(1)
+  const itemsPerPage = 10
 
-  const fetchSk = async () => {
-      try {
-          const data = await api.getSk()
-          setSkList(data)
-          setFilteredSk(data)
-      } catch (err) {
-          console.error("Failed to fetch SK", err)
-      }
-  }
-
-  useEffect(() => {
-    if (!searchTerm) {
-        setFilteredSk(skList)
-        return
-    }
+  // Derived state for filtering
+  const filteredSk = useMemo(() => {
+    if(!searchTerm) return skList
     const lower = searchTerm.toLowerCase()
-    const filtered = skList.filter(item => 
-        item.nama.toLowerCase().includes(lower) || 
+    return skList.filter(item => 
+        (item.nama || "").toLowerCase().includes(lower) || 
         (item.nomorSurat && item.nomorSurat.toLowerCase().includes(lower)) ||
-        item.jabatan.toLowerCase().includes(lower)
+        (item.jabatan || "").toLowerCase().includes(lower)
     )
-    setFilteredSk(filtered)
-  }, [searchTerm, skList])
+  }, [skList, searchTerm])
 
-  const handleDownload = (sk: any) => {
+  useEffect(() => {
+      const loadSkData = async () => {
+          try {
+              const [data, hmRes] = await Promise.all([
+                  api.getSk(),
+                  api.getHeadmasterTenures()
+              ])
+              
+              setSkList(data)
+
+               // Filter HM Data by Unit Kerja
+               if (user?.unitKerja) {
+                    const allHm = Array.isArray(hmRes) ? hmRes : (hmRes as any).data || []
+                    const myHm = allHm.filter((h: any) => 
+                       h.school?.nama === user.unitKerja || h.teacher?.nama === user.name
+                    )
+                    setHeadmasterSkList(myHm)
+               }
+          } catch (err) {
+              console.error("Failed to fetch SK", err)
+          }
+      }
+      
+      loadSkData()
+  }, [user])
+
+
+
+  const handleDownload = (sk: SkDocument) => {
       // Simulation
       alert(`Mendownload SK: ${sk.nomorSurat || 'Draft'} untuk ${sk.nama}`)
   }
+
+  // Pagination Logic for SK Digital
+  const totalSkPages = Math.ceil(filteredSk.length / itemsPerPage)
+  const paginatedSk = filteredSk.slice(
+      (currentSkPage - 1) * itemsPerPage,
+      currentSkPage * itemsPerPage
+  )
+
+  // Pagination Logic for Headmaster SK
+  const totalHmPages = Math.ceil(headmasterSkList.length / itemsPerPage)
+  const paginatedHm = headmasterSkList.slice(
+      (currentHmPage - 1) * itemsPerPage,
+      currentHmPage * itemsPerPage
+  )
 
   return (
     <div className="space-y-6">
@@ -99,7 +148,7 @@ export default function MySkPage() {
                             </TableCell>
                         </TableRow>
                     ): (
-                        filteredSk.map((sk, i) => (
+                        paginatedSk.map((sk, i) => (
                             <TableRow key={i}>
                                 <TableCell className="font-medium">
                                     <div className="flex items-center gap-2">
@@ -131,6 +180,146 @@ export default function MySkPage() {
                     )}
                 </TableBody>
             </Table>
+
+            {/* Pagination Controls for SK Digital */}
+            {filteredSk.length > itemsPerPage && (
+              <div className="flex items-center justify-end space-x-2 py-4 px-2">
+                <div className="flex-1 text-sm text-muted-foreground">
+                  Halaman {currentSkPage} dari {totalSkPages} ({filteredSk.length} data)
+                </div>
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentSkPage(1)}
+                    disabled={currentSkPage === 1}
+                  >
+                    First
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentSkPage(p => Math.max(1, p - 1))}
+                    disabled={currentSkPage === 1}
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentSkPage(p => Math.min (totalSkPages, p + 1))}
+                    disabled={currentSkPage === totalSkPages}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentSkPage(totalSkPages)}
+                    disabled={currentSkPage === totalSkPages}
+                  >
+                    Last
+                  </Button>
+                </div>
+              </div>
+            )}
+        </CardContent>
+      </Card>
+
+      {/* --- SECTION FOR HEADMASTER SK --- */}
+      <Card>
+        <CardHeader>
+             <CardTitle>Riwayat Pengangkatan Kepala Madrasah</CardTitle>
+             <CardDescription>Status pengajuan SK Kepala Madrasah.</CardDescription>
+        </CardHeader>
+        <CardContent>
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Nama Calon</TableHead>
+                        <TableHead>Periode</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>SK Final</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {headmasterSkList.length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Tidak ada data.</TableCell></TableRow>
+                    ) : (
+                        paginatedHm.map((item) => (
+                            <TableRow key={item.id}>
+                                <TableCell>
+                                    {item.teacher?.nama}
+                                    <div className="text-xs text-muted-foreground">{item.school?.nama}</div>
+                                </TableCell>
+                                <TableCell>Periode Ke-{item.periode}</TableCell>
+                                <TableCell>
+                                     <Badge variant="outline" className={
+                                        item.status === 'Approved' ? "bg-green-50 text-green-700 border-green-200" :
+                                        "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                    }>
+                                        {item.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    {item.skUrl ? (
+                                        <Button size="sm" variant="outline" className="text-blue-600" onClick={() => window.open(item.skUrl, '_blank')}>
+                                            <Download className="w-4 h-4 mr-1" /> Unduh SK
+                                        </Button>
+                                    ) : item.status === 'Approved' ? (
+                                        <span className="text-xs text-muted-foreground">Belum diupload</span>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground">-</span>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+             </Table>
+
+             {/* Pagination Controls for Headmaster SK */}
+             {headmasterSkList.length > itemsPerPage && (
+               <div className="flex items-center justify-end space-x-2 py-4 px-2">
+                 <div className="flex-1 text-sm text-muted-foreground">
+                   Halaman {currentHmPage} dari {totalHmPages} ({headmasterSkList.length} data)
+                 </div>
+                 <div className="space-x-2">
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setCurrentHmPage(1)}
+                     disabled={currentHmPage === 1}
+                   >
+                     First
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setCurrentHmPage(p => Math.max(1, p - 1))}
+                     disabled={currentHmPage === 1}
+                   >
+                     Prev
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setCurrentHmPage(p => Math.min(totalHmPages, p + 1))}
+                     disabled={currentHmPage === totalHmPages}
+                   >
+                     Next
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setCurrentHmPage(totalHmPages)}
+                     disabled={currentHmPage === totalHmPages}
+                   >
+                     Last
+                   </Button>
+                 </div>
+               </div>
+             )}
         </CardContent>
       </Card>
     </div>

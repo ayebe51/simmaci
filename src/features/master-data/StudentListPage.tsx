@@ -9,12 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+import ExcelImportModal from "./components/ExcelImportModal"
 
 interface Student {
   id: string
@@ -34,6 +36,7 @@ export default function StudentListPage() {
   const [formData, setFormData] = useState<Partial<Student>>({
       nisn: "", nama: "", kelas: "", sekolah: "", jk: "L"
   })
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   // PERMISSION: Filter by Unit Kerja for Operators
   const [userUnit] = useState<string | null>(() => {
@@ -48,6 +51,9 @@ export default function StudentListPage() {
     } catch(e) { return null }
     return null
   })
+
+  // Sorting State
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
   const loadStudents = async () => {
     try {
@@ -72,48 +78,149 @@ export default function StudentListPage() {
     s.sekolah.toLowerCase().includes(searchTerm.toLowerCase())
   })
 
+  const sortedStudents = useMemo(() => {
+    const sortableItems = [...filtered];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        // Handle undefined values
+        const aValue = a[sortConfig.key] || "";
+        const bValue = b[sortConfig.key] || "";
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filtered, sortConfig]);
+
+  // Pagination Logic
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const totalPages = Math.ceil(sortedStudents.length / itemsPerPage)
+
+  const paginatedStudents = sortedStudents.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+  )
+
+  useEffect(() => {
+      setCurrentPage(1)
+  }, [searchTerm, sortConfig])
+
+  // Sort Handler
+  const requestSort = (key: keyof Student) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const getSortIcon = (name: keyof Student) => {
+      if (!sortConfig || sortConfig.key !== name) {
+          return <ArrowUpDown className="ml-2 h-4 w-4" />
+      }
+      return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+  }
+
   const handleAdd = async () => {
       if (!formData.nama || !formData.nisn) {
-          alert("Nama dan NISN wajib diisi!")
+          alert("Nama dan NISN wajib diisi")
           return
       }
       
       try {
-        await api.createStudent({
-            nisn: formData.nisn,
-            nama: formData.nama,
-            jk: formData.jk || "L",
-            kelas: formData.kelas || "-",
-            sekolah: formData.sekolah || "-" // Should ideally be a Schools lookup or userUnit
-        })
-
-        loadStudents()
-        setIsAddOpen(false)
-        setFormData({ nisn: "", nama: "", kelas: "", sekolah: "", jk: "L" })
-        alert("Berhasil menambah siswa")
+          // TODO: Implement createStudent API
+          alert("Fitur tambah siswa belum diimplementasikan di backend")
+          // await api.createStudent(formData)
+          // loadStudents()
+          setIsAddOpen(false)
+          setFormData({ nisn: "", nama: "", kelas: "", sekolah: "", jk: "L" })
       } catch (e) {
-        alert("Gagal menyimpan data siswa")
+          alert("Gagal menambah siswa")
+      }
+  }
+
+  const handleDelete = async (id: string) => {
+      if(confirm("Yakin ingin menghapus siswa ini?")) {
+        //   await api.deleteStudent(id)
+          alert("Fitur hapus siswa belum diimplementasikan")
+        //   loadStudents()
+      }
+  }
+
+  const handleExport = async () => {
+      try {
+          const blob = await api.exportStudents(userUnit || undefined)
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `Data_Siswa_${new Date().toISOString().split('T')[0]}.xlsx`);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
+      } catch (e: any) {
+          console.error(e)
+          alert("Gagal mengexport data.")
+      }
+  }
+
+  const downloadTemplate = async () => {
+      try {
+          const blob = await api.downloadStudentTemplate();
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', 'TEMPLATE_IMPORT_DATA_SISWA.xlsx');
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
+          window.URL.revokeObjectURL(url);
+      } catch (error) {
+          console.error('Failed to download template:', error);
+          alert('Gagal mendownload template. Silakan coba lagi.');
       }
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Data Siswa</h1>
-          <p className="text-muted-foreground">
-            Data peserta didik di lingkungan LP Ma'arif NU Cilacap.
-          </p>
-        </div>
-        <div className="flex gap-2">
-            <Button onClick={() => setIsAddOpen(true)}>
-             <Plus className="mr-2 h-4 w-4" /> Tambah Siswa
-            </Button>
-        </div>
-      </div>
+      <SoftPageHeader
+        title="Data Siswa"
+        description="Data peserta didik di lingkungan LP Ma'arif NU Cilacap"
+        actions={[
+          {
+            label: 'Export Excel',
+            onClick: handleExport,
+            variant: 'mint',
+            icon: <Download className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Download Template',
+            onClick: downloadTemplate,
+            variant: 'purple',
+            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Tambah Manual',
+            onClick: () => setIsAddOpen(true),
+            variant: 'cream',
+            icon: <Plus className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Import Excel',
+            onClick: () => setIsImportModalOpen(true),
+            variant: 'blue',
+            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
+          }
+        ]}
+      />
 
       <Card>
-        {/* ... existing card content ... */}
         <CardHeader className="pb-3">
              <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -126,44 +233,98 @@ export default function StudentListPage() {
             </div>
         </CardHeader>
         <CardContent>
-      <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>NISN</TableHead>
-                <TableHead>Nama Lengkap</TableHead>
-                <TableHead>L/P</TableHead>
-                <TableHead>Kelas</TableHead>
-                <TableHead>Asal Sekolah</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                  <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                          Tidak ada data siswa ditemukan.
-                      </TableCell>
-                  </TableRow>
-              ) : (
-                  filtered.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.nisn}</TableCell>
-                      <TableCell>{item.nama}</TableCell>
-                      <TableCell>{item.jk}</TableCell>
-                      <TableCell>{item.kelas}</TableCell>
-                      <TableCell>{item.sekolah}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></Button>
-                      </TableCell>
+            <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead onClick={() => requestSort('nisn')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">NISN {getSortIcon('nisn')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('nama')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Nama Lengkap {getSortIcon('nama')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('jk')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">L/P {getSortIcon('jk')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('kelas')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Kelas {getSortIcon('kelas')}</div>
+                      </TableHead>
+                      <TableHead onClick={() => requestSort('sekolah')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Asal Sekolah {getSortIcon('sekolah')}</div>
+                      </TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
-                  ))
-              )}
-            </TableBody>
-          </Table>
-      </div>
-      </CardContent>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedStudents.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center">
+                                Tidak ada data siswa ditemukan.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        paginatedStudents.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.nisn}</TableCell>
+                            <TableCell>{item.nama}</TableCell>
+                            <TableCell>{item.jk}</TableCell>
+                            <TableCell>{item.kelas}</TableCell>
+                            <TableCell>{item.sekolah}</TableCell>
+                            <TableCell className="text-right space-x-2">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                                    setFormData(item)
+                                    setIsAddOpen(true)
+                                }}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    )}
+                  </TableBody>
+                </Table>
+            </div>
+            
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="flex-1 text-sm text-muted-foreground">
+                    Halaman {currentPage} dari {totalPages} ({filtered.length} data)
+                </div>
+                <div className="space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                    >
+                        First
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        Prev
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                    >
+                        Last
+                    </Button>
+                </div>
+            </div>
+        </CardContent>
     </Card>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -207,6 +368,18 @@ export default function StudentListPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Excel Import Modal */}
+      <ExcelImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={loadStudents}
+        title="Import Data Siswa"
+        description="Upload file Excel (.xlsx) untuk import data siswa"
+        onFileImport={async (file) => {
+          await api.importStudents(file)
+        }}
+      />
     </div>
   )
 }

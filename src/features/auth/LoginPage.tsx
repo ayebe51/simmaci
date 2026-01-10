@@ -11,13 +11,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
-
-import { api } from "@/lib/api"
 import { toast } from "sonner"
+// 🔥 CONVEX AUTH
+import { useMutation } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  
+  // Convex login mutation
+  const loginMutation = useMutation(api.auth.login)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,12 +32,16 @@ export default function LoginPage() {
     const passwordInput = (document.getElementById("password") as HTMLInputElement)?.value || ""
 
     try {
-        const data = await api.login(emailInput, passwordInput)
+        // 🔥 Call Convex login
+        const data = await loginMutation({
+          email: emailInput,
+          password: passwordInput,
+        })
         
-        // Save token
-        api.setToken(data.access_token)
+        // Save token (user ID)
+        localStorage.setItem("token", data.token)
         
-        // Save real user data from backend
+        // Save user data
         localStorage.setItem("user", JSON.stringify(data.user))
 
         toast.success("Login Berhasil!")

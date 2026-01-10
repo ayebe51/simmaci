@@ -4,7 +4,7 @@ import { v } from "convex/values";
 // Simple password hashing (in production, use proper bcrypt or Convex Auth)
 function hashPassword(password: string): string {
   // Simple hash for demo - in production use proper encryption
-  return Buffer.from(password).toString('base64');
+  return btoa(password); // Base64 encoding using web API
 }
 
 function verifyPassword(password: string, hash: string): boolean {

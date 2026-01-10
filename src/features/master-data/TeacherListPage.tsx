@@ -212,25 +212,33 @@ export default function TeacherListPage() {
             nuptk: formData.nuptk || "-",
             nama: formData.nama,
             status: formData.status || "Lainnya",
-            satminkal: formData.satminkal || "-",
+            unitKerja: formData.satminkal || "-",
+            mapel: formData.mapel || null,
             phoneNumber: formData.phoneNumber || null,
             pdpkpnu: formData.pdpkpnu || "Belum",
-            birthPlace: formData.birthPlace || null,
-            birthDate: formData.birthDate || null
+            tempatLahir: formData.birthPlace || null,
+            tanggalLahir: formData.birthDate || null,
+            isActive: true,
         }
         console.log("[DEBUG] Payload being sent:", payload);
 
         if (isEditMode && formData.id) {
-            await api.updateTeacher(formData.id, payload)
+            // 🔥 Update via Convex
+            await updateTeacherMutation({ 
+              id: formData.id as any,
+              ...payload
+            })
             alert("Berhasil memperbarui data guru")
         } else {
-            await api.createTeacher(payload)
+            // 🔥 Create via Convex
+            await createTeacherMutation(payload)
             alert("Berhasil menambah guru")
         }
         
-        loadTeachers()
+        // Convex auto-updates UI, but close dialog
         closeDialog()
       } catch (e) {
+          console.error("Save error:", e)
           alert("Gagal menyimpan guru")
       }
   }

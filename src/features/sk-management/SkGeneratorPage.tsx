@@ -171,10 +171,13 @@ const generateBulkSkZip = async (
     return { successCount, errorCount: errors.length }
 }
 
-import { api } from "@/lib/api"
+// 🔥 CONVEX REAL-TIME
+import { useQuery } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function SkGeneratorPage() {
-  const [teachers, setTeachers] = useState<any[]>([])
+  // Fetch teachers from Convex (real-time)
+  const teachersData = useQuery(convexApi.teachers.list) || []
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState("")
   // const [templateFile, setTemplateFile] = useState<File | null>(null) // Deprecated: Local state
@@ -206,21 +209,9 @@ export default function SkGeneratorPage() {
       return newDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
   }
   
-  const fetchTeachers = async () => {
-    setIsLoading(true)
-    try {
-        const data = await api.getTeachers()
-        setTeachers(data)
-    } catch(e) {
-        console.error("Failed to load teachers", e)
-    } finally {
-        setIsLoading(false)
-    }
-  }
-
-  // Load teachers from API
+  // Teachers loaded via Convex useQuery (real-time, no need for manual fetch)
   useEffect(() => {
-    fetchTeachers()
+    // Auto-loaded by Convex query above
     
     // Check for ANY stored template
     if (

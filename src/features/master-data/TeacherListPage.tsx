@@ -211,15 +211,15 @@ export default function TeacherListPage() {
       try {
         console.log("[DEBUG] formData before payload:", formData);
         const payload = {
-            nuptk: formData.nuptk || "-",
-            nama: formData.nama,
-            status: formData.status || "Lainnya",
-            unitKerja: formData.satminkal || "-",
-            mapel: formData.mapel || null,
-            phoneNumber: formData.phoneNumber || null,
-            pdpkpnu: formData.pdpkpnu || "Belum",
-            tempatLahir: formData.birthPlace || null,
-            tanggalLahir: formData.birthDate || null,
+            nuptk: String(formData.nuptk || `TMP-${Date.now()}`),
+            nama: String(formData.nama || ""),
+            status: formData.status || undefined,
+            unitKerja: formData.satminkal || undefined,
+            mapel: formData.mapel || undefined,
+            phoneNumber: formData.phoneNumber || undefined,
+            pdpkpnu: formData.pdpkpnu || undefined,
+            tempatLahir: formData.birthPlace || undefined,
+            tanggalLahir: formData.birthDate || undefined,
             isActive: true,
         }
         console.log("[DEBUG] Payload being sent:", payload);

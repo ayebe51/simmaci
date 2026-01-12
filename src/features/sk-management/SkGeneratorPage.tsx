@@ -677,6 +677,8 @@ export default function SkGeneratorPage() {
             "Th. Ajaran": tahunAjaran,
             "Th Ajaran": tahunAjaran,
             
+            // --- ALL CAPS SPACES (User might format like this) ---
+            
             "KECAMATAN": kecamatan,
             
             

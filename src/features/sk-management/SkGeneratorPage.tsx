@@ -677,9 +677,8 @@ export default function SkGeneratorPage() {
             "Th. Ajaran": tahunAjaran,
             "Th Ajaran": tahunAjaran,
             
-            "Kecamatan": kecamatan,
-            // "KECAMATAN_SEKOLAH" moved below
-            "KECAMATAN": kecamatan, // Ensure Uppercase overrides
+            "KECAMATAN": kecamatan,
+            
             
             // --- ALL CAPS SPACES (User might format like this) ---
             "NOMOR SURAT PERMOHONAN": nomorSuratMasuk || "-",

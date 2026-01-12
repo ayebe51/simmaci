@@ -576,14 +576,14 @@ export default function TeacherListPage() {
           // Map Excel columns to Convex schema
           const teachers = jsonData.map((row: any) => ({
             nuptk: String(row.NUPTK || row.nuptk || `TMP-${Date.now()}-${Math.random()}`),
-            nama: String(row.Nama || row.nama || row.NAMA),
-            unitKerja: String(row['Unit Kerja'] || row.unitKerja || row.satminkal || '-'),
-            status: String(row.Status || row.status || 'GTY'),
-            mapel: row.Mapel || row.mapel || null,
-            kecamatan: row.Kecamatan || row.kecamatan || null,
-            phoneNumber: row['No HP'] || row.phoneNumber || null,
-            pdpkpnu: row.PDPKPNU || row.pdpkpnu || 'Belum',
-            isCertified: row.Sertifikasi === 'Ya' || row.isCertified === true,
+            nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),
+            unitKerja: (row['Unit Kerja'] || row.unitKerja || row.satminkal) || undefined,
+            status: (row.Status || row.status) || undefined,
+            mapel: row.Mapel || row.mapel || undefined,
+            kecamatan: row.Kecamatan || row.kecamatan || undefined,
+            phoneNumber: row['No HP'] || row.phoneNumber || undefined,
+            pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
+            isCertified: row.Sertifikasi === 'Ya' || row.isCertified === true || undefined,
           }))
           
           // Call Convex bulkCreate mutation

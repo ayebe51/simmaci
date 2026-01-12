@@ -56,6 +56,7 @@ export default function TeacherListPage() {
   const updateTeacherMutation = useMutation(convexApi.teachers.update)
   const removeTeacherMutation = useMutation(convexApi.teachers.remove)
   const createTeacherMutation = useMutation(convexApi.teachers.create)
+  const bulkCreateMutation = useMutation(convexApi.teachers.bulkCreate)
 
   // Map Convex data to existing Teacher interface
   const teachers = (convexTeachers || []).map((t: any) => ({
@@ -565,9 +566,31 @@ export default function TeacherListPage() {
         title="Import Data Guru"
         description="Upload file Excel (.xlsx) untuk import data guru"
         onFileImport={async (file) => {
-          await api.importTeachers(file)
+          // Parse Excel file client-side
+          const XLSX = await import('xlsx')
+          const data = await file.arrayBuffer()
+          const workbook = XLSX.read(data)
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+          const jsonData = XLSX.utils.sheet_to_json(worksheet)
+          
+          // Map Excel columns to Convex schema
+          const teachers = jsonData.map((row: any) => ({
+            nuptk: String(row.NUPTK || row.nuptk || `TMP-${Date.now()}-${Math.random()}`),
+            nama: String(row.Nama || row.nama || row.NAMA),
+            unitKerja: String(row['Unit Kerja'] || row.unitKerja || row.satminkal || '-'),
+            status: String(row.Status || row.status || 'GTY'),
+            mapel: row.Mapel || row.mapel || null,
+            kecamatan: row.Kecamatan || row.kecamatan || null,
+            phoneNumber: row['No HP'] || row.phoneNumber || null,
+            pdpkpnu: row.PDPKPNU || row.pdpkpnu || 'Belum',
+            isCertified: row.Sertifikasi === 'Ya' || row.isCertified === true,
+          }))
+          
+          // Call Convex bulkCreate mutation
+          await bulkCreateMutation({ teachers })
         }}
       />
+
     </div>
   )
 }

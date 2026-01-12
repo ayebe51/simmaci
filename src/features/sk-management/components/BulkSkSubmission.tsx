@@ -16,9 +16,15 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useNavigate } from "react-router-dom"
+import { useMutation } from "convex/react"
+import { api as convexApi } from "@/convex/_generated/api"
 
 export function BulkSkSubmission() {
   const navigate = useNavigate()
+  
+  // Convex mutation for bulk teacher creation
+  const bulkCreateMutation = useMutation(convexApi.teachers.bulkCreate)
+  
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [candidates, setCandidates] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -399,21 +405,33 @@ export function BulkSkSubmission() {
             }
         })
 
-        // 1. Sync Teachers to Master Data (CHUNKED to avoid Network Error)
-        console.log("Upserting teachers:", teachersToUpsert.length, "rows")
+        // 1. Sync Teachers to Master Data using Convex
+        console.log("Upserting teachers via Convex:", teachersToUpsert.length, "rows")
         
-        const CHUNK_SIZE = 10;
-        for (let i = 0; i < teachersToUpsert.length; i += CHUNK_SIZE) {
-            const chunk = teachersToUpsert.slice(i, i + CHUNK_SIZE);
-            log(`Mengirim data guru batch ${Math.floor(i / CHUNK_SIZE) + 1} (${chunk.length} data)...`)
-            try {
-                await api.upsertTeachers(chunk)
-            } catch (err: any) {
-                console.error("Batch failed", err)
-                throw new Error(`Gagal mengirim batch ${Math.floor(i / CHUNK_SIZE) + 1}: ${err.message}`)
-            }
+        // Map to Convex schema format (using undefined for optional fields)
+        const convexTeachers = teachersToUpsert.map(t => ({
+            nuptk: t.nuptk,
+            nama: t.nama,
+            status: t.status || undefined,
+            unitKerja: t.satminkal || undefined,
+            mapel: t.mapel || undefined,
+            kecamatan: t.kecamatan || undefined,
+            phoneNumber: undefined,
+            pdpkpnu: t.pdpkpnu || undefined,
+            tempatLahir: t.birthPlace || undefined,
+            tanggalLahir: t.birthDate || undefined,
+            pendidikanTerakhir: t.pendidikanTerakhir || undefined,
+            isCertified: t.isCertified || undefined,
+        }))
+        
+        log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
+        try {
+            await bulkCreateMutation({ teachers: convexTeachers })
+            log("Semua data guru berhasil disinkronkan ke Convex.")
+        } catch (err: any) {
+            console.error("Convex bulkCreate failed", err)
+            throw new Error(`Gagal menyimpan data guru: ${err.message}`)
         }
-        log("Semua data guru berhasil disinkronkan.")
 
         // 2. Create SK Submissions
         let successCount = 0;

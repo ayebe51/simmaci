@@ -1,6 +1,8 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import PDFDocument from 'pdfkit';
-import QRCode from 'qrcode';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
+import * as fs from 'fs';
+import * as path from 'path';
 import { query } from '../_lib/db';
 
 export default async function handler(
@@ -29,145 +31,123 @@ export default async function handler(
       unitKerja,
       jabatan,
       tanggalPenetapan,
+      tempatPenetapan = 'Cilacap',
     } = req.body;
 
     // Validation
-    if (!jenisSk || !nama) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!jenisSk || !nama || !nomorSk) {
+      return res.status(400).json({ error: 'Missing required fields: jenisSk, nama, nomorSk' });
     }
 
-    // Generate QR Code
-    const qrCodeUrl = `https://sim-maarif-fullstack.vercel.app/sk/${nomorSk}`;
-    const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
+    // Load appropriate template based on SK type
+    const templateName = `sk-${jenisSk.toLowerCase()}-template.docx`;
+    const templatePath = path.join(process.cwd(), 'public', 'templates', templateName);
+    
+    // Fallback to generic template if specific not found
+    const fallbackPath = path.join(process.cwd(), 'public', 'templates', 'sk-template.docx');
+    
+    let content: Buffer;
+    try {
+      content = fs.readFileSync(templatePath);
+    } catch (err) {
+      console.log(`Template ${templateName} not found, using fallback`);
+      content = fs.readFileSync(fallbackPath);
+    }
 
-    // Create PDF
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    const chunks: Buffer[] = [];
-
-    doc.on('data', (chunk) => chunks.push(chunk));
-    doc.on('end', () => {
-      const pdfBuffer = Buffer.concat(chunks);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="SK-${jenisSk}-${nama}.pdf"`);
-      res.send(pdfBuffer);
+    // Load template
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
     });
 
-    // Header - Logo & Title
-    doc.fontSize(18)
-       .font('Helvetica-Bold')
-       .text('LEMBAGA PENDIDIKAN MA\'ARIF NU', { align: 'center' })
-       .fontSize(16)
-       .text('CABANG CILACAP', { align: 'center' })
-       .moveDown(0.5);
+    // Prepare data for template placeholders
+    const templateData = {
+      NOMOR_SK: nomorSk,
+      JENIS_SK: jenisSk,
+      NAMA: nama,
+      NUPTK: nuptk || '-',
+      UNIT_KERJA: unitKerja || '-',
+      JABATAN: jabatan || getDefaultJabatan(jenisSk),
+      TANGGAL_PENETAPAN: tanggalPenetapan || getCurrentDate(),
+      TEMPAT_PENETAPAN: tempatPenetapan,
+      TAHUN: new Date().getFullYear().toString(),
+      BULAN: getCurrentMonth(),
+      TANGGAL: new Date().getDate().toString(),
+    };
 
-    doc.fontSize(14)
-       .font('Helvetica')
-       .text('Jl. KH. Azhar Manaf No. 15, Cilacap', { align: 'center' })
-       .moveDown(2);
+    // Fill template with data
+    doc.setData(templateData);
+    doc.render();
 
-    // SK Title
-    doc.fontSize(16)
-       .font('Helvetica-Bold')
-       .text('SURAT KEPUTUSAN', { align: 'center' })
-       .fontSize(12)
-       .text(`Nomor: ${nomorSk}`, { align: 'center' })
-       .moveDown(1);
-
-    // Tentang
-    doc.fontSize(12)
-       .font('Helvetica-Bold')
-       .text('TENTANG', { align: 'center' })
-       .moveDown(0.5);
-
-    const tentang = jenisSk === 'GTY' ? 'PENGANGKATAN GURU TETAP YAYASAN'
-      : jenisSk === 'GTT' ? 'PENGANGKATAN GURU TIDAK TETAP'
-      : jenisSk === 'Kamad' ? 'PENGANGKATAN KEPALA MADRASAH'
-      : 'PENGANGKATAN TENAGA KEPENDIDIKAN';
-
-    doc.fontSize(11)
-       .font('Helvetica')
-       .text(tentang, { align: 'center' })
-       .moveDown(2);
-
-    // Menimbang
-    doc.fontSize(10)
-       .font('Helvetica-Bold')
-       .text('Menimbang:', { continued: false })
-       .font('Helvetica')
-       .text('a. Bahwa dalam rangka meningkatkan kualitas pendidikan...', { indent: 20 })
-       .text('b. Bahwa berdasarkan pertimbangan tersebut...', { indent: 20 })
-       .moveDown(1);
-
-    // Memutuskan
-    doc.fontSize(10)
-       .font('Helvetica-Bold')
-       .text('MEMUTUSKAN:', { align: 'center' })
-       .moveDown(0.5);
-
-    doc.font('Helvetica-Bold')
-       .text('Menetapkan:', { continued: false })
-       .moveDown(0.5);
-
-    // Data Pegawai
-    const data = [
-      ['Nama', ':', nama],
-      ['NUPTK', ':', nuptk || '-'],
-      ['Unit Kerja', ':', unitKerja || '-'],
-      ['Jabatan', ':', jabatan || tentang],
-    ];
-
-    data.forEach(([label, colon, value]) => {
-      doc.font('Helvetica')
-         .text(`${label.padEnd(20)} ${colon} ${value}`, { indent: 20 });
+    // Generate DOCX buffer
+    const docxBuffer = doc.getZip().generate({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
     });
 
-    doc.moveDown(1);
-
-    // Ketentuan
-    doc.font('Helvetica')
-       .text('Dengan ketentuan sebagai berikut:', { indent: 20 })
-       .text('1. Melaksanakan tugas sesuai dengan peraturan yang berlaku', { indent: 30 })
-       .text('2. Mematuhi tata tertib dan disiplin yang ditetapkan', { indent: 30 })
-       .text('3. Surat Keputusan ini berlaku sejak tanggal ditetapkan', { indent: 30 })
-       .moveDown(2);
-
-    // Tanggal & TTD
-    doc.fontSize(10)
-       .text(`Ditetapkan di Cilacap`, { align: 'right' })
-       .text(`Pada tanggal ${tanggalPenetapan || new Date().toLocaleDateString('id-ID')}`, { align: 'right' })
-       .moveDown(0.5)
-       .font('Helvetica-Bold')
-       .text('Ketua LP Ma\'arif NU Cilacap', { align: 'right' })
-       .moveDown(3)
-       .text('(_____________________)', { align: 'right' });
-
-    // QR Code (bottom left)
-    const qrImage = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64');
-    doc.image(qrImage, 50, doc.page.height - 150, { width: 80 });
-    doc.fontSize(8)
-       .font('Helvetica')
-       .text('Scan untuk verifikasi', 50, doc.page.height - 60, { width: 80, align: 'center' });
-
-    doc.end();
-
-    // Also save metadata to database (optional)
+    // Save SK metadata to database
     try {
       await query(
-        `INSERT INTO sk_documents (nomor_sk, jenis_sk, nama, nuptk, unit_kerja, tanggal_penetapan, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
-         ON CONFLICT (nomor_sk) DO NOTHING`,
-        [nomorSk, jenisSk, nama, nuptk, unitKerja, tanggalPenetapan]
+        `INSERT INTO sk_documents (nomor_sk, jenis_sk, nama, nuptk, unit_kerja, jabatan, tanggal_penetapan, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+         ON CONFLICT (nomor_sk) DO UPDATE SET
+           updated_at = NOW(),
+           nama = EXCLUDED.nama,
+           unit_kerja = EXCLUDED.unit_kerja`,
+        [nomorSk, jenisSk, nama, nuptk, unitKerja, jabatan, tanggalPenetapan]
       );
     } catch (dbError) {
-      console.warn('Failed to save SK metadata to database:', dbError);
-      // Continue anyway - PDF generation is more important
+      console.warn('Failed to save SK metadata:', dbError);
+      // Continue anyway - document generation is more important
     }
+
+    // Return DOCX file
+    // Note: PDF conversion attempted but may timeout in serverless
+    // User can convert DOCX to PDF locally
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="SK-${jenisSk}-${nama.replace(/\s+/g, '_')}.docx"`);
+    return res.send(docxBuffer);
 
   } catch (error) {
     console.error('SK generation error:', error);
+    
+    // Detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    
     return res.status(500).json({ 
       error: 'Failed to generate SK',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? errorStack : undefined
     });
   }
+}
+
+// Helper functions
+function getDefaultJabatan(jenisSk: string): string {
+  switch (jenisSk) {
+    case 'GTY': return 'Guru Tetap Yayasan';
+    case 'GTT': return 'Guru Tidak Tetap';
+    case 'Kamad': return 'Kepala Madrasah';
+    case 'Tendik': return 'Tenaga Kependidikan';
+    default: return 'Pegawai';
+  }
+}
+
+function getCurrentDate(): string {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const now = new Date();
+  return `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+function getCurrentMonth(): string {
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  return months[new Date().getMonth()];
 }

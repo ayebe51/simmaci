@@ -1,6 +1,9 @@
 import axios from "axios";
 
-export const API_URL = "http://localhost:3000";
+// DEPRECATED: This file is legacy code from NestJS backend
+// All features now use Convex - see convex/ folder
+// Keeping this file only for reference, but API_URL is commented out to prevent accidental use
+export const API_URL = ""; // Was: http://localhost:3000 - DO NOT USE IN PRODUCTION
 
 // Axios Instance with Extended Timeout for Bulk Uploads
 const axiosInstance = axios.create({

@@ -11,9 +11,15 @@ export default function PublicVerificationPage() {
     const [data, setData] = useState<any>(null)
 
     useEffect(() => {
+        // DEPRECATED: This feature requires backend API endpoint that doesn't exist in Convex yet
+        // TODO: Implement SK verification in Convex or remove this feature
+        setStatus("invalid");
+        return;
+        
+        /* Original code - commented out due to hardcoded localhost
         if (!id) {
-            setStatus("invalid")
-            return
+            setStatus("invalid");
+            return;
         }
 
         // Use direct fetch for public endpoint (no auth required)
@@ -29,6 +35,7 @@ export default function PublicVerificationPage() {
             .catch(() => {
                 setStatus("invalid")
             })
+        */
     }, [id])
 
     return (

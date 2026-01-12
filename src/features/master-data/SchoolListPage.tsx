@@ -219,6 +219,12 @@ export default function SchoolListPage() {
 
   const handleExport = async () => {
     try {
+      // DEPRECATED: This feature requires NestJS backend endpoint
+      // TODO: Implement school export in Convex or remove this feature
+      toast.error("Fitur export belum tersedia - sedang dalam pengembangan");
+      return;
+      
+      /* Original code - commented out due to hardcoded localhost
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/master-data/schools/export', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -227,11 +233,15 @@ export default function SchoolListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `data-madrasah-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `sekolah-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (e) {
-      alert('Gagal export data');
+      */
+    } catch (err) {
+      console.error('Export error:', err);
+      toast.error('Gagal export data sekolah');
     }
   }
 

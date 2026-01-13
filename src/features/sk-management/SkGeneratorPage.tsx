@@ -678,11 +678,6 @@ export default function SkGeneratorPage() {
             "Th Ajaran": tahunAjaran,
             
             // --- ALL CAPS SPACES (User might format like this) ---
-            
-            "KECAMATAN": kecamatan,
-            
-            
-            // --- ALL CAPS SPACES (User might format like this) ---
             "NOMOR SURAT PERMOHONAN": nomorSuratMasuk || "-",
             "NO SURAT PERMOHONAN": nomorSuratMasuk || "-",
             "TANGGAL SURAT PERMOHONAN": tanggalSuratMasukFormatted,

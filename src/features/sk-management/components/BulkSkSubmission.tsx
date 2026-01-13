@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table"
 import { useNavigate } from "react-router-dom"
 import { useMutation } from "convex/react"
-import { api as convexApi } from "@/convex/_generated/api"
+import { api as convexApi } from "../../../../convex/_generated/api"
 
 export function BulkSkSubmission() {
   const navigate = useNavigate()

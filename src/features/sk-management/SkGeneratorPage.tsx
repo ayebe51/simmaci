@@ -225,7 +225,7 @@ export default function SkGeneratorPage() {
   }, [])
 
   // Filter logic
-  const filteredTeachers = teachers.filter(t => 
+  const filteredTeachers = teachersData.filter(t => 
     // Only show active teachers
     (t.isActive !== false) &&
     ((t.nama?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
@@ -241,8 +241,8 @@ export default function SkGeneratorPage() {
   const handleSelectAllForPage = (checked: boolean) => {
     const next = new Set(selectedIds)
     currentData.forEach(t => {
-        if (checked) next.add(t.id)
-        else next.delete(t.id)
+        if (checked) next.add(t._id)
+        else next.delete(t._id)
     })
     setSelectedIds(next)
   }
@@ -295,7 +295,7 @@ export default function SkGeneratorPage() {
 
           // Create a dummy data object with ALL available keys to check against
           const sampleData = {
-              ...teachers[0], // base props
+              ...teachersData[0], // base props
               jenisSk: "SK Guru Tetap",
               // Uppercase
               NAMA: "Sample", NAMA_LENGKAP: "Sample", NAMA_GURU: "Sample",
@@ -518,7 +518,7 @@ export default function SkGeneratorPage() {
     setIsGenerating(true)
     try {
       // Get selected teacher objects
-      const selectedData = teachers.filter(t => selectedIds.has(t.id))
+      const selectedData = teachersData.filter(t => selectedIds.has(t._id))
       
       // Get Settings for Signers
       const settingsStr = localStorage.getItem("app_settings")
@@ -982,7 +982,7 @@ export default function SkGeneratorPage() {
                                         <Checkbox 
                                             checked={
                                                 currentData.length > 0 && 
-                                                currentData.every(t => selectedIds.has(t.id))
+                                                currentData.every(t => selectedIds.has(t._id))
                                             }
                                             onCheckedChange={(c) => handleSelectAllForPage(!!c)}
                                         />
@@ -1012,11 +1012,11 @@ export default function SkGeneratorPage() {
                                     </TableRow>
                                 ) : (
                                     currentData.map((t) => (
-                                        <TableRow key={t.id} data-state={selectedIds.has(t.id) ? "selected" : ""}>
+                                        <TableRow key={t._id} data-state={selectedIds.has(t._id) ? "selected" : ""}  >
                                             <TableCell>
                                                 <Checkbox 
-                                                    checked={selectedIds.has(t.id)}
-                                                    onCheckedChange={(c) => handleSelectOne(t.id, !!c)}
+                                                    checked={selectedIds.has(t._id)}
+                                                    onCheckedChange={(c) => handleSelectOne(t._id, !!c)}
                                                 />
                                             </TableCell>
                                             <TableCell className="font-medium">{t.nama}</TableCell>

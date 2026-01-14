@@ -9,11 +9,15 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { ArrowLeft, Save, FileText, BadgeCheck } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useState, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
+// 🔥 CONVEX for SK creation
+import { useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
+// Keep old API for file upload only
+import { api } from "@/lib/api"
 
 // Helper for numbering (Inlined to fix build issues)
 // Helper for numbering (Inlined to fix build issues)
@@ -73,6 +77,9 @@ export default function SkSubmissionPage() {
     }
   })
 
+  // 🔥 CONVEX MUTATION
+  const createSkMutation = useMutation(convexApi.sk.create)
+
   const onSubmit = async (data: SkFormValues) => {
     setIsSubmitting(true)
     try {
@@ -100,7 +107,24 @@ export default function SkSubmissionPage() {
             suratPermohonanUrl: finalSuratPermohonanUrl
         }
 
-        await api.createSk(payload)
+        // Map form data to Convex schema
+        // Get userId from localStorage (temp solution)
+        const userStr = localStorage.getItem("user")
+        const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
+
+        await createSkMutation({
+            nomorSk: getNextSkNumber(), // Generate SK number
+            jenisSk: data.jenisSk,
+            nama: data.nama,
+            jabatan: data.jabatan || "",
+            unitKerja: data.unitKerja,
+            tanggalPenetapan: new Date().toISOString().split('T')[0],
+            status: "draft", // Initial status
+            fileUrl: finalSuratPermohonanUrl,
+            createdBy: userId, // Need to get actual userId from Convex auth
+        })
+        
+        incrementSkCounter() // Increment local counter
         toast.success("SK Berhasil diajukan!")
         navigate("/dashboard/sk")
     } catch (err: any) {

@@ -76,16 +76,22 @@ export default function AppShell({ children }: AppShellProps) {
               
               const userStr = localStorage.getItem("user")
               const user = userStr ? JSON.parse(userStr) : null
-              const isSuperAdmin = user?.role === "super_admin"
+              const userRole = user?.role || ""
 
-              // Restrictions: Generator and Users only for super_admin
-              if (!isSuperAdmin && (
-                  item.label === "Generator SK" || 
-                  item.label === "Manajemen User" ||
-                  item.label === "Pengaturan"
-              )) {
-                  return null
+              // 🔐 RBAC MENU VISIBILITY CONTROL
+              
+              // 1. Generator SK - super_admin ONLY
+              if (item.label === "Generator SK" && userRole !== "super_admin") {
+                return null
               }
+
+              // 2. Manajemen User - super_admin ONLY
+              if (item.label === "Manajemen User" && userRole !== "super_admin") {
+                return null
+              }
+
+              // 3. Pengaturan - Available to all roles
+              // (No restriction needed)
 
               return (
                 <Link

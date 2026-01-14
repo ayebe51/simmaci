@@ -90,7 +90,12 @@ export default function AppShell({ children }: AppShellProps) {
                 return null
               }
 
-              // 3. Pengaturan - Available to all roles
+              // 3. Approval Yayasan - super_admin & admin_yayasan ONLY
+              if (item.label === "Approval Yayasan" && !["super_admin", "admin_yayasan"].includes(userRole)) {
+                return null
+              }
+
+              // 4. Pengaturan - Available to all roles
               // (No restriction needed)
 
               return (

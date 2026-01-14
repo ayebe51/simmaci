@@ -5,7 +5,10 @@ import { Badge } from "@/components/ui/badge"
 import { Download, FileText, Search } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { Input } from "@/components/ui/input"
-
+// 🔥 CONVEX REAL-TIME for SK
+import { useQuery } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
+// Keep old API for headmaster (until we migrate headmaster to Convex)
 import { api } from "@/lib/api"
 
 interface SkDocument {
@@ -55,16 +58,30 @@ export default function MySkPage() {
     )
   }, [skList, searchTerm])
 
-  useEffect(() => {
-      const loadSkData = async () => {
-          try {
-              const [data, hmRes] = await Promise.all([
-                  api.getSk(),
-                  api.getHeadmasterTenures()
-              ])
-              
-              setSkList(data)
+  // 🔥 REAL-TIME CONVEX QUERY for SK - Auto-updates!
+  const convexSkData = useQuery(convexApi.sk.list, {
+    unitKerja: user?.unitKerja || undefined,
+    status: "active" // Only show active/approved SK
+  })
 
+  // Map Convex data to SkDocument interface
+  const skList: SkDocument[] = useMemo(() => {
+    if (!convexSkData) return []
+    
+    return convexSkData.map(doc => ({
+      id: doc._id,
+      nomorSurat: doc.nomorSk,
+      nama: doc.nama,
+      jabatan: doc.jabatan || "-",
+      status: doc.status === "active" ? "Approved" : doc.status,
+    }))
+  }, [convexSkData])
+
+  // Fetch headmaster data (still using old API)
+  useEffect(() => {
+      const loadHeadmasterData = async () => {
+          try {
+              const hmRes = await api.getHeadmasterTenures()
                // Filter HM Data by Unit Kerja
                if (user?.unitKerja) {
                     const allHm = Array.isArray(hmRes) ? hmRes : (hmRes as any).data || []
@@ -74,11 +91,11 @@ export default function MySkPage() {
                     setHeadmasterSkList(myHm)
                }
           } catch (err) {
-              console.error("Failed to fetch SK", err)
+              console.error("Failed to fetch Headmaster tenures", err)
           }
       }
       
-      loadSkData()
+      loadHeadmasterData()
   }, [user])
 
 

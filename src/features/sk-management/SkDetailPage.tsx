@@ -38,7 +38,18 @@ export default function SkDetailPage() {
   // Mutations
   const updateSk = useMutation(convexApi.sk.update)
   
-  const [isAdmin] = useState(true) // TODO: Check actual role from Convex auth
+  // ✅ CHECK ACTUAL USER ROLE from localStorage
+  const [isAdmin] = useState(() => {
+    try {
+      const userStr = localStorage.getItem("user")
+      if (!userStr) return false
+      const user = JSON.parse(userStr)
+      // Only super_admin can approve/reject SK
+      return user.role === "super_admin"
+    } catch {
+      return false
+    }
+  })
   
   // Helper to map Convex status to frontend badge status
   const getBadgeStatus = (backendStatus: string): StatusType => {

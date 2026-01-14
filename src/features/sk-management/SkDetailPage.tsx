@@ -44,8 +44,8 @@ export default function SkDetailPage() {
       const userStr = localStorage.getItem("user")
       if (!userStr) return false
       const user = JSON.parse(userStr)
-      // Only super_admin can approve/reject SK
-      return user.role === "super_admin"
+      // super_admin AND admin_yayasan can approve/reject SK
+      return ["super_admin", "admin_yayasan"].includes(user.role)
     } catch {
       return false
     }

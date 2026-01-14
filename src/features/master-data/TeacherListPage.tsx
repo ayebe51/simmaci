@@ -333,9 +333,10 @@ export default function TeacherListPage() {
 
       <Card>
         <CardHeader className="pb-3">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col sm:flex-row gap-2 w-full">
-                   <div className="relative w-full sm:w-[250px]">
+            <div className="flex flex-col gap-4">
+                {/* Search and Filters Row */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                   <div className="relative flex-1 min-w-[200px]">
                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                        <Input
                            placeholder="Cari nama atau unit kerja..."
@@ -367,13 +368,15 @@ export default function TeacherListPage() {
                        </SelectContent>
                    </Select>
                 </div>
-               <Tabs value={activeFilter} onValueChange={setActiveFilter} className="w-full sm:w-auto min-w-[300px]">
-                   <TabsList className="grid w-full grid-cols-3">
+
+                {/* Tabs Row - Separate for clarity */}
+                <Tabs value={activeFilter} onValueChange={setActiveFilter}>
+                   <TabsList className="grid w-full grid-cols-3 max-w-md">
                        <TabsTrigger value="active">Aktif</TabsTrigger>
                        <TabsTrigger value="inactive">Non-Aktif / Resign</TabsTrigger>
                        <TabsTrigger value="all">Semua</TabsTrigger>
                    </TabsList>
-               </Tabs>
+                </Tabs>
            </div>
         </CardHeader>
         <CardContent>

@@ -156,7 +156,17 @@ export default function AppShell({ children }: AppShellProps) {
           
           <div className="ml-auto flex items-center gap-2">
              <NotificationDropdown />
-             <span className="text-sm font-medium text-muted-foreground border-l pl-4 ml-2">Tahun Ajaran: 2024/2025</span>
+             <span className="text-sm font-medium text-muted-foreground border-l pl-4 ml-2">
+               Tahun Ajaran: {(() => {
+                 const now = new Date()
+                 const year = now.getFullYear()
+                 const month = now.getMonth() + 1 // 0-indexed
+                 // Academic year starts in July (month 7)
+                 // If Jan-June: show (year-1)/(year)
+                 // If Jul-Dec: show (year)/(year+1)
+                 return month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`
+               })()}
+             </span>
           </div>
         </header>
 

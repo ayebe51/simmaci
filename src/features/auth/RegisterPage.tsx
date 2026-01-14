@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
-
-import { api } from "@/lib/api"
+// 🔥 CONVEX for user registration
+import { useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -27,6 +28,9 @@ export default function RegisterPage() {
       confirmPassword: ""
   })
 
+  // 🔥 CONVEX MUTATION
+  const registerUser = useMutation(convexApi.auth.register)
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -38,16 +42,17 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-        await api.register({
-            username: formData.email,
+        await registerUser({
+            email: formData.email,
             password: formData.password,
             name: formData.name,
-            unitKerja: formData.unitKerja
+            unit: formData.unitKerja
         })
         toast.success("Pendaftaran berhasil! Silakan login.")
         navigate("/login")
     } catch (err: any) {
-        toast.error(err.message || "Pendaftaran gagal. Coba username lain.")
+        console.error("Registration error:", err)
+        toast.error(err.message || "Pendaftaran gagal. Username mungkin sudah digunakan.")
     } finally {
         setLoading(false)
     }

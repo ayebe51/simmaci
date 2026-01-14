@@ -9,9 +9,14 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { ArrowLeft, Save } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { api } from "@/lib/api"
 import { toast } from "sonner"
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
+// 🔥 CONVEX for data and mutations
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
+import { Id } from "../../../convex/_generated/dataModel"
+// Keep old API for file upload only
+import { api } from "@/lib/api"
 
 const headmasterSchema = z.object({
   teacherId: z.string().min(1, "Calon Kepala wajib dipilih"),
@@ -31,8 +36,6 @@ type HeadmasterForm = z.infer<typeof headmasterSchema>
 export default function HeadmasterSubmissionPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [teachers, setTeachers] = useState<any[]>([])
-  const [schools, setSchools] = useState<any[]>([])
   const [suratFile, setSuratFile] = useState<File | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,32 +44,31 @@ export default function HeadmasterSubmissionPage() {
       }
   }
 
+  // 🔥 REAL-TIME CONVEX QUERIES
+  const convexTeachers = useQuery(convexApi.teachers.list) || []
+  const convexSchools = useQuery(convexApi.schools.list) || []
+  
+  // Map to interface with id
+  const teachers = useMemo(() => convexTeachers.map(t => ({
+    id: t._id,
+    nama: t.nama,
+    unitKerja: t.satminkal
+  })), [convexTeachers])
+  
+  const schools = useMemo(() => convexSchools.map(s => ({
+    id: s._id,
+    nama: s.nama
+  })), [convexSchools])
+
   const form = useForm<HeadmasterForm>({
     resolver: zodResolver(headmasterSchema),
     defaultValues: {
       periode: "1",
     }
   })
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    try {
-        const [tRes, sRes] = await Promise.all([
-            api.getTeachers(),
-            api.getSchools()
-        ])
-        // Handle potential backend wrapper { data: [...] } or direct array
-        setTeachers(Array.isArray(tRes) ? tRes : (tRes as any).data || [])
-        setSchools(Array.isArray(sRes) ? sRes : (sRes as any).data || [])
-    } catch (e) {
-        setTeachers([])
-        setSchools([])
-        toast.error("Gagal memuat data master")
-    }
-  }
+  
+  // 🔥 CONVEX MUTATION
+  const createHeadmasterMutation = useMutation(convexApi.headmasters.create)
 
   const onSubmit = async (data: HeadmasterForm) => {
     setIsSubmitting(true)
@@ -78,11 +80,32 @@ export default function HeadmasterSubmissionPage() {
             finalUrl = (uploadRes as any).url || (uploadRes as any).filename
         }
 
-        await api.createHeadmasterTenure({
-            ...data,
+        // Get userId from localStorage
+        const userStr = localStorage.getItem("user")
+        const userId = userStr ? JSON.parse(userStr).id : "temp_user_id"
+        
+        // Find teacher and school names for denormalization
+        const selectedTeacher = teachers.find(t => t.id === data.teacherId)
+        const selectedSchool = schools.find(s => s.id === data.schoolId)
+        
+        // Calculate end date (4 years from TMT)
+        const tmtDate = new Date(data.tmt)
+        const endDate = new Date(tmtDate)
+        endDate.setFullYear(endDate.getFullYear() + 4)
+
+        await createHeadmasterMutation({
+            teacherId: data.teacherId as Id<"teachers">,
+            teacherName: selectedTeacher?.nama || "Unknown",
+            schoolId: data.schoolId as Id<"schools">,
+            schoolName: selectedSchool?.nama || "Unknown",
             periode: parseInt(data.periode),
-            suratPermohonanUrl: finalUrl
+            startDate: data.tmt,
+            endDate: endDate.toISOString().split('T')[0],
+            status: "pending",
+            skUrl: finalUrl || undefined,
+            createdBy: userId as Id<"users">,
         })
+        
         toast.success("Pengajuan Kepala Madrasah Berhasil!")
         navigate("/dashboard/sk")
     } catch (err: any) {

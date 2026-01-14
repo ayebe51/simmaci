@@ -118,7 +118,7 @@ export default function TeacherListPage() {
     }
   }
 
-  const filtered = teachers.filter(t => {
+  const filtered = useMemo(() => teachers.filter(t => {
       // 1. Role Filter
       if (userUnit && t.satminkal?.toLowerCase() !== userUnit.toLowerCase()) return false
 
@@ -128,8 +128,8 @@ export default function TeacherListPage() {
 
       // 3. Search Filter
       const term = searchTerm.toLowerCase()
-      return (t.nama || "").toLowerCase().includes(term) || (t.nuptk || "").includes(searchTerm)
-  })
+      return (t.nama || "").toLowerCase().includes(term) || (t.nuptk || "").toLowerCase().includes(term)
+  }), [teachers, userUnit, activeFilter, searchTerm])
 
   // Get unique kecamatan for filter dropdown
   const uniqueKecamatan = useMemo(() => {

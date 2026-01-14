@@ -610,7 +610,9 @@ export default function TeacherListPage() {
             return {
               nuptk: String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${Math.random()}`),
               nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),
-              unitKerja: (row['Unit Kerja'] || row.unitKerja || row.satminkal || row.Satminkal) || undefined,
+              unitKerja: (row['Unit Kerja'] || row.unitKerja || row.UNIT_KERJA ||
+                         row.satminkal || row.Satminkal || row.SATMINKAL ||
+                         row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
               status: detectedStatus,
               mapel: row.Mapel || row.mapel || row.MAPEL || undefined,
               kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
@@ -622,19 +624,9 @@ export default function TeacherListPage() {
               tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
             }
           })
-          const teachers = jsonData.map((row: any) => ({
-            nuptk: String(row.NUPTK || row.nuptk || `TMP-${Date.now()}-${Math.random()}`),
-            nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),
-            unitKerja: (row['Unit Kerja'] || row.unitKerja || row.satminkal) || undefined,
-            status: (row.Status || row.status) || undefined,
-            mapel: row.Mapel || row.mapel || undefined,
-            kecamatan: row.Kecamatan || row.kecamatan || undefined,
-            phoneNumber: row['No HP'] || row.phoneNumber || undefined,
-            pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
-            isCertified: row.Sertifikasi === 'Ya' || row.isCertified === true || undefined,
-          }))
           
           // Call Convex bulkCreate mutation
+          await bulkCreateMutation({ teachers })
           await bulkCreateMutation({ teachers })
         }}
       />

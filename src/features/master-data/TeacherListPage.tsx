@@ -573,7 +573,55 @@ export default function TeacherListPage() {
           const worksheet = workbook.Sheets[workbook.SheetNames[0]]
           const jsonData = XLSX.utils.sheet_to_json(worksheet)
           
-          // Map Excel columns to Convex schema
+          // Map Excel columns to Convex schema with improved status/certification detection
+          const teachers = jsonData.map((row: any) => {
+            // Parse TMT (Tanggal Mulai Tugas) to calculate GTY status
+            let detectedStatus = row.Status || row.status || row.STATUS || "GTY"
+            const tmt = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
+            
+            if (tmt && !row.Status) {
+              try {
+                const tmtDate = new Date(tmt)
+                const yearsOfService = (Date.now() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+                if (yearsOfService >= 2) {
+                  detectedStatus = "GTY" // Guru Tetap Yayasan
+                }
+              } catch (e) {
+                console.warn('Failed to parse TMT:', tmt)
+              }
+            }
+            
+            // Parse certification - check multiple columns
+            let isCertified = false
+            const certColumn = row.Sertifikasi || row.sertifikasi || row.SERTIFIKASI || 
+                              row['Status Sertifikasi'] || row.isCertified
+            
+            if (typeof certColumn === 'boolean') {
+              isCertified = certColumn
+            } else if (typeof certColumn === 'string') {
+              const normalized = certColumn.toLowerCase().trim()
+              isCertified = normalized === 'ya' || normalized === 'sudah' || 
+                           normalized === 'true' || normalized === '1' ||
+                           normalized === 'sertifikasi'
+            } else if (typeof certColumn === 'number') {
+              isCertified = certColumn === 1
+            }
+            
+            return {
+              nuptk: String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${Math.random()}`),
+              nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),
+              unitKerja: (row['Unit Kerja'] || row.unitKerja || row.satminkal || row.Satminkal) || undefined,
+              status: detectedStatus,
+              mapel: row.Mapel || row.mapel || row.MAPEL || undefined,
+              kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
+              phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
+              pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
+              isCertified: isCertified,
+              nip: row.NIP || row.nip || undefined,
+              tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
+              tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
+            }
+          })
           const teachers = jsonData.map((row: any) => ({
             nuptk: String(row.NUPTK || row.nuptk || `TMP-${Date.now()}-${Math.random()}`),
             nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),

@@ -101,6 +101,28 @@ export default defineSchema({
     .index("by_jenis", ["jenisSk"])
     .index("by_nomor", ["nomorSk"]),
 
+  // Headmaster Tenures (Pengangkatan Kepala Madrasah)
+  headmasterTenures: defineTable({
+    teacherId: v.id("teachers"),
+    teacherName: v.string(), // Denormalized for quick access
+    schoolId: v.id("schools"),
+    schoolName: v.string(), // Denormalized for quick access
+    periode: v.number(), // Periode ke- (1, 2, 3, etc.)
+    startDate: v.string(),
+    endDate: v.string(),
+    status: v.string(), // 'pending', 'approved', 'rejected', 'active', 'expired'
+    skUrl: v.optional(v.string()),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_teacher", ["teacherId"])
+    .index("by_school", ["schoolId"])
+    .index("by_status", ["status"])
+    .index("by_periode", ["periode"]),
+
   // Dashboard stats cache (for performance)
   dashboardStats: defineTable({
     totalTeachers: v.number(),

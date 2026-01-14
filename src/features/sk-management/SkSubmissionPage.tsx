@@ -99,14 +99,6 @@ export default function SkSubmissionPage() {
             }
         }
 
-        // Map frontend 'jenisSk' to backend 'jenis'
-        const payload = {
-            ...data,
-            jenis: data.jenisSk,
-            keterangan: finalKeterangan,
-            suratPermohonanUrl: finalSuratPermohonanUrl
-        }
-
         // Map form data to Convex schema
         // Get userId from localStorage (temp solution)
         const userStr = localStorage.getItem("user")

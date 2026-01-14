@@ -25,9 +25,9 @@ export const list = query({
       tenures = tenures.filter(t => t.status === args.status);
     }
     
-    if (args.schoolName) {
+    if (args.schoolName && args.schoolName.trim()) {
       tenures = tenures.filter(t => 
-        t.schoolName.toLowerCase().includes(args.schoolName.toLowerCase())
+        t.schoolName.toLowerCase().includes(args.schoolName!.toLowerCase())
       );
     }
     

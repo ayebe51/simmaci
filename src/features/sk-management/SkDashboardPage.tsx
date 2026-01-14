@@ -13,9 +13,11 @@ import { FilePlus, Search, RotateCw, Trash2, FileText } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import StatusBadge from "@/components/shared/StatusBadge"
 import type { StatusType } from "@/components/shared/StatusBadge"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { api } from "@/lib/api"
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 // Type definitions (to be moved to types/sk.ts later)
 interface SkSubmission {
@@ -33,61 +35,57 @@ export default function SkDashboardPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   
-  const [skData, setSkData] = useState<SkSubmission[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
+  const convexSkData = useQuery(convexApi.sk.list, {
+    jenisSk: filterType === "all" ? undefined : filterType,
+  })
+  
+  // Mutations
+  const archiveAllSk = useMutation(convexApi.sk.archiveAll) // assuming we'll create this
+
+  // Map Convex data to frontend interface
+  const skData: SkSubmission[] = useMemo(() => {
+    if (!convexSkData) return []
+    
+    return convexSkData.map((item) => ({
+      id: item._id,
+      nomorSurat: item.nomorSk || "-",
+      jenisSk: item.jenisSk,
+      nama: item.nama,
+      tanggalPengajuan: new Date(item.createdAt).toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'short', year: 'numeric'
+      }),
+      status: item.status as StatusType,
+      suratPermohonanUrl: item.fileUrl
+    }))
+  }, [convexSkData])
+  
+  const isLoading = convexSkData === undefined
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    fetchSkData()
-  }, [])
-
-  const fetchSkData = async () => {
-    try {
-        setIsLoading(true)
-        const res = await api.getSkList()
-        // Map Backend Data to Frontend Interface
-        const mapped: SkSubmission[] = res.map((item: any) => ({
-            id: item.id,
-            nomorSurat: item.nomorSurat || "-",
-            jenisSk: item.jenis,
-            nama: item.nama,
-            tanggalPengajuan: new Date(item.createdAt).toLocaleDateString('id-ID', {
-                day: 'numeric', month: 'short', year: 'numeric'
-            }),
-            status: item.status,
-            suratPermohonanUrl: item.suratPermohonanUrl
-        }))
-        setSkData(mapped)
-    } catch(e) {
-        console.error("Failed to fetch SK", e)
-    } finally {
-        setIsLoading(false)
-    }
-  }
-
   const handleReset = async () => {
     if (!confirm("⚠️ PERINGATAN! \n\nApakah anda yakin ingin MENGHAPUS SEMUA riwayat SK?\nTindakan ini akan mengosongkan tabel arsip SK.")) return
     
     try {
-        await api.deleteAllSk()
-        alert("Data SK berhasil direset.")
-        fetchSkData()
+        // Archive all SK documents instead of deleting
+        // Note: We need to add archiveAll mutation to convex/sk.ts
+        alert("Fitur reset akan segera tersedia (perlu implementasi archiveAll mutation)")
+        // await archiveAllSk()
+        // alert("Data SK berhasil direset.")
     } catch (e: any) {
         alert("Gagal reset data: " + e.message)
     }
   }
 
-  // Filter Logic
-  const filteredData = skData.filter(item => {
+  // Filter Logic (client-side for search term only, jenisSk filtered server-side)
+  const filteredData = useMemo(() => skData.filter(item => {
     const matchesSearch = item.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.jenisSk.toLowerCase().includes(searchTerm.toLowerCase())
-    // Allow partial match for filter type if needed, or strict
-    const matchesType = filterType === "all" || item.jenisSk === filterType
-    return matchesSearch && matchesType
-  })
+    return matchesSearch
+  }), [skData, searchTerm])
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
@@ -114,10 +112,6 @@ export default function SkDashboardPage() {
             <Button variant="destructive" className="mr-2" onClick={handleReset}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Reset Data
-            </Button>
-            <Button variant="outline" className="mr-2" onClick={fetchSkData} disabled={isLoading}>
-                <RotateCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
             </Button>
             <Button onClick={() => navigate("/dashboard/sk/new")}>
             <FilePlus className="mr-2 h-4 w-4" />

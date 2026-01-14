@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as dashboard from "../dashboard.js";
 import type * as schools from "../schools.js";
+import type * as sk from "../sk.js";
 import type * as students from "../students.js";
 import type * as teachers from "../teachers.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   dashboard: typeof dashboard;
   schools: typeof schools;
+  sk: typeof sk;
   students: typeof students;
   teachers: typeof teachers;
 }>;

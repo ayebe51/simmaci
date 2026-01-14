@@ -4,9 +4,12 @@ import { ArrowLeft, CheckCircle, FileText, AlertTriangle, XCircle, Printer } fro
 import { useNavigate, useParams } from "react-router-dom"
 import StatusBadge from "@/components/shared/StatusBadge"
 import type { StatusType } from "@/components/shared/StatusBadge"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Separator } from "@/components/ui/separator"
-import { api } from "@/lib/api"
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
+import { Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner"
 
 interface SkDetail {
@@ -27,37 +30,41 @@ export default function SkDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams()
   
-  const [sk, setSk] = useState<SkDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAdmin] = useState(true) // TODO: Check actual role via api.getUser() or context
+  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
+  const skDoc = useQuery(convexApi.sk.get, 
+    id ? { id: id as Id<"skDocuments"> } : "skip"
+  )
   
-  // Helper to map backend status to frontend badge status
+  // Mutations
+  const updateSk = useMutation(convexApi.sk.update)
+  
+  const [isAdmin] = useState(true) // TODO: Check actual role from Convex auth
+  
+  // Helper to map Convex status to frontend badge status
   const getBadgeStatus = (backendStatus: string): StatusType => {
       const lower = backendStatus?.toLowerCase() || "";
-      if (lower === "pending") return "submitted";
-      if (lower === "approved") return "issued";
-      if (lower === "rejected") return "rejected";
+      if (lower === "pending" || lower === "draft") return "submitted";
+      if (lower === "approved" || lower === "active") return "issued";
+      if (lower === "rejected" || lower === "archived") return "rejected";
       return "draft";
   }
 
-  // Fetch Data
-  useEffect(() => {
-    if (!id) return;
-    fetchDetail();
-  }, [id])
+  // Map Convex document to SkDetail interface
+  const sk: SkDetail | null = skDoc ? {
+    id: skDoc._id,
+    nomorSurat: skDoc.nomorSk,
+    jenis: skDoc.jenisSk,
+    nama: skDoc.nama,
+    niy: "", // Not in Convex schema, infer from teacher if needed
+    unitKerja: skDoc.unitKerja || "-",
+    jenisPengajuan: skDoc.jenisSk, // Same as jenis
+    status: skDoc.status,
+    createdAt: new Date(skDoc.createdAt).toISOString(),
+    fileUrl: skDoc.fileUrl,
+    keterangan: "" // Not in schema yet
+  } : null
 
-  const fetchDetail = async () => {
-      try {
-          setIsLoading(true)
-          const data = await api.getSkDetail(id!)
-          setSk(data)
-      } catch (e) {
-          console.error("Failed to fetch SK Detail", e)
-          toast.error("Gagal memuat detail SK")
-      } finally {
-          setIsLoading(false)
-      }
-  }
+  const isLoading = skDoc === undefined
 
   const handleAction = async (action: "approve" | "reject" | "revise") => {
       console.log("[DEBUG] handleAction called with action:", action, "| SK id:", id);
@@ -71,21 +78,24 @@ export default function SkDetailPage() {
 
       try {
           let status = "";
-          if (action === "approve") status = "Approved";
-          else if (action === "reject") status = "Rejected";
-          else if (action === "revise") status = "Pending"; // Return to Pending/Draft
+          if (action === "approve") status = "active";
+          else if (action === "reject") status = "archived";
+          else if (action === "revise") status = "draft";
 
-          console.log("[DEBUG] Calling api.updateSkStatus with id:", id, "status:", status);
+          console.log("[DEBUG] Calling Convex update with id:", id, "status:", status);
           toast.info(`Memproses ${confirmMsg}...`);
           
-          const result = await api.updateSkStatus(id!, status);
-          console.log("[DEBUG] API updateSkStatus result:", result);
+          await updateSk({ 
+            id: id as Id<"skDocuments">, 
+            status: status 
+          });
           
+          console.log("[DEBUG] Convex update successful");
           toast.success(`SK Berhasil di-${status}`);
-          await fetchDetail(); // Re-fetch to get updated status
+          // No need to re-fetch, Convex auto-updates!
       } catch (e: any) {
           console.error("[ERROR] handleAction failed:", e);
-          const errorMessage = e?.response?.data?.message || e?.message || "Error tidak diketahui";
+          const errorMessage = e?.message || "Error tidak diketahui";
           toast.error(`Gagal memproses tindakan: ${errorMessage}`);
       }
   }

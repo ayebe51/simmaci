@@ -5,11 +5,9 @@ import { Badge } from "@/components/ui/badge"
 import { Download, FileText, Search } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { Input } from "@/components/ui/input"
-// 🔥 CONVEX REAL-TIME for SK
+// 🔥 CONVEX REAL-TIME
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
-// Keep old API for headmaster (until we migrate headmaster to Convex)
-import { api } from "@/lib/api"
 
 interface SkDocument {
   id: string
@@ -31,7 +29,6 @@ interface HeadmasterApproval {
 }
 
 export default function MySkPage() {
-  const [skList, setSkList] = useState<SkDocument[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [user] = useState<any>(() => {
     try {
@@ -40,23 +37,10 @@ export default function MySkPage() {
     } catch { return null }
   })
 
-  const [headmasterSkList, setHeadmasterSkList] = useState<HeadmasterApproval[]>([])
-
   // Pagination States
   const [currentSkPage, setCurrentSkPage] = useState(1)
   const [currentHmPage, setCurrentHmPage] = useState(1)
   const itemsPerPage = 10
-
-  // Derived state for filtering
-  const filteredSk = useMemo(() => {
-    if(!searchTerm) return skList
-    const lower = searchTerm.toLowerCase()
-    return skList.filter(item => 
-        (item.nama || "").toLowerCase().includes(lower) || 
-        (item.nomorSurat && item.nomorSurat.toLowerCase().includes(lower)) ||
-        (item.jabatan || "").toLowerCase().includes(lower)
-    )
-  }, [skList, searchTerm])
 
   // 🔥 REAL-TIME CONVEX QUERY for SK - Auto-updates!
   const convexSkData = useQuery(convexApi.sk.list, {
@@ -64,7 +48,12 @@ export default function MySkPage() {
     status: "active" // Only show active/approved SK
   })
 
-  // Map Convex data to SkDocument interface
+  // 🔥 REAL-TIME CONVEX QUERY for Headmaster - Auto-updates!
+  const convexHeadmasterData = useQuery(convexApi.headmasters.list, {
+    schoolName: user?.unitKerja || undefined,
+  })
+
+  // Map Convex SK data to SkDocument interface
   const skList: SkDocument[] = useMemo(() => {
     if (!convexSkData) return []
     
@@ -77,28 +66,29 @@ export default function MySkPage() {
     }))
   }, [convexSkData])
 
-  // Fetch headmaster data (still using old API)
-  useEffect(() => {
-      const loadHeadmasterData = async () => {
-          try {
-              const hmRes = await api.getHeadmasterTenures()
-               // Filter HM Data by Unit Kerja
-               if (user?.unitKerja) {
-                    const allHm = Array.isArray(hmRes) ? hmRes : (hmRes as any).data || []
-                    const myHm = allHm.filter((h: any) => 
-                       h.school?.nama === user.unitKerja || h.teacher?.nama === user.name
-                    )
-                    setHeadmasterSkList(myHm)
-               }
-          } catch (err) {
-              console.error("Failed to fetch Headmaster tenures", err)
-          }
-      }
-      
-      loadHeadmasterData()
-  }, [user])
-
-
+  // Map Convex Headmaster data to HeadmasterApproval interface
+  const headmasterSkList: HeadmasterApproval[] = useMemo(() => {
+    if (!convexHeadmasterData) return []
+    
+    return convexHeadmasterData.map(hm => ({
+      id: hm._id,
+      periode: hm.periode,
+      status: hm.status === "approved" ? "Approved" : hm.status,
+      skUrl: hm.skUrl,
+      teacher: { nama: hm.teacherName },
+      school: { nama: hm.schoolName },
+    }))
+  }, [convexHeadmasterData])
+  // Derived state for filtering
+  const filteredSk = useMemo(() => {
+    if(!searchTerm) return skList
+    const lower = searchTerm.toLowerCase()
+    return skList.filter(item => 
+        (item.nama || "").toLowerCase().includes(lower) || 
+        (item.nomorSurat && item.nomorSurat.toLowerCase().includes(lower)) ||
+        (item.jabatan || "").toLowerCase().includes(lower)
+    )
+  }, [skList, searchTerm])
 
   const handleDownload = (sk: SkDocument) => {
       // Simulation

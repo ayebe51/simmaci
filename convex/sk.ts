@@ -177,6 +177,24 @@ export const archive = mutation({
   },
 });
 
+// Archive all SK documents (for reset functionality)
+export const archiveAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allDocs = await ctx.db.query("skDocuments").collect();
+    const now = Date.now();
+    
+    for (const doc of allDocs) {
+      await ctx.db.patch(doc._id, {
+        status: "archived",
+        updatedAt: now,
+      });
+    }
+    
+    return { count: allDocs.length };
+  },
+});
+
 // Get SK count by status
 export const countByStatus = query({
   args: {

@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FilePlus, Search, RotateCw, Trash2, FileText } from "lucide-react"
+import { FilePlus, Search, Trash2, FileText } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import StatusBadge from "@/components/shared/StatusBadge"
 import type { StatusType } from "@/components/shared/StatusBadge"
@@ -67,14 +67,11 @@ export default function SkDashboardPage() {
   const itemsPerPage = 10
 
   const handleReset = async () => {
-    if (!confirm("⚠️ PERINGATAN! \n\nApakah anda yakin ingin MENGHAPUS SEMUA riwayat SK?\nTindakan ini akan mengosongkan tabel arsip SK.")) return
+    if (!confirm("⚠️ PERINGATAN! \n\nApakah anda yakin ingin MENGHAPUS SEMUA riwayat SK?\nTindakan ini akan mengarsipkan semua SK.")) return
     
     try {
-        // Archive all SK documents instead of deleting
-        // Note: We need to add archiveAll mutation to convex/sk.ts
-        alert("Fitur reset akan segera tersedia (perlu implementasi archiveAll mutation)")
-        // await archiveAllSk()
-        // alert("Data SK berhasil direset.")
+        const result = await archiveAllSk()
+        alert(`Berhasil mengarsipkan ${result.count} dokumen SK.`)
     } catch (e: any) {
         alert("Gagal reset data: " + e.message)
     }

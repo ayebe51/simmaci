@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Download, FileText, Search } from "lucide-react"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 // 🔥 CONVEX REAL-TIME
 import { useQuery } from "convex/react"

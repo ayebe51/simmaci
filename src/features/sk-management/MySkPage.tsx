@@ -49,9 +49,10 @@ export default function MySkPage() {
   })
 
   // 🔥 REAL-TIME CONVEX QUERY for Headmaster - Auto-updates!
-  const convexHeadmasterData = useQuery(convexApi.headmasters.list, {
-    schoolName: user?.unitKerja || undefined,
-  })
+  // TEMP: Commented out until Convex types regenerate
+  const convexHeadmasterData = undefined; // useQuery(convexApi.headmasters.list, {
+  //   schoolName: user?.unitKerja || undefined,
+  // })
 
   // Map Convex SK data to SkDocument interface
   const skList: SkDocument[] = useMemo(() => {

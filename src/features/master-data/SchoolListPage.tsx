@@ -219,15 +219,18 @@ export default function SchoolListPage() {
 
   const handleDelete = async (id: string, name: string) => {
       console.log('[DELETE] Button clicked for:', name, id)
-      // TEMPORARY: No confirmation for testing
-      try {
-          console.log('[DELETE] Calling mutation...')
-          await deleteSchoolMutation({ id: id as any })
-          console.log('[DELETE] Success!')
-          alert(`Sekolah "${name}" berhasil dihapus!`)
-      } catch (e: any) {
-          console.error('[DELETE] Error:', e)
-          alert("Gagal menghapus: " + e.message)
+      if (window.confirm(`⚠️ PERHATIAN\n\nYakin ingin menghapus sekolah "${name}"?\n\nData akan terhapus PERMANENT dari database!`)) {
+          try {
+              console.log('[DELETE] Calling mutation...')
+              await deleteSchoolMutation({ id: id as any })
+              console.log('[DELETE] Success!')
+              alert(`✅ Sekolah "${name}" berhasil dihapus!`)
+          } catch (e: any) {
+              console.error('[DELETE] Error:', e)
+              alert("❌ Gagal menghapus: " + e.message)
+          }
+      } else {
+          console.log('[DELETE] User cancelled')
       }
   }
 

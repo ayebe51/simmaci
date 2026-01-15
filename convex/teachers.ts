@@ -69,6 +69,7 @@ export const create = mutation({
     unitKerja: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
+    tmt: v.optional(v.string()),  // NEW: Tanggal Mulai Tugas
     isCertified: v.optional(v.boolean()),
     phoneNumber: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -88,12 +89,14 @@ export const create = mutation({
       throw new Error("NUPTK sudah terdaftar");
     }
     
-    return await ctx.db.insert("teachers", {
+    const teacherId = await ctx.db.insert("teachers", {
       ...args,
       isActive: args.isActive ?? true,
       createdAt: now,
       updatedAt: now,
     });
+    
+    return teacherId;
   },
 });
 
@@ -112,6 +115,7 @@ export const update = mutation({
     unitKerja: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
+    tmt: v.optional(v.string()),  // NEW: Tanggal Mulai Tugas
     isCertified: v.optional(v.boolean()),
     phoneNumber: v.optional(v.string()),
     email: v.optional(v.string()),

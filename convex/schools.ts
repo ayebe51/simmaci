@@ -98,7 +98,7 @@ export const update = mutation({
   },
 });
 
-// Delete school
+// Delete school (hard delete - to prevent duplicates)
 export const remove = mutation({
   args: { id: v.id("schools") },
   handler: async (ctx, args) => {

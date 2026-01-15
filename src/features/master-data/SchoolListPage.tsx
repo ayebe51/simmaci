@@ -293,17 +293,16 @@ export default function SchoolListPage() {
         description="Manajemen data satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
           {
-            label: 'Delete All',
-            onClick: handleDeleteAll,
-            variant: 'outline' as const,
-            icon: <Trash2 className="h-5 w-5 text-red-600" />,
-            className: 'border-red-200 hover:bg-red-50'
-          },
-          {
             label: 'Export Excel',
             onClick: handleExport,
             variant: 'mint' as const,
             icon: <Download className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Delete All',
+            onClick: handleDeleteAll,
+            variant: 'purple' as const,
+            icon: <Trash2 className="h-5 w-5 text-gray-700" />
           },
           {
             label: 'Tambah Manual',

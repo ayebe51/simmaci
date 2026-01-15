@@ -216,7 +216,6 @@ export default function SchoolListPage() {
           alert("Gagal menyimpan: " + e.message)
       }
   }
-  }
 
   const handleDelete = async (id: string, name: string) => {
       if (confirm(`Yakin ingin menghapus sekolah "${name}"?`)) {

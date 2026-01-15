@@ -149,26 +149,10 @@ export const bulkDelete = mutation({
   },
 });
 
-// Bulk create teachers (for import)
+// Bulk create teachers (for import) - ULTRA FLEXIBLE VERSION
 export const bulkCreate = mutation({
   args: {
-    teachers: v.array(v.object({
-      nuptk: v.string(),
-      nama: v.string(),
-      nip: v.optional(v.union(v.string(), v.null())),
-      jenisKelamin: v.optional(v.union(v.string(), v.null())),
-      tempatLahir: v.optional(v.union(v.string(), v.null())),
-      tanggalLahir: v.optional(v.union(v.string(), v.null())),
-      pendidikanTerakhir: v.optional(v.union(v.string(), v.null())),
-      mapel: v.optional(v.union(v.string(), v.null())),
-      unitKerja: v.optional(v.union(v.string(), v.null())),
-      kecamatan: v.optional(v.union(v.string(), v.null())),
-      status: v.optional(v.union(v.string(), v.null())),
-      isCertified: v.optional(v.union(v.boolean(), v.null())),
-      phoneNumber: v.optional(v.union(v.string(), v.null())),
-      email: v.optional(v.union(v.string(), v.null())),
-      pdpkpnu: v.optional(v.union(v.string(), v.null())),
-    })),
+    teachers: v.array(v.any()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -177,31 +161,39 @@ export const bulkCreate = mutation({
     
     for (const teacher of args.teachers) {
       try {
+        // Ensure required fields exist
+        if (!teacher.nuptk || !teacher.nama) {
+          errors.push(`Missing required fields for: ${teacher.nama || 'Unknown'}`);
+          continue;
+        }
+        
         // Filter out null/undefined values
         const cleanData: any = {
-          nuptk: teacher.nuptk,
-          nama: teacher.nama,
+          nuptk: String(teacher.nuptk),
+          nama: String(teacher.nama),
         };
         
         // Only add non-null optional fields
-        if (teacher.nip) cleanData.nip = teacher.nip;
-        if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
-        if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
-        if (teacher.tanggalLahir) cleanData.tanggalLahir = teacher.tanggalLahir;
-        if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
-        if (teacher.mapel) cleanData.mapel = teacher.mapel;
-        if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
-        if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
-        if (teacher.status) cleanData.status = teacher.status;
-        if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
-        if (teacher.email) cleanData.email = teacher.email;
-        if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
-        if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
+        if (teacher.nip) cleanData.nip = String(teacher.nip);
+        if (teacher.jenisKelamin) cleanData.jenisKelamin = String(teacher.jenisKelamin);
+        if (teacher.tempatLahir) cleanData.tempatLahir = String(teacher.tempatLahir);
+        if (teacher.tanggalLahir) cleanData.tanggalLahir = String(teacher.tanggalLahir);
+        if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = String(teacher.pendidikanTerakhir);
+        if (teacher.mapel) cleanData.mapel = String(teacher.mapel);
+        if (teacher.unitKerja) cleanData.unitKerja = String(teacher.unitKerja);
+        if (teacher.kecamatan) cleanData.kecamatan = String(teacher.kecamatan);
+        if (teacher.status) cleanData.status = String(teacher.status);
+        if (teacher.phoneNumber) cleanData.phoneNumber = String(teacher.phoneNumber);
+        if (teacher.email) cleanData.email = String(teacher.email);
+        if (teacher.pdpkpnu) cleanData.pdpkpnu = String(teacher.pdpkpnu);
+        if (teacher.isCertified !== undefined && teacher.isCertified !== null) {
+          cleanData.isCertified = Boolean(teacher.isCertified);
+        }
         
         // Check duplicates
         const existing = await ctx.db
           .query("teachers")
-          .withIndex("by_nuptk", (q) => q.eq("nuptk", teacher.nuptk))
+          .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
           .first();
         
         if (!existing) {

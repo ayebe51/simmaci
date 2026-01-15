@@ -235,12 +235,13 @@ export default function TeacherListPage() {
             nuptk: String(formData.nuptk || `TMP-${Date.now()}`),
             nama: String(formData.nama || ""),
             status: formData.status || undefined,
-            unitKerja: formData.satminkal || undefined,
+            unitKerja: formData.unitKerja || formData.satminkal || undefined,
             mapel: formData.mapel || undefined,
             phoneNumber: formData.phoneNumber || undefined,
             pdpkpnu: formData.pdpkpnu || undefined,
-            tempatLahir: formData.birthPlace || undefined,
-            tanggalLahir: formData.birthDate || undefined,
+            tempatLahir: formData.tempatLahir || formData.birthPlace || undefined,
+            tanggalLahir: formData.tanggalLahir || formData.birthDate || undefined,
+            tmt: formData.tmt || undefined,  // NEW: Include TMT
             isActive: true,
         }
         console.log("[DEBUG] Payload being sent:", payload);

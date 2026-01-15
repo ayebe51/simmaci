@@ -521,9 +521,11 @@ export default function SchoolListPage() {
                 'Kepala Madrasah', 'KEPALA MADRASAH', 'Kepala Sekolah', 'Kepala', 
                 'Nama Kepala', 'Nama Kepala Madrasah', 'Nama Kepsek'
               );
+              const statusJamiyyah = getColumn(
+                'Status', 'STATUS', 'status', 'Afiliasi', 'AFILIASI', 'Status Jamiyyah'
+              );
               const akreditasi = getColumn(
-                'Akreditasi', 'AKREDITASI', 'akreditasi', 'Status', 'STATUS', 
-                'Status Akreditasi', 'Afiliasi', 'Status Jamiyyah'
+                'Akreditasi', 'AKREDITASI', 'akreditasi', 'Status Akreditasi'
               );
 
               return {
@@ -534,6 +536,7 @@ export default function SchoolListPage() {
                 kecamatan,
                 telepon,
                 kepalaMadrasah,
+                statusJamiyyah,
                 akreditasi,
               };
             }).filter((s: any) => s.nsm && s.nama); // Only include valid entries

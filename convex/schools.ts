@@ -49,6 +49,7 @@ export const create = mutation({
     email: v.optional(v.string()),
     kepalaMadrasah: v.optional(v.string()),
     akreditasi: v.optional(v.string()),
+    statusJamiyyah: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -81,9 +82,9 @@ export const update = mutation({
     alamat: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     telepon: v.optional(v.string()),
-    email: v.optional(v.string()),
     kepalaMadrasah: v.optional(v.string()),
     akreditasi: v.optional(v.string()),
+    statusJamiyyah: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -114,10 +115,10 @@ export const bulkCreate = mutation({
       npsn: v.optional(v.string()),
       alamat: v.optional(v.string()),
       kecamatan: v.optional(v.string()),
-      telepon: v.optional(v.string()),
       email: v.optional(v.string()),
       kepalaMadrasah: v.optional(v.string()),
       akreditasi: v.optional(v.string()),
+      statusJamiyyah: v.optional(v.string()),
     })),
   },
   handler: async (ctx, args) => {

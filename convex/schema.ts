@@ -60,6 +60,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     kepalaMadrasah: v.optional(v.string()),
     akreditasi: v.optional(v.string()),
+    statusJamiyyah: v.optional(v.string()), // Jam'iyyah, Jamaah (Afiliasi), etc.
     createdAt: v.number(),
     updatedAt: v.number(),
   })

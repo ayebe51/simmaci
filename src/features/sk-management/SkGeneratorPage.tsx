@@ -581,12 +581,12 @@ export default function SkGeneratorPage() {
           const kecamatan = (rawKecamatan && rawKecamatan.length > 2) ? rawKecamatan : (defaultKecamatan || ".....")
 
 
-          // TTL Construction
-          const birthPlace = (t as any).birthPlace || ""
-          const birthDate = (t as any).birthDate || ""
+          // TTL Construction - FIX: Use correct field names from database
+          const birthPlace = (t as any).tempatLahir || ""
+          const birthDate = (t as any).tanggalLahir || ""
           let ttl = "-"
           if(birthPlace || birthDate) {
-              ttl = `${birthPlace}, ${birthDate}`
+              ttl = `${birthPlace}${birthPlace && birthDate ? ', ' : ''}${birthDate}`
           }
 
           return {
@@ -602,7 +602,7 @@ export default function SkGeneratorPage() {
             // Extensive Aliases (Kitchen Sink)
             NOMOR: seqStr,
             "NOMOR INDUK MAARIF": t.nuptk || t.nip || '-',
-            "UNIT KERJA": (t as any).satminkal || "LP Maarif NU Cilacap",
+            "UNIT KERJA": t.unitKerja || '-',
             "TEMPAT/TANGGAL LAHIR": ttl,
             "TANGGAL LENGKAP": finalTanggalPenetapan,
             TANGGAL: dd,
@@ -639,7 +639,7 @@ export default function SkGeneratorPage() {
             NUPTK: t.nuptk || '-',
             NOMOR_INDUK: t.nuptk || t.nip || '-',
             JABATAN: t.mapel === '-' ? 'Guru' : t.mapel,
-            UNIT_KERJA: (t as any).satminkal || "LP Maarif NU Cilacap",
+            UNIT_KERJA: t.unitKerja || '-',
             STATUS: t.status,
             TTL: ttl,
             PENDIDIKAN: (t as any).pendidikanTerakhir || '-',
@@ -653,7 +653,7 @@ export default function SkGeneratorPage() {
             nuptk: t.nuptk || '-',
             nomor_induk: t.nuptk || t.nip || '-',
             jabatan: t.mapel === '-' ? 'Guru' : t.mapel,
-            unit_kerja: (t as any).satminkal || "LP Maarif NU Cilacap",
+            unit_kerja: t.unitKerja || '-',
             status: t.status,
             ttl: ttl,
             pendidikan: (t as any).pendidikanTerakhir || '-',

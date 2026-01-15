@@ -505,7 +505,7 @@ export default function SchoolListPage() {
               const nsm = getColumn('NSM', 'Nsm', 'nsm', 'No NSM', 'NO. NSM');
               const nama = getColumn('Nama Madrasah', 'Nama', 'NAMA MADRASAH', 'Nama Sekolah', 'NAMA SEKOLAH', 'nama');
               const npsn = getColumn('NPSN', 'Npsn', 'npsn', 'No NPSN', 'NO. NPSN');
-              const alamat = getColumn('Alamat', 'ALAMAT', 'alamat', 'Alamat Lengkap', 'Alamat Madrasah');
+              const alamat = getColumn('Alamat', 'ALAMAT', 'alamat', 'Alamat Lengkap', 'Alamat Madrasah', 'Alamat lengkap madrasah');
               let kecamatan = getColumn('Kecamatan', 'KECAMATAN', 'kecamatan', 'Kec', 'KEC', 'Kec.');
               
               // If kecamatan is empty, try to extract from alamat
@@ -514,7 +514,7 @@ export default function SchoolListPage() {
               }
 
               const telepon = getColumn(
-                'No. HP Kepala', 'No HP Kepala', 'No. Hp Kepala Madrasah', 
+                'No. HP Kepala', 'No HP Kepala', 'No. Hp Kepala Madrasah', 'Nomor HP Kepala',
                 'Telepon', 'TELEPON', 'HP', 'No HP', 'NO. HP', 'Nomor HP'
               );
               const kepalaMadrasah = getColumn(

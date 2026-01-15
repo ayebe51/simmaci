@@ -34,6 +34,7 @@ export default function DashboardPage() {
 
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
+  const chartsData = useQuery(convexApi.dashboard.getChartsData)
 
   useEffect(() => {
     // Load User
@@ -246,7 +247,7 @@ export default function DashboardPage() {
       </div>
 
       {/* CHARTS SECTION */}
-      <DashboardCharts />
+      <DashboardCharts data={chartsData} />
 
       <div className="grid gap-4 md:grid-cols-2">
           <Card className="col-span-1">

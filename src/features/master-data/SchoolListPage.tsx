@@ -617,6 +617,50 @@ export default function SchoolListPage() {
           }
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Konfirmasi Hapus
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              Yakin ingin menghapus sekolah:
+            </p>
+            <p className="font-semibold text-lg mb-3">
+              {schoolToDelete?.name}
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+              <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                ⚠️ Perhatian
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Data akan terhapus <strong>PERMANENT</strong> dari database dan tidak dapat dikembalikan!
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Ya, Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -16,7 +16,11 @@ export const list = query({
     
     // Apply filters
     if (args.unitKerja && args.unitKerja !== "all") {
-      teachers = teachers.filter(t => t.unitKerja === args.unitKerja);
+      // Case-insensitive match for unitKerja
+      const searchUnit = args.unitKerja.toLowerCase().trim();
+      teachers = teachers.filter(t => 
+        t.unitKerja?.toLowerCase().trim() === searchUnit
+      );
     }
     
     if (args.kecamatan && args.kecamatan !== "all") {

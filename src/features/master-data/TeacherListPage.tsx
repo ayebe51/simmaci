@@ -59,6 +59,10 @@ export default function TeacherListPage() {
   const createTeacherMutation = useMutation(convexApi.teachers.create)
   const bulkCreateMutation = useMutation(convexApi.teachers.bulkCreate)
 
+  // Toggle status confirmation modal state
+  const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
+  const [teacherToToggle, setTeacherToToggle] = useState<{id: string, name: string, currentStatus: boolean} | null>(null)
+
   // Map Convex data to existing Teacher interface
   const teachers = (convexTeachers || []).map((t: any) => ({
     id: t._id,
@@ -103,20 +107,32 @@ export default function TeacherListPage() {
   }
 
 
-  const toggleStatus = async (id: string, currentStatus: boolean) => {
-    const newStatus = !currentStatus
+  const toggleStatus = async (id: string, currentStatus: boolean, name: string) => {
+    setTeacherToToggle({ id, name, currentStatus })
+    setToggleConfirmOpen(true)
+  }
+
+  const confirmToggle = async () => {
+    if (!teacherToToggle) return
+    const newStatus = !teacherToToggle.currentStatus
     
     try {
-      // 🔥 Real-time Convex mutation - all users see change instantly!
       await updateTeacherMutation({ 
-        id: id as any, 
+        id: teacherToToggle.id as any, 
         isActive: newStatus 
       })
-      // UI updates automatically via Convex subscription!
-    } catch (e: any) {
-      console.error('Failed to update teacher status:', e)
-      alert('Gagal mengupdate status guru. Silakan coba lagi.')
+      const action = newStatus ? "diaktifkan" : "dinonaktifkan"
+      alert(`✅ Guru "${teacherToToggle.name}" berhasil ${action}!`)
+      setToggleConfirmOpen(false)
+      setTeacherToToggle(null)
+    } catch (error: any) {
+      alert("❌ Gagal mengubah status: " + error.message)
     }
+  }
+
+  const cancelToggle = () => {
+    setToggleConfirmOpen(false)
+    setTeacherToToggle(null)
   }
 
   const filtered = useMemo(() => teachers.filter(t => {
@@ -456,7 +472,7 @@ export default function TeacherListPage() {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8 text-amber-600 hover:text-amber-800"
-                                    onClick={() => toggleStatus(item.id, item.isActive)}
+                                    onClick={() => toggleStatus(item.id, item.isActive, item.nama)}
                                     title={item.isActive ? "Non-Aktifkan" : "Aktifkan Kembali"}
                                 >
                                     {item.isActive ? <UserMinus className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
@@ -633,6 +649,51 @@ export default function TeacherListPage() {
         }}
       />
 
+      {/* Toggle Status Confirmation Modal */}
+      <Dialog open={toggleConfirmOpen} onOpenChange={setToggleConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              {teacherToToggle?.currentStatus ? <UserMinus className="h-5 w-5" /> : <UserCheck className="h-5 w-5" />}
+              Konfirmasi {teacherToToggle?.currentStatus ? "Non-Aktifkan" : "Aktifkan"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              Yakin ingin {teacherToToggle?.currentStatus ? "menonaktifkan" : "mengaktifkan kembali"} guru:
+            </p>
+            <p className="font-semibold text-lg mb-3">
+              {teacherToToggle?.name}
+            </p>
+            <div className={`${teacherToToggle?.currentStatus ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'} border rounded-md p-3 mb-2`}>
+              <p className={`text-sm font-medium flex items-center gap-2 ${teacherToToggle?.currentStatus ? 'text-amber-800' : 'text-green-800'}`}>
+                {teacherToToggle?.currentStatus ? '⚠️' : '✅'} {teacherToToggle?.currentStatus ? 'Perhatian' : 'Informasi'}
+              </p>
+              <p className={`text-xs mt-1 ${teacherToToggle?.currentStatus ? 'text-amber-700' : 'text-green-700'}`}>
+                {teacherToToggle?.currentStatus 
+                  ? 'Guru akan dinonaktifkan dan tidak akan muncul di laporan aktif.'
+                  : 'Guru akan diaktifkan kembali dan muncul di laporan aktif.'}
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={cancelToggle}
+            >
+              Batal
+            </Button>
+            <Button
+              variant={teacherToToggle?.currentStatus ? "destructive" : "default"}
+              onClick={confirmToggle}
+              className={teacherToToggle?.currentStatus ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"}
+            >
+              {teacherToToggle?.currentStatus ? <UserMinus className="h-4 w-4 mr-2" /> : <UserCheck className="h-4 w-4 mr-2" />}
+              Ya, {teacherToToggle?.currentStatus ? "Non-Aktifkan" : "Aktifkan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

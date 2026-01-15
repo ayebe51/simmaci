@@ -72,6 +72,10 @@ export default function StudentListPage() {
   // Convex mutations
   const deleteStudentMutation = useMutation(convexApi.students.remove)
 
+  // Delete confirmation modal state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState<{id: string, name: string} | null>(null)
+
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
@@ -158,16 +162,27 @@ export default function StudentListPage() {
       }
   }
 
-  const handleDelete = async (id: string) => {
-      if(confirm("Yakin ingin menghapus siswa ini?")) {
-          try {
-              await deleteStudentMutation({ id: id as any })
-              alert("Berhasil menghapus siswa")
-          } catch (e: any) {
-              console.error('Delete error:', e)
-              alert("Gagal menghapus siswa: " + e.message)
-          }
+  const handleDelete = async (id: string, name: string) => {
+      setStudentToDelete({ id, name })
+      setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+      if (!studentToDelete) return
+      try {
+          await deleteStudentMutation({ id: studentToDelete.id as any })
+          alert(`✅ Siswa "${studentToDelete.name}" berhasil dihapus!`)
+          setDeleteConfirmOpen(false)
+          setStudentToDelete(null)
+      } catch (e: any) {
+          console.error('Delete error:', e)
+          alert("❌ Gagal menghapus siswa: " + e.message)
       }
+  }
+
+  const cancelDelete = () => {
+      setDeleteConfirmOpen(false)
+      setStudentToDelete(null)
   }
 
   const handleExport = async () => {
@@ -291,7 +306,7 @@ export default function StudentListPage() {
                                     setFormData(item)
                                     setIsAddOpen(true)
                                 }}><Edit className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.nama)}><Trash2 className="h-4 w-4" /></Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -396,6 +411,50 @@ export default function StudentListPage() {
           await api.importStudents(file)
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Konfirmasi Hapus
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              Yakin ingin menghapus siswa:
+            </p>
+            <p className="font-semibold text-lg mb-3">
+              {studentToDelete?.name}
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+              <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                ⚠️ Perhatian
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Data akan terhapus <strong>PERMANENT</strong> dari database dan tidak dapat dikembalikan!
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={cancelDelete}
+            >
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Ya, Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

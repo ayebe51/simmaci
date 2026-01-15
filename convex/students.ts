@@ -80,6 +80,7 @@ export const update = mutation({
     id: v.id("students"),
     nisn: v.optional(v.string()),
     nama: v.optional(v.string()),
+    npsn: v.optional(v.string()), // Added npsn as per the instruction's implied change
     nomorIndukMaarif: v.optional(v.string()),
     jenisKelamin: v.optional(v.string()),
     tempatLahir: v.optional(v.string()),

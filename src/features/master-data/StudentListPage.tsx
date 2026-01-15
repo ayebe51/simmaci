@@ -69,6 +69,9 @@ export default function StudentListPage() {
     jk: s.jenisKelamin === "Perempuan" ? "P" : "L",
   }))
 
+  // Convex mutations
+  const deleteStudentMutation = useMutation(convexApi.students.remove)
+
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
@@ -157,9 +160,13 @@ export default function StudentListPage() {
 
   const handleDelete = async (id: string) => {
       if(confirm("Yakin ingin menghapus siswa ini?")) {
-        //   await api.deleteStudent(id)
-          alert("Fitur hapus siswa belum diimplementasikan")
-        //   loadStudents()
+          try {
+              await deleteStudentMutation({ id: id as any })
+              alert("Berhasil menghapus siswa")
+          } catch (e: any) {
+              console.error('Delete error:', e)
+              alert("Gagal menghapus siswa: " + e.message)
+          }
       }
   }
 

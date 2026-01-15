@@ -269,9 +269,41 @@ export default function TeacherListPage() {
   }
 
   const openEdit = (teacher: Teacher) => {
-      setIsEditMode(true)
-      setFormData(teacher)
-      setIsAddOpen(true)
+      console.log("[HANDLERS] openEdit:", teacher)
+    setFormData(teacher)
+    setIsAddOpen(true)
+  }
+
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import('xlsx')
+    
+    // Create template data with sample row
+    const templateData = [
+      {
+        'NUPTK': 'Contoh: 1234567890123456',
+        'Nama': 'Contoh: Ahmad Fauzi',
+        'NIP': 'Opsional',
+        'Jenis Kelamin': 'L/P',
+        'Tempat Lahir': 'Contoh: Cilacap',
+        'Tanggal Lahir': 'DD/MM/YYYY',
+        'Pendidikan Terakhir': 'S1/S2/S3',
+        'Unit Kerja': 'Contoh: MI Maarif Cilacap',
+        'Kecamatan': 'Contoh: Cilacap Tengah',
+        'Status': 'GTY/GTT/PPPK/PNS',
+        'Mapel': 'Contoh: Matematika',
+        'No HP': '081234567890',
+        'Email': 'contoh@email.com',
+        'Sertifikasi': 'Ya/Tidak',
+        'PDPKPNU': 'Ya/Belum',
+      }
+    ]
+    
+    const worksheet = XLSX.utils.json_to_sheet(templateData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Guru')
+    
+    // Download file
+    XLSX.writeFile(workbook, 'Template_Import_Guru.xlsx')
   }
 
   const closeDialog = () => {
@@ -581,6 +613,7 @@ export default function TeacherListPage() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={loadTeachers}
+        onDownloadTemplate={handleDownloadTemplate}
         title="Import Data Guru"
         description="Upload file Excel (.xlsx) untuk import data guru"
         onFileImport={async (file) => {

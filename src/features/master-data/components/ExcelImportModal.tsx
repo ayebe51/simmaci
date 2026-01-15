@@ -15,6 +15,8 @@ interface ExcelImportModalProps {
   onClose?: () => void
   entityType?: string
   onImportSuccess?: () => void
+  // Template download
+  onDownloadTemplate?: () => void
 }
 
 export default function ExcelImportModal({ 
@@ -25,7 +27,8 @@ export default function ExcelImportModal({
   triggerLabel = "Import Excel",
   isOpen: controlledOpen,
   onClose: controlledOnClose,
-  onImportSuccess
+  onImportSuccess,
+  onDownloadTemplate
 }: ExcelImportModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -97,6 +100,24 @@ export default function ExcelImportModal({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+
+        {onDownloadTemplate && (
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+            <p className="text-sm text-blue-800 font-medium mb-2">ℹ️ Download Template</p>
+            <p className="text-xs text-blue-700 mb-3">
+              Anda bisa download template Excel terlebih dahulu, lalu isi data sesuai format yang sudah ditentukan.
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onDownloadTemplate}
+              className="w-full"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Download Template Excel
+            </Button>
+          </div>
+        )}
 
         <FileUploadStep
           onFileAccepted={handleFileAccepted}

@@ -281,6 +281,7 @@ export default function TeacherListPage() {
 
   const openEdit = (teacher: Teacher) => {
       console.log("[HANDLERS] openEdit:", teacher)
+    setIsEditMode(true)  // CRITICAL FIX: Set edit mode to true!
     setFormData(teacher)
     setIsAddOpen(true)
   }

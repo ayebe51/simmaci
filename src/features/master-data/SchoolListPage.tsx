@@ -472,17 +472,71 @@ export default function SchoolListPage() {
         description="Upload file Excel (.xlsx) untuk import data sekolah"
         onImport={async (data) => {
           try {
-            // Parse Excel data to school format
-            const schools = data.map((row: any) => ({
-              nsm: String(row['NSM'] || row['nsm'] || '').trim(),
-              nama: String(row['Nama Madrasah'] || row['nama'] || row['Nama'] || '').trim(),
-              npsn: row['NPSN'] || row['npsn'] ? String(row['NPSN'] || row['npsn']).trim() : undefined,
-              alamat: row['Alamat'] || row['alamat'] ? String(row['Alamat'] || row['alamat']).trim() : undefined,
-              kecamatan: row['Kecamatan'] || row['kecamatan'] ? String(row['Kecamatan'] || row['kecamatan']).trim() : undefined,
-              telepon: row['Telepon'] || row['telepon'] || row['No. HP Kepala'] ? String(row['Telepon'] || row['telepon'] || row['No. HP Kepala']).trim() : undefined,
-              kepalaMadrasah: row['Kepala Madrasah'] || row['kepalaMadrasah'] || row['Kepala Sekolah'] ? String(row['Kepala Madrasah'] || row['kepalaMadrasah'] || row['Kepala Sekolah']).trim() : undefined,
-              akreditasi: row['Akreditasi'] || row['akreditasi'] || row['Status'] ? String(row['Akreditasi'] || row['akreditasi'] || row['Status']).trim() : undefined,
-            })).filter((s: any) => s.nsm && s.nama); // Only include valid entries
+            // Helper: Extract kecamatan from alamat
+            const extractKecamatan = (alamat: string): string | undefined => {
+              if (!alamat) return undefined;
+              
+              // Common patterns: "Kec. Nama", "Kecamatan Nama", "Kec Nama"
+              const patterns = [
+                /(?:Kec\.?|Kecamatan)\s+([A-Za-z\s]+?)(?:,|$|\.|Kab)/i,
+                /,\s*([A-Za-z\s]+?)\s*,/,  // Pattern: "..., Kecamatan, ..."
+              ];
+              
+              for (const pattern of patterns) {
+                const match = alamat.match(pattern);
+                if (match && match[1]) {
+                  return match[1].trim();
+                }
+              }
+              return undefined;
+            };
+
+            // Parse Excel data to school format with flexible column mapping
+            const schools = data.map((row: any) => {
+              // Get all possible column values (case insensitive)
+              const getColumn = (...names: string[]) => {
+                for (const name of names) {
+                  const value = row[name] || row[name.toLowerCase()] || row[name.toUpperCase()];
+                  if (value) return String(value).trim();
+                }
+                return undefined;
+              };
+
+              const nsm = getColumn('NSM', 'Nsm', 'nsm', 'No NSM', 'NO. NSM');
+              const nama = getColumn('Nama Madrasah', 'Nama', 'NAMA MADRASAH', 'Nama Sekolah', 'NAMA SEKOLAH', 'nama');
+              const npsn = getColumn('NPSN', 'Npsn', 'npsn', 'No NPSN', 'NO. NPSN');
+              const alamat = getColumn('Alamat', 'ALAMAT', 'alamat', 'Alamat Lengkap', 'Alamat Madrasah');
+              let kecamatan = getColumn('Kecamatan', 'KECAMATAN', 'kecamatan', 'Kec', 'KEC', 'Kec.');
+              
+              // If kecamatan is empty, try to extract from alamat
+              if (!kecamatan && alamat) {
+                kecamatan = extractKecamatan(alamat);
+              }
+
+              const telepon = getColumn(
+                'No. HP Kepala', 'No HP Kepala', 'No. Hp Kepala Madrasah', 
+                'Telepon', 'TELEPON', 'HP', 'No HP', 'NO. HP', 'Nomor HP'
+              );
+              const kepalaMadrasah = getColumn(
+                'Kepala Madrasah', 'KEPALA MADRASAH', 'Kepala Sekolah', 'Kepala', 
+                'Nama Kepala', 'Nama Kepala Madrasah', 'Nama Kepsek'
+              );
+              const akreditasi = getColumn(
+                'Akreditasi', 'AKREDITASI', 'akreditasi', 'Status', 'STATUS', 
+                'Status Akreditasi', 'Afiliasi', 'Status Jamiyyah'
+              );
+
+              return {
+                nsm: nsm || '',
+                nama: nama || '',
+                npsn,
+                alamat,
+                kecamatan,
+                telepon,
+                kepalaMadrasah,
+                akreditasi,
+              };
+            }).filter((s: any) => s.nsm && s.nama); // Only include valid entries
 
             // Use Convex bulk create
             const result = await bulkCreateSchoolMutation({ schools });

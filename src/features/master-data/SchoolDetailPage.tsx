@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Phone, MapPin, User, Users, GraduationCap, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
+import { useQuery } from "convex/react";
+import { api as convexApi } from "../../../convex/_generated/api";
 
 interface Teacher {
   id: string;
@@ -36,28 +37,39 @@ interface School {
 export default function SchoolDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [school, setSchool] = useState<School | null>(null);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadSchoolData();
-  }, [id]);
+  // Use Convex real-time queries
+  const schoolData = useQuery(convexApi.schools.get, id ? { id: id as any } : "skip");
+  const teachersData = useQuery(convexApi.teachers.list, { unitKerja: schoolData?.nama });
 
-  const loadSchoolData = async () => {
-    try {
-      const [schoolData, teachersData] = await Promise.all([
-        api.getSchool(id!),
-        api.getSchoolTeachers(id!)
-      ]);
-      setSchool(schoolData);
-      setTeachers(teachersData);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = schoolData === undefined;
+  
+  // Map Convex data to School interface
+  const school = schoolData ? {
+    id: schoolData._id,
+    nsm: schoolData.nsm || "",
+    npsn: schoolData.npsn || "",
+    nama: schoolData.nama || "",
+    alamat: schoolData.alamat || "",
+    kecamatan: schoolData.kecamatan || "",
+    kepala: schoolData.kepalaMadrasah || "",
+    noHpKepala: schoolData.telepon || "",
+    statusJamiyyah: schoolData.akreditasi || "",
+    akreditasi: schoolData.akreditasi || "",
+  } : null;
+
+  // Map teachers data
+  const teachers = (teachersData || []).map((t: any) => ({
+    id: t._id,
+    nip: t.nip || t.nuptk || "",
+    nama: t.nama || "",
+    status: t.status || "",
+    mapel: t.mapel || "",
+    sertifikasi: t.sertifikasi || false,
+    isActive: t.isActive ?? true,
+    phoneNumber: t.phoneNumber,
+    kecamatan: t.kecamatan,
+  }));
 
   if (loading) {
     return (

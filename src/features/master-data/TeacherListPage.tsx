@@ -290,7 +290,7 @@ export default function TeacherListPage() {
         'Unit Kerja': 'Contoh: MI Maarif Cilacap',
         'Kecamatan': 'Contoh: Cilacap Tengah',
         'Status': 'GTY/GTT/PPPK/PNS',
-        'Mapel': 'Contoh: Matematika',
+        'TMT': 'DD/MM/YYYY',
         'No HP': '081234567890',
         'Email': 'contoh@email.com',
         'Sertifikasi': 'Ya/Tidak',

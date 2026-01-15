@@ -644,8 +644,8 @@ export default function TeacherListPage() {
           })
           
           // Call Convex bulkCreate mutation
-          await bulkCreateMutation({ teachers })
-          await bulkCreateMutation({ teachers })
+          const result = await bulkCreateMutation({ teachers })
+          alert(`✅ Berhasil mengimport ${result.count} dari ${teachers.length} data guru!`)
         }}
       />
 

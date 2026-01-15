@@ -65,7 +65,7 @@ export default function SchoolDetailPage() {
     nama: t.nama || "",
     status: t.status || "",
     mapel: t.mapel || "",
-    sertifikasi: t.sertifikasi || false,
+    sertifikasi: t.isCertified || false,
     isActive: t.isActive ?? true,
     phoneNumber: t.phoneNumber,
     kecamatan: t.kecamatan,

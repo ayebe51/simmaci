@@ -41,7 +41,6 @@ export default function SchoolListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("")
   const [filterJamiyyah, setFilterJamiyyah] = useState("")
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   // 🔥 REAL-TIME CONVEX QUERY
   const convexSchools = useQuery(convexApi.schools.list, {

@@ -63,7 +63,7 @@ export default function SchoolListPage() {
     kecamatan: s.kecamatan || "",
     kepala: s.kepalaMadrasah || "",
     noHpKepala: s.telepon || "",
-    statusJamiyyah: s.akreditasi || "",
+    statusJamiyyah: s.statusJamiyyah || "",
     akreditasi: s.akreditasi || "",
   }))
 

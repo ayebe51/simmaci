@@ -30,14 +30,18 @@ interface Teacher {
   nama: string
   status: string
   mapel: string
-  satminkal: string
+  satminkal: string        // Legacy
+  unitKerja?: string       // NEW: proper field name
   phoneNumber?: string
   isCertified: boolean
   isActive: boolean
   pdpkpnu: string
   kecamatan?: string
-  birthPlace?: string
-  birthDate?: string
+  birthPlace?: string      // Legacy
+  birthDate?: string       // Legacy
+  tempatLahir?: string     // NEW: proper field name
+  tanggalLahir?: string    // NEW: proper field name
+  tmt?: string             // NEW: Tanggal Mulai Tugas
 }
 
 export default function TeacherListPage() {

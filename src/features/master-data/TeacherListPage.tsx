@@ -628,6 +628,11 @@ export default function TeacherListPage() {
             return {
               nuptk: String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${Math.random()}`),
               nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),
+              nip: row.NIP || row.nip || undefined,
+              jenisKelamin: row['Jenis Kelamin'] || row.jenisKelamin || row.JK || undefined,
+              tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
+              tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
+              pendidikanTerakhir: row['Pendidikan Terakhir'] || row.pendidikan || row.Pendidikan || undefined,
               unitKerja: (row['Unit Kerja'] || row.unitKerja || row.UNIT_KERJA ||
                          row.satminkal || row.Satminkal || row.SATMINKAL ||
                          row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
@@ -635,17 +640,23 @@ export default function TeacherListPage() {
               mapel: row.Mapel || row.mapel || row.MAPEL || undefined,
               kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
               phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
+              email: row.Email || row.email || row.EMAIL || undefined,
               pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
               isCertified: isCertified,
-              nip: row.NIP || row.nip || undefined,
-              tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
-              tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
             }
           })
           
-          // Call Convex bulkCreate mutation
-          const result = await bulkCreateMutation({ teachers })
-          alert(`✅ Berhasil mengimport ${result.count} dari ${teachers.length} data guru!`)
+          console.log('[IMPORT] Parsed teachers:', teachers.length)
+          console.log('[IMPORT] Sample:', teachers[0])
+          
+          try {
+            // Call Convex bulkCreate mutation
+            const result = await bulkCreateMutation({ teachers })
+            alert(`✅ Berhasil mengimport ${result.count} dari ${teachers.length} data guru!`)
+          } catch (error: any) {
+            console.error('[IMPORT ERROR]', error)
+            alert(`❌ Gagal import: ${error.message || 'Unknown error'}`)
+          }
         }}
       />
 

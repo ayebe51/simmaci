@@ -15,6 +15,7 @@ export default defineSchema({
     unitKerja: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
+    tmt: v.optional(v.string()),  // Tanggal Mulai Tugas
     isCertified: v.optional(v.boolean()),
     phoneNumber: v.optional(v.string()),
     email: v.optional(v.string()),

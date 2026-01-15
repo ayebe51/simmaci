@@ -586,7 +586,7 @@ export default function TeacherListPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="unitKerja" className="text-right">Satminkal</Label>
-                    <Input id="unitKerja" className="col-span-3" value={formData.unitKerja || ""} onChange={e => setFormData({...formData, unitKerja: e.target.value})} placeholder="Nama satuan pendidikan" />
+                    <Input id="unitKerja" className="col-span-3" value={formData.unitKerja || formData.satminkal || ""} onChange={e => setFormData({...formData, unitKerja: e.target.value, satminkal: e.target.value})} placeholder="Nama satuan pendidikan" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="phoneNumber" className="text-right">Nomor HP</Label>

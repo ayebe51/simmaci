@@ -231,31 +231,37 @@ export default function TeacherListPage() {
 
       try {
         console.log("[DEBUG] formData before payload:", formData);
-        const payload = {
+        
+        // Build payload with only defined values
+        const rawPayload: any = {
             nuptk: String(formData.nuptk || `TMP-${Date.now()}`),
             nama: String(formData.nama || ""),
-            status: formData.status || undefined,
-            unitKerja: formData.unitKerja || formData.satminkal || undefined,
-            mapel: formData.mapel || undefined,
-            phoneNumber: formData.phoneNumber || undefined,
-            pdpkpnu: formData.pdpkpnu || undefined,
-            tempatLahir: formData.tempatLahir || formData.birthPlace || undefined,
-            tanggalLahir: formData.tanggalLahir || formData.birthDate || undefined,
-            tmt: formData.tmt || undefined,  // NEW: Include TMT
-            isActive: true,
-        }
-        console.log("[DEBUG] Payload being sent:", payload);
+        };
+        
+        // Add optional fields only if they have values
+        if (formData.status) rawPayload.status = formData.status;
+        if (formData.unitKerja || formData.satminkal) rawPayload.unitKerja = formData.unitKerja || formData.satminkal;
+        if (formData.mapel) rawPayload.mapel = formData.mapel;
+        if (formData.phoneNumber) rawPayload.phoneNumber = formData.phoneNumber;
+        if (formData.pdpkpnu) rawPayload.pdpkpnu = formData.pdpkpnu;
+        if (formData.kecamatan) rawPayload.kecamatan = formData.kecamatan;
+        if (formData.tempatLahir || formData.birthPlace) rawPayload.tempatLahir = formData.tempatLahir || formData.birthPlace;
+        if (formData.tanggalLahir || formData.birthDate) rawPayload.tanggalLahir = formData.tanggalLahir || formData.birthDate;
+        if (formData.tmt) rawPayload.tmt = formData.tmt;
+        if (formData.isCertified !== undefined) rawPayload.isCertified = formData.isCertified;
+        
+        console.log("[DEBUG] Payload being sent:", rawPayload);
 
         if (isEditMode && formData.id) {
             // 🔥 Update via Convex
             await updateTeacherMutation({ 
               id: formData.id as any,
-              ...payload
+              ...rawPayload
             })
             alert("Berhasil memperbarui data guru")
         } else {
             // 🔥 Create via Convex
-            await createTeacherMutation(payload)
+            await createTeacherMutation(rawPayload)
             alert("Berhasil menambah guru")
         }
         

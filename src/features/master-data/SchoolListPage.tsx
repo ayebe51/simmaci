@@ -91,9 +91,15 @@ export default function SchoolListPage() {
   // Manual Add/Edit State
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [formData, setFormData] = useState<Partial<School>>({
-      nsm: "", npsn: "", nama: "", alamat: "", kecamatan: "", kepala: "", noHpKepala: "", statusJamiyyah: ""
+      nsm: "", nama: "", npsn: "", alamat: "", kecamatan: "",
+      kepala: "", noHpKepala: "", statusJamiyyah: "", akreditasi: ""
   })
+
+  // Delete confirmation modal state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [schoolToDelete, setSchoolToDelete] = useState<{id: string, name: string} | null>(null)
 
   const filtered = (schools || []).filter(s => {
     // 1. Role Filter
@@ -219,19 +225,30 @@ export default function SchoolListPage() {
 
   const handleDelete = async (id: string, name: string) => {
       console.log('[DELETE] Button clicked for:', name, id)
-      if (window.confirm(`⚠️ PERHATIAN\n\nYakin ingin menghapus sekolah "${name}"?\n\nData akan terhapus PERMANENT dari database!`)) {
-          try {
-              console.log('[DELETE] Calling mutation...')
-              await deleteSchoolMutation({ id: id as any })
-              console.log('[DELETE] Success!')
-              alert(`✅ Sekolah "${name}" berhasil dihapus!`)
-          } catch (e: any) {
-              console.error('[DELETE] Error:', e)
-              alert("❌ Gagal menghapus: " + e.message)
-          }
-      } else {
-          console.log('[DELETE] User cancelled')
+      setSchoolToDelete({ id, name })
+      setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+      if (!schoolToDelete) return
+      
+      try {
+          console.log('[DELETE] Calling mutation for:', schoolToDelete.name)
+          await deleteSchoolMutation({ id: schoolToDelete.id as any })
+          console.log('[DELETE] Success!')
+          alert(`✅ Sekolah "${schoolToDelete.name}" berhasil dihapus!`)
+          setDeleteConfirmOpen(false)
+          setSchoolToDelete(null)
+      } catch (e: any) {
+          console.error('[DELETE] Error:', e)
+          alert("❌ Gagal menghapus: " + e.message)
       }
+  }
+
+  const cancelDelete = () => {
+      console.log('[DELETE] User cancelled')
+      setDeleteConfirmOpen(false)
+      setSchoolToDelete(null)
   }
 
   const handleDeleteAll = async () => {

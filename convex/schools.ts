@@ -106,6 +106,18 @@ export const remove = mutation({
   },
 });
 
+// Bulk delete all schools
+export const bulkDelete = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allSchools = await ctx.db.query("schools").collect();
+    for (const school of allSchools) {
+      await ctx.db.delete(school._id);
+    }
+    return { count: allSchools.length };
+  },
+});
+
 // Bulk create schools (for import)
 export const bulkCreate = mutation({
   args: {

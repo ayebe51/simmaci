@@ -49,8 +49,10 @@ export default function SchoolListPage() {
   })
 
   // Mutations
-  const updateSchoolMutation = useMutation(convexApi.schools.update)
   const createSchoolMutation = useMutation(convexApi.schools.create)
+  const updateSchoolMutation = useMutation(convexApi.schools.update)
+  const deleteSchoolMutation = useMutation(convexApi.schools.remove)
+  const bulkDeleteSchoolMutation = useMutation(convexApi.schools.bulkDelete)
   const bulkCreateSchoolMutation = useMutation(convexApi.schools.bulkCreate)
 
   // Map Convex data to School interface
@@ -136,7 +138,7 @@ export default function SchoolListPage() {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
         if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
+          return sortConfig.direction === 'asc' ? 1 : 1;
         }
         return 0;
       });
@@ -194,10 +196,27 @@ export default function SchoolListPage() {
       }
   }
 
-  const handleDelete = async (id: string, nama: string) => {
-      if(confirm(`Yakin ingin menghapus ${nama}?`)) {
-          // Implement delete API
-          alert("Fitur hapus belum tersedia di API")
+  const handleDelete = async (id: string, name: string) => {
+      if (confirm(`Yakin ingin menghapus sekolah "${name}"?`)) {
+          try {
+              await deleteSchoolMutation({ id: id as any })
+              alert("Sekolah berhasil dihapus!")
+          } catch (e: any) {
+              alert("Gagal menghapus: " + e.message)
+          }
+      }
+  }
+
+  const handleDeleteAll = async () => {
+      if (confirm(`PERHATIAN: Ini akan menghapus SEMUA ${schools.length} data sekolah!\n\nApakah Anda yakin?`)) {
+          if (confirm("Konfirmasi sekali lagi - hapus semua data sekolah?")) {
+              try {
+                  const result = await bulkDeleteSchoolMutation({})
+                  alert(`Berhasil menghapus ${result.count} sekolah!`)
+              } catch (e: any) {
+                  alert("Gagal menghapus: " + e.message)
+              }
+          }
       }
   }
 
@@ -253,9 +272,16 @@ export default function SchoolListPage() {
         description="Manajemen data satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
           {
+            label: 'Delete All',
+            onClick: handleDeleteAll,
+            variant: 'outline' as const,
+            icon: <Trash2 className="h-5 w-5 text-red-600" />,
+            className: 'border-red-200 hover:bg-red-50'
+          },
+          {
             label: 'Export Excel',
             onClick: handleExport,
-            variant: 'mint',
+            variant: 'mint' as const,
             icon: <Download className="h-5 w-5 text-gray-700" />
           },
           {

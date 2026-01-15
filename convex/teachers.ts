@@ -155,44 +155,76 @@ export const bulkCreate = mutation({
     teachers: v.array(v.object({
       nuptk: v.string(),
       nama: v.string(),
-      nip: v.optional(v.string()),
-      jenisKelamin: v.optional(v.string()),
-      tempatLahir: v.optional(v.string()),
-      tanggalLahir: v.optional(v.string()),
-      pendidikanTerakhir: v.optional(v.string()),
-      mapel: v.optional(v.string()),
-      unitKerja: v.optional(v.string()),
-      kecamatan: v.optional(v.string()),
-      status: v.optional(v.string()),
-      isCertified: v.optional(v.boolean()),
-      phoneNumber: v.optional(v.string()),
-      email: v.optional(v.string()),
-      pdpkpnu: v.optional(v.string()),
+      nip: v.optional(v.union(v.string(), v.null())),
+      jenisKelamin: v.optional(v.union(v.string(), v.null())),
+      tempatLahir: v.optional(v.union(v.string(), v.null())),
+      tanggalLahir: v.optional(v.union(v.string(), v.null())),
+      pendidikanTerakhir: v.optional(v.union(v.string(), v.null())),
+      mapel: v.optional(v.union(v.string(), v.null())),
+      unitKerja: v.optional(v.union(v.string(), v.null())),
+      kecamatan: v.optional(v.union(v.string(), v.null())),
+      status: v.optional(v.union(v.string(), v.null())),
+      isCertified: v.optional(v.union(v.boolean(), v.null())),
+      phoneNumber: v.optional(v.union(v.string(), v.null())),
+      email: v.optional(v.union(v.string(), v.null())),
+      pdpkpnu: v.optional(v.union(v.string(), v.null())),
     })),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const results = [];
+    const errors = [];
     
     for (const teacher of args.teachers) {
-      // Check duplicates
-      const existing = await ctx.db
-        .query("teachers")
-        .withIndex("by_nuptk", (q) => q.eq("nuptk", teacher.nuptk))
-        .first();
-      
-      if (!existing) {
-        const id = await ctx.db.insert("teachers", {
-          ...teacher,
-          isActive: true,
-          createdAt: now,
-          updatedAt: now,
-        });
-        results.push(id);
+      try {
+        // Filter out null/undefined values
+        const cleanData: any = {
+          nuptk: teacher.nuptk,
+          nama: teacher.nama,
+        };
+        
+        // Only add non-null optional fields
+        if (teacher.nip) cleanData.nip = teacher.nip;
+        if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
+        if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
+        if (teacher.tanggalLahir) cleanData.tanggalLahir = teacher.tanggalLahir;
+        if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
+        if (teacher.mapel) cleanData.mapel = teacher.mapel;
+        if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
+        if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
+        if (teacher.status) cleanData.status = teacher.status;
+        if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
+        if (teacher.email) cleanData.email = teacher.email;
+        if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
+        if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
+        
+        // Check duplicates
+        const existing = await ctx.db
+          .query("teachers")
+          .withIndex("by_nuptk", (q) => q.eq("nuptk", teacher.nuptk))
+          .first();
+        
+        if (!existing) {
+          const id = await ctx.db.insert("teachers", {
+            ...cleanData,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+          });
+          results.push(id);
+        } else {
+          errors.push(`Duplicate NUPTK: ${teacher.nuptk}`);
+        }
+      } catch (err: any) {
+        errors.push(`Error for ${teacher.nama}: ${err.message}`);
       }
     }
     
-    return { count: results.length, ids: results };
+    return { 
+      count: results.length, 
+      ids: results,
+      errors: errors.length > 0 ? errors : undefined 
+    };
   },
 });
 

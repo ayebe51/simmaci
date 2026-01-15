@@ -51,6 +51,7 @@ export default function SchoolListPage() {
   // Mutations
   const updateSchoolMutation = useMutation(convexApi.schools.update)
   const createSchoolMutation = useMutation(convexApi.schools.create)
+  const bulkCreateSchoolMutation = useMutation(convexApi.schools.bulkCreate)
 
   // Map Convex data to School interface
   const schools = (convexSchools || []).map((s: any) => ({
@@ -469,8 +470,26 @@ export default function SchoolListPage() {
         onImportSuccess={loadSchools}
         title="Import Data Sekolah"
         description="Upload file Excel (.xlsx) untuk import data sekolah"
-        onFileImport={async (file) => {
-          await api.importSchools(file)
+        onImport={async (data) => {
+          try {
+            // Parse Excel data to school format
+            const schools = data.map((row: any) => ({
+              nsm: String(row['NSM'] || row['nsm'] || '').trim(),
+              nama: String(row['Nama Madrasah'] || row['nama'] || row['Nama'] || '').trim(),
+              npsn: row['NPSN'] || row['npsn'] ? String(row['NPSN'] || row['npsn']).trim() : undefined,
+              alamat: row['Alamat'] || row['alamat'] ? String(row['Alamat'] || row['alamat']).trim() : undefined,
+              kecamatan: row['Kecamatan'] || row['kecamatan'] ? String(row['Kecamatan'] || row['kecamatan']).trim() : undefined,
+              telepon: row['Telepon'] || row['telepon'] || row['No. HP Kepala'] ? String(row['Telepon'] || row['telepon'] || row['No. HP Kepala']).trim() : undefined,
+              kepalaMadrasah: row['Kepala Madrasah'] || row['kepalaMadrasah'] || row['Kepala Sekolah'] ? String(row['Kepala Madrasah'] || row['kepalaMadrasah'] || row['Kepala Sekolah']).trim() : undefined,
+              akreditasi: row['Akreditasi'] || row['akreditasi'] || row['Status'] ? String(row['Akreditasi'] || row['akreditasi'] || row['Status']).trim() : undefined,
+            })).filter((s: any) => s.nsm && s.nama); // Only include valid entries
+
+            // Use Convex bulk create
+            const result = await bulkCreateSchoolMutation({ schools });
+            alert(`Berhasil mengimpor ${result.count} dari ${schools.length} sekolah`)
+          } catch (e: any) {
+            alert("Gagal import: " + e.message)
+          }
         }}
       />
     </div>

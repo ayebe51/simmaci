@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, TrendingUp, Calendar, BookOpen, RefreshCw } from "lucide-react"
+import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, TrendingUp, Calendar } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DashboardCharts } from "./components/DashboardCharts"
@@ -7,8 +7,6 @@ import { SKStatusPieChart } from "./components/SKStatusPieChart"
 import { MonthlySKTrendChart } from "./components/MonthlySKTrendChart"
 import { KecamatanBarChart } from "./components/KecamatanBarChart"
 import { PDPKPNUCard } from "./components/PDPKPNUCard"
-import { SkeletonCard, SkeletonChart } from "./components/SkeletonLoaders"
-import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 import { api } from "@/lib/api"
 // Convex real-time query

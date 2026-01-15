@@ -624,71 +624,98 @@ export default function TeacherListPage() {
           const worksheet = workbook.Sheets[workbook.SheetNames[0]]
           const jsonData = XLSX.utils.sheet_to_json(worksheet)
           
+          console.log('[IMPORT] Raw data:', jsonData.length, 'rows')
+          console.log('[IMPORT] First row sample:', jsonData[0])
+          
           // Map Excel columns to Convex schema with improved status/certification detection
-          const teachers = jsonData.map((row: any) => {
-            // Parse TMT (Tanggal Mulai Tugas) to calculate GTY status
-            let detectedStatus = row.Status || row.status || row.STATUS || "GTY"
-            const tmt = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
-            
-            if (tmt && !row.Status) {
-              try {
-                const tmtDate = new Date(tmt)
-                const yearsOfService = (Date.now() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
-                if (yearsOfService >= 2) {
-                  detectedStatus = "GTY" // Guru Tetap Yayasan
+          const teachers = jsonData.map((row: any, index: number) => {
+            try {
+              // Detect status from multiple possible fields
+              let detectedStatus = row.Status || row.status || row.STATUS || 'GTT'
+              
+              // Auto-detect status from TMT if not provided
+              const tmt = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
+              if (tmt && !row.Status) {
+                try {
+                  const tmtDate = new Date(tmt)
+                  const yearsOfService = (Date.now() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+                  if (yearsOfService >= 2) {
+                    detectedStatus = "GTY" // Guru Tetap Yayasan
+                  }
+                } catch (e) {
+                  console.warn('[IMPORT] Failed to parse TMT for row', index, ':', tmt)
                 }
-              } catch (e) {
-                console.warn('Failed to parse TMT:', tmt)
               }
+              
+              // Parse certification - check multiple columns
+              let isCertified = false
+              const certColumn = row.Sertifikasi || row.sertifikasi || row.SERTIFIKASI || 
+                                row['Status Sertifikasi'] || row.isCertified
+              
+              if (typeof certColumn === 'boolean') {
+                isCertified = certColumn
+              } else if (typeof certColumn === 'string') {
+                const normalized = certColumn.toLowerCase().trim()
+                isCertified = normalized === 'ya' || normalized === 'sudah' || 
+                             normalized === 'true' || normalized === '1' ||
+                             normalized === 'sertifikasi'
+              } else if (typeof certColumn === 'number') {
+                isCertified = certColumn === 1
+              }
+              
+              const nuptk = String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${index}`)
+              const nama = String(row.Nama || row.nama || row.NAMA || "")
+              
+              // Skip if no name
+              if (!nama || nama.trim() === '') {
+                console.warn('[IMPORT] Skipping row', index, '- no name')
+                return null
+              }
+              
+              return {
+                nuptk: nuptk,
+                nama: nama,
+                nip: row.NIP || row.nip || undefined,
+                jenisKelamin: row['Jenis Kelamin'] || row.jenisKelamin || row.JK || undefined,
+                tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
+                tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
+                pendidikanTerakhir: row['Pendidikan Terakhir'] || row.pendidikan || row.Pendidikan || undefined,
+                unitKerja: (row['Unit Kerja'] || row.unitKerja || row.UNIT_KERJA ||
+                           row.satminkal || row.Satminkal || row.SATMINKAL ||
+                           row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
+                status: detectedStatus,
+                kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
+                phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
+                email: row.Email || row.email || row.EMAIL || undefined,
+                pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
+                isCertified: isCertified,
+              }
+            } catch (error: any) {
+              console.error('[IMPORT] Error parsing row', index, ':', error)
+              return null
             }
-            
-            // Parse certification - check multiple columns
-            let isCertified = false
-            const certColumn = row.Sertifikasi || row.sertifikasi || row.SERTIFIKASI || 
-                              row['Status Sertifikasi'] || row.isCertified
-            
-            if (typeof certColumn === 'boolean') {
-              isCertified = certColumn
-            } else if (typeof certColumn === 'string') {
-              const normalized = certColumn.toLowerCase().trim()
-              isCertified = normalized === 'ya' || normalized === 'sudah' || 
-                           normalized === 'true' || normalized === '1' ||
-                           normalized === 'sertifikasi'
-            } else if (typeof certColumn === 'number') {
-              isCertified = certColumn === 1
-            }
-            
-            return {
-              nuptk: String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${Math.random()}`),
-              nama: String(row.Nama || row.nama || row.NAMA || "Unnamed"),
-              nip: row.NIP || row.nip || undefined,
-              jenisKelamin: row['Jenis Kelamin'] || row.jenisKelamin || row.JK || undefined,
-              tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
-              tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
-              pendidikanTerakhir: row['Pendidikan Terakhir'] || row.pendidikan || row.Pendidikan || undefined,
-              unitKerja: (row['Unit Kerja'] || row.unitKerja || row.UNIT_KERJA ||
-                         row.satminkal || row.Satminkal || row.SATMINKAL ||
-                         row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
-              status: detectedStatus,
-              mapel: row.Mapel || row.mapel || row.MAPEL || undefined,
-              kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
-              phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
-              email: row.Email || row.email || row.EMAIL || undefined,
-              pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
-              isCertified: isCertified,
-            }
-          })
+          }).filter(t => t !== null) // Remove null entries
           
           console.log('[IMPORT] Parsed teachers:', teachers.length)
           console.log('[IMPORT] Sample:', teachers[0])
           
+          if (teachers.length === 0) {
+            alert('❌ Tidak ada data valid yang bisa diimport. Pastikan file Excel memiliki kolom: NUPTK dan Nama')
+            return
+          }
+          
           try {
             // Call Convex bulkCreate mutation
             const result = await bulkCreateMutation({ teachers })
-            alert(`✅ Berhasil mengimport ${result.count} dari ${teachers.length} data guru!`)
+            if (result.errors && result.errors.length > 0) {
+              console.warn('[IMPORT] Errors:', result.errors)
+              alert(`⚠️ Berhasil mengimport ${result.count} dari ${teachers.length} data guru.\n\nError: ${result.errors.slice(0, 3).join(', ')}${result.errors.length > 3 ? '...' : ''}`)
+            } else {
+              alert(`✅ Berhasil mengimport ${result.count} dari ${teachers.length} data guru!`)
+            }
           } catch (error: any) {
             console.error('[IMPORT ERROR]', error)
-            alert(`❌ Gagal import: ${error.message || 'Unknown error'}`)
+            alert(`❌ Gagal import: ${error.message || 'Unknown error'}\n\nSilakan cek console (F12) untuk detail error.`)
           }
         }}
       />

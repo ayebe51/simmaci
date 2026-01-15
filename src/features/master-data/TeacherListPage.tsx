@@ -581,8 +581,8 @@ export default function TeacherListPage() {
                     <Input id="status" className="col-span-3" value={formData.status || ""} onChange={e => setFormData({...formData, status: e.target.value})} placeholder="PNS / GTY / GTT" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="satminkal" className="text-right">Satminkal</Label>
-                    <Input id="satminkal" className="col-span-3" value={formData.satminkal || ""} onChange={e => setFormData({...formData, satminkal: e.target.value})} placeholder="Nama satuan pendidikan" />
+                    <Label htmlFor="unitKerja" className="text-right">Satminkal</Label>
+                    <Input id="unitKerja" className="col-span-3" value={formData.unitKerja || ""} onChange={e => setFormData({...formData, unitKerja: e.target.value})} placeholder="Nama satuan pendidikan" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="phoneNumber" className="text-right">Nomor HP</Label>
@@ -593,12 +593,16 @@ export default function TeacherListPage() {
                     <Input id="pdpkpnu" className="col-span-3" value={formData.pdpkpnu || ""} onChange={e => setFormData({...formData, pdpkpnu: e.target.value})} placeholder="Sudah / Belum" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="birthPlace" className="text-right">Tempat Lahir</Label>
-                    <Input id="birthPlace" className="col-span-3" value={formData.birthPlace || ""} onChange={e => setFormData({...formData, birthPlace: e.target.value})} placeholder="Contoh: Cilacap" />
+                    <Label htmlFor="tempatLahir" className="text-right">Tempat Lahir</Label>
+                    <Input id="tempatLahir" className="col-span-3" value={formData.tempatLahir || ""} onChange={e => setFormData({...formData, tempatLahir: e.target.value})} placeholder="Contoh: Cilacap" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="birthDate" className="text-right">Tanggal Lahir</Label>
-                    <Input id="birthDate" type="date" className="col-span-3" value={formData.birthDate || ""} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+                    <Label htmlFor="tanggalLahir" className="text-right">Tanggal Lahir</Label>
+                    <Input id="tanggalLahir" type="date" className="col-span-3" value={formData.tanggalLahir || ""} onChange={e => setFormData({...formData, tanggalLahir: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="tmt" className="text-right">TMT (Tanggal Mulai Tugas)</Label>
+                    <Input id="tmt" type="date" className="col-span-3" value={formData.tmt || ""} onChange={e => setFormData({...formData, tmt: e.target.value})} />
                 </div>
             </div>
             <DialogFooter>

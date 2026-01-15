@@ -15,8 +15,11 @@ interface ExcelImportModalProps {
   onClose?: () => void
   entityType?: string
   onImportSuccess?: () => void
-  // Template download
+  // Template download (OLD - deprecated, use FileUploadStep handlers)
   onDownloadTemplate?: () => void
+  // FileUploadStep template handlers  
+  onDownloadTeacherTemplate?: () => void
+  onDownloadStudentTemplate?: () => void
 }
 
 export default function ExcelImportModal({ 
@@ -28,7 +31,9 @@ export default function ExcelImportModal({
   isOpen: controlledOpen,
   onClose: controlledOnClose,
   onImportSuccess,
-  onDownloadTemplate
+  onDownloadTemplate,
+  onDownloadTeacherTemplate,
+  onDownloadStudentTemplate
 }: ExcelImportModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -121,8 +126,9 @@ export default function ExcelImportModal({
 
         <FileUploadStep
           onFileAccepted={handleFileAccepted}
-          acceptedFormats={['.xlsx', '.xls', '.csv']}
           disabled={isUploading}
+          onDownloadTeacherTemplate={onDownloadTeacherTemplate}
+          onDownloadStudentTemplate={onDownloadStudentTemplate}
         />
 
         {isUploading && <p className="text-center text-sm text-muted-foreground">Mengupload...</p>}

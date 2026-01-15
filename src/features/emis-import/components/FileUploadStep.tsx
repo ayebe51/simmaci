@@ -6,9 +6,12 @@ import * as mammoth from "mammoth"
 
 interface FileUploadStepProps {
   onFileAccepted: (file: File, headers: string[], data: Record<string, unknown>[]) => void
+  disabled?: boolean
+  onDownloadTeacherTemplate?: () => void
+  onDownloadStudentTemplate?: () => void
 }
 
-export default function FileUploadStep({ onFileAccepted }: FileUploadStepProps) {
+export default function FileUploadStep({ onFileAccepted, disabled, onDownloadTeacherTemplate, onDownloadStudentTemplate }: FileUploadStepProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -137,20 +140,30 @@ export default function FileUploadStep({ onFileAccepted }: FileUploadStepProps) 
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-4 text-left">
-          <div className="flex items-center gap-3 rounded-lg border p-3">
+          <button 
+            type="button"
+            onClick={onDownloadTeacherTemplate}
+            disabled={!onDownloadTeacherTemplate || isProcessing}
+            className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
                <FileSpreadsheet className="h-5 w-5 text-green-600"/>
-               <div className="text-xs">
+               <div className="text-xs text-left">
                    <p className="font-medium">Template Guru</p>
                    <span className="text-muted-foreground">Download .xlsx / .docx</span>
                </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg border p-3">
+          </button>
+          <button 
+            type="button"
+            onClick={onDownloadStudentTemplate}
+            disabled={!onDownloadStudentTemplate || isProcessing}
+            className="flex items-center gap-3 rounded-lg border p-3 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
                <FileSpreadsheet className="h-5 w-5 text-green-600"/>
-               <div className="text-xs">
+               <div className="text-xs text-left">
                    <p className="font-medium">Template Siswa</p>
                    <span className="text-muted-foreground">Download .xlsx / .docx</span>
                </div>
-          </div>
+          </button>
       </div>
     </div>
   )

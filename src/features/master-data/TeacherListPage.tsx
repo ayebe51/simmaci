@@ -613,7 +613,7 @@ export default function TeacherListPage() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={loadTeachers}
-        onDownloadTemplate={handleDownloadTemplate}
+        onDownloadTeacherTemplate={handleDownloadTemplate}
         title="Import Data Guru"
         description="Upload file Excel (.xlsx) untuk import data guru"
         onFileImport={async (file) => {

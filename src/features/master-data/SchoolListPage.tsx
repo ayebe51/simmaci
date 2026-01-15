@@ -177,23 +177,45 @@ export default function SchoolListPage() {
   }
 
   const handleSave = async () => {
-      if(!formData.nama) {
-          alert("Nama sekolah wajib diisi!")
+      if(!formData.nsm || !formData.nama) {
+          alert("NSM dan Nama sekolah wajib diisi!")
           return
       }
       try {
         if(isEditMode && formData.id) {
-           await api.updateSchool(formData.id, formData)
+           // Update via Convex
+           await updateSchoolMutation({ 
+             id: formData.id as any,
+             nama: formData.nama,
+             nsm: formData.nsm,
+             npsn: formData.npsn,
+             alamat: formData.alamat,
+             kecamatan: formData.kecamatan,
+             kepalaMadrasah: formData.kepala,
+             telepon: formData.noHpKepala,
+             statusJamiyyah: formData.statusJamiyyah,
+           })
            alert("Berhasil update sekolah") 
         } else {
-           await api.createSchool(formData)
+           // Create via Convex
+           await createSchoolMutation({
+             nsm: formData.nsm || "",
+             nama: formData.nama || "",
+             npsn: formData.npsn,
+             alamat: formData.alamat,
+             kecamatan: formData.kecamatan,
+             kepalaMadrasah: formData.kepala,
+             akreditasi: formData.akreditasi,
+             statusJamiyyah: formData.statusJamiyyah,
+             telepon: formData.noHpKepala,
+           })
            alert("Berhasil menambah sekolah")
         }
-        loadSchools()
         closeDialog()
-      } catch (e) {
-          alert("Gagal menyimpan sekolah")
+      } catch (e: any) {
+          alert("Gagal menyimpan: " + e.message)
       }
+  }
   }
 
   const handleDelete = async (id: string, name: string) => {

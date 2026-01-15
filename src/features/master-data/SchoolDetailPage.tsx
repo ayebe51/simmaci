@@ -54,7 +54,7 @@ export default function SchoolDetailPage() {
     kecamatan: schoolData.kecamatan || "",
     kepala: schoolData.kepalaMadrasah || "",
     noHpKepala: schoolData.telepon || "",
-    statusJamiyyah: schoolData.akreditasi || "",
+    statusJamiyyah: schoolData.statusJamiyyah || "",
     akreditasi: schoolData.akreditasi || "",
   } : null;
 

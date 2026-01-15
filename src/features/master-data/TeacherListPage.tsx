@@ -55,6 +55,7 @@ export default function TeacherListPage() {
   // Mutations for real-time updates
   const updateTeacherMutation = useMutation(convexApi.teachers.update)
   const removeTeacherMutation = useMutation(convexApi.teachers.remove)
+  const bulkDeleteTeacherMutation = useMutation(convexApi.teachers.bulkDelete)
   const createTeacherMutation = useMutation(convexApi.teachers.create)
   const bulkCreateMutation = useMutation(convexApi.teachers.bulkCreate)
 
@@ -283,6 +284,19 @@ export default function TeacherListPage() {
       }
   }
 
+  const handleDeleteAll = async () => {
+      if (confirm(`PERHATIAN: Ini akan menghapus SEMUA ${teachers.length} data guru!\n\nApakah Anda yakin?`)) {
+          if (confirm("Konfirmasi sekali lagi - hapus semua data guru?")) {
+              try {
+                  const result = await bulkDeleteTeacherMutation({})
+                  alert(`Berhasil menghapus ${result.count} guru!`)
+              } catch (e: any) {
+                  alert("Gagal menghapus: " + e.message)
+              }
+          }
+      }
+  }
+
   return (
     <div className="space-y-6">
       <SoftPageHeader
@@ -296,25 +310,10 @@ export default function TeacherListPage() {
             icon: <Download className="h-5 w-5 text-gray-700" />
           },
           {
-            label: 'Download Template',
-            onClick: async () => {
-              try {
-                const blob = await api.downloadTeacherTemplate();
-                const url = window.URL.createObjectURL(new Blob([blob]));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', 'TEMPLATE_IMPORT_DATA_GURU.xlsx');
-                document.body.appendChild(link);
-                link.click();
-                link.parentNode?.removeChild(link);
-                window.URL.revokeObjectURL(url);
-              } catch (error) {
-                console.error('Failed to download template:', error);
-                alert('Gagal mendownload template. Silakan coba lagi.');
-              }
-            },
+            label: 'Delete All',
+            onClick: handleDeleteAll,
             variant: 'purple',
-            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
+            icon: <Trash2 className="h-5 w-5 text-gray-700" />
           },
           {
             label: 'Tambah Manual',

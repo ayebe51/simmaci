@@ -191,6 +191,7 @@ export const bulkCreate = mutation({
         if (teacher.unitKerja) cleanData.unitKerja = String(teacher.unitKerja);
         if (teacher.kecamatan) cleanData.kecamatan = String(teacher.kecamatan);
         if (teacher.status) cleanData.status = String(teacher.status);
+        if (teacher.tmt) cleanData.tmt = String(teacher.tmt);  // NEW: TMT field
         if (teacher.phoneNumber) cleanData.phoneNumber = String(teacher.phoneNumber);
         if (teacher.email) cleanData.email = String(teacher.email);
         if (teacher.pdpkpnu) cleanData.pdpkpnu = String(teacher.pdpkpnu);

@@ -694,13 +694,13 @@ export default function TeacherListPage() {
                 nip: row.NIP || row.nip || undefined,
                 jenisKelamin: row['Jenis Kelamin'] || row.jenisKelamin || row.JK || undefined,
                 tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
-                tanggalLahir: row['Tanggal Lahir'] || row.tanggalLahir || undefined,
+                tanggalLahir: excelSerialToDate(row['Tanggal Lahir'] || row.tanggalLahir),
                 pendidikanTerakhir: row['Pendidikan Terakhir'] || row.pendidikan || row.Pendidikan || undefined,
                 unitKerja: (row['Unit Kerja'] || row.unitKerja || row.UNIT_KERJA ||
                            row.satminkal || row.Satminkal || row.SATMINKAL ||
                            row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
                 status: detectedStatus,
-                tmt: row.TMT || row.tmt || row['Tanggal Mulai Tugas'] || undefined,  // NEW: TMT mapping
+                tmt: excelSerialToDate(row.TMT || row.tmt || row['Tanggal Mulai Tugas']),
                 kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
                 phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
                 email: row.Email || row.email || row.EMAIL || undefined,

@@ -700,6 +700,7 @@ export default function TeacherListPage() {
                            row.satminkal || row.Satminkal || row.SATMINKAL ||
                            row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
                 status: detectedStatus,
+                tmt: row.TMT || row.tmt || row['Tanggal Mulai Tugas'] || undefined,  // NEW: TMT mapping
                 kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
                 phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
                 email: row.Email || row.email || row.EMAIL || undefined,

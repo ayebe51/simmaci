@@ -333,7 +333,8 @@ export default function YayasanApprovalPage() {
                             </Button>
                         )}
 
-                        {item.status === 'Approved' && (
+                        {/* Show "Cetak SK" button for approved status */}
+                        {['approved', 'Approved'].includes(item.status) && (
                              <div className="flex items-center justify-end space-x-2">
                                 <BadgeCheck className="w-5 h-5 text-green-600"/> 
                                 <span className="mr-2 hidden sm:inline">Disetujui</span>

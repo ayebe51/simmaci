@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Get all headmaster tenures with optional filters
+// Get all headmaster tenures with optional filters + enriched with teacher & school data
 export const list = query({
   args: {
     schoolId: v.optional(v.id("schools")),
@@ -31,7 +31,38 @@ export const list = query({
       );
     }
     
-    return tenures;
+    // 🔥 ENRICH: Join with teacher and school data
+    const enriched = await Promise.all(
+      tenures.map(async (tenure) => {
+        const teacher = await ctx.db.get(tenure.teacherId);
+        const school = await ctx.db.get(tenure.schoolId);
+        
+        return {
+          ...tenure,
+          id: tenure._id,  // Add 'id' alias for compatibility
+          tmt: tenure.startDate,  // Add 'tmt' alias
+          teacher: teacher ? {
+            _id: teacher._id,
+            nama: teacher.nama,
+            nip: teacher.nip,
+            nuptk: teacher.nuptk,
+            pendidikanTerakhir: teacher.pendidikanTerakhir,
+            birthPlace: teacher.tempatLahir,  // Map to legacy field
+            birthDate: teacher.tanggalLahir,   // Map to legacy field
+            address: teacher.unitKerja,  // Fallback
+            jabatan: "Kepala Madrasah",
+            statusKepegawaian: teacher.status
+          } : null,
+          school: school ? {
+            _id: school._id,
+            nama: school.nama,
+            district: school.kecamatan
+          } : null
+        };
+      })
+    );
+    
+    return enriched;
   },
 });
 

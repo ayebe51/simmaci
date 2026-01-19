@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { BadgeCheck, CheckCircle, Download, FileText, XCircle, Upload } from "lucide-react"
-import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
+import { useState } from "react"
+import { api } from "@/lib/api"  // Keep for file upload only
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -17,10 +17,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+// 🔥 CONVEX for real-time data
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
+import { Id } from "../../../convex/_generated/dataModel"
 
 export default function YayasanApprovalPage() {
-  const [requests, setRequests] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
+  const allRequests = useQuery(convexApi.headmasters.list, {
+    status: undefined  // Get all statuses
+  }) || []
+
+  // 🔥 CONVEX MUTATIONS
+  const approveMutation = useMutation(convexApi.headmasters.approve)
+  const rejectMutation = useMutation(convexApi.headmasters.reject)
 
   // --- SIGNATURE STATE ---
   const [isSignModalOpen, setIsSignModalOpen] = useState(false)
@@ -100,20 +110,23 @@ export default function YayasanApprovalPage() {
       try {
           toast.info("Mengunggah tanda tangan...")
           // 1. Upload Signature
-          // Create File from Blob to ensure name and type
           const file = new File([blob], "signature.png", { type: "image/png" });
           const uploadRes = await api.uploadFile(file)
-          // Adjust based on return structure (usually { url: ... })
           const signatureUrl = (uploadRes as any).url || (uploadRes as any).filename
 
-          // 2. Approve with Signature
+          // 2. Approve with Signature via Convex
           toast.info("Menyetujui dokumen...")
-          await api.approveHeadmaster(signTargetId, signatureUrl) 
+          const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user" 
+          await approveMutation({ 
+            id: signTargetId as Id<"headmasterTenures">,
+            approvedBy: userId as Id<"users">,
+            skUrl: signatureUrl
+          })
 
           toast.success("SK Kepala Disetujui & Ditandatangani!")
           setIsSignModalOpen(false)
           setSignTargetId(null)
-          loadData()
+          // No need to reload - Convex auto-updates!
 
       } catch (e) {
           console.error(e)
@@ -129,34 +142,25 @@ export default function YayasanApprovalPage() {
           const skUrl = (uploadRes as any).url || (uploadRes as any).filename
 
           toast.info("Menyimpan SK Final...")
-          await api.approveHeadmaster(uploadTargetId, undefined, skUrl)
+          const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user"
+          await approveMutation({ 
+            id: uploadTargetId as Id<"headmasterTenures">,
+            approvedBy: userId as Id<"users">,
+            skUrl: skUrl
+          })
 
           toast.success("SK Final Berhasil Diupload & Disetujui!")
           setIsUploadModalOpen(false)
           setUploadTargetId(null)
-          loadData()
+          // No need to reload - Convex auto-updates!
       } catch (e) {
           toast.error("Gagal: " + (e as Error).message)
       }
   }
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-    setIsLoading(true)
-    try {
-        const res = await api.getHeadmasterTenures()
-        // Filter: Show SUBMITTED or VERIFIED
-        setRequests(Array.isArray(res) ? res : (res as any).data || [])
-        setCurrentPage(1) // Reset to first page on data load
-    } catch {
-        toast.error("Gagal memuat data approval")
-    } finally {
-        setIsLoading(false)
-    }
-  }
+  // 🔥 No need for useEffect/loadData - Convex auto-updates!
+  // Filter requests based on status if needed
+  const requests = allRequests
 
 
 
@@ -173,12 +177,16 @@ export default function YayasanApprovalPage() {
       }
       try {
           toast.info("Memproses penolakan...");
-          await api.rejectHeadmaster(rejectTargetId, rejectReason)
+          const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user"
+          await rejectMutation({ 
+            id: rejectTargetId as Id<"headmasterTenures">,
+            rejectedBy: userId as Id<"users">
+          })
           toast.success("SK Kepala Ditolak.")
           setIsRejectModalOpen(false)
           setRejectTargetId(null)
           setRejectReason("")
-          loadData()
+          // No need to reload - Convex auto-updates!
       } catch (e: any) {
           console.error("Reject Error:", e);
           toast.error("Gagal menolak: " + (e?.message || "Unknown error"))
@@ -296,7 +304,7 @@ export default function YayasanApprovalPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {!allRequests ? (
                     <TableRow><TableCell colSpan={6} className="text-center h-24">Memuat...</TableCell></TableRow>
                 ) : requests.length === 0 ? (
                     <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada pengajuan pending.</TableCell></TableRow>
@@ -529,7 +537,7 @@ export default function YayasanApprovalPage() {
           </div>
 
           {/* Pagination Controls */}
-          {!isLoading && requests.length > itemsPerPage && (
+          {allRequests && requests.length > itemsPerPage && (
             <div className="flex items-center justify-end space-x-2 py-4 px-2">
               <div className="flex-1 text-sm text-muted-foreground">
                 Halaman {currentPage} dari {totalPages} ({requests.length} data)

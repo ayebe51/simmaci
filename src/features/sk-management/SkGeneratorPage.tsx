@@ -475,6 +475,8 @@ export default function SkGeneratorPage() {
       const n = (nama || "").toLowerCase()
       const j = (jabatan || "").toLowerCase()
 
+      console.log(`[determineJenisSk] nama: ${nama}, tmt: ${tmt}, pendidikan: ${pendidikan}`)
+
       // 0. Check Kamad
       if (j.includes("kepala") || j.includes("kamad")) return "SK Kepala Madrasah"
 
@@ -487,12 +489,24 @@ export default function SkGeneratorPage() {
 
       if (!isSarjana) return "SK Tenaga Kependidikan"
 
-      // Check Tenure
-      const tmtDate = parseIndonesianDate(tmt) || new Date()
+      // Check Tenure - ONLY if TMT exists
+      if (!tmt || tmt.trim() === '') {
+        console.warn(`[determineJenisSk] TMT kosong untuk ${nama}! Default ke GTT`)
+        return "SK Guru Tidak Tetap"
+      }
+
+      const tmtDate = parseIndonesianDate(tmt)
+      if (!tmtDate) {
+        console.warn(`[determineJenisSk] TMT tidak bisa di-parse: ${tmt} untuk ${nama}. Default ke GTT`)
+        return "SK Guru Tidak Tetap"
+      }
+
       const now = new Date()
       let yearsDiff = now.getFullYear() - tmtDate.getFullYear()
       const m = now.getMonth() - tmtDate.getMonth()
       if (m < 0 || (m === 0 && now.getDate() < tmtDate.getDate())) yearsDiff--
+
+      console.log(`[determineJenisSk] ${nama}: TMT Date=${tmtDate.toLocaleDateString()}, Years=${yearsDiff}`)
 
       if (yearsDiff >= 2) return "SK Guru Tetap Yayasan"
       else return "SK Guru Tidak Tetap"

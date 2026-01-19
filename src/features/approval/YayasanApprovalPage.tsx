@@ -94,38 +94,22 @@ export default function YayasanApprovalPage() {
       return new Date()
   }
 
-  const openSignModal = (id: string) => {
-      setSignTargetId(id)
-      setIsSignModalOpen(true)
-  }
-
-  const handleSignAndApprove = async (blob: Blob) => {
-      if (!signTargetId) return
-      
+  // Direct approve without signature (signature feature disabled temporarily)
+  const handleDirectApprove = async (id: string) => {
       try {
-          toast.info("Mengunggah tanda tangan...")
-          // 1. Upload Signature
-          const file = new File([blob], "signature.png", { type: "image/png" });
-          const uploadRes = await api.uploadFile(file)
-          const signatureUrl = (uploadRes as any).url || (uploadRes as any).filename
-
-          // 2. Approve with Signature via Convex
           toast.info("Menyetujui dokumen...")
           const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user" 
           await approveMutation({ 
-            id: signTargetId as Id<"headmasterTenures">,
-            approvedBy: userId as Id<"users">,
-            skUrl: signatureUrl
+            id: id as Id<"headmasterTenures">,
+            approvedBy: userId as Id<"users">
           })
 
-          toast.success("SK Kepala Disetujui & Ditandatangani!")
-          setIsSignModalOpen(false)
-          setSignTargetId(null)
+          toast.success("SK Kepala Disetujui!")
           // No need to reload - Convex auto-updates!
 
       } catch (e) {
           console.error(e)
-          toast.error("Gagal memproses tanda tangan: " + (e as Error).message)
+          toast.error("Gagal menyetujui: " + (e as Error).message)
       }
   }
 
@@ -333,9 +317,9 @@ export default function YayasanApprovalPage() {
                                  <Button size="sm" variant="destructive" onClick={() => openRejectModal(item.id)}>
                                      <XCircle className="w-4 h-4 mr-1" /> Tolak
                                  </Button>
-                                {/* NEW BUTTON WITH SIGNATURE */}
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => openSignModal(item.id)}>
-                                    <CheckCircle className="w-4 h-4 mr-1" /> Setujui & TTD
+                                {/* Direct approve button (signature disabled) */}
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleDirectApprove(item.id)}>
+                                    <CheckCircle className="w-4 h-4 mr-1" /> Setujui
                                 </Button>
                             </>
                         )}
@@ -577,24 +561,7 @@ export default function YayasanApprovalPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isSignModalOpen} onOpenChange={setIsSignModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tanda Tangan Digital</DialogTitle>
-            <DialogDescription>
-              Silakan tanda tangan di bawah ini untuk menyetujui SK Pengangkatan.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center p-4 bg-slate-50 border rounded-lg">
-             {isSignModalOpen && (
-                 <SignaturePad 
-                    onSave={handleSignAndApprove} 
-                    onCancel={() => setIsSignModalOpen(false)} 
-                 />
-             )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Signature modal removed - feature disabled */}
       
       {/* Upload Final SK Dialog */}
       <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>

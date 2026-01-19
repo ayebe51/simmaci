@@ -327,7 +327,8 @@ export default function YayasanApprovalPage() {
                          )}
                       </TableCell>
                       <TableCell className="text-right space-x-2">
-                        {['Submitted', 'Verified'].includes(item.status) && (
+                        {/* Approve/Reject buttons for pending submissions */}
+                        {['pending', 'submitted', 'verified', 'Submitted', 'Verified'].includes(item.status) && (
                             <>
                                  <Button size="sm" variant="destructive" onClick={() => openRejectModal(item.id)}>
                                      <XCircle className="w-4 h-4 mr-1" /> Tolak
@@ -339,7 +340,7 @@ export default function YayasanApprovalPage() {
                             </>
                         )}
                         {/* ACTION: UPLOAD SK FINAL (Manual) */}
-                        {['Submitted', 'Verified', 'Approved', 'Active'].includes(item.status) && (
+                        {['pending', 'submitted', 'verified', 'approved', 'active', 'Submitted', 'Verified', 'Approved', 'Active'].includes(item.status) && (
                              <Button size="sm" variant="outline" className="border-green-600 text-green-600 hover:bg-green-50" onClick={() => {
                                 setUploadTargetId(item.id)
                                 setIsUploadModalOpen(true)

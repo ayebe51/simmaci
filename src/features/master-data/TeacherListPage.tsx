@@ -633,6 +633,29 @@ export default function TeacherListPage() {
         title="Import Data Guru"
         description="Upload file Excel (.xlsx) untuk import data guru"
         onFileImport={async (file) => {
+          // Excel Date Serial Number Converter
+          const excelSerialToDate = (serial: any): string | undefined => {
+            if (!serial) return undefined
+            
+            // If already a string (text format), return as-is
+            if (typeof serial === 'string') return serial
+            
+            // If number (Excel serial date), convert to date string
+            if (typeof serial === 'number') {
+              // Excel serial starts from 1900-01-01 (but has a leap year bug for 1900)
+              const excelEpoch = new Date(1899, 11, 30) // Dec 30, 1899
+              const date = new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000)
+              
+              // Format as YYYY-MM-DD for database
+              const year = date.getFullYear()
+              const month = String(date.getMonth() + 1).padStart(2, '0')
+              const day = String(date.getDate()).padStart(2, '0')
+              return `${year}-${month}-${day}`
+            }
+            
+            return undefined
+          }
+
           // Parse Excel file client-side
           const XLSX = await import('xlsx')
           const data = await file.arrayBuffer()

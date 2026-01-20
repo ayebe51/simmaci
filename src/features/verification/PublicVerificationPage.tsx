@@ -1,42 +1,25 @@
-import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { api } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, XCircle, ShieldCheck, FileText, User, Calendar } from "lucide-react"
+// 🔥 CONVEX for real-time verification
+import { useQuery } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function PublicVerificationPage() {
     const { id } = useParams()
-    const [status, setStatus] = useState<"loading" | "valid" | "invalid">("loading")
-    const [data, setData] = useState<any>(null)
+    
+    // 🔥 REAL-TIME CONVEX QUERY - Verify SK by code
+    const verificationData = useQuery(
+        convexApi.verification.verifyByCode, 
+        id ? { code: id } : "skip"
+    )
+    
+    const status = verificationData === undefined ? "loading" 
+                  : verificationData === null ? "invalid" 
+                  : "valid"
+    const data = verificationData
 
-    useEffect(() => {
-        // DEPRECATED: This feature requires backend API endpoint that doesn't exist in Convex yet
-        // TODO: Implement SK verification in Convex or remove this feature
-        setStatus("invalid");
-        return;
-        
-        /* Original code - commented out due to hardcoded localhost
-        if (!id) {
-            setStatus("invalid");
-            return;
-        }
-
-        // Use direct fetch for public endpoint (no auth required)
-        fetch(`http://localhost:3000/sk/verify/${id}`)
-            .then(res => {
-                if (!res.ok) throw new Error('Not found');
-                return res.json();
-            })
-            .then(data => {
-                setData(data)
-                setStatus("valid")
-            })
-            .catch(() => {
-                setStatus("invalid")
-            })
-        */
-    }, [id])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

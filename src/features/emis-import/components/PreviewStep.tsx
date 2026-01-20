@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react"
-import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { CheckCircle, AlertCircle, Save, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+// 🔥 CONVEX for bulk import
+import { useMutation } from "convex/react"
+import { api as convexApi } from "../../../../convex/_generated/api"
 import {
   Table,
   TableBody,
@@ -21,6 +23,9 @@ interface PreviewStepProps {
 
 export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProps) {
     const [isSaving, setIsSaving] = useState(false)
+    
+    // 🔥 CONVEX MUTATION for bulk import
+    const bulkImportMutation = useMutation(convexApi.students.bulkImport)
 
   // Transform Data
   const transformedData = useMemo(() => {
@@ -63,8 +68,9 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
               return
           }
 
-          await api.importEmis(validData)
-          toast.success(`Berhasil menyimpan ${validData.length} data siswa`)
+          // 🔥 CALL CONVEX MUTATION
+          const result = await bulkImportMutation({ students: validData as any })
+          toast.success(result.message)
           onFinish()
       } catch (err: any) {
           toast.error(err.message || "Gagal menyimpan data")

@@ -7,21 +7,33 @@ export const verifyByCode = query({
     code: v.string() 
   },
   handler: async (ctx, args) => {
-    // Search for SK in teacherSks table by verification code or ID
-    const sk = await ctx.db
-      .query("teacherSks")
-      .filter((q) => q.or(
-        q.eq(q.field("verificationCode"), args.code),
-        q.eq(q.field("_id"), args.code)
-      ))
-      .first();
+    // Try to find SK document by ID or nomor SK
+    let sk = null;
+    
+    // First try by document ID
+    try {
+      sk = await ctx.db.get(args.code as any);
+      // Verify it's an SK document
+      if (sk && !("nomorSk" in sk)) {
+        sk = null;
+      }
+    } catch {
+      // Not a valid ID, try searching by nomor SK
+      sk = await ctx.db
+        .query("skDocuments")
+        .filter((q) => q.eq(q.field("nomorSk"), args.code))
+        .first();
+    }
     
     if (!sk) {
       return null;
     }
     
-    // Get teacher data
-    const teacher = await ctx.db.get(sk.teacherId);
+    // Get teacher data if exists
+    let teacher = null;
+    if (sk.teacherId) {
+      teacher = await ctx.db.get(sk.teacherId);
+    }
     
     return {
       skNumber: sk.nomorSk,
@@ -30,9 +42,9 @@ export const verifyByCode = query({
         nama: teacher.nama,
         nuptk: teacher.nuptk,
         nip: teacher.nip
-      } : null,
+      } : { nama: sk.nama, nuptk: "-", nip: "-" },
       issuedDate: sk.createdAt,
-      validUntil: sk.validUntil
+      validUntil: sk.tanggalPenetapan
     };
   },
 });

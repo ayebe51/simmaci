@@ -529,10 +529,50 @@ export default function TeacherListPage() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                {/* 🔥 AUTO-CALCULATED STATUS */}
-                                <Badge className={getStatusColor(calculateTeacherStatus(item))} variant="secondary">
-                                    {calculateTeacherStatus(item)}
-                                </Badge>
+                                {/* 🔥 ENHANCED STATUS BADGE */}
+                                {(() => {
+                                    const status = calculateTeacherStatus(item)
+                                    
+                                    if (status === "Tendik") {
+                                        return (
+                                            <Badge className="gap-1.5 bg-gradient-to-r from-slate-500 to-slate-600 text-white border-0 shadow-sm hover:shadow-md transition-all" variant="secondary">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                                <span className="font-semibold">Tendik</span>
+                                            </Badge>
+                                        )
+                                    }
+                                    
+                                    if (status === "GTT (Guru Tidak Tetap)") {
+                                        return (
+                                            <Badge className="gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-sm hover:shadow-md transition-all" variant="secondary">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="font-semibold">GTT</span>
+                                            </Badge>
+                                        )
+                                    }
+                                    
+                                    if (status === "GTY (Guru Tetap Yayasan)") {
+                                        return (
+                                            <Badge className="gap-1.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0 shadow-sm hover:shadow-md transition-all" variant="secondary">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                                </svg>
+                                                <span className="font-semibold">GTY</span>
+                                            </Badge>
+                                        )
+                                    }
+                                    
+                                    // Fallback
+                                    return (
+                                        <Badge className="gap-1.5" variant="outline">
+                                            {status}
+                                        </Badge>
+                                    )
+                                })()}
                             </TableCell>
                             <TableCell>
                                 {item.isCertified ? (

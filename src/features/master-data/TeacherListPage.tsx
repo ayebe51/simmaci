@@ -75,6 +75,7 @@ export default function TeacherListPage() {
     status: t.status || "",
     mapel: t.mapel || "",
     satminkal: t.unitKerja || "",
+    unitKerja: t.unitKerja,
     phoneNumber: t.phoneNumber,
     isCertified: t.isCertified || false,
     isActive: t.isActive !== false,
@@ -82,7 +83,53 @@ export default function TeacherListPage() {
     kecamatan: t.kecamatan,
     birthPlace: t.tempatLahir,
     birthDate: t.tanggalLahir,
+    tempatLahir: t.tempatLahir,
+    tanggalLahir: t.tanggalLahir,
+    tmt: t.tmt,
+    pendidikanTerakhir: t.pendidikanTerakhir,
   }))
+
+  // 🔥 AUTO-CALCULATE STATUS (same logic as SK Generator)
+  const calculateTeacherStatus = (teacher: any): string => {
+    const pendidikan = (teacher.pendidikanTerakhir || "").toLowerCase()
+    const nama = (teacher.nama || "").toLowerCase()
+    const tmt = teacher.tmt
+
+    // 1. Check Education Level (S1 or higher)
+    const educationKeywords = ["s1", "s.1", "sarjana", "s2", "s.2", "magister", "s3", "s.3", "doktor", "div", "d4"]
+    const titleKeywords = ["s.pd", "s.ag", "s.e", "s.kom", "s.h", "s.sos", "s.hum", "s.ip", "m.pd", "m.ag", "m.e", "m.kom", "dra.", "drs.", "lc.", "b.a"]
+    
+    const hasEducation = educationKeywords.some(k => pendidikan.includes(k))
+    const hasTitle = titleKeywords.some(k => nama.includes(k))
+
+    // If not S1+, return Tendik
+    if (!hasEducation && !hasTitle) {
+      return "Tendik"
+    }
+
+    // 2. Check TMT (Tenure)
+    if (!tmt) return "GTT" // Default to GTT if no TMT
+
+    let tmtDate = new Date()
+    if (tmt && typeof tmt === 'string' && tmt.includes("/")) {
+      const parts = tmt.split("/")
+      if (parts.length === 3) tmtDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+    } else if (tmt) {
+      tmtDate = new Date(tmt)
+    }
+
+    const now = new Date()
+    let yearsDiff = now.getFullYear() - tmtDate.getFullYear()
+    const monthDiff = now.getMonth() - tmtDate.getMonth()
+    const dayDiff = now.getDate() - tmtDate.getDate()
+    
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      yearsDiff--
+    }
+
+    // 3. Determine GTY or GTT
+    return yearsDiff >= 2 ? "GTY (Guru Tetap Yayasan)" : "GTT (Guru Tidak Tetap)"
+  }
 
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
   const [isImportModalOpen, setIsImportModalOpen] = useState(false) // Import modal state
@@ -482,8 +529,9 @@ export default function TeacherListPage() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <Badge className={getStatusColor(item.status)} variant="secondary">
-                                    {item.status}
+                                {/* 🔥 AUTO-CALCULATED STATUS */}
+                                <Badge className={getStatusColor(calculateTeacherStatus(item))} variant="secondary">
+                                    {calculateTeacherStatus(item)}
                                 </Badge>
                             </TableCell>
                             <TableCell>

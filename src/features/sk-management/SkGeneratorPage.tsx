@@ -176,16 +176,18 @@ import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function SkGeneratorPage() {
-  // Fetch teachers from Convex (real-time)
-  const teachersData = useQuery(convexApi.teachers.list) || []
+  // Use Convex query to get teachers
+  
+  // 🔥 ONLY SHOW TEACHERS WHO HAVE SUBMITTED SK
+  // Teachers from master data import won't appear here
+  // Only teachers who submitted SK via submission form will show
+  const teachersData = useQuery(convexApi.sk.getTeachersWithSk) || []
+  
+  // STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [searchTerm, setSearchTerm] = useState("")
-  // const [templateFile, setTemplateFile] = useState<File | null>(null) // Deprecated: Local state
-  const [isGenerating, setIsGenerating] = useState(false)
   const [hasStoredTemplate, setHasStoredTemplate] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
-  // Pagination State
+  const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 

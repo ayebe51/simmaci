@@ -215,3 +215,31 @@ export const countByStatus = query({
     return docs.length;
   },
 });
+
+// Get teachers who have SK (for SK Generator filtering)
+// Only teachers who have submitted SK will appear in generator
+export const getTeachersWithSk = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all SK documents
+    const allSk = await ctx.db.query("skDocuments").collect();
+    
+    // Extract unique teacher IDs
+    const teacherIds = [...new Set(
+      allSk
+        .filter(sk => sk.teacherId) // Only SK with teacherId
+        .map(sk => sk.teacherId!)
+    )];
+    
+    // Fetch teacher details
+    const teachers = await Promise.all(
+      teacherIds.map(async (id) => {
+        const teacher = await ctx.db.get(id);
+        return teacher;
+      })
+    );
+    
+    // Filter out null values (deleted teachers)
+    return teachers.filter(t => t !== null);
+  },
+});

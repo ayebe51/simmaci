@@ -22,8 +22,10 @@ import { api as convexApi } from "../../../../convex/_generated/api"
 export function BulkSkSubmission() {
   const navigate = useNavigate()
   
-  // Convex mutation for bulk teacher creation
-  const bulkCreateMutation = useMutation(convexApi.teachers.bulkCreate)
+  // Convex mutations for bulk operations
+  const bulkCreateTeacherMutation = useMutation(convexApi.teachers.bulkCreate)
+  const createTeacherMutation = useMutation(convexApi.teachers.create)
+  const createSkMutation = useMutation(convexApi.sk.create)
   
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [candidates, setCandidates] = useState<any[]>([])
@@ -426,38 +428,57 @@ export function BulkSkSubmission() {
         
         log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
         try {
-            await bulkCreateMutation({ teachers: convexTeachers })
+            await bulkCreateTeacherMutation({ teachers: convexTeachers })
             log("Semua data guru berhasil disinkronkan ke Convex.")
         } catch (err: any) {
             console.error("Convex bulkCreate failed", err)
             throw new Error(`Gagal menyimpan data guru: ${err.message}`)
         }
 
-        // 2. Create SK Submissions
+        // 2. Create SK Submissions using Convex
+        // Get userId from localStorage
+        const userStr = localStorage.getItem("user")
+        const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
+        
         let successCount = 0;
         for (const c of candidates) {
-            const typesSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
-            const payload = {
-                jenis: typesSk, // "SK Guru Tetap Yayasan", etc. matches entity? need to check
-                jenisPengajuan: "new",
-                nama: c["nama"],
-                niy: c["nuptk"] || "-",
-                jabatan: "Guru", // Default
-                unitKerja: c["unitKerja"] || "-",
-                keterangan: "Imported from Excel",
-                status: "Pending" // Default
-            }
-            // Fire and forget or await? Await to ensure all in.
+            const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
+            
             try {
-                // Using static import for stability
-                 await api.createSk(payload)
-                 successCount++;
-            } catch (e) {
-                console.error("Failed to create SK for", c["Nama"], e)
+                // Step 1: Create teacher if not exists (or use existing)
+                const nuptk = c["nuptk"] || `TEMP-${Date.now()}-${successCount}`
+                
+                // Create teacher first
+                const teacherId = await createTeacherMutation({
+                    nuptk: nuptk,
+                    nama: c["nama"] || "Tanpa Nama",
+                    unitKerja: c["unitKerja"] || "-",
+                    status: jenisSk.includes("Tetap") ? "GTY" : jenisSk.includes("Tidak Tetap") ? "GTT" : "Tendik",
+                    isActive: true,
+                })
+                
+                // Step 2: Create SK with teacherId
+                await createSkMutation({
+                    nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}`,
+                    jenisSk: jenisSk,
+                    teacherId: teacherId,
+                    nama: c["nama"] || "Tanpa Nama",
+                    jabatan: "Guru",
+                    unitKerja: c["unitKerja"] || "-",
+                    tanggalPenetapan: new Date().toISOString().split('T')[0],
+                    status: "draft",
+                    fileUrl: permohonanUrl || undefined,
+                    createdBy: userId,
+                })
+                
+                successCount++;
+            } catch (e: any) {
+                console.error("Failed to create teacher/SK for", c["nama"], e)
+                log(`Error untuk ${c["nama"]}: ${e.message}`)
             }
         }
         
-        alert(`Berhasil memproses! \nData Guru Diupdate: ${teachersToUpsert.length} \nSK Diajukan: ${successCount}`)
+        alert(`Berhasil memproses! \nData Guru Diupdate: ${convexTeachers.length} \nSK Diajukan: ${successCount}`)
         navigate("/dashboard/sk")
 
     } catch (e: any) {

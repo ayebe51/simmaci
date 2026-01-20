@@ -77,13 +77,13 @@ export default function SkSubmissionPage() {
     }
   })
 
-  // 🔥 CONVEX MUTATION
+  // 🔥 CONVEX MUTATIONS
   const createSkMutation = useMutation(convexApi.sk.create)
+  const createTeacherMutation = useMutation(convexApi.teachers.create)
 
   const onSubmit = async (data: SkFormValues) => {
     setIsSubmitting(true)
     try {
-        // Handle File Upload
         // Handle File Upload
         const finalKeterangan = data.keterangan || "";
         let finalSuratPermohonanUrl = "";
@@ -99,25 +99,42 @@ export default function SkSubmissionPage() {
             }
         }
 
-        // Map form data to Convex schema
-        // Get userId from localStorage (temp solution)
+        // Get userId from localStorage
         const userStr = localStorage.getItem("user")
         const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
 
+        // 🔥 STEP 1: Create Teacher Record First
+        toast.info("Membuat data guru...")
+        
+        // Generate NUPTK if NIY provided, otherwise use timestamp-based ID
+        const nuptk = data.niy || `TEMP-${Date.now()}`
+        
+        const teacherId = await createTeacherMutation({
+            nuptk: nuptk,
+            nama: data.nama,
+            nip: data.niy, // Optional
+            unitKerja: data.unitKerja,
+            status: data.jenisSk.includes("Tetap") ? "GTY" : data.jenisSk.includes("Tidak Tetap") ? "GTT" : "Tendik",
+            isActive: true,
+        })
+
+        // 🔥 STEP 2: Create SK with teacherId
+        toast.info("Membuat SK...")
         await createSkMutation({
-            nomorSk: getNextSkNumber(), // Generate SK number
+            nomorSk: getNextSkNumber(),
             jenisSk: data.jenisSk,
+            teacherId: teacherId, // Link to teacher
             nama: data.nama,
             jabatan: data.jabatan || "",
             unitKerja: data.unitKerja,
             tanggalPenetapan: new Date().toISOString().split('T')[0],
-            status: "draft", // Initial status
+            status: "draft",
             fileUrl: finalSuratPermohonanUrl,
-            createdBy: userId, // Need to get actual userId from Convex auth
+            createdBy: userId,
         })
         
-        incrementSkCounter() // Increment local counter
-        toast.success("SK Berhasil diajukan!")
+        incrementSkCounter()
+        toast.success("✅ Guru dan SK berhasil dibuat!")
         navigate("/dashboard/sk")
     } catch (err: any) {
         toast.error(err.message || "Gagal mengajukan SK")

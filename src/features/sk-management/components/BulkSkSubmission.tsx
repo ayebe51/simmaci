@@ -373,26 +373,27 @@ export function BulkSkSubmission() {
     try {
         // Map candidates to Teacher structure with precise fields
         const teachersToUpsert = candidates.map((c, i) => {
-            // Map Status
-            let status = "Lainnya"
-            const rawStatus = (c["status"] || "").toString().toLowerCase()
-            if (rawStatus.includes("pns")) status = "PNS"
-            else if (rawStatus.includes("sertifi")) status = "Sertifikasi"
-            else if (rawStatus.includes("honorer") || rawStatus.includes("gtt") || rawStatus.includes("gty") || rawStatus.includes("sukwan")) status = "Honorer"
+            // 🔥 CALCULATE PROPER STATUS (GTY/GTT/Tendik) based on Pendidikan + TMT
+            const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
+            let calculatedStatus = "Tendik"
+            if (jenisSk.includes("Tetap")) calculatedStatus = "GTY"
+            else if (jenisSk.includes("Tidak Tetap")) calculatedStatus = "GTT"
+            
+            // Map Sertifikasi (independent from status)
+            const rawSertifikasi = (c["status"] || "").toString().toLowerCase()
+            const isCertified = rawSertifikasi.includes("sertifi") || rawSertifikasi.includes("yes") || rawSertifikasi === "ya"
 
             // Map PDPKPNU
-            // Map PDPKPNU
             const rawPdpkpnu = String(c["pdpkpnu"] || "").toLowerCase().trim()
-            // Robust check: contains "sudah", "lulus", "yes", "true", "v" or just "v"
             const pdpkpnu = (rawPdpkpnu.includes("sudah") || rawPdpkpnu.includes("lulus") || rawPdpkpnu.includes("yes") || rawPdpkpnu.includes("true") || rawPdpkpnu === "v") ? "Sudah" : "Belum"
 
             return {
                 nuptk: c["nuptk"] ? String(c["nuptk"]) : `TMP-${Date.now()}-${i}`, 
                 nama: c["nama"] ? String(c["nama"]) : "Tanpa Nama",
-                status: status, 
+                status: calculatedStatus, 
                 satminkal: c["unitKerja"] ? String(c["unitKerja"]) : "Lainnya",
                 mapel: "-", 
-                isCertified: status === "Sertifikasi",
+                isCertified: isCertified,
                 pdpkpnu: pdpkpnu,
                 kecamatan: c["kecamatan"] || null, // FIX: Ensure this is passed to backend 
                 

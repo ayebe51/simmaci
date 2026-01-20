@@ -25,7 +25,7 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
     const [isSaving, setIsSaving] = useState(false)
     
     // 🔥 CONVEX MUTATION for bulk import
-    const bulkImportMutation = useMutation(convexApi.students.bulkImport)
+    const bulkCreateMutation = useMutation(convexApi.students.bulkCreate)
 
   // Transform Data
   const transformedData = useMemo(() => {
@@ -60,8 +60,23 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
   const handleSave = async () => {
       setIsSaving(true)
       try {
-          // Filter only valid rows to send
-          const validData = transformedData.filter(r => r._errors.length === 0).map(({ _id, _errors, ...rest }) => rest)
+          // Filter only valid rows and map EMIS fields to student schema
+          const validData = transformedData
+            .filter(r => r._errors.length === 0)
+            .map((row) => ({
+              nisn: String(row.nisn),
+              nama: String(row.name || ''),
+              nomorIndukMaarif: row.nomorIndukMaarif ? String(row.nomorIndukMaarif) : undefined,
+              jenisKelamin: row.gender ? String(row.gender) : undefined,
+              tempatLahir: row.birthPlace ? String(row.birthPlace) : undefined,
+              tanggalLahir: row.birthDate ? String(row.birthDate) : undefined,
+              alamat: row.alamat ? String(row.alamat) : undefined,
+              kecamatan: row.kecamatan ? String(row.kecamatan) : undefined,
+              namaSekolah: row.namaSekolah ? String(row.namaSekolah) : undefined,
+              kelas: row.class ? String(row.class) : undefined,
+              nomorTelepon: row.nomorTelepon ? String(row.nomorTelepon) : undefined,
+              namaWali: row.namaWali ? String(row.namaWali) : undefined,
+            }))
           
           if (validData.length === 0) {
               toast.error("Tidak ada data valid untuk disimpan")
@@ -69,8 +84,8 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
           }
 
           // 🔥 CALL CONVEX MUTATION
-          const result = await bulkImportMutation({ students: validData as any })
-          toast.success(result.message)
+          const result = await bulkCreateMutation({ students: validData })
+          toast.success(`Berhasil menyimpan ${result.count} data siswa`)
           onFinish()
       } catch (err: any) {
           toast.error(err.message || "Gagal menyimpan data")

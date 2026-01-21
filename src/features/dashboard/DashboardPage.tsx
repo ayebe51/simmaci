@@ -47,10 +47,21 @@ export default function DashboardPage() {
             const data = await api.getDashboardStats()
             setStatsData(data)
         } catch (err) {
-            console.error(err)
+            console.error("Dashboard stats unavailable:", err)
+            // Gracefully handle - don't crash, use Convex data instead
+            setStatsData({
+                schoolCount: 0,
+                teacherCount: 0,
+                studentCount: 0,
+                skCount: 0,
+            })
         }
     }
-    loadStats()
+    
+    // Only load if backend is available (check if token exists)
+    if (localStorage.getItem("token")) {
+        loadStats()
+    }
   }, [])
 
   // Merge Convex real-time data with existing stats

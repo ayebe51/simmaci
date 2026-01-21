@@ -187,6 +187,7 @@ export default function SkGeneratorPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasStoredTemplate, setHasStoredTemplate] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10

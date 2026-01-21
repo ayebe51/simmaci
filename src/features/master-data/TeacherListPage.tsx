@@ -49,9 +49,18 @@ export default function TeacherListPage() {
   const [filterKecamatan, setFilterKecamatan] = useState("")
   const [filterCertified, setFilterCertified] = useState("all") // all, true, false
   
+  // 🔐 AUTO-FILTER for operators (only see their school's teachers)
+  const userStr = localStorage.getItem("user")
+  const user = userStr ? JSON.parse(userStr) : null
+  const isOperator = user?.role === "operator"
+  const userSchoolId = user?.unitKerja
+  
+  // If operator, force filter to their school
+  const effectiveUnitKerja = isOperator && userSchoolId ? userSchoolId : (filterKecamatan || undefined)
+  
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexTeachers = useQuery(convexApi.teachers.list, {
-    unitKerja: filterKecamatan || undefined,
+    unitKerja: effectiveUnitKerja,
     kecamatan: filterKecamatan || undefined,
     isCertified: filterCertified,
   })

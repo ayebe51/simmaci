@@ -87,6 +87,8 @@ export default function SchoolListPage() {
     return null
   })
 
+  const [userStr] = useState(() => localStorage.getItem("user"))
+
   // Manual Add/Edit State
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -425,9 +427,38 @@ export default function SchoolListPage() {
                             </TableCell>
                             <TableCell>{item.statusJamiyyah}</TableCell>
                             <TableCell className="text-right space-x-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/master/schools/${item.id}`)}><Eye className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.nama)}><Trash2 className="h-4 w-4" /></Button>
+                                {/* Check if user can edit this school */}
+                                {(() => {
+                                  const user = userStr ? JSON.parse(userStr) : null;
+                                  const isOperator = user?.role === "operator";
+                                  const canEdit = !isOperator || item.nama === userUnit;
+                                  
+                                  return (
+                                    <>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/master/schools/${item.id}`)}><Eye className="h-4 w-4" /></Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8" 
+                                        onClick={() => openEdit(item)}
+                                        disabled={!canEdit}
+                                        title={!canEdit ? "Tidak ada akses edit sekolah lain" : "Edit"}
+                                      >
+                                        <Edit className={`h-4 w-4 ${!canEdit ? 'opacity-30' : ''}`} />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 text-red-500 hover:text-red-700" 
+                                        onClick={() => handleDelete(item.id, item.nama)}
+                                        disabled={!canEdit}
+                                        title={!canEdit ? "Tidak ada akses hapus sekolah lain" : "Hapus"}
+                                      >
+                                        <Trash2 className={`h-4 w-4 ${!canEdit ? 'opacity-30' : ''}`} />
+                                      </Button>
+                                    </>
+                                  );
+                                })()}
                             </TableCell>
                           </TableRow>
                         ))

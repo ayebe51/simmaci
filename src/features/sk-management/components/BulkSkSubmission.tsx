@@ -438,8 +438,12 @@ export function BulkSkSubmission() {
         let teacherIds: any[] = [];
         try {
             const bulkResult = await bulkCreateTeacherMutation({ teachers: convexTeachers })
-            teacherIds = bulkResult.ids || []
-            log(`✅ ${teacherIds.length} data guru berhasil disinkronkan ke Convex.`)
+            console.log("🔍 bulkCreate result:", bulkResult)
+            console.log("🔍 bulkResult.ids:", bulkResult?.ids)
+            console.log("🔍 bulkResult type:", typeof bulkResult)
+            
+            teacherIds = bulkResult?.ids || []
+            log(`✅ ${teacherIds.length} teachers created. IDs: ${teacherIds.slice(0, 3).join(', ')}...`)
         } catch (err: any) {
             console.error("Convex bulkCreate failed", err)
             throw new Error(`Gagal menyimpan data guru: ${err.message}`)

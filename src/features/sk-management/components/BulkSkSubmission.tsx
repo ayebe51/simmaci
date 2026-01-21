@@ -448,6 +448,9 @@ export function BulkSkSubmission() {
         const userStr = localStorage.getItem("user")
         const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
         
+        // Create a query to get teacher by NUPTK
+        const getTeacherByNuptk = useMutation(convexApi.teachers.getByNuptk);
+        
         let successCount = 0;
         let errorCount = 0;
         const errors: string[] = [];
@@ -458,18 +461,18 @@ export function BulkSkSubmission() {
             try {
                 const nuptk = c["nuptk"] || `TEMP-${Date.now()}-${successCount}`
                 
-                // Step 1: Create teacher first
-                log(`Creating teacher: ${c["nama"]}...`)
-                const teacherId = await createTeacherMutation({
-                    nuptk: nuptk,
-                    nama: c["nama"] || "Tanpa Nama",
-                    unitKerja: c["unitKerja"] || "-",
-                    status: jenisSk.includes("Tetap") ? "GTY" : jenisSk.includes("Tidak Tetap") ? "GTT" : "Tendik",
-                    isActive: true,
-                })
-                log(`✅ Teacher created: ${teacherId}`)
+                // Find the teacher we just bulk-created
+                log(`Finding teacher: ${c["nama"]} (${nuptk})...`)
+                const teacher = await getTeacherByNuptk({ nuptk })
                 
-                // Step 2: Create SK with teacherId
+                if (!teacher) {
+                    throw new Error(`Teacher not found with NUPTK: ${nuptk}`)
+                }
+                
+                const teacherId = teacher._id
+                log(`✅ Teacher found: ${teacherId}`)
+                
+                // Create SK with teacherId
                 log(`Creating SK for ${c["nama"]}...`)
                 const skId = await createSkMutation({
                     nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}`,
@@ -489,7 +492,7 @@ export function BulkSkSubmission() {
             } catch (e: any) {
                 errorCount++;
                 const errorMsg = `${c["nama"]}: ${e.message}`
-                console.error("Failed to create teacher/SK for", c["nama"], e)
+                console.error("Failed to create SK for", c["nama"], e)
                 log(`❌ Error untuk ${errorMsg}`)
                 errors.push(errorMsg)
             }

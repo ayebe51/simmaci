@@ -198,6 +198,34 @@ export const archiveAll = mutation({
   },
 });
 
+// Batch update SK status (for batch approval/rejection)
+export const batchUpdateStatus = mutation({
+  args: {
+    ids: v.array(v.id("skDocuments")),
+    status: v.string(), // "approved" or "rejected"
+    rejectionReason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const updatedCount = args.ids.length;
+    
+    for (const id of args.ids) {
+      const updateData: any = {
+        status: args.status,
+        updatedAt: Date.now(),
+      };
+      
+      // Add rejection reason if provided
+      if (args.status === "rejected" && args.rejectionReason) {
+        updateData.rejectionReason = args.rejectionReason;
+      }
+      
+      await ctx.db.patch(id, updateData);
+    }
+    
+    return { count: updatedCount };
+  },
+});
+
 // Get SK count by status
 export const countByStatus = query({
   args: {

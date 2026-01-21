@@ -144,8 +144,16 @@ export default function AppShell({ children }: AppShellProps) {
                <User className="h-4 w-4 text-gray-500"/>
             </div>
             <div className="flex flex-col overflow-hidden">
-                <span className="truncate text-sm font-medium">Admin Maarif</span>
-                <span className="truncate text-xs text-muted-foreground">admin@maarif.nu</span>
+                {(() => {
+                  const userStr = localStorage.getItem("user")
+                  const user = userStr ? JSON.parse(userStr) : null
+                  return (
+                    <>
+                      <span className="truncate text-sm font-medium">{user?.name || "User"}</span>
+                      <span className="truncate text-xs text-muted-foreground">{user?.email || ""}</span>
+                    </>
+                  )
+                })()}
             </div>
           </div>
           <Button 

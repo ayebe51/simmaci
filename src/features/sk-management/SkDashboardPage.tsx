@@ -192,7 +192,7 @@ export default function SkDashboardPage() {
                 </>
               )}
             </div>
-            <Button variant="destructive" size="sm" onClick={handleDeleteAll}>
+            <Button variant="destructive" size="sm" onClick={handleReset}>
               <Trash2 className="mr-2 h-4 w-4" /> Reset Data
             </Button>
           </div>

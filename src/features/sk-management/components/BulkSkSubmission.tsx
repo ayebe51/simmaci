@@ -31,6 +31,7 @@ export function BulkSkSubmission() {
   const [candidates, setCandidates] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFullSync, setIsFullSync] = useState(false)
+  const [autoApprove, setAutoApprove] = useState(false)
   const [debugLog, setDebugLog] = useState<string[]>([])
   const [uploadError, setUploadError] = useState<string | null>(null)
   
@@ -478,7 +479,7 @@ export function BulkSkSubmission() {
                     jabatan: "Guru",
                     unitKerja: c["unitKerja"] || "-",
                     tanggalPenetapan: new Date().toISOString().split('T')[0],
-                    status: "draft",
+                    status: autoApprove ? "approved" : "draft",
                     fileUrl: permohonanUrl || undefined,
                     createdBy: userId,
                 })
@@ -657,6 +658,22 @@ export function BulkSkSubmission() {
                     </Label>
                     <p className="text-xs text-muted-foreground">
                         Jika dicentang, guru di Unit Kerja yang sama tetapi TIDAK ADA di file Excel ini akan otomatis dinonaktifkan (dianggap keluar/resign).
+                    </p>
+                </div>
+             </div>
+
+             <div className="flex items-center space-x-2 border p-3 rounded-md bg-green-50 border-green-200">
+                <Checkbox 
+                    id="autoApprove" 
+                    checked={autoApprove} 
+                    onCheckedChange={(c) => setAutoApprove(!!c)} 
+                />
+                <div className="grid gap-1.5 leading-none">
+                    <Label htmlFor="autoApprove" className="text-sm font-medium leading-none cursor-pointer">
+                        Langsung Approve (Skip Review)
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                        SK yang diupload akan langsung berstatus "Approved" tanpa review di Dashboard SK. Gunakan hanya jika data sudah diverifikasi.
                     </p>
                 </div>
              </div>

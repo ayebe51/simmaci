@@ -249,6 +249,16 @@ export default function SkGeneratorPage() {
     setSelectedIds(next)
   }
 
+  const handleSelectOne = (id: string, checked: boolean) => {
+    const next = new Set(selectedIds)
+    if (checked) {
+      next.add(id)
+    } else {
+      next.delete(id)
+    }
+    setSelectedIds(next)
+  }
+
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   useEffect(() => {
         const u = localStorage.getItem("user")

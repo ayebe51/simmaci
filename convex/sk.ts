@@ -71,7 +71,7 @@ export const create = mutation({
     status: v.optional(v.string()),
     fileUrl: v.optional(v.string()),
     qrCode: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.string()), // 🔥 CHANGED to optional string (fix for bulk upload)
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -241,19 +241,5 @@ export const getTeachersWithSk = query({
     
     // Filter out null values (deleted teachers)
     return teachers.filter((t): t is NonNullable<typeof t> => t !== null);
-  },
-});
-
-// Archive/Delete all SK documents (for Reset Data button)
-export const archiveAll = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const allSk = await ctx.db.query("skDocuments").collect();
-    
-    for (const sk of allSk) {
-      await ctx.db.delete(sk._id);
-    }
-    
-    return { count: allSk.length };
   },
 });

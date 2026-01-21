@@ -95,20 +95,42 @@ export default function AppShell({ children }: AppShellProps) {
                 return null
               }
 
-              // 4. Pengaturan - Available to all roles
-              // (No restriction needed)
+              // 4. Operator restrictions - Show menu but disabled
+              const isOperator = userRole === "operator"
+              const isDisabledForOperator = isOperator && [
+                "Data Madrasah",
+                "Data Guru & Tendik",
+                "Data Siswa"
+              ].includes(item.label)
+
+              // 5. Template Settings - Hidden for operators (in Pengaturan page)
+              // Note: Will handle in SettingsPage component
 
               return (
                 <Link
                   key={index}
                   to={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isDisabledForOperator 
+                      ? "cursor-not-allowed opacity-50 pointer-events-none bg-muted text-muted-foreground"
+                      : isActive 
+                        ? "bg-accent text-accent-foreground" 
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
+                  onClick={(e) => {
+                    if (isDisabledForOperator) {
+                      e.preventDefault()
+                    }
+                  }}
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
+                  {isDisabledForOperator && (
+                    <span className="ml-auto text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                      Admin Only
+                    </span>
+                  )}
                 </Link>
               )
             })}

@@ -176,26 +176,16 @@ export default function SkDashboardPage() {
             Kelola pengajuan dan penerbitan Surat Keputusan.
           </p>
         </div>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <div className="flex gap-2">
-              <Button onClick={() => navigate('/dashboard/sk/new')}>
-                <FilePlus className="mr-2 h-4 w-4" /> Ajukan SK Baru
-              </Button>
-              {selectedIds.size > 0 && (
-                <>
-                  <Button onClick={handleBatchApprove} variant="default" size="sm">
-                    <CheckSquare className="mr-2 h-4 w-4" /> Approve Selected ({selectedIds.size})
-                  </Button>
-                  <Button onClick={handleBatchReject} variant="destructive" size="sm">
-                    <XSquare className="mr-2 h-4 w-4" /> Reject Selected ({selectedIds.size})
-                  </Button>
-                </>
-              )}
-            </div>
-            <Button variant="destructive" size="sm" onClick={handleReset}>
-              <Trash2 className="mr-2 h-4 w-4" /> Reset Data
+        <div className="flex items-center">
+            <Button variant="destructive" className="mr-2" onClick={handleReset}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Reset Data
             </Button>
-          </div>
+            <Button onClick={() => navigate("/dashboard/sk/new")}>
+            <FilePlus className="mr-2 h-4 w-4" />
+            Ajukan SK Baru
+            </Button>
+        </div>
       </div>
 
       <Card>
@@ -350,6 +340,28 @@ export default function SkDashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Floating Batch Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-5">
+          <span className="font-medium">{selectedIds.size} SK Dipilih</span>
+          <Button onClick={handleBatchApprove} size="sm">
+            <CheckSquare className="mr-2 h-4 w-4" />
+            Approve Selected
+          </Button>
+          <Button onClick={handleBatchReject} variant="destructive" size="sm">
+            <XSquare className="mr-2 h-4 w-4" />
+            Reject Selected
+          </Button>
+          <Button 
+            onClick={() => setSelectedIds(new Set())} 
+            variant="ghost" 
+            size="sm"
+          >
+            Clear Selection
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

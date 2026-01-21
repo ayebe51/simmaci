@@ -79,24 +79,22 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     
-    // Check if NUPTK already exists
+    // Check for duplicate NUPTK
     const existing = await ctx.db
       .query("teachers")
       .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
       .first();
     
     if (existing) {
-      throw new Error("NUPTK sudah terdaftar");
+      throw new Error(`Teacher with NUPTK ${args.nuptk} already exists`);
     }
     
-    const teacherId = await ctx.db.insert("teachers", {
+    return await ctx.db.insert("teachers", {
       ...args,
       isActive: args.isActive ?? true,
       createdAt: now,
       updatedAt: now,
     });
-    
-    return teacherId;
   },
 });
 

@@ -257,8 +257,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* CHARTS SECTION */}
-      <DashboardCharts data={chartsData} />
+      {/* CHARTS SECTION - Only render if data exists */}
+      {chartsData && (chartsData.status?.length > 0 || chartsData.units?.length > 0) && (
+        <DashboardCharts data={chartsData} />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
           <Card className="col-span-1">

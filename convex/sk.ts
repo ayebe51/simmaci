@@ -240,6 +240,20 @@ export const getTeachersWithSk = query({
     );
     
     // Filter out null values (deleted teachers)
-    return teachers.filter(t => t !== null);
+    return teachers.filter((t): t is NonNullable<typeof t> => t !== null);
+  },
+});
+
+// Archive/Delete all SK documents (for Reset Data button)
+export const archiveAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allSk = await ctx.db.query("skDocuments").collect();
+    
+    for (const sk of allSk) {
+      await ctx.db.delete(sk._id);
+    }
+    
+    return { count: allSk.length };
   },
 });

@@ -94,7 +94,7 @@ export default defineSchema({
     status: v.string(), // 'draft', 'active', 'archived'
     fileUrl: v.optional(v.string()),
     qrCode: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.string()), // Optional string to support bulk upload
     createdAt: v.number(),
     updatedAt: v.number(),
   })

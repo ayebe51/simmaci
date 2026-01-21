@@ -449,14 +449,17 @@ export function BulkSkSubmission() {
         const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
         
         let successCount = 0;
+        let errorCount = 0;
+        const errors: string[] = [];
+        
         for (const c of candidates) {
             const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
             
             try {
-                // Step 1: Create teacher if not exists (or use existing)
                 const nuptk = c["nuptk"] || `TEMP-${Date.now()}-${successCount}`
                 
-                // Create teacher first
+                // Step 1: Create teacher first
+                log(`Creating teacher: ${c["nama"]}...`)
                 const teacherId = await createTeacherMutation({
                     nuptk: nuptk,
                     nama: c["nama"] || "Tanpa Nama",
@@ -464,9 +467,11 @@ export function BulkSkSubmission() {
                     status: jenisSk.includes("Tetap") ? "GTY" : jenisSk.includes("Tidak Tetap") ? "GTT" : "Tendik",
                     isActive: true,
                 })
+                log(`✅ Teacher created: ${teacherId}`)
                 
                 // Step 2: Create SK with teacherId
-                await createSkMutation({
+                log(`Creating SK for ${c["nama"]}...`)
+                const skId = await createSkMutation({
                     nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}`,
                     jenisSk: jenisSk,
                     teacherId: teacherId,
@@ -478,15 +483,20 @@ export function BulkSkSubmission() {
                     fileUrl: permohonanUrl || undefined,
                     createdBy: userId,
                 })
+                log(`✅ SK created: ${skId}`)
                 
                 successCount++;
             } catch (e: any) {
+                errorCount++;
+                const errorMsg = `${c["nama"]}: ${e.message}`
                 console.error("Failed to create teacher/SK for", c["nama"], e)
-                log(`Error untuk ${c["nama"]}: ${e.message}`)
+                log(`❌ Error untuk ${errorMsg}`)
+                errors.push(errorMsg)
             }
         }
         
-        alert(`Berhasil memproses! \nData Guru Diupdate: ${convexTeachers.length} \nSK Diajukan: ${successCount}`)
+        const resultMessage = `Berhasil memproses!\n\nData Guru: ${convexTeachers.length}\nSK Berhasil: ${successCount}\nSK Gagal: ${errorCount}${errors.length > 0 ? '\n\nErrors:\n' + errors.slice(0, 5).join('\n') : ''}`
+        alert(resultMessage)
         navigate("/dashboard/sk")
 
     } catch (e: any) {

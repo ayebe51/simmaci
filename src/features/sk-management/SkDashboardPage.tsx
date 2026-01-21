@@ -9,7 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FilePlus, Search, Trash2, FileText } from "lucide-react"
+import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate } from "react-router-dom"
 import StatusBadge from "@/components/shared/StatusBadge"
 import type { StatusType } from "@/components/shared/StatusBadge"
@@ -41,7 +42,77 @@ export default function SkDashboardPage() {
   })
   
   // Mutations
-  const archiveAllSk = useMutation(convexApi.sk.archiveAll) // assuming we'll create this
+  const archiveAllSk = useMutation(convexApi.sk.archiveAll)
+  const batchUpdateStatusMutation = useMutation(convexApi.sk.batchUpdateStatus)
+  
+  // Selection state for batch operations
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  
+  // Batch selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredData.map(sk => sk.id))
+      setSelectedIds(allIds)
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+  
+  const handleSelectRow = (id: string, checked: boolean) => {
+    const newSelection = new Set(selectedIds)
+    if (checked) {
+      newSelection.add(id)
+    } else {
+      newSelection.delete(id)
+    }
+    setSelectedIds(newSelection)
+  }
+  
+  // Batch actions
+  const handleBatchApprove = async () => {
+    if (selectedIds.size === 0) {
+      alert("Pilih minimal satu SK untuk di-approve")
+      return
+    }
+    
+    if (!confirm(`Approve ${selectedIds.size} SK yang dipilih?`)) return
+    
+    try {
+      const ids = Array.from(selectedIds) as any[]
+      await batchUpdateStatusMutation({ ids, status: "approved" })
+      setSelectedIds(new Set()) // Clear selection
+      alert(`✅ Berhasil meng-approve ${selectedIds.size} SK!`)
+    } catch (error) {
+      console.error("Batch approve failed:", error)
+      alert("Gagal approve SK. Silakan coba lagi.")
+    }
+  }
+  
+  const handleBatchReject = async () => {
+    if (selectedIds.size === 0) {
+      alert("Pilih minimal satu SK untuk di-reject")
+      return
+    }
+    
+    const reason = prompt("Alasan penolakan (opsional):")
+    if (reason === null) return // User cancelled
+    
+    if (!confirm(`Reject ${selectedIds.size} SK yang dipilih?`)) return
+    
+    try {
+      const ids = Array.from(selectedIds) as any[]
+      await batchUpdateStatusMutation({ 
+        ids, 
+        status: "rejected",
+        rejectionReason: reason || undefined
+      })
+      setSelectedIds(new Set()) // Clear selection
+      alert(`✅ Berhasil mereject ${selectedIds.size} SK!`)
+    } catch (error) {
+      console.error("Batch reject failed:", error)
+      alert("Gagal reject SK. Silakan coba lagi.")
+    }
+  }
 
   // Map Convex data to frontend interface
   const skData: SkSubmission[] = useMemo(() => {
@@ -105,16 +176,26 @@ export default function SkDashboardPage() {
             Kelola pengajuan dan penerbitan Surat Keputusan.
           </p>
         </div>
-        <div className="flex items-center">
-            <Button variant="destructive" className="mr-2" onClick={handleReset}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Reset Data
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/dashboard/sk/new')}>
+                <FilePlus className="mr-2 h-4 w-4" /> Ajukan SK Baru
+              </Button>
+              {selectedIds.size > 0 && (
+                <>
+                  <Button onClick={handleBatchApprove} variant="default" size="sm">
+                    <CheckSquare className="mr-2 h-4 w-4" /> Approve Selected ({selectedIds.size})
+                  </Button>
+                  <Button onClick={handleBatchReject} variant="destructive" size="sm">
+                    <XSquare className="mr-2 h-4 w-4" /> Reject Selected ({selectedIds.size})
+                  </Button>
+                </>
+              )}
+            </div>
+            <Button variant="destructive" size="sm" onClick={handleDeleteAll}>
+              <Trash2 className="mr-2 h-4 w-4" /> Reset Data
             </Button>
-            <Button onClick={() => navigate("/dashboard/sk/new")}>
-            <FilePlus className="mr-2 h-4 w-4" />
-            Ajuan Baru
-            </Button>
-        </div>
+          </div>
       </div>
 
       <Card>
@@ -157,6 +238,12 @@ export default function SkDashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={filteredData.length > 0 && selectedIds.size === filteredData.length}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Jenis SK</TableHead>
                   <TableHead>Nama Pemohon</TableHead>
@@ -168,13 +255,13 @@ export default function SkDashboardPage() {
               <TableBody>
                 {isLoading ? (
                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                             Memuat data...
                         </TableCell>
                     </TableRow>
                 ) : filteredData.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
+                        <TableCell colSpan={7} className="h-24 text-center">
                             Tidak ada data ditemukan.
                         </TableCell>
                     </TableRow>
@@ -182,18 +269,24 @@ export default function SkDashboardPage() {
                     paginatedData.map((item) => (
                       <TableRow 
                         key={item.id} 
-                        className="cursor-pointer hover:bg-slate-50"
-                        onClick={() => navigate(`/dashboard/sk/${item.id}`)}
+                        className="hover:bg-muted/50"
+                        data-state={selectedIds.has(item.id) ? "selected" : ""}
                       >
-                        <TableCell>{item.tanggalPengajuan}</TableCell>
-                        <TableCell className="font-medium">{item.jenisSk}</TableCell>
-                        <TableCell>{item.nama}</TableCell>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(item.id)}
+                            onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
+                          />
+                        </TableCell>
+                        <TableCell>{new Date(item.tanggalPengajuan).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell>{item.jenisSk}</TableCell>
+                        <TableCell className="font-medium">{item.nama}</TableCell>
                         <TableCell>{item.nomorSurat}</TableCell>
                         <TableCell>
-                          <StatusBadge status={item.status} />
+                            <StatusBadge status={item.status} />
                         </TableCell>
                         <TableCell className="text-right">
-                           {item.suratPermohonanUrl && (
+                            {item.suratPermohonanUrl && (
                                 <Button variant="ghost" size="sm" className="mr-1 text-blue-600" onClick={(e) => {
                                     e.stopPropagation();
                                     window.open(item.suratPermohonanUrl, '_blank');
@@ -201,7 +294,10 @@ export default function SkDashboardPage() {
                                     <FileText className="w-4 h-4" />
                                 </Button>
                             )}
-                            <Button variant="ghost" size="sm">Detail</Button>
+                            <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/sk/${item.id}`)}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Detail
+                            </Button>
                         </TableCell>
                       </TableRow>
                     ))

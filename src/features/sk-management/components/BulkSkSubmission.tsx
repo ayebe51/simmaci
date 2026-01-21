@@ -435,9 +435,11 @@ export function BulkSkSubmission() {
         }))
         
         log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
+        let teacherIds: any[] = [];
         try {
-            await bulkCreateTeacherMutation({ teachers: convexTeachers })
-            log("Semua data guru berhasil disinkronkan ke Convex.")
+            const bulkResult = await bulkCreateTeacherMutation({ teachers: convexTeachers })
+            teacherIds = bulkResult.ids || []
+            log(`✅ ${teacherIds.length} data guru berhasil disinkronkan ke Convex.`)
         } catch (err: any) {
             console.error("Convex bulkCreate failed", err)
             throw new Error(`Gagal menyimpan data guru: ${err.message}`)
@@ -452,31 +454,18 @@ export function BulkSkSubmission() {
         let errorCount = 0;
         const errors: string[] = [];
         
-        for (const c of candidates) {
+        for (let i = 0; i < candidates.length; i++) {
+            const c = candidates[i]
             const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
             
             try {
-                const nuptk = c["nuptk"] || `TEMP-${Date.now()}-${successCount}`
-                
-                // Find the teacher we just bulk-created by looking up in the candidates mapping
-                log(`Finding teacher for ${c["nama"]} (${nuptk})...`)
-                
-                // Look up the teacher from the already-created bulk list
-                // Since we just created them in order, match by NUPTK
-                const teacherIndex = teachersToUpsert.findIndex(t => t.nuptk === nuptk)
-                if (teacherIndex === -1) {
-                    throw new Error(`Teacher mapping not found for NUPTK: ${nuptk}`)
+                // Get teacher ID from bulkCreate result (same order as input)
+                const teacherId = teacherIds[i]
+                if (!teacherId) {
+                    throw new Error(`Teacher ID not found at index ${i} for ${c["nama"]}`)
                 }
                 
-                // Use the Convex response ID from bulk create if available
-                // For now, we'll use NUPTK to look up after bulk create
-                // The bulk create should have happened in same order
-                //  approximate teacherId from bulk result
-                const teacherId = `teachers:${nuptk}` as any  // Temporary workaround
-                log(`✅ Using teacher index ${teacherIndex} for SK creation`)
-                
-                // Create SK with teacherId
-                log(`Creating SK for ${c["nama"]}...`)
+                log(`Creating SK for ${c["nama"]} with Teacher ID: ${teacherId}...`)
                 const skId = await createSkMutation({
                     nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}`,
                     jenisSk: jenisSk,

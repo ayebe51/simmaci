@@ -48,11 +48,12 @@ export function BulkSkSubmission() {
     "Nama": ["nama", "nama lengkap", "nama guru"],
     "Tempat Lahir": ["tempat lahir", "tmp lahir"],
     "Tanggal Lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
-    "Tempat/Tanggal Lahir": ["tempat/tanggal lahir", "ttl", "tempat tanggal lahir"], // Combined Fallback
+    "Tempat/Tanggal Lahir": ["tempat/tanggal lahir", "ttl", "tempat tanggal lahir"],
     "Nomor Induk Ma'arif": ["nomor induk ma'arif", "niy", "nip", "nomor induk", "n.i.y", "nuptk", "pegid"],
     "Pendidikan Terakhir": ["pendidikan terakhir", "pendidikan", "ijazah terakhir"],
     "Unit Kerja": ["unit kerja", "satminkal", "tempat tugas", "lembaga", "nama madrasah", "sekolah"],
     "Tanggal Mulai Tugas": ["tanggal mulai tugas", "tmt", "mulai tugas", "tgl masuk", "tmt guru"],
+    "Sertifikasi": ["sertifikasi", "sertifikat", "status sertifikasi", "sudah sertifikasi", "ket sertifikasi"],
     "Status": ["status", "status kepegawaian", "status guru"],
     "PDPKPNU": ["pdpkpnu", "pkpnu", "diklat", "status pdpkpnu", "ket pdpkpnu", "keterangan pdpkpnu", "sertifikat pdpkpnu", "lulus pdpkpnu"],
     "Kecamatan": ["kecamatan", "kec", "distrik", "wilayah"]
@@ -207,10 +208,15 @@ export function BulkSkSubmission() {
                          else if (key === "Kecamatan") newObj["kecamatan"] = value
                          
                          // --- CHECKLIST FORMAT HANDLING ---
+                         else if (key === "Sertifikasi") {
+                             const valStr = String(value).toLowerCase().trim()
+                             // Check if it's Ya/Sudah/Yes/V or text contains"sertifikasi"
+                             const isCert = valStr === "ya" || valStr === "sudah" || valStr === "yes" || valStr === "v" || valStr.includes("sertifi")
+                             newObj["sertifikasi"] = isCert ? "Ya" : "Tidak"
+                         }
                          else if (key === "Status" || key === "PDPKPNU") {
                              const valStr = String(value).toLowerCase().trim()
                              const isChecklist = ["ya", "tidak", "true", "false", "v", "✓"].includes(valStr) || valStr === ""
-                             // Only trigger if we see "Ya" or empty (since "PNS" is not checklist)
                              
                              if (isChecklist) {
                                  const nextColVal = (rawRow[colIdx + 1] || "").toString().toLowerCase().trim()
@@ -219,13 +225,13 @@ export function BulkSkSubmission() {
                                      // Col X = Sertifikasi, Col X+1 = Honorer
                                      if (valStr === "ya" || valStr === "v") newObj["status"] = "Sertifikasi"
                                      else if (nextColVal === "ya" || nextColVal === "v") newObj["status"] = "Honorer"
-                                     else newObj["status"] = "-" // Neither checked
+                                     else newObj["status"] = "-"
                                  }
                                  else if (key === "PDPKPNU") {
                                      // Col Y = Sudah, Col Y+1 = Belum
                                      if (valStr === "ya" || valStr === "v") newObj["pdpkpnu"] = "Sudah"
                                      else if (nextColVal === "ya" || nextColVal === "v") newObj["pdpkpnu"] = "Belum"
-                                     else newObj["pdpkpnu"] = "Belum" // Default to Belum if neither checked? Or "-"
+                                     else newObj["pdpkpnu"] = "Belum"
                                  }
                              } else {
                                  // Normal text format (e.g. "PNS", "Sudah")
@@ -380,8 +386,8 @@ export function BulkSkSubmission() {
             else if (jenisSk.includes("Tidak Tetap")) calculatedStatus = "GTT"
             
             // Map Sertifikasi (independent from status)
-            const rawSertifikasi = (c["status"] || "").toString().toLowerCase()
-            const isCertified = rawSertifikasi.includes("sertifi") || rawSertifikasi.includes("yes") || rawSertifikasi === "ya"
+            const rawSertifikasi = c["sertifikasi"] || c["status"] || ""
+            const isCertified = String(rawSertifikasi).toLowerCase().includes("ya") || String(rawSertifikasi).toLowerCase().includes("sudah") || String(rawSertifikasi).toLowerCase().includes("sertifi")
 
             // Map PDPKPNU
             const rawPdpkpnu = String(c["pdpkpnu"] || "").toLowerCase().trim()

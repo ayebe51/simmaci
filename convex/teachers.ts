@@ -197,13 +197,15 @@ export const bulkCreate = mutation({
           cleanData.isCertified = Boolean(teacher.isCertified);
         }
         
-        // Check duplicates
-        const existing = await ctx.db
-          .query("teachers")
-          .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
-          .first();
-        
+        // Check for duplicate
+      const existing = await ctx.db
+        .query("teachers")
+        .withIndex("by_nuptk", (q) => q.eq("nuptk", teacher.nuptk))
+        .first();
+      
+      try {
         if (!existing) {
+          // Create new teacher
           const id = await ctx.db.insert("teachers", {
             ...cleanData,
             isActive: true,
@@ -212,10 +214,15 @@ export const bulkCreate = mutation({
           });
           results.push(id);
         } else {
-          errors.push(`Duplicate NUPTK: ${teacher.nuptk}`);
+          // Teacher already exists - return existing ID (upsert behavior)
+          results.push(existing._id);
+          // Don't add to errors - this is expected behavior
         }
       } catch (err: any) {
         errors.push(`Error for ${teacher.nama}: ${err.message}`);
+      }
+      } catch (err: any) { // This catch block handles errors from validation or cleanData creation
+        errors.push(`Error for ${teacher.nama || 'Unknown'}: ${err.message}`);
       }
     }
     

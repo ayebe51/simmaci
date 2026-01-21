@@ -424,6 +424,7 @@ export function BulkSkSubmission() {
             tempatLahir: t.birthPlace || undefined,
             tanggalLahir: t.birthDate || undefined,
             pendidikanTerakhir: t.pendidikanTerakhir || undefined,
+            tmt: t.tmt || undefined, // 🔥 CRITICAL: Need TMT for GTY/GTT calculation
             isCertified: t.isCertified || undefined,
         }))
         

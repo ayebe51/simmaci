@@ -13,12 +13,33 @@ interface DashboardChartsProps {
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
   const [isClient, setIsClient] = useState(false)
+  const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
   }, [])
 
+  // Error boundary for chart rendering
+  useEffect(() => {
+    const handleError = () => setHasError(true)
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
   if (!isClient) return null // Prevent hydration mismatch
+  if (hasError) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">
+        <Card className="col-span-7">
+          <CardContent className="pt-6">
+            <div className="text-center text-muted-foreground">
+              Charts unavailable. Dashboard stats are being loaded...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   const statusData = data?.status || []
   const unitData = data?.units || []
@@ -39,7 +60,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                     <BarChart data={unitData}>
                         <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                         <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                        <Tooltip cursor={{fill: 'transparent'}} />
+                        <Tooltip />
                         <Bar dataKey="jumlah" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
                     </BarChart>
                 </ResponsiveContainer>
@@ -54,7 +75,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         <CardHeader>
           <CardTitle>Status Kepegawaian</CardTitle>
           <CardDescription>
-            Proporsi status guru di lingkungan Ma'arif.
+             Proporsi guru berdasarkan status.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -66,19 +87,18 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                             data={statusData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
+                            labelLine={false}
                             outerRadius={80}
                             fill="#8884d8"
-                            paddingAngle={5}
                             dataKey="value"
-                            label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         >
-                            {statusData.map((entry, index) => (
+                            {statusData.map((_entry, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
                         <Tooltip />
-                        <Legend verticalAlign="bottom" height={36}/>
+                        <Legend />
                     </PieChart>
                 </ResponsiveContainer>
              ) : (
@@ -90,3 +110,4 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     </div>
   )
 }
+```

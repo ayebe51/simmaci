@@ -9,14 +9,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, Save, X } from "lucide-react"
-import { useState, useEffect } from "react"
+import { Plus, Search, Trash2, Edit } from "lucide-react"
+import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 
 interface User {
   id: string
@@ -28,13 +31,27 @@ interface User {
   unitKerja?: string
 }
 
-import { api } from "@/lib/api"
-
 export default function UserListPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [users, setUsers] = useState<User[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  
+  // 🔥 CONVEX QUERIES
+  const convexUsers = useQuery(convexApi.auth.listUsers)
+  const convexSchools = useQuery(convexApi.schools.list, {})
+  const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
+  
+  // Map Convex users to frontend format
+  const users: User[] = (convexUsers || []).map((u: any) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    status: u.isActive ? "active" : "inactive",
+    unitKerja: u.unitKerja
+  }))
+
+  const schools = (convexSchools || []).map((s: any) => s.nama)
   
   // Form State
   const [formData, setFormData] = useState<Partial<User>>({
@@ -46,53 +63,6 @@ export default function UserListPage() {
       status: "active"
   })
 
-  const fetchUsers = async () => {
-      try {
-          const data = await api.getUsers() // Returns backend user entities
-          console.log("DEBUG: Users Data:", data);
-
-          if (!Array.isArray(data)) {
-             console.error("Data users is not array:", data);
-             // handle edge case where data might be wrapped
-             const realData = (data as any).data || data;
-             if(Array.isArray(realData)) {
-                 // proceed with realData
-                 const mapped: User[] = realData.map((u: any) => ({
-                    id: u.id,
-                    name: u.name || u.username,
-                    email: u.username,
-                    role: u.role,
-                    status: "active",
-                    unitKerja: u.unitKerja
-                }))
-                setUsers(mapped)
-                return;
-             }
-             
-             toast.error("Format data user salah (Not Array)");
-             return;
-          }
-
-          // Map backend to frontend
-          const mapped: User[] = data.map((u: any) => ({
-              id: u.id,
-              name: u.name || u.username, // Fallback
-              email: u.username, // Username acts as email/login
-              role: u.role,
-              status: "active", // Default since backend doesn't have status yet
-              unitKerja: u.unitKerja
-          }))
-          setUsers(mapped)
-      } catch (err: any) {
-          console.error("Fetch Users Error:", err)
-          toast.error("Gagal load user: " + (err.response?.data?.message || err.message))
-      }
-  }
-
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
   // Handle Add/Edit
   const handleSave = async () => {
       if (!formData.name || !formData.email) {
@@ -101,38 +71,20 @@ export default function UserListPage() {
       }
 
       try {
-          if (editingUser) {
-              // Update logic (Implement PATCH api later)
-              toast.info("Fitur Edit belum tersedia di Backend (Demo only)")
-          } else {
-              // Create logic
-              if (!formData.password) {
-                  toast.error("Password wajib untuk user baru")
-                  return
-              }
-              await api.register({
-                  username: formData.email,
-                  password: formData.password,
-                  name: formData.name,
-                  unitKerja: formData.unitKerja,
-                  role: formData.role
-              })
-          }
+          // TODO: Implement user creation via Convex mutation
+          toast.info("Fitur tambah/edit user via UI coming soon. Gunakan Convex dashboard untuk sekarang.")
+          
           setIsDialogOpen(false)
-          fetchUsers() // Refresh
           setEditingUser(null)
           setFormData({ name: "", email: "", password: "", role: "operator", unitKerja: "", status: "active" })
-          if (!editingUser) toast.success("User berhasil dibuat")
       } catch (err: any) {
          toast.error(err.message || "Gagal menyimpan user")
       }
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Hapus user ini?")) {
-        // Implement DELETE api later
-         toast.info("Fitur Hapus belum tersedia di Backend (Demo only)")
-    }
+  const handleDelete = async () => {
+    // TODO: Implement delete via Convex mutation
+    toast.info("Fitur hapus user coming soon")
   }
 
   const openEdit = (user: User) => {
@@ -264,7 +216,7 @@ export default function UserListPage() {
                       <TableHead>Nama</TableHead>
                       <TableHead>Username / Email</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead>Unit Kerja</TableHead>
+                      <TableHead>Assign Sekolah</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -274,7 +226,36 @@ export default function UserListPage() {
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>{item.email}</TableCell>
                         <TableCell>{getRoleBadge(item.role)}</TableCell>
-                        <TableCell>{item.unitKerja || "-"}</TableCell>
+                        <TableCell>
+                          {item.role === "operator" ? (
+                            <Select 
+                              value={item.unitKerja || ""} 
+                              onValueChange={async (schoolName) => {
+                                try {
+                                  await updateUserSchoolMutation({ 
+                                    userId: item.id as any,
+                                    schoolName: schoolName || undefined 
+                                  })
+                                  toast.success(`✅ ${item.name} di-assign ke ${schoolName}`)
+                                } catch (error) {
+                                  toast.error("Gagal assign sekolah")
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Pilih Sekolah..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">- Tidak Di-assign -</SelectItem>
+                                {schools.map(school => (
+                                  <SelectItem key={school} value={school}>{school}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right space-x-2">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
                                 <Edit className="h-4 w-4" />

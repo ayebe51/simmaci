@@ -163,3 +163,20 @@ export const listUsers = query({
     }));
   },
 });
+
+// Update user's assigned school (unitKerja)
+export const updateUserSchool = mutation({
+  args: {
+    userId: v.id("users"),
+    schoolName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Update user's unit field
+    await ctx.db.patch(args.userId, {
+      unit: args.schoolName || undefined,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});

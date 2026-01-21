@@ -11,6 +11,9 @@ export const list = query({
   handler: async (ctx, args) => {
     let docs = await ctx.db.query("skDocuments").collect();
     
+    // Filter out archived SK (so Reset Data works)
+    docs = docs.filter(sk => sk.status !== "archived");
+    
     // Apply filters
     if (args.jenisSk && args.jenisSk !== "all") {
       docs = docs.filter(sk => sk.jenisSk === args.jenisSk);

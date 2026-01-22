@@ -272,11 +272,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* CHARTS SECTION - Only render if data exists */}
-      {chartsData && (chartsData.status?.length > 0 || chartsData.units?.length > 0) && (
-        <DashboardCharts data={chartsData} />
-      )}
-
       <div className="grid gap-4 md:grid-cols-2">
           <Card className="col-span-1">
              <CardHeader>
@@ -403,40 +398,6 @@ export default function DashboardPage() {
                        )
                      })}
                    </div>
-                 </div>
-               </CardContent>
-             </Card>
-           )}
-
-           {/* School Breakdown (Admin only) */}
-           {schoolBreakdown && currentUser?.role === 'super_admin' && schoolBreakdown.length > 0 && (
-             <Card className="mt-4">
-               <CardHeader>
-                 <CardTitle>Top 10 Sekolah - Pengajuan SK</CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <div className="space-y-3">
-                   {schoolBreakdown.map((item, idx) => (
-                     <div key={idx} className="flex items-center gap-4">
-                       <div className="text-sm font-medium text-muted-foreground w-8">
-                         #{idx + 1}
-                       </div>
-                       <div className="flex-1">
-                         <div className="flex items-center justify-between mb-1">
-                           <span className="text-sm font-medium truncate">{item.school}</span>
-                           <span className="text-sm font-bold">{item.count}</span>
-                         </div>
-                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                           <div 
-                             className="h-full bg-blue-500" 
-                             style={{ 
-                               width: `${(item.count / schoolBreakdown[0].count) * 100}%` 
-                             }}
-                           />
-                         </div>
-                       </div>
-                     </div>
-                   ))}
                  </div>
                </CardContent>
              </Card>

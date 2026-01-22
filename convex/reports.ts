@@ -50,7 +50,7 @@ export const generateSkReport = query({
         
         return {
           ...sk,
-          schoolName: school?.namaSekolah || 'N/A',
+          schoolName: school?.nama || 'N/A',
           teacherName: teacher?.nama || 'N/A',
           teacherNIP: teacher?.nip || '-',
         }
@@ -68,10 +68,10 @@ export const generateSkReport = query({
     
     // Group by SK type
     const byType = {
-      pengangkatan: enriched.filter(sk => sk.jenisSK === 'pengangkatan').length,
-      mutasi: enriched.filter(sk => sk.jenisSK === 'mutasi').length,
-      promosi: enriched.filter(sk => sk.jenisSK === 'promosi').length,
-      pemberhentian: enriched.filter(sk => sk.jenisSK === 'pemberhentian').length,
+      pengangkatan: enriched.filter(sk => sk.jenisSk === 'pengangkatan').length,
+      mutasi: enriched.filter(sk => sk.jenisSk === 'mutasi').length,
+      promosi: enriched.filter(sk => sk.jenisSk === 'promosi').length,
+      pemberhentian: enriched.filter(sk => sk.jenisSk === 'pemberhentian').length,
     }
     
     return {
@@ -98,7 +98,7 @@ export const getTeacherSkHistory = query({
         const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja) : null
         return {
           ...sk,
-          schoolName: school?.namaSekolah || 'N/A',
+          schoolName: school?.nama || 'N/A',
         }
       })
     )
@@ -126,10 +126,10 @@ export const getSchoolSummary = query({
         rejected: sks.filter(sk => sk.status === 'rejected').length,
       },
       byType: {
-        pengangkatan: sks.filter(sk => sk.jenisSK === 'pengangkatan').length,
-        mutasi: sks.filter(sk => sk.jenisSK === 'mutasi').length,
-        promosi: sks.filter(sk => sk.jenisSK === 'promosi').length,
-        pemberhentian: sks.filter(sk => sk.jenisSK === 'pemberhentian').length,
+        pengangkatan: sks.filter(sk => sk.jenisSk === 'pengangkatan').length,
+        mutasi: sks.filter(sk => sk.jenisSk === 'mutasi').length,
+        promosi: sks.filter(sk => sk.jenisSk === 'promosi').length,
+        pemberhentian: sks.filter(sk => sk.jenisSk === 'pemberhentian').length,
       },
       recent: sks
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))

@@ -50,6 +50,16 @@ export default function SkReportPage() {
   // Fetch report data
   const reportData = useQuery(api.reports.generateSkReport, queryArgs)
   
+  // Debug logging
+  console.log('🔍 SK Report Debug:', {
+    userStr,
+    user,
+    isOperator,
+    queryArgs,
+    reportData,
+    schools
+  })
+  
   // Export to Excel
   const handleExportExcel = () => {
     if (!reportData?.data) return

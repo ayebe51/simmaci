@@ -50,7 +50,7 @@ export const generateSkReport = query({
         
         return {
           ...sk,
-          schoolName: school?.nama || 'N/A',
+          schoolName: (school as any)?.nama || 'N/A',
           teacherName: teacher?.nama || 'N/A',
           teacherNIP: teacher?.nip || '-',
         }
@@ -98,7 +98,7 @@ export const getTeacherSkHistory = query({
         const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
         return {
           ...sk,
-          schoolName: school?.nama || 'N/A',
+          schoolName: (school as any)?.nama || 'N/A',
         }
       })
     )

@@ -118,7 +118,7 @@ export default function DashboardPage() {
 
       {/* Enhanced Statistics Cards */}
       {statsData.teacherActivity && statsData.certificationStats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
           {/* Active Teachers Card */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -159,74 +159,14 @@ export default function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-
-          {/* SK Status Breakdown */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Status SK</CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                {statsData.skStatusDistribution && statsData.skStatusDistribution.length > 0 ? (
-                  statsData.skStatusDistribution.map((item: any, i: number) => (
-                    <div key={i} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{item.status}:</span>
-                      <span className="font-semibold">{item.count}</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-muted-foreground">Belum ada data</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Monthly Growth */}
-          {statsData.monthlyGrowth && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Bulan Ini</CardTitle>
-                <Calendar className="h-4 w-4 text-orange-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-xs text-muted-foreground mb-2">
-                  {statsData.monthlyGrowth.month}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Guru baru:</span>
-                    <span className="font-semibold">{statsData.monthlyGrowth.newTeachers}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">SK baru:</span>
-                    <span className="font-semibold">{statsData.monthlyGrowth.newSKSubmissions}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       )}
 
-      {/* Phase 2: Enhanced Charts */}
+      {/* Teacher-Related Charts */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* PDPKPNU Progress Card */}
         {statsData.pdpkpnuProgress && (
           <PDPKPNUCard data={statsData.pdpkpnuProgress} />
-        )}
-
-        {/* SK Status Distribution Pie Chart */}
-        {statsData.skStatusDistribution && statsData.skStatusDistribution.length > 0 && (
-          <SKStatusPieChart data={statsData.skStatusDistribution} />
-        )}
-      </div>
-
-      {/* Monthly Trend & Kecamatan Distribution */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Monthly SK Trend */}
-        {statsData.monthlyTrend && statsData.monthlyTrend.length > 0 && (
-          <MonthlySKTrendChart data={statsData.monthlyTrend} />
         )}
 
         {/* Kecamatan Distribution (Super Admin only) */}

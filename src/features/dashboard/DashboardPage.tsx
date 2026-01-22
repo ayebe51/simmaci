@@ -1,5 +1,6 @@
+```
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, TrendingUp, Calendar } from "lucide-react"
+import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, TrendingUp, Calendar, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DashboardCharts } from "./components/DashboardCharts"
@@ -35,6 +36,20 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
   const chartsData = useQuery(convexApi.dashboard.getChartsData)
+  
+  // 📊 SK MONITORING QUERIES
+  const userStr = localStorage.getItem("user")
+  const currentUser = userStr ? JSON.parse(userStr) : null
+  const operatorSchool = currentUser?.role === "operator" ? currentUser?.unitKerja : undefined
+  
+  const skStats = useQuery(convexApi.dashboard.getSkStatistics, { 
+    unitKerja: operatorSchool 
+  })
+  const skTrend = useQuery(convexApi.dashboard.getSkTrendByMonth, { 
+    months: 6,
+    unitKerja: operatorSchool 
+  })
+  const schoolBreakdown = useQuery(convexApi.dashboard.getSchoolBreakdown)
 
   useEffect(() => {
     // Load User
@@ -297,7 +312,138 @@ export default function DashboardPage() {
                  </div>
              </CardContent>
           </Card>
-      </div>
+       </div>
+
+       {/* 📊 SK MONITORING SECTION */}
+       {skStats && (
+         <>
+           <div className="mt-8">
+             <h2 className="text-2xl font-bold tracking-tight mb-4">Monitoring Surat Keputusan</h2>
+           </div>
+
+           {/* SK Statistics Cards */}
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium">Total SK</CardTitle>
+                 <FileText className="h-4 w-4 text-blue-500" />
+               </CardHeader>
+               <CardContent>
+                 <div className="text-2xl font-bold">{skStats.total}</div>
+                 <p className="text-xs text-muted-foreground">
+                   Semua pengajuan SK
+                 </p>
+               </CardContent>
+             </Card>
+
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                 <Clock className="h-4 w-4 text-yellow-500" />
+               </CardHeader>
+               <CardContent>
+                 <div className="text-2xl font-bold text-yellow-600">{skStats.pending}</div>
+                 <p className="text-xs text-muted-foreground">
+                   Menunggu persetujuan
+                 </p>
+               </CardContent>
+             </Card>
+
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium">Disetujui</CardTitle>
+                 <CheckCircle className="h-4 w-4 text-green-500" />
+               </CardHeader>
+               <CardContent>
+                 <div className="text-2xl font-bold text-green-600">{skStats.approved}</div>
+                 <p className="text-xs text-muted-foreground">
+                   SK telah disetujui
+                 </p>
+               </CardContent>
+             </Card>
+
+             <Card>
+               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                 <CardTitle className="text-sm font-medium">Ditolak</CardTitle>
+                 <AlertOctagon className="h-4 w-4 text-red-500" />
+               </CardHeader>
+               <CardContent>
+                 <div className="text-2xl font-bold text-red-600">{skStats.rejected}</div>
+                 <p className="text-xs text-muted-foreground">
+                   Perlu perbaikan
+                 </p>
+               </CardContent>
+             </Card>
+           </div>
+
+           {/* SK Trend Chart */}
+           {skTrend && skTrend.length > 0 && (
+             <Card className="mt-4">
+               <CardHeader>
+                 <CardTitle>Trend Pengajuan SK (6 Bulan Terakhir)</CardTitle>
+               </CardHeader>
+               <CardContent>
+                 <div className="h-[300px] w-full">
+                   <div className="flex items-end justify-around h-full gap-2 pb-8">
+                     {skTrend.map((data, idx) => {
+                       const maxCount = Math.max(...skTrend.map(d => d.count))
+                       const height = maxCount > 0 ? (data.count / maxCount) * 100 : 0
+                       
+                       return (
+                         <div key={idx} className="flex flex-col items-center flex-1">
+                           <div className="text-xs font-semibold mb-1">{data.count}</div>
+                           <div 
+                             className="w-full bg-blue-500 hover:bg-blue-600 transition-all rounded-t-md" 
+                             style={{ height: `${height}%`, minHeight: data.count > 0 ? '20px' : '0px' }}
+                           />
+                           <div className="text-xs text-muted-foreground mt-2 whitespace-nowrap">
+                             {data.month}
+                           </div>
+                         </div>
+                       )
+                     })}
+                   </div>
+                 </div>
+               </CardContent>
+             </Card>
+           )}
+
+           {/* School Breakdown (Admin only) */}
+           {schoolBreakdown && currentUser?.role === 'super_admin' && schoolBreakdown.length > 0 && (
+             <Card className="mt-4">
+               <CardHeader>
+                 <CardTitle>Top 10 Sekolah - Pengajuan SK</CardTitle>
+               </CardHeader>
+               <CardContent>
+                 <div className="space-y-3">
+                   {schoolBreakdown.map((item, idx) => (
+                     <div key={idx} className="flex items-center gap-4">
+                       <div className="text-sm font-medium text-muted-foreground w-8">
+                         #{idx + 1}
+                       </div>
+                       <div className="flex-1">
+                         <div className="flex items-center justify-between mb-1">
+                           <span className="text-sm font-medium truncate">{item.school}</span>
+                           <span className="text-sm font-bold">{item.count}</span>
+                         </div>
+                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                           <div 
+                             className="h-full bg-blue-500" 
+                             style={{ 
+                               width: `${(item.count / schoolBreakdown[0].count) * 100}%` 
+                             }}
+                           />
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </CardContent>
+             </Card>
+           )}
+         </>
+       )}
+     </div>
     </div>
   )
 }

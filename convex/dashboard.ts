@@ -177,7 +177,9 @@ export const getSkTrendByMonth = query({
 
 /**
  * Get SKs expiring within the next N days
+ * NOTE: Disabled - masaBerlaku field doesn't exist in current schema
  */
+/*
 export const getExpiringSk = query({
   args: {
     daysAhead: v.number(),
@@ -212,6 +214,7 @@ export const getExpiringSk = query({
     })).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
   },
 });
+*/
 
 /**
  * Get SK count breakdown by school (Admin only)

@@ -34,7 +34,6 @@ export default function DashboardPage() {
 
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
-  const chartsData = useQuery(convexApi.dashboard.getChartsData)
   
   // 📊 SK MONITORING QUERIES
   const userStr = localStorage.getItem("user")

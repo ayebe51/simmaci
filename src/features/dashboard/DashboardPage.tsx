@@ -56,7 +56,6 @@ export default function DashboardPage() {
     { title: "Total Sekolah", value: stats.schoolCount, icon: School, color: "text-blue-500" },
     { title: "Total Guru/PTK", value: stats.teacherCount, icon: Users, color: "text-green-500" },
     { title: "Total Siswa", value: stats.studentCount, icon: Users, color: "text-orange-500" },
-    { title: "Pengajuan SK", value: stats.skCount, icon: FileText, color: "text-purple-500", desc: "Menunggu persetujuan / Total" },
   ]
 
 //... (Rest of render)

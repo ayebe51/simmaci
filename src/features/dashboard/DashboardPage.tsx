@@ -8,30 +8,14 @@ import { MonthlySKTrendChart } from "./components/MonthlySKTrendChart"
 import { KecamatanBarChart } from "./components/KecamatanBarChart"
 import { PDPKPNUCard } from "./components/PDPKPNUCard"
 
-import { api } from "@/lib/api"
 // Convex real-time query
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<{name: string, role: string} | null>(null)
-  const [alerts, setAlerts] = useState<any[]>([])
-  const [statsData, setStatsData] = useState<any>({
-      schoolCount: -1,
-      teacherCount: -1,
-      studentCount: -1,
-      skCount: -1,
-      teacherActivity: null,
-      certificationStats: null,
-      skStatusDistribution: [],
-      monthlyGrowth: null,
-      monthlyTrend: [],
-      kecamatanDistribution: [],
-      pdpkpnuProgress: null,
-      charts: { status: [], units: [] },
-      recentActivities: [] as any[]
-  })
-
+  const [user, setUser] = useState<any>(null)
+  const [alerts] = useState<any[]>([])
+  
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
   
@@ -49,47 +33,30 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    // Load User
+    // Load User from localStorage
     const u = localStorage.getItem("user")
     if (u) setUser(JSON.parse(u))
-
-    // Fetch detailed stats from NestJS (for complex aggregations)
-    const loadStats = async () => {
-        try {
-            const data = await api.getDashboardStats()
-            setStatsData(data)
-        } catch (err) {
-            console.error("Dashboard stats unavailable:", err)
-            // Gracefully handle - don't crash, use Convex data instead
-            setStatsData({
-                schoolCount: 0,
-                teacherCount: 0,
-                studentCount: 0,
-                skCount: 0,
-            })
-        }
-    }
-    
-    // Only load if backend is available (check if token exists)
-    if (localStorage.getItem("token")) {
-        loadStats()
-    }
   }, [])
 
-  // Merge Convex real-time data with existing stats
-  const mergedStats = convexStats ? {
-    ...statsData,
+
+  // Use Convex real-time data directly
+  const stats = convexStats ? {
     schoolCount: convexStats.totalSchools,
     teacherCount: convexStats.totalTeachers,
     studentCount: convexStats.totalStudents,
     skCount: convexStats.totalSk,
-  } : statsData
+  } : {
+    schoolCount: 0,
+    teacherCount: 0,
+    studentCount: 0,
+    skCount: 0,
+  }
 
-  const stats = [
-    { title: "Total Sekolah", value: mergedStats.schoolCount, icon: School, color: "text-blue-500" },
-    { title: "Total Guru/PTK", value: mergedStats.teacherCount, icon: Users, color: "text-green-500" },
-    { title: "Total Siswa", value: mergedStats.studentCount, icon: Users, color: "text-orange-500" },
-    { title: "Pengajuan SK", value: mergedStats.skCount, icon: FileText, color: "text-purple-500", desc: "Menunggu persetujuan / Total" },
+  const masterDataStats = [
+    { title: "Total Sekolah", value: stats.schoolCount, icon: School, color: "text-blue-500" },
+    { title: "Total Guru/PTK", value: stats.teacherCount, icon: Users, color: "text-green-500" },
+    { title: "Total Siswa", value: stats.studentCount, icon: Users, color: "text-orange-500" },
+    { title: "Pengajuan SK", value: stats.skCount, icon: FileText, color: "text-purple-500", desc: "Menunggu persetujuan / Total" },
   ]
 
 //... (Rest of render)
@@ -131,8 +98,8 @@ export default function DashboardPage() {
           </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, i) => (
+      <div className="grid gap-4 md:grid-cols-3">
+        {masterDataStats.map((stat, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">

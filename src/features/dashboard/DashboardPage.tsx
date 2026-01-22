@@ -15,7 +15,12 @@ import { api as convexApi } from "../../../convex/_generated/api"
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [alerts] = useState<any[]>([])
-  
+  const [statsData] = useState<any>({
+    teacherActivity: null,
+    certificationStats: null,
+    pdpkpnuProgress: null,
+    kecamatanDistribution: [],
+  })
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
   

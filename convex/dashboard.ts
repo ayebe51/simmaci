@@ -1,4 +1,5 @@
 import { query } from "./_generated/server";
+import { v } from "convex/values";
 
 // Get real-time dashboard statistics
 export const getStats = query({
@@ -95,5 +96,145 @@ export const getChartsData = query({
       .map(([name, value]) => ({ name, value }));
     
     return { units, status };
+  },
+});
+
+// ========================================
+// 📊 SK MONITORING DASHBOARD QUERIES
+// ========================================
+
+/**
+ * Get comprehensive SK statistics grouped by status
+ */
+export const getSkStatistics = query({
+  args: {
+    unitKerja: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let sks = await ctx.db.query("skDocuments").collect();
+    
+    // Filter by school if provided (for operators)
+    if (args.unitKerja) {
+      sks = sks.filter(sk => sk.unitKerja === args.unitKerja);
+    }
+
+    // Count by status
+    const stats = {
+      total: sks.length,
+      draft: sks.filter(sk => sk.status === "draft").length,
+      pending: sks.filter(sk => sk.status === "pending").length,
+      approved: sks.filter(sk => sk.status === "approved").length,
+      rejected: sks.filter(sk => sk.status === "rejected").length,
+      active: sks.filter(sk => sk.status === "active").length,
+    };
+
+    return stats;
+  },
+});
+
+/**
+ * Get SK trend data for the last N months
+ */
+export const getSkTrendByMonth = query({
+  args: {
+    months: v.number(),
+    unitKerja: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let sks = await ctx.db.query("skDocuments").collect();
+    
+    // Filter by school if provided
+    if (args.unitKerja) {
+      sks = sks.filter(sk => sk.unitKerja === args.unitKerja);
+    }
+
+    // Group by month
+    const now = Date.now();
+    const monthsAgo = args.months;
+    const trendData: { month: string; count: number }[] = [];
+
+    for (let i = monthsAgo - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+      
+      const count = sks.filter(sk => {
+        const skDate = new Date(sk.createdAt);
+        const skMonthKey = `${skDate.getFullYear()}-${String(skDate.getMonth() + 1).padStart(2, '0')}`;
+        return skMonthKey === monthKey;
+      }).length;
+
+      trendData.push({
+        month: monthName,
+        count,
+      });
+    }
+
+    return trendData;
+  },
+});
+
+/**
+ * Get SKs expiring within the next N days
+ */
+export const getExpiringSk = query({
+  args: {
+    daysAhead: v.number(),
+    unitKerja: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let sks = await ctx.db.query("skDocuments").collect();
+    
+    // Filter by school if provided
+    if (args.unitKerja) {
+      sks = sks.filter(sk => sk.unitKerja === args.unitKerja);
+    }
+
+    const now = Date.now();
+    const futureDate = now + (args.daysAhead * 24 * 60 * 60 * 1000);
+
+    // Filter SKs that expire within the timeframe (using masaBerlaku if exists)
+    const expiring = sks.filter(sk => {
+      if (!sk.masaBerlaku) return false;
+      
+      const expiryDate = new Date(sk.masaBerlaku).getTime();
+      return expiryDate > now && expiryDate <= futureDate && sk.status === 'active';
+    });
+
+    return expiring.map(sk => ({
+      id: sk._id,
+      nama: sk.nama,
+      jenisSk: sk.jenisSk,
+      masaBerlaku: sk.masaBerlaku,
+      unitKerja: sk.unitKerja,
+      daysUntilExpiry: Math.ceil((new Date(sk.masaBerlaku!).getTime() - now) / (24 * 60 * 60 * 1000)),
+    })).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+  },
+});
+
+/**
+ * Get SK count breakdown by school (Admin only)
+ */
+export const getSchoolBreakdown = query({
+  args: {},
+  handler: async (ctx) => {
+    const sks = await ctx.db.query("skDocuments").collect();
+    
+    // Group by school (unitKerja)
+    const schoolMap = new Map<string, number>();
+    
+    sks.forEach(sk => {
+      const school = sk.unitKerja || "Unknown";
+      schoolMap.set(school, (schoolMap.get(school) || 0) + 1);
+    });
+
+    // Convert to array and sort by count
+    const breakdown = Array.from(schoolMap.entries())
+      .map(([school, count]) => ({ school, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10 schools
+
+    return breakdown;
   },
 });

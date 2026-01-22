@@ -45,7 +45,7 @@ export const generateSkReport = query({
     // Enrich with related data (schools, teachers)
     const enriched = await Promise.all(
       filtered.map(async (sk) => {
-        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja) : null
+        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
         const teacher = sk.teacherId ? await ctx.db.get(sk.teacherId) : null
         
         return {
@@ -95,7 +95,7 @@ export const getTeacherSkHistory = query({
     // Enrich with school data
     const enriched = await Promise.all(
       sks.map(async (sk) => {
-        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja) : null
+        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
         return {
           ...sk,
           schoolName: school?.nama || 'N/A',

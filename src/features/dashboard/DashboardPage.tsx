@@ -1,4 +1,3 @@
-```
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { School, Users, FileText, CheckCircle, AlertOctagon, Clock } from "lucide-react"
 import { useEffect, useState } from "react"

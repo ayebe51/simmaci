@@ -1,10 +1,9 @@
+```
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, Clock } from "lucide-react"
+import { School, Users, FileText, CheckCircle, AlertOctagon, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
 import React from "react"
 import { Button } from "@/components/ui/button"
-import { KecamatanBarChart } from "./components/KecamatanBarChart"
-import { PDPKPNUCard } from "./components/PDPKPNUCard"
 
 // Convex real-time query
 import { useQuery } from "convex/react"
@@ -13,12 +12,7 @@ import { api as convexApi } from "../../../convex/_generated/api"
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [alerts] = useState<any[]>([])
-  const [statsData] = useState<any>({
-    teacherActivity: null,
-    certificationStats: null,
-    pdpkpnuProgress: null,
-    kecamatanDistribution: [],
-  })
+  
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
   
@@ -117,65 +111,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {/* Enhanced Statistics Cards */}
-      {statsData.teacherActivity && statsData.certificationStats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-          {/* Active Teachers Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Guru Aktif</CardTitle>
-              <UserCheck className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {statsData.teacherActivity.active} / {statsData.teacherActivity.total}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {statsData.teacherActivity.activePercentage}% guru aktif
-              </p>
-              <div className="mt-2 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${statsData.teacherActivity.activePercentage > 80 ? 'bg-green-500' : statsData.teacherActivity.activePercentage > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                  style={{ width: `${statsData.teacherActivity.activePercentage}%` }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Certification Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sertifikasi</CardTitle>
-              <BadgeCheck className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {statsData.certificationStats.certified}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {statsData.certificationStats.certificationRate}% bersertifikasi
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {statsData.certificationStats.uncertified} belum sertifikasi
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Teacher-Related Charts */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* PDPKPNU Progress Card */}
-        {statsData.pdpkpnuProgress && (
-          <PDPKPNUCard data={statsData.pdpkpnuProgress} />
-        )}
-
-        {/* Kecamatan Distribution (Super Admin only) */}
-        {user && user.role === 'super_admin' && statsData.kecamatanDistribution && statsData.kecamatanDistribution.length > 0 && (
-          <KecamatanBarChart data={statsData.kecamatanDistribution} />
-        )}
       </div>
 
        {/* 📊 SK MONITORING SECTION */}

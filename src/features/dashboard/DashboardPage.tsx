@@ -1,10 +1,9 @@
+```
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, TrendingUp, Calendar, Clock } from "lucide-react"
+import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
 import React from "react"
 import { Button } from "@/components/ui/button"
-import { SKStatusPieChart } from "./components/SKStatusPieChart"
-import { MonthlySKTrendChart } from "./components/MonthlySKTrendChart"
 import { KecamatanBarChart } from "./components/KecamatanBarChart"
 import { PDPKPNUCard } from "./components/PDPKPNUCard"
 

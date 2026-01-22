@@ -39,11 +39,16 @@ export default function SkReportPage() {
   // Fetch schools
   const schools = useQuery(api.schools.list)
   
+  // Find operator's school ID by name
+  const operatorSchoolId = isOperator && user?.unitKerja 
+    ? schools?.find(s => s.nama === user.unitKerja)?._id
+    : undefined
+  
   // Build query args
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
-    schoolId: (selectedSchool && selectedSchool !== 'all') ? selectedSchool as any : (isOperator ? user?.unitKerja as any : undefined),
+    schoolId: (selectedSchool && selectedSchool !== 'all') ? selectedSchool as any : operatorSchoolId as any,
     status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
   }
   

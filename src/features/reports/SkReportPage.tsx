@@ -43,7 +43,7 @@ export default function SkReportPage() {
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
-    schoolId: selectedSchool || (isOperator ? user?.unitKerja : undefined),
+    schoolId: (selectedSchool || (isOperator ? user?.unitKerja : undefined)) as any,
     status: selectedStatus || undefined,
   }
   

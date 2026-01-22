@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeCheck, TrendingUp, Calendar, Clock } from "lucide-react"
 import { useEffect, useState } from "react"
+import React from "react"
 import { Button } from "@/components/ui/button"
 import { DashboardCharts } from "./components/DashboardCharts"
 import { SKStatusPieChart } from "./components/SKStatusPieChart"
@@ -315,7 +316,7 @@ export default function DashboardPage() {
 
        {/* 📊 SK MONITORING SECTION */}
        {skStats && (
-         <>
+         <React.Fragment>
            <div className="mt-8">
              <h2 className="text-2xl font-bold tracking-tight mb-4">Monitoring Surat Keputusan</h2>
            </div>
@@ -440,9 +441,8 @@ export default function DashboardPage() {
                </CardContent>
              </Card>
            )}
-         </>
+         </React.Fragment>
        )}
      </div>
-    </div>
   )
 }

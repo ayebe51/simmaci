@@ -61,8 +61,8 @@ export default function App() {
                       <Route path="generator" element={<SkGeneratorPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
-                      <Route path="reports" element={<ReportPage />} />
                       <Route path="reports/sk" element={<SkReportPage />} />
+                      <Route path="reports" element={<ReportPage />} />
                       <Route path="events" element={<EventsPage />} />
                       <Route path="events/new" element={<CreateEventPage />} />
                       <Route path="events/:id" element={<EventDetailPage />} />

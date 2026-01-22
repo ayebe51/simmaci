@@ -28,8 +28,8 @@ export default function SkReportPage() {
   // Filters
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
-  const [selectedSchool, setSelectedSchool] = useState<string>('')
-  const [selectedStatus, setSelectedStatus] = useState<string>('')
+  const [selectedSchool, setSelectedSchool] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
   
   // User context
   const userStr = localStorage.getItem('user')
@@ -43,8 +43,8 @@ export default function SkReportPage() {
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
-    schoolId: (selectedSchool || (isOperator ? user?.unitKerja : undefined)) as any,
-    status: selectedStatus || undefined,
+    schoolId: (selectedSchool && selectedSchool !== 'all') ? selectedSchool as any : (isOperator ? user?.unitKerja as any : undefined),
+    status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
   }
   
   // Fetch report data
@@ -129,8 +129,8 @@ export default function SkReportPage() {
   const handleResetFilters = () => {
     setStartDate('')
     setEndDate('')
-    setSelectedSchool('')
-    setSelectedStatus('')
+    setSelectedSchool('all')
+    setSelectedStatus('all')
   }
   
   return (
@@ -189,10 +189,10 @@ export default function SkReportPage() {
                     <SelectValue placeholder="Semua Sekolah" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Semua Sekolah</SelectItem>
+                    <SelectItem value="all">Semua Sekolah</SelectItem>
                     {schools?.map(school => (
                       <SelectItem key={school._id} value={school._id}>
-                        {school.namaSekolah}
+                        {school.nama}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -208,7 +208,7 @@ export default function SkReportPage() {
                   <SelectValue placeholder="Semua Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua Status</SelectItem>
+                  <SelectItem value="all">Semua Status</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="pending">Pending Review</SelectItem>
                   <SelectItem value="approved">Disetujui</SelectItem>

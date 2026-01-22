@@ -3,7 +3,6 @@ import { School, Users, FileText, CheckCircle, AlertOctagon, UserCheck, BadgeChe
 import { useEffect, useState } from "react"
 import React from "react"
 import { Button } from "@/components/ui/button"
-import { DashboardCharts } from "./components/DashboardCharts"
 import { SKStatusPieChart } from "./components/SKStatusPieChart"
 import { MonthlySKTrendChart } from "./components/MonthlySKTrendChart"
 import { KecamatanBarChart } from "./components/KecamatanBarChart"
@@ -49,7 +48,6 @@ export default function DashboardPage() {
     months: 6,
     unitKerja: operatorSchool 
   })
-  const schoolBreakdown = useQuery(convexApi.dashboard.getSchoolBreakdown)
 
   useEffect(() => {
     // Load User
@@ -272,43 +270,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-          <Card className="col-span-1">
-             <CardHeader>
-                 <CardTitle>Aktivitas Terkini</CardTitle>
-             </CardHeader>
-             <CardContent>
-                 <div className="space-y-4">
-                     {[1,2,3].map(i => (
-                         <div key={i} className="flex items-center gap-4 border-b pb-2 last:border-0">
-                            <div className="h-2 w-2 rounded-full bg-blue-500"/>
-                            <div className="flex-1 space-y-1">
-                                <p className="text-sm font-medium leading-none">Pengajuan SK Mutasi Guru</p>
-                                <p className="text-xs text-muted-foreground">oleh Admin MI Ma'arif 0{i}</p>
-                            </div>
-                            <div className="text-xs text-muted-foreground">2 jam lalu</div>
-                         </div>
-                     ))}
-                 </div>
-             </CardContent>
-          </Card>
-
-           <Card className="col-span-1">
-             <CardHeader>
-                 <CardTitle>Status Import Data EMIS</CardTitle>
-             </CardHeader>
-             <CardContent>
-                 <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="h-5 w-5 text-green-500"/>
-                    <span className="text-sm font-medium">Terakhir sinkronisasi: 24 Des 2025, 08:00</span>
-                 </div>
-                 <div className="rounded-md bg-muted p-4">
-                     <p className="text-xs text-muted-foreground">Data sinkronisasi mencakup 140 Sekolah. 2 Sekolah gagal impor data.</p>
-                 </div>
-             </CardContent>
-          </Card>
-       </div>
-
        {/* 📊 SK MONITORING SECTION */}
        {skStats && (
          <React.Fragment>
@@ -404,6 +365,44 @@ export default function DashboardPage() {
            )}
          </React.Fragment>
        )}
+
+       {/* 📋 ACTIVITY & STATUS SECTION - Moved to bottom */}
+       <div className="grid gap-4 md:grid-cols-2 mt-6">
+          <Card className="col-span-1">
+             <CardHeader>
+                 <CardTitle>Aktivitas Terkini</CardTitle>
+             </CardHeader>
+             <CardContent>
+                 <div className="space-y-4">
+                     {[1,2,3].map(i => (
+                         <div key={i} className="flex items-center gap-4 border-b pb-2 last:border-0">
+                            <div className="h-2 w-2 rounded-full bg-blue-500"/>
+                            <div className="flex-1 space-y-1">
+                                <p className="text-sm font-medium leading-none">Pengajuan SK Mutasi Guru</p>
+                                <p className="text-xs text-muted-foreground">oleh Admin MI Ma'arif 0{i}</p>
+                            </div>
+                            <div className="text-xs text-muted-foreground">2 jam lalu</div>
+                         </div>
+                     ))}
+                 </div>
+             </CardContent>
+          </Card>
+
+           <Card className="col-span-1">
+             <CardHeader>
+                 <CardTitle>Status Import Data EMIS</CardTitle>
+             </CardHeader>
+             <CardContent>
+                 <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle className="h-5 w-5 text-green-500"/>
+                    <span className="text-sm font-medium">Terakhir sinkronisasi: 24 Des 2025, 08:00</span>
+                 </div>
+                 <div className="rounded-md bg-muted p-4">
+                     <p className="text-xs text-muted-foreground">Data sinkronisasi mencakup 140 Sekolah. 2 Sekolah gagal impor data.</p>
+                 </div>
+             </CardContent>
+          </Card>
+       </div>
      </div>
   )
 }

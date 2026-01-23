@@ -17,6 +17,7 @@ import type * as schools from "../schools.js";
 import type * as sk from "../sk.js";
 import type * as students from "../students.js";
 import type * as teachers from "../teachers.js";
+import type * as testNotification from "../testNotification.js";
 import type * as verification from "../verification.js";
 
 import type {
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   sk: typeof sk;
   students: typeof students;
   teachers: typeof teachers;
+  testNotification: typeof testNotification;
   verification: typeof verification;
 }>;
 

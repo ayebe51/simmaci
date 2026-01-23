@@ -1,25 +1,39 @@
-import { useQuery } from 'convex/react'
-import { api } from '../../../convex/_generated/api'
-
 export default function SkReportPageSimple() {
-  console.log('🔍 SK Report Simple - Component Rendering')
-  
-  // Get user
-  const userStr = localStorage.getItem('user')
-  const user = userStr ? JSON.parse(userStr) : null
-  
-  console.log('🔍 User:', user)
-  
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-4">Laporan SK (Test)</h1>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <p className="text-lg">User: {user?.name || 'Unknown'}</p>
-        <p className="text-sm text-gray-600">Role: {user?.role || 'N/A'}</p>
-        <p className="text-sm text-gray-600">Unit: {user?.unitKerja || 'N/A'}</p>
-        <div className="mt-4">
-          <p className="font-bold">Status: Page Loaded Successfully! ✅</p>
-        </div>
+    <div style={{ padding: '40px', fontFamily: 'Arial' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>
+        ✅ TEST PAGE - WORKING!
+      </h1>
+      <div style={{ 
+        background: '#f0f0f0', 
+        padding: '20px', 
+        borderRadius: '8px',
+        marginBottom: '20px'
+      }}>
+        <p style={{ fontSize: '18px', margin: '10px 0' }}>
+          <strong>Status:</strong> Page rendered successfully! 🎉
+        </p>
+        <p style={{ fontSize: '14px', margin: '10px 0', color: '#666' }}>
+          If you see this, the routing works and React is rendering.
+        </p>
+        <p style={{ fontSize: '14px', margin: '10px 0', color: '#666' }}>
+          Timestamp: {new Date().toLocaleString('id-ID')}
+        </p>
+      </div>
+      <div style={{ 
+        background: '#e8f5e9', 
+        padding: '20px', 
+        borderRadius: '8px',
+        border: '2px solid #4caf50'
+      }}>
+        <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#2e7d32' }}>
+          Next Step: Gradually add features back
+        </p>
+        <ul style={{ marginTop: '10px', color: '#666' }}>
+          <li>Add user context ✓</li>
+          <li>Add Convex queries</li>
+          <li>Add filters & UI</li>
+        </ul>
       </div>
     </div>
   )

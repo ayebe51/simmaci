@@ -136,6 +136,12 @@ export const approve = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     
+    // Get tenure data before updating
+    const tenure = await ctx.db.get(args.id);
+    if (!tenure) {
+      throw new Error("Headmaster tenure not found");
+    }
+    
     await ctx.db.patch(args.id, {
       status: "approved",
       approvedBy: args.approvedBy,
@@ -143,6 +149,23 @@ export const approve = mutation({
       skUrl: args.skUrl,
       updatedAt: now,
     });
+    
+    // 🔔 Notification: Notify the creator that their submission was approved
+    if (tenure.createdBy) {
+      try {
+        await ctx.db.insert("notifications", {
+          userId: tenure.createdBy,
+          type: "sk_approved",
+          title: "Pengangkatan Kepala Disetujui",
+          message: `Pengangkatan ${tenure.teacherName} sebagai Kepala ${tenure.schoolName} telah disetujui`,
+          isRead: false,
+          metadata: {},
+          createdAt: now,
+        });
+      } catch (error) {
+        console.error("Failed to create notification:", error);
+      }
+    }
     
     return args.id;
   },
@@ -153,12 +176,45 @@ export const reject = mutation({
   args: {
     id: v.id("headmasterTenures"),
     rejectedBy: v.id("users"),
+    rejectionReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const now = Date.now();
+    
+    // Get tenure data before updating
+    const tenure = await ctx.db.get(args.id);
+    if (!tenure) {
+      throw new Error("Headmaster tenure not found");
+    }
+    
     await ctx.db.patch(args.id, {
       status: "rejected",  
-      updatedAt: Date.now(),
+      updatedAt: now,
     });
+    
+    // 🔔 Notification: Notify the creator that their submission was rejected
+    if (tenure.createdBy) {
+      try {
+        let message = `Pengangkatan ${tenure.teacherName} sebagai Kepala ${tenure.schoolName} ditolak`;
+        if (args.rejectionReason) {
+          message += `: ${args.rejectionReason}`;
+        }
+        
+        await ctx.db.insert("notifications", {
+          userId: tenure.createdBy,
+          type: "sk_rejected",
+          title: "Pengangkatan Kepala Ditolak",
+          message,
+          isRead: false,
+          metadata: {
+            rejectionReason: args.rejectionReason,
+          },
+          createdAt: now,
+        });
+      } catch (error) {
+        console.error("Failed to create notification:", error);
+      }
+    }
     
     return args.id;
   },

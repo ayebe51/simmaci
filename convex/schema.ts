@@ -133,4 +133,22 @@ export default defineSchema({
     totalSk: v.number(),
     lastUpdated: v.number(),
   }),
+
+  // Notifications table
+  notifications: defineTable({
+    userId: v.id("users"),        // Recipient
+    type: v.string(),              // 'sk_submitted', 'sk_approved', 'sk_rejected', 'batch_complete'
+    title: v.string(),             // "SK Disetujui"
+    message: v.string(),           // "SK No. 123 telah disetujui"
+    isRead: v.boolean(),           // Read status
+    metadata: v.optional(v.object({
+      skId: v.optional(v.id("skDocuments")),
+      batchCount: v.optional(v.number()),
+      rejectionReason: v.optional(v.string()),
+    })),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_unread", ["userId", "isRead"])
+    .index("by_created", ["createdAt"]),
 });

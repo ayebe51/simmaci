@@ -18,6 +18,7 @@ import SettingsPage from "./features/settings/SettingsPage"
 import HeadmasterExpiryPage from "./features/monitoring/HeadmasterExpiryPage"
 import ReportPage from "./features/reports/ReportPage"
 import SkReportPage from "./features/reports/SkReportPage"
+import SkReportPageSimple from "./features/reports/SkReportPageSimple"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
 import EventsPage from "./features/events/EventsPage"
 import CreateEventPage from "./features/events/CreateEventPage"
@@ -61,7 +62,7 @@ export default function App() {
                       <Route path="generator" element={<SkGeneratorPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
-                      <Route path="reports/sk" element={<SkReportPage />} />
+                      <Route path="reports/sk" element={<SkReportPageSimple />} />
                       <Route path="reports" element={<ReportPage />} />
                       <Route path="events" element={<EventsPage />} />
                       <Route path="events/new" element={<CreateEventPage />} />

@@ -1,6 +1,10 @@
 import { useState } from 'react'
+import { useQuery } from 'convex/react'
+import { api } from '../../../convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
+import { Label } from '../../components/ui/label'
 
 export default function SkReportPage() {
   // Get user - with error handling
@@ -20,6 +24,44 @@ export default function SkReportPage() {
   // State
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [selectedSchool, setSelectedSchool] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+
+  // Fetch schools - with error handling
+  const schools = useQuery(api.schools.list)
+  
+  // Find operator's school ID by name
+  const operatorSchoolId = isOperator && user?.unitKerja 
+    ? schools?.find(s => s.nama === user.unitKerja)?._id
+    : undefined
+  
+  // Build query args - with null checks
+  const queryArgs = {
+    startDate: startDate ? new Date(startDate).getTime() : undefined,
+    endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
+    schoolId: (selectedSchool && selectedSchool !== 'all') ? selectedSchool as any : operatorSchoolId as any,
+    status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
+  }
+  
+  // Fetch report data - with error handling
+  const reportData = useQuery(api.reports.generateSkReport, queryArgs)
+  
+  // Debug logging
+  console.log('🔍 SK Report Debug:', {
+    user,
+    isOperator,
+    queryArgs,
+    reportData,
+    schools
+  })
+
+  // Reset filters
+  const handleResetFilters = () => {
+    setStartDate('')
+    setEndDate('')
+    setSelectedSchool('all')
+    setSelectedStatus('all')
+  }
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -31,21 +73,6 @@ export default function SkReportPage() {
         </p>
       </div>
 
-      {/* User Info Card - Debug */}
-      <Card>
-        <CardHeader>
-          <CardTitle>User Info (Debug)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm">
-            <p><strong>Name:</strong> {user?.name || 'N/A'}</p>
-            <p><strong>Role:</strong> {user?.role || 'N/A'}</p>
-            <p><strong>Unit Kerja:</strong> {user?.unitKerja || 'N/A'}</p>
-            <p><strong>Is Operator:</strong> {isOperator ? 'Yes' : 'No'}</p>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Filters Card */}
       <Card>
         <CardHeader>
@@ -56,7 +83,7 @@ export default function SkReportPage() {
             {/* Date Range */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Tanggal Mulai</label>
+                <Label>Tanggal Mulai</Label>
                 <input
                   type="date"
                   value={startDate}
@@ -65,7 +92,7 @@ export default function SkReportPage() {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Tanggal Akhir</label>
+                <Label>Tanggal Akhir</Label>
                 <input
                   type="date"
                   value={endDate}
@@ -75,50 +102,173 @@ export default function SkReportPage() {
               </div>
             </div>
 
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* School Filter (Super Admin only) */}
+              {!isOperator && (
+                <div>
+                  <Label>Sekolah</Label>
+                  <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Sekolah" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Sekolah</SelectItem>
+                      {schools?.map(school => (
+                        <SelectItem key={school._id} value={school._id}>
+                          {school.nama}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
+              {/* Status Filter */}
+              <div>
+                <Label>Status</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Semua Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="pending">Pending Review</SelectItem>
+                    <SelectItem value="approved">Disetujui</SelectItem>
+                    <SelectItem value="rejected">Ditolak</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <Button onClick={() => alert('Apply filters!')}>
-                Terapkan Filter
-              </Button>
-              <Button variant="outline" onClick={() => {
-                setStartDate('')
-                setEndDate('')
-              }}>
-                Reset
+              <Button variant="outline" onClick={handleResetFilters}>
+                Reset Filter
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Summary Stats - Static for now */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {['Total SK', 'Draft', 'Pending', 'Disetujui', 'Ditolak'].map((label) => (
-          <Card key={label}>
+      {/* Summary Stats - Now with real data! */}
+      {reportData ? (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-gray-400">--</div>
-              <div className="text-xs text-muted-foreground">{label}</div>
+              <div className="text-2xl font-bold">{reportData.summary.total}</div>
+              <div className="text-xs text-muted-foreground">Total SK</div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-gray-600">
+                {reportData.summary.draft}
+              </div>
+              <div className="text-xs text-muted-foreground">Draft</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-yellow-600">
+                {reportData.summary.pending}
+              </div>
+              <div className="text-xs text-muted-foreground">Pending</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-green-600">
+                {reportData.summary.approved}
+              </div>
+              <div className="text-xs text-muted-foreground">Disetujui</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-red-600">
+                {reportData.summary.rejected}
+              </div>
+              <div className="text-xs text-muted-foreground">Ditolak</div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {['Total SK', 'Draft', 'Pending', 'Disetujui', 'Ditolak'].map((label) => (
+            <Card key={label}>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold text-gray-300 animate-pulse">--</div>
+                <div className="text-xs text-muted-foreground">{label}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Preview Table Placeholder */}
+      {/* Preview Table - Simple version */}
       <Card>
         <CardHeader>
-          <CardTitle>Preview Data (0 records)</CardTitle>
+          <CardTitle>
+            Preview Data ({reportData?.data?.length || 0} records)
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            No data to display. Try adjusting filters or adding SK documents.
-          </p>
+          {reportData && reportData.data && reportData.data.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">No</th>
+                    <th className="text-left p-2">Nomor SK</th>
+                    <th className="text-left p-2">Nama</th>
+                    <th className="text-left p-2">Sekolah</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Tanggal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.data.slice(0, 10).map((sk: any, index: number) => (
+                    <tr key={sk._id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">{index + 1}</td>
+                      <td className="p-2">{sk.nomorSk}</td>
+                      <td className="p-2">{sk.nama}</td>
+                      <td className="p-2">{sk.schoolName || 'N/A'}</td>
+                      <td className="p-2">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          sk.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          sk.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          sk.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {sk.status}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        {new Date(sk.createdAt).toLocaleDateString('id-ID')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {reportData.data.length > 10 && (
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  Menampilkan 10 dari {reportData.data.length} records
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              {reportData === undefined ? 'Loading...' : 'No data to display'}
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* Export Button */}
+      {/* Export Button - Will add functionality in Step 3 */}
       <div>
-        <Button disabled>
-          Export to Excel
+        <Button disabled={!reportData || reportData.data.length === 0}>
+          Export to Excel ({reportData?.data?.length || 0} records)
         </Button>
       </div>
     </div>

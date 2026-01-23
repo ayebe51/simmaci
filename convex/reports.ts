@@ -32,8 +32,8 @@ export const generateSkReport = query({
       filtered = filtered.filter(sk => sk.status === args.status)
     }
     
-    // School filter
-    if (args.schoolId) {
+    // School filter - only if valid ID provided
+    if (args.schoolId && typeof args.schoolId === 'string') {
       filtered = filtered.filter(sk => sk.unitKerja === args.schoolId)
     }
     

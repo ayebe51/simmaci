@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Button } from '../../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Label } from '../../components/ui/label'
+import { Download } from 'lucide-react'
+import { toast } from 'sonner'
+import * as XLSX from 'xlsx'
 
 export default function SkReportPage() {
   // Get user - with error handling
@@ -61,6 +64,80 @@ export default function SkReportPage() {
     setEndDate('')
     setSelectedSchool('all')
     setSelectedStatus('all')
+  }
+
+  // Excel Export Handler
+  const handleExportExcel = () => {
+    if (!reportData || !reportData.data || reportData.data.length === 0) {
+      toast.error('Tidak ada data untuk di-export')
+      return
+    }
+
+    try {
+      // Create workbook
+      const wb = XLSX.utils.book_new()
+
+      // Sheet 1: Ringkasan
+      const summaryData = [
+        ['LAPORAN SURAT KEPUTUSAN'],
+        ['Tanggal Export:', new Date().toLocaleString('id-ID')],
+        [],
+        ['RINGKASAN DATA'],
+        ['Total SK', reportData.summary.total],
+        ['Draft', reportData.summary.draft],
+        ['Pending Review', reportData.summary.pending],
+        ['Disetujui', reportData.summary.approved],
+        ['Ditolak', reportData.summary.rejected],
+        [],
+        ['BREAKDOWN JENIS SK'],
+        ['Pengangkatan', reportData.byType.pengangkatan],
+        ['Mutasi', reportData.byType.mutasi],
+        ['Promosi', reportData.byType.promosi],
+        ['Pemberhentian', reportData.byType.pemberhentian],
+      ]
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
+
+      // Sheet 2: Data SK
+      const skData = reportData.data.map((sk: any, index: number) => ({
+        'No': index + 1,
+        'Nomor SK': sk.nomorSk,
+        'Jenis SK': sk.jenisSk,
+        'Nama': sk.nama,
+        'Jabatan': sk.jabatan || '-',
+        'Sekolah': sk.schoolName || 'N/A',
+        'Status': sk.status,
+        'Tanggal Penetapan': sk.tanggalPenetapan || '-',
+        'Tanggal Dibuat': new Date(sk.createdAt).toLocaleDateString('id-ID'),
+      }))
+      const wsData = XLSX.utils.json_to_sheet(skData)
+      
+      // Set column widths
+      wsData['!cols'] = [
+        { wch: 5 },  // No
+        { wch: 20 }, // Nomor SK
+        { wch: 15 }, // Jenis SK
+        { wch: 25 }, // Nama
+        { wch: 20 }, // Jabatan
+        { wch: 30 }, // Sekolah
+        { wch: 12 }, // Status
+        { wch: 18 }, // Tanggal Penetapan
+        { wch: 15 }, // Tanggal Dibuat
+      ]
+      
+      XLSX.utils.book_append_sheet(wb, wsData, 'Data SK')
+
+      // Generate filename
+      const filename = `Laporan_SK_${new Date().toISOString().split('T')[0]}.xlsx`
+      
+      // Export
+      XLSX.writeFile(wb, filename)
+      
+      toast.success(`Berhasil export ${reportData.data.length} data SK ke Excel`)
+    } catch (error) {
+      console.error('Export error:', error)
+      toast.error('Gagal export data')
+    }
   }
 
   return (
@@ -265,9 +342,13 @@ export default function SkReportPage() {
         </CardContent>
       </Card>
 
-      {/* Export Button - Will add functionality in Step 3 */}
+      {/* Export Button - Now functional! */}
       <div>
-        <Button disabled={!reportData || reportData.data.length === 0}>
+        <Button 
+          onClick={handleExportExcel}
+          disabled={!reportData || reportData.data.length === 0}
+        >
+          <Download className="w-4 h-4 mr-2" />
           Export to Excel ({reportData?.data?.length || 0} records)
         </Button>
       </div>

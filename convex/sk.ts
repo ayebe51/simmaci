@@ -204,11 +204,15 @@ export const batchUpdateStatus = mutation({
     ids: v.array(v.id("skDocuments")),
     status: v.string(), // "approved" or "rejected"
     rejectionReason: v.optional(v.string()),
+    currentUserId: v.optional(v.id("users")), // For notifications
   },
   handler: async (ctx, args) => {
     const updatedCount = args.ids.length;
     
     for (const id of args.ids) {
+      const sk = await ctx.db.get(id);
+      if (!sk) continue;
+      
       const updateData: any = {
         status: args.status,
         updatedAt: Date.now(),
@@ -220,6 +224,53 @@ export const batchUpdateStatus = mutation({
       }
       
       await ctx.db.patch(id, updateData);
+      
+      // 🔔 Notification: Notify SK creator
+      if (sk.createdBy && args.status !== "draft") {
+        try {
+          const users = await ctx.db.query("users").collect();
+          const targetUser = users.find(u => u.email === sk.createdBy || u._id === sk.createdBy);
+          
+          if (targetUser) {
+            const type = args.status === "approved" ? "sk_approved" : "sk_rejected";
+            const title = args.status === "approved" ? "SK Disetujui" : "SK Ditolak";
+            let message = `SK No. ${sk.nomorSk} untuk ${sk.nama} telah ${args.status === "approved" ? "disetujui" : "ditolak"}`;
+            
+            if (args.status === "rejected" && args.rejectionReason) {
+              message += `: ${args.rejectionReason}`;
+            }
+            
+            await ctx.db.insert("notifications", {
+              userId: targetUser._id,
+              type,
+              title,
+              message,
+              isRead: false,
+              metadata: { skId: id, rejectionReason: args.rejectionReason },
+              createdAt: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error("Notification error:", error);
+        }
+      }
+    }
+    
+    // 🔔 Notification: Batch summary to current user
+    if (args.currentUserId && updatedCount > 0) {
+      try {
+        await ctx.db.insert("notifications", {
+          userId: args.currentUserId,
+          type: "batch_complete",
+          title: "Batch Operation Selesai",
+          message: `${updatedCount} SK berhasil di-${args.status === "approved" ? "setujui" : "tolak"}`,
+          isRead: false,
+          metadata: { batchCount: updatedCount },
+          createdAt: Date.now(),
+        });
+      } catch (error) {
+        console.error("Batch notification error:", error);
+      }
     }
     
     return { count: updatedCount };

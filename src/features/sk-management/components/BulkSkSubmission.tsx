@@ -472,7 +472,8 @@ export function BulkSkSubmission() {
                 
                 log(`Creating SK for ${c["nama"]} with Teacher ID: ${teacherId}...`)
                 const skId = await createSkMutation({
-                    nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}`,
+                    // Use timestamp to ensure uniqueness during repeated bulk tests
+                    nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
                     jenisSk: jenisSk,
                     teacherId: teacherId,
                     nama: c["nama"] ? String(c["nama"]) : "Tanpa Nama",

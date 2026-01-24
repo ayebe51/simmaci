@@ -77,24 +77,35 @@ export const create = mutation({
     createdBy: v.optional(v.string()), // 🔥 CHANGED to optional string (fix for bulk upload)
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    
-    // Check if nomor SK already exists
-    const existing = await ctx.db
-      .query("skDocuments")
-      .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
-      .first();
-    
-    if (existing) {
-      throw new Error("Nomor SK sudah terdaftar");
+    try {
+      const now = Date.now();
+      
+      // Check if nomor SK already exists
+      const existing = await ctx.db
+        .query("skDocuments")
+        .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
+        .first();
+      
+      if (existing) {
+        console.error(`Duplicate Nomor SK: ${args.nomorSk}`);
+        throw new Error(`Nomor SK ${args.nomorSk} sudah terdaftar`);
+      }
+      
+      const newId = await ctx.db.insert("skDocuments", {
+        ...args,
+        status: args.status || "draft",
+        createdAt: now,
+        updatedAt: now,
+      });
+      return newId;
+    } catch (e: any) {
+      console.error("SK Create Error Details:", {
+        args,
+        error: e.message,
+        stack: e.stack
+      });
+      throw e; // Re-throw to be caught by client
     }
-    
-    return await ctx.db.insert("skDocuments", {
-      ...args,
-      status: args.status || "draft",
-      createdAt: now,
-      updatedAt: now,
-    });
   },
 });
 

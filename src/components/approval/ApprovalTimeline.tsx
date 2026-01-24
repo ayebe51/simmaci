@@ -7,10 +7,9 @@ import { id } from "date-fns/locale"
 
 interface ApprovalTimelineProps {
   documentId: string
-  documentType?: string
 }
 
-export function ApprovalTimeline({ documentId, documentType = "sk" }: ApprovalTimelineProps) {
+export function ApprovalTimeline({ documentId }: ApprovalTimelineProps) {
   const history = useQuery(api.approvalHistory.getApprovalHistory, {
     documentId: documentId,
   })

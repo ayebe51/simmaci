@@ -150,6 +150,22 @@ export const approve = mutation({
       updatedAt: now,
     });
     
+    // 📝 Log approval history
+    try {
+      await ctx.db.insert("approvalHistory", {
+        documentId: args.id,
+        documentType: "headmaster",
+        action: "approve",
+        fromStatus: tenure.status,
+        toStatus: "approved",
+        performedBy: args.approvedBy,
+        performedAt: now,
+        comment: undefined,
+      });
+    } catch (error) {
+      console.error("Failed to log approval history:", error);
+    }
+    
     // 🔔 Notification: Notify the creator that their submission was approved
     if (tenure.createdBy) {
       try {
@@ -191,6 +207,25 @@ export const reject = mutation({
       status: "rejected",  
       updatedAt: now,
     });
+    
+    // 📝 Log approval history
+    try {
+      await ctx.db.insert("approvalHistory", {
+        documentId: args.id,
+        documentType: "headmaster",
+        action: "reject",
+        fromStatus: tenure.status,
+        toStatus: "rejected",
+        performedBy: args.rejectedBy,
+        performedAt: now,
+        comment: args.rejectionReason,
+        metadata: args.rejectionReason ? {
+          rejectionReason: args.rejectionReason,
+        } : undefined,
+      });
+    } catch (error) {
+      console.error("Failed to log approval history:", error);
+    }
     
     // 🔔 Notification: Notify the creator that their submission was rejected
     if (tenure.createdBy) {

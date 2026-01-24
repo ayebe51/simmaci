@@ -20,6 +20,7 @@ import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
+import { Doc, Id } from "../../../convex/_generated/dataModel"
 
 interface User {
   id: string
@@ -42,16 +43,16 @@ export default function UserListPage() {
   const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
   
   // Map Convex users to frontend format
-  const users: User[] = (convexUsers || []).map((u: any) => ({
+  const users: User[] = (convexUsers || []).map((u) => ({
     id: u.id,
     name: u.name,
     email: u.email,
-    role: u.role,
+    role: u.role as 'super_admin' | 'admin' | 'operator',
     status: u.isActive ? "active" : "inactive",
     unitKerja: u.unitKerja
   }))
 
-  const schools = (convexSchools || []).map((s: any) => s.nama)
+  const schools = (convexSchools || []).map((s: Doc<"schools">) => s.nama)
   
   // Form State
   const [formData, setFormData] = useState<Partial<User>>({
@@ -77,13 +78,14 @@ export default function UserListPage() {
           setIsDialogOpen(false)
           setEditingUser(null)
           setFormData({ name: "", email: "", password: "", role: "operator", unitKerja: "", status: "active" })
-      } catch (err: any) {
-         toast.error(err.message || "Gagal menyimpan user")
+      } catch (err) {
+         toast.error((err as Error).message || "Gagal menyimpan user")
       }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = async (id?: string) => {
     // TODO: Implement delete via Convex mutation
+    console.log("Deleting user", id)
     toast.info("Fitur hapus user coming soon")
   }
 
@@ -168,7 +170,7 @@ export default function UserListPage() {
                             <Label>Role</Label>
                             <Select 
                                 value={formData.role} 
-                                onValueChange={(v: any) => setFormData({...formData, role: v})}
+                                onValueChange={(v) => setFormData({...formData, role: v as User['role']})}
                             >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -233,11 +235,11 @@ export default function UserListPage() {
                               onValueChange={async (schoolName) => {
                                 try {
                                   await updateUserSchoolMutation({ 
-                                    userId: item.id as any,
+                                    userId: item.id as Id<"users">,
                                     schoolName: schoolName || undefined 
                                   })
                                   toast.success(`✅ ${item.name} di-assign ke ${schoolName}`)
-                                } catch (error) {
+                                } catch {
                                   toast.error("Gagal assign sekolah")
                                 }
                               }}

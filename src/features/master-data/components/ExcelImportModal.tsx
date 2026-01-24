@@ -41,7 +41,6 @@ export default function ExcelImportModal({
   // Use controlled state if provided, otherwise use internal state
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
-  const setOpen = isControlled ? (controlledOnClose || (() => {})) : setInternalOpen
 
   const handleFileAccepted = async (file: File, _: string[], data: Record<string, unknown>[]) => {
     if (onFileImport) {
@@ -58,9 +57,9 @@ export default function ExcelImportModal({
               onImportSuccess()
             }
             window.alert("Berhasil mengimpor data!")
-        } catch(e: any) {
+        } catch(error: unknown) {
             setIsUploading(false)
-            window.alert("Gagal import: " + e.message)
+            window.alert("Gagal import: " + (error as Error).message)
         }
     } else if (onImport) {
         onImport(data)

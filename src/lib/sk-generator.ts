@@ -7,7 +7,7 @@ import Docxtemplater from "docxtemplater";
  * @param data Key-value pairs to replace in the template
  * @returns Blob of the generated document
  */
-export const generateSkDocx = (base64Template: string, data: Record<string, any>): Blob => {
+export const generateSkDocx = (base64Template: string, data: Record<string, unknown>): Blob => {
     try {
         // 1. Clean Base64 (remove data:application/vnd... prefix if exists)
         const cleanBase64 = base64Template.replace(/^data:.*;base64,/, "");

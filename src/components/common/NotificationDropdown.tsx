@@ -8,21 +8,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Bell, FileCheck, CheckCheck, Trash2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import { Doc } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { id } from "date-fns/locale"
 
 export function NotificationDropdown() {
   const navigate = useNavigate()
-  const [lastNotifId, setLastNotifId] = useState<string | null>(null)
+  const lastNotifIdRef = useRef<string | null>(null)
   
   // Get user from localStorage
   const userStr = localStorage.getItem("user")
-  const user = userStr ? JSON.parse(userStr) : null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user: any = userStr ? JSON.parse(userStr) : null
 
   // Fetch notifications from Convex
   const notifications = useQuery(
@@ -40,29 +42,7 @@ export function NotificationDropdown() {
   const markAllAsRead = useMutation(api.notifications.markAllAsRead)
   const deleteNotification = useMutation(api.notifications.deleteNotification)
 
-  // Toast for new notifications
-  useEffect(() => {
-    if (!notifications || notifications.length === 0) return
-
-    const latestNotif = notifications[0]
-    const storedLastId = localStorage.getItem("lastNotifId")
-
-    if (latestNotif._id !== storedLastId && latestNotif._id !== lastNotifId) {
-      setLastNotifId(latestNotif._id)
-      localStorage.setItem("lastNotifId", latestNotif._id)
-
-      // Show toast for new notification
-      toast.info(latestNotif.title, {
-        description: latestNotif.message,
-        action: {
-          label: "Lihat",
-          onClick: () => handleNotificationClick(latestNotif),
-        },
-      })
-    }
-  }, [notifications])
-
-  const handleNotificationClick = async (notif: any) => {
+  const handleNotificationClick = useCallback(async (notif: Doc<"notifications">) => {
     // Mark as read if unread
     if (!notif.isRead) {
       try {
@@ -78,7 +58,30 @@ export function NotificationDropdown() {
     } else {
       navigate("/dashboard")
     }
-  }
+  }, [markAsRead, navigate])
+
+  // Toast for new notifications
+  useEffect(() => {
+    if (!notifications || notifications.length === 0) return
+
+    const latestNotif = notifications[0]
+    const storedLastId = localStorage.getItem("lastNotifId")
+
+    // Check if it's a new notification we haven't seen in this session (ref) or stored
+    if (latestNotif._id !== storedLastId && latestNotif._id !== lastNotifIdRef.current) {
+      lastNotifIdRef.current = latestNotif._id
+      localStorage.setItem("lastNotifId", latestNotif._id)
+
+      // Show toast for new notification
+      toast.info(latestNotif.title, {
+        description: latestNotif.message,
+        action: {
+          label: "Lihat",
+          onClick: () => handleNotificationClick(latestNotif),
+        },
+      })
+    }
+  }, [notifications, handleNotificationClick])
 
   const handleMarkAllRead = async () => {
     if (!user?._id) return

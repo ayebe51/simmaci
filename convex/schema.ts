@@ -156,4 +156,24 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "isRead"])
     .index("by_created", ["createdAt"]),
+
+  // Approval history for audit trail
+  approvalHistory: defineTable({
+    documentId: v.string(),  // Generic to support any document type
+    documentType: v.string(),  // 'sk', 'headmaster', etc.
+    action: v.string(),  // 'submit', 'approve', 'reject', 'comment', 'update'
+    fromStatus: v.optional(v.string()),  // Previous status
+    toStatus: v.optional(v.string()),  // New status
+    performedBy: v.id("users"),  // Who performed the action
+    performedAt: v.number(),  // When
+    comment: v.optional(v.string()),  // Optional comment/reason
+    metadata: v.optional(v.object({
+      rejectionReason: v.optional(v.string()),
+      changes: v.optional(v.string()),  // JSON string of changes
+    })),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_document_type", ["documentType"])
+    .index("by_user", ["performedBy"])
+    .index("by_date", ["performedAt"]),
 });

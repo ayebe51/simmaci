@@ -331,7 +331,7 @@ export const getQueuedSk = query({
   handler: async (ctx) => {
     // Get SKs that are 'draft' or 'new'
     const sks = await ctx.db.query("skDocuments").collect();
-    const pendingSks = sks.filter(sk => sk.status === "draft" || sk.status === "new");
+    const pendingSks = sks.filter(sk => sk.status === "approved" || sk.status === "verified");
 
     const results = [];
     for (const sk of pendingSks) {

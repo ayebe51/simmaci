@@ -98,6 +98,55 @@ export const create = mutation({
   },
 });
 
+// Upsert teacher (Create or Update if exists)
+export const upsert = mutation({
+  args: {
+    nuptk: v.string(),
+    nama: v.string(),
+    nip: v.optional(v.string()),
+    jenisKelamin: v.optional(v.string()),
+    tempatLahir: v.optional(v.string()),
+    tanggalLahir: v.optional(v.string()),
+    pendidikanTerakhir: v.optional(v.string()),
+    mapel: v.optional(v.string()),
+    unitKerja: v.optional(v.string()),
+    kecamatan: v.optional(v.string()),
+    status: v.optional(v.string()),
+    tmt: v.optional(v.string()),
+    isCertified: v.optional(v.boolean()),
+    phoneNumber: v.optional(v.string()),
+    email: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    pdpkpnu: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    
+    // Check for existing teacher by NUPTK
+    const existing = await ctx.db
+      .query("teachers")
+      .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
+      .first();
+    
+    if (existing) {
+      // Update existing record
+      await ctx.db.patch(existing._id, {
+        ...args,
+        updatedAt: now,
+      });
+      return existing._id;
+    } else {
+      // Create new record
+      return await ctx.db.insert("teachers", {
+        ...args,
+        isActive: args.isActive ?? true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  },
+});
+
 // Update teacher
 export const update = mutation({
   args: {

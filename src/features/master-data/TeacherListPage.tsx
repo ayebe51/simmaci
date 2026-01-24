@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import ExcelImportModal from "./components/ExcelImportModal"
-import { api } from "@/lib/api"
+import * as XLSX from "xlsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
@@ -42,6 +42,8 @@ interface Teacher {
   tempatLahir?: string     // NEW: proper field name
   tanggalLahir?: string    // NEW: proper field name
   tmt?: string             // NEW: Tanggal Mulai Tugas
+  jenisKelamin?: string
+  pendidikanTerakhir?: string
 }
 
 export default function TeacherListPage() {
@@ -96,6 +98,7 @@ export default function TeacherListPage() {
     tanggalLahir: t.tanggalLahir,
     tmt: t.tmt,
     pendidikanTerakhir: t.pendidikanTerakhir,
+    jenisKelamin: t.jenisKelamin,
   }))
 
   // 🔥 AUTO-CALCULATE STATUS (same logic as SK Generator)
@@ -382,18 +385,31 @@ export default function TeacherListPage() {
 
   const handleExport = async () => {
       try {
-          const blob = await api.exportTeachers(
-              userUnit || undefined, 
-              filterKecamatan || undefined, 
-              filterCertified
-          )
-          const url = window.URL.createObjectURL(new Blob([blob]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', `Data_Guru_${new Date().toISOString().split('T')[0]}.xlsx`);
-          document.body.appendChild(link);
-          link.click();
-          link.parentNode?.removeChild(link);
+          if (!teachers || teachers.length === 0) {
+              alert("Tidak ada data untuk diexport")
+              return
+          }
+
+          const exportData = teachers.map((t, idx) => ({
+              No: idx + 1,
+              NUPTK: t.nuptk,
+              Nama: t.nama,
+              "Jenis Kelamin": t.jenisKelamin,
+              "Tempat Lahir": t.tempatLahir,
+              "Tanggal Lahir": t.tanggalLahir ? new Date(t.tanggalLahir).toLocaleDateString("id-ID") : "-",
+              "Unit Kerja": t.unitKerja,
+              Kecamatan: t.kecamatan,
+              Status: t.status,
+              TMT: t.tmt ? new Date(t.tmt).toLocaleDateString("id-ID") : "-",
+              "No HP": t.phoneNumber,
+              "Sertifikasi": t.isCertified ? "Ya" : "Tidak"
+          }))
+
+          const ws = XLSX.utils.json_to_sheet(exportData)
+          const wb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(wb, ws, "Data Guru")
+          
+          XLSX.writeFile(wb, `Data_Guru_${new Date().toISOString().split('T')[0]}.xlsx`)
       } catch (e: any) {
           console.error(e)
           alert("Gagal mengexport data.")

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { BadgeCheck, CheckCircle, Download, FileText, XCircle, Upload } from "lucide-react"
 import { useState } from "react"
-import { api } from "@/lib/api"  // Keep for file upload only
+// import { api } from "@/lib/api"  // Keep for file upload only
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -116,10 +116,9 @@ export default function YayasanApprovalPage() {
   const handleUploadAndApprove = async (file: File) => {
       if (!uploadTargetId) return
       try {
-          toast.info("Mengunggah SK Final...")
-          const uploadRes = await api.uploadFile(file)
-          const skUrl = (uploadRes as any).url || (uploadRes as any).filename
-
+          toast.info("Upload skipped (Legacy backend removed). Implementation pending.")
+          const skUrl = ""; // TODO: Implement Convex Storage
+          
           toast.info("Menyimpan SK Final...")
           const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user"
           await approveMutation({ 
@@ -490,14 +489,14 @@ export default function YayasanApprovalPage() {
 
                                         } else {
                                             // Fallback
-                                            const blob = await api.downloadSkHeadmaster(item.id);
-                                            const url = window.URL.createObjectURL(blob);
-                                            const a = document.createElement('a');
-                                            a.href = url;
-                                            a.download = `SK_Kepala_${item.teacher?.nama || 'Madrasah'}.pdf`;
-                                            a.click();
-                                            window.URL.revokeObjectURL(url);
-                                            toast.success("SK PDF Berhasil diunduh");
+                                            // const blob = await api.downloadSkHeadmaster(item.id);
+                                            // const url = window.URL.createObjectURL(blob);
+                                            // const a = document.createElement('a');
+                                            // a.href = url;
+                                            // a.download = `SK_Kepala_${item.teacher?.nama || 'Madrasah'}.pdf`;
+                                            // a.click();
+                                            // window.URL.revokeObjectURL(url);
+                                            toast.error("Fitur download PDF legacy telah dinonaktifkan. Gunakan template DOCX.");
                                         }
 
                                     } catch(e) {

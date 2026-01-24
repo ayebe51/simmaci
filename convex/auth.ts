@@ -77,7 +77,7 @@ export const login = mutation({
     // Return user data (without password hash)
     return {
       user: {
-        id: user._id,
+        _id: user._id,  // Changed from 'id' to '_id' for consistency
         email: user.email,
         name: user.name,
         role: user.role,

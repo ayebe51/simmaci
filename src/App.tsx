@@ -28,6 +28,7 @@ import HeadmasterSubmissionPage from "./features/sk-management/HeadmasterSubmiss
 import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
 import AiChatAssistant from "./features/ai/components/AiChatAssistant"
+import ArchivePage from "./features/archive/ArchivePage"
 import { Toaster } from "@/components/ui/sonner"
 
 // Create a client
@@ -70,6 +71,7 @@ export default function App() {
                       <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
                       <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
                       <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
+                      <Route path="archive" element={<ArchivePage />} />
                       <Route path="ai-assistant" element={<AiChatAssistant />} />
                     </Routes>
                   </AppShell>

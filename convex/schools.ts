@@ -1,5 +1,46 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
+
+// Get paginated schools with optional filters
+export const paginatedList = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    searchTerm: v.optional(v.string()),
+    kecamatan: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { paginationOpts, searchTerm, kecamatan } = args;
+
+    if (searchTerm) {
+      // Use search index
+      return await ctx.db
+        .query("schools")
+        .withSearchIndex("search_schools", (q) => {
+          let query = q.search("nama", searchTerm);
+          if (kecamatan && kecamatan !== "all") {
+            query = query.eq("kecamatan", kecamatan);
+          }
+          return query;
+        })
+        .paginate(paginationOpts);
+    } else {
+      // Regular query with optional filter
+      if (kecamatan && kecamatan !== "all") {
+        return await ctx.db
+          .query("schools")
+          .withIndex("by_kecamatan", (q) => q.eq("kecamatan", kecamatan))
+          .paginate(paginationOpts);
+      } else {
+        // Default sort by natural order (creation time)
+        return await ctx.db
+          .query("schools")
+          .order("desc")
+          .paginate(paginationOpts);
+      }
+    }
+  },
+});
 
 // Get all schools with optional filters
 export const list = query({

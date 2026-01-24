@@ -66,7 +66,11 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_nsm", ["nsm"])
-    .index("by_kecamatan", ["kecamatan"]),
+    .index("by_kecamatan", ["kecamatan"])
+    .searchIndex("search_schools", {
+      searchField: "nama",
+      filterFields: ["kecamatan"],
+    }),
 
   // Users table for authentication
   users: defineTable({

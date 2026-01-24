@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -10,8 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Download, Eye } from "lucide-react"
-import { useState, useEffect, useMemo } from "react"
+import { Plus, Search, Trash2, Edit, FileSpreadsheet, Download, Eye } from "lucide-react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -20,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PhoneInput } from "@/components/common/PhoneInput"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
+import { useMutation, usePaginatedQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
 interface School {
@@ -40,12 +39,17 @@ export default function SchoolListPage() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("")
-  const [filterJamiyyah, setFilterJamiyyah] = useState("")
+  // const [filterJamiyyah, setFilterJamiyyah] = useState("") // TODO: Add backend support
 
-  // 🔥 REAL-TIME CONVEX QUERY
-  const convexSchools = useQuery(convexApi.schools.list, {
-    kecamatan: filterKecamatan || undefined,
-  })
+  // 🔥 SERVER-SIDE PAGINATION
+  const { results, status, loadMore } = usePaginatedQuery(
+    convexApi.schools.paginatedList,
+    { 
+      searchTerm: searchTerm || undefined,
+      kecamatan: filterKecamatan || undefined
+    },
+    { initialNumItems: 10 }
+  );
 
   // Mutations
   const createSchoolMutation = useMutation(convexApi.schools.create)
@@ -55,7 +59,7 @@ export default function SchoolListPage() {
   const bulkCreateSchoolMutation = useMutation(convexApi.schools.bulkCreate)
 
   // Map Convex data to School interface
-  const schools = (convexSchools || []).map((s: any) => ({
+  const schools = (results || []).map((s: any) => ({
     id: s._id,
     nsm: s.nsm || "",
     npsn: s.npsn || "",
@@ -71,7 +75,6 @@ export default function SchoolListPage() {
   const loadSchools = async () => {
     // No longer needed - Convex auto-updates!
   }
-
 
   // PERMISSION: Filter by Unit Kerja for Operators
   const [userUnit] = useState<string | null>(() => {
@@ -102,86 +105,14 @@ export default function SchoolListPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [schoolToDelete, setSchoolToDelete] = useState<{id: string, name: string} | null>(null)
 
-  const filtered = (schools || []).filter(s => {
-    // 1. Role Filter
-    if (userUnit && s.nama !== userUnit) return false
-
-    // 2. Kecamatan Filter
-    if (filterKecamatan && s.kecamatan !== filterKecamatan) return false
-
-    // 3. Jamiyyah Filter
-    if (filterJamiyyah && s.statusJamiyyah !== filterJamiyyah) return false
-
-    // 4. Search Filter
-    const term = searchTerm.toLowerCase()
-    return (s.nama || "").toLowerCase().includes(term) || 
-    (s.nsm || "").includes(searchTerm) ||
-    (s.kecamatan || "").toLowerCase().includes(term)
-  })
-
-  // Get unique values for filters
-  const uniqueKecamatan = useMemo(() => {
-    const kecs = schools.map(s => s.kecamatan).filter(Boolean);
-    return Array.from(new Set(kecs)).sort();
-  }, [schools]);
-
-  const uniqueJamiyyah = useMemo(() => {
-    const jams = schools.map(s => s.statusJamiyyah).filter(Boolean);
-    return Array.from(new Set(jams)).sort();
-  }, [schools]);
-
-  // Sorting State
-  const [sortConfig, setSortConfig] = useState<{ key: keyof School; direction: 'asc' | 'desc' } | null>(null);
-
-  const sortedSchools = useMemo(() => {
-    const sortableItems = [...filtered];
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        // Handle undefined values
-        const aValue = a[sortConfig.key] || "";
-        const bValue = b[sortConfig.key] || "";
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : 1;
-        }
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [filtered, sortConfig]);
-
-  // Pagination Logic
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-  const totalPages = Math.ceil(sortedSchools.length / itemsPerPage)
-
-  const paginatedSchools = sortedSchools.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-  )
-
-  useEffect(() => {
-      setCurrentPage(1)
-  }, [searchTerm, sortConfig])
-
-  // Sort Handler
-  const requestSort = (key: keyof School) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-  
-  const getSortIcon = (name: keyof School) => {
-      if (!sortConfig || sortConfig.key !== name) {
-          return <ArrowUpDown className="ml-2 h-4 w-4" />
-      }
-      return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-  }
+  // Get unique kecamatan (Ideally fetch from backend, but for now filtering loaded results is okayish or hardcoding common ones)
+  // Since we use server pagination, we can't easily get ALL unique kecamatan from client.
+  // For now, let's keep it simple or remove the dynamic list if it's empty.
+  // We'll trust the user to type or use a pre-defined list in a real app. 
+  // Here I will use a hardcoded list or just keep the empty selection for now until we have a 'locations' table.
+  const uniqueKecamatan = [
+    "Cilacap Selatan", "Cilacap Tengah", "Cilacap Utara", "Kesugihan", "Adipala", "Maos", "Kroya", "Binangun", "Nusawungu", "Sampang", "Karangpucung", "Cimanggu", "Majenang", "Wanareja", "Dayeuhluhur", "Gandrungmangu", "Sidareja", "Kedungreja", "Patimuan", "Bantarsari", "Kawunganten", "Jeruklegi", "Kampung Laut", "Cipari"
+  ].sort()
 
   const handleSave = async () => {
       if(!formData.nsm || !formData.nama) {
@@ -283,31 +214,7 @@ export default function SchoolListPage() {
   }
 
   const handleExport = async () => {
-    try {
-      // DEPRECATED: This feature requires NestJS backend endpoint
-      // TODO: Implement school export in Convex or remove this feature
-      toast.error("Fitur export belum tersedia - sedang dalam pengembangan");
-      return;
-      
-      /* Original code - commented out due to hardcoded localhost
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/master-data/schools/export', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sekolah-${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      */
-    } catch (err) {
-      console.error('Export error:', err);
-      toast.error('Gagal export data sekolah');
-    }
+      alert("Fitur export belum tersedia untuk versi paginated");
   }
 
   return (
@@ -349,7 +256,7 @@ export default function SchoolListPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Cari nama sekolah, NSM, atau kecamatan..."
+                  placeholder="Cari nama sekolah..."
                   className="pl-9"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -361,19 +268,9 @@ export default function SchoolListPage() {
                   <SelectValue placeholder="Semua Kecamatan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {uniqueKecamatan.filter((k): k is string => Boolean(k)).map(k => (
+                  <SelectItem value="all">Semua Kecamatan</SelectItem>
+                  {uniqueKecamatan.map(k => (
                     <SelectItem key={k} value={k}>{k}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={filterJamiyyah} onValueChange={setFilterJamiyyah}>
-                <SelectTrigger className="w-full sm:w-[160px]">
-                  <SelectValue placeholder="Semua Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueJamiyyah.filter((j): j is string => Boolean(j)).map(j => (
-                    <SelectItem key={j} value={j}>{j}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -384,34 +281,24 @@ export default function SchoolListPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead onClick={() => requestSort('nsm')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">NSM {getSortIcon('nsm')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('nama')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">Nama Sekolah {getSortIcon('nama')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('kecamatan')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">Kecamatan {getSortIcon('kecamatan')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('kepala')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">Kepala Sekolah {getSortIcon('kepala')}</div>
-                      </TableHead>
+                      <TableHead>NSM</TableHead>
+                      <TableHead>Nama Sekolah</TableHead>
+                      <TableHead>Kecamatan</TableHead>
+                      <TableHead>Kepala Sekolah</TableHead>
                       <TableHead>No. HP Kepala</TableHead>
-                      <TableHead onClick={() => requestSort('statusJamiyyah')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">Status {getSortIcon('statusJamiyyah')}</div>
-                      </TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedSchools.length === 0 ? (
+                    {schools.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={7} className="h-24 text-center">
-                                Tidak ada data sekolah ditemukan.
+                                {status === "LoadingFirstPage" ? "Memuat data..." : "Tidak ada data sekolah ditemukan."}
                             </TableCell>
                         </TableRow>
                     ) : (
-                        paginatedSchools.map((item) => (
+                        schools.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.nsm}</TableCell>
                             <TableCell>
@@ -468,44 +355,17 @@ export default function SchoolListPage() {
             </div>
             
             {/* Pagination Controls */}
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    Halaman {currentPage} dari {totalPages} ({filtered.length} data)
-                </div>
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(1)}
-                        disabled={currentPage === 1}
-                    >
-                        First
+            <div className="flex items-center justify-center space-x-2 py-4">
+                {status === "CanLoadMore" && (
+                    <Button onClick={() => loadMore(10)}>
+                        Load More
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                    >
-                        Prev
+                )}
+                {status === "LoadingMore" && (
+                     <Button disabled>
+                        Loading...
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                    >
-                        Next
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(totalPages)}
-                        disabled={currentPage === totalPages}
-                    >
-                        Last
-                    </Button>
-                </div>
+                )}
             </div>
 
         </CardContent>

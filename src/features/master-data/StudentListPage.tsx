@@ -14,9 +14,9 @@ import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { api } from "@/lib/api"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import ExcelImportModal from "./components/ExcelImportModal"
-import * as XLSX from 'xlsx'
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
@@ -67,15 +67,10 @@ export default function StudentListPage() {
     kelas: s.kelas || "",
     sekolah: s.namaSekolah || "",
     jk: s.jenisKelamin === "Perempuan" ? "P" : "L",
-    // Full object for edit
-    raw: s
   }))
 
   // Convex mutations
-  const createStudentMutation = useMutation(convexApi.students.create)
-  const updateStudentMutation = useMutation(convexApi.students.update)
   const deleteStudentMutation = useMutation(convexApi.students.remove)
-  const bulkCreateMutation = useMutation(convexApi.students.bulkCreate)
 
   // Delete confirmation modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -83,6 +78,12 @@ export default function StudentListPage() {
 
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
+
+  const loadStudents = async () => {
+    // No longer needed - Convex auto-updates!
+    // Kept for compatibility
+  }
+
 
   const filtered = students.filter(s => {
     // 1. Role Filter
@@ -150,34 +151,14 @@ export default function StudentListPage() {
       }
       
       try {
-          // Check update or create
-          const isEdit = !!formData.id
-          
-          if (isEdit) {
-            await updateStudentMutation({
-                id: formData.id as any,
-                nama: formData.nama,
-                nisn: formData.nisn,
-                kelas: formData.kelas,
-                namaSekolah: formData.sekolah,
-                jenisKelamin: formData.jk === "P" ? "Perempuan" : "Laki-laki"
-            })
-            alert("Berhasil update siswa")
-          } else {
-            await createStudentMutation({
-                nama: formData.nama,
-                nisn: formData.nisn,
-                kelas: formData.kelas,
-                namaSekolah: formData.sekolah,
-                jenisKelamin: formData.jk === "P" ? "Perempuan" : "Laki-laki"
-            })
-            alert("Berhasil menambah siswa")
-          }
-          
+          // TODO: Implement createStudent API
+          alert("Fitur tambah siswa belum diimplementasikan di backend")
+          // await api.createStudent(formData)
+          // loadStudents()
           setIsAddOpen(false)
           setFormData({ nisn: "", nama: "", kelas: "", sekolah: "", jk: "L" })
-      } catch (e: any) {
-          alert("Gagal menyimpan: " + e.message)
+      } catch (e) {
+          alert("Gagal menambah siswa")
       }
   }
 
@@ -204,94 +185,36 @@ export default function StudentListPage() {
       setStudentToDelete(null)
   }
 
-  // --- EXCEL LOGIC ---
-
   const handleExport = async () => {
       try {
-          // Export logic entirely frontend
-          if (students.length === 0) {
-              alert("Tidak ada data untuk diexport")
-              return
-          }
-
-          const exportData = students.map((s, idx) => ({
-              No: idx + 1,
-              NISN: s.nisn,
-              "Nama Siswa": s.nama,
-              "Jenis Kelamin": s.jk,
-              Kelas: s.kelas,
-              "Asal Sekolah": s.sekolah
-          }))
-
-          const ws = XLSX.utils.json_to_sheet(exportData)
-          const wb = XLSX.utils.book_new()
-          XLSX.utils.book_append_sheet(wb, ws, "Data Siswa")
-          
-          XLSX.writeFile(wb, `Data_Siswa_${new Date().toISOString().split('T')[0]}.xlsx`)
+          const blob = await api.exportStudents(userUnit || undefined)
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', `Data_Siswa_${new Date().toISOString().split('T')[0]}.xlsx`);
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
       } catch (e: any) {
           console.error(e)
           alert("Gagal mengexport data.")
       }
   }
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
       try {
-          const ws = XLSX.utils.aoa_to_sheet([
-              ["NISN", "Nama Siswa", "L/P", "Tempat Lahir", "Tanggal Lahir", "Alamat", "Kelas", "Nama Sekolah", "Nama Wali", "No HP"],
-              ["1234567890", "Contoh Siswa", "L", "Cilacap", "2010-01-01", "Jl. Mawar No 1", "7", "MI Ma'arif 01", "Budi", "08123456789"]
-          ])
-          const wb = XLSX.utils.book_new()
-          XLSX.utils.book_append_sheet(wb, ws, "Template")
-          XLSX.writeFile(wb, "TEMPLATE_IMPORT_DATA_SISWA.xlsx")
+          const blob = await api.downloadStudentTemplate();
+          const url = window.URL.createObjectURL(new Blob([blob]));
+          const link = document.createElement('a');
+          link.href = url;
+          link.setAttribute('download', 'TEMPLATE_IMPORT_DATA_SISWA.xlsx');
+          document.body.appendChild(link);
+          link.click();
+          link.parentNode?.removeChild(link);
+          window.URL.revokeObjectURL(url);
       } catch (error) {
           console.error('Failed to download template:', error);
-          alert('Gagal mendownload template.');
-      }
-  }
-
-  const handleImport = async (data: any[]) => {
-      try {
-          const parsedStudents = data.map((row: any) => {
-              // Flexible column matching
-              const getCol = (...keys: string[]) => {
-                  for (const k of keys) {
-                      if (row[k] !== undefined) return String(row[k]).trim()
-                  }
-                  return ""
-              }
-
-              const nisn = getCol("NISN", "nisn", "Nisn")
-              const nama = getCol("Nama Siswa", "Nama", "NAMA", "nama")
-              
-              if (!nisn || !nama) return null
-
-              return {
-                  nisn,
-                  nama,
-                  jenisKelamin: getCol("L/P", "Jenis Kelamin", "JK", "jk") === "P" || getCol("L/P", "JK") === "Perempuan" ? "Perempuan" : "Laki-laki",
-                  tempatLahir: getCol("Tempat Lahir", "tempat_lahir"),
-                  tanggalLahir: getCol("Tanggal Lahir", "tanggal_lahir"), // Might need date parsing if excel date
-                  alamat: getCol("Alamat", "alamat"),
-                  kelas: getCol("Kelas", "kelas"),
-                  namaSekolah: getCol("Nama Sekolah", "Sekolah", "sekolah"),
-                  namaWali: getCol("Nama Wali", "Wali", "wali"),
-                  nomorTelepon: getCol("No HP", "No Hp", "HP", "hp")
-              }
-          }).filter(s => s !== null)
-
-          if (parsedStudents.length === 0) {
-              alert("Tidak ada data valid (NISN & Nama wajib ada).")
-              return
-          }
-
-          // Bulk create
-          const result = await bulkCreateMutation({ students: parsedStudents as any })
-          alert(`Berhasil import ${result.count} data siswa!`)
-          setIsImportModalOpen(false)
-
-      } catch (e: any) {
-           console.error("Import error", e)
-           alert("Gagal import: " + e.message)
+          alert('Gagal mendownload template. Silakan coba lagi.');
       }
   }
 
@@ -315,10 +238,7 @@ export default function StudentListPage() {
           },
           {
             label: 'Tambah Manual',
-            onClick: () => {
-                setFormData({ nisn: "", nama: "", kelas: "", sekolah: "", jk: "L" })
-                setIsAddOpen(true)
-            },
+            onClick: () => setIsAddOpen(true),
             variant: 'cream',
             icon: <Plus className="h-5 w-5 text-gray-700" />
           },
@@ -383,14 +303,7 @@ export default function StudentListPage() {
                             <TableCell>{item.sekolah}</TableCell>
                             <TableCell className="text-right space-x-2">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                                    setFormData({
-                                        id: item.id,
-                                        nisn: item.nisn,
-                                        nama: item.nama,
-                                        kelas: item.kelas,
-                                        sekolah: item.sekolah,
-                                        jk: item.jk
-                                    })
+                                    setFormData(item)
                                     setIsAddOpen(true)
                                 }}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.nama)}><Trash2 className="h-4 w-4" /></Button>
@@ -448,7 +361,7 @@ export default function StudentListPage() {
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{formData.id ? 'Edit' : 'Tambah'} Data Siswa</DialogTitle>
+                <DialogTitle>Tambah Data Siswa</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -482,7 +395,7 @@ export default function StudentListPage() {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
-                <Button onClick={handleAdd}>{formData.id ? 'Simpan' : 'Tambah'}</Button>
+                <Button onClick={handleAdd}>Simpan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -491,10 +404,12 @@ export default function StudentListPage() {
       <ExcelImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
-        onImportSuccess={() => {}} // No need, auto update
+        onImportSuccess={loadStudents}
         title="Import Data Siswa"
         description="Upload file Excel (.xlsx) untuk import data siswa"
-        onImport={handleImport} // Use new handleImport
+        onFileImport={async (file) => {
+          await api.importStudents(file)
+        }}
       />
 
       {/* Delete Confirmation Modal */}
@@ -513,6 +428,14 @@ export default function StudentListPage() {
             <p className="font-semibold text-lg mb-3">
               {studentToDelete?.name}
             </p>
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+              <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                ⚠️ Perhatian
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Data akan terhapus <strong>PERMANENT</strong> dari database dan tidak dapat dikembalikan!
+              </p>
+            </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
@@ -524,7 +447,9 @@ export default function StudentListPage() {
             <Button
               variant="destructive"
               onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
             >
+              <Trash2 className="h-4 w-4 mr-2" />
               Ya, Hapus
             </Button>
           </DialogFooter>

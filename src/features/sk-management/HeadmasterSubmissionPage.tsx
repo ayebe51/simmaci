@@ -15,8 +15,8 @@ import { useState, useMemo } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
-// TODO: Implement Convex File Storage
-// import { api } from "@/lib/api"
+// Keep old API for file upload only
+import { api } from "@/lib/api"
 
 const headmasterSchema = z.object({
   teacherId: z.string().min(1, "Calon Kepala wajib dipilih"),
@@ -75,9 +75,9 @@ export default function HeadmasterSubmissionPage() {
     try {
         let finalUrl = null;
         if (suratFile) {
-            toast.info("Upload skipped (Legacy backend removed). Implementation pending.")
-            // TODO: Implement Convex Storage
-             finalUrl = "";
+            toast.info("Mengunggah surat permohonan...")
+            const uploadRes = await api.uploadFile(suratFile)
+            finalUrl = (uploadRes as any).url || (uploadRes as any).filename
         }
 
         // Get userId from localStorage

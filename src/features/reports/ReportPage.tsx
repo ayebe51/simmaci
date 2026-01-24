@@ -4,9 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Printer, Search, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-// import { api } from "@/lib/api"
-import { useQuery } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
+import { api } from "@/lib/api"
 import { toast } from "sonner"
 
 export default function ReportPage() {
@@ -17,31 +15,47 @@ export default function ReportPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [allData, setAllData] = useState<any[]>([])
   
-  // 🔥 CONVEX REAL-TIME DATA
-  const convexTeachers = useQuery(convexApi.teachers.list) || []
-  
-  // Transform Convex Data to Report Format
+  // Load real data from API
   useEffect(() => {
-      if (!convexTeachers) return
-      
-      const mapped = convexTeachers.map((t: any) => ({
-          ...t,
-          unitKerja: t.unitKerja || t.satminkal || "Tanpa Unit",
-          nip: t.nuptk || t.nip || "-",
-          // Ensure status is normalized if needed
-          status: t.status || "-"
-      }))
-      
-      setAllData(mapped)
-      setIsLoading(false)
+    loadData()
+  }, [])
 
-      // Extract unique Units
-      const uniqueUnits = Array.from(new Set(mapped.map((t: any) => t.unitKerja))).sort() as string[]
-      setUnits(uniqueUnits)
-      
-      generatePreview(mapped, reportType, selectedUnit)
+  const loadData = async () => {
+      setIsLoading(true)
+      try {
+          // Fetch from API
+          const res = await api.getTeachers();
+          const teachers = Array.isArray(res) ? res : (res as any).data || [];
+          
+          // Map Backend Fields to Report Format
+          const mapped = teachers.map((t: any) => ({
+              ...t,
+              // Fix: API returns 'unitKerja', not 'satminkal'. Use t.unitKerja first.
+              unitKerja: t.unitKerja || t.satminkal || "Tanpa Unit",
+              nip: t.nuptk || t.nip || "-"
+          }));
 
-  }, [convexTeachers, reportType, selectedUnit])
+          setAllData(mapped);
+
+          // Extract unique Units
+          const uniqueUnits = Array.from(new Set(mapped.map((t: any) => t.unitKerja))).sort() as string[]
+          setUnits(uniqueUnits)
+          
+          generatePreview(mapped, reportType, selectedUnit)
+      } catch (e) {
+          console.error(e)
+          toast.error("Gagal memuat data guru")
+      } finally {
+          setIsLoading(false)
+      }
+  }
+
+  // Regenerate when filters change
+  useEffect(() => {
+    if (allData.length > 0) {
+        generatePreview(allData, reportType, selectedUnit)
+    }
+  }, [reportType, selectedUnit, allData])
 
   const generatePreview = (teachers: any[], type: string, unit: string) => {
       if (type === "teachers_by_unit") {

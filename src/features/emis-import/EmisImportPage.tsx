@@ -1,5 +1,5 @@
 import ImportWizard from "./components/ImportWizard"
-// import { api } from "@/lib/api"
+import { api } from "@/lib/api"
 
 export default function EmisImportPage() {
   // The following code block seems to be intended for a component that handles the upload logic,

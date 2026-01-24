@@ -37,15 +37,7 @@ export default function UserListPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   
   // 🔥 CONVEX QUERIES
-  const [userId] = useState<string | null>(() => {
-    try {
-        const u = localStorage.getItem("user")
-        return u ? JSON.parse(u)._id : null
-    } catch { return null }
-  })
-
-  // Pass userId to listUsers or skip if not logged in
-  const convexUsers = useQuery(convexApi.auth.listUsers, userId ? { userId: userId as any } : "skip")
+  const convexUsers = useQuery(convexApi.auth.listUsers)
   const convexSchools = useQuery(convexApi.schools.list, {})
   const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
   

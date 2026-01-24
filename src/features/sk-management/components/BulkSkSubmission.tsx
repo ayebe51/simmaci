@@ -6,8 +6,7 @@ import { Loader2, FileSpreadsheet, CheckCircle, Upload } from "lucide-react"
 import { useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import * as XLSX from "xlsx"
-// TODO: Implement Convex File Storage
-// import { api } from "@/lib/api"
+import { api } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -363,9 +362,17 @@ export function BulkSkSubmission() {
 
     // 0. Upload Surat Permohonan if exists
     if (suratPermohonanFile) {
-        log(`Upload skipped (Legacy backend removed): ${suratPermohonanFile.name}...`)
-        // TODO: Implement Convex Storage
-        permohonanUrl = "";  
+        log(`Mengupload surat permohonan: ${suratPermohonanFile.name}...`)
+        try {
+            const uploadRes = await api.uploadFile(suratPermohonanFile);
+            permohonanUrl = uploadRes.url;
+            log(`Upload berhasil: ${permohonanUrl}`);
+        } catch (e: any) {
+            log(`Gagal upload file: ${e.message}`);
+            alert("Gagal mengupload surat permohonan! " + e.message);
+            setIsProcessing(false);
+            return;
+        }
     }
 
     setIsProcessing(true)

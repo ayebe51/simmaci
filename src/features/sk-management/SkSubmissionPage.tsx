@@ -10,16 +10,14 @@ import * as z from "zod"
 import { ArrowLeft, Save, FileText, BadgeCheck } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// Use Controller for robust Select handling
-import { Controller } from "react-hook-form"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
 // 🔥 CONVEX for SK creation
 import { useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
-// TODO: Implement Convex File Storage
-// import { api } from "@/lib/api"
+// Keep old API for file upload only
+import { api } from "@/lib/api"
 
 // Helper for numbering (Inlined to fix build issues)
 // Helper for numbering (Inlined to fix build issues)
@@ -46,7 +44,7 @@ export function incrementSkCounter() {
 }
 
 const skSchema = z.object({
-  jenisSk: z.string({ required_error: "Jenis SK wajib dipilih" }).min(1, "Jenis SK wajib dipilih"),
+  jenisSk: z.string().min(1, "Jenis SK wajib dipilih"),
   jenisPengajuan: z.enum(["new", "renew"]),
   nama: z.string().min(3, "Nama wajib diisi minimal 3 karakter"),
   niy: z.string().optional(),
@@ -81,7 +79,7 @@ export default function SkSubmissionPage() {
 
   // 🔥 CONVEX MUTATIONS
   const createSkMutation = useMutation(convexApi.sk.create)
-  const upsertTeacherMutation = useMutation(convexApi.teachers.upsert)
+  const createTeacherMutation = useMutation(convexApi.teachers.create)
 
   const onSubmit = async (data: SkFormValues) => {
     setIsSubmitting(true)
@@ -92,9 +90,13 @@ export default function SkSubmissionPage() {
 
         const file = fileInputRef.current?.files?.[0]
         if (file) {
-            toast.info("Upload skipped (Legacy backend removed). Implementation pending.")
-            // TODO: Implement Convex Storage
-            finalSuratPermohonanUrl = ""; 
+            toast.info("Mengupload dokumen...")
+            const uploadRes = await api.uploadFile(file)
+            const fileUrl = uploadRes.url || uploadRes.fileUrl || uploadRes.path || uploadRes.secure_url
+            
+            if (fileUrl) {
+                finalSuratPermohonanUrl = fileUrl;
+            }
         }
 
         // Get userId from localStorage
@@ -107,7 +109,7 @@ export default function SkSubmissionPage() {
         // Generate NUPTK if NIY provided, otherwise use timestamp-based ID
         const nuptk = data.niy || `TEMP-${Date.now()}`
         
-        const teacherId = await upsertTeacherMutation({
+        const teacherId = await createTeacherMutation({
             nuptk: nuptk,
             nama: data.nama,
             nip: data.niy, // Optional
@@ -175,23 +177,17 @@ export default function SkSubmissionPage() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="jenisSk">Jenis SK</Label>
-                    <Controller
-                        control={form.control}
-                        name="jenisSk"
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Pilih Jenis SK" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="SK Kepala Madrasah">SK Kepala Madrasah/Sekolah</SelectItem>
-                                    <SelectItem value="SK Guru Tetap Yayasan">SK Guru Tetap Yayasan (GTY)</SelectItem>
-                                    <SelectItem value="SK Guru Tidak Tetap">SK Guru Tidak Tetap (GTT)</SelectItem>
-                                    <SelectItem value="SK Tenaga Kependidikan">SK Tenaga Kependidikan</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
+                    <Select onValueChange={(val) => form.setValue("jenisSk", val)} defaultValue={form.getValues("jenisSk")}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih Jenis SK" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SK Kepala Madrasah">SK Kepala Madrasah/Sekolah</SelectItem>
+                        <SelectItem value="SK Guru Tetap Yayasan">SK Guru Tetap Yayasan (GTY)</SelectItem>
+                        <SelectItem value="SK Guru Tidak Tetap">SK Guru Tidak Tetap (GTT)</SelectItem>
+                        <SelectItem value="SK Tenaga Kependidikan">SK Tenaga Kependidikan</SelectItem>
+                      </SelectContent>
+                    </Select>
                     {form.formState.errors.jenisSk && (
                       <p className="text-sm text-red-500">{form.formState.errors.jenisSk.message}</p>
                     )}

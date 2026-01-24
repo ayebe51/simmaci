@@ -77,33 +77,24 @@ export const create = mutation({
     createdBy: v.optional(v.string()), // 🔥 CHANGED to optional string (fix for bulk upload)
   },
   handler: async (ctx, args) => {
-    try {
-        const now = Date.now();
-        
-        // Check if nomor SK already exists
-        const existing = await ctx.db
-          .query("skDocuments")
-          .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
-          .first();
-        
-        let finalNomorSk = args.nomorSk;
-        if (existing) {
-          const randomSuffix = Math.floor(100 + Math.random() * 900);
-          finalNomorSk = `${args.nomorSk}-${randomSuffix}`;
-          console.warn(`Duplicate SK Number detected: ${args.nomorSk}. Auto-resolved to: ${finalNomorSk}`);
-        }
-        
-        return await ctx.db.insert("skDocuments", {
-          ...args,
-          nomorSk: finalNomorSk,
-          status: args.status || "draft",
-          createdAt: now,
-          updatedAt: now,
-        });
-    } catch (err: any) {
-        console.error("SK Creation Failed:", err);
-        throw new Error(`Gagal membuat SK: ${err.message}`);
+    const now = Date.now();
+    
+    // Check if nomor SK already exists
+    const existing = await ctx.db
+      .query("skDocuments")
+      .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
+      .first();
+    
+    if (existing) {
+      throw new Error("Nomor SK sudah terdaftar");
     }
+    
+    return await ctx.db.insert("skDocuments", {
+      ...args,
+      status: args.status || "draft",
+      createdAt: now,
+      updatedAt: now,
+    });
   },
 });
 
@@ -333,40 +324,4 @@ export const getTeachersWithSk = query({
     // Filter out null values (deleted teachers)
     return teachers.filter((t): t is NonNullable<typeof t> => t !== null);
   },
-});
-
-export const getQueuedSk = query({
-  args: {},
-  handler: async (ctx) => {
-    // Get SKs that are 'draft' or 'new'
-    const sks = await ctx.db.query("skDocuments").collect();
-    const pendingSks = sks.filter(sk => sk.status === "approved" || sk.status === "verified");
-
-    const results = [];
-    for (const sk of pendingSks) {
-       if (!sk.teacherId) continue;
-       const teacher = await ctx.db.get(sk.teacherId);
-       if (!teacher) continue;
-
-       // Merge teacher and SK data
-       // We use SK ID as the primary row ID for the generator queue
-       results.push({
-          ...teacher, // flattened teacher properties
-          // Explicitly map properties that might overlap or be needed specifically
-          _id: sk._id,           // IMPORTANT: Row ID is the SK Document ID
-          teacherId: teacher._id,// Keep reference to real teacher ID
-          
-          // SK Specifics
-          skId: sk._id,
-          jenisSk: sk.jenisSk,
-          skStatus: sk.status,
-          nomorSkDraft: sk.nomorSk, // Draft number if exists
-          
-          updatedAt: sk.updatedAt,
-       });
-    }
-    
-    // Sort by newest
-    return results.sort((a, b) => b.updatedAt - a.updatedAt);
-  }
 });

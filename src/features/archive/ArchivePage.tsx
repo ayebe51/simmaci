@@ -239,6 +239,7 @@ export default function ArchivePage() {
                       checked={selectedIds.length === archivedSks?.length && archivedSks.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="rounded"
+                      aria-label="Select all archived SKs"
                     />
                   </TableHead>
                   <TableHead>Nomor SK</TableHead>
@@ -273,6 +274,7 @@ export default function ArchivePage() {
                           checked={selectedIds.includes(sk._id)}
                           onChange={(e) => handleSelectOne(sk._id, e.target.checked)}
                           className="rounded"
+                          aria-label={`Select SK ${sk.nomorSk}`}
                         />
                       </TableCell>
                       <TableCell className="font-medium">{sk.nomorSk}</TableCell>

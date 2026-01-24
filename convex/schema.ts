@@ -95,13 +95,18 @@ export default defineSchema({
     fileUrl: v.optional(v.string()),
     qrCode: v.optional(v.string()),
     createdBy: v.optional(v.string()), // Optional string to support bulk upload
+    // Archive metadata
+    archivedAt: v.optional(v.number()), // Timestamp when archived
+    archivedBy: v.optional(v.id("users")), // Who archived it
+    archiveReason: v.optional(v.string()), // Optional reason for archiving
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_teacher", ["teacherId"])
     .index("by_status", ["status"])
     .index("by_jenis", ["jenisSk"])
-    .index("by_nomor", ["nomorSk"]),
+    .index("by_nomor", ["nomorSk"])
+    .index("by_archived", ["archivedAt"]),
 
   // Headmaster Tenures (Pengangkatan Kepala Madrasah)
   headmasterTenures: defineTable({

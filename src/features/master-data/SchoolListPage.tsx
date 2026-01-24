@@ -21,6 +21,7 @@ import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
 import { useMutation, usePaginatedQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
+import { Doc, Id } from "../../../convex/_generated/dataModel"
 
 interface School {
   id: string
@@ -59,7 +60,7 @@ export default function SchoolListPage() {
   const bulkCreateSchoolMutation = useMutation(convexApi.schools.bulkCreate)
 
   // Map Convex data to School interface
-  const schools = (results || []).map((s: any) => ({
+  const schools = (results || []).map((s: Doc<"schools">) => ({
     id: s._id,
     nsm: s.nsm || "",
     npsn: s.npsn || "",
@@ -86,7 +87,7 @@ export default function SchoolListPage() {
                 return user.unitKerja
             }
         }
-    } catch(e) { return null }
+    } catch { return null }
     return null
   })
 
@@ -105,14 +106,15 @@ export default function SchoolListPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [schoolToDelete, setSchoolToDelete] = useState<{id: string, name: string} | null>(null)
 
-  // Get unique kecamatan (Ideally fetch from backend, but for now filtering loaded results is okayish or hardcoding common ones)
-  // Since we use server pagination, we can't easily get ALL unique kecamatan from client.
-  // For now, let's keep it simple or remove the dynamic list if it's empty.
-  // We'll trust the user to type or use a pre-defined list in a real app. 
-  // Here I will use a hardcoded list or just keep the empty selection for now until we have a 'locations' table.
+  // Get unique kecamatan 
   const uniqueKecamatan = [
     "Cilacap Selatan", "Cilacap Tengah", "Cilacap Utara", "Kesugihan", "Adipala", "Maos", "Kroya", "Binangun", "Nusawungu", "Sampang", "Karangpucung", "Cimanggu", "Majenang", "Wanareja", "Dayeuhluhur", "Gandrungmangu", "Sidareja", "Kedungreja", "Patimuan", "Bantarsari", "Kawunganten", "Jeruklegi", "Kampung Laut", "Cipari"
   ].sort()
+
+  const closeDialog = () => {
+      setIsAddOpen(false)
+      setIsEditMode(false)
+  }
 
   const handleSave = async () => {
       if(!formData.nsm || !formData.nama) {
@@ -123,7 +125,7 @@ export default function SchoolListPage() {
         if(isEditMode && formData.id) {
            // Update via Convex
            await updateSchoolMutation({ 
-             id: formData.id as any,
+             id: formData.id as Id<"schools">,
              nama: formData.nama,
              nsm: formData.nsm,
              npsn: formData.npsn,
@@ -150,8 +152,8 @@ export default function SchoolListPage() {
            alert("Berhasil menambah sekolah")
         }
         closeDialog()
-      } catch (e: any) {
-          alert("Gagal menyimpan: " + e.message)
+      } catch (error) {
+          alert("Gagal menyimpan: " + (error as Error).message)
       }
   }
 
@@ -166,14 +168,14 @@ export default function SchoolListPage() {
       
       try {
           console.log('[DELETE] Calling mutation for:', schoolToDelete.name)
-          await deleteSchoolMutation({ id: schoolToDelete.id as any })
+          await deleteSchoolMutation({ id: schoolToDelete.id as Id<"schools"> })
           console.log('[DELETE] Success!')
           alert(`✅ Sekolah "${schoolToDelete.name}" berhasil dihapus!`)
           setDeleteConfirmOpen(false)
           setSchoolToDelete(null)
-      } catch (e: any) {
-          console.error('[DELETE] Error:', e)
-          alert("❌ Gagal menghapus: " + e.message)
+      } catch (error) {
+          console.error('[DELETE] Error:', error)
+          alert("❌ Gagal menghapus: " + (error as Error).message)
       }
   }
 
@@ -189,8 +191,8 @@ export default function SchoolListPage() {
               try {
                   const result = await bulkDeleteSchoolMutation({})
                   alert(`Berhasil menghapus ${result.count} sekolah!`)
-              } catch (e: any) {
-                  alert("Gagal menghapus: " + e.message)
+              } catch (error) {
+                  alert("Gagal menghapus: " + (error as Error).message)
               }
           }
       }
@@ -206,11 +208,6 @@ export default function SchoolListPage() {
       setIsEditMode(true)
       setFormData(item)
       setIsAddOpen(true)
-  }
-
-  const closeDialog = () => {
-      setIsAddOpen(false)
-      setIsEditMode(false)
   }
 
   const handleExport = async () => {
@@ -451,6 +448,7 @@ export default function SchoolListPage() {
             };
 
             // Parse Excel data to school format with flexible column mapping
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const schools = data.map((row: any) => {
               // Get all possible column values (case insensitive)
               const getColumn = (...names: string[]) => {
@@ -498,13 +496,13 @@ export default function SchoolListPage() {
                 statusJamiyyah,
                 akreditasi,
               };
-            }).filter((s: any) => s.nsm && s.nama); // Only include valid entries
+            }).filter((s) => s.nsm && s.nama); // Only include valid entries
 
             // Use Convex bulk create
             const result = await bulkCreateSchoolMutation({ schools });
             alert(`Berhasil mengimpor ${result.count} dari ${schools.length} sekolah`)
-          } catch (e: any) {
-            alert("Gagal import: " + e.message)
+          } catch (error) {
+            alert("Gagal import: " + (error as Error).message)
           }
         }}
       />

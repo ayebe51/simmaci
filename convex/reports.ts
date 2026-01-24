@@ -2,6 +2,7 @@ import { v } from "convex/values"
 import { query } from "./_generated/server"
 
 // Main SK report generation with filters
+// Main SK report generation with filters
 export const generateSkReport = query({
   args: {
     startDate: v.optional(v.number()),
@@ -32,9 +33,17 @@ export const generateSkReport = query({
       filtered = filtered.filter(sk => sk.status === args.status)
     }
     
-    // School filter - only if valid ID provided
-    if (args.schoolId && typeof args.schoolId === 'string') {
-      filtered = filtered.filter(sk => sk.unitKerja === args.schoolId)
+    // School filter - Resolve ID to Name first if needed
+    if (args.schoolId) {
+      // Logic: unitKerja stores the Name, so we need to get the name from the ID
+      const schoolDoc = await ctx.db.get(args.schoolId);
+      if (schoolDoc) {
+          filtered = filtered.filter(sk => sk.unitKerja === schoolDoc.nama)
+      } else {
+          // If school ID valid but not found, return empty or ignore? 
+          // Safest is to filter everything out as no match
+          filtered = []
+      }
     }
     
     // Teacher filter
@@ -45,14 +54,25 @@ export const generateSkReport = query({
     // Enrich with related data (schools, teachers)
     const enriched = await Promise.all(
       filtered.map(async (sk) => {
-        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
-        const teacher = sk.teacherId ? await ctx.db.get(sk.teacherId) : null
-        
-        return {
-          ...sk,
-          schoolName: (school as any)?.nama || 'N/A',
-          teacherName: teacher?.nama || 'N/A',
-          teacherNIP: teacher?.nip || '-',
+        try {
+            // Defensive: Check if teacherId is actually valid format if needed, but db.get usually safe
+            const teacher = sk.teacherId ? await ctx.db.get(sk.teacherId) : null
+            
+            return {
+            ...sk,
+            schoolName: sk.unitKerja || 'N/A', 
+            teacherName: teacher?.nama || 'N/A',
+            teacherNIP: teacher?.nip || '-',
+            }
+        } catch (err) {
+            console.error(`Failed to enrich SK ${sk.nomorSk}:`, err)
+            // Return query-safe fallback
+            return {
+                ...sk,
+                schoolName: sk.unitKerja || 'Error',
+                teacherName: 'Error Loading',
+                teacherNIP: '-',
+            }
         }
       })
     )
@@ -89,19 +109,17 @@ export const getTeacherSkHistory = query({
   handler: async (ctx, args) => {
     const sks = await ctx.db
       .query("skDocuments")
-      .filter(q => q.eq(q.field("teacherId"), args.teacherId))
+      .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
       .collect()
     
     // Enrich with school data
-    const enriched = await Promise.all(
-      sks.map(async (sk) => {
-        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
+    const enriched = sks.map((sk) => {
+        // ERROR FIX: unitKerja is String
         return {
           ...sk,
-          schoolName: (school as any)?.nama || 'N/A',
+          schoolName: sk.unitKerja || 'N/A',
         }
-      })
-    )
+    })
     
     // Sort by creation date (newest first)
     return enriched.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
@@ -112,26 +130,40 @@ export const getTeacherSkHistory = query({
 export const getSchoolSummary = query({
   args: { schoolId: v.id("schools") },
   handler: async (ctx, args) => {
+    // Execute: Get School Name from ID
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) {
+        return {
+            total: 0,
+            byStatus: { draft:0, pending:0, approved:0, rejected:0 },
+            byType: { pengangkatan:0, mutasi:0, promosi:0, pemberhentian:0 },
+            recent: []
+        }
+    }
+
+    // Filter SKs by Name match
     const sks = await ctx.db
       .query("skDocuments")
-      .filter(q => q.eq(q.field("unitKerja"), args.schoolId))
-      .collect()
+      .collect() // have to collect all then filter because no index on unitKerja string
+      // Note: If 'skDocuments' gets huge, we should add an index on 'unitKerja' string.
+    
+    const matchedSks = sks.filter(sk => sk.unitKerja === school.nama);
     
     return {
-      total: sks.length,
+      total: matchedSks.length,
       byStatus: {
-        draft: sks.filter(sk => sk.status === 'draft').length,
-        pending: sks.filter(sk => sk.status === 'pending').length,
-        approved: sks.filter(sk => sk.status === 'approved').length,
-        rejected: sks.filter(sk => sk.status === 'rejected').length,
+        draft: matchedSks.filter(sk => sk.status === 'draft').length,
+        pending: matchedSks.filter(sk => sk.status === 'pending').length,
+        approved: matchedSks.filter(sk => sk.status === 'approved').length,
+        rejected: matchedSks.filter(sk => sk.status === 'rejected').length,
       },
       byType: {
-        pengangkatan: sks.filter(sk => sk.jenisSk === 'pengangkatan').length,
-        mutasi: sks.filter(sk => sk.jenisSk === 'mutasi').length,
-        promosi: sks.filter(sk => sk.jenisSk === 'promosi').length,
-        pemberhentian: sks.filter(sk => sk.jenisSk === 'pemberhentian').length,
+        pengangkatan: matchedSks.filter(sk => sk.jenisSk === 'pengangkatan').length,
+        mutasi: matchedSks.filter(sk => sk.jenisSk === 'mutasi').length,
+        promosi: matchedSks.filter(sk => sk.jenisSk === 'promosi').length,
+        pemberhentian: matchedSks.filter(sk => sk.jenisSk === 'pemberhentian').length,
       },
-      recent: sks
+      recent: matchedSks
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         .slice(0, 5)
     }

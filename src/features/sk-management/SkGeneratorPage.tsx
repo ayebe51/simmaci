@@ -172,16 +172,15 @@ const generateBulkSkZip = async (
 }
 
 // 🔥 CONVEX REAL-TIME
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function SkGeneratorPage() {
-  // Use Convex query to get teachers
+  // Use Convex query to get teachers who have PENDING/DRAFT SKs
+  const teachersData = useQuery(convexApi.sk.getQueuedSk) || []
   
-  // 🔥 ONLY SHOW TEACHERS WHO HAVE SUBMITTED SK
-  // Teachers from master data import won't appear here
-  // Only teachers who submitted SK via submission form will show
-  const teachersData = useQuery(convexApi.sk.getTeachersWithSk) || []
+  // Mutations
+  const batchUpdateStatus = useMutation(convexApi.sk.batchUpdateStatus)
   
   // STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -722,66 +721,17 @@ export default function SkGeneratorPage() {
       
       const res = await generateBulkSkZip(mappedData, "SK_Masal_Maarif.zip", mappedData) // Pass mappedData as debug info
       if (res.successCount > 0) {
-          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\n${res.errorCount > 0 ? "Beberapa gagal, cek log." : ""}`)
           
-          // --- TEMPORARILY DISABLED: AUTO ARCHIVE & DELETE  ---
-          // REASON: Backend /sk endpoint returns 500 error, blocking ZIP generation  
-          // TODO: Fix backend issue before re-enabling
-          /*
-          let archivedCount = 0
+          // 🔥 REAL-TIME ARCHIVE via Convex
+          // Automatically set status to "active" (Approved)
+          await batchUpdateStatus({
+            ids: Array.from(selectedIds) as any, // ID here corresponds to SK Document ID because of getQueuedSk
+            status: "active" 
+          })
+
+          alert(`✅ Berhasil membuat ${res.successCount} SK!\n\nSK otomatis disimpan sebagai 'Active' dan hilang dari antrian Draft.`)
           
-          // 0. Fetch existing SKs to prevent duplicates
-          let existingSkList: any[] = []
-          try {
-             existingSkList = await api.getSkList()
-          } catch(e) { console.warn("Failed to check duplicates", e) }
-
-          for (const item of mappedData) {
-              try {
-                  // 1. Check Duplicate
-                  const isDup = existingSkList.some(ex => 
-                      ex.nama === item.nama && 
-                      ex.jenis === item.jenisSk &&
-                      ex.status !== 'Rejected' // Allow retrying rejected ones
-                  )
-                  
-                  if (isDup) {
-                      console.log(`Skipping duplicate SK for ${item.nama}`)
-                      continue;
-                  }
-
-                  // 2. Archive to SK History
-                  await api.createSk({
-                      jenis: item.jenisSk,
-                      jenisPengajuan: "new",
-                      status: "Approved",
-                      nama: item.nama,
-                      niy: item.nuptk || "-",
-                      jabatan: item.JABATAN,
-                      unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap", // CRITICAL FIX: Use mapped UNIT_KERJA field
-                      nomorSurat: item.NOMOR_SURAT,
-                      fileUrl: "Generated via Bulk ZIP",
-                      keterangan: (item as any).suratPermohonanUrl 
-                        ? `Permohonan: ${(item as any).suratPermohonanUrl}` 
-                        : "Generated via SK Generator"
-                  })
-
-                  // 2. Remove from Queue (Teacher Data)
-                  if ((item as any).id) {
-                      await api.deleteTeacher((item as any).id)
-                  }
-                  archivedCount++
-              } catch (err) {
-                  console.error("Auto-archive failed:", item.nama, err)
-              }
-          }
-
-          if (archivedCount > 0) {
-              console.log(`Archived & Deleted ${archivedCount} teachers from queue.`)
-              fetchTeachers() // Refresh list immediately
-          }
-          */
-          // -------------------------------------------
+          setSelectedIds(new Set())
 
           // Auto-Increment Logic for Next Batch
           const NextStartNumber = (parseInt(nomorMulai) || 0) + res.successCount
@@ -797,20 +747,21 @@ export default function SkGeneratorPage() {
   }
 
 
-  const handleReset = async () => {
-    if (!confirm("⚠️ PERINGATAN KERAS!\n\nApakah anda yakin ingin MENGHAPUS SEMUA DATA GURU?\nTindakan ini tidak dapat dibatalkan.")) return
-    
-    // Double confirmation
-    if(!confirm("Yakin? Data akan hilang selamanya.")) return
+  // Mutation for clearing queue
+  const archiveAllSks = useMutation(convexApi.sk.archiveAll)
 
+  const handleReset = async () => {
+    if (!confirm("⚠️ PERINGATAN!\n\nApakah anda yakin ingin MEMBERSIHKAN PROSES SK?\nSemua SK Draft akan di-arsipkan dan antrian menjadi kosong.")) return
+    
     setIsLoading(true)
     try {
-        await api.deleteAllTeachers()
-        alert("Semua data guru berhasil dihapus.")
-        fetchTeachers() // Refresh list
+        // Use Convex mutation to archive all
+        await archiveAllSks({})
+        alert("Antrian SK berhasil dibersihkan.")
+        // No need to fetchTeachers(), Convex updates automatically
     } catch (e: any) {
         console.error(e)
-        alert("Gagal menghapus data: " + e.message)
+        alert("Gagal membersihkan: " + e.message)
     } finally {
         setIsLoading(false)
     }

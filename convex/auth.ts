@@ -1,14 +1,19 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { hashSync, compareSync } from "bcryptjs";
 
-// Simple password hashing (in production, use proper bcrypt or Convex Auth)
+// Password hashing
 function hashPassword(password: string): string {
-  // Simple hash for demo - in production use proper encryption
-  return btoa(password); // Base64 encoding using web API
+  return hashSync(password, 10);
 }
 
 function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+  // Check if it's a bcrypt hash (starts with $2a$, $2b$, or $2y$)
+  if (hash.startsWith("$2")) {
+      return compareSync(password, hash);
+  }
+  // Fallback to old simple hash (btoa) for migration
+  return btoa(password) === hash;
 }
 
 // Register new user
@@ -73,11 +78,18 @@ export const login = mutation({
     if (!user.isActive) {
       throw new Error("Account is inactive");
     }
+
+    // Auto-migrate legacy password hashes to bcrypt
+    if (!user.passwordHash.startsWith("$2")) {
+        console.log(`[AUTH] Migrating password for user ${user.email} to bcrypt`);
+        const newHash = hashPassword(args.password);
+        await ctx.db.patch(user._id, { passwordHash: newHash });
+    }
     
     // Return user data (without password hash)
     return {
       user: {
-        _id: user._id,  // Changed from 'id' to '_id' for consistency
+        _id: user._id,
         email: user.email,
         name: user.name,
         role: user.role,
@@ -146,10 +158,54 @@ export const createDefaultAdmin = mutation({
   },
 });
 
-// List all users (admin only check should be done in frontend/middleware)
+export const createCustomAdmin = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    password: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Cek apakah email sudah ada
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+
+    if (existing) {
+      throw new Error("Email sudah terdaftar");
+    }
+
+    // Buat user dengan role super_admin
+    await ctx.db.insert("users", {
+      email: args.email,
+      name: args.name,
+      passwordHash: hashPassword(args.password), 
+      role: "super_admin",
+      isActive: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return { success: true, message: `Admin ${args.name} berhasil dibuat` };
+  },
+});
+
+// List all users (admin only check)
 export const listUsers = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { 
+    userId: v.optional(v.id("users")) 
+  },
+  handler: async (ctx, args) => {
+    if (!args.userId) {
+       // Return empty if not authenticated (or could throw)
+       return [];
+    }
+
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "super_admin") {
+       throw new Error("Unauthorized: Access denied");
+    }
+
     const users = await ctx.db.query("users").collect();
     
     return users.map(u => ({

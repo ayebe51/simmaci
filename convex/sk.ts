@@ -325,3 +325,39 @@ export const getTeachersWithSk = query({
     return teachers.filter((t): t is NonNullable<typeof t> => t !== null);
   },
 });
+
+export const getQueuedSk = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get SKs that are 'draft' or 'new'
+    const sks = await ctx.db.query("skDocuments").collect();
+    const pendingSks = sks.filter(sk => sk.status === "draft" || sk.status === "new");
+
+    const results = [];
+    for (const sk of pendingSks) {
+       if (!sk.teacherId) continue;
+       const teacher = await ctx.db.get(sk.teacherId);
+       if (!teacher) continue;
+
+       // Merge teacher and SK data
+       // We use SK ID as the primary row ID for the generator queue
+       results.push({
+          ...teacher, // flattened teacher properties
+          // Explicitly map properties that might overlap or be needed specifically
+          _id: sk._id,           // IMPORTANT: Row ID is the SK Document ID
+          teacherId: teacher._id,// Keep reference to real teacher ID
+          
+          // SK Specifics
+          skId: sk._id,
+          jenisSk: sk.jenisSk,
+          skStatus: sk.status,
+          nomorSkDraft: sk.nomorSk, // Draft number if exists
+          
+          updatedAt: sk.updatedAt,
+       });
+    }
+    
+    // Sort by newest
+    return results.sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+});

@@ -77,30 +77,33 @@ export const create = mutation({
     createdBy: v.optional(v.string()), // 🔥 CHANGED to optional string (fix for bulk upload)
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    
-    // Check if nomor SK already exists
-    const existing = await ctx.db
-      .query("skDocuments")
-      .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
-      .first();
-    
-    let finalNomorSk = args.nomorSk;
-    if (existing) {
-      // Auto-resolve duplicate by appending random 3 digits (temporary fix to prevent crash)
-      // Ideally, we should fetch the next sequence, but for now this unblocks the user.
-      const randomSuffix = Math.floor(100 + Math.random() * 900);
-      finalNomorSk = `${args.nomorSk}-${randomSuffix}`;
-      console.warn(`Duplicate SK Number detected: ${args.nomorSk}. Auto-resolved to: ${finalNomorSk}`);
+    try {
+        const now = Date.now();
+        
+        // Check if nomor SK already exists
+        const existing = await ctx.db
+          .query("skDocuments")
+          .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
+          .first();
+        
+        let finalNomorSk = args.nomorSk;
+        if (existing) {
+          const randomSuffix = Math.floor(100 + Math.random() * 900);
+          finalNomorSk = `${args.nomorSk}-${randomSuffix}`;
+          console.warn(`Duplicate SK Number detected: ${args.nomorSk}. Auto-resolved to: ${finalNomorSk}`);
+        }
+        
+        return await ctx.db.insert("skDocuments", {
+          ...args,
+          nomorSk: finalNomorSk,
+          status: args.status || "draft",
+          createdAt: now,
+          updatedAt: now,
+        });
+    } catch (err: any) {
+        console.error("SK Creation Failed:", err);
+        throw new Error(`Gagal membuat SK: ${err.message}`);
     }
-    
-    return await ctx.db.insert("skDocuments", {
-      ...args,
-      nomorSk: finalNomorSk,
-      status: args.status || "draft",
-      createdAt: now,
-      updatedAt: now,
-    });
   },
 });
 

@@ -473,7 +473,8 @@ export function BulkSkSubmission() {
                 log(`Creating SK for ${c["nama"]} with Teacher ID: ${teacherId}...`)
                 
                 const payload = {
-                    nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+                    // Generate truly unique SK number to avoid collision errors
+                    nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}/${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
                     jenisSk: jenisSk,
                     teacherId: teacherId,
                     nama: c["nama"] ? String(c["nama"]) : "Tanpa Nama",

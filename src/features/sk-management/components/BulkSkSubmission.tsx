@@ -471,8 +471,8 @@ export function BulkSkSubmission() {
                 }
                 
                 log(`Creating SK for ${c["nama"]} with Teacher ID: ${teacherId}...`)
-                const skId = await createSkMutation({
-                    // Use timestamp to ensure uniqueness during repeated bulk tests
+                
+                const payload = {
                     nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
                     jenisSk: jenisSk,
                     teacherId: teacherId,
@@ -483,7 +483,10 @@ export function BulkSkSubmission() {
                     status: autoApprove ? "approved" : "draft",
                     fileUrl: permohonanUrl || undefined,
                     createdBy: userId,
-                })
+                };
+                console.log("🚀 Payload SK:", payload);
+
+                const skId = await createSkMutation(payload)
                 log(`✅ SK created: ${skId}`)
                 
                 successCount++;

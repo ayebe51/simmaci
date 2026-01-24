@@ -24,14 +24,6 @@ export function NotificationDropdown() {
   const userStr = localStorage.getItem("user")
   const user = userStr ? JSON.parse(userStr) : null
 
-  // 🐛 DEBUG: Log user info
-  console.log("🔔 NotificationDropdown User:", {
-    hasUser: !!user,
-    userId: user?._id,
-    userName: user?.name,
-    userEmail: user?.email,
-  })
-
   // Fetch notifications from Convex
   const notifications = useQuery(
     api.notifications.getRecentNotifications,
@@ -42,14 +34,6 @@ export function NotificationDropdown() {
     api.notifications.getUnreadCount,
     user?._id ? { userId: user._id } : "skip"
   )
-
-  // 🐛 DEBUG: Log query results
-  console.log("🔔 Notifications Query:", {
-    notifications: notifications,
-    notificationCount: notifications?.length,
-    unreadCount: unreadCount,
-    querySkipped: !user?._id,
-  })
 
   // Mutations
   const markAsRead = useMutation(api.notifications.markAsRead)

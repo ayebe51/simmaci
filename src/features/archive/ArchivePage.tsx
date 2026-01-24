@@ -24,8 +24,12 @@ export default function ArchivePage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [targetSk, setTargetSk] = useState<any>(null)
+  const [targetSk, setTargetSk] = useState<{
+    _id: string
+    nomorSk: string
+    nama: string
+    jenisSk: string
+  } | null>(null)
 
   // Get user from localStorage
   const userStr = localStorage.getItem("user")
@@ -95,7 +99,12 @@ export default function ArchivePage() {
     }
   }
 
-  const openRestoreDialog = (sk: any) => {
+  const openRestoreDialog = (sk: {
+    _id: string
+    nomorSk: string
+    nama: string
+    jenisSk: string
+  }) => {
     setTargetSk(sk)
     setRestoreDialogOpen(true)
   }

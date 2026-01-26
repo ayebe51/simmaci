@@ -1005,9 +1005,9 @@ export default function TeacherListPage() {
             const result = await bulkCreateMutation({ teachers })
             if (result.errors && result.errors.length > 0) {
               console.warn('[IMPORT] Errors:', result.errors)
-              alert(`⚠️ Berhasil mengimport ${result.count} dari ${teachers.length} data guru.\n\nError: ${result.errors.slice(0, 3).join(', ')}${result.errors.length > 3 ? '...' : ''}`)
+              alert(`⚠️ Berhasil mengimport ${result.count} data. (Backend v${result.version || '?'})\n\nError: ${result.errors.slice(0, 3).join(', ')}`)
             } else {
-              alert(`✅ Berhasil mengimport ${result.count} dari ${teachers.length} data guru!`)
+              alert(`✅ Berhasil mengimport ${result.count} data! (Backend v${result.version || 'Old'})`)
             }
           } catch (error: any) {
             console.error('[IMPORT ERROR]', error)

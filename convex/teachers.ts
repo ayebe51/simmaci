@@ -240,7 +240,8 @@ export const bulkCreate = mutation({
     return { 
       count: results.filter(id => id !== null).length, 
       ids: results,
-      errors: errors.length > 0 ? errors : undefined 
+      errors: errors.length > 0 ? errors : undefined,
+      version: "2.0 (Fix Upsert)" 
     };
   },
 });

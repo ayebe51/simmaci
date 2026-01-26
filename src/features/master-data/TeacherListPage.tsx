@@ -767,42 +767,84 @@ export default function TeacherListPage() {
           console.log('[IMPORT] Raw data:', jsonData.length, 'rows')
           console.log('[IMPORT] First row sample:', jsonData[0])
           
+          // Helper: Robust Date Parser
+          const parseIndonesianDate = (dateStr: any): Date | null => {
+              if (!dateStr) return null
+              const str = String(dateStr).trim()
+              if (/^\d{5}$/.test(str)) { // Excel Serial
+                  const excelEpoch = new Date(1899, 11, 30);
+                  return new Date(excelEpoch.getTime() + parseInt(str) * 24 * 60 * 60 * 1000)
+              }
+              const d = new Date(str)
+              if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d
+              
+              const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+              if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
+              
+              const months: {[key: string]: string} = {
+                  'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
+                  'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',
+                  'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+                  'jul': '07', 'aug': '08', 'agt': '08', 'sep': '09', 'oct': '10', 'okt': '10', 'nov': '11', 'dec': '12', 'des': '12'
+              }
+              const txtParts = str.split(/[\s\-\/]+/)
+              if (txtParts.length >= 3) {
+                  const day = txtParts[0].replace(/[^0-9]/g, '')
+                  const monthTxt = txtParts[1].toLowerCase()
+                  const year = txtParts[2].replace(/[^0-9]/g, '')
+                  if (months[monthTxt] && year && day) return new Date(`${year}-${months[monthTxt]}-${day}`)
+              }
+              return null
+          }
+
           // Map Excel columns to Convex schema with improved status/certification detection
           const teachers = jsonData.map((row: any, index: number) => {
             try {
-              // Detect status from multiple possible fields
-              let detectedStatus = row.Status || row.status || row.STATUS || 'GTT'
-              
-              // Auto-detect status from TMT if not provided
-              const tmt = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
-              if (tmt && !row.Status) {
-                try {
-                  const tmtDate = new Date(tmt)
-                  const yearsOfService = (Date.now() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
-                  if (yearsOfService >= 2) {
-                    detectedStatus = "GTY" // Guru Tetap Yayasan
+              // 1. Detect Status
+              let rawStatus = row.Status || row.status || row.STATUS || ""
+              let detectedStatus = "GTT" // Default fallback
+
+              if (rawStatus) {
+                  const s = String(rawStatus).toLowerCase()
+                  if (s.includes("gty") || s.includes(" tetap") || s.includes("sertifikasi")) detectedStatus = "GTY"
+                  else if (s.includes("gtt") || s.includes("honor") || s.includes("tidak tetap")) detectedStatus = "GTT"
+                  else if (s.includes("pns") || s.includes("asn") || s.includes("pppk")) detectedStatus = "PNS"
+                  else if (s.includes("tendik")) detectedStatus = "Tendik"
+                  else detectedStatus = rawStatus // Use raw if unknown
+              } else {
+                  // Fallback: Calculate from TMT
+                  const tmtVal = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
+                  const tmtDate = parseIndonesianDate(tmtVal)
+                  if (tmtDate) {
+                       const yearsOfService = (Date.now() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+                       if (yearsOfService >= 2) detectedStatus = "GTY"
                   }
-                } catch (e) {
-                  console.warn('[IMPORT] Failed to parse TMT for row', index, ':', tmt)
-                }
               }
               
-              // Parse certification - check multiple columns
+              // 2. Parse Certification
               let isCertified = false
-              const certColumn = row.Sertifikasi || row.sertifikasi || row.SERTIFIKASI || 
-                                row['Status Sertifikasi'] || row.isCertified
-              
-              if (typeof certColumn === 'boolean') {
-                isCertified = certColumn
-              } else if (typeof certColumn === 'string') {
-                const normalized = certColumn.toLowerCase().trim()
-                isCertified = normalized === 'ya' || normalized === 'sudah' || 
-                             normalized === 'true' || normalized === '1' ||
-                             normalized === 'sertifikasi'
-              } else if (typeof certColumn === 'number') {
-                isCertified = certColumn === 1
+              const certColumn = row.Sertifikasi || row.sertifikasi || row.SERTIFIKASI || row['Status Sertifikasi'] || row.isCertified
+              if (certColumn) {
+                  const c = String(certColumn).toLowerCase()
+                  isCertified = c.includes("ya") || c.includes("sudah") || c.includes("sertifi") || c === "v" || c === "true" || c === "1"
               }
               
+              // 3. Parse PDPKPNU
+              let pdpkpnu = "Belum"
+              const pdpkpnuCol = row.PDPKPNU || row.pdpkpnu || row['Status PDPKPNU']
+              if (pdpkpnuCol) {
+                   const p = String(pdpkpnuCol).toLowerCase()
+                   if (p.includes("sudah") || p.includes("lulus") || p.includes("ya") || p === "v") pdpkpnu = "Sudah"
+              }
+
+              // 4. Parse Dates
+              const tmtVal = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
+              const tmtDateObj = parseIndonesianDate(tmtVal)
+              const tmtFormatted = tmtDateObj ? tmtDateObj.toISOString().split('T')[0] : undefined
+
+              const birthDateObj = parseIndonesianDate(row['Tanggal Lahir'] || row.tanggalLahir)
+              const birthDateFormatted = birthDateObj ? birthDateObj.toISOString().split('T')[0] : undefined
+
               const nuptk = String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${index}`)
               const nama = String(row.Nama || row.nama || row.NAMA || "")
               
@@ -818,17 +860,17 @@ export default function TeacherListPage() {
                 nip: row.NIP || row.nip || undefined,
                 jenisKelamin: row['Jenis Kelamin'] || row.jenisKelamin || row.JK || undefined,
                 tempatLahir: row['Tempat Lahir'] || row.tempatLahir || undefined,
-                tanggalLahir: excelSerialToDate(row['Tanggal Lahir'] || row.tanggalLahir),
+                tanggalLahir: birthDateFormatted,
                 pendidikanTerakhir: row['Pendidikan Terakhir'] || row.pendidikan || row.Pendidikan || undefined,
                 unitKerja: (row['Unit Kerja'] || row.unitKerja || row.UNIT_KERJA ||
                            row.satminkal || row.Satminkal || row.SATMINKAL ||
                            row['Satuan Pendidikan'] || row.sekolah || row.Sekolah) || undefined,
                 status: detectedStatus,
-                tmt: excelSerialToDate(row.TMT || row.tmt || row['Tanggal Mulai Tugas']),
+                tmt: tmtFormatted,
                 kecamatan: row.Kecamatan || row.kecamatan || row.KECAMATAN || undefined,
                 phoneNumber: row['No HP'] || row.phoneNumber || row['Nomor HP'] || undefined,
                 email: row.Email || row.email || row.EMAIL || undefined,
-                pdpkpnu: row.PDPKPNU || row.pdpkpnu || undefined,
+                pdpkpnu: pdpkpnu,
                 isCertified: isCertified,
               }
             } catch (error: any) {

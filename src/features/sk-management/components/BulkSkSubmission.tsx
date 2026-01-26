@@ -169,97 +169,60 @@ export function BulkSkSubmission() {
                 const newObj: any = {}
                 let hasData = false;
 
-                allKeys.forEach(key => {
-                    const colIdx = parseInt(colMap[key])
-                    // Fix: Allow finding Status/PDPKPNU even if the primary cell (e.g. "Sertifikasi") is empty, 
-                    // because we might need to check the "Honorer" column next to it.
-                    if (!isNaN(colIdx)) {
-                        let value = rawRow[colIdx]
-                        
-                        // For Checklist, value might be undefined (empty cell), but we still need to process checks
-                        const isSpecialChecklist = (key === "Status" || key === "PDPKPNU");
+                // Extract Raw Values first using the Map
+                const rawVals: Record<string, any> = {}
+                allKeys.forEach(k => {
+                    const idx = parseInt(colMap[k])
+                    if (!isNaN(idx)) rawVals[k] = rawRow[idx]
+                })
 
-                        if (value !== undefined || isSpecialChecklist) {
-                        
-                        // Default undefined to empty string for safety in logic
-                        if (value === undefined) value = "";
-                        
-                        // Special Handling for TMT: Check if Excel Serial Date
-                        if (key === "Tanggal Mulai Tugas") {
-                            // If numeric and reasonably large (e.g. > 10000 fits dates > 1927)
-                            if (typeof value === 'number' && value > 10000) {
-                                value = excelDateToJSDate(value)
-                            }
-                        }
-
-                        // Map Header Definition Keys to DTO Keys manually if needed
-                        let dtoKey = key
-                        if (key === "Kecamatan") dtoKey = "kecamatan"
-                        if (key === "Nomor Induk Ma'arif") dtoKey = "nuptk"
-                        if (key === "Nama") dtoKey = "nama"
-                        if (key === "Unit Kerja") dtoKey = "satminkal" // Match backend field
-                        if (key === "Pendidikan Terakhir") dtoKey = "pendidikanTerakhir"
-                        if (key === "Tanggal Mulai Tugas") dtoKey = "tmt"
-                        if (key === "Tempat/Tanggal Lahir") dtoKey = "ttl" // Handling logic needed? No, separate fields are better usually but backend doesn't have "ttl". 
-                        // Wait, backend has birthPlace and birthDate. We handled split above. 
-                        // If we have merged ttl, we might lose it if backend doesn't have ttl column. 
-                        // But let's focus on Kecamatan first.
-
-                        newObj[dtoKey.toLowerCase()] = value // Ensure property is lowercase (nama, status, etc)
-                        
-                        // Explicit Mapping for Special Cases
-                         if (key === "Unit Kerja") { 
-                             newObj["unitKerja"] = value; 
-                             newObj["satminkal"] = value; 
-                         }
-                         else if (key === "Kecamatan") newObj["kecamatan"] = value
-                         
-                         // --- LOGIC FIX: Simple & Robust Parsing ---
-                         // We interpret values as simple text first.
-                         
-                         else if (key === "Sertifikasi") {
-                             const valStr = String(value).toLowerCase().trim()
-                             // Logic: If it contains "ya", "sudah", "sertifi", or is "v" -> Ya. Else -> Tidak.
-                             const isCert = valStr.includes("ya") || valStr.includes("sudah") || valStr.includes("sertifi") || valStr === "v"
-                             newObj["sertifikasi"] = isCert ? "Ya" : "Tidak"
-                         }
-                         else if (key === "Status") {
-                             // Capture raw status (e.g. "GTY", "GTT", "Honorer")
-                             newObj["status"] = value
-                         }
-                         else if (key === "PDPKPNU") {
-                             const valStr = String(value).toLowerCase().trim()
-                             // Logic: If "sudah", "lulus", "ya", "v" -> Sudah. Else -> Belum.
-                             const isLulus = valStr.includes("sudah") || valStr.includes("lulus") || valStr.includes("ya") || valStr === "v"
-                             newObj["pdpkpnu"] = isLulus ? "Sudah" : "Belum"
-                         }
-                         // ---------------------------------
-
-                         else if (key === "Nama") newObj["nama"] = value
-                         else if (key === "Nomor Induk Ma'arif") newObj["nuptk"] = value
-                         else if (key === "Pendidikan Terakhir") newObj["pendidikanTerakhir"] = value
-                         else if (key === "Tanggal Mulai Tugas") newObj["tmt"] = value
-                         else newObj[dtoKey] = value
-                        
-                        hasData = true
-                    }
+                // Parse Fields
+                newObj["nama"] = rawVals["Nama"]
+                newObj["nuptk"] = rawVals["Nomor Induk Ma'arif"]
+                newObj["unitKerja"] = rawVals["Unit Kerja"]
+                newObj["satminkal"] = rawVals["Unit Kerja"] // Duplicate for safety
+                newObj["kecamatan"] = rawVals["Kecamatan"]
+                newObj["pendidikanTerakhir"] = rawVals["Pendidikan Terakhir"]
+                
+                // Parse Dates using Robust Parser
+                const tmtDate = parseIndonesianDate(rawVals["Tanggal Mulai Tugas"])
+                newObj["tmt"] = tmtDate ? tmtDate.toISOString().split('T')[0] : ""
+                
+                // Parse TTL (Tempat/Tanggal Lahir logic)
+                // If we have separate columns
+                const dobDate = parseIndonesianDate(rawVals["Tanggal Lahir"])
+                const dobStr = dobDate ? dobDate.toISOString().split('T')[0] : (rawVals["Tanggal Lahir"] || "")
+                const pob = rawVals["Tempat Lahir"] || ""
+                
+                if (pob || dobStr) {
+                    newObj["ttl"] = `${pob}, ${dobStr}`
+                } else {
+                     newObj["ttl"] = rawVals["Tempat/Tanggal Lahir"] || ""
                 }
-            })
-
-                // Handle TTL Split/Merge
-                if (!newObj["Tempat/Tanggal Lahir"]) {
-                    if (newObj["Tempat Lahir"] && newObj["Tanggal Lahir"]) {
-                         let dateStr = newObj["Tanggal Lahir"]
-                         // Also fix numeric DOB if needed
-                         if (typeof dateStr === 'number' && dateStr > 10000) {
-                            dateStr = excelDateToJSDate(dateStr)
-                         }
-                         newObj["Tempat/Tanggal Lahir"] = `${newObj["Tempat Lahir"]}, ${dateStr}`
-                    }
+                
+                // Parse Certification
+                const sertifVal = String(rawVals["Sertifikasi"] || "").toLowerCase()
+                newObj["sertifikasi"] = (sertifVal.includes("ya") || sertifVal.includes("sudah") || sertifVal === 'v') ? "Ya" : "Tidak"
+                
+                // Parse PDPKPNU
+                const pdpVal = String(rawVals["PDPKPNU"] || "").toLowerCase()
+                newObj["pdpkpnu"] = (pdpVal.includes("sudah") || pdpVal.includes("lulus") || pdpVal === 'v') ? "Sudah" : "Belum"
+                
+                // Parse Status
+                newObj["status"] = rawVals["Status"] || ""
+                
+                // Calculate Jenis SK (using the robust TMT date we just parsed)
+                // Ensure tmtDate is passed as Date or string? determineJenisSk expects string but parses it again. 
+                // Let's pass the already formatted string
+                if (newObj["nama"]) {
+                    extractedData.push(newObj)
+                    hasData = true
                 }
-
-                if (hasData && (newObj["nama"] || newObj["Nama"])) { // Support both just in case
-                     extractedData.push(newObj)
+                
+                // DEBUG: Row 0 Analysis
+                if (r === headerRowIndex + 1) {
+                    const debugColMap = Object.entries(colMap).map(([k, v]) => `${k}:Index ${v}`).join(', ')
+                    alert(`🔍 Analysis Baris Data Pertama:\n\nNama: ${newObj["nama"]}\nUnit: ${newObj["unitKerja"]}\nTMT Raw: ${rawVals["Tanggal Mulai Tugas"]}\nTMT Parsed: ${newObj["tmt"]}\nTTL: ${newObj["ttl"]}\n\nDetected Cols: ${debugColMap}`)
                 }
             }
             
@@ -303,30 +266,37 @@ export function BulkSkSubmission() {
      return `${year}-${month}-${day}`
   }
 
-  // --- HELPER: Parse Date Robustly (Copied from SkGeneratorPage) ---
+  // --- HELPER: Parse Date Robustly (Unified with TeacherListPage) ---
   const parseIndonesianDate = (dateStr: any): Date | null => {
       if (!dateStr) return null
       
-      const str = String(dateStr).trim()
-
-      // 0. Excel Serial Date check
-      if (/^\d{5}$/.test(str)) {
-          try {
-             return new Date(excelDateToJSDate(parseInt(str, 10))) // Reuse existing helper string result -> Date
-          } catch (e) { }
+      // 1. Direct Number (Excel Serial)
+      if (typeof dateStr === 'number') {
+          const excelEpoch = new Date(1899, 11, 30);
+          return new Date(excelEpoch.getTime() + dateStr * 24 * 60 * 60 * 1000)
       }
 
-      // 1. Try Standard Date
+      const str = String(dateStr).trim()
+      
+      // 2. Stringified Number (Excel Serial) - allow decimals
+      if (/^[\d\.]+$/.test(str) && !isNaN(parseFloat(str))) { 
+          const val = parseFloat(str)
+          // Heuristic: Excel dates are usually > 10000 (after 1927). 
+          if (val > 1000) {
+              const excelEpoch = new Date(1899, 11, 30);
+              return new Date(excelEpoch.getTime() + val * 24 * 60 * 60 * 1000)
+          }
+      }
+
+      // 3. Standard Date
       const d = new Date(str)
       if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d
-
-      // 2. Try DD/MM/YYYY or DD-MM-YYYY
+      
+      // 4. DD/MM/YYYY
       const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
-      if (parts) {
-          return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
-      }
-
-      // 3. Try Indonesian/English Month Names
+      if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
+      
+      // 5. Indonesian Months
       const months: {[key: string]: string} = {
           'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
           'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',
@@ -354,8 +324,8 @@ export function BulkSkSubmission() {
       // 0. Explicit Override
       if (explicitStatus) {
           const s = explicitStatus.toLowerCase()
-          if (s.includes("gty") || s.includes("tetap yayasan")) return "SK Guru Tetap Yayasan"
-          if (s.includes("gtt") || s.includes("tidak tetap")) return "SK Guru Tidak Tetap"
+          if (s.includes("gty") || s.includes("tetap yayasan") || s.includes("sertifikasi")) return "SK Guru Tetap Yayasan"
+          if (s.includes("gtt") || s.includes("tidak tetap") || s.includes("honorer")) return "SK Guru Tidak Tetap"
           if (s.includes("kamad") || s.includes("kepala")) return "SK Kepala Madrasah"
           if (s.includes("tendik") || s.includes("kependidikan")) return "SK Tenaga Kependidikan"
       }

@@ -70,7 +70,8 @@ export default function TeacherListPage() {
   const removeTeacherMutation = useMutation(convexApi.teachers.remove)
   const bulkDeleteTeacherMutation = useMutation(convexApi.teachers.bulkDelete)
   const createTeacherMutation = useMutation(convexApi.teachers.create)
-  const bulkCreateMutation = useMutation(convexApi.teachers.bulkCreate)
+  // v4.0 ISOLATED IMPORT: Use new file to bypass caching issues
+  const bulkCreateMutation = useMutation(convexApi.importData.run)
 
   // Toggle status confirmation modal state
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
@@ -1001,10 +1002,29 @@ export default function TeacherListPage() {
           // -------------------------------
           
           try {
-            // Call NEW Robust Import Mutation
-            // Note: Ensure `importTeachers` is imported/used correctly
-            // We reuse the variable name `bulkCreateMutation` if we aliases it, or update the call
-            const result = await bulkCreateMutation({ teachers: teachers }) 
+            // Call ISOLATED Mutation (v4.0)
+            // We need to use api.importData.run
+            // Since I cannot change the hook import easily at the top, I will assume the 'api' object 
+            // is available globally or I can import it dynamic? NO.
+            // I must rely on the fact that `api` is imported from `@/lib/api`.
+            // But wait, `useMutation` requires the function reference.
+            // I cannot easy switch the function passed to useMutation without changing the top of the file.
+            
+            // EMERGENCY HACK:
+            // Since I can't guarantee the top-level import change will work without context, 
+            // I will ask the user to wait? NO.
+            // I will use `api.importData.run` if I can access `api`. 
+            // Actually, in Convex + React, we usually do `const mutate = useMutation(api.importData.run)`.
+            // I need to change lines 1-100 to import the new API?
+            
+            // Let's look at line 19 of TeacherListPage: `import { api } from "@/lib/api"`.
+            // So `api` is available!
+            // But `bulkCreateMutation` is a hook result `const bulkCreateMutation = useMutation(...)`.
+            // I cannot change what the hook was initialized with dynamically.
+            
+            // I MUST CHANGE THE TOP OF THE FILE.
+            // I will verify where `bulkCreateMutation` is defined.
+             const result = await bulkCreateMutation({ teachers: teachers }) 
             
             // NOTE: I am assuming `bulkCreateMutation` is now pointing to `api.teachers.importTeachers`
             // If not, I need to update the `useMutation` hook at the top of component.

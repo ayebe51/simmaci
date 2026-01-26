@@ -124,32 +124,52 @@ export const bulkCreate = mutation({
       fileUrl: v.optional(v.string()),
       qrCode: v.optional(v.string()),
     })),
-    createdBy: v.id("users"),
+    createdBy: v.string(), // Changed from v.id("users") to v.string() to match schema and single create
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const results = [];
+    const errors = [];
     
-    for (const doc of args.documents) {
-      // Check duplicates
-      const existing = await ctx.db
-        .query("skDocuments")
-        .withIndex("by_nomor", (q) => q.eq("nomorSk", doc.nomorSk))
-        .first();
-      
-      if (!existing) {
-        const id = await ctx.db.insert("skDocuments", {
-          ...doc,
-          status: doc.status || "active",
-          createdBy: args.createdBy,
-          createdAt: now,
-          updatedAt: now,
-        });
-        results.push(id);
+    console.log(`Starting bulkCreate for ${args.documents.length} documents by ${args.createdBy}`);
+    
+    try {
+      for (const doc of args.documents) {
+        try {
+          // Check duplicates
+          const existing = await ctx.db
+            .query("skDocuments")
+            .withIndex("by_nomor", (q) => q.eq("nomorSk", doc.nomorSk))
+            .first();
+          
+          if (!existing) {
+            const id = await ctx.db.insert("skDocuments", {
+              ...doc,
+              status: doc.status || "active",
+              createdBy: args.createdBy,
+              createdAt: now,
+              updatedAt: now,
+            });
+            results.push(id);
+          } else {
+            console.log(`Skipping duplicate SK: ${doc.nomorSk}`);
+          }
+        } catch (innerError: any) {
+          console.error(`Error processing SK ${doc.nomorSk}:`, innerError);
+          errors.push({ nomor: doc.nomorSk, error: innerError.message });
+        }
       }
+      
+      console.log(`Bulk Create finished. Created: ${results.length}, Errors: ${errors.length}`);
+      
+      // If we have mixed results, we return success count, but maybe we should warn?
+      // For now, return standard format.
+      return { count: results.length, ids: results, errors: errors.length > 0 ? errors : undefined };
+      
+    } catch (e: any) {
+      console.error("Critical Error in bulkCreate:", e);
+      throw new Error(`Bulk Create Failed: ${e.message}`);
     }
-    
-    return { count: results.length, ids: results };
   },
 });
 
@@ -189,6 +209,37 @@ export const archive = mutation({
       updatedAt: Date.now(),
     });
   },
+});
+
+// Hard delete all SK documents (for true cleanup)
+export const cleanupAll = mutation({
+  args: {},
+  handler: async (ctx) => {
+    console.log("Starting cleanupAll...");
+    try {
+      const allDocs = await ctx.db.query("skDocuments").collect();
+      console.log(`Found ${allDocs.length} documents to delete.`);
+      
+      let deleted = 0;
+      for (const doc of allDocs) {
+        await ctx.db.delete(doc._id);
+        deleted++;
+      }
+      console.log(`Successfully deleted ${deleted} documents.`);
+      
+      return { count: allDocs.length };
+    } catch (e: any) {
+      console.error("Error in cleanupAll:", e);
+      throw new Error(`Delete failed: ${e.message}`);
+    }
+  },
+});
+
+export const testHello = query({
+  args: {},
+  handler: async () => {
+    return "Hello from SK module";
+  }
 });
 
 // Archive all SK documents (for reset functionality)

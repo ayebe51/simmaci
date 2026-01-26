@@ -150,17 +150,25 @@ export const createDefaultAdmin = mutation({
 export const listUsers = query({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query("users").collect();
-    
-    return users.map(u => ({
-      id: u._id,
-      email: u.email,
-      name: u.name,
-      role: u.role,
-      unitKerja: u.unit, // Map to frontend format
-      isActive: u.isActive,
-      createdAt: u.createdAt,
-    }));
+    try {
+      const users = await ctx.db.query("users").collect();
+      
+      return users.map(u => ({
+        id: u._id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        unitKerja: u.unit, // Map to frontend format
+        isActive: u.isActive,
+        createdAt: u.createdAt,
+      }));
+    } catch (e: any) {
+      console.error("Error in listUsers:", e);
+      // Construct a safe error message
+      const errorMessage = e.message || "Unknown error";
+      console.error(`Detailed error stats: ${JSON.stringify(e)}`);
+      throw new Error(`Failed to list users: ${errorMessage}`);
+    }
   },
 });
 

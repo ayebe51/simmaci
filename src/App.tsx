@@ -30,6 +30,7 @@ import PublicVerificationPage from "./features/verification/PublicVerificationPa
 import AiChatAssistant from "./features/ai/components/AiChatAssistant"
 import ArchivePage from "./features/archive/ArchivePage"
 import { Toaster } from "@/components/ui/sonner"
+import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 
 // Create a client
 const queryClient = new QueryClient()
@@ -55,7 +56,13 @@ export default function App() {
                       <Route path="master/schools/:id" element={<SchoolDetailPage />} />
                       <Route path="master/students" element={<StudentListPage />} />
                       <Route path="master/teachers" element={<TeacherListPage />} />
-                      <Route path="users" element={<UserListPage />} />
+                      <Route path="master/teachers" element={<TeacherListPage />} />
+                      <Route path="users" element={
+                        <GlobalErrorBoundary>
+                          <UserListPage />
+                        </GlobalErrorBoundary>
+                      } />
+                      <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk/new" element={<SkSubmissionPage />} />
                       <Route path="sk-saya" element={<MySkPage />} />

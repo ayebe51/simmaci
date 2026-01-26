@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx convex deploy --cmd 'vite build'",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test"

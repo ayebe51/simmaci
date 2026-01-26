@@ -1,0 +1,9 @@
+[31mx[39m Build failed in 4.54s
+[31merror during build:
+[31m[vite:load-fallback] Could not load D:\SIMMACI\src/lib/api (imported by src/features/reports/ReportPage.tsx): ENOENT: no such file or directory, open 'D:\SIMMACI\src\lib\api'[31m
+    at async open (node:internal/fs/promises:634:25)
+    at async Object.readFile (node:internal/fs/promises:1236:14)
+    at async Object.load (file:///D:/SIMMACI/node_modules/vite/dist/node/chunks/dep-BZMjGe_U.js:50485:25)
+    at async PluginDriver.hookFirstAndGetPlugin (file:///D:/SIMMACI/node_modules/rollup/dist/es/shared/node-entry.js:22404:28)
+    at async file:///D:/SIMMACI/node_modules/rollup/dist/es/shared/node-entry.js:21404:33
+    at async Queue.work (file:///D:/SIMMACI/node_modules/rollup/dist/es/shared/node-entry.js:22632:32)[39m

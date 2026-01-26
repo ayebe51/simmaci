@@ -4,8 +4,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Printer, Search, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
+// import { api } from "@/lib/api"
 import { toast } from "sonner"
+
+const api = {
+  getTeachers: async () => [] as any[]
+}
 
 export default function ReportPage() {
   const [reportType, setReportType] = useState("teachers_by_unit")

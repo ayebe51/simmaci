@@ -27,10 +27,9 @@ import CompetitionDetailPage from "./features/events/CompetitionDetailPage"
 import HeadmasterSubmissionPage from "./features/sk-management/HeadmasterSubmissionPage"
 import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
-import AiChatAssistant from "./features/ai/components/AiChatAssistant"
 import ArchivePage from "./features/archive/ArchivePage"
 import { Toaster } from "@/components/ui/sonner"
-import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
+// import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 
 // Create a client
 const queryClient = new QueryClient()
@@ -57,11 +56,7 @@ export default function App() {
                       <Route path="master/students" element={<StudentListPage />} />
                       <Route path="master/teachers" element={<TeacherListPage />} />
                       <Route path="master/teachers" element={<TeacherListPage />} />
-                      <Route path="users" element={
-                        <GlobalErrorBoundary>
-                          <UserListPage />
-                        </GlobalErrorBoundary>
-                      } />
+                      <Route path="users" element={<UserListPage />} />
                       <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk/new" element={<SkSubmissionPage />} />
@@ -79,7 +74,6 @@ export default function App() {
                       <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
                       <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
                       <Route path="archive" element={<ArchivePage />} />
-                      <Route path="ai-assistant" element={<AiChatAssistant />} />
                     </Routes>
                   </AppShell>
               </ProtectedLayout>

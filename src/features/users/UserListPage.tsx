@@ -37,8 +37,10 @@ export default function UserListPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   
+  
   // 🔥 CONVEX QUERIES
-  const convexUsers = useQuery(convexApi.auth.listUsers)
+  // const convexUsers = useQuery(convexApi.auth.listUsers)
+  const convexUsers: any[] = [] // Disable query for debugging
   const convexSchools = useQuery(convexApi.schools.list, {})
   const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
   

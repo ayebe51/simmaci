@@ -188,3 +188,30 @@ export const updateUserSchool = mutation({
     return { success: true };
   },
 });
+// Update user details (admin function)
+export const updateUser = mutation({
+  args: {
+    userId: v.id("users"),
+    role: v.optional(v.string()),
+    unit: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
+    password: v.optional(v.string()), // Optional password reset
+  },
+  handler: async (ctx, args) => {
+    const updates: any = {
+      updatedAt: Date.now(),
+    };
+
+    if (args.role !== undefined) updates.role = args.role;
+    if (args.unit !== undefined) updates.unit = args.unit;
+    if (args.isActive !== undefined) updates.isActive = args.isActive;
+    
+    // Only hash password if provided
+    if (args.password) {
+      updates.passwordHash = hashPassword(args.password);
+    }
+
+    await ctx.db.patch(args.userId, updates);
+    return { success: true };
+  },
+});

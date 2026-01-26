@@ -452,6 +452,15 @@ export function BulkSkSubmission() {
             tmt: t.tmt || undefined, // 🔥 CRITICAL: Need TMT for GTY/GTT calculation
             isCertified: t.isCertified || undefined,
         }))
+
+        // --- DEBUG PAYLOAD INSPECTOR ---
+        if (convexTeachers.length > 0) {
+            const sample = convexTeachers[0]
+            const debugStr = `🚀 PAYLOAD DB CHECK:\n\nNama: ${sample.nama}\nUnit: ${sample.unitKerja}\nTMT: ${sample.tmt}\nStatus: ${sample.status}\nPendidikan: ${sample.pendidikanTerakhir}\n\nJika field di atas kosong/undefined, berarti Front End belum membaca data dengan benar.`
+            alert(debugStr)
+            console.log("PAYLOAD FULL:", convexTeachers)
+        }
+        // -------------------------------
         
         log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
         let teacherIds: any[] = [];

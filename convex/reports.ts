@@ -39,15 +39,18 @@ export const generateSkReport = query({
           let targetSchoolName = typeof args.schoolId === 'string' ? args.schoolId : '';
           
           // If it looks like a Convex ID (base32), try to resolve it to a name
-          // This handles cases where dropdown sends ID but DB stores Name
           if (targetSchoolName) {
              try {
-                // We cast to any to safely attempt get()
-                const school = await ctx.db.get(args.schoolId as any).catch(() => null);
-                if (school) {
-                    targetSchoolName = school.nama;
+                // Validate string format roughly fits Convex ID before casting
+                // This prevents "any" being passed blindly which upsets strict type checking
+                const possibleId = args.schoolId as string;
+                if (possibleId && possibleId.length > 5) {
+                    const school = await ctx.db.get(possibleId as any).catch(() => null);
+                    if (school) {
+                        targetSchoolName = school.nama;
+                    }
                 }
-             } catch {
+             } catch (err: any) {
                 // Not a valid ID, assume it's already a name
              }
              

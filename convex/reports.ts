@@ -4,19 +4,19 @@ import { query } from "./_generated/server"
 // Main SK report generation with filters
 export const generateSkReport = query({
   args: {
-    startDate: v.optional(v.number()),
-    endDate: v.optional(v.number()),
-    schoolId: v.optional(v.string()), // Relaxed to string to prevent validation errors
-    status: v.optional(v.string()),
-    teacherId: v.optional(v.string()), // Relaxed to string
+    startDate: v.optional(v.any()), // Permissive validation for debugging/robustness
+    endDate: v.optional(v.any()),
+    schoolId: v.optional(v.any()),
+    status: v.optional(v.any()),
+    teacherId: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     try {
         // Fetch all SK documents
-        const allSks = await ctx.db.query("skDocuments").collect()
+        const allSks = await ctx.db.query("skDocuments").collect() || [];
         
         // Apply filters
-        let filtered = allSks
+        let filtered = Array.isArray(allSks) ? allSks : [];
         
         // Date range filter
         if (args.startDate || args.endDate) {

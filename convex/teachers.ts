@@ -219,6 +219,12 @@ export const bulkCreate = mutation({
                 });
                 results.push(id);
             } else {
+                // UPDATE EXISTING RECORD (UPSERT)
+                // This allows re-importing to fix missing fields or update data
+                await ctx.db.patch(existing._id, {
+                    ...cleanData,
+                    updatedAt: now,
+                });
                 results.push(existing._id);
             }
         } catch (err) {

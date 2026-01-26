@@ -29,7 +29,7 @@ import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
 import ArchivePage from "./features/archive/ArchivePage"
 import { Toaster } from "@/components/ui/sonner"
-// import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
+import { ErrorBoundary } from "./components/ErrorBoundary"
 
 // Create a client
 const queryClient = new QueryClient()
@@ -65,7 +65,11 @@ export default function App() {
                       <Route path="generator" element={<SkGeneratorPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
-                      <Route path="reports/sk" element={<SkReportPage />} />
+                      <Route path="reports/sk" element={
+                        <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
+                          <SkReportPage />
+                        </ErrorBoundary>
+                      } />
                       <Route path="reports" element={<ReportPage />} />
                       <Route path="events" element={<EventsPage />} />
                       <Route path="events/new" element={<CreateEventPage />} />

@@ -45,14 +45,42 @@ export const generateSkReport = query({
     // Enrich with related data (schools, teachers)
     const enriched = await Promise.all(
       filtered.map(async (sk) => {
-        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
-        const teacher = sk.teacherId ? await ctx.db.get(sk.teacherId) : null
-        
-        return {
-          ...sk,
-          schoolName: (school as any)?.nama || 'N/A',
-          teacherName: teacher?.nama || 'N/A',
-          teacherNIP: teacher?.nip || '-',
+        try {
+            // unitKerja is likely a string name, not an ID. Try to treat as ID only if it looks like one, 
+            // but for now, since schema says string, likely just name.
+            // If we really need school ID, we should have stored it. 
+            // For now, assume unitKerja IS the school name if lookup fails or isn't attempted.
+            
+            const schoolName = sk.unitKerja || 'N/A';
+            
+            // Attempt to fetch if it looks like an ID (optional robustness, maybe skip if we know it's a name)
+            // const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any).catch(() => null) : null
+            // if (school) schoolName = school.nama;
+
+            let teacher = null;
+            if (sk.teacherId) {
+                try {
+                    teacher = await ctx.db.get(sk.teacherId);
+                } catch (e) {
+                    // Ignore invalid ID error
+                    console.error(`Invalid teacherId for SK ${sk._id}:`, sk.teacherId);
+                }
+            }
+            
+            return {
+              ...sk,
+              schoolName: schoolName,
+              teacherName: teacher?.nama || 'N/A',
+              teacherNIP: teacher?.nip || '-',
+            }
+        } catch (error) {
+            console.error(`Error processing SK ${sk._id}:`, error);
+            return {
+                ...sk,
+                schoolName: 'Error',
+                teacherName: 'Error',
+                teacherNIP: '-',
+            }
         }
       })
     )
@@ -95,10 +123,20 @@ export const getTeacherSkHistory = query({
     // Enrich with school data
     const enriched = await Promise.all(
       sks.map(async (sk) => {
-        const school = sk.unitKerja ? await ctx.db.get(sk.unitKerja as any) : null
-        return {
-          ...sk,
-          schoolName: (school as any)?.nama || 'N/A',
+        try {
+            // unitKerja is the school name string
+            const schoolName = sk.unitKerja || 'N/A';
+            
+            return {
+              ...sk,
+              schoolName,
+            }
+        } catch (error) {
+             console.error(`Error processing SK history ${sk._id}:`, error);
+             return {
+                 ...sk,
+                 schoolName: 'Error'
+             }
         }
       })
     )

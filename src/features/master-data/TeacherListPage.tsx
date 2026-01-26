@@ -849,17 +849,35 @@ export default function TeacherListPage() {
           // Helper: Robust Date Parser
           const parseIndonesianDate = (dateStr: any): Date | null => {
               if (!dateStr) return null
-              const str = String(dateStr).trim()
-              if (/^\d{5}$/.test(str)) { // Excel Serial
+              
+              // 1. Direct Number (Excel Serial)
+              if (typeof dateStr === 'number') {
                   const excelEpoch = new Date(1899, 11, 30);
-                  return new Date(excelEpoch.getTime() + parseInt(str) * 24 * 60 * 60 * 1000)
+                  return new Date(excelEpoch.getTime() + dateStr * 24 * 60 * 60 * 1000)
               }
+
+              const str = String(dateStr).trim()
+              
+              // 2. Stringified Number (Excel Serial) - allow decimals
+              if (/^[\d\.]+$/.test(str) && !isNaN(parseFloat(str))) { 
+                  const val = parseFloat(str)
+                  // Heuristic: Excel dates are usually > 10000 (after 1927). 
+                  // If small number, might be "2023" (year) which is NOT a date serial.
+                  if (val > 1000) {
+                      const excelEpoch = new Date(1899, 11, 30);
+                      return new Date(excelEpoch.getTime() + val * 24 * 60 * 60 * 1000)
+                  }
+              }
+
+              // 3. Standard Date
               const d = new Date(str)
               if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d
               
+              // 4. DD/MM/YYYY
               const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
               if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
               
+              // 5. Indonesian Months
               const months: {[key: string]: string} = {
                   'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
                   'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',

@@ -785,8 +785,9 @@ export default function TeacherListPage() {
               "status": ["status", "status kepegawaian"],
               "sertifikasi": ["sertifikasi", "status sertifikasi"],
               "pdpkpnu": ["pdpkpnu", "status pdpkpnu"],
-              "pendidikan": ["pendidikan", "pendidikan terakhir"],
+              "pendidikan": ["pendidikan", "pendidikan terakhir", "ijazah"],
               "lahir": ["tanggal lahir", "tgl lahir"],
+              "tempatlahir": ["tempat lahir", "tmp lahir", "kota lahir"],
               "unitkerja": ["unit kerja", "satminkal", "sekolah", "madrasah"]
           }
 
@@ -835,12 +836,9 @@ export default function TeacherListPage() {
               if (colMap["pdpkpnu"] !== undefined) rowObj["PDPKPNU"] = row[colMap["pdpkpnu"]]
               if (colMap["pendidikan"] !== undefined) rowObj["Pendidikan Terakhir"] = row[colMap["pendidikan"]]
               if (colMap["lahir"] !== undefined) rowObj["Tanggal Lahir"] = row[colMap["lahir"]]
+              if (colMap["tempatlahir"] !== undefined) rowObj["Tempat Lahir"] = row[colMap["tempatlahir"]]
               if (colMap["unitkerja"] !== undefined) rowObj["Unit Kerja"] = row[colMap["unitkerja"]]
-              
-              // Add other potential columns by raw retrieval if needed
-              const tempatLahirIdx = Array.from(rows[headerRowIndex] || []).findIndex(c => String(c).toLowerCase().includes("tempat lahir"))
-              if (tempatLahirIdx >= 0) rowObj["Tempat Lahir"] = row[tempatLahirIdx]
-              
+                            
               jsonData.push(rowObj)
           }
 
@@ -942,6 +940,9 @@ export default function TeacherListPage() {
 
               const nuptk = String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${index}`)
               const nama = String(row.Nama || row.nama || row.NAMA || "")
+              const pendidikan = row['Pendidikan Terakhir'] || row.pendidikan || "-"
+              const tempatLahir = row['Tempat Lahir'] || row.tempatLahir || "-"
+              const unitKerja = row['Unit Kerja'] || row.unitKerja || "-"
               
               // Skip if no name
               if (!nama || nama.trim() === '') return null
@@ -951,7 +952,7 @@ export default function TeacherListPage() {
                   console.log("[IMPORT DEBUG] Row 0 Analysis:", {
                       nama, rawTmt: tmtVal, parsedTmt: tmtDateObj, calculatedStatus: detectedStatus
                   })
-                  alert(`🔍 Debug Baris Pertama:\nName: ${nama}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}`)
+                  alert(`🔍 Debug Baris Pertama:\n\nNama: ${nama}\nUnit: ${unitKerja}\nPendidikan: ${pendidikan}\nTTL: ${tempatLahir}, ${birthDateFormatted}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}`)
               }
 
               return {

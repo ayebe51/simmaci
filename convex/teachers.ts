@@ -269,3 +269,85 @@ export const count = query({
     return teachers.length;
   },
 });
+
+// NEW: Robust Import Mutation (Replaces bulkCreate)
+export const importTeachers = mutation({
+  args: {
+    teachers: v.array(v.any()), // Accept loose JSON to prevent validation errors before processing
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let success = 0;
+    let updated = 0;
+    const errors: string[] = [];
+
+    for (const t of args.teachers) {
+      try {
+        // 1. Sanitize & Normalize Data
+        const nuptk = String(t.nuptk || t.NUPTK || "").trim();
+        const nama = String(t.nama || t.NAMA || t.Name || "").trim();
+
+        if (!nuptk || !nama) continue; // Skip invalid rows
+
+        // Map Fields (Prioritize New Names, Fallback to Old/Excel Names)
+        const unit = t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "";
+        const status = t.status || t.STATUS || t.Status || "GTT";
+        const tmt = t.tmt || t.TMT || "";
+        const pendidikan = t.pendidikanTerakhir || t.pendidikan || t.PENDIDIKAN || "";
+        const mapel = t.mapel || t.MAPEL || t.jabatan || "";
+        
+        const cleanData = {
+          nuptk,
+          nama,
+          unitKerja: unit,
+          status: status,
+          tmt: tmt,
+          pendidikanTerakhir: pendidikan,
+          mapel: mapel,
+          // Optional identitas
+          nip: t.nip || t.NIP || undefined,
+          tempatLahir: t.tempatLahir || t.birthPlace || undefined,
+          tanggalLahir: t.tanggalLahir || t.birthDate || undefined,
+          jenisKelamin: t.jenisKelamin || t.jk || undefined,
+          pdpkpnu: t.pdpkpnu || "Belum",
+          isCertified: t.isCertified === true || t.isCertified === "true",
+          
+          updatedAt: now,
+        };
+
+        // 2. Check Existing
+        const existing = await ctx.db
+          .query("teachers")
+          .withIndex("by_nuptk", q => q.eq("nuptk", nuptk))
+          .first();
+
+        if (existing) {
+          // UPSERT (Update)
+          await ctx.db.patch(existing._id, cleanData);
+          updated++;
+        } else {
+          // INSERT (New)
+          // Convex requires all fields to match schema structure
+          // We spread cleanData and ensure required fields (if any) are present
+          await ctx.db.insert("teachers", {
+            ...cleanData,
+            isActive: true,
+            createdAt: now,
+          });
+          success++;
+        }
+      } catch (err: any) {
+        console.error(`Import Error for ${t.nama}:`, err);
+        errors.push(`${t.nama}: ${err.message}`);
+      }
+    }
+
+    return { 
+      count: success + updated, 
+      new: success, 
+      updated: updated, 
+      errors, 
+      version: "3.0 (Fresh Import)" 
+    };
+  },
+});

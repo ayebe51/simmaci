@@ -63,6 +63,13 @@ export function BulkSkSubmission() {
   // We need at least these to form a valid submission
   const MIN_REQUIRED_MATCHES = 3; 
 
+  // EXCLUSION RULES to prevent collisions
+  const HEADER_EXCLUSIONS: Record<string, string[]> = {
+      "Status": ["sertifikasi", "pernikahan", "kawin", "pdpkpnu", "sosial"], // "Status Sertifikasi" != "Status" (Kepegawaian)
+      "Sertifikasi": [],
+      "PDPKPNU": [],
+  }
+
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     setDebugLog([])
@@ -103,20 +110,17 @@ export function BulkSkSubmission() {
 
                 allKeys.forEach(key => {
                     const possibleHeaders = HEADER_DEFINITIONS[key]
+                    const exclusions = HEADER_EXCLUSIONS[key] || []
+
                     // Find index where header matches AND passes exclusion rules
                     const foundIndex = rowStr.findIndex((cell, idx) => {
                         const cellLower = cell.toLowerCase()
                         const isMatch = possibleHeaders.some(ph => cellLower.includes(ph))
+                        const isExcluded = exclusions.some(ex => cellLower.includes(ex))
                         
                         if (!isMatch) return false;
+                        if (isExcluded) return false;
 
-                        // EXCLUSION RULES to prevent collisions
-                        if (key === "Status") {
-                             // "Status Sertifikasi" should NOT match "Status" (Kepegawaian)
-                             // UNLESS: It is the only match (which happens in Merged Headers)
-                             // So we REMOVED the aggressive exclusion here to allow "Status" header to be found.
-                             // We will handle the "Ya" values in the Extraction phase.
-                        }
                         return true
                     })
                     
@@ -136,8 +140,10 @@ export function BulkSkSubmission() {
                     log(`Header found at row ${i}!`)
                 if (headerRowIndex !== -1) {
                     // Log detected mapping
-                    const detected = Object.keys(colMap).map(k => `${k} -> Index ${colMap[k]}`).join(", ")
-                    log(`Detected Columns: ${detected}`)
+                    const detected = Object.keys(colMap).map(k => `${k} -> Index ${colMap[k]} (${rows[i][parseInt(colMap[k])]})`).join("\n")
+                    log(`Detected Columns:\n${detected}`)
+                    // Show visible alert for mapping
+                    alert(`✅ Header Terdeteksi di Baris ${i + 1}!\n\nMapping Kolom:\n${detected}`)
                 }
                 break
                 }
@@ -623,6 +629,7 @@ export function BulkSkSubmission() {
                                  <TableHead>Pendidikan</TableHead>
                                  <TableHead>TMT (Tanggal Mulai)</TableHead>
                                  <TableHead>Status (Map/Raw)</TableHead>
+                                 <TableHead>Sertifikasi (Raw)</TableHead>
                                  <TableHead>PDPKPNU (Map/Raw)</TableHead>
                              </TableRow>
                         </TableHeader>
@@ -638,6 +645,7 @@ export function BulkSkSubmission() {
                                          {c["tmt"] || "MISSING"}
                                      </TableCell>
                                      <TableCell>{c["status"]}</TableCell>
+                                     <TableCell>{c["sertifikasi"]}</TableCell>
                                  </TableRow>
                              ))}
                         </TableBody>

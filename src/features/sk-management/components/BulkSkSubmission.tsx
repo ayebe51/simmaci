@@ -208,37 +208,24 @@ export function BulkSkSubmission() {
                          }
                          else if (key === "Kecamatan") newObj["kecamatan"] = value
                          
-                         // --- CHECKLIST FORMAT HANDLING ---
+                         // --- LOGIC FIX: Simple & Robust Parsing ---
+                         // We interpret values as simple text first.
+                         
                          else if (key === "Sertifikasi") {
                              const valStr = String(value).toLowerCase().trim()
-                             // Check if it's Ya/Sudah/Yes/V or text contains"sertifikasi"
-                             const isCert = valStr === "ya" || valStr === "sudah" || valStr === "yes" || valStr === "v" || valStr.includes("sertifi")
+                             // Logic: If it contains "ya", "sudah", "sertifi", or is "v" -> Ya. Else -> Tidak.
+                             const isCert = valStr.includes("ya") || valStr.includes("sudah") || valStr.includes("sertifi") || valStr === "v"
                              newObj["sertifikasi"] = isCert ? "Ya" : "Tidak"
                          }
-                         else if (key === "Status" || key === "PDPKPNU") {
+                         else if (key === "Status") {
+                             // Capture raw status (e.g. "GTY", "GTT", "Honorer")
+                             newObj["status"] = value
+                         }
+                         else if (key === "PDPKPNU") {
                              const valStr = String(value).toLowerCase().trim()
-                             const isChecklist = ["ya", "tidak", "true", "false", "v", "✓"].includes(valStr) || valStr === ""
-                             
-                             if (isChecklist) {
-                                 const nextColVal = (rawRow[colIdx + 1] || "").toString().toLowerCase().trim()
-                                 
-                                 if (key === "Status") {
-                                     // Col X = Sertifikasi, Col X+1 = Honorer
-                                     if (valStr === "ya" || valStr === "v") newObj["status"] = "Sertifikasi"
-                                     else if (nextColVal === "ya" || nextColVal === "v") newObj["status"] = "Honorer"
-                                     else newObj["status"] = "-"
-                                 }
-                                 else if (key === "PDPKPNU") {
-                                     // Col Y = Sudah, Col Y+1 = Belum
-                                     if (valStr === "ya" || valStr === "v") newObj["pdpkpnu"] = "Sudah"
-                                     else if (nextColVal === "ya" || nextColVal === "v") newObj["pdpkpnu"] = "Belum"
-                                     else newObj["pdpkpnu"] = "Belum"
-                                 }
-                             } else {
-                                 // Normal text format (e.g. "PNS", "Sudah")
-                                 if (key === "Status") newObj["status"] = value
-                                 if (key === "PDPKPNU") newObj["pdpkpnu"] = value
-                             }
+                             // Logic: If "sudah", "lulus", "ya", "v" -> Sudah. Else -> Belum.
+                             const isLulus = valStr.includes("sudah") || valStr.includes("lulus") || valStr.includes("ya") || valStr === "v"
+                             newObj["pdpkpnu"] = isLulus ? "Sudah" : "Belum"
                          }
                          // ---------------------------------
 
@@ -311,7 +298,17 @@ export function BulkSkSubmission() {
   }
 
   // --- LOGIC: Determine Jenis SK based on Rules ---
-  const determineJenisSk = (pendidikan: string, tmt: string) => {
+  // MODIFIED: Accepts 'explicitStatus' from Excel to override calculation
+  const determineJenisSk = (pendidikan: string, tmt: string, explicitStatus?: string) => {
+      // 0. Explicit Override
+      if (explicitStatus) {
+          const s = explicitStatus.toLowerCase()
+          if (s.includes("gty") || s.includes("tetap yayasan")) return "SK Guru Tetap Yayasan"
+          if (s.includes("gtt") || s.includes("tidak tetap")) return "SK Guru Tidak Tetap"
+          if (s.includes("kamad") || s.includes("kepala")) return "SK Kepala Madrasah"
+          if (s.includes("tendik") || s.includes("kependidikan")) return "SK Tenaga Kependidikan"
+      }
+
       // 1. Check Pendidikan
       const p = (pendidikan || "").toLowerCase()
       // Keywords for S1 or above
@@ -344,6 +341,7 @@ export function BulkSkSubmission() {
           yearsDiff--
       }
 
+      // Default calculation if explicit status invalid or missing
       if (yearsDiff >= 2) {
           return "SK Guru Tetap Yayasan" // Correct Enum Value
       } else {
@@ -380,19 +378,20 @@ export function BulkSkSubmission() {
     try {
         // Map candidates to Teacher structure with precise fields
         const teachersToUpsert = candidates.map((c, i) => {
-            // 🔥 CALCULATE PROPER STATUS (GTY/GTT/Tendik) based on Pendidikan + TMT
-            const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
-            let calculatedStatus = "Tendik"
-            if (jenisSk.includes("Tetap")) calculatedStatus = "GTY"
-            else if (jenisSk.includes("Tidak Tetap")) calculatedStatus = "GTT"
+            // 🔥 CALCULATE PROPER STATUS (GTY/GTT/Tendik)
+            // PASS EXPLICIT STATUS FROM EXCEL TO OVERRIDE CALCULATION
+            const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"], c["status"])
             
-            // Map Sertifikasi (independent from status)
-            const rawSertifikasi = c["sertifikasi"] || c["status"] || ""
-            const isCertified = String(rawSertifikasi).toLowerCase().includes("ya") || String(rawSertifikasi).toLowerCase().includes("sudah") || String(rawSertifikasi).toLowerCase().includes("sertifi")
+            let calculatedStatus = "Tendik"
+            if (jenisSk.includes("Tetap Yayasan")) calculatedStatus = "GTY"
+            else if (jenisSk.includes("Tidak Tetap")) calculatedStatus = "GTT"
+            else if (jenisSk.includes("Kepala")) calculatedStatus = "Kamad"
+            
+            // Map Sertifikasi (already processed in loop)
+            const isCertified = c["sertifikasi"] === "Ya"
 
-            // Map PDPKPNU
-            const rawPdpkpnu = String(c["pdpkpnu"] || "").toLowerCase().trim()
-            const pdpkpnu = (rawPdpkpnu.includes("sudah") || rawPdpkpnu.includes("lulus") || rawPdpkpnu.includes("yes") || rawPdpkpnu.includes("true") || rawPdpkpnu === "v") ? "Sudah" : "Belum"
+            // Map PDPKPNU (already processed in loop)
+            const pdpkpnu = c["pdpkpnu"] || "Belum"
 
             return {
                 nuptk: c["nuptk"] ? String(c["nuptk"]) : `TMP-${Date.now()}-${i}`, 

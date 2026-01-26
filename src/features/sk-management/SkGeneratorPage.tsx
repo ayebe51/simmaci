@@ -475,7 +475,16 @@ export default function SkGeneratorPage() {
   }
 
   // --- LOGIC: Determine Jenis SK ---
-  const determineJenisSk = (pendidikan: string, tmt: string, nama: string, jabatan: string) => {
+  // FIXED: Added fallback logic to respect existing Status for overrides
+  const determineJenisSk = (pendidikan: string, tmt: string, nama: string, jabatan: string, explicitStatus?: string) => {
+      // 0. Explicit Override (GTY/GTT/Kamad)
+      if (explicitStatus) {
+         const s = explicitStatus.toLowerCase()
+         if (s === "gty" || s.includes("guru tetap yayasan") || s.includes("tetap yayasan")) return "SK Guru Tetap Yayasan"
+         if (s === "gtt" || s.includes("guru tidak tetap") || s.includes("tidak tetap")) return "SK Guru Tidak Tetap"
+         if (s === "kamad" || s.includes("kepala")) return "SK Kepala Madrasah"
+      }
+      
       const p = (pendidikan || "").toLowerCase()
       const n = (nama || "").toLowerCase()
       const j = (jabatan || "").toLowerCase()
@@ -564,7 +573,7 @@ export default function SkGeneratorPage() {
 
       // Map teacher data to template keys clearly
       const mappedData = selectedData.map((t, idx) => {
-              const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir, t.tmt, t.nama, (t as any).jabatan)
+              const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir, t.tmt, t.nama, (t as any).jabatan, t.status)
               
               const tmt = t.tmt || ''
           const tmtParsed = parseIndonesianDate(tmt)

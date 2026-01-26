@@ -514,8 +514,8 @@ export default function TeacherListPage() {
                       <TableHead onClick={() => requestSort('pdpkpnu')} className="cursor-pointer hover:bg-muted/50 transition-colors text-center">
                           <div className="flex items-center justify-center">PDPKPNU {getSortIcon('pdpkpnu')}</div>
                       </TableHead>
-                      <TableHead onClick={() => requestSort('satminkal')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">Satminkal {getSortIcon('satminkal')}</div>
+                      <TableHead onClick={() => requestSort('unitKerja')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center">Satminkal {getSortIcon('unitKerja')}</div>
                       </TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
@@ -607,7 +607,7 @@ export default function TeacherListPage() {
                                     </div>
                                 )}
                             </TableCell>
-                            <TableCell>{item.satminkal}</TableCell>
+                            <TableCell>{item.unitKerja || item.satminkal}</TableCell>
                             <TableCell className="text-right space-x-2">
                                 <Button 
                                     variant="ghost" 

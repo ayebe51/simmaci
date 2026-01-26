@@ -480,8 +480,8 @@ export default function SkGeneratorPage() {
       // 0. Explicit Override (GTY/GTT/Kamad)
       if (explicitStatus) {
          const s = explicitStatus.toLowerCase()
-         if (s === "gty" || s.includes("guru tetap yayasan") || s.includes("tetap yayasan")) return "SK Guru Tetap Yayasan"
-         if (s === "gtt" || s.includes("guru tidak tetap") || s.includes("tidak tetap")) return "SK Guru Tidak Tetap"
+         if (s === "gty" || s.includes("guru tetap yayasan") || s.includes("tetap yayasan") || s.includes("sertifikasi")) return "SK Guru Tetap Yayasan"
+         if (s === "gtt" || s.includes("guru tidak tetap") || s.includes("tidak tetap") || s.includes("honorer")) return "SK Guru Tidak Tetap"
          if (s === "kamad" || s.includes("kepala")) return "SK Kepala Madrasah"
       }
       
@@ -1049,9 +1049,9 @@ export default function SkGeneratorPage() {
                                             </TableCell>
                                             <TableCell className="font-medium">{t.nama}</TableCell>
                                             <TableCell>{t.pendidikanTerakhir || '-'}</TableCell>
-                                            <TableCell>{t.nip || '-'}</TableCell>
+                                            <TableCell>{t.nuptk || t.nip || '-'}</TableCell>
                                             <TableCell>{t.mapel || '-'}</TableCell>
-                                            <TableCell>{t.unitKerja || '-'}</TableCell>
+                                            <TableCell>{t.unitKerja || t.satminkal || '-'}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {t.status}

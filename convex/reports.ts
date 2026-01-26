@@ -6,9 +6,9 @@ export const generateSkReport = query({
   args: {
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
-    schoolId: v.optional(v.id("schools")),
+    schoolId: v.optional(v.string()), // Relaxed to string to prevent validation errors
     status: v.optional(v.string()),
-    teacherId: v.optional(v.id("teachers")),
+    teacherId: v.optional(v.string()), // Relaxed to string
   },
   handler: async (ctx, args) => {
     try {

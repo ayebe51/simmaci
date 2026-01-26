@@ -181,7 +181,27 @@ export const bulkCreate = mutation({
           nama: String(teacher.nama),
         };
         
-        // ... (lines 188-197 omitted for brevity, no changes needed inside)
+        // Map optional fields
+        if (teacher.status) cleanData.status = teacher.status;
+        if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
+        else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; // Fallback for legacy
+        
+        if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
+        if (teacher.tmt) cleanData.tmt = teacher.tmt;
+        if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
+        if (teacher.mapel) cleanData.mapel = teacher.mapel;
+        if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
+        if (teacher.email) cleanData.email = teacher.email;
+        if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
+        if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
+        
+        // Identity
+        if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
+        if (teacher.tanggalLahir) cleanData.tanggalLahir = teacher.tanggalLahir;
+        if (teacher.nip) cleanData.nip = teacher.nip;
+        if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
+        if (teacher.birthPlace) cleanData.tempatLahir = teacher.birthPlace; // Fallback
+        if (teacher.birthDate) cleanData.tanggalLahir = teacher.birthDate; // Fallback
 
         // Check for duplicate
         const existing = await ctx.db

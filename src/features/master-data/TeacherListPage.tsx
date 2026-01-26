@@ -950,9 +950,11 @@ export default function TeacherListPage() {
               // DEBUG: Log first row
               if (index === 0) {
                   console.log("[IMPORT DEBUG] Row 0 Analysis:", {
-                      nama, rawTmt: tmtVal, parsedTmt: tmtDateObj, calculatedStatus: detectedStatus
+                      nama, rawTmt: tmtVal, parsedTmt: tmtDateObj, calculatedStatus: detectedStatus, colMap
                   })
-                  alert(`🔍 Debug Baris Pertama:\n\nNama: ${nama}\nUnit: ${unitKerja}\nPendidikan: ${pendidikan}\nTTL: ${tempatLahir}, ${birthDateFormatted}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}`)
+                  
+                  const debugColMap = Object.entries(colMap).map(([k, v]) => `${k}: ${v}`).join(', ')
+                  alert(`🔍 Debug Baris Pertama:\n\nNama: ${nama}\nUnit: ${unitKerja}\nPendidikan: ${pendidikan}\nTTL: ${tempatLahir}, ${birthDateFormatted}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}\n\nDetected Cols: ${debugColMap}`)
               }
 
               return {

@@ -985,10 +985,20 @@ export default function TeacherListPage() {
           console.log('[IMPORT] Parsed teachers:', teachers.length)
           console.log('[IMPORT] Sample:', teachers[0])
           
+          
           if (teachers.length === 0) {
             alert('❌ Tidak ada data valid yang bisa diimport. Pastikan file Excel memiliki kolom: NUPTK dan Nama')
             return
           }
+
+          // --- DEBUG PAYLOAD INSPECTOR ---
+          if (teachers.length > 0) {
+              const sample = teachers[0]
+              const debugStr = `🚀 PAYLOAD DATA GURU CHECK:\n\nNama: ${sample.nama}\nUnit: ${sample.unitKerja}\nTMT: ${sample.tmt}\nStatus: ${sample.status}\nPendidikan: ${sample.pendidikanTerakhir}\n\nJika field di atas kosong, cek Header Excel anda.`
+              alert(debugStr)
+              console.log("PAYLOAD FULL:", teachers)
+          }
+          // -------------------------------
           
           try {
             // Call Convex bulkCreate mutation

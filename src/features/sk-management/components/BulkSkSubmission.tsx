@@ -303,6 +303,51 @@ export function BulkSkSubmission() {
      return `${year}-${month}-${day}`
   }
 
+  // --- HELPER: Parse Date Robustly (Copied from SkGeneratorPage) ---
+  const parseIndonesianDate = (dateStr: any): Date | null => {
+      if (!dateStr) return null
+      
+      const str = String(dateStr).trim()
+
+      // 0. Excel Serial Date check
+      if (/^\d{5}$/.test(str)) {
+          try {
+             return new Date(excelDateToJSDate(parseInt(str, 10))) // Reuse existing helper string result -> Date
+          } catch (e) { }
+      }
+
+      // 1. Try Standard Date
+      const d = new Date(str)
+      if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d
+
+      // 2. Try DD/MM/YYYY or DD-MM-YYYY
+      const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+      if (parts) {
+          return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
+      }
+
+      // 3. Try Indonesian/English Month Names
+      const months: {[key: string]: string} = {
+          'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
+          'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',
+          'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+          'jul': '07', 'aug': '08', 'agt': '08', 'sep': '09', 'oct': '10', 'okt': '10', 'nov': '11', 'dec': '12', 'des': '12'
+      }
+
+      const txtParts = str.split(/[\s\-\/]+/)
+      if (txtParts.length >= 3) {
+          const day = txtParts[0].replace(/[^0-9]/g, '')
+          const monthTxt = txtParts[1].toLowerCase()
+          const year = txtParts[2].replace(/[^0-9]/g, '')
+          
+          if (months[monthTxt] && year && day) {
+              return new Date(`${year}-${months[monthTxt]}-${day}`)
+          }
+      }
+
+      return null
+  }
+
   // --- LOGIC: Determine Jenis SK based on Rules ---
   // MODIFIED: Accepts 'explicitStatus' from Excel to override calculation
   const determineJenisSk = (pendidikan: string, tmt: string, explicitStatus?: string) => {
@@ -328,15 +373,13 @@ export function BulkSkSubmission() {
       }
 
       // 2. Check Tenure (Masa Kerja) via TMT
-      // TMT format might be DD/MM/YYYY or YYYY-MM-DD or Excel Serial Date
-      let tmtDate = new Date()
-      // Try to parse basic formats
-      if (tmt && typeof tmt === 'string' && tmt.includes("/")) {
-          const parts = tmt.split("/")
-          // Assuming DD/MM/YYYY
-          if (parts.length === 3) tmtDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
-      } else if (tmt) {
-          tmtDate = new Date(tmt)
+      // FIXED: Use robust date parser
+      let tmtDate = parseIndonesianDate(tmt)
+      
+      // Fallback if Date is invalid -> GTT
+      if (!tmtDate || isNaN(tmtDate.getTime())) {
+          console.warn("Invalid TMT Date:", tmt);
+          return "SK Guru Tidak Tetap"; 
       }
 
       const now = new Date()

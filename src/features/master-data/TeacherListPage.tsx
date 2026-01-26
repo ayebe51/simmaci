@@ -837,8 +837,7 @@ export default function TeacherListPage() {
               if (colMap["lahir"] !== undefined) rowObj["Tanggal Lahir"] = row[colMap["lahir"]]
               if (colMap["unitkerja"] !== undefined) rowObj["Unit Kerja"] = row[colMap["unitkerja"]]
               
-              // Add other potential columns by raw retrieval if needed, but the Map above covers critical ones
-              // Let's add explicit checks for "Tempat Lahir" as it's often separate
+              // Add other potential columns by raw retrieval if needed
               const tempatLahirIdx = Array.from(rows[headerRowIndex] || []).findIndex(c => String(c).toLowerCase().includes("tempat lahir"))
               if (tempatLahirIdx >= 0) rowObj["Tempat Lahir"] = row[tempatLahirIdx]
               
@@ -880,6 +879,14 @@ export default function TeacherListPage() {
           // Map Excel columns to Convex schema with improved status/certification detection
           const teachers = jsonData.map((row: any, index: number) => {
             try {
+              // 4. Parse Dates FIRST (to be available for logic)
+              const tmtVal = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
+              const tmtDateObj = parseIndonesianDate(tmtVal)
+              const tmtFormatted = tmtDateObj ? tmtDateObj.toISOString().split('T')[0] : undefined
+
+              const birthDateObj = parseIndonesianDate(row['Tanggal Lahir'] || row.tanggalLahir)
+              const birthDateFormatted = birthDateObj ? birthDateObj.toISOString().split('T')[0] : undefined
+
               // 1. Detect Status
               let rawStatus = row.Status || row.status || row.STATUS || ""
               let detectedStatus = "GTT" // Default fallback
@@ -892,11 +899,9 @@ export default function TeacherListPage() {
                   else if (s.includes("tendik")) detectedStatus = "Tendik"
                   else detectedStatus = rawStatus // Use raw if unknown
               } else {
-                  // Fallback: Calculate from TMT
-                  const tmtVal = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
-                  const tmtDate = parseIndonesianDate(tmtVal)
-                  if (tmtDate) {
-                       const yearsOfService = (Date.now() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365)
+                  // Fallback: Calculate from TMT if status is empty
+                  if (tmtDateObj) {
+                       const yearsOfService = (Date.now() - tmtDateObj.getTime()) / (1000 * 60 * 60 * 24 * 365)
                        if (yearsOfService >= 2) detectedStatus = "GTY"
                   }
               }
@@ -917,23 +922,20 @@ export default function TeacherListPage() {
                    if (p.includes("sudah") || p.includes("lulus") || p.includes("ya") || p === "v") pdpkpnu = "Sudah"
               }
 
-              // 4. Parse Dates
-              const tmtVal = row.TMT || row.tmt || row['Tanggal Mulai Tugas']
-              const tmtDateObj = parseIndonesianDate(tmtVal)
-              const tmtFormatted = tmtDateObj ? tmtDateObj.toISOString().split('T')[0] : undefined
-
-              const birthDateObj = parseIndonesianDate(row['Tanggal Lahir'] || row.tanggalLahir)
-              const birthDateFormatted = birthDateObj ? birthDateObj.toISOString().split('T')[0] : undefined
-
               const nuptk = String(row.NUPTK || row.nuptk || row.NIM || `TMP-${Date.now()}-${index}`)
               const nama = String(row.Nama || row.nama || row.NAMA || "")
               
               // Skip if no name
-              if (!nama || nama.trim() === '') {
-                console.warn('[IMPORT] Skipping row', index, '- no name')
-                return null
-              }
+              if (!nama || nama.trim() === '') return null
               
+              // DEBUG: Log first row
+              if (index === 0) {
+                  console.log("[IMPORT DEBUG] Row 0 Analysis:", {
+                      nama, rawTmt: tmtVal, parsedTmt: tmtDateObj, calculatedStatus: detectedStatus
+                  })
+                  alert(`🔍 Debug Baris Pertama:\nName: ${nama}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}`)
+              }
+
               return {
                 nuptk: nuptk,
                 nama: nama,

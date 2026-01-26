@@ -762,10 +762,90 @@ export default function TeacherListPage() {
           const data = await file.arrayBuffer()
           const workbook = XLSX.read(data)
           const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-          const jsonData = XLSX.utils.sheet_to_json(worksheet)
           
-          console.log('[IMPORT] Raw data:', jsonData.length, 'rows')
-          console.log('[IMPORT] First row sample:', jsonData[0])
+          // 1. Convert to 2D Array first to find header
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][]
+          console.log('[IMPORT] Total rows found:', rows.length)
+
+          if (rows.length === 0) {
+              alert("File kosong or format tidak valid.")
+              return
+          }
+
+          // 2. Header Discovery Logic (Same as Bulk SK)
+          // Look for row containing "Nama" AND ("NUPTK" or "NIM" or "Nomor Induk")
+          let headerRowIndex = -1
+          let colMap: Record<string, number> = {} // Key -> Column Index
+          
+          // Standardized Keys we want to find
+          const REQUIRED_KEYS = {
+              "nama": ["nama", "nama lengkap", "nama guru"],
+              "nuptk": ["nuptk", "nomor induk", "nim", "niy", "nip"],
+              "tmt": ["tmt", "tanggal mulai", "mulai tugas"],
+              "status": ["status", "status kepegawaian"],
+              "sertifikasi": ["sertifikasi", "status sertifikasi"],
+              "pdpkpnu": ["pdpkpnu", "status pdpkpnu"],
+              "pendidikan": ["pendidikan", "pendidikan terakhir"],
+              "lahir": ["tanggal lahir", "tgl lahir"],
+              "unitkerja": ["unit kerja", "satminkal", "sekolah", "madrasah"]
+          }
+
+          console.log("Scanning for headers...")
+          for (let i = 0; i < Math.min(rows.length, 15); i++) {
+                const rowStr = Array.from(rows[i] || []).map(c => (c || "").toString().toLowerCase().trim())
+                
+                // Check match count
+                let matchCount = 0
+                const currentMap: Record<string, number> = {}
+
+                Object.entries(REQUIRED_KEYS).forEach(([key, possibleHeaders]) => {
+                    const idx = rowStr.findIndex(cell => possibleHeaders.some(h => cell.includes(h)))
+                    if (idx >= 0) {
+                        currentMap[key] = idx
+                        matchCount++
+                    }
+                })
+
+                if (matchCount >= 2) { // At least Name + one other thing
+                    headerRowIndex = i
+                    colMap = currentMap
+                    console.log(`[IMPORT] Header found at row ${i} with ${matchCount} matches!`)
+                    break
+                }
+          }
+
+          if (headerRowIndex === -1) {
+              alert("Gagal menemukan baris Header (Nama, NUPTK, dll) dalam 15 baris pertama.")
+              return
+          }
+
+          // 3. Extract Data using detected columns
+          const jsonData = []
+          for(let r = headerRowIndex + 1; r < rows.length; r++) {
+              const row = rows[r]
+              if (!row || row.length === 0) continue
+              
+              const rowObj: any = {}
+              // Map discovered columns
+              if (colMap["nama"] !== undefined) rowObj["Nama"] = row[colMap["nama"]]
+              if (colMap["nuptk"] !== undefined) rowObj["NUPTK"] = row[colMap["nuptk"]]
+              if (colMap["tmt"] !== undefined) rowObj["TMT"] = row[colMap["tmt"]]
+              if (colMap["status"] !== undefined) rowObj["Status"] = row[colMap["status"]]
+              if (colMap["sertifikasi"] !== undefined) rowObj["Sertifikasi"] = row[colMap["sertifikasi"]]
+              if (colMap["pdpkpnu"] !== undefined) rowObj["PDPKPNU"] = row[colMap["pdpkpnu"]]
+              if (colMap["pendidikan"] !== undefined) rowObj["Pendidikan Terakhir"] = row[colMap["pendidikan"]]
+              if (colMap["lahir"] !== undefined) rowObj["Tanggal Lahir"] = row[colMap["lahir"]]
+              if (colMap["unitkerja"] !== undefined) rowObj["Unit Kerja"] = row[colMap["unitkerja"]]
+              
+              // Add other potential columns by raw retrieval if needed, but the Map above covers critical ones
+              // Let's add explicit checks for "Tempat Lahir" as it's often separate
+              const tempatLahirIdx = Array.from(rows[headerRowIndex] || []).findIndex(c => String(c).toLowerCase().includes("tempat lahir"))
+              if (tempatLahirIdx >= 0) rowObj["Tempat Lahir"] = row[tempatLahirIdx]
+              
+              jsonData.push(rowObj)
+          }
+
+          console.log('[IMPORT] Extracted data:', jsonData.length, 'rows')
           
           // Helper: Robust Date Parser
           const parseIndonesianDate = (dateStr: any): Date | null => {

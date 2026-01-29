@@ -696,21 +696,24 @@ export function BulkSkSubmission() {
                 </div>
              </div>
 
-             <div className="flex items-center space-x-2 border p-3 rounded-md bg-green-50 border-green-200">
-                <Checkbox 
-                    id="autoApprove" 
-                    checked={autoApprove} 
-                    onCheckedChange={(c) => setAutoApprove(!!c)} 
-                />
-                <div className="grid gap-1.5 leading-none">
-                    <Label htmlFor="autoApprove" className="text-sm font-medium leading-none cursor-pointer">
-                        Langsung Approve (Skip Review)
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                        SK yang diupload akan langsung berstatus "Approved" tanpa review di Dashboard SK. Gunakan hanya jika data sudah diverifikasi.
-                    </p>
-                </div>
-             </div>
+             {/* ADMIN ONLY: Auto Approve */}
+             {["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
+                 <div className="flex items-center space-x-2 border p-3 rounded-md bg-green-50 border-green-200">
+                    <Checkbox 
+                        id="autoApprove" 
+                        checked={autoApprove} 
+                        onCheckedChange={(c) => setAutoApprove(!!c)} 
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="autoApprove" className="text-sm font-medium leading-none cursor-pointer">
+                            Langsung Approve (Skip Review)
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            SK yang diupload akan langsung berstatus "Approved" tanpa review di Dashboard SK. Gunakan hanya jika data sudah diverifikasi.
+                        </p>
+                    </div>
+                 </div>
+             )}
 
              <Button 
                 onClick={handleSubmit} 

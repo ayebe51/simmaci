@@ -177,10 +177,12 @@ export default function SkDashboardPage() {
           </p>
         </div>
         <div className="flex items-center">
-            <Button variant="destructive" className="mr-2" onClick={handleReset}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Reset Data
-            </Button>
+            {["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
+                <Button variant="destructive" className="mr-2" onClick={handleReset}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Reset Data
+                </Button>
+            )}
             <Button onClick={() => navigate("/dashboard/sk/new")}>
             <FilePlus className="mr-2 h-4 w-4" />
             Ajukan SK Baru
@@ -229,10 +231,12 @@ export default function SkDashboardPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={filteredData.length > 0 && selectedIds.size === filteredData.length}
-                      onCheckedChange={handleSelectAll}
-                    />
+                    {["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
+                        <Checkbox
+                        checked={filteredData.length > 0 && selectedIds.size === filteredData.length}
+                        onCheckedChange={handleSelectAll}
+                        />
+                    )}
                   </TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Jenis SK</TableHead>
@@ -263,10 +267,12 @@ export default function SkDashboardPage() {
                         data-state={selectedIds.has(item.id) ? "selected" : ""}
                       >
                         <TableCell>
-                          <Checkbox
-                            checked={selectedIds.has(item.id)}
-                            onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
-                          />
+                          {["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
+                              <Checkbox
+                                checked={selectedIds.has(item.id)}
+                                onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
+                              />
+                          )}
                         </TableCell>
                         <TableCell>{new Date(item.tanggalPengajuan).toLocaleDateString('id-ID')}</TableCell>
                         <TableCell>{item.jenisSk}</TableCell>
@@ -341,11 +347,11 @@ export default function SkDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Floating Batch Action Bar */}
-      {selectedIds.size > 0 && (
+      {/* Floating Batch Action Bar - ADMIN ONLY */}
+      {selectedIds.size > 0 && ["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 z-50 animate-in slide-in-from-bottom-5">
           <span className="font-medium">{selectedIds.size} SK Dipilih</span>
-          <Button onClick={handleBatchApprove} size="sm">
+          <Button onClick={handleBatchApprove} size="sm" className="bg-green-600 hover:bg-green-700">
             <CheckSquare className="mr-2 h-4 w-4" />
             Approve Selected
           </Button>
@@ -358,7 +364,7 @@ export default function SkDashboardPage() {
             variant="ghost" 
             size="sm"
           >
-            Clear Selection
+            Batal
           </Button>
         </div>
       )}

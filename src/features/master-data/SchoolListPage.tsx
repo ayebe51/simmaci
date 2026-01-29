@@ -226,12 +226,12 @@ export default function SchoolListPage() {
             variant: 'mint' as const,
             icon: <Download className="h-5 w-5 text-gray-700" />
           },
-          {
+          ...(userStr && ["super_admin", "admin"].includes(JSON.parse(userStr).role) ? [{
             label: 'Delete All',
             onClick: handleDeleteAll,
             variant: 'purple' as const,
             icon: <Trash2 className="h-5 w-5 text-gray-700" />
-          },
+          }] : []),
           {
             label: 'Tambah Manual',
             onClick: openAdd,

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Check, ChevronsUpDown } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useMemo } from "react"
@@ -17,6 +17,20 @@ import { api as convexApi } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
 // Keep old API for file upload only
 import { api } from "@/lib/api"
+import { cn } from "@/lib/utils"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 const headmasterSchema = z.object({
   teacherId: z.string().min(1, "Calon Kepala wajib dipilih"),
@@ -37,6 +51,8 @@ export default function HeadmasterSubmissionPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [suratFile, setSuratFile] = useState<File | null>(null)
+  const [openTeacher, setOpenTeacher] = useState(false)
+  const [openSchool, setOpenSchool] = useState(false)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
@@ -134,46 +150,112 @@ export default function HeadmasterSubmissionPage() {
         <CardContent>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
-            {/* Teacher Selection */}
-            <div className="grid gap-2">
-                <Label>Pilih Calon Kepala (Dari Data Guru)</Label>
-                <Select
-                  onValueChange={(val) => form.setValue("teacherId", val)}
-                  defaultValue={form.watch("teacherId")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Guru..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teachers.slice(0, 100).map((teacher, idx) => (
-                      <SelectItem key={teacher.id || idx} value={teacher.id || `temp-${idx}`}>
-                        {teacher.nama} - {teacher.unitKerja}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.teacherId && <p className="text-red-500 text-sm">{form.formState.errors.teacherId.message}</p>}
+            {/* Teacher Selection (Searchable) */}
+             <div className="flex flex-col space-y-2">
+              <Label>Pilih Calon Kepala (Dari Data Guru)</Label>
+              <Popover open={openTeacher} onOpenChange={setOpenTeacher}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openTeacher}
+                    className={cn(
+                      "w-full justify-between",
+                      !form.watch("teacherId") && "text-muted-foreground"
+                    )}
+                  >
+                    {form.watch("teacherId")
+                      ? teachers.find((teacher) => teacher.id === form.watch("teacherId"))?.nama
+                      : "Pilih Guru..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[500px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Cari nama guru..." />
+                    <CommandList>
+                      <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {teachers.slice(0, 100).map((teacher) => (
+                          <CommandItem
+                            value={teacher.nama}
+                            key={teacher.id}
+                            onSelect={() => {
+                              form.setValue("teacherId", teacher.id)
+                              setOpenTeacher(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                teacher.id === form.watch("teacherId")
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {teacher.nama} - {teacher.unitKerja}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+               {form.formState.errors.teacherId && <p className="text-red-500 text-sm">{form.formState.errors.teacherId.message}</p>}
             </div>
 
-            {/* School Selection */}
-            <div className="grid gap-2">
-                <Label>Madrasah Tujuan (Tempat Menjabat)</Label>
-                <Select
-                  onValueChange={(val) => form.setValue("schoolId", val)}
-                  defaultValue={form.watch("schoolId")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih Madrasah..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schools.slice(0, 100).map((school, idx) => (
-                      <SelectItem key={school.id || idx} value={school.id || `temp-${idx}`}>
-                        {school.nama}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.schoolId && <p className="text-red-500 text-sm">{form.formState.errors.schoolId.message}</p>}
+            {/* School Selection (Searchable) */}
+            <div className="flex flex-col space-y-2">
+              <Label>Madrasah Tujuan (Tempat Menjabat)</Label>
+              <Popover open={openSchool} onOpenChange={setOpenSchool}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openSchool}
+                    className={cn(
+                      "w-full justify-between",
+                      !form.watch("schoolId") && "text-muted-foreground"
+                    )}
+                  >
+                    {form.watch("schoolId")
+                      ? schools.find((school) => school.id === form.watch("schoolId"))?.nama
+                      : "Pilih Madrasah..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[500px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Cari nama madrasah..." />
+                    <CommandList>
+                      <CommandEmpty>Madrasah tidak ditemukan.</CommandEmpty>
+                      <CommandGroup>
+                        {schools.slice(0, 100).map((school) => (
+                          <CommandItem
+                            value={school.nama}
+                            key={school.id}
+                            onSelect={() => {
+                              form.setValue("schoolId", school.id)
+                              setOpenSchool(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                school.id === form.watch("schoolId")
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {school.nama}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+               {form.formState.errors.schoolId && <p className="text-red-500 text-sm">{form.formState.errors.schoolId.message}</p>}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">

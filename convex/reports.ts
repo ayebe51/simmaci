@@ -4,11 +4,11 @@ import { query } from "./_generated/server"
 // Main SK report generation with filters
 export const generateSkReport = query({
   args: {
-    startDate: v.optional(v.any()), // Permissive validation for debugging/robustness
-    endDate: v.optional(v.any()),
-    schoolId: v.optional(v.any()),
-    status: v.optional(v.any()),
-    teacherId: v.optional(v.any()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    schoolId: v.optional(v.id("schools")),
+    status: v.optional(v.string()),
+    teacherId: v.optional(v.id("teachers")),
   },
   handler: async (ctx, args) => {
     try {
@@ -33,28 +33,12 @@ export const generateSkReport = query({
           filtered = filtered.filter(sk => sk.status === args.status)
         }
         
-        // School filter - FIXED LOGIC: Compare Name vs Name, not Name vs ID
-        // Robust handling: Check if it looks like an ID, and fetch name
+        // School filter
         if (args.schoolId) {
-          let targetSchoolName = typeof args.schoolId === 'string' ? args.schoolId : '';
-          
-          // If it looks like a Convex ID (base32), try to resolve it to a name
-          if (targetSchoolName) {
-             try {
-                // Validate string format roughly fits Convex ID before casting
-                // This prevents "any" being passed blindly which upsets strict type checking
-                const possibleId = args.schoolId as string;
-                if (possibleId && possibleId.length > 5) {
-                    const school = await ctx.db.get(possibleId as any).catch(() => null);
-                    if (school) {
-                        targetSchoolName = school.nama;
-                    }
-                }
-             } catch (err: any) {
-                // Not a valid ID, assume it's already a name
-             }
-             
-             filtered = filtered.filter(sk => sk.unitKerja === targetSchoolName);
+          const school = await ctx.db.get(args.schoolId);
+          if (school) {
+            const targetSchoolName = school.nama;
+            filtered = filtered.filter(sk => sk.unitKerja === targetSchoolName);
           }
         }
         

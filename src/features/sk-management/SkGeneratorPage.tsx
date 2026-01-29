@@ -198,7 +198,27 @@ export default function SkGeneratorPage() {
   // New States for Surat Masuk & Validity
   const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
-  const [tahunAjaran, setTahunAjaran] = useState("2024/2025")
+  const [tahunAjaran, setTahunAjaran] = useState(() => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() // 0 = Jan, 6 = July
+    
+    // DEBUG LOG
+    console.log("DEBUG ACADEMIC YEAR:", { 
+       fullDate: now.toString(),
+       year: currentYear, 
+       month: currentMonth 
+    })
+
+    // If Month is July (6) or later -> 2025/2026
+    // If Month is before July -> 2024/2025
+    if (currentMonth >= 6) { 
+        return `${currentYear}/${currentYear + 1}`
+    } else {
+        return `${currentYear - 1}/${currentYear}`
+    }
+  })
+  
   const [tanggalPenetapan, setTanggalPenetapan] = useState("")
   // New: Global Kecamatan Fallback
   const [defaultKecamatan, setDefaultKecamatan] = useState("") 
@@ -214,9 +234,8 @@ export default function SkGeneratorPage() {
   
   // Teachers loaded via Convex useQuery (real-time, no need for manual fetch)
   useEffect(() => {
-    // Auto-loaded by Convex query above
-    
-    // Check for ANY stored template
+    // 2. Check for ANY stored template
+
     if (
         localStorage.getItem("sk_template_gty_blob") || 
         localStorage.getItem("sk_template_gtt_blob") || 
@@ -909,7 +928,7 @@ export default function SkGeneratorPage() {
                         />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tahun Ajaran</label>
+                        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tahun Ajaran (Auto)</label>
                          <Input 
                             value={tahunAjaran}
                             onChange={e => setTahunAjaran(e.target.value)}

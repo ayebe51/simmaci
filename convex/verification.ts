@@ -9,27 +9,27 @@ export const verifyByCode = query({
   handler: async (ctx, args) => {
     // Search for SK document by ID (safer for URLs than Nomor SK which has slashes)
     // We treat 'code' argument as an ID now.
+    
+    // 1. Try to treat args.code as a valid ID for "skDocuments" table
+    const skId = ctx.db.normalizeId("skDocuments", args.code);
+    
     let sk = null;
-    try {
-        // Validation: Verify it looks like an ID to prevent invalid ID errors
-        sk = await ctx.db.get(args.code as any);
-    } catch (e) {
-        // If args.code is not a valid ID format, ctx.db.get might throw or return null depending on system
-        // We'll try legacy lookup by Nomor SK just in case (backward compatibility)
-        sk = await ctx.db
-            .query("skDocuments")
-            .filter((q) => q.eq(q.field("nomorSk"), args.code))
-            .first();
+    
+    if (skId) {
+        // If it's a valid ID format, try to fetch it directly
+        sk = await ctx.db.get(skId);
     }
     
+    // 2. If valid ID lookup failed or returned null (id didn't exist), fallback to legacy Nomor SK lookup
     if (!sk) {
-        // Second attempt: Try explicit query if get failed
          sk = await ctx.db
             .query("skDocuments")
             .filter((q) => q.eq(q.field("nomorSk"), args.code))
             .first();
+    }
             
-         if (!sk) return null;
+    if (!sk) {
+      return null;
     }
     
     // Get teacher data if exists

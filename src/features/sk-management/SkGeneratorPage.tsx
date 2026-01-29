@@ -805,59 +805,63 @@ export default function SkGeneratorPage() {
       })
       
       console.log("MAPPED DATA SAMPLE:", mappedData[0]) // Debug Log
-      
-      const res = await generateBulkSkZip(mappedData, "SK_Masal_Maarif.zip", mappedData) // Pass mappedData as debug info
-      if (res.successCount > 0) {
-          // AUTO-INCREMENT NOMOR SURAT FOR NEXT BATCH
-          const nextStart = (parseInt(nomorMulai) || 0) + res.successCount
-          const nextStartStr = String(nextStart).padStart(4, '0')
-          setNomorMulai(nextStartStr)
 
-          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\nNomor Surat berikutnya otomatis di-set ke: ${nextStartStr}\n\n${res.errorCount > 0 ? "Beberapa gagal, cek log." : ""}`)
-          
-          
-          // --- AUTO ARCHIVE & DELETE (FIXED & ENABLED) ---
-          let archivedCount = 0
-          
-          // 0. Fetch existing SKs to prevent duplicates (Optimistic check)
-          // Note: In real app, this should be better handled by backend constraint
-          
-          for (const item of mappedData) {
-              try {
-                  // 1. Archive to SK History (Database)
-                  // This allows Verification to work!
-                  await createSk({
-                      jenisSk: item.jenisSk,
-                      status: "active",
-                      nama: item.nama,
-                      teacherId: (item as any)._id, // Link to teacher
-                      jabatan: item.JABATAN,
-                      unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap",
-                      nomorSk: item.NOMOR_SURAT, // Correct Field Name
-                      tanggalPenetapan: item.TANGGAL_PENETAPAN, // Required Field
-                      fileUrl: "Generated via Bulk ZIP",
-                      createdBy: "System"
-                  })
+      // --- 1. PRE-ARCHIVE: Create SKs first to get IDs ---
+      const finalData: any[] = []
+      let successCount = 0
 
-                  // 2. Remove from Queue (Teacher Data)
-                  if ((item as any)._id) {
-                      await deleteTeacher({ id: (item as any)._id })
-                  }
-                  archivedCount++
-              } catch (err) {
-                  console.error("Auto-archive failed:", item.nama, err)
+      for (const item of mappedData) {
+          try {
+              // Create SK in DB
+              const skId = await createSk({
+                  jenisSk: item.jenisSk,
+                  status: "active",
+                  nama: item.nama,
+                  teacherId: (item as any)._id, // Original Teacher ID
+                  jabatan: item.JABATAN,
+                  unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap",
+                  nomorSk: item.NOMOR_SURAT,
+                  tanggalPenetapan: item.TANGGAL_PENETAPAN,
+                  fileUrl: "Generated via Bulk ZIP",
+                  createdBy: "System"
+              })
+
+              // Delete from Teacher Queue
+              if ((item as any)._id) {
+                  await deleteTeacher({ id: (item as any)._id })
               }
-          }
 
-          if (archivedCount > 0) {
-              console.log(`Archived & Deleted ${archivedCount} teachers from queue.`)
-              // fetchTeachers() // Handled by Reactive Query
-          }
-          // -------------------------------------------
+              // PUSH WITH NEW ID (For QR Code)
+              finalData.push({
+                  ...item,
+                  _id: skId, // <--- CRITICAL: Overwrite with SK ID
+                  original_teacher_id: (item as any)._id
+              })
+              successCount++
 
-          // Auto-Increment Logic for Next Batch
-          const NextStartNumber = (parseInt(nomorMulai) || 0) + res.successCount
-          setNomorMulai(String(NextStartNumber).padStart(4, '0'))
+          } catch (err: any) {
+              console.error("Failed to archive SK:", item.nama, err)
+              // If archive fails, we probably shouldn't generate the file? 
+              // Or maybe generate but with invalid QR? 
+              // Better to skip to ensure consistency.
+              alert(`Gagal menyimpan data untuk ${item.nama}: ${err.message}`)
+          }
+      }
+
+      if (finalData.length === 0) {
+          setIsGenerating(false)
+          return
+      }
+      
+      // --- 2. GENERATE ZIP (Now using valid SK IDs) ---
+      const res = await generateBulkSkZip(finalData, "SK_Masal_Maarif.zip", finalData) 
+      
+      if (res.successCount > 0) {
+          // Auto-Increment
+          const nextStart = (parseInt(nomorMulai) || 0) + res.successCount
+          setNomorMulai(String(nextStart).padStart(4, '0'))
+          
+          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\nData sudah tersimpan di Bank Data SK.\nNomor Surat berikutnya: ${String(nextStart).padStart(4, '0')}`)
       }
       
       setIsGenerating(false)

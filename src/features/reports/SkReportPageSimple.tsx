@@ -270,7 +270,9 @@ export default function SkReportPageSimple() {
                               "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
                               selectedSchool === 'all' && "bg-slate-100"
                             )}
-                            onClick={() => {
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setSelectedSchool("all")
                               setOpenSchool(false)
                               setSearchQuery("")
@@ -296,7 +298,10 @@ export default function SkReportPageSimple() {
                                   "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
                                   selectedSchool === school._id && "bg-slate-100"
                                 )}
-                                onClick={() => {
+                                onMouseDown={(e) => {
+                                  // Use onMouseDown to prevent blur interaction issues
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   setSelectedSchool(school._id === selectedSchool ? "all" : school._id)
                                   setOpenSchool(false)
                                   setSearchQuery("")

@@ -53,6 +53,7 @@ export default function HeadmasterSubmissionPage() {
   const [suratFile, setSuratFile] = useState<File | null>(null)
   const [openTeacher, setOpenTeacher] = useState(false)
   const [openSchool, setOpenSchool] = useState(false)
+  const [schoolSearch, setSchoolSearch] = useState("") // Manual search state
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
@@ -224,35 +225,55 @@ export default function HeadmasterSubmissionPage() {
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[500px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Cari nama madrasah..." />
-                    <CommandList>
-                      <CommandEmpty>Madrasah tidak ditemukan.</CommandEmpty>
-                      <CommandGroup>
-                        {schools.slice(0, 100).map((school) => (
-                          <CommandItem
-                            value={school.nama}
-                            key={school.id}
-                            onSelect={() => {
-                              form.setValue("schoolId", school.id)
-                              setOpenSchool(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                school.id === form.watch("schoolId")
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {school.nama}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                <PopoverContent className="w-[500px] p-0" align="start">
+                  <div className="flex flex-col border rounded-md bg-white">
+                    <div className="flex items-center border-b px-3">
+                      <Input
+                         placeholder="Cari nama madrasah..."
+                         className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 border-none focus-visible:ring-0 px-0"
+                         value={schoolSearch}
+                         onChange={(e) => setSchoolSearch(e.target.value)}
+                         autoFocus
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                        {schools
+                            .filter(s => s.nama.toLowerCase().includes(schoolSearch.toLowerCase()))
+                            .slice(0, 100)
+                            .map((school) => (
+                              <div
+                                key={school.id}
+                                className={cn(
+                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                                  school.id === form.watch("schoolId") && "bg-slate-100"
+                                )}
+                                onMouseDown={(e) => {
+                                   // Use onMouseDown to prevent blur from firing first
+                                   e.preventDefault(); 
+                                   e.stopPropagation();
+                                   form.setValue("schoolId", school.id);
+                                   setOpenSchool(false);
+                                   setSchoolSearch(""); // Reset search
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    school.id === form.watch("schoolId")
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {school.nama}
+                              </div>
+                            ))}
+                        {schools.filter(s => s.nama.toLowerCase().includes(schoolSearch.toLowerCase())).length === 0 && (
+                             <div className="py-6 text-center text-sm text-muted-foreground">
+                               Madrasah tidak ditemukan.
+                             </div>
+                        )}
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
                {form.formState.errors.schoolId && <p className="text-red-500 text-sm">{form.formState.errors.schoolId.message}</p>}

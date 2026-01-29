@@ -61,17 +61,17 @@ export default function HeadmasterSubmissionPage() {
   }
 
   // 🔥 REAL-TIME CONVEX QUERIES
-  const convexTeachers = useQuery(convexApi.teachers.list) || []
-  const convexSchools = useQuery(convexApi.schools.list) || []
+  const convexTeachers = useQuery(convexApi.teachers.list)
+  const convexSchools = useQuery(convexApi.schools.list)
   
   // Map to interface with id
-  const teachers = useMemo(() => convexTeachers.map(t => ({
+  const teachers = useMemo(() => (convexTeachers || []).map(t => ({
     id: t._id,
     nama: t.nama,
     unitKerja: t.satminkal
   })), [convexTeachers])
   
-  const schools = useMemo(() => convexSchools.map(s => ({
+  const schools = useMemo(() => (convexSchools || []).map(s => ({
     id: s._id,
     nama: s.nama
   })), [convexSchools])

@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle } from "lucide-react"
+import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw } from "lucide-react"
 import { useState, useEffect } from "react"
 // Removed: import { saveAs } from "file-saver" - using native browser download instead
 import JSZip from "jszip"
@@ -941,6 +941,15 @@ export default function SkGeneratorPage() {
                             className="w-20 bg-white"
                             title="Nomor Awal"
                         />
+                        <Button 
+                            variant="sketch" 
+                            size="icon" 
+                            className="bg-white border-input border text-slate-500 hover:text-black hover:bg-slate-100"
+                            title="Reset Nomor ke 0001"
+                            onClick={() => setNomorMulai("0001")}
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                        </Button>
                         <Input 
                             value={nomorFormat}
                             onChange={e => setNomorFormat(e.target.value)}

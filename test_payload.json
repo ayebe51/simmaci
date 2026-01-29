@@ -1,0 +1,13 @@
+{
+  "teachers": [
+    {
+      "nuptk": "9999999999999999",
+      "nama": "TEST_ROBOT_VERIFICATOR",
+      "unitKerja": "SMK MAARIF TESTING",
+      "status": "GTY",
+      "tmt": "2020-01-01",
+      "pendidikanTerakhir": "S1 Teknik Robotika",
+      "mapel": "Artificial Intelligence"
+    }
+  ]
+}

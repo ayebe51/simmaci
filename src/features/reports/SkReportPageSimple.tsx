@@ -49,7 +49,12 @@ export default function SkReportPageSimple() {
   const [openSchool, setOpenSchool] = useState(false)
 
   // 3. Data Fetching
-  const schools = useQuery(api.schools.list) || []
+  const convexSchools = useQuery(api.schools.list) || []
+
+  const schools = useMemo(() => convexSchools.map(s => ({
+    _id: s._id,
+    nama: s.nama
+  })), [convexSchools])
   
   // Logic: Operator can only see their school
   const operatorSchool = isOperator ? schools.find(s => s.nama === userUnitKerja) : null
@@ -225,7 +230,7 @@ export default function SkReportPageSimple() {
                         variant="outline"
                         role="combobox"
                         aria-expanded={openSchool}
-                        className="h-9 w-full justifies-between"
+                        className="h-9 w-full justify-between"
                       >
                         {selectedSchool !== "all"
                           ? schools.find((school) => school._id === selectedSchool)?.nama

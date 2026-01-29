@@ -138,6 +138,9 @@ export default function SkDetailPage() {
                         <FileText className="mr-2 h-4 w-4" /> PDF Belum Tersedia
                      </Button>
                  )}
+                 <Button variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" onClick={() => navigate(`/dashboard/sk/${id}/print`)}>
+                    <Printer className="mr-2 h-4 w-4" /> Cetak Validasi (Baru)
+                 </Button>
             </div>
        </div>
 

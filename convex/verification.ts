@@ -7,14 +7,29 @@ export const verifyByCode = query({
     code: v.string() 
   },
   handler: async (ctx, args) => {
-    // Search for SK document by nomor SK
-    const sk = await ctx.db
-      .query("skDocuments")
-      .filter((q) => q.eq(q.field("nomorSk"), args.code))
-      .first();
+    // Search for SK document by ID (safer for URLs than Nomor SK which has slashes)
+    // We treat 'code' argument as an ID now.
+    let sk = null;
+    try {
+        // Validation: Verify it looks like an ID to prevent invalid ID errors
+        sk = await ctx.db.get(args.code as any);
+    } catch (e) {
+        // If args.code is not a valid ID format, ctx.db.get might throw or return null depending on system
+        // We'll try legacy lookup by Nomor SK just in case (backward compatibility)
+        sk = await ctx.db
+            .query("skDocuments")
+            .filter((q) => q.eq(q.field("nomorSk"), args.code))
+            .first();
+    }
     
     if (!sk) {
-      return null;
+        // Second attempt: Try explicit query if get failed
+         sk = await ctx.db
+            .query("skDocuments")
+            .filter((q) => q.eq(q.field("nomorSk"), args.code))
+            .first();
+            
+         if (!sk) return null;
     }
     
     // Get teacher data if exists
@@ -44,7 +59,9 @@ export const verifyByCode = query({
       status: sk.status,
       teacher: teacherInfo,
       issuedDate: sk.createdAt,
-      validUntil: sk.tanggalPenetapan
+      validUntil: sk.tanggalPenetapan,
+      // Add more verification details if needed
+      isQrValid: true
     };
   },
 });

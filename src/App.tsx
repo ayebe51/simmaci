@@ -14,6 +14,7 @@ import StudentListPage from "./features/master-data/StudentListPage"
 import UserListPage from "./features/users/UserListPage"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import SkGeneratorPage from "./features/sk-management/SkGeneratorPage"
+import SkPrintPage from "./features/sk-management/SkPrintPage"
 import SettingsPage from "./features/settings/SettingsPage"
 import HeadmasterExpiryPage from "./features/monitoring/HeadmasterExpiryPage"
 import ReportPage from "./features/reports/ReportPage"
@@ -76,6 +77,7 @@ export default function App() {
                       <Route path="events/:id" element={<EventDetailPage />} />
                       <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
                       <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
+                      <Route path="sk/:id/print" element={<SkPrintPage />} />
                       <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
                       <Route path="archive" element={<ArchivePage />} />
                     </Routes>

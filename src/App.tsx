@@ -67,7 +67,7 @@ export default function App() {
                       <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
                       <Route path="reports/sk" element={
                         <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
-                          <SkReportPage />
+                          <SkReportPageSimple />
                         </ErrorBoundary>
                       } />
                       <Route path="reports" element={<ReportPage />} />

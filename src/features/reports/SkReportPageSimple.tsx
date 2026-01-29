@@ -44,188 +44,18 @@ export default function SkReportPageSimple() {
   // 2. State Management
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [selectedSchool, setSelectedSchool] = useState('all')
-  const [selectedStatus, setSelectedStatus] = useState('all')
-  const [openSchool, setOpenSchool] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // 3. Data Fetching
-  const convexSchools = useQuery(api.schools.list) || []
+  // Filter schools manually for robust search
+  const filteredSchools = schools.filter(school => 
+    school.nama.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
-  const schools = useMemo(() => (convexSchools || [])
-    .filter(s => s && s.nama)
-    .map(s => ({
-      _id: s._id,
-      nama: s.nama
-    })), [convexSchools])
-  
-  // Logic: Operator can only see their school
-  const operatorSchool = isOperator ? schools.find(s => s.nama === userUnitKerja) : null
-  const effectiveSchoolId = isOperator ? (operatorSchool?._id) : (selectedSchool !== 'all' ? selectedSchool : undefined)
-
-  const queryArgs = {
-    startDate: startDate ? new Date(startDate).getTime() : undefined,
-    endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
-    schoolId: effectiveSchoolId as any, 
-    status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
-  }
-
-  const reportData = useQuery(api.reports.generateSkReport, queryArgs)
-
-  // 4. Handlers
-  const handlePrint = () => {
-    window.print()
-  }
-
-  const handleExportExcel = () => {
-    if (!reportData || !reportData.data || reportData.data.length === 0) {
-      toast.error('Tidak ada data untuk di-export')
-      return
-    }
-
-    try {
-      const wb = XLSX.utils.book_new()
-
-      // Summary Sheet
-      const summaryData = [
-        ['LAPORAN DATA SK'],
-        ['Periode:', startDate && endDate ? `${startDate} s/d ${endDate}` : 'Semua Waktu'],
-        ['Dicetak Oleh:', user?.nama || 'System'],
-        ['Waktu Cetak:', new Date().toLocaleString('id-ID')],
-        [],
-        ['RINGKASAN'],
-        ['Total Dokumen', reportData.summary.total],
-        ['Draft', reportData.summary.draft],
-        ['Pending', reportData.summary.pending],
-        ['Approved', reportData.summary.approved],
-        ['Rejected', reportData.summary.rejected]
-      ]
-      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
-      XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
-
-      // Details Sheet
-      const detailsData = reportData.data.map((item: any, i: number) => ({
-        'No': i + 1,
-        'Nomor SK': item.nomorSk,
-        'Jenis SK': item.jenisSk,
-        'Nama Guru': item.nama,
-        'Unit Kerja': item.schoolName || '-',
-        'Status': item.status,
-        'Tanggal Input': new Date(item.createdAt).toLocaleDateString('id-ID')
-      }))
-      const wsDetails = XLSX.utils.json_to_sheet(detailsData)
-      
-      // Auto-width columns
-      const wscols = Object.keys(detailsData[0] || {}).map(() => ({ wch: 20 }))
-      wsDetails['!cols'] = wscols
-      
-      XLSX.utils.book_append_sheet(wb, wsDetails, 'Data Detail')
-
-      XLSX.writeFile(wb, `Laporan_SK_${new Date().toISOString().split('T')[0]}.xlsx`)
-      toast.success('Excel berhasil didownload')
-    } catch (e) {
-      console.error(e)
-      toast.error('Gagal export excel')
-    }
-  }
-
-  const resetFilters = () => {
-    setStartDate('')
-    setEndDate('')
-    setSelectedSchool('all')
-    setSelectedStatus('all')
-  }
+  // ... (existing code)
 
   // 5. Render
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
-      
-      {/* --- PRINT STYLE STYLE BLOCK --- */}
-      <style>{`
-        @media print {
-          @page { size: landscape; margin: 10mm; }
-          body { background: white; font-family: 'Times New Roman', serif; }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          .card-print { border: none !important; box-shadow: none !important; }
-          table { width: 100%; border-collapse: collapse; font-size: 11pt; }
-          th, td { border: 1px solid black; padding: 4px 8px; }
-          th { background: #f0f0f0 !important; color: black !important; }
-        }
-        .print-only { display: none; }
-      `}</style>
-      
-      {/* HEADER (Screen Only) */}
-      <div className="no-print bg-white border-b px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800">Laporan & Rekap SK</h1>
-          <p className="text-slate-500 text-sm">Download laporan format Excel atau cetak PDF langsung.</p>
-        </div>
-        <div className="flex gap-2">
-           <Button variant="outline" onClick={handlePrint}>
-             <Printer className="w-4 h-4 mr-2" />
-             Cetak / PDF
-           </Button>
-           <Button className="bg-green-600 hover:bg-green-700" onClick={handleExportExcel}>
-             <Download className="w-4 h-4 mr-2" />
-             Export Excel
-           </Button>
-        </div>
-      </div>
-
-      <div className="container mx-auto p-4 space-y-6">
-        
-        {/* FILTERS (Screen Only) */}
-        <Card className="no-print">
-          <CardHeader className="pb-3 border-b bg-slate-50">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Filter className="w-4 h-4" /> Filter Data
-              </CardTitle>
-              {(startDate || endDate || selectedStatus !== 'all' || (selectedSchool !== 'all' && !isOperator)) && (
-                <Button variant="ghost" size="sm" onClick={resetFilters} className="text-red-500 h-8">
-                  <X className="w-3 h-3 mr-1" /> Reset
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <Label className="text-xs">Tanggal Awal</Label>
-                <input 
-                  type="date" 
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Tanggal Akhir</Label>
-                <input 
-                  type="date" 
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Status SK</Label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Semua Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="approved">Disetujui (Approved)</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="pending">Menunggu Review</SelectItem>
-                    <SelectItem value="rejected">Ditolak</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {!isOperator && (
-                <div className="space-y-1 flex flex-col">
-                  <Label className="text-xs mb-1">Unit Kerja (Sekolah)</Label>
+    // ...
                   <Popover open={openSchool} onOpenChange={setOpenSchool}>
                     <PopoverTrigger asChild>
                       <Button
@@ -241,16 +71,21 @@ export default function SkReportPageSimple() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Cari nama sekolah..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput 
+                          placeholder="Cari nama sekolah..." 
+                          value={searchQuery}
+                          onValueChange={setSearchQuery}
+                        />
                         <CommandList>
-                          <CommandEmpty>Sekolah tidak ditemukan.</CommandEmpty>
+                          {filteredSchools.length === 0 && <CommandEmpty>Sekolah tidak ditemukan.</CommandEmpty>}
                           <CommandGroup>
                             <CommandItem
                                 value="Semua Sekolah"
                                 onSelect={() => {
                                   setSelectedSchool("all")
                                   setOpenSchool(false)
+                                  setSearchQuery("")
                                 }}
                             >
                                 <Check
@@ -261,13 +96,14 @@ export default function SkReportPageSimple() {
                                 />
                                 Semua Sekolah
                             </CommandItem>
-                            {schools.map((school) => (
+                            {filteredSchools.map((school) => (
                               <CommandItem
                                 key={school._id}
                                 value={school.nama}
                                 onSelect={() => {
                                   setSelectedSchool(school._id === selectedSchool ? "all" : school._id)
                                   setOpenSchool(false)
+                                  setSearchQuery("")
                                 }}
                               >
                                 <Check

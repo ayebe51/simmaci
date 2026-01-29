@@ -244,34 +244,62 @@ export default function SkReportPageSimple() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Cari nama sekolah..." />
-                        <CommandList>
-                          <CommandEmpty>Sekolah tidak ditemukan.</CommandEmpty>
-                          <CommandGroup>
-                             <CommandItem
-                                value="Semua Sekolah"
-                                onSelect={() => {
-                                  setSelectedSchool("all")
-                                  setOpenSchool(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedSchool === "all" ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                Semua Sekolah
-                              </CommandItem>
-                            {schools.slice(0, 100).map((school) => (
-                              <CommandItem
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <div className="flex flex-col border rounded-md bg-white">
+                        {/* Manual Search Input */}
+                        <div className="flex items-center border-b px-3">
+                          <Input
+                            placeholder="Ketik nama sekolah..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 border-none focus-visible:ring-0 px-0"
+                            autoFocus
+                          />
+                        </div>
+                        
+                        {/* Manual List */}
+                        <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                           {/* Debug info */}
+                           <div className="px-2 py-1.5 text-xs text-slate-400 border-b mb-1">
+                              Menampilkan {schools.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase())).length} dari {schools.length} sekolah
+                           </div>
+
+                          {/* Option: Semua Sekolah */}
+                          <div
+                            className={cn(
+                              "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                              selectedSchool === 'all' && "bg-slate-100"
+                            )}
+                            onClick={() => {
+                              setSelectedSchool("all")
+                              setOpenSchool(false)
+                              setSearchQuery("")
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedSchool === "all" ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Semua Sekolah
+                          </div>
+
+                          {/* Filtered Schools */}
+                          {schools
+                            .filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .slice(0, 100) // Performance limit
+                            .map((school) => (
+                              <div
                                 key={school._id}
-                                value={school.nama}
-                                onSelect={() => {
+                                className={cn(
+                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                                  selectedSchool === school._id && "bg-slate-100"
+                                )}
+                                onClick={() => {
                                   setSelectedSchool(school._id === selectedSchool ? "all" : school._id)
                                   setOpenSchool(false)
+                                  setSearchQuery("")
                                 }}
                               >
                                 <Check
@@ -281,11 +309,16 @@ export default function SkReportPageSimple() {
                                   )}
                                 />
                                 {school.nama}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
+                              </div>
+                          ))}
+                          
+                          {schools.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                             <div className="py-6 text-center text-sm text-muted-foreground">
+                               Sekolah tidak ditemukan.
+                             </div>
+                          )}
+                        </div>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>

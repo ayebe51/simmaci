@@ -803,7 +803,12 @@ export default function SkGeneratorPage() {
       
       const res = await generateBulkSkZip(mappedData, "SK_Masal_Maarif.zip", mappedData) // Pass mappedData as debug info
       if (res.successCount > 0) {
-          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\n${res.errorCount > 0 ? "Beberapa gagal, cek log." : ""}`)
+          // AUTO-INCREMENT NOMOR SURAT FOR NEXT BATCH
+          const nextStart = (parseInt(nomorMulai) || 0) + res.successCount
+          const nextStartStr = String(nextStart).padStart(4, '0')
+          setNomorMulai(nextStartStr)
+
+          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\nNomor Surat berikutnya otomatis di-set ke: ${nextStartStr}\n\n${res.errorCount > 0 ? "Beberapa gagal, cek log." : ""}`)
           
           // --- TEMPORARILY DISABLED: AUTO ARCHIVE & DELETE  ---
           // REASON: Backend /sk endpoint returns 500 error, blocking ZIP generation  

@@ -17,6 +17,30 @@ import JSZip from "jszip"
 import PizZip from "pizzip"
 import Docxtemplater from "docxtemplater"
 import { Link } from "react-router-dom"
+import ImageModule from "docxtemplater-image-module-free"
+import QRCode from "qrcode"
+
+// Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
+function base64DataURLToArrayBuffer(dataURL: string) {
+  const base64Regex = /^data:image\/(png|jpg|svg|svg\+xml);base64,/;
+  if (!base64Regex.test(dataURL)) {
+    return false;
+  }
+  const stringBase64 = dataURL.replace(base64Regex, "");
+  let binaryString;
+  if (typeof window !== "undefined") {
+    binaryString = window.atob(stringBase64);
+  } else {
+    binaryString = new Buffer(stringBase64, "base64").toString("binary");
+  }
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    const ascii = binaryString.charCodeAt(i);
+    bytes[i] = ascii;
+  }
+  return bytes.buffer;
+}
 
 // Helper to load base64 template to binary string
 const loadTemplate = (key: string): string | null => {
@@ -99,10 +123,36 @@ const generateBulkSkZip = async (
                 continue
             }
 
+            // QR Code Generation
+            let qrDataUrl = "";
+            try {
+                // Use _id for verification URL, fallback to nomorSk if needed
+                const docId = data._id || data.nomorSk || "INVALID";
+                const verificationUrl = `${window.location.origin}/verify/${docId}`;
+                qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
+            } catch (err) {
+                console.error("QR Generated Failed", err);
+            }
+
             const pzip = new PizZip(content);
+
+            // Configure Image Module
+            const imageOpts = {
+                getImage: function (tagValue: string, tagName: string) {
+                    return base64DataURLToArrayBuffer(tagValue);
+                },
+                getSize: function (img: any, tagValue: string, tagName: string) {
+                    // Force 100x100px for QR Codes
+                    if (tagName === "qrcode") return [100, 100];
+                    return [100, 100];
+                },
+            };
+            const imageModule = new ImageModule(imageOpts);
+
             const doc = new Docxtemplater(pzip, {
                 paragraphLoop: true,
                 linebreaks: true,
+                modules: [imageModule],
                 // Fix: Return empty string instead of "undefined" text
                 nullGetter: (part) => {
                      // console.warn("Missing tag:", part.value) 
@@ -110,8 +160,11 @@ const generateBulkSkZip = async (
                 }
             });
 
-            // Render
-            doc.render(data);
+            // Render with QR Code
+            doc.render({
+                ...data,
+                qrcode: qrDataUrl // {%qrcode} tag in Docx
+            });
 
             const out = doc.getZip().generate({
                 type: "uint8array",

@@ -53,7 +53,8 @@ export default function HeadmasterSubmissionPage() {
   const [suratFile, setSuratFile] = useState<File | null>(null)
   const [openTeacher, setOpenTeacher] = useState(false)
   const [openSchool, setOpenSchool] = useState(false)
-  const [schoolSearch, setSchoolSearch] = useState("") // Manual search state
+  const [schoolSearch, setSchoolSearch] = useState("") 
+  const [teacherSearch, setTeacherSearch] = useState("") // Manual teacher search state
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
@@ -171,19 +172,34 @@ export default function HeadmasterSubmissionPage() {
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[500px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Cari nama guru..." />
-                    <CommandList>
-                      <CommandEmpty>Guru tidak ditemukan.</CommandEmpty>
-                      <CommandGroup>
-                        {teachers.slice(0, 100).map((teacher) => (
-                          <CommandItem
-                            value={teacher.nama}
+                <PopoverContent className="w-[500px] p-0" align="start">
+                  <div className="flex flex-col border rounded-md bg-white">
+                    <div className="flex items-center border-b px-3">
+                      <Input
+                         placeholder="Cari nama guru..."
+                         className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 border-none focus-visible:ring-0 px-0"
+                         value={teacherSearch}
+                         onChange={(e) => setTeacherSearch(e.target.value)}
+                         autoFocus
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
+                        {teachers
+                           .filter(t => t.nama.toLowerCase().includes(teacherSearch.toLowerCase()))
+                           .slice(0, 100)
+                           .map((teacher) => (
+                          <div
                             key={teacher.id}
-                            onSelect={() => {
-                              form.setValue("teacherId", teacher.id)
-                              setOpenTeacher(false)
+                            className={cn(
+                              "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                              teacher.id === form.watch("teacherId") && "bg-slate-100"
+                            )}
+                            onMouseDown={(e) => {
+                               e.preventDefault();
+                               e.stopPropagation();
+                               form.setValue("teacherId", teacher.id)
+                               setOpenTeacher(false)
+                               setTeacherSearch("")
                             }}
                           >
                             <Check
@@ -195,11 +211,13 @@ export default function HeadmasterSubmissionPage() {
                               )}
                             />
                             {teacher.nama} - {teacher.unitKerja}
-                          </CommandItem>
+                          </div>
                         ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                        {teachers.filter(t => t.nama.toLowerCase().includes(teacherSearch.toLowerCase())).length === 0 && (
+                            <div className="py-6 text-center text-sm text-muted-foreground">Guru tidak ditemukan.</div>
+                        )}
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
                {form.formState.errors.teacherId && <p className="text-red-500 text-sm">{form.formState.errors.teacherId.message}</p>}

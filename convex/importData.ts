@@ -2,6 +2,33 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Helper to normalize Status
+function normalizeStatus(val: string): string {
+  if (!val) return "GTT";
+  const s = String(val).toLowerCase().trim();
+  if (s.includes("gty") || s.includes("tetap yayasan")) return "GTY";
+  if (s.includes("pns") || s.includes("asn")) return "PNS";
+  if (s.includes("pppk") || s.includes("p3k")) return "PPPK";
+  if (s.includes("tendik") || s.includes("tenaga pendidik")) return "Tendik";
+  if (s.includes("honorer") || s.includes("gtt") || s.includes("tidak tetap")) return "GTT";
+  return val; // Fallback to original
+}
+
+// Helper to normalize Certification
+function normalizeCert(val: any): boolean {
+  if (!val) return false;
+  const s = String(val).toLowerCase().trim();
+  return s === "true" || s === "ya" || s === "sudah" || s.includes("sertifi") || s === "lulus" || s === "v";
+}
+
+// Helper to normalize PDPKPNU
+function normalizePdpkpnu(val: any): string {
+  if (!val) return "Belum";
+  const s = String(val).toLowerCase().trim();
+  if (s === "sudah" || s === "ya" || s === "lulus" || s.includes("sertifi") || s === "v") return "Sudah";
+  return "Belum";
+}
+
 export const run = mutation({
   args: {
     teachers: v.array(v.any()),
@@ -20,11 +47,16 @@ export const run = mutation({
 
         if (!nuptk || !nama) continue;
 
+        // Extract raw values for normalization
+        const rawStatus = t.status || t.STATUS || t.Status || "";
+        const rawCert = t.isCertified || t.sertifikasi || t.SERTIFIKASI || t['Status Sertifikasi'];
+        const rawPdpkpnu = t.pdpkpnu || t.PDPKPNU || t['Status PDPKPNU'];
+
         const cleanData = {
           nuptk,
           nama,
           unitKerja: t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "",
-          status: t.status || t.STATUS || "GTT",
+          status: normalizeStatus(rawStatus),
           tmt: t.tmt || t.TMT || "",
           pendidikanTerakhir: t.pendidikanTerakhir || t.pendidikan || t.PENDIDIKAN || "",
           mapel: t.mapel || t.MAPEL || t.jabatan || "",
@@ -32,8 +64,8 @@ export const run = mutation({
           tempatLahir: t.tempatLahir || t.birthPlace || undefined,
           tanggalLahir: t.tanggalLahir || t.birthDate || undefined,
           jenisKelamin: t.jenisKelamin || t.jk || undefined,
-          pdpkpnu: t.pdpkpnu || "Belum",
-          isCertified: t.isCertified === true || t.isCertified === "true",
+          pdpkpnu: normalizePdpkpnu(rawPdpkpnu),
+          isCertified: normalizeCert(rawCert),
           updatedAt: now,
         };
 
@@ -63,7 +95,7 @@ export const run = mutation({
       new: success, 
       updated: updated, 
       errors, 
-      version: "4.0 (Isolated File)" 
+      version: "4.1 (Smart Normalize)" 
     };
   },
 });

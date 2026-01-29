@@ -4,6 +4,7 @@ import { api } from '../../../convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Download, Printer, Filter, X, Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
@@ -71,18 +72,23 @@ export default function SkReportPageSimple() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0">
-                      <Command shouldFilter={false}>
-                        <CommandInput 
-                          placeholder="Cari nama sekolah..." 
-                          value={searchQuery}
-                          onValueChange={setSearchQuery}
-                        />
-                        <CommandList>
-                          {filteredSchools.length === 0 && <CommandEmpty>Sekolah tidak ditemukan.</CommandEmpty>}
-                          <CommandGroup>
-                            <CommandItem
-                                value="Semua Sekolah"
-                                onSelect={() => {
+                      <div className="flex flex-col">
+                        <div className="p-2 border-b">
+                           <Input 
+                              placeholder="Cari nama sekolah..." 
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="h-8"
+                           />
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto p-1">
+                            {/* Option: Semua Sekolah */}
+                            <div
+                                className={cn(
+                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                                  selectedSchool === 'all' && "bg-slate-100"
+                                )}
+                                onClick={() => {
                                   setSelectedSchool("all")
                                   setOpenSchool(false)
                                   setSearchQuery("")
@@ -95,29 +101,37 @@ export default function SkReportPageSimple() {
                                   )}
                                 />
                                 Semua Sekolah
-                            </CommandItem>
-                            {filteredSchools.map((school) => (
-                              <CommandItem
-                                key={school._id}
-                                value={school.nama}
-                                onSelect={() => {
-                                  setSelectedSchool(school._id === selectedSchool ? "all" : school._id)
-                                  setOpenSchool(false)
-                                  setSearchQuery("")
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedSchool === school._id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {school.nama}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
+                            </div>
+                            
+                            {/* Filtered Options */}
+                            {filteredSchools.length === 0 ? (
+                               <div className="py-6 text-center text-sm text-muted-foreground">Sekolah tidak ditemukan.</div>
+                            ) : (
+                                filteredSchools.map((school) => (
+                                  <div
+                                    key={school._id}
+                                    className={cn(
+                                      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
+                                      selectedSchool === school._id && "bg-slate-100"
+                                    )}
+                                    onClick={() => {
+                                      setSelectedSchool(school._id === selectedSchool ? "all" : school._id)
+                                      setOpenSchool(false)
+                                      setSearchQuery("")
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedSchool === school._id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {school.nama}
+                                  </div>
+                                ))
+                            )}
+                        </div>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>

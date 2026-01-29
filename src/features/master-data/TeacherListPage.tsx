@@ -143,6 +143,11 @@ export default function TeacherListPage() {
 
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
   const [isImportModalOpen, setIsImportModalOpen] = useState(false) // Import modal state
+  
+  // NEW: Schools data for dropdown in Add/Edit Modal
+  const schools = useQuery(convexApi.schools.list) || []
+  const [schoolSearch, setSchoolSearch] = useState("")
+  const [openSchoolDropdown, setOpenSchoolDropdown] = useState(false)
 
   // PERMISSION: Filter by Unit Kerja for Operators
   const [userUnit] = useState<string | null>(() => {
@@ -692,7 +697,67 @@ export default function TeacherListPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="unitKerja" className="text-right">Satminkal</Label>
-                    <Input id="unitKerja" className="col-span-3" value={formData.unitKerja || formData.satminkal || ""} onChange={e => setFormData({...formData, unitKerja: e.target.value, satminkal: e.target.value})} placeholder="Nama satuan pendidikan" />
+                    <div className="col-span-3 relative">
+                         {/* Manual Searchable Dropdown for School */}
+                         <div className="relative">
+                            <Input
+                                id="unitKerja"
+                                placeholder="Cari unit kerja / sekolah..."
+                                value={formData.unitKerja || formData.satminkal || schoolSearch}
+                                onChange={(e) => {
+                                    setSchoolSearch(e.target.value)
+                                    setOpenSchoolDropdown(true)
+                                    // Also update form data temporarily to allow typing new schools if needed? 
+                                    // Better to force selection but allow typing for filtering.
+                                    // Wait, if I bind value to formData.unitKerja, typing filters weirdly.
+                                    // Strategy: Logic similar to Headmaster page.
+                                    // But here we might want to allow custom names? 
+                                    // "Satminkal" might be outside the list? 
+                                    // User wants "Search in Dropdown".
+                                    // Let's assume standard behavior: Input for filtering, click to select.
+                                    
+                                    // If we bind value to custom search, we need to handle "Edit" mode where value is already set.
+                                    // I will use a separate Input for search if dropdown is open? No, that's complex.
+                                    
+                                    // SIMPLIFIED MANUAL DROPDOWN (Matches other pages):
+                                    // 1. Trigger button (Display Name) -> Opens Popover -> Input + List.
+                                    // BUT, here it's inside a Dialog, so Popover might be clipped or complex.
+                                    // I'll use a simple absolute div overlay "Suggestions" below the input.
+                                    setFormData({...formData, unitKerja: e.target.value, satminkal: e.target.value})
+                                }}
+                                onFocus={() => setOpenSchoolDropdown(true)}
+                                // onBlur={() => setTimeout(() => setOpenSchoolDropdown(false), 200)} // Removed, using onMouseDown
+                                className="w-full"
+                                autoComplete="off"
+                            />
+                            {openSchoolDropdown && (
+                                <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-white p-1 shadow-lg text-sm">
+                                    {schools
+                                        .filter(s => s.nama.toLowerCase().includes((formData.unitKerja || schoolSearch).toLowerCase()))
+                                        .slice(0, 100)
+                                        .map((school) => (
+                                          <div
+                                            key={school._id}
+                                            className="cursor-pointer rounded-sm px-2 py-1.5 hover:bg-slate-100"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault(); // Prevent blur
+                                                setFormData({...formData, unitKerja: school.nama, satminkal: school.nama})
+                                                setSchoolSearch("")
+                                                setOpenSchoolDropdown(false)
+                                            }}
+                                          >
+                                            {school.nama}
+                                          </div>
+                                        ))
+                                    }
+                                    {schools.length === 0 && <div className="p-2 text-muted-foreground">Memuat data sekolah...</div>}
+                                    {schools.length > 0 && schools.filter(s => s.nama.toLowerCase().includes((formData.unitKerja || schoolSearch).toLowerCase())).length === 0 && (
+                                         <div className="p-2 text-muted-foreground">Tidak ditemukan (Gunakan data manual)</div>
+                                    )}
+                                </div>
+                            )}
+                         </div>
+                    </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="phoneNumber" className="text-right">Nomor HP</Label>

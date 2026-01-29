@@ -51,10 +51,12 @@ export default function SkReportPageSimple() {
   // 3. Data Fetching
   const convexSchools = useQuery(api.schools.list) || []
 
-  const schools = useMemo(() => convexSchools.map(s => ({
-    _id: s._id,
-    nama: s.nama
-  })), [convexSchools])
+  const schools = useMemo(() => (convexSchools || [])
+    .filter(s => s && s.nama)
+    .map(s => ({
+      _id: s._id,
+      nama: s.nama
+    })), [convexSchools])
   
   // Logic: Operator can only see their school
   const operatorSchool = isOperator ? schools.find(s => s.nama === userUnitKerja) : null
@@ -240,13 +242,12 @@ export default function SkReportPageSimple() {
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0">
                       <Command>
-                        <CommandInput placeholder="Cari sekolah..." />
+                        <CommandInput placeholder="Cari nama sekolah..." />
                         <CommandList>
                           <CommandEmpty>Sekolah tidak ditemukan.</CommandEmpty>
                           <CommandGroup>
                             <CommandItem
-                                value="all"
-                                key="all"
+                                value="Semua Sekolah"
                                 onSelect={() => {
                                   setSelectedSchool("all")
                                   setOpenSchool(false)

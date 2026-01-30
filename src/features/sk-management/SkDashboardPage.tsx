@@ -179,41 +179,7 @@ export default function SkDashboardPage() {
     }
   }
 
-  // Combine Data based on Active Tab
-  const skData: SkSubmission[] = useMemo(() => {
-    // A. If Tab is "Draft" (Perlu Diproses), show Teacher Queue
-    if (statusFilter === "draft") {
-        if (!teacherQueue) return []
-        return teacherQueue.map(t => ({
-            id: t._id,
-            nomorSurat: "-", // No SK Number yet
-            jenisSk: t.status === "GTY" ? "SK Guru Tetap Yayasan" : t.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
-            nama: t.nama,
-            tanggalPengajuan: new Date(t.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-            status: "draft", // Visual status
-            suratPermohonanUrl: undefined,
-            isTeacher: true // Flag to identify this is a Teacher record
-        }))
-    }
 
-    // B. If Tab is "Approved", "Rejected", "All" -> Show SK Documents
-    if (!skDocuments) return []
-    
-    return skDocuments.map((item) => ({
-      id: item._id,
-      nomorSurat: item.nomorSk || "-",
-      jenisSk: item.jenisSk,
-      nama: item.nama,
-      tanggalPengajuan: new Date(item.createdAt).toLocaleDateString('id-ID', {
-        day: 'numeric', month: 'short', year: 'numeric'
-      }),
-      status: item.status as StatusType,
-      suratPermohonanUrl: item.fileUrl,
-      isTeacher: false
-    }))
-  }, [skDocuments, teacherQueue, statusFilter])
-
-  const isLoading = statusFilter === "draft" ? teacherQueue === undefined : skDocuments === undefined
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)

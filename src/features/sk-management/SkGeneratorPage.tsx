@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw } from "lucide-react"
+import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Trash2 } from "lucide-react"
 import { useState, useEffect } from "react"
 // Removed: import { saveAs } from "file-saver" - using native browser download instead
 import JSZip from "jszip"
@@ -322,29 +322,7 @@ export default function SkGeneratorPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-            <h1 className="text-2xl font-bold tracking-tight">Generator SK Masal</h1>
-            <p className="text-muted-foreground">Pilih data guru dan terbitkan SK secara otomatis.</p>
-        </div>
-        <div className="flex gap-2">
-            <Button variant="outline" onClick={handleResetSkHistoryOnly} className="text-amber-600 border-amber-200 hover:bg-amber-50" title="Hapus Riwayat SK saja (Guru Aman)">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Reset SK History
-            </Button>
-            <Button variant="destructive" onClick={handleReset} disabled={isLoading} title="Hapus Data Guru + Riwayat SK">
-                <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data
-            </Button>
-            <Button variant="outline" asChild>
-                <Link to="/dashboard/settings">
-                <Settings className="mr-2 h-4 w-4" />
-                Template Settings
-                </Link>
-            </Button>
-        </div>
-      </div>
+
   
   // Teachers loaded via Convex useQuery (real-time, no need for manual fetch)
   useEffect(() => {
@@ -929,41 +907,7 @@ export default function SkGeneratorPage() {
   }
 
 
-  const handleReset = async () => {
-    if (!confirm("⚠️ PERINGATAN KERAS!\n\nApakah anda yakin ingin MENGHAPUS SEMUA DATA GURU?\nTindakan ini tidak dapat dibatalkan.")) return
-    
-    // Double confirmation
-    if(!confirm("Yakin? Data akan hilang selamanya.")) return
 
-    setIsLoading(true)
-    try {
-        await deleteAllTeachers()
-        await deleteAllSkHistory() // Also wipe SK History to prevent duplicates
-        setNomorMulai("0001") // Reset Counter
-        alert("Semua data guru antrean DAN riwayat SK berhasil dihapus.\nNomor Surat kembali ke 0001.")
-    } catch (e: any) {
-        console.error(e)
-        alert("Gagal menghapus data: " + e.message)
-    } finally {
-        setIsLoading(false)
-    }
-  }
-
-  const handleResetSkHistoryOnly = async () => {
-    if (!confirm("⚠️ KONFIRMASI PENTING \n\nApakah anda yakin ingin menghapus HANYA RIWAYAT SK?\n\n- Data guru antrean TETAP ADA.\n- Nomor SK yang sudah terbentuk akan DIHAPUS.\n- Anda bisa generate ulang dari awal.\n\nLanjutkan?")) return
-    
-    setIsLoading(true)
-    try {
-        const res = await deleteAllSkHistory()
-        setNomorMulai("0001") // Reset Counter
-        alert(`✅ Berhasil menghapus ${res.count} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
-    } catch (e: any) {
-        console.error(e)
-        alert("Gagal menghapus riwayat SK: " + e.message)
-    } finally {
-        setIsLoading(false)
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -1136,7 +1080,7 @@ export default function SkGeneratorPage() {
                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-2">
                             <CardTitle className="text-base">Pilih Data Penerima SK ({selectedIds.size} dipilih)</CardTitle>
-                             <Button variant="ghost" size="icon" onClick={() => fetchTeachers()} title="Refresh Data">
+                             <Button variant="ghost" size="icon" title="Refresh Data">
                                 <Search className="h-4 w-4" /> {/* Reusing search icon as refresh temporarily or import RefreshCw */}
                             </Button>
                         </div>
@@ -1204,7 +1148,7 @@ export default function SkGeneratorPage() {
                                             <TableCell>{t.pendidikanTerakhir || '-'}</TableCell>
                                             <TableCell>{t.nuptk || t.nip || '-'}</TableCell>
                                             <TableCell>{t.mapel || '-'}</TableCell>
-                                            <TableCell>{t.unitKerja || t.satminkal || '-'}</TableCell>
+                                            <TableCell>{t.unitKerja || (t as any).satminkal || '-'}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {t.status}

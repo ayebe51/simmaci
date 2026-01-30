@@ -240,6 +240,7 @@ export default function SkGeneratorPage() {
   const createSk = useMutation(convexApi.sk.create)
   const deleteTeacher = useMutation(convexApi.sk.deleteTeacher)
   const deleteAllTeachers = useMutation(convexApi.sk.deleteAllTeachers)
+  const deleteAllSk = useMutation(convexApi.sk.cleanupAll)
   
   // STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -881,9 +882,11 @@ export default function SkGeneratorPage() {
 
     setIsLoading(true)
     try {
-        await api.deleteAllTeachers()
-        alert("Semua data guru berhasil dihapus.")
-        fetchTeachers() // Refresh list
+        await deleteAllTeachers()
+        await deleteAllSk() // Also wipe SK History to prevent duplicates
+        setNomorMulai("0001") // Reset Counter
+        alert("Semua data guru antrean DAN riwayat SK berhasil dihapus.\nNomor Surat kembali ke 0001.")
+        // fetchTeachers() // Reactive query updates automatically
     } catch (e: any) {
         console.error(e)
         alert("Gagal menghapus data: " + e.message)

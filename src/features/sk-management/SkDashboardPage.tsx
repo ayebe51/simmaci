@@ -274,6 +274,13 @@ export default function SkDashboardPage() {
         <CardContent>
           
           {/* Status Tabs (Inbox Workflow) */}
+          {/* DEBUG RAW DATA */}
+          <div className="p-4 bg-slate-100 rounded mb-4 text-xs font-mono border border-red-500 overflow-auto max-h-40">
+            <strong>DEBUG DATA INFO:</strong><br/>
+            Teaher Queue Raw Length: {teacherQueue?.length ?? "Undefined"}<br/>
+            First Item: {teacherQueue?.[0] ? JSON.stringify(teacherQueue[0]) : "None"}
+          </div>
+
           <Tabs defaultValue="draft" value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full mb-6">
             <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
               <TabsTrigger value="draft">

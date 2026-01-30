@@ -62,6 +62,23 @@ const Base64String = (str: string) => {
     }
 }
 
+// Helper: Add 1 year to Indonesian Date String (e.g., "16 Juli 2024" -> "16 Juli 2025")
+const addOneYearIndonesian = (dateStr: string) => {
+    if (!dateStr || dateStr === "-") return "-"
+    try {
+        const parts = dateStr.split(" ")
+        if (parts.length < 3) return dateStr // Safety check
+        const year = parseInt(parts[parts.length - 1])
+        if (isNaN(year)) return dateStr
+        
+        // Replace year with year + 1
+        parts[parts.length - 1] = (year + 1).toString()
+        return parts.join(" ")
+    } catch (e) {
+        return dateStr
+    }
+}
+
 
 const generateBulkSkZip = async (
   candidates: any[],
@@ -767,10 +784,10 @@ export default function SkGeneratorPage() {
             TH_AJARAN: tahunAjaran,
             TH_PELAJARAN: tahunAjaran,
             
-            TANGGAL_HABIS_BERLAKU: tanggalHabisBerlaku,
-            TANGGAL_BERAKHIR: tanggalHabisBerlaku,
-            "TANGGAL > 1 TAHUN SEJAK PENETAPAN": tanggalHabisBerlaku,
-            MASA_BERLAKU: tanggalHabisBerlaku,
+            TANGGAL_HABIS_BERLAKU: addOneYearIndonesian(tanggalPenetapanFormatted),
+            TANGGAL_BERAKHIR: addOneYearIndonesian(tanggalPenetapanFormatted),
+            "TANGGAL > 1 TAHUN SEJAK PENETAPAN": addOneYearIndonesian(tanggalPenetapanFormatted),
+            MASA_BERLAKU: addOneYearIndonesian(tanggalPenetapanFormatted),
 
             NAMA_LENGKAP: t.nama,
             NAMA_GURU: t.nama,

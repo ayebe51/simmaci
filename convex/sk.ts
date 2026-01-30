@@ -388,30 +388,13 @@ export const deleteAllTeachers = mutation({
   },
 });
 
-// Get teachers who have SK (for SK Generator filtering)
-// Only teachers who have submitted SK will appear in generator
+// Get teachers (The Queue for SK Generation)
 export const getTeachersWithSk = query({
   args: {},
   handler: async (ctx) => {
-    // Get all SK documents
-    const allSk = await ctx.db.query("skDocuments").collect();
-    
-    // Extract unique teacher IDs
-    const teacherIds = [...new Set(
-      allSk
-        .filter(sk => sk.teacherId) // Only SK with teacherId
-        .map(sk => sk.teacherId!)
-    )];
-    
-    // Fetch teacher details
-    const teachers = await Promise.all(
-      teacherIds.map(async (id) => {
-        const teacher = await ctx.db.get(id);
-        return teacher;
-      })
-    );
-    
-    // Filter out null values (deleted teachers)
-    return teachers.filter((t): t is NonNullable<typeof t> => t !== null);
+    // This function name is misleading, it should be "getTeacherQueue" or similar
+    // But we keep it to avoid breaking frontend imports for now.
+    // fetches ALL teachers currently in the "teachers" table (the queue)
+    return await ctx.db.query("teachers").collect();
   },
 });

@@ -87,8 +87,15 @@ export const create = mutation({
         .first();
       
       if (existing) {
-        console.error(`Duplicate Nomor SK: ${args.nomorSk}`);
-        throw new Error(`Nomor SK ${args.nomorSk} sudah terdaftar`);
+        console.log(`Duplicate Nomor SK: ${args.nomorSk}, Updating existing record...`);
+        // UPSERT LOGIC: Update existing instead of throwing
+        await ctx.db.patch(existing._id, {
+            ...args,
+            updatedAt: now,
+            // Keep original createdAt and createdBy if not provided?
+            // Overwriting is safer for "regeneration" context
+        });
+        return existing._id;
       }
       
       const newId = await ctx.db.insert("skDocuments", {

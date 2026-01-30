@@ -878,7 +878,7 @@ export default function SkGeneratorPage() {
               })
 
               // Delete from Teacher Queue
-              // MODIFIED: User requested NOT to delete teacher data after generation
+              // MODIFIED (SAFEGUARD): User requested NOT to delete teacher data after generation
               // if ((item as any)._id) {
               //    await deleteTeacher({ id: (item as any)._id })
               // }

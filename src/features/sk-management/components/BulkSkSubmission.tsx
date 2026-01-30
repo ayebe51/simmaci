@@ -490,59 +490,15 @@ export function BulkSkSubmission() {
             throw new Error(`Gagal menyimpan data guru (System Error): ${err.message}`)
         }
 
-        // 2. Create SK Submissions using Convex
-        // Get userId from localStorage
-        const userStr = localStorage.getItem("user")
-        const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
+        // 2. SK Submission Creation REMOVED to prevent premature data entry.
+        // The SK will be created ONLY when generated in SK Generator page.
         
-        let successCount = 0;
-        let errorCount = 0;
-        const errors: string[] = [];
-        
-        for (let i = 0; i < candidates.length; i++) {
-            const c = candidates[i]
-            const jenisSk = determineJenisSk(c["pendidikanTerakhir"], c["tmt"])
-            
-            try {
-                // Get teacher ID from bulkCreate result (same order as input)
-                const teacherId = teacherIds[i]
-                if (!teacherId) {
-                    throw new Error(`Teacher ID not found at index ${i} for ${c["nama"]}`)
-                }
-                
-                log(`Creating SK for ${c["nama"]} with Teacher ID: ${teacherId}...`)
-                
-                const payload = {
-                    // Generate truly unique SK number to avoid collision errors
-                    nomorSk: `${String(successCount + 1).padStart(3, '0')}/SK/BULK/${new Date().getFullYear()}/${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-                    jenisSk: jenisSk,
-                    teacherId: teacherId,
-                    nama: c["nama"] ? String(c["nama"]) : "Tanpa Nama",
-                    jabatan: "Guru",
-                    unitKerja: c["unitKerja"] ? String(c["unitKerja"]) : "-",
-                    tanggalPenetapan: new Date().toISOString().split('T')[0],
-                    status: autoApprove ? "approved" : "draft",
-                    fileUrl: permohonanUrl || undefined,
-                    createdBy: userId,
-                };
-                console.log("🚀 Payload SK:", payload);
-
-                const skId = await createSkMutation(payload)
-                log(`✅ SK created: ${skId}`)
-                
-                successCount++;
-            } catch (e: any) {
-                errorCount++;
-                const errorMsg = `${c["nama"]}: ${e.message}`
-                console.error("Failed to create SK for", c["nama"], e)
-                log(`❌ Error untuk ${errorMsg}`)
-                errors.push(errorMsg)
-            }
-        }
-        
-        const resultMessage = `Berhasil memproses!\n\nData Guru: ${convexTeachers.length}\nSK Berhasil: ${successCount}\nSK Gagal: ${errorCount}${errors.length > 0 ? '\n\nErrors:\n' + errors.slice(0, 5).join('\n') : ''}`
+        const resultMessage = `Berhasil memproses!\n\nData Guru: ${convexTeachers.length} data masuk antrean.\n\nSilakan 'Approve' data ini di menu 'Daftar Guru' atau abaikan jika auto-approve.`
         alert(resultMessage)
-        navigate("/dashboard/sk")
+        
+        // Navigate to Teacher List to verify/approve? Or Generator?
+        // Generator is where they will mint the SK.
+        navigate("/dashboard/sk/generator") // Redirect to Generator directly since they want to print.
 
     } catch (e: any) {
         console.error("Bulk Submission Error:", e)

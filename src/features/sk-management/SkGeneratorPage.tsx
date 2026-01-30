@@ -234,7 +234,7 @@ export default function SkGeneratorPage() {
   // 🔥 ONLY SHOW TEACHERS WHO HAVE SUBMITTED SK
   // Teachers from master data import won't appear here
   // Only teachers who submitted SK via submission form will show
-  const teachersData = useQuery(convexApi.sk.getTeachersWithSk) || []
+  const teachersData = useQuery(convexApi.sk.getTeachersWithSk, { isVerified: true }) || []
   
   // MUTATIONS
   // MUTATIONS

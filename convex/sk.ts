@@ -360,6 +360,27 @@ export const countByStatus = query({
   },
 });
 
+// Delete teacher (used by SK Generator queue cleanup)
+export const deleteTeacher = mutation({
+  args: { id: v.id("teachers") },
+  handler: async (ctx, args) => {
+    const exists = await ctx.db.get(args.id);
+    if (exists) {
+        await ctx.db.delete(args.id);
+    }
+  },
+});
+
+export const deleteAllTeachers = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const teachers = await ctx.db.query("teachers").collect();
+    for (const t of teachers) {
+      await ctx.db.delete(t._id);
+    }
+  },
+});
+
 // Get teachers who have SK (for SK Generator filtering)
 // Only teachers who have submitted SK will appear in generator
 export const getTeachersWithSk = query({

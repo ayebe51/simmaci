@@ -193,6 +193,7 @@ export const bulkCreate = mutation({
         if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
         if (teacher.email) cleanData.email = teacher.email;
         if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
+        if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified; // NEW
         if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
         
         // Identity

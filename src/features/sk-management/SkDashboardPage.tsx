@@ -49,11 +49,8 @@ export default function SkDashboardPage() {
   })
 
   // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
-  const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, {
-     isVerified: statusFilter === "draft" ? false : undefined 
-     // If we are in "Draft", we want isVerified=false. 
-     // If "Approved", we might want isVerified=true? No, generator handles that.
-  })
+  // DEBUG: Removing filter to see ALL teachers
+  const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, {}) // Pass empty object
 
   // Mutations
   const archiveAllSk = useMutation(convexApi.sk.archiveAll)
@@ -279,7 +276,9 @@ export default function SkDashboardPage() {
           {/* Status Tabs (Inbox Workflow) */}
           <Tabs defaultValue="draft" value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full mb-6">
             <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-              <TabsTrigger value="draft">Perlu Diproses</TabsTrigger>
+              <TabsTrigger value="draft">
+                  Perlu Diproses {teacherQueue ? `(${teacherQueue.length})` : ""}
+              </TabsTrigger>
               <TabsTrigger value="approved">Disetujui</TabsTrigger>
               <TabsTrigger value="rejected">Ditolak</TabsTrigger>
               <TabsTrigger value="all">Semua Data</TabsTrigger>

@@ -395,7 +395,7 @@ export const getTeachersWithSk = query({
   },
   handler: async (ctx, args) => {
     // fetches ALL teachers currently in the "teachers" table (the queue)
-    const teachers = await ctx.db.query("teachers").collect();
+    const teachers = await ctx.db.query("teachers").order("desc").collect();
     
     // Filter based on verification status if provided
     if (args.isVerified !== undefined) {

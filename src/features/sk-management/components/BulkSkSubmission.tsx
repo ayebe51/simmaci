@@ -462,19 +462,32 @@ export function BulkSkSubmission() {
         }
         // -------------------------------
         
+        // -------------------------------
+        
         log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
         let teacherIds: any[] = [];
         try {
             const bulkResult = await bulkCreateTeacherMutation({ teachers: convexTeachers })
             console.log("🔍 bulkCreate result:", bulkResult)
-            console.log("🔍 bulkResult.ids:", bulkResult?.ids)
-            console.log("🔍 bulkResult type:", typeof bulkResult)
+            
+            // ERROR HANDLING: Check for partial failures
+            if (bulkResult.errors && bulkResult.errors.length > 0) {
+                 const sampleError = bulkResult.errors[0]
+                 const errorMsg = `Gagal menyimpan ${bulkResult.errors.length} data Guru. Contoh error: ${typeof sampleError === 'string' ? sampleError : JSON.stringify(sampleError)}`
+                 console.error(errorMsg)
+                 alert(errorMsg)
+                 // If all failed, stop here
+                 if (!bulkResult.ids || bulkResult.ids.length === 0) {
+                     throw new Error("Semua data guru gagal disimpan. Cek format Excel anda.")
+                 }
+            }
             
             teacherIds = bulkResult?.ids || []
-            log(`✅ ${teacherIds.length} teachers created. IDs: ${teacherIds.slice(0, 3).join(', ')}...`)
+            log(`✅ ${teacherIds.filter(id => id).length} teachers created/updated.`)
+            
         } catch (err: any) {
             console.error("Convex bulkCreate failed", err)
-            throw new Error(`Gagal menyimpan data guru: ${err.message}`)
+            throw new Error(`Gagal menyimpan data guru (System Error): ${err.message}`)
         }
 
         // 2. Create SK Submissions using Convex

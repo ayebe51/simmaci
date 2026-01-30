@@ -861,9 +861,10 @@ export default function SkGeneratorPage() {
               })
 
               // Delete from Teacher Queue
-              if ((item as any)._id) {
-                  await deleteTeacher({ id: (item as any)._id })
-              }
+              // MODIFIED: User requested NOT to delete teacher data after generation
+              // if ((item as any)._id) {
+              //    await deleteTeacher({ id: (item as any)._id })
+              // }
 
               // PUSH WITH NEW ID (For QR Code)
               finalData.push({

@@ -64,6 +64,7 @@ export default function SkSubmissionPage() {
     setIsSubmitting(true)
     try {
         // Helper variables for file upload
+        const file = fileInputRef.current?.files?.[0]
         if (file) {
             toast.info("Mengupload dokumen...")
             await api.uploadFile(file)

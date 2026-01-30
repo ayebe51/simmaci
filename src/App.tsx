@@ -59,6 +59,7 @@ export default function App() {
                       <Route path="users" element={<UserListPage />} />
                       <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk/new" element={<SkSubmissionPage />} />
+                      <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
                       <Route path="sk-saya" element={<MySkPage />} />
                       <Route path="sk/:id" element={<SkDetailPage />} />
                       <Route path="generator" element={<SkGeneratorPage />} />
@@ -74,7 +75,6 @@ export default function App() {
                       <Route path="events/new" element={<CreateEventPage />} />
                       <Route path="events/:id" element={<EventDetailPage />} />
                       <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
-                      <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
                       <Route path="sk/:id/print" element={<SkPrintPage />} />
                       <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
                       <Route path="archive" element={<ArchivePage />} />

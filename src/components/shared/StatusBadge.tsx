@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-export type StatusType = "draft" | "submitted" | "verified" | "issued" | "rejected" | "revision"
+export type StatusType = "draft" | "submitted" | "verified" | "issued" | "rejected" | "revision" | "approved"
 
 interface StatusBadgeProps {
   status: StatusType
@@ -12,6 +12,7 @@ const statusConfig: Record<StatusType, { label: string; className: string }> = {
   submitted: { label: "Diajukan", className: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
   verified: { label: "Terverifikasi", className: "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" },
   issued: { label: "Terbit", className: "bg-green-100 text-green-700 hover:bg-green-200" },
+  approved: { label: "Disetujui", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" },
   rejected: { label: "Ditolak", className: "bg-red-100 text-red-700 hover:bg-red-200" },
   revision: { label: "Revisi", className: "bg-orange-100 text-orange-700 hover:bg-orange-200" },
 }

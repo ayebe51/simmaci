@@ -398,3 +398,22 @@ export const getTeachersWithSk = query({
     return await ctx.db.query("teachers").collect();
   },
 });
+
+export const deleteAllSk = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const sks = await ctx.db.query("skDocuments").collect();
+    for (const sk of sks) {
+      await ctx.db.delete(sk._id);
+    }
+    return { count: sks.length };
+  },
+});
+
+
+export const debugListAllTeachers = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("teachers").collect();
+    }
+});

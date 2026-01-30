@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save, FileText, BadgeCheck } from "lucide-react"
+import { ArrowLeft, Save, FileText } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useRef } from "react"
@@ -20,28 +20,8 @@ import { api as convexApi } from "../../../convex/_generated/api"
 import { api } from "@/lib/api"
 
 // Helper for numbering (Inlined to fix build issues)
-// Helper for numbering (Inlined to fix build issues)
-function getRomanMonth(monthIndex: number): string {
-    const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
-    return romans[monthIndex] || "I";
-}
-
-export function getNextSkNumber(): string {
-    const stored = localStorage.getItem("sk_counter");
-    const current = stored ? parseInt(stored) : 0;
-    
-    // Generate Number Logic Inlined
-    const paddedNum = String(current + 1).padStart(3, "0");
-    const monthRoman = getRomanMonth(new Date().getMonth());
-    const year = new Date().getFullYear();
-    return `${paddedNum}/SK/YP-MACI/${monthRoman}/${year}`;
-}
-
-export function incrementSkCounter() {
-    const stored = localStorage.getItem("sk_counter");
-    const current = stored ? parseInt(stored) : 0;
-    localStorage.setItem("sk_counter", String(current + 1));
-}
+// Helper functions for Manual SK Numbering removed as they are no longer used.
+// SK Numbering is centralized in the Generator Page.
 
 const skSchema = z.object({
   jenisSk: z.string().min(1, "Jenis SK wajib dipilih"),
@@ -78,15 +58,13 @@ export default function SkSubmissionPage() {
   })
 
   // 🔥 CONVEX MUTATIONS
-  const createSkMutation = useMutation(convexApi.sk.create)
   const createTeacherMutation = useMutation(convexApi.teachers.create)
 
   const onSubmit = async (data: SkFormValues) => {
     setIsSubmitting(true)
     try {
-        // Handle File Upload
-        const finalKeterangan = data.keterangan || "";
-        let finalSuratPermohonanUrl = "";
+        // Helper variables for file upload
+        let suratPermohonanUrl = "";
 
         const file = fileInputRef.current?.files?.[0]
         if (file) {
@@ -95,13 +73,9 @@ export default function SkSubmissionPage() {
             const fileUrl = uploadRes.url || uploadRes.fileUrl || uploadRes.path || uploadRes.secure_url
             
             if (fileUrl) {
-                finalSuratPermohonanUrl = fileUrl;
+                suratPermohonanUrl = fileUrl;
             }
         }
-
-        // Get userId from localStorage
-        const userStr = localStorage.getItem("user")
-        const userId = userStr ? JSON.parse(userStr).id : "temp_user_id_placeholder"
 
         // 🔥 STEP 1: Create Teacher Record First
         toast.info("Membuat data guru...")
@@ -109,33 +83,22 @@ export default function SkSubmissionPage() {
         // Generate NUPTK if NIY provided, otherwise use timestamp-based ID
         const nuptk = data.niy || `TEMP-${Date.now()}`
         
-        const teacherId = await createTeacherMutation({
+        // We don't need the returned ID anymore since we don't create SK immediately
+        await createTeacherMutation({
             nuptk: nuptk,
             nama: data.nama,
             nip: data.niy, // Optional
             unitKerja: data.unitKerja,
             status: data.jenisSk.includes("Tetap") ? "GTY" : data.jenisSk.includes("Tidak Tetap") ? "GTT" : "Tendik",
             isActive: true,
+            // TODO: If schema supports it, pass suratPermohonanUrl here. 
+            // For now, we just queue the teacher data.
         })
 
-        // 🔥 STEP 2: Create SK with teacherId
-        toast.info("Membuat SK...")
-        await createSkMutation({
-            nomorSk: getNextSkNumber(),
-            jenisSk: data.jenisSk,
-            teacherId: teacherId, // Link to teacher
-            nama: data.nama,
-            jabatan: data.jabatan || "",
-            unitKerja: data.unitKerja,
-            tanggalPenetapan: new Date().toISOString().split('T')[0],
-            status: "draft",
-            fileUrl: finalSuratPermohonanUrl,
-            createdBy: userId,
-        })
-        
-        incrementSkCounter()
-        toast.success("✅ Guru dan SK berhasil dibuat!")
-        navigate("/dashboard/sk")
+
+        // 🔥 STEP 2: Finish (No Draft SK Created - Waiting for Admin)
+        toast.success("✅ Pengajuan berhasil dikirim! Data masuk antrean verifikasi.")
+        navigate("/dashboard/teachers") // Redirect to Teacher List instead of SK Archive
     } catch (err: any) {
         toast.error(err.message || "Gagal mengajukan SK")
     } finally {

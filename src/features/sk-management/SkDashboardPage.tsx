@@ -20,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 // Type definitions (to be moved to types/sk.ts later)
 interface SkSubmission {
   id: string
@@ -35,10 +37,12 @@ export default function SkDashboardPage() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
+  const [statusFilter, setStatusFilter] = useState<StatusType | "all">("draft") // Default view: Drafts only
   
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexSkData = useQuery(convexApi.sk.list, {
     jenisSk: filterType === "all" ? undefined : filterType,
+    status: statusFilter === "all" ? undefined : statusFilter,
   })
   
   // Mutations
@@ -198,6 +202,17 @@ export default function SkDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          
+          {/* Status Tabs (Inbox Workflow) */}
+          <Tabs defaultValue="draft" value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full mb-6">
+            <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+              <TabsTrigger value="draft">Perlu Diproses</TabsTrigger>
+              <TabsTrigger value="approved">Disetujui</TabsTrigger>
+              <TabsTrigger value="rejected">Ditolak</TabsTrigger>
+              <TabsTrigger value="all">Semua Data</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           {/* Filters */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">

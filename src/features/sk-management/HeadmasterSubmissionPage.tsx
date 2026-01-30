@@ -70,7 +70,7 @@ export default function HeadmasterSubmissionPage() {
   const teachers = useMemo(() => (convexTeachers || []).map(t => ({
     id: t._id,
     nama: t.nama,
-    unitKerja: t.satminkal
+    unitKerja: t.unitKerja
   })), [convexTeachers])
   
   const schools = useMemo(() => (convexSchools || []).map(s => ({

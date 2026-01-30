@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Type definitions (to be moved to types/sk.ts later)
 interface SkSubmission {

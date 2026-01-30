@@ -20,6 +20,7 @@ export default defineSchema({
     phoneNumber: v.optional(v.string()),
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    isVerified: v.optional(v.boolean()), // For SK Verification Workflow
     pdpkpnu: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

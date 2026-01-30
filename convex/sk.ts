@@ -390,12 +390,36 @@ export const deleteAllTeachers = mutation({
 
 // Get teachers (The Queue for SK Generation)
 export const getTeachersWithSk = query({
-  args: {},
-  handler: async (ctx) => {
-    // This function name is misleading, it should be "getTeacherQueue" or similar
-    // But we keep it to avoid breaking frontend imports for now.
+  args: {
+    isVerified: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
     // fetches ALL teachers currently in the "teachers" table (the queue)
-    return await ctx.db.query("teachers").collect();
+    const teachers = await ctx.db.query("teachers").collect();
+    
+    // Filter based on verification status if provided
+    if (args.isVerified !== undefined) {
+        return teachers.filter(t => t.isVerified === args.isVerified);
+    }
+    
+    return teachers;
+  },
+});
+
+// Verify Teacher (Move from Dashboard to Generator)
+export const verifyTeacher = mutation({
+  args: { id: v.id("teachers") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { isVerified: true });
+  },
+});
+
+export const bulkVerifyTeachers = mutation({
+  args: { ids: v.array(v.id("teachers")) },
+  handler: async (ctx, args) => {
+    for (const id of args.ids) {
+        await ctx.db.patch(id, { isVerified: true });
+    }
   },
 });
 

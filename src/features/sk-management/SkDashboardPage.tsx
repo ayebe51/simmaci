@@ -31,6 +31,7 @@ interface SkSubmission {
   tanggalPengajuan: string
   status: StatusType
   suratPermohonanUrl?: string
+  isTeacher?: boolean
 }
 
 export default function SkDashboardPage() {
@@ -39,19 +40,65 @@ export default function SkDashboardPage() {
   const [filterType, setFilterType] = useState("all")
   const [statusFilter, setStatusFilter] = useState<StatusType | "all">("draft") // Default view: Drafts only
   
-  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
-  const convexSkData = useQuery(convexApi.sk.list, {
+  // 🔥 REAL-TIME CONVEX QUERY
+  // 1. Get SK Documents (Approved/Rejected/Issued)
+  const skDocuments = useQuery(convexApi.sk.list, {
     jenisSk: filterType === "all" ? undefined : filterType,
-    status: statusFilter === "all" ? undefined : statusFilter,
+    status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
+    // If "Draft", we don't look at SKs (unless legacy). We look at Teachers Queue.
   })
-  
+
+  // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
+  const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, {
+     isVerified: statusFilter === "draft" ? false : undefined 
+     // If we are in "Draft", we want isVerified=false. 
+     // If "Approved", we might want isVerified=true? No, generator handles that.
+  })
+
   // Mutations
   const archiveAllSk = useMutation(convexApi.sk.archiveAll)
   const batchUpdateStatusMutation = useMutation(convexApi.sk.batchUpdateStatus)
+  const verifyTeacherMutation = useMutation(convexApi.sk.verifyTeacher) // New mutation
   
   // Selection state for batch operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   
+  // Combine Data based on Active Tab
+  const skData: SkSubmission[] = useMemo(() => {
+    // A. If Tab is "Draft" (Perlu Diproses), show Teacher Queue
+    if (statusFilter === "draft") {
+        if (!teacherQueue) return []
+        return teacherQueue.map(t => ({
+            id: t._id,
+            nomorSurat: "-", // No SK Number yet
+            jenisSk: t.status === "GTY" ? "SK Guru Tetap Yayasan" : t.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
+            nama: t.nama,
+            tanggalPengajuan: new Date(t.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+            status: "draft", // Visual status
+            suratPermohonanUrl: undefined, // Or check if we can add this to teacher schema later
+            isTeacher: true // Flag to identify this is a Teacher record, not SK
+        }))
+    }
+
+    // B. If Tab is "Approved", "Rejected", "All" -> Show SK Documents
+    if (!skDocuments) return []
+    
+    return skDocuments.map((item) => ({
+      id: item._id,
+      nomorSurat: item.nomorSk || "-",
+      jenisSk: item.jenisSk,
+      nama: item.nama,
+      tanggalPengajuan: new Date(item.createdAt).toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'short', year: 'numeric'
+      }),
+      status: item.status as StatusType,
+      suratPermohonanUrl: item.fileUrl,
+      isTeacher: false
+    }))
+  }, [skDocuments, teacherQueue, statusFilter])
+
+  const isLoading = statusFilter === "draft" ? teacherQueue === undefined : skDocuments === undefined;
+
   // Batch selection handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -71,24 +118,33 @@ export default function SkDashboardPage() {
     }
     setSelectedIds(newSelection)
   }
-  
+
   // Batch actions
   const handleBatchApprove = async () => {
     if (selectedIds.size === 0) {
-      alert("Pilih minimal satu SK untuk di-approve")
+      alert("Pilih minimal satu data untuk di-approve")
       return
     }
     
-    if (!confirm(`Approve ${selectedIds.size} SK yang dipilih?`)) return
+    if (!confirm(`Approve ${selectedIds.size} data yang dipilih? Data akan masuk ke Generator SK.`)) return
     
     try {
-      const ids = Array.from(selectedIds) as any[]
-      await batchUpdateStatusMutation({ ids, status: "approved" })
+        const ids = Array.from(selectedIds) as any[]
+        
+        if (statusFilter === "draft") {
+            // Approve Teachers -> Verify them
+             await Promise.all(ids.map(id => verifyTeacherMutation({ id })))
+             // Ideally use bulkVerifyTeachers if available
+        } else {
+            // Approve SKs -> Update status
+             await batchUpdateStatusMutation({ ids, status: "approved" })
+        }
+
       setSelectedIds(new Set()) // Clear selection
-      alert(`✅ Berhasil meng-approve ${selectedIds.size} SK!`)
+      alert(`✅ Berhasil meng-approve ${selectedIds.size} data!`)
     } catch (error) {
       console.error("Batch approve failed:", error)
-      alert("Gagal approve SK. Silakan coba lagi.")
+      alert("Gagal approve data. Silakan coba lagi.")
     }
   }
   
@@ -118,11 +174,27 @@ export default function SkDashboardPage() {
     }
   }
 
-  // Map Convex data to frontend interface
+  // Combine Data based on Active Tab
   const skData: SkSubmission[] = useMemo(() => {
-    if (!convexSkData) return []
+    // A. If Tab is "Draft" (Perlu Diproses), show Teacher Queue
+    if (statusFilter === "draft") {
+        if (!teacherQueue) return []
+        return teacherQueue.map(t => ({
+            id: t._id,
+            nomorSurat: "-", // No SK Number yet
+            jenisSk: t.status === "GTY" ? "SK Guru Tetap Yayasan" : t.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
+            nama: t.nama,
+            tanggalPengajuan: new Date(t.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+            status: "draft", // Visual status
+            suratPermohonanUrl: undefined,
+            isTeacher: true // Flag to identify this is a Teacher record
+        }))
+    }
+
+    // B. If Tab is "Approved", "Rejected", "All" -> Show SK Documents
+    if (!skDocuments) return []
     
-    return convexSkData.map((item) => ({
+    return skDocuments.map((item) => ({
       id: item._id,
       nomorSurat: item.nomorSk || "-",
       jenisSk: item.jenisSk,
@@ -131,11 +203,12 @@ export default function SkDashboardPage() {
         day: 'numeric', month: 'short', year: 'numeric'
       }),
       status: item.status as StatusType,
-      suratPermohonanUrl: item.fileUrl
+      suratPermohonanUrl: item.fileUrl,
+      isTeacher: false
     }))
-  }, [convexSkData])
-  
-  const isLoading = convexSkData === undefined
+  }, [skDocuments, teacherQueue, statusFilter])
+
+  const isLoading = statusFilter === "draft" ? teacherQueue === undefined : skDocuments === undefined
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)

@@ -64,17 +64,10 @@ export default function SkSubmissionPage() {
     setIsSubmitting(true)
     try {
         // Helper variables for file upload
-        let suratPermohonanUrl = "";
-
-        const file = fileInputRef.current?.files?.[0]
         if (file) {
             toast.info("Mengupload dokumen...")
-            const uploadRes = await api.uploadFile(file)
-            const fileUrl = uploadRes.url || uploadRes.fileUrl || uploadRes.path || uploadRes.secure_url
-            
-            if (fileUrl) {
-                suratPermohonanUrl = fileUrl;
-            }
+            await api.uploadFile(file)
+            // Note: We don't need the URL for the Teacher record currently
         }
 
         // 🔥 STEP 1: Create Teacher Record First
@@ -99,8 +92,10 @@ export default function SkSubmissionPage() {
         // 🔥 STEP 2: Finish (No Draft SK Created - Waiting for Admin)
         toast.success("✅ Pengajuan berhasil dikirim! Data masuk antrean verifikasi.")
         navigate("/dashboard/teachers") // Redirect to Teacher List instead of SK Archive
-    } catch (err: any) {
-        toast.error(err.message || "Gagal mengajukan SK")
+    } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errorMessage = (err as any).message || "Gagal mengajukan SK"
+        toast.error(errorMessage)
     } finally {
         setIsSubmitting(false)
     }

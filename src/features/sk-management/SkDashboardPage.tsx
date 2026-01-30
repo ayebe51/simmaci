@@ -97,6 +97,13 @@ export default function SkDashboardPage() {
   const isLoading = statusFilter === "draft" ? teacherQueue === undefined : skDocuments === undefined;
 
   // Batch selection handlers
+  // Filter Logic (moved up)
+  const filteredData = useMemo(() => skData.filter(item => {
+    const matchesSearch = item.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          item.jenisSk.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesSearch
+  }), [skData, searchTerm])
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const allIds = new Set(filteredData.map(sk => sk.id))
@@ -222,12 +229,7 @@ export default function SkDashboardPage() {
     }
   }
 
-  // Filter Logic (client-side for search term only, jenisSk filtered server-side)
-  const filteredData = useMemo(() => skData.filter(item => {
-    const matchesSearch = item.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.jenisSk.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
-  }), [skData, searchTerm])
+
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)

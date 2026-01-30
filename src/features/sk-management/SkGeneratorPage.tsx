@@ -237,15 +237,73 @@ export default function SkGeneratorPage() {
   const teachersData = useQuery(convexApi.sk.getTeachersWithSk) || []
   
   // MUTATIONS
+  // MUTATIONS
   const createSk = useMutation(convexApi.sk.create)
   const deleteTeacher = useMutation(convexApi.sk.deleteTeacher)
   const deleteAllTeachers = useMutation(convexApi.sk.deleteAllTeachers)
-  const deleteAllSk = useMutation(convexApi.sk.cleanupAll)
+  // FIXED: Point to the correct new mutation
+  const deleteAllSkHistory = useMutation(convexApi.sk.deleteAllSk) 
   
   // STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasStoredTemplate, setHasStoredTemplate] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  
+  // ... (Lines 249-876 skipped) ...
+
+  const handleReset = async () => {
+    if (!confirm("⚠️ PERINGATAN KERAS!\n\nApakah anda yakin ingin MENGHAPUS SEMUA DATA GURU?\nTindakan ini tidak dapat dibatalkan.")) return
+    
+    // Double confirmation
+    if(!confirm("Yakin? Data akan hilang selamanya.")) return
+
+    setIsLoading(true)
+    try {
+        await deleteAllTeachers()
+        await deleteAllSkHistory() // Also wipe SK History to prevent duplicates
+        setNomorMulai("0001") // Reset Counter
+        alert("Semua data guru antrean DAN riwayat SK berhasil dihapus.\nNomor Surat kembali ke 0001.")
+    } catch (e: any) {
+        console.error(e)
+        alert("Gagal menghapus data: " + e.message)
+    } finally {
+        setIsLoading(false)
+    }
+  }
+
+  const handleResetSkHistoryOnly = async () => {
+    if (!confirm("⚠️ KONFIRMASI PENTING \n\nApakah anda yakin ingin menghapus HANYA RIWAYAT SK?\n\n- Data guru antrean TETAP ADA.\n- Nomor SK yang sudah terbentuk akan DIHAPUS.\n- Anda bisa generate ulang dari awal.\n\nLanjutkan?")) return
+    
+    setIsLoading(true)
+    try {
+        const res = await deleteAllSkHistory()
+        setNomorMulai("0001") // Reset Counter
+        alert(`✅ Berhasil menghapus ${res.count} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
+    } catch (e: any) {
+        console.error(e)
+        alert("Gagal menghapus riwayat SK: " + e.message)
+    } finally {
+        setIsLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+            <h1 className="text-2xl font-bold tracking-tight">Generator SK Masal</h1>
+            <p className="text-muted-foreground">Pilih data guru dan terbitkan SK secara otomatis.</p>
+        </div>
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={handleResetSkHistoryOnly} className="text-amber-600 border-amber-200 hover:bg-amber-50" title="Hapus Riwayat SK saja (Guru Aman)">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset SK History
+            </Button>
+            <Button variant="destructive" onClick={handleReset} disabled={isLoading} title="Hapus Data Guru + Riwayat SK">
+                <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data
+            </Button>
+             <Button variant="outline" asChild>
+                <Link to="/dashboard/settings">
   const [isGenerating, setIsGenerating] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -883,10 +941,9 @@ export default function SkGeneratorPage() {
     setIsLoading(true)
     try {
         await deleteAllTeachers()
-        await deleteAllSk() // Also wipe SK History to prevent duplicates
+        await deleteAllSkHistory() // Also wipe SK History to prevent duplicates
         setNomorMulai("0001") // Reset Counter
         alert("Semua data guru antrean DAN riwayat SK berhasil dihapus.\nNomor Surat kembali ke 0001.")
-        // fetchTeachers() // Reactive query updates automatically
     } catch (e: any) {
         console.error(e)
         alert("Gagal menghapus data: " + e.message)
@@ -895,16 +952,36 @@ export default function SkGeneratorPage() {
     }
   }
 
+  const handleResetSkHistoryOnly = async () => {
+    if (!confirm("⚠️ KONFIRMASI PENTING \n\nApakah anda yakin ingin menghapus HANYA RIWAYAT SK?\n\n- Data guru antrean TETAP ADA.\n- Nomor SK yang sudah terbentuk akan DIHAPUS.\n- Anda bisa generate ulang dari awal.\n\nLanjutkan?")) return
+    
+    setIsLoading(true)
+    try {
+        const res = await deleteAllSkHistory()
+        setNomorMulai("0001") // Reset Counter
+        alert(`✅ Berhasil menghapus ${res.count} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
+    } catch (e: any) {
+        console.error(e)
+        alert("Gagal menghapus riwayat SK: " + e.message)
+    } finally {
+        setIsLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
             <h1 className="text-2xl font-bold tracking-tight">Generator SK Masal</h1>
             <p className="text-muted-foreground">Pilih data guru dan terbitkan SK secara otomatis.</p>
         </div>
         <div className="flex gap-2">
-            <Button variant="destructive" onClick={handleReset} disabled={isLoading}>
-                <Archive className="mr-2 h-4 w-4" /> Hapus Semua Data
+            <Button variant="outline" onClick={handleResetSkHistoryOnly} className="text-amber-600 border-amber-200 hover:bg-amber-50" title="Hapus Riwayat SK saja (Guru Aman)">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset SK History
+            </Button>
+            <Button variant="destructive" onClick={handleReset} disabled={isLoading} title="Hapus Data Guru + Riwayat SK">
+                <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data
             </Button>
              <Button variant="outline" asChild>
                 <Link to="/dashboard/settings">

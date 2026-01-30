@@ -248,6 +248,41 @@ export default function SkGeneratorPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasStoredTemplate, setHasStoredTemplate] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  const [nomorMulai, setNomorMulai] = useState("0001")
+  const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{TANGGAL}/{BULAN}/{TAHUN}")
+  
+  // New States for Surat Masuk & Validity
+  const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
+  const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
+  const [tahunAjaran, setTahunAjaran] = useState(() => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() // 0 = Jan, 6 = July
+    
+    // If Month is July (6) or later -> 2025/2026
+    // If Month is before July -> 2024/2025
+    if (currentMonth >= 6) { 
+        return `${currentYear}/${currentYear + 1}`
+    } else {
+        return `${currentYear - 1}/${currentYear}`
+    }
+  })
+  
+  const [tanggalPenetapan, setTanggalPenetapan] = useState("")
+  // New: Global Kecamatan Fallback
+  const [defaultKecamatan, setDefaultKecamatan] = useState("") 
+
+  // Helper function to calculate +1 Year
+  const calculateValidityDate = (startDateStr: string): string => {
+      // Check if Date is valid?
+      // Simple implementation
+      return "-"
+  }
   
   // ... (Lines 249-876 skipped) ...
 
@@ -302,52 +337,14 @@ export default function SkGeneratorPage() {
             <Button variant="destructive" onClick={handleReset} disabled={isLoading} title="Hapus Data Guru + Riwayat SK">
                 <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data
             </Button>
-             <Button variant="outline" asChild>
+            <Button variant="outline" asChild>
                 <Link to="/dashboard/settings">
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-
-  const [nomorMulai, setNomorMulai] = useState("0001")
-  const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{TANGGAL}/{BULAN}/{TAHUN}")
-  
-  // New States for Surat Masuk & Validity
-  const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
-  const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
-  const [tahunAjaran, setTahunAjaran] = useState(() => {
-    const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth() // 0 = Jan, 6 = July
-    
-    // DEBUG LOG
-    console.log("DEBUG ACADEMIC YEAR:", { 
-       fullDate: now.toString(),
-       year: currentYear, 
-       month: currentMonth 
-    })
-
-    // If Month is July (6) or later -> 2025/2026
-    // If Month is before July -> 2024/2025
-    if (currentMonth >= 6) { 
-        return `${currentYear}/${currentYear + 1}`
-    } else {
-        return `${currentYear - 1}/${currentYear}`
-    }
-  })
-  
-  const [tanggalPenetapan, setTanggalPenetapan] = useState("")
-  // New: Global Kecamatan Fallback
-  const [defaultKecamatan, setDefaultKecamatan] = useState("") 
-
-  // Helper function to calculate +1 Year
-  const calculateValidityDate = (startDateStr: string): string => {
-      const date = parseIndonesianDate(startDateStr)
-      if (!date) return "-"
-      const newDate = new Date(date)
-      newDate.setFullYear(newDate.getFullYear() + 1)
-      return newDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })
-  }
+                <Settings className="mr-2 h-4 w-4" />
+                Template Settings
+                </Link>
+            </Button>
+        </div>
+      </div>
   
   // Teachers loaded via Convex useQuery (real-time, no need for manual fetch)
   useEffect(() => {

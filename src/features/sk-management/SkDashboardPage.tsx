@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -133,7 +134,6 @@ export default function SkDashboardPage() {
     if (!confirm(`Approve ${selectedIds.size} data yang dipilih? Data akan masuk ke Generator SK.`)) return
     
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ids = Array.from(selectedIds) as any[]
         
         if (statusFilter === "draft") {
@@ -165,7 +165,6 @@ export default function SkDashboardPage() {
     if (!confirm(`Reject ${selectedIds.size} SK yang dipilih?`)) return
     
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ids = Array.from(selectedIds) as any[]
       await batchUpdateStatusMutation({ 
         ids, 
@@ -227,7 +226,6 @@ export default function SkDashboardPage() {
         const result = await archiveAllSk()
         alert(`Berhasil mengarsipkan ${result.count} dokumen SK.`)
     } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         alert("Gagal reset data: " + (e as any).message)
     }
   }

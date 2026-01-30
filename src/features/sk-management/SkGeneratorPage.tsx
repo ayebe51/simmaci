@@ -784,10 +784,10 @@ export default function SkGeneratorPage() {
             TH_AJARAN: tahunAjaran,
             TH_PELAJARAN: tahunAjaran,
             
-            TANGGAL_HABIS_BERLAKU: addOneYearIndonesian(tanggalPenetapanFormatted),
-            TANGGAL_BERAKHIR: addOneYearIndonesian(tanggalPenetapanFormatted),
-            "TANGGAL > 1 TAHUN SEJAK PENETAPAN": addOneYearIndonesian(tanggalPenetapanFormatted),
-            MASA_BERLAKU: addOneYearIndonesian(tanggalPenetapanFormatted),
+            TANGGAL_HABIS_BERLAKU: addOneYearIndonesian(finalTanggalPenetapan),
+            TANGGAL_BERAKHIR: addOneYearIndonesian(finalTanggalPenetapan),
+            "TANGGAL > 1 TAHUN SEJAK PENETAPAN": addOneYearIndonesian(finalTanggalPenetapan),
+            MASA_BERLAKU: addOneYearIndonesian(finalTanggalPenetapan),
 
             NAMA_LENGKAP: t.nama,
             NAMA_GURU: t.nama,

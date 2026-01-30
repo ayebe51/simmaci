@@ -498,7 +498,7 @@ export function BulkSkSubmission() {
         
         // Navigate to Teacher List to verify/approve? Or Generator?
         // Generator is where they will mint the SK.
-        navigate("/dashboard/sk/generator") // Redirect to Generator directly since they want to print.
+        navigate("/dashboard/sk") // Redirect to Dashboard so they can Approve (Verify) the data first.
 
     } catch (e: any) {
         console.error("Bulk Submission Error:", e)

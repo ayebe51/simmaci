@@ -399,7 +399,11 @@ export const getTeachersWithSk = query({
     
     // Filter based on verification status if provided
     if (args.isVerified !== undefined) {
-        return teachers.filter(t => t.isVerified === args.isVerified);
+        return teachers.filter(t => {
+            // Treat undefined/null as false (Unverified)
+            const isVerified = t.isVerified === true; 
+            return isVerified === args.isVerified;
+        });
     }
     
     return teachers;

@@ -56,9 +56,7 @@ export default function App() {
                       <Route path="master/schools/:id" element={<SchoolDetailPage />} />
                       <Route path="master/students" element={<StudentListPage />} />
                       <Route path="master/teachers" element={<TeacherListPage />} />
-                      <Route path="master/teachers" element={<TeacherListPage />} />
                       <Route path="users" element={<UserListPage />} />
-                      <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk" element={<SkDashboardPage />} />
                       <Route path="sk/new" element={<SkSubmissionPage />} />
                       <Route path="sk-saya" element={<MySkPage />} />

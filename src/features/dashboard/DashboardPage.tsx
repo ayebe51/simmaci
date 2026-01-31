@@ -1,12 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { School, Users, FileText, CheckCircle, AlertOctagon, Clock } from "lucide-react"
-import { useEffect, useState } from "react"
-import React from "react"
-import { Button } from "@/components/ui/button"
-
-// Convex real-time query
-import { useQuery } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
+// ... other imports
+import { DashboardCharts } from "./components/DashboardCharts"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -14,6 +7,9 @@ export default function DashboardPage() {
   
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
+  const analyticsStats = useQuery(convexApi.analytics.getDashboardStats) // New Peta Mutu Data
+  
+  // ... rest of queries
   
   // 📊 SK MONITORING QUERIES
   const userStr = localStorage.getItem("user")
@@ -111,6 +107,9 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
+
+       {/* 📊 PETA MUTU / ANALYTICS CHARTS */}
+       <DashboardCharts data={analyticsStats} />
 
        {/* 📊 SK MONITORING SECTION */}
        {skStats && (

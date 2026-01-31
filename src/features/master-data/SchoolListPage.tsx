@@ -23,6 +23,7 @@ import { useMutation, usePaginatedQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Doc, Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner" 
+import { saveAs } from "file-saver" 
 
 interface School {
   id: string
@@ -215,8 +216,43 @@ export default function SchoolListPage() {
       setIsAddOpen(true)
   }
 
+  /* import moved to top */
+
+// ... inside component ...
+
+  const bulkCreateAccounts = useMutation(convexApi.schools.bulkCreateSchoolAccounts);
+
+  const handleBulkGenerate = async () => {
+      if (!confirm("Fitur ini akan membuatkan akun untuk SEMUA sekolah yang belum punya akun.\n\nPassword default: 123456\n\nLanjutkan?")) return;
+
+      try {
+          const results = await bulkCreateAccounts();
+          
+          // Generate CSV
+          const headers = ["No", "NSM", "Nama Sekolah", "Email Login", "Password Default", "Status Akun"];
+          const csvContent = [
+              headers.join(","),
+              ...results.map((r, i) => [
+                  i + 1,
+                  `"${r.nsm}"`,
+                  `"${r.nama}"`,
+                  r.email,
+                  r.password,
+                  r.status
+              ].join(","))
+          ].join("\n");
+
+          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+          saveAs(blob, `Akun_Sekolah_Maarif_${new Date().toISOString().split('T')[0]}.csv`);
+          
+          toast.success(`Berhasil memproses ${results.length} akun sekolah!`);
+      } catch (e: any) {
+          toast.error("Gagal generate akun: " + e.message);
+      }
+  }
+
   const handleExport = async () => {
-      alert("Fitur export belum tersedia untuk versi paginated");
+      alert("Fitur export data sekolah belum tersedia (gunakan export akun untuk data login).");
   }
 
   const handleGenerateAccount = async (school: any) => {
@@ -263,6 +299,12 @@ export default function SchoolListPage() {
             onClick: openAdd,
             variant: 'cream',
             icon: <Plus className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Generate Akun',
+            onClick: handleBulkGenerate,
+            variant: 'purple', // Reusing purple since 'Delete All' is conditional/hidden for many
+            icon: <KeyRound className="h-5 w-5 text-gray-700" />
           },
           {
             label: 'Import Excel',

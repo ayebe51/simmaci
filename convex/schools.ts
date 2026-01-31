@@ -251,6 +251,62 @@ export const bulkCreate = mutation({
   },
 });
 
+// Bulk create school accounts (for initial distribution)
+export const bulkCreateSchoolAccounts = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const schools = await ctx.db.query("schools").collect();
+    const results = [];
+
+    for (const school of schools) {
+      if (!school.nsm) continue;
+
+      const email = `${school.nsm}@maarif.nu`;
+      const password = "123456"; // Default
+      
+      let status = "Existing";
+      
+      // Check if user exists
+      const existing = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .first();
+
+      if (!existing) {
+        // Create
+        await ctx.db.insert("users", {
+          email,
+          name: `Admin ${school.nama}`,
+          passwordHash: hashPassword(password),
+          role: "operator",
+          unit: school.nama,
+          isActive: true,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        status = "Created";
+      } else {
+           // Update linkage
+           await ctx.db.patch(existing._id, {
+               role: "operator",
+               unit: school.nama,
+           });
+           status = "Updated";
+      }
+
+      results.push({
+        nsm: school.nsm,
+        nama: school.nama,
+        email,
+        password: "123456",
+        status
+      });
+    }
+
+    return results;
+  }
+});
+
 // Get school count
 export const count = query({
   handler: async (ctx) => {

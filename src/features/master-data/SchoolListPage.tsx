@@ -24,6 +24,7 @@ import { api as convexApi } from "../../../convex/_generated/api"
 import { Doc, Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner" 
 import { saveAs } from "file-saver" 
+import * as XLSX from "xlsx" 
 
 interface School {
   id: string
@@ -222,28 +223,49 @@ export default function SchoolListPage() {
 
   const bulkCreateAccounts = useMutation(convexApi.schools.bulkCreateSchoolAccounts);
 
+import * as XLSX from "xlsx"; // Ensure xlsx is installed
+
+// ...
+
   const handleBulkGenerate = async () => {
       if (!confirm("Fitur ini akan membuatkan akun untuk SEMUA sekolah yang belum punya akun.\n\nPassword default: 123456\n\nLanjutkan?")) return;
 
       try {
           const results = await bulkCreateAccounts();
           
-          // Generate CSV
-          const headers = ["No", "NSM", "Nama Sekolah", "Email Login", "Password Default", "Status Akun"];
-          const csvContent = [
-              headers.join(","),
-              ...results.map((r, i) => [
-                  i + 1,
-                  `"${r.nsm}"`,
-                  `"${r.nama}"`,
-                  r.email,
-                  r.password,
-                  r.status
-              ].join(","))
-          ].join("\n");
+          // Prepare Data for Excel
+          const data = results.map((r, i) => ({
+              "No": i + 1,
+              "NSM (Username)": r.nsm,
+              "Nama Sekolah": r.nama,
+              "Email Login": r.email,
+              "Password Default": r.password,
+              "Status Akun": r.status === "Created" ? "Baru Dibuat" : "Sudah Ada (Diupdate)"
+          }));
 
-          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-          saveAs(blob, `Akun_Sekolah_Maarif_${new Date().toISOString().split('T')[0]}.csv`);
+          // Create Worksheet
+          const worksheet = XLSX.utils.json_to_sheet(data);
+          
+          // Auto-width columns
+          const max_width = data.reduce((w, r) => Math.max(w, r["Nama Sekolah"].length), 10);
+          worksheet["!cols"] = [
+              { wch: 5 }, // No
+              { wch: 15 }, // NSM
+              { wch: max_width + 5 }, // Nama
+              { wch: 30 }, // Email
+              { wch: 15 }, // Pass
+              { wch: 20 } // Status
+          ];
+
+          // Create Workbook
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Akun Sekolah");
+
+          // Generate Buffer
+          const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+          const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+          
+          saveAs(blob, `Akun_Sekolah_Maarif_${new Date().toISOString().split('T')[0]}.xlsx`);
           
           toast.success(`Berhasil memproses ${results.length} akun sekolah!`);
       } catch (e: any) {

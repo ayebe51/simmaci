@@ -417,7 +417,19 @@ export const getTeachersWithSk = query({
 export const markTeacherAsGenerated = mutation({
   args: { id: v.id("teachers") },
   handler: async (ctx, args) => {
+    const teacher = await ctx.db.get(args.id);
     await ctx.db.patch(args.id, { isSkGenerated: true });
+
+    // Log the activity
+    if (teacher) {
+        await ctx.db.insert("activity_logs", {
+            user: "System",
+            role: "system",
+            action: "Generate SK",
+            details: `SK Generated for ${teacher.nama}`,
+            timestamp: Date.now(),
+        });
+    }
   },
 });
 

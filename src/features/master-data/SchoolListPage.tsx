@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, FileSpreadsheet, Download, Eye } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Copy } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -22,6 +22,7 @@ import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { useMutation, usePaginatedQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Doc, Id } from "../../../convex/_generated/dataModel"
+import { toast } from "sonner" 
 
 interface School {
   id: string
@@ -42,6 +43,9 @@ export default function SchoolListPage() {
   const [filterKecamatan, setFilterKecamatan] = useState("")
   // const [filterJamiyyah, setFilterJamiyyah] = useState("") // TODO: Add backend support
 
+  // Credentials Dialog State
+  const [credDialog, setCredDialog] = useState<{open: boolean, email?: string, password?: string}>({open: false});
+
   // 🔥 SERVER-SIDE PAGINATION
   const { results, status, loadMore } = usePaginatedQuery(
     convexApi.schools.paginatedList,
@@ -58,6 +62,7 @@ export default function SchoolListPage() {
   const deleteSchoolMutation = useMutation(convexApi.schools.remove)
   const bulkDeleteSchoolMutation = useMutation(convexApi.schools.bulkDelete)
   const bulkCreateSchoolMutation = useMutation(convexApi.schools.bulkCreate)
+  const createAccount = useMutation(convexApi.schools.createSchoolAccount) // New mutation
 
   // Map Convex data to School interface
   const schools = (results || []).map((s: Doc<"schools">) => ({
@@ -214,6 +219,27 @@ export default function SchoolListPage() {
       alert("Fitur export belum tersedia untuk versi paginated");
   }
 
+  const handleGenerateAccount = async (school: any) => {
+      if (!window.confirm(`Buat akun untuk sekolah ${school.nama}?`)) return;
+      
+      try {
+          const res = await createAccount({ schoolId: school.id as Id<"schools"> });
+          setCredDialog({ 
+              open: true, 
+              email: res.email, 
+              password: res.password 
+          });
+          toast.success(res.message);
+      } catch (error: any) {
+          toast.error("Gagal membuat akun: " + error.message);
+      }
+  };
+
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text);
+      toast.success("Dicopy!");
+  }
+
   return (
     <div className="space-y-6">
       <SoftPageHeader
@@ -320,6 +346,16 @@ export default function SchoolListPage() {
                                   return (
                                     <>
                                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/master/schools/${item.id}`)}><Eye className="h-4 w-4" /></Button>
+                                      <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          title="Buat Akun Sekolah"
+                                          onClick={() => handleGenerateAccount(item)}
+                                          disabled={!canEdit}
+                                      >
+                                          <KeyRound className={`h-4 w-4 text-blue-500 ${!canEdit ? 'opacity-30' : ''}`} />
+                                      </Button>
                                       <Button 
                                         variant="ghost" 
                                         size="icon" 
@@ -548,6 +584,41 @@ export default function SchoolListPage() {
               Ya, Hapus
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Credentials Dialog */}
+      <Dialog open={credDialog.open} onOpenChange={(open) => setCredDialog(p => ({...p, open}))}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Akun Sekolah Berhasil Dibuat ✅</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Email Login</label>
+                    <div className="flex gap-2">
+                        <Input readOnly value={credDialog.email} />
+                        <Button size="icon" variant="outline" onClick={() => copyToClipboard(credDialog.email || "")}>
+                            <Copy className="h-4 w-4"/>
+                        </Button>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Password Default</label>
+                    <div className="flex gap-2">
+                        <Input readOnly value={credDialog.password} />
+                         <Button size="icon" variant="outline" onClick={() => copyToClipboard(credDialog.password || "")}>
+                            <Copy className="h-4 w-4"/>
+                        </Button>
+                    </div>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 text-xs text-yellow-800">
+                    Mohon simpan informasi ini. Password hanya ditampilkan sekali.
+                </div>
+            </div>
+            <DialogFooter>
+                <Button onClick={() => setCredDialog({open: false})}>Tutup</Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -159,6 +159,57 @@ export const bulkDelete = mutation({
   },
 });
 
+// Simple helper (consistent with auth.ts)
+function hashPassword(password: string): string {
+  return btoa(password);
+}
+
+// Create School Account (Operator)
+export const createSchoolAccount = mutation({
+  args: { 
+    schoolId: v.id("schools"),
+    customEmail: v.optional(v.string()), 
+    customPassword: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) throw new Error("School not found");
+
+    const email = args.customEmail || `${school.nsm}@maarif.nu`;
+    const password = args.customPassword || "123456";
+
+    // Check existing user
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", email))
+      .first();
+
+    if (existing) {
+       // If exists, just update the unit/role linkage to be sure
+       await ctx.db.patch(existing._id, {
+           role: "operator",
+           unit: school.nama,
+           isActive: true
+       });
+       return { message: "Account updated", email, password: "(Unchanged)" };
+    }
+
+    // Create new user
+    await ctx.db.insert("users", {
+        email,
+        name: `Admin ${school.nama}`,
+        passwordHash: hashPassword(password),
+        role: "operator",
+        unit: school.nama,
+        isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+    });
+
+    return { message: "Account created", email, password };
+  },
+});
+
 // Bulk create schools (for import)
 export const bulkCreate = mutation({
   args: {

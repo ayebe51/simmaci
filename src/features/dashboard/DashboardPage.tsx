@@ -14,6 +14,7 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
   const analyticsStats = useQuery(convexApi.analytics.getDashboardStats) // New Peta Mutu Data
+  const logs = useQuery(convexApi.logs.getRecentLogs) // New Activity Logs
   
   // ... rest of queries
   
@@ -221,16 +222,26 @@ export default function DashboardPage() {
              </CardHeader>
              <CardContent>
                  <div className="space-y-4">
-                     {[1,2,3].map(i => (
-                         <div key={i} className="flex items-center gap-4 border-b pb-2 last:border-0">
-                            <div className="h-2 w-2 rounded-full bg-blue-500"/>
-                            <div className="flex-1 space-y-1">
-                                <p className="text-sm font-medium leading-none">Pengajuan SK Mutasi Guru</p>
-                                <p className="text-xs text-muted-foreground">oleh Admin MI Ma'arif 0{i}</p>
-                            </div>
-                            <div className="text-xs text-muted-foreground">2 jam lalu</div>
-                         </div>
-                     ))}
+                     {logs ? (
+                         logs.length > 0 ? (
+                            logs.map((log, i) => (
+                                <div key={i} className="flex items-center gap-4 border-b pb-2 last:border-0">
+                                   <div className="h-2 w-2 rounded-full bg-blue-500"/>
+                                   <div className="flex-1 space-y-1">
+                                       <p className="text-sm font-medium leading-none">{log.action}</p>
+                                       <p className="text-xs text-muted-foreground">{log.details}</p>
+                                   </div>
+                                   <div className="text-xs text-muted-foreground">
+                                     {new Date(log.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
+                                   </div>
+                                </div>
+                            ))
+                         ) : (
+                             <p className="text-sm text-muted-foreground">Belum ada aktivitas.</p>
+                         )
+                     ) : (
+                         <p className="text-sm text-muted-foreground">Memuat aktivitas...</p>
+                     )}
                  </div>
              </CardContent>
           </Card>

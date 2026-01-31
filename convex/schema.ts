@@ -163,6 +163,16 @@ export default defineSchema({
     .index("by_user_unread", ["userId", "isRead"])
     .index("by_created", ["createdAt"]),
 
+  // Activity Logs for Audit Trail
+  activity_logs: defineTable({
+    user: v.string(),
+    role: v.string(),
+    action: v.string(),
+    details: v.string(),
+    timestamp: v.number(),
+  })
+    .index("by_timestamp", ["timestamp"]),
+
   // Approval history for audit trail
   approvalHistory: defineTable({
     documentId: v.string(),  // Generic to support any document type

@@ -1,4 +1,10 @@
-// ... other imports
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { School, Users, FileText, CheckCircle, AlertOctagon, Clock } from "lucide-react"
+import { useEffect, useState } from "react"
+import React from "react"
+import { Button } from "@/components/ui/button"
+import { useQuery } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 import { DashboardCharts } from "./components/DashboardCharts"
 
 export default function DashboardPage() {

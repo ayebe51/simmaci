@@ -397,16 +397,27 @@ export const getTeachersWithSk = query({
     // fetches ALL teachers currently in the "teachers" table (the queue)
     const teachers = await ctx.db.query("teachers").order("desc").collect();
     
-    // Filter based on verification status if provided
+    // 1. Filter out teachers who already have SK generated (Soft Cleanup)
+    let filteredTeachers = teachers.filter(t => (t.isSkGenerated !== true));
+
+    // 2. Filter based on verification status if provided
     if (args.isVerified !== undefined) {
-        return teachers.filter(t => {
+        filteredTeachers = filteredTeachers.filter(t => {
             // Treat undefined/null as false (Unverified)
             const isVerified = t.isVerified === true; 
             return isVerified === args.isVerified;
         });
     }
     
-    return teachers;
+    return filteredTeachers;
+  },
+});
+
+// Mark teacher as having SK generated (Available for historical record but hidden from generator)
+export const markTeacherAsGenerated = mutation({
+  args: { id: v.id("teachers") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { isSkGenerated: true });
   },
 });
 

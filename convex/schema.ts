@@ -21,6 +21,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     isVerified: v.optional(v.boolean()), // For SK Verification Workflow
+    isSkGenerated: v.optional(v.boolean()), // Status: SK Generated? (Soft Delete from Queue)
     pdpkpnu: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

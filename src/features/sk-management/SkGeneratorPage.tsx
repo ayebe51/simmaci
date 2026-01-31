@@ -260,6 +260,7 @@ export default function SkGeneratorPage() {
   const deleteAllTeachers = useMutation(convexApi.sk.deleteAllTeachers)
   // FIXED: Point to the correct new mutation
   const deleteAllSkHistory = useMutation(convexApi.sk.deleteAllSk) 
+  const markAsGenerated = useMutation(convexApi.sk.markTeacherAsGenerated) 
   
   // STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -877,11 +878,11 @@ export default function SkGeneratorPage() {
                   createdBy: "System"
               })
 
-              // Delete from Teacher Queue
               // MODIFIED (SAFEGUARD): User requested NOT to delete teacher data after generation
-              // if ((item as any)._id) {
-              //    await deleteTeacher({ id: (item as any)._id })
-              // }
+              // Use Soft-Cleanup instead: Mark as Generated
+              if ((item as any)._id) {
+                 await markAsGenerated({ id: (item as any)._id })
+              }
 
               // PUSH WITH NEW ID (For QR Code)
               finalData.push({

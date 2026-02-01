@@ -322,6 +322,55 @@ export const bulkCreateSchoolAccounts = mutation({
   }
 });
 
+// Update school profile (Self-service for Operators)
+export const updateSelf = mutation({
+  args: {
+    alamat: v.optional(v.string()),
+    kecamatan: v.optional(v.string()),
+    telepon: v.optional(v.string()),
+    email: v.optional(v.string()),
+    kepalaMadrasah: v.optional(v.string()),
+    akreditasi: v.optional(v.string()),
+    npsn: v.optional(v.string()),
+    statusJamiyyah: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email))
+      .first();
+
+    if (!user || user.role !== "operator" || !user.unit) {
+      throw new Error("Unauthorized: Only operators can update their school profile.");
+    }
+
+    // Find the school by name (user.unit)
+    // We iterate because we need exact match on 'nama' which might not be unique in index if multiple schools have same name (unlikely but safe)
+    // optimized: use search index or just scan if dataset small. Schools < 1000 is fine to scan or use index if available.
+    // We used 'search_schools' before, but let's try to be simpler: use 'collect' and find.
+    // Or better, use the search index if possible but we need exact match.
+    
+    const school = await ctx.db
+      .query("schools")
+      .filter(q => q.eq(q.field("nama"), user.unit))
+      .first();
+
+    if (!school) {
+       throw new Error(`School not found: ${user.unit}`);
+    }
+
+    await ctx.db.patch(school._id, {
+      ...args,
+      updatedAt: Date.now(),
+    });
+
+    return school._id;
+  },
+});
+
 // Get school count
 export const count = query({
   handler: async (ctx) => {

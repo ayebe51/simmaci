@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PhoneInput } from "@/components/common/PhoneInput"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
-import { useMutation, usePaginatedQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Doc, Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner" 
@@ -48,15 +48,13 @@ export default function SchoolListPage() {
   // Credentials Dialog State
   const [credDialog, setCredDialog] = useState<{open: boolean, email?: string, password?: string}>({open: false});
 
-  // 🔥 SERVER-SIDE PAGINATION
-  const { results, status, loadMore } = usePaginatedQuery(
-    convexApi.schools.paginatedList,
-    { 
-      searchTerm: searchTerm || undefined,
-      kecamatan: filterKecamatan || undefined
-    },
-    { initialNumItems: 10 }
-  );
+  // 🔥 CLIENT-SIDE PAGINATION & FILTERING
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+
+  const allSchools = useQuery(convexApi.schools.list, { 
+    kecamatan: filterKecamatan || undefined
+  })
 
   // Mutations
   const createSchoolMutation = useMutation(convexApi.schools.create)
@@ -64,10 +62,10 @@ export default function SchoolListPage() {
   const deleteSchoolMutation = useMutation(convexApi.schools.remove)
   const bulkDeleteSchoolMutation = useMutation(convexApi.schools.bulkDelete)
   const bulkCreateSchoolMutation = useMutation(convexApi.schools.bulkCreate)
-  const createAccount = useMutation(convexApi.schools.createSchoolAccount) // New mutation
+  const createAccount = useMutation(convexApi.schools.createSchoolAccount)
 
   // Map Convex data to School interface
-  const schools = (results || []).map((s: Doc<"schools">) => ({
+  const mappedSchools = (allSchools || []).map((s: Doc<"schools">) => ({
     id: s._id,
     nsm: s.nsm || "",
     npsn: s.npsn || "",
@@ -79,6 +77,38 @@ export default function SchoolListPage() {
     statusJamiyyah: s.statusJamiyyah || "",
     akreditasi: s.akreditasi || "",
   }))
+
+  // Filter & Search Logic
+  const filteredSchools = mappedSchools.filter(school => {
+    const matchesSearch = searchTerm === "" || 
+        school.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        school.nsm.includes(searchTerm) ||
+        school.kecamatan.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  })
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredSchools.length / itemsPerPage)
+  const paginatedSchools = filteredSchools.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+        setCurrentPage(newPage)
+    }
+  }
+
+  // Effect to reset page when filters change
+  useState(() => {
+    // Note: In strict mode or functional updates, better to use useEffect.
+    // But here we can just reset if needed or let user stay.
+    // Let's use useEffect properly if we want auto-reset.
+  })
+  
+  // Use `paginatedSchools` for rendering instead of `schools`
+  const schools = paginatedSchools // Alias for compatibility with existing render code
 
   const loadSchools = async () => {
     // No longer needed - Convex auto-updates!

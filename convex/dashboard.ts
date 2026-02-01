@@ -272,19 +272,19 @@ export const getSchoolStats = query({
         .then(res => res.filter(s => s.namaSekolah === schoolName).length),
         
       // SK Drafts
-      ctx.db.query("sk_titimangsa")
+      ctx.db.query("skDocuments")
         .collect()
-        .then(res => res.filter(sk => sk.schoolName === schoolName && !sk.isVerified).length),
+        .then(res => res.filter(sk => sk.unitKerja === schoolName && sk.status === "draft").length),
 
       // SK Verified
-      ctx.db.query("sk_titimangsa")
+      ctx.db.query("skDocuments")
         .collect()
-        .then(res => res.filter(sk => sk.schoolName === schoolName && sk.isVerified).length),
+        .then(res => res.filter(sk => sk.unitKerja === schoolName && (sk.status === "approved" || sk.status === "active")).length),
 
       // Total SK
-       ctx.db.query("sk_titimangsa")
+       ctx.db.query("skDocuments")
         .collect()
-        .then(res => res.filter(sk => sk.schoolName === schoolName).length),
+        .then(res => res.filter(sk => sk.unitKerja === schoolName).length),
     ]);
 
     return {

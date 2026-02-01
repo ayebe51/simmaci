@@ -14,6 +14,20 @@ export const list = query({
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
     
+    // RBAC: Check if user is an Operator
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+       const user = await ctx.db
+         .query("users")
+         .withIndex("by_email", (q) => q.eq("email", identity.email))
+         .first();
+
+       if (user && user.role === "operator" && user.unit) {
+           // Strict filter for operators
+           teachers = teachers.filter(t => t.unitKerja === user.unit);
+       }
+    }
+
     // Apply filters
     if (args.unitKerja && args.unitKerja !== "all") {
       // Case-insensitive match for unitKerja

@@ -9,6 +9,21 @@ export const list = query({
   handler: async (ctx, args) => {
     let students = await ctx.db.query("students").collect();
     
+    // RBAC: Check if user is an Operator
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+       const user = await ctx.db
+         .query("users")
+         .withIndex("by_email", (q) => q.eq("email", identity.email))
+         .first();
+
+       if (user && user.role === "operator" && user.unit) {
+           // Strict filter for operators
+           const userUnit = user.unit;
+           students = students.filter(s => s.namaSekolah === userUnit);
+       }
+    }
+
     // Apply filters
     if (args.namaSekolah && args.namaSekolah !== "all") {
       students = students.filter(s => s.namaSekolah === args.namaSekolah);

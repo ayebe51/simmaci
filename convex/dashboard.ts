@@ -241,3 +241,59 @@ export const getSchoolBreakdown = query({
     return breakdown;
   },
 });
+
+// NEW: Stats specifically for School Operators
+export const getSchoolStats = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email))
+      .first();
+
+    if (!user || user.role !== "operator" || !user.unit) {
+      return null;
+    }
+
+    const schoolName = user.unit;
+
+    // Parallelize queries for performance
+    const [teachers, students, skDrafts, skApproved, totalSk] = await Promise.all([
+      // Teacher Count (Active)
+      ctx.db.query("teachers")
+        .collect()
+        .then(res => res.filter(t => t.unitKerja === schoolName && t.isActive).length),
+      
+      // Student Count
+      ctx.db.query("students")
+        .collect()
+        .then(res => res.filter(s => s.namaSekolah === schoolName).length),
+        
+      // SK Drafts
+      ctx.db.query("sk_titimangsa")
+        .collect()
+        .then(res => res.filter(sk => sk.schoolName === schoolName && !sk.isVerified).length),
+
+      // SK Verified
+      ctx.db.query("sk_titimangsa")
+        .collect()
+        .then(res => res.filter(sk => sk.schoolName === schoolName && sk.isVerified).length),
+
+      // Total SK
+       ctx.db.query("sk_titimangsa")
+        .collect()
+        .then(res => res.filter(sk => sk.schoolName === schoolName).length),
+    ]);
+
+    return {
+      schoolName,
+      teachers,
+      students,
+      skDrafts,
+      skApproved,
+      totalSk
+    };
+  }
+});

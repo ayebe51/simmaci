@@ -6,9 +6,21 @@ import { Button } from "@/components/ui/button"
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { DashboardCharts } from "./components/DashboardCharts"
+import DashboardOperator from "./components/DashboardOperator"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
+  
+  // Load user
+  useEffect(() => {
+    const u = localStorage.getItem("user")
+    if (u) setUser(JSON.parse(u))
+  }, [])
+
+  if (user && user.role === 'operator') {
+      return <DashboardOperator />
+  }
+
   const [alerts] = useState<any[]>([])
   
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!

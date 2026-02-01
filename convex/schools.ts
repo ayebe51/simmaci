@@ -50,6 +50,21 @@ export const list = query({
   handler: async (ctx, args) => {
     let schools = await ctx.db.query("schools").collect();
     
+    // RBAC: Check if user is an Operator
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+       const user = await ctx.db
+         .query("users")
+         .withIndex("by_email", (q) => q.eq("email", identity.email))
+         .first();
+
+       if (user && user.role === "operator" && user.unit) {
+           // Strict filter for operators: only return their own school
+           const userUnit = user.unit;
+           schools = schools.filter(s => s.nama === userUnit);
+       }
+    }
+
     // Apply filters
     if (args.kecamatan && args.kecamatan !== "all") {
       schools = schools.filter(s => s.kecamatan === args.kecamatan);

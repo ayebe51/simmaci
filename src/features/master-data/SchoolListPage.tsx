@@ -23,8 +23,7 @@ import { useMutation, useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Doc, Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner" 
-import { saveAs } from "file-saver" 
-import * as XLSX from "xlsx" 
+
 
 interface School {
   id: string
@@ -298,8 +297,8 @@ import * as XLSX from "xlsx"; // Ensure xlsx is installed
           saveAs(blob, `Akun_Sekolah_Maarif_${new Date().toISOString().split('T')[0]}.xlsx`);
           
           toast.success(`Berhasil memproses ${results.length} akun sekolah!`);
-      } catch (e: any) {
-          toast.error("Gagal generate akun: " + e.message);
+      } catch (e) {
+          toast.error("Gagal generate akun: " + (e as Error).message);
       }
   }
 
@@ -307,7 +306,7 @@ import * as XLSX from "xlsx"; // Ensure xlsx is installed
       alert("Fitur export data sekolah belum tersedia (gunakan export akun untuk data login).");
   }
 
-  const handleGenerateAccount = async (school: any) => {
+  const handleGenerateAccount = async (school: School) => {
       if (!window.confirm(`Buat akun untuk sekolah ${school.nama}?`)) return;
       
       try {
@@ -318,8 +317,8 @@ import * as XLSX from "xlsx"; // Ensure xlsx is installed
               password: res.password 
           });
           toast.success(res.message);
-      } catch (error: any) {
-          toast.error("Gagal membuat akun: " + error.message);
+      } catch (error) {
+          toast.error("Gagal membuat akun: " + (error as Error).message);
       }
   };
 
@@ -408,14 +407,14 @@ import * as XLSX from "xlsx"; // Ensure xlsx is installed
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {schools.length === 0 ? (
+                    {paginatedSchools.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={7} className="h-24 text-center">
-                                {status === "LoadingFirstPage" ? "Memuat data..." : "Tidak ada data sekolah ditemukan."}
+                                {allSchools === undefined ? "Memuat data..." : "Tidak ada data sekolah ditemukan."}
                             </TableCell>
                         </TableRow>
                     ) : (
-                        schools.map((item) => (
+                        paginatedSchools.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.nsm}</TableCell>
                             <TableCell>
@@ -482,17 +481,28 @@ import * as XLSX from "xlsx"; // Ensure xlsx is installed
             </div>
             
             {/* Pagination Controls */}
-            <div className="flex items-center justify-center space-x-2 py-4">
-                {status === "CanLoadMore" && (
-                    <Button onClick={() => loadMore(10)}>
-                        Load More
+            <div className="flex items-center justify-between space-x-2 py-4">
+                <div className="text-sm text-muted-foreground">
+                    Halaman {currentPage} dari {totalPages || 1}
+                </div>
+                <div className="space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        Sebelumnya
                     </Button>
-                )}
-                {status === "LoadingMore" && (
-                     <Button disabled>
-                        Loading...
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                        Selanjutnya
                     </Button>
-                )}
+                </div>
             </div>
 
         </CardContent>

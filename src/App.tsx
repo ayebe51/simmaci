@@ -64,6 +64,7 @@ export default function App() {
                       <Route path="sk/:id" element={<SkDetailPage />} />
                       <Route path="generator" element={<SkGeneratorPage />} />
                       <Route path="settings" element={<SettingsPage />} />
+                      <Route path="change-password" element={<ChangePasswordPage />} />
                       <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
                       <Route path="reports/sk" element={
                         <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>

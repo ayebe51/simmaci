@@ -4,7 +4,7 @@ import { api } from "../../../convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Lock, Save, Eye, EyeOff } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -50,8 +50,8 @@ export default function ChangePasswordPage() {
       localStorage.removeItem("user")
       navigate("/login")
       
-    } catch (error: any) {
-      toast.error("Gagal ganti password: " + error.message)
+    } catch (error) {
+      toast.error("Gagal ganti password: " + (error as Error).message)
     }
   }
 

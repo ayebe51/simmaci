@@ -39,6 +39,7 @@ export default function SchoolProfilePage() {
 
   useEffect(() => {
     if (school) {
+      // eslint-disable-next-line
       setFormData({
         alamat: school.alamat || "",
         telepon: school.telepon || "",
@@ -60,8 +61,8 @@ export default function SchoolProfilePage() {
     try {
       await updateProfile(formData)
       toast.success("Profil sekolah berhasil diperbarui!")
-    } catch (error: any) {
-      toast.error("Gagal update: " + error.message)
+    } catch (error) {
+      toast.error("Gagal update: " + (error as Error).message)
     }
   }
 

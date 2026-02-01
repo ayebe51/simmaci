@@ -246,11 +246,13 @@ export const getSchoolBreakdown = query({
 export const getSchoolStats = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    if (!identity || !identity.email) return null;
+    
+    const email = identity.email;
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
 
     if (!user || user.role !== "operator" || !user.unit) {

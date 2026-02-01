@@ -52,10 +52,12 @@ export const list = query({
     
     // RBAC: Check if user is an Operator
     const identity = await ctx.auth.getUserIdentity();
-    if (identity) {
+    
+    if (identity && identity.email) {
+       const email = identity.email;
        const user = await ctx.db
          .query("users")
-         .withIndex("by_email", (q) => q.eq("email", identity.email))
+         .withIndex("by_email", (q) => q.eq("email", email))
          .first();
 
        if (user && user.role === "operator" && user.unit) {
@@ -336,11 +338,13 @@ export const updateSelf = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity || !identity.email) throw new Error("Unauthenticated");
+
+    const email = identity.email;
 
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .first();
 
     if (!user || user.role !== "operator" || !user.unit) {

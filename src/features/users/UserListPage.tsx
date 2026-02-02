@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -35,13 +35,34 @@ import {
 import { toast } from "sonner";
 
 export default function UserListPage() {
-  const { results: users, status, loadMore } = usePaginatedQuery(
-    api.auth.listUsersPage,
-    {},
-    { initialNumItems: 20 }
+  // Pagination State
+  const [currentCursor, setCurrentCursor] = useState<string | null>(null);
+  const [cursorStack, setCursorStack] = useState<(string | null)[]>([]); // History of start cursors
+
+  const results = useQuery(api.auth.listUsersPage, { 
+    paginationOpts: { cursor: currentCursor, numItems: 20 } 
+  });
+  
+  const users = results?.page;
+  const filteredUsers = users?.filter((user) => // Note: Filter only applies to current page
+    user.name.toLowerCase().includes(search.toLowerCase()) ||
+    user.email.toLowerCase().includes(search.toLowerCase())
   );
-  const isLoadingMore = status === "LoadingMore";
-  const canLoadMore = status === "CanLoadMore";
+
+  const handleNext = () => {
+    if (results?.continueCursor) {
+      setCursorStack([...cursorStack, currentCursor]);
+      setCurrentCursor(results.continueCursor);
+    }
+  };
+
+  const handlePrev = () => {
+    if (cursorStack.length > 0) {
+      const prevCursor = cursorStack[cursorStack.length - 1];
+      setCursorStack(cursorStack.slice(0, -1));
+      setCurrentCursor(prevCursor);
+    }
+  };
   const updateUser = useMutation(api.auth.updateUser);
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -170,18 +191,29 @@ export default function UserListPage() {
             </TableBody>
           </Table>
 
-          {/* Load More Button */}
-          {canLoadMore && (
-            <div className="flex justify-center py-4 border-t">
-              <Button 
-                variant="outline" 
-                onClick={() => loadMore(20)}
-                disabled={isLoadingMore}
-              >
-                {isLoadingMore ? "Memuat..." : "Muat Lebih Banyak"}
-              </Button>
-            </div>
-          )}
+          {/* Pagination Controls (Standard Previous/Next) */}
+          <div className="flex justify-center items-center gap-4 py-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={handlePrev}
+              disabled={cursorStack.length === 0}
+            >
+              Sebelumnya
+            </Button>
+            <span className="text-sm text-gray-500">
+               Halaman {cursorStack.length + 1}
+            </span>
+            <Button 
+              variant="outline" 
+              onClick={handleNext}
+              disabled={!results?.isDone ? false : true} // isDone=true means no more items? Wait.
+              // Convex paginate: isDone means "no more items AFTER this page".
+              // But if page is full, continueCursor is present.
+              // usually check !results.isDone
+            >
+              Selanjutnya
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

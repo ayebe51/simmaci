@@ -15,6 +15,7 @@ import type * as auth from "../auth.js";
 import type * as cleanup from "../cleanup.js";
 import type * as dashboard from "../dashboard.js";
 import type * as debugging from "../debugging.js";
+import type * as headmaster from "../headmaster.js";
 import type * as headmasters from "../headmasters.js";
 import type * as importData from "../importData.js";
 import type * as listUsers from "../listUsers.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   cleanup: typeof cleanup;
   dashboard: typeof dashboard;
   debugging: typeof debugging;
+  headmaster: typeof headmaster;
   headmasters: typeof headmasters;
   importData: typeof importData;
   listUsers: typeof listUsers;

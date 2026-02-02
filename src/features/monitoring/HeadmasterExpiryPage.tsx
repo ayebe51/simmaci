@@ -15,48 +15,12 @@ interface Headmaster {
   status: "expired" | "warning" | "safe"
 }
 
-export default function HeadmasterExpiryPage() {
-  const [headmasters, setHeadmasters] = useState<Headmaster[]>([])
+  import { useQuery } from "convex/react"
+  import { api } from "../../../convex/_generated/api"
 
-  useEffect(() => {
-    const teachersStr = localStorage.getItem("app_teachers")
-    if (teachersStr) {
-      const teachers = JSON.parse(teachersStr)
-      const now = new Date()
-
-      const filtered = teachers
-        .filter((t: any) => (t.jenisSk || "").toLowerCase().includes("kepala") && t.isActive)
-        .map((t: any) => {
-          // Calculate Expiry: TMT + 5 Years
-          const tmtDate = new Date(t.tmt)
-          const expiryDate = new Date(tmtDate)
-          expiryDate.setFullYear(expiryDate.getFullYear() + 5)
-
-          const diffTime = expiryDate.getTime() - now.getTime()
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-          // Status Determination
-          let status: "expired" | "warning" | "safe" = "safe"
-          if (diffDays <= 0) status = "expired"
-          else if (diffDays <= 365) status = "warning" // 1 Year
-
-          return {
-            id: t.id,
-            nama: t.nama,
-            unitKerja: t.unitKerja,
-            tmt: t.tmt,
-            expiryDate: expiryDate,
-            daysRemaining: diffDays,
-            status: status
-          }
-        })
-        // Filter only Expired OR Expiring within 1 Year (365 days)
-        .filter((h: Headmaster) => h.daysRemaining <= 365)
-        .sort((a: Headmaster, b: Headmaster) => a.daysRemaining - b.daysRemaining)
-
-      setHeadmasters(filtered)
-    }
-  }, [])
+  export default function HeadmasterExpiryPage() {
+    // Fetch from Convex
+    const headmasters = useQuery(api.headmaster.getExpiringHeadmasters, { thresholdDays: 365 }) || []
 
   const handleDownloadExcel = () => {
     const data = headmasters.map((h, i) => ({
@@ -104,8 +68,9 @@ export default function HeadmasterExpiryPage() {
                   <TableHead className="w-[50px]">No</TableHead>
                   <TableHead>Nama Kepala</TableHead>
                   <TableHead>Unit Kerja</TableHead>
+                  <TableHead>Periode Ke</TableHead>
                   <TableHead>TMT Awal</TableHead>
-                  <TableHead>Tanggal Habis</TableHead>
+                  <TableHead>Habis Masa Jabatan</TableHead>
                   <TableHead>Sisa Waktu</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
@@ -120,12 +85,18 @@ export default function HeadmasterExpiryPage() {
                   </TableRow>
                 ) : (
                   headmasters.map((h, i) => (
-                    <TableRow key={h.id} className={h.status === 'expired' ? 'bg-red-50' : ''}>
+                    <TableRow key={h.id} className={h.status === 'expired' || h.status === 'limit_exceeded' ? 'bg-red-50' : ''}>
                       <TableCell>{i + 1}</TableCell>
-                      <TableCell className="font-medium">{h.nama}</TableCell>
+                      <TableCell className="font-medium">
+                          {h.nama}
+                          {h.status === 'limit_exceeded' && <span className="block text-xs text-red-600 font-bold">Max 3 Periode!</span>}
+                      </TableCell>
                       <TableCell>{h.unitKerja}</TableCell>
+                      <TableCell className="text-center font-bold">
+                          {h.periode} / {h.maxPeriode}
+                      </TableCell>
                       <TableCell>{new Date(h.tmt).toLocaleDateString("id-ID")}</TableCell>
-                      <TableCell>{h.expiryDate.toLocaleDateString("id-ID")}</TableCell>
+                      <TableCell>{new Date(h.expiryDate).toLocaleDateString("id-ID")}</TableCell>
                       <TableCell className={h.daysRemaining < 0 ? "text-red-600 font-bold" : "text-amber-600 font-bold"}>
                          {h.daysRemaining < 0 ? `Lewat ${Math.abs(h.daysRemaining)} hari` : `${h.daysRemaining} hari`}
                       </TableCell>
@@ -133,6 +104,10 @@ export default function HeadmasterExpiryPage() {
                         {h.status === 'expired' ? (
                             <span className="flex items-center text-red-600 text-xs font-bold border border-red-200 bg-red-100 px-2 py-1 rounded-full w-fit">
                                 <AlertTriangle className="w-3 h-3 mr-1" /> EXPIRED
+                            </span>
+                        ) : h.status === 'limit_exceeded' ? (
+                            <span className="flex items-center text-red-600 text-xs font-bold border border-red-200 bg-red-100 px-2 py-1 rounded-full w-fit">
+                                <AlertTriangle className="w-3 h-3 mr-1" /> MAX LIMIT
                             </span>
                         ) : (
                             <span className="text-amber-600 text-xs font-bold border border-amber-200 bg-amber-100 px-2 py-1 rounded-full">

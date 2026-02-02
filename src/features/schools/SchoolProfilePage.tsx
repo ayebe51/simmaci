@@ -19,8 +19,12 @@ export default function SchoolProfilePage() {
     statusJamiyyah: ""
   })
 
+  // Get current user to get school name
+  const userStr = localStorage.getItem("user")
+  const user = userStr ? JSON.parse(userStr) : null
+
   // Fetch school data directly using the secure backend query
-  const school = useQuery(api.schools.getMyself)
+  const school = useQuery(api.schools.getMyself, user?.email ? { email: user.email } : "skip")
   // Fallback for loading state display
 
   const updateProfile = useMutation(api.schools.updateSelf)
@@ -46,8 +50,17 @@ export default function SchoolProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user?.email) {
+      toast.error("Sesi tidak valid. Silakan login ulang.")
+      return
+    }
+
     try {
-      await updateProfile(formData)
+      await updateProfile({
+        ...formData,
+        schoolEmail: formData.email,
+        email: user.email
+      })
       toast.success("Profil sekolah berhasil diperbarui!")
     } catch (error) {
       toast.error("Gagal update: " + (error as Error).message)

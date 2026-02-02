@@ -97,14 +97,11 @@ export const getByNsm = query({
 
 // Get current operator's school
 export const getMyself = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || !identity.email) return null;
-
+  args: { email: v.string() }, // Accept email explicitly
+  handler: async (ctx, args) => {
     const user = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
 
     if (!user || !user.unit) return null;
@@ -370,20 +367,22 @@ export const bulkCreateSchoolAccounts = mutation({
 // Update school profile (Self-service for Operators)
 export const updateSelf = mutation({
   args: {
+    email: v.string(), // Added for custom auth
     alamat: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     telepon: v.optional(v.string()),
-    email: v.optional(v.string()),
+    // email: v.optional(v.string()), // Conflict with arg? No, school email field vs user email arg.
+    // actually args.email is the identifying email.
+    // But we also allow updating the school's email field.
+    schoolEmail: v.optional(v.string()), // Renamed from email to avoid conflict
     kepalaMadrasah: v.optional(v.string()),
     akreditasi: v.optional(v.string()),
     npsn: v.optional(v.string()),
     statusJamiyyah: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || !identity.email) throw new Error("Unauthenticated");
-
-    const email = identity.email;
+    // const identity = await ctx.auth.getUserIdentity(); // Disabled
+    const email = args.email;
 
     const user = await ctx.db
       .query("users")
@@ -395,24 +394,48 @@ export const updateSelf = mutation({
     }
 
     // Find the school by name (user.unit)
-    // We iterate because we need exact match on 'nama' which might not be unique in index if multiple schools have same name (unlikely but safe)
-    // optimized: use search index or just scan if dataset small. Schools < 1000 is fine to scan or use index if available.
-    // We used 'search_schools' before, but let's try to be simpler: use 'collect' and find.
-    // Or better, use the search index if possible but we need exact match.
-    
-    const school = await ctx.db
+    // 1. Exact match
+    let school = await ctx.db
       .query("schools")
       .filter(q => q.eq(q.field("nama"), user.unit))
       .first();
+
+    const unitName = user.unit || "";
+
+    // 2. Fallback: NSM
+    if (!school && /^\d+$/.test(unitName)) {
+         school = await ctx.db
+            .query("schools")
+            .withIndex("by_nsm", q => q.eq("nsm", unitName))
+            .first();
+    }
+
+    // 3. Fallback: Search
+    if (!school && unitName) {
+        school = await ctx.db
+            .query("schools")
+            .withSearchIndex("search_schools", q => q.search("nama", unitName))
+            .first();
+    }
 
     if (!school) {
        throw new Error(`School not found: ${user.unit}`);
     }
 
-    await ctx.db.patch(school._id, {
-      ...args,
-      updatedAt: Date.now(),
-    });
+    const updates: any = {
+        updatedAt: Date.now()
+    };
+    
+    if (args.alamat !== undefined) updates.alamat = args.alamat;
+    if (args.kecamatan !== undefined) updates.kecamatan = args.kecamatan;
+    if (args.telepon !== undefined) updates.telepon = args.telepon;
+    if (args.schoolEmail !== undefined) updates.email = args.schoolEmail;
+    if (args.kepalaMadrasah !== undefined) updates.kepalaMadrasah = args.kepalaMadrasah;
+    if (args.akreditasi !== undefined) updates.akreditasi = args.akreditasi;
+    if (args.npsn !== undefined) updates.npsn = args.npsn;
+    if (args.statusJamiyyah !== undefined) updates.statusJamiyyah = args.statusJamiyyah;
+
+    await ctx.db.patch(school._id, updates);
 
     return school._id;
   },

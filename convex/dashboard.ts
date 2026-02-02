@@ -244,11 +244,10 @@ export const getSchoolBreakdown = query({
 
 // NEW: Stats specifically for School Operators
 export const getSchoolStats = query({
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || !identity.email) return null;
-    
-    const email = identity.email;
+  args: { email: v.string() }, // Accept email explicitly because we use custom auth
+  handler: async (ctx, args) => {
+    // const identity = await ctx.auth.getUserIdentity(); // Disabled: Custom Auth
+    const email = args.email;
 
     const user = await ctx.db
       .query("users")

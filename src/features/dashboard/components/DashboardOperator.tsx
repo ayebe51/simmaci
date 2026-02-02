@@ -7,9 +7,11 @@ import { useNavigate } from "react-router-dom"
 
 export default function DashboardOperator() {
   const navigate = useNavigate()
-  const stats = useQuery(api.dashboard.getSchoolStats)
   const userStr = localStorage.getItem("user")
   const user = userStr ? JSON.parse(userStr) : null
+
+  // Pass email explicitly
+  const stats = useQuery(api.dashboard.getSchoolStats, user?.email ? { email: user.email } : "skip")
 
   /* DEBUG: Check stats payload */
   // console.log("Operator Stats:", stats)

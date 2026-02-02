@@ -39,10 +39,15 @@ export default function DashboardOperator() {
             ))}
         </div>
       ) : (stats === null || (stats as any).error) ? (
+         // Error state
          <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg space-y-2">
             <p className="font-semibold">Data statistik tidak tersedia.</p>
-            <div className="text-xs font-mono bg-yellow-100 p-2 rounded">
-                Debug: {JSON.stringify((stats as any)?.debug || "Null stats", null, 2)}
+            <div className="text-xs font-mono bg-yellow-100 p-2 rounded overflow-auto">
+                <strong>Debug Info:</strong><br/>
+                User Email (Local): "{user?.email}"<br/>
+                User Unit: "{user?.unit}"<br/>
+                Stats Raw: {JSON.stringify(stats, null, 2)}<br/>
+                API Args: {JSON.stringify(user?.email ? { email: user.email } : "skip")}
             </div>
          </div>
       ) : (

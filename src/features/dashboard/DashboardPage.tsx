@@ -1,39 +1,28 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { School, Users, FileText, CheckCircle, AlertOctagon, Clock } from "lucide-react"
-import { useEffect, useState } from "react"
-import React from "react"
-import { Button } from "@/components/ui/button"
+import { useState } from "react"
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { DashboardCharts } from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
-  
-  // Load user
-  useEffect(() => {
+  // Load user directly to prevent flash and avoid useEffect
+  const [user] = useState<any>(() => {
     const u = localStorage.getItem("user")
-    if (u) setUser(JSON.parse(u))
-  }, [])
+    return u ? JSON.parse(u) : null
+  })
 
-  if (user && user.role === 'operator') {
-      return <DashboardOperator />
-  }
+  // Placeholder for alerts
 
-  const [alerts] = useState<any[]>([])
   
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(convexApi.dashboard.getStats)
   const analyticsStats = useQuery(convexApi.analytics.getDashboardStats) // New Peta Mutu Data
-  const logs = useQuery(convexApi.logs.getRecentLogs) // New Activity Logs
-  
-  // ... rest of queries
+  const logs = useQuery(convexApi.logs.getRecentLogs, {}) // New Activity Logs
   
   // 📊 SK MONITORING QUERIES
-  const userStr = localStorage.getItem("user")
-  const currentUser = userStr ? JSON.parse(userStr) : null
-  const operatorSchool = currentUser?.role === "operator" ? currentUser?.unitKerja : undefined
+  const operatorSchool = user?.role === "operator" ? user?.unitKerja : undefined
   
   const skStats = useQuery(convexApi.dashboard.getSkStatistics, { 
     unitKerja: operatorSchool 
@@ -43,11 +32,10 @@ export default function DashboardPage() {
     unitKerja: operatorSchool 
   })
 
-  useEffect(() => {
-    // Load User from localStorage
-    const u = localStorage.getItem("user")
-    if (u) setUser(JSON.parse(u))
-  }, [])
+  // ✅ REDIRECT OPERATOR (After all hooks are called)
+  if (user && user.role === 'operator') {
+      return <DashboardOperator />
+  }
 
 
   // Use Convex real-time data directly
@@ -69,8 +57,6 @@ export default function DashboardPage() {
     { title: "Total Siswa", value: stats.studentCount, icon: Users, color: "text-orange-500" },
   ]
 
-//... (Rest of render)
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -88,25 +74,7 @@ export default function DashboardPage() {
          </p>
       </div>
 
-      {/* ALERTS SECTION */}
-      {alerts.length > 0 && (
-          <div className="space-y-4">
-              {alerts.map((alert, idx) => (
-                  <div key={idx} className="flex items-start gap-4 p-4 border-l-4 border-red-500 bg-red-50 rounded-r-md">
-                      <AlertOctagon className="h-6 w-6 text-red-600 mt-1" />
-                      <div>
-                          <h4 className="font-bold text-red-900">{alert.title}</h4>
-                          <p className="text-sm text-red-700 mt-1">{alert.message}</p>
-                          <div className="mt-2">
-                              <Button variant="outline" size="sm" className="bg-white border-red-200 text-red-700 hover:bg-red-50" onClick={() => window.alert("Silakan hubungi operator cabang untuk penjadwalan Fit & Proper Test.")}>
-                                  {alert.action}
-                              </Button>
-                          </div>
-                      </div>
-                  </div>
-              ))}
-          </div>
-      )}
+
 
       <div className="grid gap-4 md:grid-cols-3">
         {masterDataStats.map((stat, i) => (
@@ -119,9 +87,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
-              {stat.desc && (
-                  <p className="text-xs text-muted-foreground">{stat.desc}</p>
-              )}
+
             </CardContent>
           </Card>
         ))}
@@ -132,7 +98,7 @@ export default function DashboardPage() {
 
        {/* 📊 SK MONITORING SECTION */}
        {skStats && (
-         <React.Fragment>
+         <>
            <div className="mt-8">
              <h2 className="text-2xl font-bold tracking-tight mb-4">Monitoring Surat Keputusan</h2>
            </div>
@@ -223,7 +189,7 @@ export default function DashboardPage() {
                </CardContent>
              </Card>
            )}
-         </React.Fragment>
+         </>
        )}
 
        {/* 📋 ACTIVITY & STATUS SECTION - Moved to bottom */}

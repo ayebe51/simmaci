@@ -1,0 +1,31 @@
+
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+[36mvite v6.0.5 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 56 modules transformed.
+[31mx[39m Build failed in 1.50s
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+D:/SIMMACI/src/features/master-data/SchoolListPage.tsx:255:7: ERROR: Unexpected "*"[31m
+file: [36mD:/SIMMACI/src/features/master-data/SchoolListPage.tsx:255:7[31m
+[33m
+[33mUnexpected "*"[33m
+253|    const bulkCreateAccounts = useMutation(convexApi.schools.bulkCreateSchoolAccounts);
+254|  
+255|  import * as XLSX from "xlsx"; // Ensure xlsx is installed
+   |         ^
+256|  
+257|  // ...
+[31m
+    at failureErrorWithLog (D:\SIMMACI\node_modules\esbuild\lib\main.js:1476:15)
+    at D:\SIMMACI\node_modules\esbuild\lib\main.js:755:50
+    at responseCallbacks.<computed> (D:\SIMMACI\node_modules\esbuild\lib\main.js:622:9)
+    at handleIncomingPacket (D:\SIMMACI\node_modules\esbuild\lib\main.js:677:12)
+    at Socket.readFromStdout (D:\SIMMACI\node_modules\esbuild\lib\main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)[39m

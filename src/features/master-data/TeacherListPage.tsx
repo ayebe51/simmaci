@@ -970,7 +970,7 @@ export default function TeacherListPage() {
               const birthDateFormatted = birthDateObj ? birthDateObj.toISOString().split('T')[0] : undefined
 
               // 1. Detect Status
-              let rawStatus = row.Status || row.status || row.STATUS || ""
+              const rawStatus = row.Status || row.status || row.STATUS || ""
               let detectedStatus = "GTT" // Default fallback
 
               if (rawStatus) {

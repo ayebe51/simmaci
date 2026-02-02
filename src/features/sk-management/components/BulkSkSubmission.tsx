@@ -344,7 +344,7 @@ export function BulkSkSubmission() {
 
       // 2. Check Tenure (Masa Kerja) via TMT
       // FIXED: Use robust date parser
-      let tmtDate = parseIndonesianDate(tmt)
+      const tmtDate = parseIndonesianDate(tmt)
       
       // Fallback if Date is invalid -> GTT
       if (!tmtDate || isNaN(tmtDate.getTime())) {

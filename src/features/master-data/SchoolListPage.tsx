@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button"
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -246,15 +248,9 @@ export default function SchoolListPage() {
       setIsAddOpen(true)
   }
 
-  /* import moved to top */
 
-// ... inside component ...
 
-  const bulkCreateAccounts = useMutation(convexApi.schools.bulkCreateSchoolAccounts);
-
-import * as XLSX from "xlsx"; // Ensure xlsx is installed
-
-// ...
+  const bulkCreateAccounts = useMutation(convexApi.schools.bulkCreateSchoolAccounts)
 
   const handleBulkGenerate = async () => {
       if (!confirm("Fitur ini akan membuatkan akun untuk SEMUA sekolah yang belum punya akun.\n\nPassword default: 123456\n\nLanjutkan?")) return;

@@ -31,7 +31,7 @@ export default function SkReportPage() {
   const [selectedStatus, setSelectedStatus] = useState('all')
 
   // Fetch schools - with error handling
-  const schools = useQuery(api.schools.list)
+  const schools = useQuery(api.schools.list, {})
   
   // Find operator's school ID by name
   const operatorSchoolId = isOperator && user?.unitKerja 

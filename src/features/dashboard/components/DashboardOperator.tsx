@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { School, Users, FileText, CheckCircle, Clock } from "lucide-react"
 import { useQuery } from "convex/react"
-import { api } from "../../../convex/_generated/api"
+import { api } from "../../../../convex/_generated/api"
 import { useNavigate } from "react-router-dom"
 
 export default function DashboardOperator() {

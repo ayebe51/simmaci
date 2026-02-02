@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Download, Printer, Filter, X, Check, ChevronsUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
-import { Badge } from '@/components/ui/badge'
 import { cn } from "@/lib/utils"
 import {
   Popover,
@@ -43,7 +42,7 @@ export default function SkReportPageSimple() {
   const [searchQuery, setSearchQuery] = useState("")
 
   // 3. Data Fetching
-  const convexSchools = useQuery(api.schools.list) || []
+  const convexSchools = useQuery(api.schools.list, {})
 
   // Transform schools data
   const schools = useMemo(() => (convexSchools || [])
@@ -58,12 +57,7 @@ export default function SkReportPageSimple() {
   const effectiveSchoolId = isOperator ? (operatorSchool?._id) : (selectedSchool !== 'all' ? selectedSchool : undefined)
 
   // Filter schools for dropdown search
-  const filteredSchools = useMemo(() => {
-     if (!searchQuery) return schools
-     return schools.filter(school => 
-       school.nama.toLowerCase().includes(searchQuery.toLowerCase())
-     )
-  }, [schools, searchQuery])
+
 
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,

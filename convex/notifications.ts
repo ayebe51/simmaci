@@ -119,7 +119,7 @@ export const getNotificationHistory = query({
   handler: async (ctx, args) => {
     const limit = args.limit || 20
     
-    let query = ctx.db
+    const query = ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .order("desc")

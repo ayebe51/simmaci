@@ -74,10 +74,7 @@ export default function UserListPage() {
   const [editIsActive, setEditIsActive] = useState(true);
   const [editPassword, setEditPassword] = useState("");
 
-  const filteredUsers = users?.filter((user) =>
-    user.name.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
-  );
+
 
   const handleEditClick = (user: any) => {
     setEditingUser(user);

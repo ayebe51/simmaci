@@ -565,6 +565,25 @@ export function BulkSkSubmission() {
       </CardHeader>
       <CardContent className="space-y-6">
         
+        {/* Template Download Section */}
+        <div 
+          className="flex items-center gap-4 p-4 border rounded-lg bg-green-50 hover:bg-green-100 transition-colors cursor-pointer group mb-6"
+          onClick={handleDownloadTemplate}
+        >
+            <div className="p-2 bg-green-200 rounded-md group-hover:bg-green-300 transition-colors">
+              <FileSpreadsheet className="h-6 w-6 text-green-800" />
+            </div>
+            <div>
+               <h4 className="font-semibold text-sm text-green-900">Download Template Guru</h4>
+               <p className="text-xs text-green-700">Format .xlsx standar sistem</p>
+            </div>
+            <div className="ml-auto">
+                <Button variant="outline" size="sm" className="bg-white hover:bg-green-50 border-green-200 text-green-800">
+                  Download
+                </Button>
+            </div>
+        </div>
+
         <div className="space-y-2">
             <Label>1. Upload File Excel (.xlsx)</Label>
             <div className={`flex items-center gap-4 rounded-md border p-4 ${uploadError ? 'border-red-500 bg-red-50' : ''}`}>

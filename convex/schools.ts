@@ -109,12 +109,30 @@ export const getMyself = query({
 
     if (!user || !user.unit) return null;
 
-    // Find school by exact name match
-    // Note: If unit name logic is loose, we might need a safer id-based link in the future.
-    const school = await ctx.db
+    // 1. Try exact match
+    let school = await ctx.db
       .query("schools")
       .filter(q => q.eq(q.field("nama"), user.unit))
       .first();
+    
+    const unitName = user.unit || "";
+
+    // 2. Fallback: Try matching NSM if unit looks like NSM (digits)
+    if (!school && /^\d+$/.test(unitName)) {
+         school = await ctx.db
+            .query("schools")
+            .withIndex("by_nsm", q => q.eq("nsm", unitName))
+            .first();
+    }
+
+    // 3. Fallback: Try case-insensitive search (expensive but necessary for manual inputs)
+    // Note: This matches the search_schools index logic
+    if (!school && unitName) {
+        school = await ctx.db
+            .query("schools")
+            .withSearchIndex("search_schools", q => q.search("nama", unitName))
+            .first();
+    }
       
     return school;
   },

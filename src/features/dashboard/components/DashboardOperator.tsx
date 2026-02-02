@@ -30,7 +30,17 @@ export default function DashboardOperator() {
         </p>
       </div>
 
-      {stats ? (
+      {stats === undefined ? (
+        <div className="grid gap-4 md:grid-cols-4">
+            {[1,2,3,4].map(i => (
+                <div key={i} className="h-32 rounded-lg bg-gray-100 animate-pulse" />
+            ))}
+        </div>
+      ) : stats === null ? (
+         <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
+            Data statistik tidak tersedia. Pastikan akun memiliki Unit Kerja yang valid.
+         </div>
+      ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -75,12 +85,6 @@ export default function DashboardOperator() {
               <p className="text-xs text-muted-foreground">Menunggu persetujuan</p>
             </CardContent>
           </Card>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-4">
-            {[1,2,3,4].map(i => (
-                <div key={i} className="h-32 rounded-lg bg-gray-100 animate-pulse" />
-            ))}
         </div>
       )}
 

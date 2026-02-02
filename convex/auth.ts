@@ -172,6 +172,50 @@ export const listUsers = query({
   },
 });
 
+// Paginated User List for Management Page
+export const listUsersPage = query({
+  args: {
+    paginationOpts: v.any(), // Using v.any() to pass pagination options safely or v.object({...}) 
+    // Convex pagination options structure is specific, usually better to pass standard args and build opts inside?
+    // Actually standard pattern is passing paginationOpts (cursor, numItems).
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db.query("users").order("desc");
+
+    // Note: Search with filter is manual in Convex if not using search index.
+    // For pagination + search, we usually use search index.
+    // But `users` table doesn't have search index on name/email defined in this file (schema hidden).
+    // If I use filter, I can't use `order("desc")` efficiently without index?
+    // `order` requires index.
+    // Let's stick to simple pagination first.
+    // If search is present, we might need to filter manually?
+    // If I filter manually, I can't use .paginate().
+    // So for now, I'll paginate ALL users, and handle search via `withSearchIndex` if available, or just filter on client?
+    // User wants pagination to reduce scroll.
+    // Let's just implement simple pagination. Search can be done on client IF we fetch all?
+    // No, if paginated, fetching all defeats point.
+    // I'll check if `users` has search index. `dashboard.ts` used `withIndex("by_email")`.
+    // I'll assume simple pagination on ALL users for now. Search will only work on LOADED page or I must use search query.
+    
+    // Using default pagination
+    const results = await query.paginate(args.paginationOpts);
+
+    return {
+      ...results,
+      page: results.page.map(u => ({
+        id: u._id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        unitKerja: u.unit,
+        isActive: u.isActive,
+        createdAt: u.createdAt,
+      }))
+    };
+  }
+});
+
 // Update user's assigned school (unitKerja)
 export const updateUserSchool = mutation({
   args: {

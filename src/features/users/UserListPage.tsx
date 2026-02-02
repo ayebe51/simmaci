@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import {
@@ -35,7 +35,13 @@ import {
 import { toast } from "sonner";
 
 export default function UserListPage() {
-  const users = useQuery(api.auth.listUsers);
+  const { results: users, status, loadMore } = usePaginatedQuery(
+    api.auth.listUsersPage,
+    {},
+    { initialNumItems: 20 }
+  );
+  const isLoadingMore = status === "LoadingMore";
+  const canLoadMore = status === "CanLoadMore";
   const updateUser = useMutation(api.auth.updateUser);
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -163,6 +169,19 @@ export default function UserListPage() {
               )}
             </TableBody>
           </Table>
+
+          {/* Load More Button */}
+          {canLoadMore && (
+            <div className="flex justify-center py-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => loadMore(20)}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? "Memuat..." : "Muat Lebih Banyak"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -14,7 +14,8 @@ import {
   Trophy,
   Crown,
   Gavel,
-  Archive
+  Archive,
+  Lock
 } from "lucide-react"
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
@@ -45,6 +46,7 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
     { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
     { label: "Archive", href: "/dashboard/archive", icon: Archive },
+    { label: "Ganti Password", href: "/dashboard/change-password", icon: Lock },
     { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
   ]
 

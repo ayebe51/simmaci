@@ -2,21 +2,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { FileDown, AlertTriangle, CheckCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useQuery } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 import * as XLSX from "xlsx"
 
-interface Headmaster {
-  id: string
-  nama: string
-  unitKerja: string
-  tmt: string
-  expiryDate: Date
-  daysRemaining: number
-  status: "expired" | "warning" | "safe"
-}
 
-  import { useQuery } from "convex/react"
-  import { api } from "../../../convex/_generated/api"
 
   export default function HeadmasterExpiryPage() {
     // Fetch from Convex
@@ -28,7 +18,7 @@ interface Headmaster {
       "Nama Kepala": h.nama,
       "Unit Kerja": h.unitKerja,
       "TMT Awal": new Date(h.tmt).toLocaleDateString("id-ID"),
-      "Tanggal Habis Masa Jabatan": h.expiryDate.toLocaleDateString("id-ID"),
+      "Tanggal Habis Masa Jabatan": new Date(h.expiryDate).toLocaleDateString("id-ID"),
       "Sisa Waktu (Hari)": h.daysRemaining < 0 ? `Lewat ${Math.abs(h.daysRemaining)} hari` : `${h.daysRemaining} hari`,
       "Status": h.status === "expired" ? "Sudah Habis" : "Akan Habis (< 1 Tahun)"
     }))

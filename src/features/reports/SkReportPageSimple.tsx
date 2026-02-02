@@ -10,11 +10,12 @@ import { Download, Printer, Filter, X, Check, ChevronsUpDown } from 'lucide-reac
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { cn } from "@/lib/utils"
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 
 // Chart Colors
 const COLORS = {

@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 
 export default function UserListPage() {
+  const [search, setSearch] = useState("");
   // Pagination State
   const [currentCursor, setCurrentCursor] = useState<string | null>(null);
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([]); // History of start cursors
@@ -64,7 +65,6 @@ export default function UserListPage() {
     }
   };
   const updateUser = useMutation(api.auth.updateUser);
-  const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 

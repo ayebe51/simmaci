@@ -47,6 +47,7 @@ export function BulkSkSubmission() {
     Maps internal ID -> Possible Excel Header strings (lowercase)
   */
 
+  const HEADER_DEFINITIONS: Record<string, string[]> = {
     "Nama": ["nama", "nama lengkap", "nama guru"],
     "Tempat Lahir": ["tempat lahir", "tmp lahir"],
     "Tanggal Lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],

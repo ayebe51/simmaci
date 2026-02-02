@@ -21,7 +21,7 @@ export default function SchoolProfilePage() {
 
   // Fetch school data directly using the secure backend query
   const school = useQuery(api.schools.getMyself)
-  const schoolName = school?.nama // Fallback for loading state display
+  // Fallback for loading state display
 
   const updateProfile = useMutation(api.schools.updateSelf)
 
@@ -55,7 +55,25 @@ export default function SchoolProfilePage() {
   }
 
 
-  if (!school) return <div>Data sekolah tidak ditemukan for unit: {schoolName}</div>
+  if (!school && school !== undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-center max-w-md">
+           <h3 className="text-lg font-bold text-red-700 mb-2">Data Sekolah Tidak Ditemukan</h3>
+           <p className="text-sm text-red-600 mb-4">
+             Sistem tidak dapat menemukan data sekolah untuk akun ini.
+           </p>
+           <div className="bg-white p-3 rounded border text-left text-xs text-gray-700 font-mono">
+             <strong>Debug Info:</strong><br/>
+             User Unit: "{user?.unit}"<br/>
+             Status: Not Found (Null)
+           </div>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!school) return <div className="p-10 text-center animate-pulse">Sedang memuat data sekolah...</div>
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">

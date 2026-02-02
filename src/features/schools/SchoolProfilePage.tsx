@@ -19,21 +19,9 @@ export default function SchoolProfilePage() {
     statusJamiyyah: ""
   })
 
-  // Get current user to get school name
-  const userStr = localStorage.getItem("user")
-  const user = userStr ? JSON.parse(userStr) : null
-  const schoolName = user?.unit
-
-  // Fetch school data by name (using search or filter logic if available, 
-  // currently we don't have getByName, so we rely on finding it via list or specific query if we had one.
-  // Actually, we can use the 'users' list technique or add 'getByName' helper.
-  // For now, let's use the 'schools' list and find client side (temporary) or add a query.
-  // Better: Add 'getSelf' query in backend, but for speed, let's search.
-  // Wait, we have 'paginatedList' with search.
-  
-  // Or better, since we are operators, we can use `api.schools.list` and find our school.
-  const schools = useQuery(api.schools.list, {})
-  const school = schools?.find(s => s.nama === schoolName)
+  // Fetch school data directly using the secure backend query
+  const school = useQuery(api.schools.getMyself)
+  const schoolName = school?.nama // Fallback for loading state display
 
   const updateProfile = useMutation(api.schools.updateSelf)
 
@@ -66,7 +54,7 @@ export default function SchoolProfilePage() {
     }
   }
 
-  if (!schools) return <div>Loading...</div>
+
   if (!school) return <div>Data sekolah tidak ditemukan for unit: {schoolName}</div>
 
   return (

@@ -95,6 +95,31 @@ export const getByNsm = query({
   },
 });
 
+// Get current operator's school
+export const getMyself = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !identity.email) return null;
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .first();
+
+    if (!user || !user.unit) return null;
+
+    // Find school by exact name match
+    // Note: If unit name logic is loose, we might need a safer id-based link in the future.
+    const school = await ctx.db
+      .query("schools")
+      .filter(q => q.eq(q.field("nama"), user.unit))
+      .first();
+      
+    return school;
+  },
+});
+
 // Create new school
 export const create = mutation({
   args: {

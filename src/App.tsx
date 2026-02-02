@@ -28,6 +28,8 @@ import HeadmasterSubmissionPage from "./features/sk-management/HeadmasterSubmiss
 import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
 import ArchivePage from "./features/archive/ArchivePage"
+import SchoolProfilePage from "./features/schools/SchoolProfilePage"
+import ChangePasswordPage from "./features/auth/ChangePasswordPage"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 

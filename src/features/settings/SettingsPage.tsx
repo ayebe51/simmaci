@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, RefreshCw, AlertTriangle, Building, FileSignature, FileText, CheckCircle, Download } from "lucide-react"
+import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useMutation } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("template")
   const [isSaving, setIsSaving] = useState(false)
-  const [hasTemplate, setHasTemplate] = useState(false)
+
   
   // Default Settings State
   const [settings, setSettings] = useState({
@@ -27,7 +29,51 @@ export default function SettingsPage() {
     signerSekretarisName: "H. Makhmud",
     signerSekretarisNip: "",
     skPrefix: "SK/YP-MACI"
+
   })
+
+  // Password State
+  const changePassword = useMutation(api.auth.changePassword)
+  const [passForm, setPassForm] = useState({ old: "", new: "", confirm: "" })
+  const [showPass, setShowPass] = useState({ old: false, new: false })
+
+  const handlePassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setPassForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (passForm.new.length < 6) {
+          toast.error("Password baru minimal 6 karakter")
+          return
+      }
+      if (passForm.new !== passForm.confirm) {
+          toast.error("Konfirmasi password tidak cocok")
+          return
+      }
+
+      try {
+          const userStr = localStorage.getItem("user")
+          const user = userStr ? JSON.parse(userStr) : null
+          
+          if (!user || !user._id) {
+              toast.error("Sesi tidak valid.")
+              return
+          }
+
+          await changePassword({
+              userId: user._id,
+              oldPassword: passForm.old,
+              newPassword: passForm.new
+          })
+          
+          toast.success("Password berhasil diubah! Silakan login ulang.")
+          setPassForm({ old: "", new: "", confirm: "" })
+          // Optionally logout or just stay
+      } catch (err) {
+          toast.error("Gagal ubah password: " + (err as Error).message)
+      }
+  }
 
   // Load from local storage on mount
   useEffect(() => {
@@ -84,7 +130,16 @@ export default function SettingsPage() {
         }
 
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
-        saveAs(blob, `sim_maarif_backup_${new Date().toISOString().slice(0,10)}.json`)
+
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `sim_maarif_backup_${new Date().toISOString().slice(0,10)}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+
         toast.success("Backup berhasil didownload.")
     } catch (error) {
         console.error("Backup failed", error)
@@ -120,20 +175,7 @@ export default function SettingsPage() {
       reader.readAsText(file)
   }
 
-  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-        const reader = new FileReader()
-        reader.onload = (evt) => {
-            const base64 = evt.target?.result as string
-            localStorage.setItem("sk_template_blob", base64)
-            localStorage.setItem("sk_template_name", file.name)
-            setHasTemplate(true)
-            alert("Template berhasil disimpan!")
-        }
-        reader.readAsDataURL(file)
-    }
-  }
+
 
   const handleResetData = () => {
     if (confirm("PERINGATAN: Tindakan ini akan menghapus SEMUA data Guru, Siswa, dan SK yang tersimpan di browser ini. Lanjutkan?")) {
@@ -157,9 +199,11 @@ export default function SettingsPage() {
 
       <Tabs defaultValue="template" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+
            <TabsTrigger value="template">Template SK</TabsTrigger>
            <TabsTrigger value="signer">Penandatangan</TabsTrigger>
            <TabsTrigger value="profil">Profil Lembaga</TabsTrigger>
+           <TabsTrigger value="security">Keamanan Akun</TabsTrigger>
            <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -353,6 +397,74 @@ export default function SettingsPage() {
                             onChange={(e) => handleChange("teleponYayasan", e.target.value)} 
                         />
                     </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5"/> Ganti Password</CardTitle>
+                    <CardDescription>Amankan akun Anda dengan mengganti password secara berkala.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
+                        <div className="space-y-2">
+                            <Label>Password Lama</Label>
+                            <div className="relative">
+                                <Input 
+                                    type={showPass.old ? "text" : "password"}
+                                    name="old"
+                                    value={passForm.old}
+                                    onChange={handlePassChange}
+                                    required
+                                    placeholder="Password saat ini"
+                                />
+                                <Button
+                                    type="button" variant="ghost" size="icon"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowPass(p => ({...p, old: !p.old}))}
+                                >
+                                    {showPass.old ? <EyeOff className="h-4 w-4 text-muted-foreground"/> : <Eye className="h-4 w-4 text-muted-foreground"/>}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Password Baru</Label>
+                            <div className="relative">
+                                <Input 
+                                    type={showPass.new ? "text" : "password"}
+                                    name="new"
+                                    value={passForm.new}
+                                    onChange={handlePassChange}
+                                    required
+                                    placeholder="Minimal 6 karakter"
+                                />
+                                <Button
+                                    type="button" variant="ghost" size="icon"
+                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                    onClick={() => setShowPass(p => ({...p, new: !p.new}))}
+                                >
+                                    {showPass.new ? <EyeOff className="h-4 w-4 text-muted-foreground"/> : <Eye className="h-4 w-4 text-muted-foreground"/>}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Konfirmasi Password Baru</Label>
+                            <Input 
+                                type={showPass.new ? "text" : "password"}
+                                name="confirm"
+                                value={passForm.confirm}
+                                onChange={handlePassChange}
+                                required
+                                placeholder="Ulangi password baru"
+                            />
+                        </div>
+                        <Button type="submit">
+                            Update Password
+                        </Button>
+                    </form>
                 </CardContent>
             </Card>
         </TabsContent>

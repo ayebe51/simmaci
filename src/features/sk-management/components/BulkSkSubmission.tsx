@@ -6,6 +6,7 @@ import { Loader2, FileSpreadsheet, CheckCircle, Upload } from "lucide-react"
 import { useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 import { api } from "@/lib/api"
 import {
   Table,
@@ -45,7 +46,7 @@ export function BulkSkSubmission() {
     Flexible Header Validation Logic 
     Maps internal ID -> Possible Excel Header strings (lowercase)
   */
-  const HEADER_DEFINITIONS: Record<string, string[]> = {
+
     "Nama": ["nama", "nama lengkap", "nama guru"],
     "Tempat Lahir": ["tempat lahir", "tmp lahir"],
     "Tanggal Lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
@@ -70,6 +71,51 @@ export function BulkSkSubmission() {
       "PDPKPNU": [],
   }
 
+  const handleDownloadTemplate = () => {
+    // Defines standard headers for the template
+    const headers = [
+      "Nama", 
+      "Tempat/Tanggal Lahir", 
+      "Nomor Induk Ma'arif", 
+      "Pendidikan Terakhir", 
+      "Unit Kerja", 
+      "Tanggal Mulai Tugas", 
+      "Sertifikasi", 
+      "Status", 
+      "PDPKPNU", 
+      "Kecamatan"
+    ];
+
+    // Create a dummy row to help user understand the format
+    const sampleRow = [
+      "Ahmad Contoh, S.Pd",
+      "Cilacap, 12-05-1990",
+      "123456789",
+      "S1 Pendidikan Agama Islam",
+      "MI Ma'arif 01 Cilacap",
+      "01-07-2015",
+      "Sudah",
+      "GTY",
+      "Lulus Angkatan 1",
+      "Cilacap Selatan"
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
+    
+    // Auto-width columns roughly
+    ws["!cols"] = headers.map(() => ({ wch: 25 }));
+    ws["!cols"][0] = { wch: 30 }; // Nama wider
+    ws["!cols"][4] = { wch: 30 }; // Unit Kerja wider
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template Guru");
+    
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, "Template_Data_Guru_Maarif.xlsx");
+  }
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     setDebugLog([])

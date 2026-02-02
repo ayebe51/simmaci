@@ -1,0 +1,31 @@
+
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+[36mvite v6.0.5 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 1853 modules transformed.
+[31mx[39m Build failed in 2.66s
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+D:/SIMMACI/src/features/sk-management/components/BulkSkSubmission.tsx:50:10: ERROR: Expected ";" but found ":"[31m
+file: [36mD:/SIMMACI/src/features/sk-management/components/BulkSkSubmission.tsx:50:10[31m
+[33m
+[33mExpected ";" but found ":"[33m
+48 |    */
+49 |  
+50 |      "Nama": ["nama", "nama lengkap", "nama guru"],
+   |            ^
+51 |      "Tempat Lahir": ["tempat lahir", "tmp lahir"],
+52 |      "Tanggal Lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
+[31m
+    at failureErrorWithLog (D:\SIMMACI\node_modules\esbuild\lib\main.js:1476:15)
+    at D:\SIMMACI\node_modules\esbuild\lib\main.js:755:50
+    at responseCallbacks.<computed> (D:\SIMMACI\node_modules\esbuild\lib\main.js:622:9)
+    at handleIncomingPacket (D:\SIMMACI\node_modules\esbuild\lib\main.js:677:12)
+    at Socket.readFromStdout (D:\SIMMACI\node_modules\esbuild\lib\main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)[39m

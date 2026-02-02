@@ -7,6 +7,7 @@ export const list = query({
     unitKerja: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     isCertified: v.optional(v.string()),
+    userEmail: v.optional(v.string()), // For RBAC
   },
   handler: async (ctx, args) => {
     let teachers = await ctx.db
@@ -14,18 +15,38 @@ export const list = query({
       .withIndex("by_active", (q) => q.eq("isActive", true))
       .collect();
     
-    // RBAC: Check if user is an Operator
+    // RBAC: Check identity
     const identity = await ctx.auth.getUserIdentity();
-    if (identity && identity.email) {
-       const email = identity.email;
+    const email = identity?.email || args.userEmail;
+
+    if (!email) {
+        // Fallback: If no email provided, check if strict mode is needed.
+        // For development/migration, we might allow, but for security we should RESTRICT.
+        // Let's return empty array if no auth info to prevent leak.
+        // return []; 
+        // OR Throw Error?
+        // throw new Error("Unauthorized: Identity required");
+        // To be safe for now without breaking everything immediately if I miss a file:
+        // Use "Open" but log? No, "Secure by Default".
+        // I will return EMPTY if not identified.
+        return [];
+    }
+
+    if (email) {
        const user = await ctx.db
          .query("users")
          .withIndex("by_email", (q) => q.eq("email", email))
          .first();
 
-       if (user && user.role === "operator" && user.unit) {
-           // Strict filter for operators
-           teachers = teachers.filter(t => t.unitKerja === user.unit);
+       if (user) {
+           if (user.role === "operator" && user.unit) {
+               // Strict filter for operators
+               teachers = teachers.filter(t => t.unitKerja === user.unit);
+           }
+           // Admins see all
+       } else {
+           // User not found in DB? Treat as unauthenticated.
+           return [];
        }
     }
 

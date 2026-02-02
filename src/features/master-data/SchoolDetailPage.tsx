@@ -38,9 +38,16 @@ export default function SchoolDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Get current user for RBAC
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : null;
+
   // Use Convex real-time queries
   const schoolData = useQuery(convexApi.schools.get, id ? { id: id as any } : "skip");
-  const teachersData = useQuery(convexApi.teachers.list, { unitKerja: schoolData?.nama });
+  const teachersData = useQuery(convexApi.teachers.list, { 
+    unitKerja: schoolData?.nama,
+    userEmail: user?.email 
+  });
 
   const loading = schoolData === undefined;
   

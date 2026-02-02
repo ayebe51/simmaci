@@ -11,11 +11,14 @@ export default function DashboardOperator() {
   const userStr = localStorage.getItem("user")
   const user = userStr ? JSON.parse(userStr) : null
 
+  /* DEBUG: Check stats payload */
+  // console.log("Operator Stats:", stats)
+
   const quickActions = [
-    { label: "Data Guru", icon: Users, path: "/master/teachers", color: "bg-blue-100 text-blue-700" },
-    { label: "Data Siswa", icon: School, path: "/master/students", color: "bg-orange-100 text-orange-700" },
-    { label: "Buat SK", icon: FileText, path: "/generator", color: "bg-green-100 text-green-700" },
-    { label: "Profil Sekolah", icon: School, path: "/school/profile", color: "bg-purple-100 text-purple-700" },
+    { label: "Data Guru", icon: Users, path: "/dashboard/master/teachers", color: "bg-blue-100 text-blue-700" },
+    { label: "Data Siswa", icon: School, path: "/dashboard/master/students", color: "bg-orange-100 text-orange-700" },
+    { label: "Buat SK", icon: FileText, path: "/dashboard/sk/new", color: "bg-green-100 text-green-700" }, // Bulk Submission
+    { label: "Profil Sekolah", icon: School, path: "/dashboard/school/profile", color: "bg-purple-100 text-purple-700" },
   ]
 
   return (

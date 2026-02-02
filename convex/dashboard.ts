@@ -256,7 +256,16 @@ export const getSchoolStats = query({
       .first();
 
     if (!user || user.role !== "operator" || !user.unit) {
-      return null;
+      return {
+        error: "User validation failed",
+        debug: {
+            found: !!user,
+            role: user?.role,
+            unit: user?.unit,
+            email: email,
+            expectedRole: "operator"
+        }
+      };
     }
 
     const schoolName = user.unit;
@@ -295,7 +304,8 @@ export const getSchoolStats = query({
       students,
       skDrafts,
       skApproved,
-      totalSk
+      totalSk,
+      debug: { role: user.role, unit: user.unit }
     };
   }
 });

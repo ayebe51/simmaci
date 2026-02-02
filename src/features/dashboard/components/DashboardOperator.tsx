@@ -36,9 +36,12 @@ export default function DashboardOperator() {
                 <div key={i} className="h-32 rounded-lg bg-gray-100 animate-pulse" />
             ))}
         </div>
-      ) : stats === null ? (
-         <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
-            Data statistik tidak tersedia. Pastikan akun memiliki Unit Kerja yang valid.
+      ) : (stats === null || (stats as any).error) ? (
+         <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg space-y-2">
+            <p className="font-semibold">Data statistik tidak tersedia.</p>
+            <div className="text-xs font-mono bg-yellow-100 p-2 rounded">
+                Debug: {JSON.stringify((stats as any)?.debug || "Null stats", null, 2)}
+            </div>
          </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

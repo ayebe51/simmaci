@@ -56,7 +56,10 @@ export default function SkDashboardPage() {
   // Mutations
   const archiveAllSk = useMutation(convexApi.sk.archiveAll)
   const batchUpdateStatusMutation = useMutation(convexApi.sk.batchUpdateStatus)
-  const verifyTeacherMutation = useMutation(convexApi.sk.verifyTeacher) // New mutation
+  const verifyTeacherMutation = useMutation(convexApi.sk.verifyTeacher)
+  const rejectTeacherMutation = useMutation(convexApi.sk.rejectTeacher)
+  // We need to use valid mutations. create for SK is `create` not `approve`
+  const createSkMutation = useMutation(convexApi.sk.create)
   
   // Selection state for batch operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -159,20 +162,28 @@ export default function SkDashboardPage() {
       return
     }
     
-    const reason = prompt("Alasan penolakan (opsional):")
-    if (reason === null) return // User cancelled
+    const reason = prompt("Alasan penolakan (Wajib diisi):")
+    if (!reason) return 
     
-    if (!confirm(`Reject ${selectedIds.size} SK yang dipilih?`)) return
+    if (!confirm(`Tolak ${selectedIds.size} pengajuan ini?`)) return
     
     try {
       const ids = Array.from(selectedIds) as any[]
-      await batchUpdateStatusMutation({ 
-        ids, 
-        status: "rejected",
-        rejectionReason: reason || undefined
-      })
-      setSelectedIds(new Set()) // Clear selection
-      alert(`✅ Berhasil mereject ${selectedIds.size} SK!`)
+      
+      if (statusFilter === "draft") {
+          // Reject Teachers
+          await Promise.all(ids.map(id => rejectTeacherMutation({ id, reason })))
+      } else {
+          // Reject SK Documents
+          await batchUpdateStatusMutation({ 
+            ids, 
+            status: "rejected",
+            rejectionReason: reason
+          })
+      }
+
+      setSelectedIds(new Set()) 
+      alert(`✅ Berhasil menolak ${selectedIds.size} data!`)
     } catch (error) {
       console.error("Batch reject failed:", error)
       alert("Gagal reject SK. Silakan coba lagi.")

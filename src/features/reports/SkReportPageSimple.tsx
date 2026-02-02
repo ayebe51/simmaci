@@ -10,11 +10,26 @@ import { Download, Printer, Filter, X, Check, ChevronsUpDown } from 'lucide-reac
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 import { cn } from "@/lib/utils"
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts'
+
+// Chart Colors
+const COLORS = {
+  approved: '#22c55e', // green-500
+  pending: '#f59e0b', // amber-500
+  rejected: '#ef4444', // red-500
+  draft: '#94a3b8',    // slate-400
+}
+
+const TYPE_COLORS = [
+    '#3b82f6', // blue
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#06b6d4', // cyan
+]
 
 export default function SkReportPageSimple() {
   // 1. User Context & Role Safety
@@ -332,30 +347,98 @@ export default function SkReportPageSimple() {
           </div>
         ) : (
           <>
-            {/* STATS CARDS (Screen Only) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 no-print">
+            {/* STATS CHARTS (Screen Only) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print mb-6">
+               <Card>
+                 <CardHeader>
+                    <CardTitle className="text-sm font-bold uppercase text-slate-500">Status Dokumen</CardTitle>
+                 </CardHeader>
+                 <CardContent className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={[
+                                    { name: 'Disetujui', value: reportData.summary.approved, fill: COLORS.approved },
+                                    { name: 'Menunggu', value: reportData.summary.pending, fill: COLORS.pending },
+                                    { name: 'Ditolak', value: reportData.summary.rejected, fill: COLORS.rejected },
+                                    { name: 'Draft', value: reportData.summary.draft, fill: COLORS.draft },
+                                ].filter(x => x.value > 0)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={80}
+                                paddingAngle={5}
+                                dataKey="value"
+                                label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                            >
+                                <Cell fill={COLORS.approved} />
+                                <Cell fill={COLORS.pending} />
+                                <Cell fill={COLORS.rejected} />
+                                <Cell fill={COLORS.draft} />
+                            </Pie>
+                            <Tooltip />
+                        </PieChart>
+                    </ResponsiveContainer>
+                 </CardContent>
+               </Card>
+
+               <Card>
+                 <CardHeader>
+                    <CardTitle className="text-sm font-bold uppercase text-slate-500">Jenis SK</CardTitle>
+                 </CardHeader>
+                 <CardContent className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                            layout="vertical"
+                            data={[
+                                { name: 'GTY', value: reportData.byType?.gty || 0, fill: TYPE_COLORS[0] },
+                                { name: 'GTT', value: reportData.byType?.gtt || 0, fill: TYPE_COLORS[1] },
+                                { name: 'Kamad', value: reportData.byType?.kamad || 0, fill: TYPE_COLORS[2] },
+                                { name: 'Tendik', value: reportData.byType?.tendik || 0, fill: TYPE_COLORS[3] },
+                            ]}
+                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="name" type="category" width={80} />
+                            <Tooltip cursor={{fill: 'transparent'}} />
+                            <Bar dataKey="value" name="Jumlah" radius={[0, 4, 4, 0]}>
+                                {
+                                    [0,1,2,3].map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={TYPE_COLORS[index % TYPE_COLORS.length]} />
+                                    ))
+                                }
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                 </CardContent>
+               </Card>
+            </div>
+
+            {/* KEY STATS ROW */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 no-print mb-6">
                <Card>
                  <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-slate-700">{reportData.summary.total}</span>
-                    <span className="text-xs text-slate-500 uppercase font-medium">Total Dokumen</span>
+                    <span className="text-3xl font-bold text-slate-800">{reportData.summary.total}</span>
+                    <span className="text-xs text-slate-500 uppercase font-bold mt-1">Total Dokumen</span>
                  </CardContent>
                </Card>
-               <Card className="bg-green-50 border-green-100">
+               <Card className="bg-green-50/50 border-green-100">
                  <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-green-700">{reportData.summary.approved}</span>
-                    <span className="text-xs text-green-600 uppercase font-medium">Disetujui</span>
+                    <span className="text-3xl font-bold text-green-600">{reportData.summary.approved}</span>
+                    <span className="text-xs text-green-600 uppercase font-bold mt-1">Disetujui</span>
                  </CardContent>
                </Card>
-               <Card className="bg-amber-50 border-amber-100">
+               <Card className="bg-amber-50/50 border-amber-100">
                  <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-amber-700">{reportData.summary.pending}</span>
-                    <span className="text-xs text-amber-600 uppercase font-medium">Menunggu</span>
+                    <span className="text-3xl font-bold text-amber-600">{reportData.summary.pending}</span>
+                    <span className="text-xs text-amber-600 uppercase font-bold mt-1">Pending</span>
                  </CardContent>
                </Card>
-               <Card>
+               <Card className="bg-red-50/50 border-red-100">
                  <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-slate-700">{reportData.summary.draft}</span>
-                    <span className="text-xs text-slate-500 uppercase font-medium">Draft</span>
+                    <span className="text-3xl font-bold text-red-600">{reportData.summary.rejected}</span>
+                    <span className="text-xs text-red-600 uppercase font-bold mt-1">Ditolak</span>
                  </CardContent>
                </Card>
             </div>

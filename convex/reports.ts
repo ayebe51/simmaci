@@ -94,10 +94,10 @@ export const generateSkReport = query({
         
         // Group by SK type
         const byType = {
-          pengangkatan: enriched.filter(sk => sk.jenisSk === 'pengangkatan').length,
-          mutasi: enriched.filter(sk => sk.jenisSk === 'mutasi').length,
-          promosi: enriched.filter(sk => sk.jenisSk === 'promosi').length,
-          pemberhentian: enriched.filter(sk => sk.jenisSk === 'pemberhentian').length,
+          gty: enriched.filter(sk => (sk.jenisSk || "").toLowerCase().includes('tetap yayasan')).length,
+          gtt: enriched.filter(sk => (sk.jenisSk || "").toLowerCase().includes('tidak tetap')).length,
+          kamad: enriched.filter(sk => (sk.jenisSk || "").toLowerCase().includes('kepala')).length,
+          tendik: enriched.filter(sk => (sk.jenisSk || "").toLowerCase().includes('tenaga')).length,
         }
         
         return {
@@ -112,7 +112,7 @@ export const generateSkReport = query({
         return {
             data: [],
             summary: { total: 0, pending: 0, approved: 0, rejected: 0, draft: 0 },
-            byType: { pengangkatan: 0, mutasi: 0, promosi: 0, pemberhentian: 0 },
+            byType: { gty: 0, gtt: 0, kamad: 0, tendik: 0 },
             filters: args,
             error: criticalError instanceof Error ? criticalError.message : String(criticalError)
         };

@@ -441,6 +441,44 @@ export const verifyTeacher = mutation({
   },
 });
 
+// Reject teacher (from Queue) with feedback
+export const rejectTeacher = mutation({
+  args: { 
+    id: v.id("teachers"), 
+    reason: v.string(),
+    rejectedBy: v.optional(v.id("users"))
+  },
+  handler: async (ctx, args) => {
+    // 1. Get teacher data
+    const teacher = await ctx.db.get(args.id);
+    if (!teacher) throw new Error("Teacher not found");
+
+    // 2. Mark as NOT verified (ensure false)
+    await ctx.db.patch(args.id, { 
+        isVerified: false,
+        // We might want to add a status field on teacher later like 'verificationStatus': 'rejected'
+        // For now, rely on notifications or Activity Log
+    });
+
+    // 3. Send Notification to Operator/Creator if possible?
+    // Since Teacher table doesn't track "createdBy" user ID (yet), we might need to rely on "Unit Kerja" match or later add createdBy.
+    // For now, maybe just Log it. Or if we have email.
+    
+    // 4. Log Activity
+    await ctx.db.insert("activity_logs", {
+        user: args.rejectedBy ? "Admin" : "System",
+        role: "admin",
+        action: "Reject Verification",
+        details: `Rejection for ${teacher.nama}: ${args.reason}`,
+        timestamp: Date.now(),
+    });
+
+    // 5. Store "Rejection Reason" on Teacher?
+    // Maybe we need a `metadata` or `verificationNote` field on Teacher?
+    // Let's assume we don't modify schema too much.
+  },
+});
+
 export const bulkVerifyTeachers = mutation({
   args: { ids: v.array(v.id("teachers")) },
   handler: async (ctx, args) => {

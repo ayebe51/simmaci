@@ -259,3 +259,31 @@ export const updateUser = mutation({
     return { success: true };
   },
 });
+
+// Change password (user self-service)
+export const changePassword = mutation({
+  args: {
+    userId: v.id("users"),
+    oldPassword: v.string(),
+    newPassword: v.string()
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Verify old password
+    if (!verifyPassword(args.oldPassword, user.passwordHash)) {
+      throw new Error("Password lama salah");
+    }
+
+    // Update with new password
+    await ctx.db.patch(args.userId, {
+      passwordHash: hashPassword(args.newPassword),
+      updatedAt: Date.now()
+    });
+
+    return { success: true };
+  }
+});

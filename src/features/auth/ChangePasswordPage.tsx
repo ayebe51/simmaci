@@ -40,10 +40,20 @@ export default function ChangePasswordPage() {
     }
 
     try {
+      const userStr = localStorage.getItem("user")
+      const user = userStr ? JSON.parse(userStr) : null
+      
+      if (!user || !user._id) {
+        toast.error("Sesi tidak valid. Silakan login ulang.")
+        return
+      }
+
       await changePassword({
+        userId: user._id, // Pass userId
         oldPassword: formData.oldPassword,
         newPassword: formData.newPassword
       })
+      
       toast.success("Password berhasil diubah! Silakan login ulang.")
       
       // Optional: Logout user

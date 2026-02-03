@@ -14,6 +14,7 @@ interface TeacherDocumentArchiveProps {
 }
 
 export default function TeacherDocumentArchive({ teacherId }: TeacherDocumentArchiveProps) {
+    // @ts-ignore
     const documents = useQuery(api.documents.getDocuments, { teacherId })
     
     // Upload State

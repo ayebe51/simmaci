@@ -13,7 +13,7 @@ import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpre
 import { useState, useEffect, useMemo } from "react"
 import TeacherDocumentArchive from "./components/TeacherDocumentArchive"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+// import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import ExcelImportModal from "./components/ExcelImportModal"
@@ -73,6 +73,7 @@ export default function TeacherListPage() {
   // Mutations for real-time updates
   const updateTeacherMutation = useMutation(convexApi.teachers.update)
   const removeTeacherMutation = useMutation(convexApi.teachers.remove)
+  // const removeTeacherMutation = useMutation(convexApi.teachers.remove)
   const bulkDeleteTeacherMutation = useMutation(convexApi.teachers.bulkDelete)
   const createTeacherMutation = useMutation(convexApi.teachers.create)
   // v4.0 ISOLATED IMPORT: Use new file to bypass caching issues
@@ -165,7 +166,7 @@ export default function TeacherListPage() {
                 return user.unitKerja
             }
         }
-    } catch(e) { return null }
+    } catch(_e) { return null }
     return null
   })
 
@@ -276,6 +277,7 @@ export default function TeacherListPage() {
       return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
   }
 
+  /*
   const getStatusColor = (status: string) => {
       switch(status) {
           case "PNS": return "bg-blue-100 text-blue-800 hover:bg-blue-100"
@@ -283,6 +285,7 @@ export default function TeacherListPage() {
           default: return "bg-slate-100 text-slate-800 hover:bg-slate-100"
       }
   }
+  */
 
   // Manual Add/Edit Logic
   const [isAddOpen, setIsAddOpen] = useState(false)

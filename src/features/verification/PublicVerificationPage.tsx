@@ -10,9 +10,10 @@ export default function PublicVerificationPage() {
     const { id } = useParams()
     
     // 🔥 REAL-TIME CONVEX QUERY - Verify SK by code
+    const isTest = id === "tes-ganti-nama";
     const verificationData = useQuery(
         convexApi.verification.verifyByCode, 
-        id ? { code: id } : "skip"
+        id && !isTest ? { code: id } : "skip"
     )
     
     const status = verificationData === undefined ? "loading" 

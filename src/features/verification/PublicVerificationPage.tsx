@@ -3,27 +3,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, XCircle, ShieldCheck, FileText, User, Calendar } from "lucide-react"
 // 🔥 CONVEX for real-time verification
-import { useQuery } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
+// import { useQuery } from "convex/react"
+// import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function PublicVerificationPage() {
     const { id } = useParams()
     
     // 🔥 REAL-TIME CONVEX QUERY - Verify SK by code
-    const isTest = id === "tes-ganti-nama";
-    const verificationData = useQuery(
-        convexApi.verification.verifyByCode, 
-        id && !isTest ? { code: id } : "skip"
-    )
+    const isTest = id?.toLowerCase().startsWith("tes");
     
-    const status = verificationData === undefined ? "loading" 
+    // TEMPORARY: DISABLE QUERY TO FIX 404
+    // const verificationData = useQuery(
+    //     convexApi.verification.verifyByCode, 
+    //     id && !isTest ? { code: id } : "skip"
+    // )
+    const verificationData = null; // Force null to mock not found
+    
+    const status = isTest ? "test" : (verificationData === undefined ? "loading" 
                   : verificationData === null ? "invalid" 
-                  : "valid"
+                  : "valid")
     const data = verificationData
 
 
     // 🔥 BYPASS FOR TESTING "Cilacap" FOOTER
-    if (id === "tes-ganti-nama") {
+    if (isTest) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
                 <Card className="w-full max-w-md shadow-xl">

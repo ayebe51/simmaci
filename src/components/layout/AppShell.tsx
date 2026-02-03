@@ -11,6 +11,7 @@ import {
   Users,
   AlertTriangle,
   FileBarChart,
+  Trophy,
   Crown,
   Gavel,
   Archive,

@@ -654,7 +654,6 @@ export default function TeacherListPage() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-800" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-800" onClick={() => openKta(item)} title="Cetak KTA"><BadgeCheck className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-600 hover:text-orange-800" onClick={() => openArchive(item)} title="Brankas Arsip Digital"><Lock className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-600 hover:text-orange-800" onClick={() => openArchive(item)} title="Brankas Arsip"><Lock className="h-4 w-4" /></Button>
                             </TableCell>
                           </TableRow>
                         ))

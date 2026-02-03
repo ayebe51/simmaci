@@ -63,7 +63,7 @@ export default function TeacherListPage() {
     unitKerja: effectiveUnitKerja,
     kecamatan: filterKecamatan || undefined,
     isCertified: filterCertified,
-    userEmail: user?.email, // Required for RBAC
+    token: localStorage.getItem("token") || undefined, // Secure Session Token
   })
 
   // Mutations for real-time updates

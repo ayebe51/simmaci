@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { createSession } from "./auth_helpers";
 
 // Simple password hashing (in production, use proper bcrypt or Convex Auth)
 function hashPassword(password: string): string {
@@ -74,6 +75,9 @@ export const login = mutation({
       throw new Error("Account is inactive");
     }
     
+    // Create session
+    const token = await createSession(ctx, user._id);
+    
     // Return user data (without password hash)
     return {
       user: {
@@ -83,7 +87,7 @@ export const login = mutation({
         role: user.role,
         unitKerja: user.unit, // Map to frontend format
       },
-      token: user._id, // Using user ID as token for simplicity
+      token, 
     };
   },
 });

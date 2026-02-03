@@ -192,4 +192,16 @@ export default defineSchema({
     .index("by_document_type", ["documentType"])
     .index("by_user", ["performedBy"])
     .index("by_date", ["performedAt"]),
+
+  // Sessions for Secure Authentication
+  sessions: defineTable({
+    token: v.string(), // UUID or Custom Token
+    userId: v.id("users"),
+    expiresAt: v.number(),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_user", ["userId"]),
 });

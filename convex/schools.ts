@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
+import { validateSession, requireAuth } from "./auth_helpers";
+
 
 // Get paginated schools with optional filters
 export const paginatedList = query({
@@ -46,19 +48,24 @@ export const paginatedList = query({
 export const list = query({
   args: {
     kecamatan: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let schools = await ctx.db.query("schools").collect();
     
-    // RBAC: Check if user is an Operator
-    const identity = await ctx.auth.getUserIdentity();
+    // RBAC: Check if user is an Operator via Token
+    // We try to get user from token if provided
+    let user = null;
+    if ((args as any).token) {
+        user = await validateSession(ctx, (args as any).token);
+    } 
+    // Fallback? No, if token provided we rely on it. If not, public list?
+    // Current behavior: Public list unless operator.
     
-    if (identity && identity.email) {
-       const email = identity.email;
-       const user = await ctx.db
-         .query("users")
-         .withIndex("by_email", (q) => q.eq("email", email))
-         .first();
+    // We can't change args signature easily without breaking unknown callers?
+    // Actually we can add optional token arg.
+    
+    if (user && user.role === "operator" && user.unit) {
 
        if (user && user.role === "operator" && user.unit) {
            // Strict filter for operators: only return their own school
@@ -97,12 +104,9 @@ export const getByNsm = query({
 
 // Get current operator's school
 export const getMyself = query({
-  args: { email: v.string() }, // Accept email explicitly
+  args: { token: v.string() }, 
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
+    const user = await validateSession(ctx, args.token);
 
     if (!user || !user.unit) return null;
 
@@ -366,8 +370,9 @@ export const bulkCreateSchoolAccounts = mutation({
 
 // Update school profile (Self-service for Operators)
 export const updateSelf = mutation({
+
   args: {
-    email: v.string(), // Added for custom auth
+    token: v.string(), // Secure token
     alamat: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     telepon: v.optional(v.string()),
@@ -381,13 +386,9 @@ export const updateSelf = mutation({
     statusJamiyyah: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // const identity = await ctx.auth.getUserIdentity(); // Disabled
-    const email = args.email;
+    const user = await requireAuth(ctx, args.token);
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", email))
-      .first();
+
 
     if (!user || user.role !== "operator" || !user.unit) {
       throw new Error("Unauthorized: Only operators can update their school profile.");

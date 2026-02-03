@@ -58,7 +58,7 @@ export default function SkReportPageSimple() {
   const [searchQuery, setSearchQuery] = useState("")
 
   // 3. Data Fetching
-  const convexSchools = useQuery(api.schools.list, {})
+  const convexSchools = useQuery(api.schools.list, { token: localStorage.getItem("token") || undefined })
 
   // Transform schools data
   const schools = useMemo(() => (convexSchools || [])

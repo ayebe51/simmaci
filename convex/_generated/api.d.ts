@@ -23,6 +23,7 @@ import type * as importData from "../importData.js";
 import type * as listUsers from "../listUsers.js";
 import type * as logs from "../logs.js";
 import type * as maintenance from "../maintenance.js";
+import type * as mutations from "../mutations.js";
 import type * as notifications from "../notifications.js";
 import type * as reports from "../reports.js";
 import type * as schools from "../schools.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   listUsers: typeof listUsers;
   logs: typeof logs;
   maintenance: typeof maintenance;
+  mutations: typeof mutations;
   notifications: typeof notifications;
   reports: typeof reports;
   schools: typeof schools;

@@ -219,4 +219,20 @@ export default defineSchema({
   })
     .index("by_school", ["schoolId"])
     .index("by_year", ["year"]),
+
+  // Teacher Mutations (History)
+  teacher_mutations: defineTable({
+    teacherId: v.id("teachers"),
+    fromUnit: v.string(),
+    toUnit: v.string(),
+    reason: v.string(),
+    skNumber: v.string(),
+    effectiveDate: v.string(),
+    performedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_teacher", ["teacherId"])
+    .index("by_unit_from", ["fromUnit"])
+    .index("by_unit_to", ["toUnit"])
+    .index("by_date", ["createdAt"]), // To show recent mutations
 });

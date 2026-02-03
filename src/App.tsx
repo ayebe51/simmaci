@@ -28,6 +28,7 @@ import HeadmasterSubmissionPage from "./features/sk-management/HeadmasterSubmiss
 import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
 import ArchivePage from "./features/archives/ArchivePage"
+import MutationPage from "./features/mutations/MutationPage"
 import SchoolProfilePage from "./features/schools/SchoolProfilePage"
 import ChangePasswordPage from "./features/auth/ChangePasswordPage"
 import { Toaster } from "@/components/ui/sonner"
@@ -80,7 +81,9 @@ export default function App() {
                       <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
                       <Route path="sk/:id/print" element={<SkPrintPage />} />
                       <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
+                      <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
                       <Route path="archive" element={<ArchivePage />} />
+                      <Route path="mutations" element={<MutationPage />} />
                     </Routes>
                   </AppShell>
               </ProtectedLayout>

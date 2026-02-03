@@ -60,9 +60,9 @@ export default function TeacherListPage() {
   
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexTeachers = useQuery(convexApi.teachers.list, {
-    unitKerja: effectiveUnitKerja,
+    unitKerja: effectiveUnitKerja || undefined,
     kecamatan: filterKecamatan || undefined,
-    isCertified: filterCertified,
+    isCertified: filterCertified || "all",
     token: localStorage.getItem("token") || undefined, // Secure Session Token
   })
 

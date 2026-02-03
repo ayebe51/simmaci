@@ -11,10 +11,10 @@ import {
   Users,
   AlertTriangle,
   FileBarChart,
-  Trophy,
   Crown,
   Gavel,
-  Archive
+  Archive,
+  ArrowRightLeft
 } from "lucide-react"
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
@@ -44,7 +44,9 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "Manajemen User", href: "/dashboard/users", icon: Users },
     { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
     { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
+    { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
     { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
+    { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
 
     { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
   ]

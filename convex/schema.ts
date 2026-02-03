@@ -98,6 +98,16 @@ export default defineSchema({
     nama: v.string(),
     jabatan: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
+
+  // Teacher Documents Archive (Brankas Arsip)
+  teacherDocuments: defineTable({
+    teacherId: v.id("teachers"),
+    type: v.string(), // KTP, KK, IJAZAH, SERTIFIKAT, SK, LAINNYA
+    blobId: v.string(), // Convex Storage ID
+    notes: v.optional(v.string()),
+    uploadedAt: v.number(),
+  })
+    .index("by_teacher", ["teacherId"]),
     tanggalPenetapan: v.string(),
     status: v.string(), // 'draft', 'active', 'archived'
     fileUrl: v.optional(v.string()),

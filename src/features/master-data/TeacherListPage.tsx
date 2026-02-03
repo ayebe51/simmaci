@@ -9,8 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2 } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Lock } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
+import TeacherDocumentArchive from "./components/TeacherDocumentArchive"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -290,14 +291,21 @@ export default function TeacherListPage() {
       nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
   })
 
-  // KTA State
-  const [isKtaModalOpen, setIsKtaModalOpen] = useState(false)
-  const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
+    const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
+    
+    // Archive State
+    const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false)
+    const [selectedTeacherForArchive, setSelectedTeacherForArchive] = useState<Teacher | null>(null)
 
-  const openKta = (teacher: Teacher) => {
-      setSelectedTeacherForKta(teacher)
-      setIsKtaModalOpen(true)
-  }
+    const openKta = (teacher: Teacher) => {
+        setSelectedTeacherForKta(teacher)
+        setIsKtaModalOpen(true)
+    }
+
+    const openArchive = (teacher: Teacher) => {
+        setSelectedTeacherForArchive(teacher)
+        setIsArchiveModalOpen(true)
+    }
 
   const handleSave = async () => {
       if(!formData.nama) {
@@ -642,6 +650,8 @@ export default function TeacherListPage() {
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-800" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-800" onClick={() => openKta(item)} title="Cetak KTA"><BadgeCheck className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-600 hover:text-orange-800" onClick={() => openArchive(item)} title="Brankas Arsip Digital"><Lock className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-600 hover:text-orange-800" onClick={() => openArchive(item)} title="Brankas Arsip"><Lock className="h-4 w-4" /></Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -1195,6 +1205,46 @@ export default function TeacherListPage() {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsKtaModalOpen(false)}>Tutup</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Archive Modal */}
+      <Dialog open={!!selectedTeacherForArchive && isArchiveModalOpen} onOpenChange={(open) => !open && setIsArchiveModalOpen(false)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <DialogHeader>
+                <DialogTitle>Brankas Arsip Digital: {selectedTeacherForArchive?.nama}</DialogTitle>
+                <div className="text-sm text-muted-foreground">
+                    Upload dan kelola dokumen penting guru (Ijazah, SK, KTP, dll).
+                </div>
+            </DialogHeader>
+            <div className="py-4 flex-1">
+                {selectedTeacherForArchive && (
+                    <TeacherDocumentArchive teacherId={selectedTeacherForArchive.id as any} />
+                )}
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsArchiveModalOpen(false)}>Tutup</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Archive Modal */}
+      <Dialog open={!!selectedTeacherForArchive && isArchiveModalOpen} onOpenChange={(open) => !open && setIsArchiveModalOpen(false)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+            <DialogHeader>
+                <DialogTitle>Brankas Arsip Digital: {selectedTeacherForArchive?.nama}</DialogTitle>
+                <div className="text-sm text-muted-foreground">
+                    Upload dan kelola dokumen penting guru (Ijazah, SK, KTP, dll).
+                </div>
+            </DialogHeader>
+            <div className="py-4 flex-1">
+                {selectedTeacherForArchive && (
+                    <TeacherDocumentArchive teacherId={selectedTeacherForArchive.id as any} />
+                )}
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsArchiveModalOpen(false)}>Tutup</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

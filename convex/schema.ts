@@ -248,3 +248,5 @@ export default defineSchema({
     .index("by_unit_to", ["toUnit"])
     .index("by_date", ["createdAt"]), // To show recent mutations
 });
+   
+ 

@@ -33,6 +33,16 @@ export default defineSchema({
     .index("by_kecamatan", ["kecamatan"])
     .index("by_active", ["isActive"]),
 
+  // Teacher Documents (Archive)
+  teacherDocuments: defineTable({
+    teacherId: v.id("teachers"),
+    type: v.string(), // SK, KTP, KK, IJAZAH, SERTIFIKAT, LAINNYA
+    blobId: v.string(), // Storage ID
+    notes: v.optional(v.string()), // Filename or description
+    uploadedAt: v.number(),
+  })
+    .index("by_teacher", ["teacherId"]),
+
   // Students table
   students: defineTable({
     nisn: v.string(),
@@ -248,5 +258,6 @@ export default defineSchema({
     .index("by_unit_to", ["toUnit"])
     .index("by_date", ["createdAt"]), // To show recent mutations
 });
-   
+  
+ 
  

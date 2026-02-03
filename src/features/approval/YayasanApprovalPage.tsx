@@ -399,7 +399,7 @@ export default function YayasanApprovalPage() {
                                                 STATUS: "Tetap",
                                                 PENDIDIKAN: item.teacher?.pendidikanTerakhir || item.teacher?.education || "-", 
                                                 ALAMAT: item.teacher?.address || "-",
-                                                KABUPATEN: "Pasuruan",
+                                                KABUPATEN: "Cilacap",
                                                 TENTANG: "PENGANGKATAN KEPALA MADRASAH",
                                                 TAHUN_AJARAN: tahunAjaran,
                                                 KETUA_NAMA: settings.signerKetuaName || ".....",

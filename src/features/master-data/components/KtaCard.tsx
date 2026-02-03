@@ -98,7 +98,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
         
         {/* FOOTER STRIP */}
         <div className="absolute bottom-0 left-0 right-0 h-4 bg-yellow-500/90 flex items-center justify-center">
-            <span className="text-[8px] text-green-900 font-bold uppercase tracking-widest">Berkhidmat untuk Ummat • Mencerdaskan Bangsa</span>
+            <span className="text-[8px] text-green-900 font-bold uppercase tracking-widest">Bermutu Dalam Ilmu • Bermartabat Dalam Sikap</span>
         </div>
       </div>
 

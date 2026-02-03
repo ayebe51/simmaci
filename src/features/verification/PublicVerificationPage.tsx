@@ -94,7 +94,7 @@ export default function PublicVerificationPage() {
                     
                     <div className="text-center pt-6 border-t">
                         <p className="text-xs text-slate-400">
-                            &copy; {new Date().getFullYear()} LP Ma'arif NU Kab. Pasuruan
+                            &copy; {new Date().getFullYear()} LP Ma'arif NU Kab. Cilacap
                         </p>
                     </div>
                 </CardContent>

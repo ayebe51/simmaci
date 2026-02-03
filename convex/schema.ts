@@ -23,6 +23,8 @@ export default defineSchema({
     isVerified: v.optional(v.boolean()), // For SK Verification Workflow
     isSkGenerated: v.optional(v.boolean()), // Status: SK Generated? (Soft Delete from Queue)
     pdpkpnu: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
+    ktaNumber: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

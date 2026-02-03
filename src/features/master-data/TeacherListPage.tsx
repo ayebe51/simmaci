@@ -22,7 +22,9 @@ import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
-
+import TeacherPhotoUpload from "./components/TeacherPhotoUpload"
+import KtaCard from "./components/KtaCard"
+import { Id } from "../../../convex/_generated/dataModel"
 
 interface Teacher {
   id: string
@@ -42,6 +44,7 @@ interface Teacher {
   tempatLahir?: string     // NEW: proper field name
   tanggalLahir?: string    // NEW: proper field name
   tmt?: string             // NEW: Tanggal Mulai Tugas
+  photoId?: Id<"_storage"> // New Photo ID
 }
 
 export default function TeacherListPage() {
@@ -98,6 +101,7 @@ export default function TeacherListPage() {
     tanggalLahir: t.tanggalLahir,
     tmt: t.tmt,
     pendidikanTerakhir: t.pendidikanTerakhir,
+    photoId: t.photoId, // Map Photo ID
   }))
 
   // 🔥 AUTO-CALCULATE STATUS (same logic as SK Generator)
@@ -286,6 +290,15 @@ export default function TeacherListPage() {
       nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
   })
 
+  // KTA State
+  const [isKtaModalOpen, setIsKtaModalOpen] = useState(false)
+  const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
+
+  const openKta = (teacher: Teacher) => {
+      setSelectedTeacherForKta(teacher)
+      setIsKtaModalOpen(true)
+  }
+
   const handleSave = async () => {
       if(!formData.nama) {
           alert("Nama wajib diisi!")
@@ -311,7 +324,9 @@ export default function TeacherListPage() {
         if (formData.tempatLahir || formData.birthPlace) rawPayload.tempatLahir = formData.tempatLahir || formData.birthPlace;
         if (formData.tanggalLahir || formData.birthDate) rawPayload.tanggalLahir = formData.tanggalLahir || formData.birthDate;
         if (formData.tmt) rawPayload.tmt = formData.tmt;
+        if (formData.tmt) rawPayload.tmt = formData.tmt;
         if (formData.isCertified !== undefined) rawPayload.isCertified = formData.isCertified;
+        if (formData.photoId) rawPayload.photoId = formData.photoId; // Include Photo ID
         
         console.log("[DEBUG] Payload being sent:", rawPayload);
 
@@ -626,6 +641,7 @@ export default function TeacherListPage() {
                                     {item.isActive ? <UserMinus className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-800" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-800" onClick={() => openKta(item)} title="Cetak KTA"><BadgeCheck className="h-4 w-4" /></Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -684,6 +700,15 @@ export default function TeacherListPage() {
                 <DialogTitle>{isEditMode ? 'Edit' : 'Tambah'} Guru Manual</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+                {/* Photo Upload Section */}
+                <div className="flex justify-center mb-4">
+                    <TeacherPhotoUpload 
+                        photoId={formData.photoId}
+                        onPhotoUploaded={(id) => setFormData(prev => ({ ...prev, photoId: id }))}
+                        onRemovePhoto={() => setFormData(prev => ({ ...prev, photoId: undefined }))}
+                        isEditing={isEditMode}
+                    />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="nama" className="text-right">Nama</Label>
                     <Input id="nama" className="col-span-3" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} />
@@ -1153,6 +1178,24 @@ export default function TeacherListPage() {
               Ya, {teacherToToggle?.currentStatus ? "Non-Aktifkan" : "Aktifkan"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* KTA Preview Modal */}
+      <Dialog open={!!selectedTeacherForKta && isKtaModalOpen} onOpenChange={(open) => !open && setIsKtaModalOpen(false)}>
+        <DialogContent className="max-w-3xl flex flex-col items-center">
+            <DialogHeader>
+                <DialogTitle>Preview Kartu Tanda Anggota (KTA)</DialogTitle>
+                <div className="text-sm text-muted-foreground text-center">
+                    Pastikan data guru sudah lengkap (Nama, NUPTK, Unit Kerja, dan Foto).
+                </div>
+            </DialogHeader>
+            <div className="py-4">
+                {selectedTeacherForKta && <KtaCard teacher={selectedTeacherForKta} />}
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsKtaModalOpen(false)}>Tutup</Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

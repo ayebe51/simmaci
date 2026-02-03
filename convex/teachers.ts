@@ -31,12 +31,10 @@ export const list = query({
             }
         }
     
-        if (!user) {
-            return [];
-        }
         
         // RBAC Logic
-        if (user.role === "operator" && user.unit) {
+
+        if (user && user.role === "operator" && user.unit) {
             teachers = teachers.filter(t => t.unitKerja === user.unit);
         }
     
@@ -104,6 +102,7 @@ export const create = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -148,6 +147,7 @@ export const update = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -379,5 +379,34 @@ export const importTeachers = mutation({
       errors, 
       version: "3.0 (Fresh Import)" 
     };
+  },
+});
+
+// --- PHOTO & KTA LOGIC ---
+
+// Generate Upload URL for Photo
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
+
+// Get Photo URL
+export const getPhotoUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+// Update Photo ID for a Teacher
+export const updatePhoto = mutation({
+  args: { 
+    id: v.id("teachers"), 
+    storageId: v.id("_storage") 
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+        photoId: args.storageId,
+        updatedAt: Date.now()
+    });
   },
 });

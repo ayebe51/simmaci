@@ -13,7 +13,7 @@ import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpre
 import { useState, useEffect, useMemo } from "react"
 import TeacherDocumentArchive from "./components/TeacherDocumentArchive"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-// import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import ExcelImportModal from "./components/ExcelImportModal"

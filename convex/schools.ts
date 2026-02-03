@@ -51,35 +51,32 @@ export const list = query({
     token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let schools = await ctx.db.query("schools").collect();
-    
-    // RBAC: Check if user is an Operator via Token
-    // We try to get user from token if provided
-    let user = null;
-    if ((args as any).token) {
-        user = await validateSession(ctx, (args as any).token);
-    } 
-    // Fallback? No, if token provided we rely on it. If not, public list?
-    // Current behavior: Public list unless operator.
-    
-    // We can't change args signature easily without breaking unknown callers?
-    // Actually we can add optional token arg.
-    
-    if (user && user.role === "operator" && user.unit) {
 
-       if (user && user.role === "operator" && user.unit) {
-           // Strict filter for operators: only return their own school
-           const userUnit = user.unit;
-           schools = schools.filter(s => s.nama === userUnit);
-       }
-    }
-
-    // Apply filters
-    if (args.kecamatan && args.kecamatan !== "all") {
-      schools = schools.filter(s => s.kecamatan === args.kecamatan);
-    }
+    try {
+        let schools = await ctx.db.query("schools").collect();
+        
+        // RBAC: Check if user is an Operator via Token
+        let user = null;
+        if (args.token) {
+            user = await validateSession(ctx, args.token);
+        }
+        
+        if (user && user.role === "operator" && user.unit) {
+             // Strict filter for operators: only return their own school
+             const userUnit = user.unit;
+             schools = schools.filter(s => s.nama === userUnit);
+        }
     
-    return schools;
+        // Apply filters
+        if (args.kecamatan && args.kecamatan !== "all") {
+          schools = schools.filter(s => s.kecamatan === args.kecamatan);
+        }
+        
+        return schools;
+    } catch (error) {
+        console.error("Error in schools:list", error);
+        return [];
+    }
   },
 });
 

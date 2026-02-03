@@ -11,61 +11,57 @@ export const list = query({
     token: v.optional(v.string()), // New Secure Token arg
   },
   handler: async (ctx, args) => {
-    let teachers = await ctx.db
-      .query("teachers")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
-      .collect();
-    
-    // RBAC: Check identity via Session Token
-    // We remove args.userEmail support completely.
-    // If token is missing, we check if identity exists (Convex Auth) as fallback, 
-    // but primarily we rely on secure token.
-    
-    let user = null;
-    if (args.token) {
-        user = await validateSession(ctx, args.token);
-    } else {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity?.email) {
-             user = await ctx.db
-                .query("users")
-                .withIndex("by_email", (q) => q.eq("email", identity.email!))
-                .first();
+    try {
+        let teachers = await ctx.db
+          .query("teachers")
+          .withIndex("by_active", (q) => q.eq("isActive", true))
+          .collect();
+        
+        // RBAC: Check identity via Session Token
+        let user = null;
+        if (args.token) {
+            user = await validateSession(ctx, args.token);
+        } else {
+            const identity = await ctx.auth.getUserIdentity();
+            if (identity?.email) {
+                 user = await ctx.db
+                    .query("users")
+                    .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                    .first();
+            }
         }
-    }
-
-    if (!user) {
-        // Unauthenticated -> Return empty
-        // console.log("Unauthorized access attempt to teachers list");
+    
+        if (!user) {
+            return [];
+        }
+        
+        // RBAC Logic
+        if (user.role === "operator" && user.unit) {
+            teachers = teachers.filter(t => t.unitKerja === user.unit);
+        }
+    
+        // Apply filters
+        if (args.unitKerja && args.unitKerja !== "all") {
+          const searchUnit = args.unitKerja.toLowerCase().trim();
+          teachers = teachers.filter(t => 
+            t.unitKerja?.toLowerCase().trim() === searchUnit
+          );
+        }
+        
+        if (args.kecamatan && args.kecamatan !== "all") {
+          teachers = teachers.filter(t => t.kecamatan === args.kecamatan);
+        }
+        
+        if (args.isCertified && args.isCertified !== "all") {
+          const certified = args.isCertified === "true";
+          teachers = teachers.filter(t => t.isCertified === certified);
+        }
+        
+        return teachers;
+    } catch (error) {
+        console.error("Error in teachers:list", error);
         return [];
     }
-    
-    // RBAC Logic
-    if (user.role === "operator" && user.unit) {
-        // Strict filter for operators
-        teachers = teachers.filter(t => t.unitKerja === user.unit);
-    }
-    // Admins see all (no filter applied)
-
-    // Apply filters
-    if (args.unitKerja && args.unitKerja !== "all") {
-      // Case-insensitive match for unitKerja
-      const searchUnit = args.unitKerja.toLowerCase().trim();
-      teachers = teachers.filter(t => 
-        t.unitKerja?.toLowerCase().trim() === searchUnit
-      );
-    }
-    
-    if (args.kecamatan && args.kecamatan !== "all") {
-      teachers = teachers.filter(t => t.kecamatan === args.kecamatan);
-    }
-    
-    if (args.isCertified && args.isCertified !== "all") {
-      const certified = args.isCertified === "true";
-      teachers = teachers.filter(t => t.isCertified === certified);
-    }
-    
-    return teachers;
   },
 });
 

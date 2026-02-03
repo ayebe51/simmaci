@@ -56,48 +56,43 @@ export const list = query({
     schoolId: v.optional(v.id("schools")), // Filter by specific school
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("sk_archives");
-
     // Auth Check
     let user = null;
     if (args.token) {
         user = await validateSession(ctx, args.token);
     }
 
-    // RBAC Logic
+    // RBAC Logic for Operator
     if (user && user.role === "operator" && user.unit) {
-        // Find school ID for this operator
-        // Operator 'unit' is school Name. We need ID.
-        // But the query arguments might pass schoolId.
-        // We must ensure the passed schoolId MATCHES the operator's unit.
-        // OR we just ignore args.schoolId and force filter by operator's school?
-        
-        // Let's resolve Operator's School ID first
         const school = await ctx.db
             .query("schools")
             .filter(q => q.eq(q.field("nama"), user.unit))
             .first();
             
         if (school) {
-            // Force filter to this school
-            query = query.withIndex("by_school", q => q.eq("schoolId", school._id));
+             return await ctx.db
+                .query("sk_archives")
+                .withIndex("by_school", q => q.eq("schoolId", school._id))
+                .collect();
         } else {
-            // Operator has invalid school? Return empty.
             return [];
         }
-    } else if (args.schoolId) {
-        // Admin or Public filtering by specific school
-        query = query.withIndex("by_school", q => q.eq("schoolId", args.schoolId));
-    } else {
-        // Admin seeing all? Or default sort?
-        query = query.order("desc");
-    }
-
-    const results = await query.collect();
+    } 
     
-    // Enrich with school name if needed? 
-    // For now returning raw data is fine, frontend handles lookups if needed.
-    return results;
+    // Admin / Public with filter
+    if (args.schoolId) {
+        const targetSchoolId = args.schoolId;
+        return await ctx.db
+            .query("sk_archives")
+            .withIndex("by_school", q => q.eq("schoolId", targetSchoolId))
+            .collect();
+    } 
+    
+    // Default (All)
+    return await ctx.db
+        .query("sk_archives")
+        .order("desc")
+        .collect();
   },
 });
 

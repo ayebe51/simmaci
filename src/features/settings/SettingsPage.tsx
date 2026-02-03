@@ -439,7 +439,7 @@ export default function SettingsPage() {
                                     value={passForm.new}
                                     onChange={handlePassChange}
                                     required
-                                    placeholder="Minimal 6 karakter"
+                                    placeholder="Min 8 kar, 1 Besar, 1 Angka, 1 Simbol"
                                 />
                                 <Button
                                     type="button" variant="ghost" size="icon"
@@ -449,6 +449,9 @@ export default function SettingsPage() {
                                     {showPass.new ? <EyeOff className="h-4 w-4 text-muted-foreground"/> : <Eye className="h-4 w-4 text-muted-foreground"/>}
                                 </Button>
                             </div>
+                            <p className="text-[11px] text-muted-foreground">
+                                Syarat: Minimal 8 karakter, ada Huruf Besar, Angka, dan Simbol unik (!@#$).
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <Label>Konfirmasi Password Baru</Label>

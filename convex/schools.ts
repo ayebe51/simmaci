@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { validateSession, requireAuth } from "./auth_helpers";
+import { validateSession, requireAuth, validatePassword } from "./auth_helpers";
 
 
 // Get paginated schools with optional filters
@@ -237,7 +237,9 @@ export const createSchoolAccount = mutation({
     if (!school) throw new Error("School not found");
 
     const email = args.customEmail || `${school.nsm}@maarif.nu`;
-    const password = args.customPassword || "123456";
+    const password = args.customPassword || "Maarif@2024!"; // Stronger default
+    
+    validatePassword(password); // Enforce policy
 
     // Check existing user
     const existing = await ctx.db
@@ -321,9 +323,9 @@ export const bulkCreateSchoolAccounts = mutation({
 
     for (const school of schools) {
       if (!school.nsm) continue;
-
+      
       const email = `${school.nsm}@maarif.nu`;
-      const password = "123456"; // Default
+      const password = "Maarif@2024!"; // Stronger default meeting policy
       
       let status = "Existing";
       
@@ -359,7 +361,7 @@ export const bulkCreateSchoolAccounts = mutation({
         nsm: school.nsm,
         nama: school.nama,
         email,
-        password: "123456",
+        password, // Return actual password used
         status
       });
     }

@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { createSession } from "./auth_helpers";
+import { createSession, validatePassword } from "./auth_helpers";
 
 // Simple password hashing (in production, use proper bcrypt or Convex Auth)
 function hashPassword(password: string): string {
@@ -33,6 +33,7 @@ export const register = mutation({
     }
     
     // Create user
+    validatePassword(args.password); // Enforce password policy
     const userId = await ctx.db.insert("users", {
       email: args.email,
       name: args.name,
@@ -256,6 +257,7 @@ export const updateUser = mutation({
     
     // Only hash password if provided
     if (args.password) {
+      validatePassword(args.password); // Enforce policy if updating password
       updates.passwordHash = hashPassword(args.password);
     }
 
@@ -283,6 +285,7 @@ export const changePassword = mutation({
     }
 
     // Update with new password
+    validatePassword(args.newPassword); // Enforce policy
     await ctx.db.patch(args.userId, {
       passwordHash: hashPassword(args.newPassword),
       updatedAt: Date.now()

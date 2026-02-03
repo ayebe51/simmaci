@@ -11,6 +11,7 @@
 import type * as analytics from "../analytics.js";
 import type * as approvalHistory from "../approvalHistory.js";
 import type * as archive from "../archive.js";
+import type * as archives from "../archives.js";
 import type * as auth from "../auth.js";
 import type * as auth_helpers from "../auth_helpers.js";
 import type * as cleanup from "../cleanup.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   analytics: typeof analytics;
   approvalHistory: typeof approvalHistory;
   archive: typeof archive;
+  archives: typeof archives;
   auth: typeof auth;
   auth_helpers: typeof auth_helpers;
   cleanup: typeof cleanup;

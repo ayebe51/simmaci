@@ -44,7 +44,7 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "Manajemen User", href: "/dashboard/users", icon: Users },
     { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
     { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
-    { label: "Archive", href: "/dashboard/archive", icon: Archive },
+    { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
 
     { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
   ]

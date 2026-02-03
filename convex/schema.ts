@@ -204,4 +204,19 @@ export default defineSchema({
   })
     .index("by_token", ["token"])
     .index("by_user", ["userId"]),
+
+  // Archive Digital SK Lama
+  sk_archives: defineTable({
+    schoolId: v.id("schools"),
+    nomorSk: v.string(),
+    title: v.string(),
+    year: v.string(),
+    category: v.string(), // 'sk_kepala', 'sk_guru', 'other'
+    storageId: v.string(), // Convex Storage ID
+    fileUrl: v.string(),   // Public URL for easy access
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_school", ["schoolId"])
+    .index("by_year", ["year"]),
 });

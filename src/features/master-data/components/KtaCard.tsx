@@ -2,8 +2,8 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, Download } from "lucide-react";
 import { useQuery } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
+import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 import { QRCodeSVG } from "qrcode.react";
 
 interface KtaCardProps {
@@ -24,7 +24,8 @@ export default function KtaCard({ teacher }: KtaCardProps) {
   const photoUrl = useQuery(api.teachers.getPhotoUrl, teacher.photoId ? { storageId: teacher.photoId } : "skip");
   
   // Verification URL (points to public verify page)
-  const verifyUrl = `${import.meta.env.VITE_APP_URL || window.location.origin}/verify/teacher/${teacher.nuptk || "unknown"}`;
+  const baseUrl = (import.meta.env as any).VITE_APP_URL || window.location.origin;
+  const verifyUrl = `${baseUrl}/verify/teacher/${teacher.nuptk || "unknown"}`;
 
   const handlePrint = () => {
     // Simple print logic - in real app might use html2canvas or print-css

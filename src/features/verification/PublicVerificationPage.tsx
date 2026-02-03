@@ -21,6 +21,37 @@ export default function PublicVerificationPage() {
     const data = verificationData
 
 
+    // 🔥 BYPASS FOR TESTING "Cilacap" FOOTER
+    if (id === "tes-ganti-nama") {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+                <Card className="w-full max-w-md shadow-xl">
+                    <CardHeader className="text-center pb-2">
+                        <div className="mx-auto mb-4 bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center">
+                            <ShieldCheck className="w-10 h-10 text-primary" />
+                        </div>
+                        <CardTitle className="text-2xl font-bold text-slate-800">Verifikasi Dokumen</CardTitle>
+                        <p className="text-sm text-muted-foreground">Digital Signature Verification System</p>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                        <div className="text-center py-6 bg-red-50 rounded-lg border border-red-100">
+                            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-3" />
+                            <h3 className="text-lg font-bold text-red-700">Dokumen Tidak Ditemukan</h3>
+                            <p className="text-sm text-red-600 px-4 mt-2">
+                                (Mode Test) Dokumen dummy untuk pengecekan footer.
+                            </p>
+                        </div>
+                        <div className="text-center pt-6 border-t">
+                            <p className="text-xs text-slate-400">
+                                &copy; {new Date().getFullYear()} LP Ma'arif NU Kab. Cilacap
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
             <Card className="w-full max-w-md shadow-xl">

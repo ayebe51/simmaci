@@ -10,6 +10,17 @@ export const verifyByCode = query({
     // Search for SK document by ID (safer for URLs than Nomor SK which has slashes)
     // We treat 'code' argument as an ID now.
     
+    // 0. DEBUG: Bypass for testing
+    if (args.code === "tes-ganti-nama") {
+      return {
+        skNumber: "TEST/SK/2026",
+        status: "invalid", // Show as invalid to test UI
+        teacher: { nama: "Test User", nuptk: "-" },
+        issuedDate: Date.now(),
+        validUntil: Date.now()
+      };
+    }
+
     // 1. Try to treat args.code as a valid ID for "skDocuments" table
     const skId = ctx.db.normalizeId("skDocuments", args.code);
     

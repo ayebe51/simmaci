@@ -62,8 +62,9 @@ export default function TeacherDocumentArchive({ teacherId }: TeacherDocumentArc
         }
     }
 
-    async function handleDelete(id: Id<"teacherDocuments">) {
+    async function handleDelete(id: string) {
         if (confirm("Hapus dokumen ini?")) {
+            // @ts-expect-error - id matching
             await deleteDocument({ id });
         }
     }

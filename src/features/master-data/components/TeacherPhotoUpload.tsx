@@ -12,7 +12,7 @@ interface TeacherPhotoUploadProps {
   isEditing?: boolean;
 }
 
-export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemovePhoto, isEditing = false }: TeacherPhotoUploadProps) {
+export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemovePhoto }: TeacherPhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   

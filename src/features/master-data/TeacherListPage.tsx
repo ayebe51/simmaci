@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Wand2, Smartphone } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Wand2, Smartphone, UserCheck, UserMinus } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import BroadcastModal from "./components/BroadcastModal"
 import { useState, useEffect, useMemo } from "react"

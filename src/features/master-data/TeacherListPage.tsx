@@ -727,7 +727,40 @@ export default function TeacherListPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="nuptk" className="text-right">Nomor Induk Ma'arif</Label>
-                    <Input id="nuptk" className="col-span-3" value={formData.nuptk || ""} onChange={e => setFormData({...formData, nuptk: e.target.value})} placeholder="NUPTK 16 digit atau NIM Ma'arif" />
+                    <div className="col-span-3 flex gap-2">
+                        <Input 
+                            id="nuptk" 
+                            value={formData.nuptk || ""} 
+                            onChange={e => setFormData({...formData, nuptk: e.target.value})} 
+                            placeholder="NUPTK 16 digit atau NIM Ma'arif"
+                            className="flex-1"
+                        />
+                         <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            title="Generate Nomor Otomatis (Lanjutan Terakhir)"
+                            onClick={async () => {
+                                try {
+                                    // Hacky way to call query since we can't use useQuery hook inside callback easily without refetching logic
+                                    // ACTUALLY: We should use useConvex() to get client.
+                                    // But since I don't want to change top-level imports heavily:
+                                    // I'll assume we can trigger a global helper? No.
+                                    // I will use a simple workaround: useConvex was NOT imported.
+                                    // I will use a refetch mechanism? Too complex.
+                                    // I will use `fetch` to a convex generic? No.
+                                    
+                                    // WAIT: I can just add `const convex = useConvex()` at the top if I import it.
+                                    // Let's add import first.
+                                } catch (e) {
+                                    console.error(e)
+                                }
+                            }}
+                            // DISABLE click logic here, I will do it properly by adding the import first
+                         >
+                            <Wand2 className="h-4 w-4 text-purple-600" />
+                         </Button>
+                    </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status" className="text-right">Status</Label>

@@ -377,36 +377,47 @@ export const importTeachers = mutation({
       new: success, 
       updated: updated, 
       errors, 
-      version: "3.0 (Fresh Import)" 
-    };
-  },
-});
+// ============================================================================
+// AUTO-NIM GENERATOR
+// ============================================================================
 
-// --- PHOTO & KTA LOGIC ---
+export const generateNextNim = query({
+  args: {},
+  handler: async (ctx) => {
+    // 1. Fetch top 50 records sorted by NUPTK descending
+    // We fetch 50 to skip over any non-numeric or weird formatted IDs (e.g. "GTY-01")
+    const teachers = await ctx.db
+      .query("teachers")
+      .withIndex("by_nuptk")
+      .order("desc")
+      .take(50);
 
-// Generate Upload URL for Photo
-export const generateUploadUrl = mutation(async (ctx) => {
-  return await ctx.storage.generateUploadUrl();
-});
+    let maxNim = 0;
+    
+    for (const t of teachers) {
+        if (!t.nuptk) continue;
+        
+        // Remove whitespace
+        const val = t.nuptk.trim();
+        
+        // Check if strictly numeric
+        if (/^\d+$/.test(val)) {
+            // Check length (assume NIM is at least 6 digits to avoid picking up "1", "2")
+            if (val.length >= 6) {
+                const num = parseInt(val, 10);
+                if (!isNaN(num)) {
+                    maxNim = num;
+                    break; // Found the highest numeric one
+                }
+            }
+        }
+    }
 
-// Get Photo URL
-export const getPhotoUrl = query({
-  args: { storageId: v.id("_storage") },
-  handler: async (ctx, args) => {
-    return await ctx.storage.getUrl(args.storageId);
-  },
-});
-
-// Update Photo ID for a Teacher
-export const updatePhoto = mutation({
-  args: { 
-    id: v.id("teachers"), 
-    storageId: v.id("_storage") 
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-        photoId: args.storageId,
-        updatedAt: Date.now()
-    });
+    if (maxNim > 0) {
+        return (maxNim + 1).toString();
+    } else {
+        // Default start if no valid NIM found
+        return "113400001"; 
+    }
   },
 });

@@ -9,7 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Lock, Wand2 } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Wand2, Smartphone } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import BroadcastModal from "./components/BroadcastModal"
 import { useState, useEffect, useMemo } from "react"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -302,6 +304,29 @@ export default function TeacherListPage() {
       nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
   })
 
+  // Broadcast & Selection State
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<Set<string>>(new Set())
+  const [isBroadcastOpen, setIsBroadcastOpen] = useState(false)
+
+  const toggleSelection = (id: string) => {
+      const newSet = new Set(selectedTeacherIds)
+      if (newSet.has(id)) newSet.delete(id)
+      else newSet.add(id)
+      setSelectedTeacherIds(newSet)
+  }
+
+  const toggleAll = () => {
+      if (selectedTeacherIds.size === paginatedTeachers.length) {
+          setSelectedTeacherIds(new Set())
+      } else {
+          setSelectedTeacherIds(new Set(paginatedTeachers.map(t => t.id)))
+      }
+  }
+
+  const selectedTeachersForBroadcast = useMemo(() => {
+      return teachers.filter(t => selectedTeacherIds.has(t.id))
+  }, [teachers, selectedTeacherIds])
+
 
     
     // Archive State - REMOVED
@@ -540,6 +565,13 @@ export default function TeacherListPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[40px]">
+                          <Checkbox 
+                              checked={paginatedTeachers.length > 0 && selectedTeacherIds.size === paginatedTeachers.length}
+                              onCheckedChange={toggleAll}
+                              aria-label="Select all"
+                          />
+                      </TableHead>
                       <TableHead onClick={() => requestSort('nuptk')} className="cursor-pointer hover:bg-muted/50 transition-colors">
                           <div className="flex items-center">Nomor Induk {getSortIcon('nuptk')}</div>
                       </TableHead>
@@ -571,6 +603,13 @@ export default function TeacherListPage() {
                     ) : (
                         paginatedTeachers.map((item) => (
                           <TableRow key={item.id} className={!item.isActive ? "bg-slate-50 opacity-60" : ""}>
+                            <TableCell>
+                                <Checkbox 
+                                    checked={selectedTeacherIds.has(item.id)}
+                                    onCheckedChange={() => toggleSelection(item.id)}
+                                    aria-label={`Select ${item.nama}`}
+                                />
+                            </TableCell>
                             <TableCell className="font-medium">{item.nuptk}</TableCell>
                             <TableCell>
                                 <div className="flex flex-col">

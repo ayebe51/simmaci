@@ -302,7 +302,7 @@ export default function TeacherListPage() {
       nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
   })
 
-    const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
+
     
     // Archive State - REMOVED
     // const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false)

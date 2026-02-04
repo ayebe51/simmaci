@@ -1288,6 +1288,13 @@ export default function TeacherListPage() {
       </Dialog>
       
 
+      </Dialog>
+      
+      <BroadcastModal 
+        isOpen={isBroadcastOpen}
+        onClose={() => setIsBroadcastOpen(false)}
+        recipients={selectedTeachersForBroadcast}
+      />
     </div>
   )
 }

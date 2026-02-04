@@ -14,20 +14,15 @@ interface TeacherDocumentArchiveProps {
 }
 
 export default function TeacherDocumentArchive({ teacherId }: TeacherDocumentArchiveProps) {
-    // MAINTENANCE MODE
-    const isMaintenance = true;
-    
     // @ts-expect-error - Backend type generation is pending
     // const documents = useQuery(api.documents.getDocuments, { teacherId })
     const documents: any[] | undefined = []
     
     // Upload State
     // @ts-expect-error - Backend type generation is pending
-    // const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
+    const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
     // @ts-expect-error - Backend type generation is pending
-    // const saveDocument = useMutation(api.documents.saveDocument);
-    const generateUploadUrl = async () => { throw new Error("Maintenance"); };
-    const saveDocument = async () => {};
+    const saveDocument = useMutation(api.documents.saveDocument);
     // @ts-expect-error - Backend type generation is pending
     const deleteDocument = useMutation(api.documents.deleteDocument);
     

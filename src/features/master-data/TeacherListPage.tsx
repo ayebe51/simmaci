@@ -485,6 +485,12 @@ export default function TeacherListPage() {
         title="Data Guru & Tenaga Kependidikan"
         description="Manajemen data guru dan tenaga kependidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
+          ...(selectedTeacherIds.size > 0 ? [{
+              label: `Broadcast WA (${selectedTeacherIds.size})`,
+              onClick: () => setIsBroadcastOpen(true),
+              variant: 'mint' as const,
+              icon: <Smartphone className="h-5 w-5 text-green-700" />
+          }] : []),
           {
             label: 'Export Excel',
             onClick: handleExport,

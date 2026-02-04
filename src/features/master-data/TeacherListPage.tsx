@@ -653,7 +653,7 @@ export default function TeacherListPage() {
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-800" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-800" onClick={() => openKta(item)} title="Cetak KTA"><BadgeCheck className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-600 hover:text-orange-800" onClick={() => openArchive(item)} title="Brankas Arsip Digital"><Lock className="h-4 w-4" /></Button>
+                                
                             </TableCell>
                           </TableRow>
                         ))
@@ -1211,45 +1211,7 @@ export default function TeacherListPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Archive Modal */}
-      <Dialog open={!!selectedTeacherForArchive && isArchiveModalOpen} onOpenChange={(open) => !open && setIsArchiveModalOpen(false)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
-            <DialogHeader>
-                <DialogTitle>Brankas Arsip Digital: {selectedTeacherForArchive?.nama}</DialogTitle>
-                <div className="text-sm text-muted-foreground">
-                    Upload dan kelola dokumen penting guru (Ijazah, SK, KTP, dll).
-                </div>
-            </DialogHeader>
-            <div className="py-4 flex-1">
-                {selectedTeacherForArchive && (
-                    <TeacherDocumentArchive teacherId={selectedTeacherForArchive.id as any} />
-                )}
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsArchiveModalOpen(false)}>Tutup</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Archive Modal */}
-      <Dialog open={!!selectedTeacherForArchive && isArchiveModalOpen} onOpenChange={(open) => !open && setIsArchiveModalOpen(false)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
-            <DialogHeader>
-                <DialogTitle>Brankas Arsip Digital: {selectedTeacherForArchive?.nama}</DialogTitle>
-                <div className="text-sm text-muted-foreground">
-                    Upload dan kelola dokumen penting guru (Ijazah, SK, KTP, dll).
-                </div>
-            </DialogHeader>
-            <div className="py-4 flex-1">
-                {selectedTeacherForArchive && (
-                    <TeacherDocumentArchive teacherId={selectedTeacherForArchive.id as any} />
-                )}
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsArchiveModalOpen(false)}>Tutup</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

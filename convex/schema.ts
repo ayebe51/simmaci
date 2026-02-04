@@ -35,14 +35,9 @@ export default defineSchema({
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)
-  teacher_archives: defineTable({
-    teacherId: v.id("teachers"),
-    type: v.string(), // SK, KTP, KK, IJAZAH, SERTIFIKAT, LAINNYA
-    blobId: v.string(), // Convex Storage ID
-    notes: v.optional(v.string()), // Filename or description
-    uploadedAt: v.number(),
-  })
-    .index("by_teacher", ["teacherId"]),
+
+  // Teacher Documents (Archive) - REMOVED due to instability
+  // teacher_archives: defineTable({...}),
 
   // Students table
   students: defineTable({

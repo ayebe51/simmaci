@@ -34,10 +34,11 @@ export default defineSchema({
     .index("by_active", ["isActive"]),
 
   // Teacher Documents (Archive)
-  teacherDocuments: defineTable({
+  // Teacher Documents Archive (Brankas Arsip)
+  teacher_archives: defineTable({
     teacherId: v.id("teachers"),
     type: v.string(), // SK, KTP, KK, IJAZAH, SERTIFIKAT, LAINNYA
-    blobId: v.string(), // Storage ID
+    blobId: v.string(), // Convex Storage ID
     notes: v.optional(v.string()), // Filename or description
     uploadedAt: v.number(),
   })

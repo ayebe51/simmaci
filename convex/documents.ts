@@ -18,7 +18,7 @@ export const saveDocument = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("teacherDocuments", {
+    await ctx.db.insert("teacher_archives", {
       teacherId: args.teacherId,
       type: args.type,
       blobId: args.blobId,
@@ -33,7 +33,7 @@ export const getDocuments = query({
   args: { teacherId: v.id("teachers") },
   handler: async (ctx, args) => {
     const docs = await ctx.db
-      .query("teacherDocuments")
+      .query("teacher_archives")
       .withIndex("by_teacher", (q) => q.eq("teacherId", args.teacherId))
       .collect();
 
@@ -49,7 +49,7 @@ export const getDocuments = query({
 
 // Delete Document
 export const deleteDocument = mutation({
-  args: { id: v.id("teacherDocuments") },
+  args: { id: v.id("teacher_archives") },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.id);
     if (!doc) return;

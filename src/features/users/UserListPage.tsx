@@ -1,10 +1,6 @@
-import { useState } from "react";
-import SoftPageHeader from "@/components/ui/SoftPageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, Edit, UserPlus, CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -12,106 +8,110 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
+} from "@/components/ui/table"
+import { Plus, Search, Trash2, Edit } from "lucide-react"
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+// 🔥 CONVEX REAL-TIME
+import { useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
+import { Doc, Id } from "../../../convex/_generated/dataModel"
+
+interface User {
+  id: string
+  name: string
+  email: string // Acts as username for login
+  password?: string
+  role: 'super_admin' | 'admin' | 'operator'
+  status: 'active' | 'inactive'
+  unitKerja?: string
+}
 
 export default function UserListPage() {
-  const [search, setSearch] = useState("");
-  // Pagination State
-  const [currentCursor, setCurrentCursor] = useState<string | null>(null);
-  const [cursorStack, setCursorStack] = useState<(string | null)[]>([]); // History of start cursors
-
-  const results = useQuery(api.auth.listUsersPage, { 
-    paginationOpts: { cursor: currentCursor, numItems: 20 } 
-  });
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   
-  const users = results?.page;
-  const filteredUsers = users?.filter((user) => // Note: Filter only applies to current page
-    user.name.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
-  );
+  // 🔥 CONVEX QUERIES
+  const convexUsers = useQuery(convexApi.auth.listUsers)
+  const convexSchools = useQuery(convexApi.schools.list, {})
+  const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
+  
+  // Map Convex users to frontend format
+  const users: User[] = (convexUsers || []).map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role as 'super_admin' | 'admin' | 'operator',
+    status: u.isActive ? "active" : "inactive",
+    unitKerja: u.unitKerja
+  }))
 
-  const handleNext = () => {
-    if (results?.continueCursor) {
-      setCursorStack([...cursorStack, currentCursor]);
-      setCurrentCursor(results.continueCursor);
+  const schools = (convexSchools || []).map((s: Doc<"schools">) => s.nama)
+  
+  // Form State
+  const [formData, setFormData] = useState<Partial<User>>({
+      name: "",
+      email: "",
+      password: "",
+      role: "operator",
+      unitKerja: "",
+      status: "active"
+  })
+
+  // Handle Add/Edit
+  const handleSave = async () => {
+      if (!formData.name || !formData.email) {
+          toast.error("Nama dan Username wajib diisi")
+          return
+      }
+
+      try {
+          // TODO: Implement user creation via Convex mutation
+          toast.info("Fitur tambah/edit user via UI coming soon. Gunakan Convex dashboard untuk sekarang.")
+          
+          setIsDialogOpen(false)
+          setEditingUser(null)
+          setFormData({ name: "", email: "", password: "", role: "operator", unitKerja: "", status: "active" })
+      } catch (err) {
+         toast.error((err as Error).message || "Gagal menyimpan user")
+      }
+  }
+
+  const handleDelete = async (id?: string) => {
+    // TODO: Implement delete via Convex mutation
+    console.log("Deleting user", id)
+    toast.info("Fitur hapus user coming soon")
+  }
+
+  const openEdit = (user: User) => {
+      setEditingUser(user)
+      setFormData({ ...user, password: "" }) // Don't show password, require new one only if changing
+      setIsDialogOpen(true)
+  }
+
+  const resetForm = () => {
+      setEditingUser(null)
+      setFormData({ name: "", email: "", password: "", role: "operator", unitKerja: "", status: "active" })
+  }
+
+  const filtered = users.filter(u => 
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const getRoleBadge = (role: string) => {
+    switch(role) {
+      case 'super_admin': return <Badge variant="destructive">Super Admin</Badge>
+      case 'admin': return <Badge variant="secondary">Admin</Badge>
+      default: return <Badge variant="outline">Operator</Badge>
     }
-  };
-
-  const handlePrev = () => {
-    if (cursorStack.length > 0) {
-      const prevCursor = cursorStack[cursorStack.length - 1];
-      setCursorStack(cursorStack.slice(0, -1));
-      setCurrentCursor(prevCursor);
-    }
-  };
-  const updateUser = useMutation(api.auth.updateUser);
-  const [editingUser, setEditingUser] = useState<any>(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-
-  // Form states for editing
-  const [editRole, setEditRole] = useState("");
-  const [editUnit, setEditUnit] = useState("");
-  const [editIsActive, setEditIsActive] = useState(true);
-  const [editPassword, setEditPassword] = useState("");
-
-
-
-  const handleEditClick = (user: any) => {
-    setEditingUser(user);
-    setEditRole(user.role);
-    setEditUnit(user.unitKerja || "");
-    setEditIsActive(user.isActive);
-    setEditPassword(""); // Blank default
-    setIsEditOpen(true);
-  };
-
-  const handleSaveUser = async () => {
-    if (!editingUser) return;
-    
-    try {
-      await updateUser({
-        userId: editingUser.id as Id<"users">,
-        role: editRole,
-        unit: editUnit || undefined, // Send undefined if empty string
-        isActive: editIsActive,
-        password: editPassword || undefined, // Only update if typed
-      });
-      toast.success("User updated successfully");
-      setIsEditOpen(false);
-    } catch (error) {
-      toast.error("Failed to update user");
-      console.error(error);
-    }
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "super_admin": return "bg-purple-100 text-purple-700 hover:bg-purple-100";
-      case "admin": return "bg-blue-100 text-blue-700 hover:bg-blue-100";
-      case "operator": return "bg-green-100 text-green-700 hover:bg-green-100";
-      default: return "bg-gray-100 text-gray-700 hover:bg-gray-100";
-    }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -119,167 +119,163 @@ export default function UserListPage() {
         title="Manajemen User"
         description="Kelola akses Operator Sekolah dan Admin"
       >
-        {/* <Button><UserPlus className="mr-2 h-4 w-4" /> Tambah User</Button> */}
-      </SoftPageHeader>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
+          <DialogTrigger asChild>
+            <button
+              onClick={resetForm}
+              className="group cursor-pointer rounded-lg bg-pastel-purple p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:bg-pastel-lavender"
+            >
+              <div className="flex flex-col items-center gap-2 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pastel-lavender">
+                  <Plus className="h-5 w-5 text-gray-700" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">Tambah User</span>
+              </div>
+            </button>
+          </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingUser ? "Edit User" : "Tambah User Baru"}</DialogTitle>
+                        <DialogDescription>
+                            Operator Sekolah membutuhkan akun untuk login dan mengajukan SK.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label>Nama Lengkap / Sekolah</Label>
+                            <Input 
+                                placeholder="Contoh: Operator MI Ma'arif 01" 
+                                value={formData.name}
+                                onChange={e => setFormData({...formData, name: e.target.value})}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Username / Email Login</Label>
+                            <Input 
+                                placeholder="operator.mi01" 
+                                value={formData.email}
+                                onChange={e => setFormData({...formData, email: e.target.value})}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>{editingUser ? "Password Baru (Biarkan kosong jika tetap)" : "Password"}</Label>
+                            <Input 
+                                type="password"
+                                placeholder="***" 
+                                value={formData.password}
+                                onChange={e => setFormData({...formData, password: e.target.value})}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Role</Label>
+                            <Select 
+                                value={formData.role} 
+                                onValueChange={(v) => setFormData({...formData, role: v as User['role']})}
+                            >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="operator">Operator Sekolah</SelectItem>
+                                    <SelectItem value="admin">Admin Wilayah</SelectItem>
+                                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Unit Kerja (Opsional)</Label>
+                            <Input 
+                                placeholder="Nama Sekolah / Unit" 
+                                value={formData.unitKerja}
+                                onChange={e => setFormData({...formData, unitKerja: e.target.value})}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+                        <Button onClick={handleSave}>Simpan User</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </SoftPageHeader>
+      
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <CardTitle>Daftar Pengguna</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+             <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari nama atau email..."
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari user (nama / username)..."
+                className="pl-9 max-w-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-          </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Unit Kerja / Sekolah</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers?.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.unitKerja || "-"}</TableCell>
-                  <TableCell>
-                    {user.isActive ? (
-                        <div className="flex items-center text-green-600 text-sm">
-                            <CheckCircle2 className="w-4 h-4 mr-1" /> Aktif
-                        </div>
-                    ) : (
-                        <div className="flex items-center text-red-500 text-sm">
-                            <XCircle className="w-4 h-4 mr-1" /> Non-Aktif
-                        </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditClick(user)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredUsers?.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                    Tidak ada user ditemukan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-
-          {/* Pagination Controls (Standard Previous/Next) */}
-          <div className="flex justify-center items-center gap-4 py-4 border-t">
-            <Button 
-              variant="outline" 
-              onClick={handlePrev}
-              disabled={cursorStack.length === 0}
-            >
-              Sebelumnya
-            </Button>
-            <span className="text-sm text-gray-500">
-               Halaman {cursorStack.length + 1}
-            </span>
-            <Button 
-              variant="outline" 
-              onClick={handleNext}
-              disabled={!results?.isDone ? false : true} // isDone=true means no more items? Wait.
-              // Convex paginate: isDone means "no more items AFTER this page".
-              // But if page is full, continueCursor is present.
-              // usually check !results.isDone
-            >
-              Selanjutnya
-            </Button>
-          </div>
+            <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nama</TableHead>
+                      <TableHead>Username / Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Assign Sekolah</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((item) => (
+                        <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell>{item.email}</TableCell>
+                        <TableCell>{getRoleBadge(item.role)}</TableCell>
+                        <TableCell>
+                          {item.role === "operator" ? (
+                            <Select 
+                              value={item.unitKerja || ""} 
+                              onValueChange={async (schoolName) => {
+                                try {
+                                  await updateUserSchoolMutation({ 
+                                    userId: item.id as Id<"users">,
+                                    schoolName: schoolName || undefined 
+                                  })
+                                  toast.success(`✅ ${item.name} di-assign ke ${schoolName}`)
+                                } catch {
+                                  toast.error("Gagal assign sekolah")
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Pilih Sekolah..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">- Tidak Di-assign -</SelectItem>
+                                {schools.map(school => (
+                                  <SelectItem key={school} value={school}>{school}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            {/* Prevent deleting the last super admin or self? Simplified logic: just hide delete for super_admin for safety */}
+                            {item.role !== 'super_admin' && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+            </div>
         </CardContent>
       </Card>
-
-      {/* Edit User Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Edit User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label>Nama</Label>
-                    <Input value={editingUser?.name || ""} disabled className="bg-gray-100" />
-                </div>
-                <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input value={editingUser?.email || ""} disabled className="bg-gray-100" />
-                </div>
-                <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Select value={editRole} onValueChange={setEditRole}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Pilih Role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="operator">Operator Sekolah</SelectItem>
-                            <SelectItem value="admin">Admin Wilayah</SelectItem>
-                            <SelectItem value="super_admin">Super Admin</SelectItem>
-                            <SelectItem value="viewer">Viewer (Read Only)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Unit Kerja (Nama Sekolah)</Label>
-                    <Input 
-                        placeholder="Misal: MI Maarif NU 1..." 
-                        value={editUnit} 
-                        onChange={(e) => setEditUnit(e.target.value)} 
-                    />
-                    <p className="text-xs text-gray-500">Kosongkan jika Admin Wilayah</p>
-                </div>
-                <div className="space-y-2">
-                    <Label>Status Akun</Label>
-                    <Select value={editIsActive ? "active" : "inactive"} onValueChange={(val) => setEditIsActive(val === "active")}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="active">Aktif</SelectItem>
-                            <SelectItem value="inactive">Non-Aktif (Blokir)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2 pt-2 border-t">
-                    <Label>Reset Password (Opsional)</Label>
-                    <Input 
-                        type="password"
-                        placeholder="Isi untuk ganti password..." 
-                        value={editPassword} 
-                        onChange={(e) => setEditPassword(e.target.value)} 
-                    />
-                </div>
-            </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsEditOpen(false)}>Batal</Button>
-                <Button onClick={handleSaveUser}>Simpan Perubahan</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
-  );
+  )
 }

@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Lock } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Lock, Wand2 } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import TeacherDocumentArchive from "./components/TeacherDocumentArchive"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -21,7 +21,7 @@ import { api } from "@/lib/api"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useConvex } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import TeacherPhotoUpload from "./components/TeacherPhotoUpload"
 import KtaCard from "./components/KtaCard"
@@ -49,6 +49,10 @@ interface Teacher {
 }
 
 export default function TeacherListPage() {
+  const convex = useConvex(); // Initialize Convex Client
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("")
   const [filterCertified, setFilterCertified] = useState("all") // all, true, false
@@ -742,21 +746,17 @@ export default function TeacherListPage() {
                             title="Generate Nomor Otomatis (Lanjutan Terakhir)"
                             onClick={async () => {
                                 try {
-                                    // Hacky way to call query since we can't use useQuery hook inside callback easily without refetching logic
-                                    // ACTUALLY: We should use useConvex() to get client.
-                                    // But since I don't want to change top-level imports heavily:
-                                    // I'll assume we can trigger a global helper? No.
-                                    // I will use a simple workaround: useConvex was NOT imported.
-                                    // I will use a refetch mechanism? Too complex.
-                                    // I will use `fetch` to a convex generic? No.
-                                    
-                                    // WAIT: I can just add `const convex = useConvex()` at the top if I import it.
-                                    // Let's add import first.
+                                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                    // @ts-ignore - Backend not yet synced in types
+                                    const nextNim = await convex.query(convexApi.teachers.generateNextNim);
+                                    if (nextNim) {
+                                      setFormData({...formData, nuptk: nextNim});
+                                    }
                                 } catch (e) {
-                                    console.error(e)
+                                    console.error("Auto NIM failed:", e)
+                                    alert("Gagal generate nomor otomatis.")
                                 }
                             }}
-                            // DISABLE click logic here, I will do it properly by adding the import first
                          >
                             <Wand2 className="h-4 w-4 text-purple-600" />
                          </Button>

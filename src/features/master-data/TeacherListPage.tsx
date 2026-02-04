@@ -50,12 +50,16 @@ interface Teacher {
 
 export default function TeacherListPage() {
   const convex = useConvex(); // Initialize Convex Client
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // const [teachers, setTeachers] = useState<Teacher[]>([]) // CONFLICT REMOVED
+  // const [isLoading, setIsLoading] = useState(true) // UNUSED
+  // const [error, setError] = useState<string | null>(null) // UNUSED
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("")
   const [filterCertified, setFilterCertified] = useState("all") // all, true, false
+  
+  // KTA Modal State
+  const [isKtaModalOpen, setIsKtaModalOpen] = useState(false)
+  const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
   
   // 🔐 AUTO-FILTER for operators (only see their school's teachers)
   const userStr = localStorage.getItem("user")
@@ -300,19 +304,19 @@ export default function TeacherListPage() {
 
     const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
     
-    // Archive State
-    const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false)
-    const [selectedTeacherForArchive, setSelectedTeacherForArchive] = useState<Teacher | null>(null)
+    // Archive State - REMOVED
+    // const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false)
+    // const [selectedTeacherForArchive, setSelectedTeacherForArchive] = useState<Teacher | null>(null)
 
     const openKta = (teacher: Teacher) => {
         setSelectedTeacherForKta(teacher)
         setIsKtaModalOpen(true)
     }
 
-    const openArchive = (teacher: Teacher) => {
-        setSelectedTeacherForArchive(teacher)
-        setIsArchiveModalOpen(true)
-    }
+    // const openArchive = (teacher: Teacher) => {
+    //    setSelectedTeacherForArchive(teacher)
+    //    setIsArchiveModalOpen(true)
+    // }
 
   const handleSave = async () => {
       if(!formData.nama) {

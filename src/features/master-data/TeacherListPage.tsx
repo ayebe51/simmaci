@@ -1288,7 +1288,7 @@ export default function TeacherListPage() {
       </Dialog>
       
 
-      </Dialog>
+
       
       <BroadcastModal 
         isOpen={isBroadcastOpen}

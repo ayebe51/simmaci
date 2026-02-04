@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Plus, Search, Edit, BadgeCheck, UserMinus, UserCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Lock, Wand2 } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
-import TeacherDocumentArchive from "./components/TeacherDocumentArchive"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"

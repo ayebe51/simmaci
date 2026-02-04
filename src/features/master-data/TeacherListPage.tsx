@@ -485,7 +485,7 @@ export default function TeacherListPage() {
         title="Data Guru & Tenaga Kependidikan"
         description="Manajemen data guru dan tenaga kependidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
-        actions={[
+
           {
             label: 'Export Excel',
             onClick: handleExport,

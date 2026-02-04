@@ -485,12 +485,7 @@ export default function TeacherListPage() {
         title="Data Guru & Tenaga Kependidikan"
         description="Manajemen data guru dan tenaga kependidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
-          ...(selectedTeacherIds.size > 0 ? [{
-              label: `Broadcast WA (${selectedTeacherIds.size})`,
-              onClick: () => setIsBroadcastOpen(true),
-              variant: 'mint' as const,
-              icon: <Smartphone className="h-5 w-5 text-green-700" />
-          }] : []),
+        actions={[
           {
             label: 'Export Excel',
             onClick: handleExport,
@@ -1296,6 +1291,29 @@ export default function TeacherListPage() {
 
 
       
+      {/* 🔥 FLOATING ACTION BAR FOR BROADCAST */}
+      {selectedTeacherIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-4 bg-gray-900/90 text-white px-6 py-3 rounded-full shadow-2xl backdrop-blur-sm border border-gray-700 animate-in slide-in-from-bottom-5">
+           <span className="font-medium text-sm border-r border-gray-600 pr-4">
+              {selectedTeacherIds.size} Guru Dipilih
+           </span>
+           <button 
+              onClick={() => setIsBroadcastOpen(true)}
+              className="flex items-center gap-2 text-green-400 hover:text-green-300 font-bold transition-colors"
+           >
+              <Smartphone className="h-5 w-5" />
+              BROADCAST WA
+           </button>
+           <button 
+              onClick={() => setSelectedTeacherIds(new Set())}
+              className="ml-2 text-gray-400 hover:text-white transition-colors p-1"
+              title="Batal Pilih"
+           >
+              <X className="h-4 w-4" />
+           </button>
+        </div>
+      )}
+
       <BroadcastModal 
         isOpen={isBroadcastOpen}
         onClose={() => setIsBroadcastOpen(false)}

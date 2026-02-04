@@ -2,10 +2,13 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 // Generate Upload URL
+// Generate Upload URL
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
+    // TEST: Check if function runs at all
+    // return await ctx.storage.generateUploadUrl();
+    return "https://mock-upload-url.com";
   },
 });
 

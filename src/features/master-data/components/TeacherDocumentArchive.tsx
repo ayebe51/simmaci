@@ -15,7 +15,8 @@ interface TeacherDocumentArchiveProps {
 
 export default function TeacherDocumentArchive({ teacherId }: TeacherDocumentArchiveProps) {
     // @ts-expect-error - Backend type generation is pending
-    const documents = useQuery(api.documents.getDocuments, { teacherId })
+    // const documents = useQuery(api.documents.getDocuments, { teacherId })
+    const documents: any[] | undefined = []
     
     // Upload State
     // @ts-expect-error - Backend type generation is pending

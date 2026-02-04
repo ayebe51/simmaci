@@ -1038,7 +1038,7 @@ export default function TeacherListPage() {
               const str = String(dateStr).trim()
               
               // 2. Stringified Number (Excel Serial) - allow decimals
-              if (/^[\d\.]+$/.test(str) && !isNaN(parseFloat(str))) { 
+              if (/^[\d.]+$/.test(str) && !isNaN(parseFloat(str))) { 
                   const val = parseFloat(str)
                   // Heuristic: Excel dates are usually > 10000 (after 1927). 
                   // If small number, might be "2023" (year) which is NOT a date serial.
@@ -1053,7 +1053,7 @@ export default function TeacherListPage() {
               if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d
               
               // 4. DD/MM/YYYY
-              const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+              const parts = str.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/)
               if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
               
               // 5. Indonesian Months
@@ -1063,7 +1063,7 @@ export default function TeacherListPage() {
                   'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
                   'jul': '07', 'aug': '08', 'agt': '08', 'sep': '09', 'oct': '10', 'okt': '10', 'nov': '11', 'dec': '12', 'des': '12'
               }
-              const txtParts = str.split(/[\s\-\/]+/)
+              const txtParts = str.split(/[\s\-/]+/)
               if (txtParts.length >= 3) {
                   const day = txtParts[0].replace(/[^0-9]/g, '')
                   const monthTxt = txtParts[1].toLowerCase()

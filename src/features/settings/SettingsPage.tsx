@@ -292,7 +292,8 @@ export default function SettingsPage() {
                         ].map((template) => {
                             // Check Cloud Status
                             const cloudSetting = cloudSettings?.find(s => s.key === template.id)
-                            const hasCloud = !!cloudSetting?.storageId
+                            // V2 uses Base64 DB, so if record exists, it IS stored. No storageId needed.
+                            const hasCloud = !!cloudSetting 
                             const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
 
                             // Check Local (Legacy)

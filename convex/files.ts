@@ -66,14 +66,15 @@ export const getFileContent = query({
 // List Settings (Metadata Only - Optimized)
 export const listSettings = query({
   handler: async (ctx) => {
+    // Force deployment update TS: 12347
     const settings = await ctx.db.query("settings").collect();
-    // Return only metadata to avoid sending 10MB of Base64
-    return settings.map(({ _id, _creationTime, key, mimeType, updatedAt }) => ({
-        _id,
-        _creationTime,
-        key,
-        mimeType,
-        updatedAt
+    // Use Safe Access and Default Values
+    return settings.map((doc) => ({
+        _id: doc._id,
+        _creationTime: doc._creationTime,
+        key: doc.key || "unknown", // Fallback
+        mimeType: doc.mimeType || "application/octet-stream",
+        updatedAt: doc.updatedAt || doc._creationTime
     }));
   },
 });

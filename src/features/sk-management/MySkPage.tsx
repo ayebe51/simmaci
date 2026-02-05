@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useQuery, useConvex } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 // Import Service
-import { generateSingleSkDocx } from "@/services/SkGeneratorService"
+import { generateSingleSkDocx, downloadSingleSk } from "@/services/SkGeneratorService"
 import { toast } from "sonner"
 
 interface SkDocument {
@@ -96,64 +96,59 @@ export default function MySkPage() {
 
 
 
-  // Handle Download (Updated to Fetch from Cloud)
+  // Handle Download (Updated to Fetch from Database Base64)
   const handleDownload = async (sk: SkDocument) => {
       try {
           toast.info("1/2 Mengambil template dari server...", { duration: 2000 })
           
-          // 1. Determine Template Key based on SK Type
-          // (Logic duplicated from Service for fetching, or we can fetch a generic one/all)
-          // For now, let's try the primary templates.
-          // Ideally, we fetch ALL generic templates or just the right one.
-          // Let's iterate keys: "sk_template_gty", "sk_template_gtt", etc.
-          
-          // Simpler: Fetch the template needed for THIS sk.
           const { getTemplateId } = await import("@/services/SkGeneratorService")
           const templateId = getTemplateId(sk)
           
-          // 2. Get URL from Convex
-          const fileUrl = await convex.query(convexApi.settings.getFileUrl, { key: templateId })
+          // 2. Get Content from Convex (Database Base64)
+          // Access api.files manually if types lag
+          const apiFiles = (convexApi as any).files;
+          const getFileContent = apiFiles ? apiFiles.getFileContent : convexApi.settings.getFileUrl;
           
-          let templateContent: string | null = null
+          // Safe check: if getFileContent is the OLD one (getFileUrl), we need to handle URL response.
+          // But getFileContent (New) returns base64.
           
-          if (fileUrl) {
-              // 3. Download Blob
-              const res = await fetch(fileUrl)
-              const blob = await res.blob()
-              // Convert to Base64/Binary String for PizZip
-              // Standard approach: ArrayBuffer
-              const arrayBuffer = await blob.arrayBuffer()
-              
-              // PizZip can take ArrayBuffer directly!
-              // But our Service expects "string" (Legacy) or we update Service to accept ArrayBuffer.
-              // Let's update Service to accept ArrayBuffer for better performance.
-              // For now, convert to binary string to match legacy service signature if needed, OR update Service.
-              // Service: "const zip = new PizZip(content);" content can be String or ArrayBuffer.
-              // But loadTemplate returns string | null.
-              // Let's allow passing ArrayBuffer to generateSingleSkDocx.
-              templateContent = arrayBuffer as any 
+          let templateContent: any = null // ArrayBuffer or String
+          const result = await convex.query(getFileContent, { key: templateId })
+
+          if (result && typeof result === 'string' && !result.startsWith("http")) {
+               // BASE64 MODE (Database)
+               const base64 = result.split(',')[1] || result;
+               const binaryString = window.atob(base64);
+               const len = binaryString.length;
+               const bytes = new Uint8Array(len);
+               for (let i = 0; i < len; i++) {
+                   bytes[i] = binaryString.charCodeAt(i);
+               }
+               templateContent = bytes.buffer;
+          } else if (result && typeof result === 'string' && result.startsWith("http")) {
+                // LEGACY URL MODE (File Storage)
+                const res = await fetch(result)
+                const blob = await res.blob()
+                templateContent = await blob.arrayBuffer()
           } else {
-             // Fallback to LocalStorage (Legacy)
-             // Maybe user is on the same machine?
-             // If not, throw error.
-             const { loadTemplate } = await import("@/services/SkGeneratorService")
-             templateContent = loadTemplate(templateId)
+             // Fallback Logic (Local Storage handled by Service or return null)
+          }
+          
+          if (templateContent) {
+              toast.success("2/2 Template didapat! Membuat dokumen...")
+              // 4. Generate with ArrayBuffer
+              await generateSingleSkDocx(sk, templateContent)
+              toast.success("Selesai! File terdownload.")
+          } else {
+             toast.warning("Template Cloud tidak ditemukan. Menggunakan cache lokal (jika ada).")
+             downloadSingleSk(sk, null)
           }
 
-          if (!templateContent) {
-              throw new Error("Template tidak ditemukan di Server maupun Lokal. Harap Upload Template di halaman Generator (Settings).")
-          }
-
-          toast.info("2/2 Membuat dokumen...", { duration: 2000 })
-          
-          // 4. Generate
-          await generateSingleSkDocx(sk, templateContent) // Pass content explicitly
-          
-          toast.success("Selesai! File terdownload.")
-          
-      } catch (e: any) {
-          console.error(e)
-          toast.error(`Gagal: ${e.message}`)
+      } catch (error: any) {
+          console.error("Gagal download template:", error)
+          toast.error("Gagal mengambil template. Coba upload ulang.")
+          // Try fallback
+          downloadSingleSk(sk, null)
       }
   }
 

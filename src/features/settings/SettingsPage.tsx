@@ -17,11 +17,15 @@ export default function SettingsPage() {
   const [isUploading, setIsUploading] = useState<string | null>(null)
 
   // API Safety Check (Prevents White Screen if backend is rebuilding)
-  // Ensure we don't crash if api.settings is not yet available in the generated object
-  const isApiReady = !!api.settings
-  
   // Cloud Hooks (Database Storage Mode)
-  const cloudSettings: any[] = [] 
+  // Restore Query (using safe 'files' module - listSettings)
+  // Access api.files manually if types lag
+  const apiFiles = (api as any).files; 
+  const listQuery = apiFiles ? apiFiles.listSettings : "skip";
+  
+  const cloudSettings = useQuery(isApiReady ? listQuery : "skip")
+  // const cloudSettings: any[] = [] // Removed Mock
+  
   // const generateUploadUrl = useMutation(api.files ? api.files.generateUploadUrl : api.auth.changePassword) // Removed
   const saveTemplate = useMutation(api.files ? api.files.saveTemplate : api.auth.changePassword)
 

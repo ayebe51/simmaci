@@ -105,11 +105,17 @@ export default function MySkPage() {
           const templateId = getTemplateId(sk)
           
           // 2. Get Content from Convex (NEW MODULE: settings_cloud)
-          const apiCloud = (convexApi as any).settings_cloud;
-          const getContentQuery = apiCloud ? apiCloud.getContent : (convexApi as any).files.getFileContent;
           
+          // 2. Get Content from Convex (NEW MODULE: settings_cloud)
+          // Direct call to ensure it uses the new V2 table
+          const getQuery = (convexApi as any).settings_cloud?.getContent
+          
+          if (!getQuery) {
+             throw new Error("API settings_cloud belum dimuat. Coba Refresh Halaman.")
+          }
+
           let templateContent: any = null // ArrayBuffer or String
-          const result = await convex.query(getContentQuery, { key: templateId })
+          const result = await convex.query(getQuery, { key: templateId })
 
           if (result && typeof result === 'string' && !result.startsWith("http")) {
                // BASE64 MODE (Database)
@@ -126,8 +132,6 @@ export default function MySkPage() {
                 const res = await fetch(result)
                 const blob = await res.blob()
                 templateContent = await blob.arrayBuffer()
-          } else {
-             // Fallback Logic (Local Storage handled by Service or return null)
           }
           
           if (templateContent) {
@@ -136,8 +140,9 @@ export default function MySkPage() {
               await generateSingleSkDocx(sk, templateContent)
               toast.success("Selesai! File terdownload.")
           } else {
-             toast.warning("Template Cloud tidak ditemukan. Menggunakan cache lokal (jika ada).")
-             // Changed from downloadSingleSk to generateSingleSkDocx
+             // Debugging Info for User
+             toast.warning(`Gagal: Template Cloud Kosong. (Key: ${templateId})`)
+             // Fallback
              generateSingleSkDocx(sk, null)
           }
 

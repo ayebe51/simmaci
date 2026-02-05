@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 
 export default function SettingsPage() {
@@ -21,8 +21,9 @@ export default function SettingsPage() {
   const isApiReady = !!api.settings
   
   // Cloud Hooks (Safe-guarded)
-  // If api.settings is missing, pass "skip" (undefined) to useQuery
-  const cloudSettings = useQuery(isApiReady ? api.settings.list : "skip")
+  // DISABLE QUERY TEMPORARILY to fix White Screen
+  // const cloudSettings = useQuery(isApiReady ? api.settings.list : "skip")
+  const cloudSettings: any[] = [] // Mock empty array so page loads
   
   // For Mutation: fallback to a dummy or existing mutation if missing (to preserve Hook order)
   // We won't call it if !isApiReady, but the Hook must run.

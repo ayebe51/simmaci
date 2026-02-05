@@ -299,7 +299,7 @@ export default function SchoolListPage() {
   }
 
   const handleExport = async () => {
-      alert("Fitur export data sekolah belum tersedia (gunakan export akun untuk data login).");
+      toast.info("Fitur export data sekolah belum tersedia (gunakan export akun untuk data login).");
   }
 
   const handleGenerateAccount = async (school: School) => {

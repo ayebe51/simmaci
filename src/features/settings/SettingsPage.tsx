@@ -19,23 +19,18 @@ export default function SettingsPage() {
   // API Safety Check
   const isApiReady = !!api.settings
 
-  // Cloud Hooks (Database Storage Mode)
-  // Restore Query (using safe 'files' module - listSettings)
-  // Access api.files manually if types lag
-  // DISABLE QUERY TEMPORARILY TO FIX WHITE SCREEN
-  // const apiFiles = (api as any).files; 
-  // const listQuery = apiFiles ? apiFiles.listSettings : "skip";
+  // Switch to NEW Module: settings_cloud
+  // Use 'any' cast to avoid TS errors during deployment if types aren't generated yet
+  const apiCloud = (api as any).settings_cloud;
   
-  // const cloudSettings = useQuery(isApiReady ? listQuery : "skip")
-  const cloudSettings: any[] = [] // Fallback empty to stop crash
-  // const cloudSettings: any[] = [] // Removed Mock
-  
-  // const generateUploadUrl = useMutation(api.files ? api.files.generateUploadUrl : api.auth.changePassword) // Removed
-  const saveTemplate = useMutation(api.files ? api.files.saveTemplate : api.auth.changePassword)
+  // Use Safe Query from New Module
+  const cloudSettings = useQuery(apiCloud ? apiCloud.list : "skip") || [];
+
+  // Use Mutation from New Module (Fallback to password change if not ready, just to carry a valid function)
+  const saveTemplate = useMutation(apiCloud ? apiCloud.save : api.auth.changePassword)
 
   // Cloud Upload Handler
   const handleCloudUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-      // if (!isApiReady) { ... } // Removed warning since we use mock query 
       const file = e.target.files?.[0]
       if (!file) return
 
@@ -49,15 +44,18 @@ export default function SettingsPage() {
           reader.onload = async () => {
               const base64 = reader.result as string;
               
-              // DIRECT SAVE TO DB (Bypassing Storage Service)
-              await saveTemplate({
-                  key,
-                  base64,
-                  mimeType: file.type
-              })
-
-              toast.success("Template berhasil disimpan di Cloud Database!")
-              // window.location.reload() // Optional
+              if (apiCloud) {
+                  // DIRECT SAVE TO NEW DB MODULE
+                  await saveTemplate({
+                      key,
+                      base64,
+                      mimeType: file.type
+                  })
+                  toast.success("Template berhasil disimpan di Cloud (New)!")
+              } else {
+                  toast.error("Module Cloud belum siap. Coba refresh.")
+              }
+              setIsUploading(null)
           };
           
           reader.onerror = (error) => {

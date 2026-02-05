@@ -107,6 +107,14 @@ export default defineSchema({
       updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // NEW Settings Table (V2) - Fresh Start
+  settings_v2: defineTable({
+      key: v.string(), 
+      value: v.string(), // Base64 Content (Required in V2)
+      mimeType: v.string(),
+      updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
   // SK (Surat Keputusan) documents
   skDocuments: defineTable({
     nomorSk: v.string(),

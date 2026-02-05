@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useQuery, useConvex } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 // Import Service
-import { generateSingleSkDocx, downloadSingleSk } from "@/services/SkGeneratorService"
+import { generateSingleSkDocx } from "@/services/SkGeneratorService"
 import { toast } from "sonner"
 
 interface SkDocument {
@@ -141,14 +141,16 @@ export default function MySkPage() {
               toast.success("Selesai! File terdownload.")
           } else {
              toast.warning("Template Cloud tidak ditemukan. Menggunakan cache lokal (jika ada).")
-             downloadSingleSk(sk, null)
+             // Changed from downloadSingleSk to generateSingleSkDocx
+             generateSingleSkDocx(sk, null)
           }
 
       } catch (error: any) {
           console.error("Gagal download template:", error)
           toast.error("Gagal mengambil template. Coba upload ulang.")
           // Try fallback
-          downloadSingleSk(sk, null)
+          // Changed from downloadSingleSk to generateSingleSkDocx
+          generateSingleSkDocx(sk, null)
       }
   }
 

@@ -299,7 +299,45 @@ export default function SchoolListPage() {
   }
 
   const handleExport = async () => {
-      toast.info("Fitur export data sekolah belum tersedia (gunakan export akun untuk data login).");
+    if (!allSchools || allSchools.length === 0) {
+      toast.error("Tidak ada data untuk diexport");
+      return;
+    }
+
+    try {
+      const data = allSchools.map((s, index) => ({
+        "No": index + 1,
+        "NSM": s.nsm,
+        "NPSN": s.npsn,
+        "Nama Sekolah": s.nama,
+        "Alamat": s.alamat,
+        "Kecamatan": s.kecamatan,
+        "Kepala Sekolah": s.kepalaMadrasah,
+        "No. HP Kepala": s.telepon,
+        "Afiliasi": s.statusJamiyyah,
+        "Akreditasi": s.akreditasi,
+        "Email Akun": s.email || "-"
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Madrasah");
+
+      // Auto width
+      const max_width = data.reduce((w, r) => Math.max(w, (r["Nama Sekolah"] || "").length), 10);
+      worksheet["!cols"] = [
+          { wch: 5 }, { wch: 15 }, { wch: 15 }, { wch: max_width + 5 },
+          { wch: 30 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 25 }
+      ];
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      saveAs(blob, `Data_Madrasah_LP_Maarif_${new Date().toISOString().split('T')[0]}.xlsx`);
+      
+      toast.success("Berhasil export data!");
+    } catch (error) {
+      toast.error("Gagal export: " + (error as Error).message);
+    }
   }
 
   const handleGenerateAccount = async (school: School) => {

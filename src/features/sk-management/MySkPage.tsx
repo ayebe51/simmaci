@@ -94,7 +94,7 @@ export default function MySkPage() {
       // Open Print Page in New Tab
       // User can then "Save as PDF" from browser
       if (sk.id) {
-          window.open(`/dashboard/sk/print/${sk.id}`, '_blank')
+          window.open(`/dashboard/sk/${sk.id}/print`, '_blank')
           toast.success("Membuka tampilan cetak SK...")
       } else {
           toast.error("ID SK tidak valid")

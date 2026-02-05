@@ -104,16 +104,12 @@ export default function MySkPage() {
           const { getTemplateId } = await import("@/services/SkGeneratorService")
           const templateId = getTemplateId(sk)
           
-          // 2. Get Content from Convex (Database Base64)
-          // Access api.files manually if types lag
-          const apiFiles = (convexApi as any).files;
-          const getFileContent = apiFiles ? apiFiles.getFileContent : convexApi.settings.getFileUrl;
-          
-          // Safe check: if getFileContent is the OLD one (getFileUrl), we need to handle URL response.
-          // But getFileContent (New) returns base64.
+          // 2. Get Content from Convex (NEW MODULE: settings_cloud)
+          const apiCloud = (convexApi as any).settings_cloud;
+          const getContentQuery = apiCloud ? apiCloud.getContent : (convexApi as any).files.getFileContent;
           
           let templateContent: any = null // ArrayBuffer or String
-          const result = await convex.query(getFileContent, { key: templateId })
+          const result = await convex.query(getContentQuery, { key: templateId })
 
           if (result && typeof result === 'string' && !result.startsWith("http")) {
                // BASE64 MODE (Database)

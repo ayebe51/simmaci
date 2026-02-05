@@ -22,10 +22,12 @@ export default function SettingsPage() {
   // Cloud Hooks (Database Storage Mode)
   // Restore Query (using safe 'files' module - listSettings)
   // Access api.files manually if types lag
-  const apiFiles = (api as any).files; 
-  const listQuery = apiFiles ? apiFiles.listSettings : "skip";
+  // DISABLE QUERY TEMPORARILY TO FIX WHITE SCREEN
+  // const apiFiles = (api as any).files; 
+  // const listQuery = apiFiles ? apiFiles.listSettings : "skip";
   
-  const cloudSettings = useQuery(isApiReady ? listQuery : "skip")
+  // const cloudSettings = useQuery(isApiReady ? listQuery : "skip")
+  const cloudSettings: any[] = [] // Fallback empty to stop crash
   // const cloudSettings: any[] = [] // Removed Mock
   
   // const generateUploadUrl = useMutation(api.files ? api.files.generateUploadUrl : api.auth.changePassword) // Removed

@@ -63,7 +63,7 @@ export const getContent = query({
   handler: async (ctx, args) => {
     const setting = await ctx.db
       .query("settings_v2")
-      .withIndex("by_key", (q) => q.eq("key", args.key))
+      .filter((q) => q.eq(q.field("key"), args.key))
       .first();
     
     if (!setting || !setting.value) return null;

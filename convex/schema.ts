@@ -98,6 +98,21 @@ export default defineSchema({
 
   // SK (Surat Keputusan) documents
   skDocuments: defineTable({
+    // ... items
+  }), // Intentionally left implicit to match existing schema style if desired, or replace fully.
+  // actually, let's just insert before skDocuments or after.
+
+  // Settings table (Global App Settings)
+  settings: defineTable({
+      key: v.string(), // e.g. "sk_template_gty"
+      value: v.optional(v.string()), // For small text settings
+      storageId: v.optional(v.id("_storage")), // For Files (Templates)
+      mimeType: v.optional(v.string()),
+      updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  // SK (Surat Keputusan) documents
+  skDocuments: defineTable({
     nomorSk: v.string(),
     jenisSk: v.string(), // 'gty', 'gtt', 'kamad', 'tendik'
     teacherId: v.optional(v.id("teachers")),

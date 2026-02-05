@@ -93,20 +93,70 @@ export default function MySkPage() {
     )
   }, [skList, searchTerm])
 
-  // Handle Download (Updated to Docx)
+  // 🔥 Access Convex Client for Lazy Fetching
+  import { useConvex } from "convex/react"
+
+  // ... inside component
+  const convex = useConvex()
+
+  // Handle Download (Updated to Fetch from Cloud)
   const handleDownload = async (sk: SkDocument) => {
-      // Logic: Prioritize Docx (Template-based) as requested by user
       try {
-          toast.info("Sedang membuat dokumen Word sesuai template...", { duration: 3000 })
-          await generateSingleSkDocx(sk)
-          toast.success("Berhasil didownload!")
+          toast.info("1/2 Mengambil template dari server...", { duration: 2000 })
+          
+          // 1. Determine Template Key based on SK Type
+          // (Logic duplicated from Service for fetching, or we can fetch a generic one/all)
+          // For now, let's try the primary templates.
+          // Ideally, we fetch ALL generic templates or just the right one.
+          // Let's iterate keys: "sk_template_gty", "sk_template_gtt", etc.
+          
+          // Simpler: Fetch the template needed for THIS sk.
+          const { getTemplateId } = await import("@/services/SkGeneratorService")
+          const templateId = getTemplateId(sk)
+          
+          // 2. Get URL from Convex
+          const fileUrl = await convex.query(convexApi.settings.getFileUrl, { key: templateId })
+          
+          let templateContent: string | null = null
+          
+          if (fileUrl) {
+              // 3. Download Blob
+              const res = await fetch(fileUrl)
+              const blob = await res.blob()
+              // Convert to Base64/Binary String for PizZip
+              // Standard approach: ArrayBuffer
+              const arrayBuffer = await blob.arrayBuffer()
+              
+              // PizZip can take ArrayBuffer directly!
+              // But our Service expects "string" (Legacy) or we update Service to accept ArrayBuffer.
+              // Let's update Service to accept ArrayBuffer for better performance.
+              // For now, convert to binary string to match legacy service signature if needed, OR update Service.
+              // Service: "const zip = new PizZip(content);" content can be String or ArrayBuffer.
+              // But loadTemplate returns string | null.
+              // Let's allow passing ArrayBuffer to generateSingleSkDocx.
+              templateContent = arrayBuffer as any 
+          } else {
+             // Fallback to LocalStorage (Legacy)
+             // Maybe user is on the same machine?
+             // If not, throw error.
+             const { loadTemplate } = await import("@/services/SkGeneratorService")
+             templateContent = loadTemplate(templateId)
+          }
+
+          if (!templateContent) {
+              throw new Error("Template tidak ditemukan di Server maupun Lokal. Harap Upload Template di halaman Generator (Settings).")
+          }
+
+          toast.info("2/2 Membuat dokumen...", { duration: 2000 })
+          
+          // 4. Generate
+          await generateSingleSkDocx(sk, templateContent) // Pass content explicitly
+          
+          toast.success("Selesai! File terdownload.")
+          
       } catch (e: any) {
           console.error(e)
-          // Fallback to Print View if Template Fails
-          toast.error(`Gagal membuat Word: ${e.message}\nMembuka tampilan Print sebagai alternatif...`)
-          setTimeout(() => {
-             window.open(`/dashboard/sk/${sk.id}/print`, '_blank')
-          }, 1000)
+          toast.error(`Gagal: ${e.message}`)
       }
   }
 

@@ -256,7 +256,12 @@ export default function SettingsPage() {
 
         {/* Template Tab */}
         <TabsContent value="template">
-            <Card>
+            {cloudSettings === undefined ? (
+                <div className="p-8 text-center text-muted-foreground animate-pulse">
+                    Memuat data cloud...
+                </div>
+            ) : (
+                <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Template Generator SK</CardTitle>
                     <CardDescription>Upload file Word (.docx) untuk masing-masing jenis SK.</CardDescription>
@@ -357,6 +362,7 @@ export default function SettingsPage() {
                     </div>
                 </CardContent>
             </Card>
+            )}
         </TabsContent>
 
         {/* Signer Tab */}

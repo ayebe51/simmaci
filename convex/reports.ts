@@ -86,10 +86,10 @@ export const generateSkReport = query({
         // Calculate summary statistics
         const summary = {
           total: enriched.length,
-          pending: enriched.filter(sk => sk.status === 'pending').length,
-          approved: enriched.filter(sk => sk.status === 'approved').length,
-          rejected: enriched.filter(sk => sk.status === 'rejected').length,
-          draft: enriched.filter(sk => sk.status === 'draft').length,
+          pending: enriched.filter(sk => (sk.status || "").toLowerCase() === 'pending').length,
+          approved: enriched.filter(sk => (sk.status || "").toLowerCase() === 'approved' || (sk.status || "").toLowerCase() === 'disetujui').length,
+          rejected: enriched.filter(sk => (sk.status || "").toLowerCase() === 'rejected' || (sk.status || "").toLowerCase() === 'ditolak').length,
+          draft: enriched.filter(sk => (sk.status || "").toLowerCase() === 'draft').length,
         }
         
         // Group by SK type
@@ -106,7 +106,7 @@ export const generateSkReport = query({
           byType,
           filters: args,
         }
-    } catch (criticalError: any) {
+    } catch (criticalError: unknown) {
         console.error("CRITICAL REPORT ERROR:", criticalError);
         // Return fail-safe empty structure to prevent whitescreen
         return {

@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -24,11 +25,15 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { FileText, Upload, Trash2, Eye, Calendar, Building2 } from "lucide-react"
+import { FileText, Upload, Trash2, Eye, AlertTriangle } from "lucide-react"
 
 export default function ArchivePage() {
   const [isOpen, setIsOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  
+  // Delete State
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // Search State
   const [searchTerm, setSearchTerm] = useState("")
@@ -45,12 +50,11 @@ export default function ArchivePage() {
   // Auth
   const token = localStorage.getItem("token")
   const user = JSON.parse(localStorage.getItem("user") || "{}")
-  const isOperator = user.role === "operator"
+  // const isOperator = user.role === "operator" // Unused variable
   
   // Data Fetching
   const archives = useQuery(api.archives.list, { 
       token: token || undefined,
-      // Admin might want to filter by schoolId? For now list returns all or filtered by operator logic
   }) || []
 
   // Mutations
@@ -84,13 +88,7 @@ export default function ArchivePage() {
            // 3. Save Record
            await createArchive({
                token: token!,
-               schoolId: user.unitKerja as any, // If operator, this logic relies on backend validation
-               // NOTE: If Admin, we need a School Picker!
-               // For MVP, assuming Admin works on behalf of a school or we default to a test school?
-               // If User is Admin, user.unitKerja might be null.
-               // Let's handle Operator Use Case primarily as per request.
-               // If Admin, we might need to select school.
-               // For now, let's assume Operator flow.
+               schoolId: user.unitKerja as any, 
                nomorSk: formData.nomorSk,
                title: formData.title,
                year: formData.year,
@@ -117,13 +115,19 @@ export default function ArchivePage() {
       }
   }
 
-  const handleDelete = async (id: string) => {
-      if(!confirm("Hapus arsip ini?")) return;
+  const handleConfirmDelete = async () => {
+      if (!deleteId) return
+      
+      setIsDeleting(true)
       try {
-          await removeArchive({ token: token!, id: id as any });
-          toast.success("Dihapus");
+          await removeArchive({ token: token!, id: deleteId as any })
+          toast.success("Arsip dihapus")
+          setDeleteId(null)
       } catch (err) {
-          toast.error("Gagal menghapus");
+          console.error(err) // Kept for debugging
+          toast.error("Gagal menghapus")
+      } finally {
+          setIsDeleting(false)
       }
   }
 
@@ -133,12 +137,20 @@ export default function ArchivePage() {
       a.nomorSk.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const getCategoryBadge = (cat: string) => {
+      switch(cat) {
+          case 'sk_kepala': return <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">SK Kepala</Badge>
+          case 'sk_guru': return <Badge variant="default" className="bg-green-600 hover:bg-green-700">SK Guru</Badge>
+          default: return <Badge variant="secondary">{cat.replace('_', ' ')}</Badge>
+      }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
             <h1 className="text-2xl font-bold tracking-tight">Arsip Digital SK</h1>
-            <p className="text-muted-foreground">Penyimpanan terpusat dokumen SK lama (hasil scan).</p>
+            <p className="text-muted-foreground">Penyimpanan terpusat dokumen SK lama.</p>
         </div>
         
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -148,7 +160,7 @@ export default function ArchivePage() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Upload Dokumen SK</DialogTitle>
-                    <DialogDescription>Pastikan file hasil scan jelas dan terbaca (PDF/JPG).</DialogDescription>
+                    <DialogDescription>Pastikan file hasil scan jelas (PDF/JPG, Max 5MB).</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid gap-2">
@@ -194,7 +206,7 @@ export default function ArchivePage() {
                         </div>
                     </div>
                     <div className="grid gap-2">
-                        <Label>File Scan (Max 5MB)</Label>
+                        <Label>File Scan</Label>
                         <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} required />
                     </div>
                     
@@ -210,7 +222,7 @@ export default function ArchivePage() {
 
       <div className="flex items-center gap-2">
           <Input 
-             placeholder="Cari berdasarkan Nomor SK atau Judul..." 
+             placeholder="Cari nomor SK atau judul..." 
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
              className="max-w-sm"
@@ -222,7 +234,7 @@ export default function ArchivePage() {
              <Table>
                  <TableHeader>
                      <TableRow>
-                         <TableHead>Simbol</TableHead>
+                         <TableHead className="w-[50px]"></TableHead>
                          <TableHead>Nomor SK</TableHead>
                          <TableHead>Judul</TableHead>
                          <TableHead>Tahun</TableHead>
@@ -234,31 +246,35 @@ export default function ArchivePage() {
                      {filteredArchives.length === 0 ? (
                          <TableRow>
                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                 Belum ada arsip dokumen.
+                                 Belum ada arsip dokumen yang sesuai.
                              </TableCell>
                          </TableRow>
                      ) : (
                          filteredArchives.map((archive) => (
                              <TableRow key={archive._id}>
                                  <TableCell>
-                                     <FileText className="h-5 w-5 text-blue-500" />
+                                     <FileText className="h-5 w-5 text-muted-foreground" />
                                  </TableCell>
-                                 <TableCell className="font-medium">{archive.nomorSk}</TableCell>
+                                 <TableCell className="font-medium text-nowrap">{archive.nomorSk}</TableCell>
                                  <TableCell>{archive.title}</TableCell>
                                  <TableCell>{archive.year}</TableCell>
                                  <TableCell>
-                                     <span className="capitalize badge bg-slate-100 px-2 py-1 rounded text-xs">
-                                         {archive.category.replace('_', ' ')}
-                                     </span>
+                                     {getCategoryBadge(archive.category)}
                                  </TableCell>
                                  <TableCell className="text-right">
                                      <div className="flex justify-end gap-2">
-                                         <Button variant="ghost" size="icon" asChild>
+                                         <Button variant="ghost" size="icon" asChild title="Lihat">
                                              <a href={archive.fileUrl} target="_blank" rel="noreferrer">
-                                                 <Eye className="h-4 w-4" />
+                                                 <Eye className="h-4 w-4 text-blue-600" />
                                              </a>
                                          </Button>
-                                         <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(archive._id)}>
+                                         <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50" 
+                                            onClick={() => setDeleteId(archive._id)}
+                                            title="Hapus"
+                                         >
                                              <Trash2 className="h-4 w-4" />
                                          </Button>
                                      </div>
@@ -270,6 +286,27 @@ export default function ArchivePage() {
              </Table>
           </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                    <AlertTriangle className="h-5 w-5" />
+                    Konfirmasi Hapus
+                </DialogTitle>
+                <DialogDescription>
+                    Apakah Anda yakin ingin menghapus arsip ini? Tindakan ini tidak dapat dibatalkan dan file akan hilang permanen.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setDeleteId(null)}>Batal</Button>
+                <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
+                    {isDeleting ? "Menghapus..." : "Ya, Hapus Permanen"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

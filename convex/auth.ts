@@ -186,7 +186,7 @@ export const listUsersPage = query({
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("users").order("desc");
+    const query = ctx.db.query("users").order("desc");
 
     // Note: Search with filter is manual in Convex if not using search index.
     // For pagination + search, we usually use search index.

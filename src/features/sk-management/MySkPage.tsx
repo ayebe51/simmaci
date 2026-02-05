@@ -91,8 +91,14 @@ export default function MySkPage() {
   }, [skList, searchTerm])
 
   const handleDownload = (sk: SkDocument) => {
-      // Simulation
-      alert(`Mendownload SK: ${sk.nomorSurat || 'Draft'} untuk ${sk.nama}`)
+      // Open Print Page in New Tab
+      // User can then "Save as PDF" from browser
+      if (sk.id) {
+          window.open(`/dashboard/sk/print/${sk.id}`, '_blank')
+          toast.success("Membuka tampilan cetak SK...")
+      } else {
+          toast.error("ID SK tidak valid")
+      }
   }
 
   // Pagination Logic for SK Digital

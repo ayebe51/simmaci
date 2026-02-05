@@ -6,7 +6,7 @@ import { Download, FileText, Search } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 // 🔥 CONVEX REAL-TIME
-import { useQuery } from "convex/react"
+import { useQuery, useConvex } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 // Import Service
 import { generateSingleSkDocx } from "@/services/SkGeneratorService"
@@ -32,6 +32,7 @@ interface HeadmasterApproval {
 }
 
 export default function MySkPage() {
+  const convex = useConvex()
   const [searchTerm, setSearchTerm] = useState("")
   const [user] = useState<any>(() => {
     try {
@@ -93,11 +94,7 @@ export default function MySkPage() {
     )
   }, [skList, searchTerm])
 
-  // 🔥 Access Convex Client for Lazy Fetching
-  import { useConvex } from "convex/react"
 
-  // ... inside component
-  const convex = useConvex()
 
   // Handle Download (Updated to Fetch from Cloud)
   const handleDownload = async (sk: SkDocument) => {

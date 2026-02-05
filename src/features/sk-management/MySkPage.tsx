@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 // 🔥 CONVEX REAL-TIME
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
+// Import Service
+import { generateSingleSkDocx } from "@/services/SkGeneratorService"
 
 interface SkDocument {
   id: string
@@ -90,14 +92,20 @@ export default function MySkPage() {
     )
   }, [skList, searchTerm])
 
-  const handleDownload = (sk: SkDocument) => {
-      // Open Print Page in New Tab
-      // User can then "Save as PDF" from browser
-      if (sk.id) {
-          window.open(`/dashboard/sk/${sk.id}/print`, '_blank')
-          toast.success("Membuka tampilan cetak SK...")
-      } else {
-          toast.error("ID SK tidak valid")
+  // Handle Download (Updated to Docx)
+  const handleDownload = async (sk: SkDocument) => {
+      // Logic: Prioritize Docx (Template-based) as requested by user
+      try {
+          toast.info("Sedang membuat dokumen Word sesuai template...", { duration: 3000 })
+          await generateSingleSkDocx(sk)
+          toast.success("Berhasil didownload!")
+      } catch (e: any) {
+          console.error(e)
+          // Fallback to Print View if Template Fails
+          toast.error(`Gagal membuat Word: ${e.message}\nMembuka tampilan Print sebagai alternatif...`)
+          setTimeout(() => {
+             window.open(`/dashboard/sk/${sk.id}/print`, '_blank')
+          }, 1000)
       }
   }
 

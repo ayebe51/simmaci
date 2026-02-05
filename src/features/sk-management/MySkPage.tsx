@@ -66,6 +66,7 @@ export default function MySkPage() {
       nomorSurat: doc.nomorSk,
       nama: doc.nama,
       jabatan: doc.jabatan || "-",
+      jenisSk: doc.jenisSk, // Required for template selection
       status: doc.status === "active" ? "Approved" : doc.status,
     }))
   }, [convexSkData])

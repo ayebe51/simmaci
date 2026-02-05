@@ -1,6 +1,13 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// List all settings
+export const list = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("settings").collect();
+  },
+});
+
 // Get setting by key
 export const get = query({
   args: { key: v.string() },

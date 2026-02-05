@@ -8,12 +8,59 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff } from "lucide-react"
 import { useState, useEffect } from "react"
-import { useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("template")
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploading, setIsUploading] = useState<string | null>(null)
+
+  // Cloud Hooks
+  const cloudSettings = useQuery(api.settings.list)
+  const generateUploadUrl = useMutation(api.settings.generateUploadUrl)
+  const saveTemplate = useMutation(api.settings.saveTemplate)
+
+  // Cloud Upload Handler
+  const handleCloudUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      try {
+          setIsUploading(key)
+          
+          // 1. Get URL
+          const postUrl = await generateUploadUrl()
+          
+          // 2. POST File
+          const result = await fetch(postUrl, {
+              method: "POST",
+              headers: { "Content-Type": file.type },
+              body: file,
+          })
+          const { storageId } = await result.json()
+
+          // 3. Save ID to Settings
+          await saveTemplate({
+              key,
+              storageId,
+              mimeType: file.type
+          })
+
+          toast.success("Template berhasil diupload ke Cloud!")
+          
+          // Legacy: Also save to LocalStorage for "Generator Page" fallback (optional, but good for hybrid)
+          // Actually, let's NOT save to LocalStorage to force migration.
+          // Or save it so the OLD Generator page still works?
+          // For now, let's keep it clean. Cloud is the truth.
+
+      } catch (err: any) {
+          console.error(err)
+          toast.error("Gagal upload: " + err.message)
+      } finally {
+          setIsUploading(null)
+      }
+  }
 
   
   // Default Settings State
@@ -216,6 +263,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
+                        {/* Cloud Logic */}
                         {[
                             { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY" },
                             { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT" },
@@ -224,8 +272,13 @@ export default function SettingsPage() {
                             { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS" },
                             { id: "sk_template_kamad_plt", label: "SK Kamad (PLT)", desc: "Khusus Pelaksana Tugas (PLT)" },
                         ].map((template) => {
-                            const hasFile = !!localStorage.getItem(template.id + "_blob")
-                            const fileName = localStorage.getItem(template.id + "_name") || "template.docx"
+                            // Check Cloud Status
+                            const cloudSetting = cloudSettings?.find(s => s.key === template.id)
+                            const hasCloud = !!cloudSetting?.storageId
+                            const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
+
+                            // Check Local (Legacy)
+                            const hasLocal = !!localStorage.getItem(template.id + "_blob")
 
                             return (
                                 <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
@@ -234,55 +287,52 @@ export default function SettingsPage() {
                                         <p className="text-xs text-muted-foreground">{template.desc}</p>
                                     </div>
                                     
-                                    {hasFile ? (
-                                        <div className="flex items-center gap-3 p-3 bg-white border rounded">
+                                    {hasCloud ? (
+                                        <div className="flex items-center gap-3 p-3 bg-white border rounded border-green-200">
                                             <div className="bg-green-100 p-2 rounded-full text-green-600">
                                                 <CheckCircle className="h-4 w-4" />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-medium truncate">{fileName}</p>
-                                                <p className="text-[10px] text-green-600">Siap digunakan</p>
+                                                <p className="text-xs font-medium truncate">Tersimpan di Cloud ✅</p>
+                                                <p className="text-[10px] text-green-600">Update: {cloudTime}</p>
                                             </div>
                                             <Button 
-                                                variant="ghost" 
+                                                variant="outline" 
                                                 size="sm" 
-                                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                                                className="h-7 text-xs"
                                                 onClick={() => {
-                                                    if(confirm("Hapus template ini?")) {
-                                                        localStorage.removeItem(template.id + "_blob")
-                                                        localStorage.removeItem(template.id + "_name")
-                                                        window.location.reload() // Quick refresh to update UI state
-                                                    }
+                                                   // Trigger file input click
+                                                   document.getElementById(`upload-${template.id}`)?.click()
                                                 }}
                                             >
-                                                x
+                                                Ganti
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative">
-                                            <div className="text-center space-y-1">
-                                                <Download className="mx-auto h-4 w-4 text-muted-foreground" />
-                                                <span className="text-xs text-slate-500 block">Upload .docx</span>
+                                        <div className="space-y-2">
+                                            {hasLocal && (
+                                                <div className="text-[10px] bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-2">
+                                                    ⚠️ File ada di Browser ini (Lokal), tapi BELUM di Cloud. <br/>
+                                                    <strong>Harap Upload Ulang agar bisa download.</strong>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative">
+                                                <div className="text-center space-y-1">
+                                                    <Download className="mx-auto h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-xs text-slate-500 block">
+                                                        {isUploading === template.id ? "Mengupload..." : "Upload .docx ke Cloud"}
+                                                    </span>
+                                                </div>
+                                                <input 
+                                                    id={`upload-${template.id}`}
+                                                    type="file" 
+                                                    accept=".docx"
+                                                    disabled={isUploading === template.id}
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    onChange={(e) => handleCloudUpload(e, template.id)}
+                                                />
                                             </div>
-                                            <input 
-                                                type="file" 
-                                                accept=".docx"
-                                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0]
-                                                    if (file) {
-                                                        const reader = new FileReader()
-                                                        reader.onload = (evt) => {
-                                                            const base64 = evt.target?.result as string
-                                                            localStorage.setItem(template.id + "_blob", base64)
-                                                            localStorage.setItem(template.id + "_name", file.name)
-                                                            alert(`Template ${template.label} berhasil disimpan!`)
-                                                            window.location.reload()
-                                                        }
-                                                        reader.readAsDataURL(file)
-                                                    }
-                                                }}
-                                            />
                                         </div>
                                     )}
                                 </div>

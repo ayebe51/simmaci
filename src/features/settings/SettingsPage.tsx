@@ -20,15 +20,14 @@ export default function SettingsPage() {
   // Ensure we don't crash if api.settings is not yet available in the generated object
   const isApiReady = !!api.settings
   
-  // Cloud Hooks (Safe-guarded)
+  // Cloud Hooks (Refactored to api.files)
   // DISABLE QUERY TEMPORARILY to fix White Screen
   // const cloudSettings = useQuery(isApiReady ? api.settings.list : "skip")
   const cloudSettings: any[] = [] // Mock empty array so page loads
   
-  // For Mutation: fallback to a dummy or existing mutation if missing (to preserve Hook order)
-  // We won't call it if !isApiReady, but the Hook must run.
-  const generateUploadUrl = useMutation(isApiReady ? api.settings.generateUploadUrl : api.auth.changePassword)
-  const saveTemplate = useMutation(isApiReady ? api.settings.saveTemplate : api.auth.changePassword)
+  // Use 'files' module instead of 'settings'
+  const generateUploadUrl = useMutation(api.files ? api.files.generateUploadUrl : api.auth.changePassword)
+  const saveTemplate = useMutation(api.files ? api.files.saveTemplate : api.auth.changePassword)
 
   // Cloud Upload Handler
   const handleCloudUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {

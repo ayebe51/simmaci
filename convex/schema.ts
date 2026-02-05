@@ -96,11 +96,7 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_role", ["role"]),
 
-  // SK (Surat Keputusan) documents
-  skDocuments: defineTable({
-    // ... items
-  }), // Intentionally left implicit to match existing schema style if desired, or replace fully.
-  // actually, let's just insert before skDocuments or after.
+
 
   // Settings table (Global App Settings)
   settings: defineTable({

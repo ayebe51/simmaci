@@ -12,6 +12,7 @@ import {
 import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown, Check, X, Download, Trash2, Wand2, Smartphone, UserCheck, UserMinus } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import BroadcastModal from "./components/BroadcastModal"
+import { toast } from "sonner"
 import { useState, useEffect, useMemo } from "react"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -460,9 +461,10 @@ export default function TeacherListPage() {
           document.body.appendChild(link);
           link.click();
           link.parentNode?.removeChild(link);
+          toast.success("Download Excel berhasil dimulai")
       } catch (e: any) {
           console.error(e)
-          alert("Gagal mengexport data.")
+          toast.error("Gagal mengexport data.")
       }
   }
 
@@ -471,9 +473,9 @@ export default function TeacherListPage() {
           if (confirm("Konfirmasi sekali lagi - hapus semua data guru?")) {
               try {
                   const result = await bulkDeleteTeacherMutation({})
-                  alert(`Berhasil menghapus ${result.count} guru!`)
+                  toast.success(`Berhasil menghapus ${result.count} data guru!`)
               } catch (e: any) {
-                  alert("Gagal menghapus: " + e.message)
+                  toast.error("Gagal menghapus: " + e.message)
               }
           }
       }

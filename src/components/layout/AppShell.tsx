@@ -20,6 +20,7 @@ import {
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { NotificationDropdown } from "@/components/common/NotificationDropdown"
+import { Toaster } from "sonner"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -31,24 +32,44 @@ export default function AppShell({ children }: AppShellProps) {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
-  const navItems = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Data Madrasah", href: "/dashboard/master/schools", icon: School },
-    { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
-    { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
-    { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
-    { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
-    { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
-    { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
-    { label: "Approval Yayasan", href: "/dashboard/approval/yayasan", icon: Gavel },
-    { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
-    { label: "Manajemen User", href: "/dashboard/users", icon: Users },
-    { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
-    { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
-    { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
-    { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
-
-    { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
+  // Navigation Groups
+  const navGroups = [
+    {
+      title: "Master Data",
+      items: [
+        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Data Madrasah", href: "/dashboard/master/schools", icon: School },
+        { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
+        { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
+      ]
+    },
+    {
+      title: "Administrasi SK",
+      items: [
+        { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
+        { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
+        { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
+        { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
+        { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
+      ]
+    },
+    {
+      title: "Manajemen SDM",
+      items: [
+        { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
+        { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
+        { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
+      ]
+    },
+    {
+      title: "Administrasi Sistem",
+      items: [
+        { label: "Approval Yayasan", href: "/dashboard/approval/yayasan", icon: Gavel },
+        { label: "Manajemen User", href: "/dashboard/users", icon: Users },
+        { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
+        { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
+      ]
+    }
   ]
 
   return (
@@ -184,9 +205,9 @@ export default function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Main Content View with Scroll */}
-        <main className="flex-1 overflow-y-auto p-6">
-           {children}
         </main>
+        <Toaster richColors position="top-right" />
+        <Toaster richColors position="top-right" />
       </div>
     </div>
   )

@@ -16,7 +16,9 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState<string | null>(null)
 
-  // API Safety Check (Prevents White Screen if backend is rebuilding)
+  // API Safety Check
+  const isApiReady = !!api.settings
+
   // Cloud Hooks (Database Storage Mode)
   // Restore Query (using safe 'files' module - listSettings)
   // Access api.files manually if types lag

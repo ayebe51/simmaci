@@ -205,8 +205,9 @@ export default function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Main Content View with Scroll */}
+        <main className="flex-1 overflow-y-auto p-6">
+           {children}
         </main>
-        <Toaster richColors position="top-right" />
         <Toaster richColors position="top-right" />
       </div>
     </div>

@@ -98,7 +98,7 @@ export default defineSchema({
 
 
 
-  // Settings table (Global App Settings)
+  // Settings table (Global App Settings) - Force Sync
   settings: defineTable({
       key: v.string(), // e.g. "sk_template_gty"
       value: v.optional(v.string()), // For small text settings

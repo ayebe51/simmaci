@@ -16,13 +16,25 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState<string | null>(null)
 
-  // Cloud Hooks
-  const cloudSettings = useQuery(api.settings.list)
-  const generateUploadUrl = useMutation(api.settings.generateUploadUrl)
-  const saveTemplate = useMutation(api.settings.saveTemplate)
+  // API Safety Check (Prevents White Screen if backend is rebuilding)
+  // Ensure we don't crash if api.settings is not yet available in the generated object
+  const isApiReady = !!api.settings
+  
+  // Cloud Hooks (Safe-guarded)
+  // If api.settings is missing, pass "skip" (undefined) to useQuery
+  const cloudSettings = useQuery(isApiReady ? api.settings.list : "skip")
+  
+  // For Mutation: fallback to a dummy or existing mutation if missing (to preserve Hook order)
+  // We won't call it if !isApiReady, but the Hook must run.
+  const generateUploadUrl = useMutation(isApiReady ? api.settings.generateUploadUrl : api.auth.changePassword)
+  const saveTemplate = useMutation(isApiReady ? api.settings.saveTemplate : api.auth.changePassword)
 
   // Cloud Upload Handler
   const handleCloudUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+      if (!isApiReady) {
+          toast.error("System sedang update API. Harap refresh 1 menit lagi.")
+          return
+      }
       const file = e.target.files?.[0]
       if (!file) return
 
@@ -256,7 +268,12 @@ export default function SettingsPage() {
 
         {/* Template Tab */}
         <TabsContent value="template">
-            {cloudSettings === undefined ? (
+            {!isApiReady ? (
+                 <div className="p-8 text-center bg-amber-50 rounded border border-amber-200 text-amber-800">
+                    <h3 className="font-bold">⚠️ Sistem Sedang Update</h3>
+                    <p>Module API Settings belum terbaca oleh browser. Mohon tunggu 1-2 menit lalu Refresh Halaman.</p>
+                </div>
+            ) : cloudSettings === undefined ? (
                 <div className="p-8 text-center text-muted-foreground animate-pulse">
                     Memuat data cloud...
                 </div>

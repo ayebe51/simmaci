@@ -4,7 +4,12 @@ import { v } from "convex/values";
 // List all settings
 export const list = query({
   handler: async (ctx) => {
-    return await ctx.db.query("settings").collect();
+    try {
+        return await ctx.db.query("settings").collect();
+    } catch (e) {
+        console.log("Settings table likely missing or empty", e);
+        return [];
+    }
   },
 });
 

@@ -62,3 +62,18 @@ export const getFileContent = query({
     return setting.value; // Returns Base64 string
   },
 });
+
+// List Settings (Metadata Only - Optimized)
+export const listSettings = query({
+  handler: async (ctx) => {
+    const settings = await ctx.db.query("settings").collect();
+    // Return only metadata to avoid sending 10MB of Base64
+    return settings.map(({ _id, _creationTime, key, mimeType, updatedAt }) => ({
+        _id,
+        _creationTime,
+        key,
+        mimeType,
+        updatedAt
+    }));
+  },
+});

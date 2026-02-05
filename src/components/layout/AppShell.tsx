@@ -93,49 +93,56 @@ export default function AppShell({ children }: AppShellProps) {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-4">
-          <nav className="grid gap-1 px-2">
-            {navItems.map((item, index) => {
-              // Exact match has priority, then check if it's a child route
-              const isExactMatch = location.pathname === item.href
-              const isChildRoute = location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard'
-              const isActive = isExactMatch || isChildRoute
-              
+          <nav className="grid gap-6 px-4">
+            {navGroups.map((group, groupIndex) => {
+              // Filter items inside the group based on RBAC
               const userStr = localStorage.getItem("user")
               const user = userStr ? JSON.parse(userStr) : null
               const userRole = user?.role || ""
 
-              // 🔐 RBAC MENU VISIBILITY CONTROL
-              
-              // 1. Generator SK - super_admin ONLY
-              if (item.label === "Generator SK" && userRole !== "super_admin") {
-                return null
-              }
+              const visibleItems = group.items.filter(item => {
+                 // 1. Generator SK - super_admin ONLY
+                 if (item.label === "Generator SK" && userRole !== "super_admin") return false
+                 // 2. Manajemen User - super_admin ONLY
+                 if (item.label === "Manajemen User" && userRole !== "super_admin") return false
+                 // 3. Approval Yayasan - super_admin & admin_yayasan ONLY
+                 if (item.label === "Approval Yayasan" && !["super_admin", "admin_yayasan"].includes(userRole)) return false
+                 // 4. Monitoring Kepala - super_admin & admin_yayasan ONLY
+                 if (item.label === "Monitoring Kepala" && !["super_admin", "admin_yayasan"].includes(userRole)) return false
+                 
+                 return true
+              })
 
-              // 2. Manajemen User - super_admin ONLY
-              if (item.label === "Manajemen User" && userRole !== "super_admin") {
-                return null
-              }
-
-              // 3. Approval Yayasan - super_admin & admin_yayasan ONLY
-              if (item.label === "Approval Yayasan" && !["super_admin", "admin_yayasan"].includes(userRole)) {
-                return null
-              }
-
-              // Note: Master data menus (Schools/Teachers/Students) are accessible to operators
-              // but data is automatically filtered to their assigned school
+              if (visibleItems.length === 0) return null
 
               return (
-                <Link
-                  key={index}
-                  to={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground",
-                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
+                <div key={groupIndex} className="flex flex-col gap-1">
+                  <h4 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    {group.title}
+                  </h4>
+                  {visibleItems.map((item, index) => {
+                     // Exact match has priority, then check if it's a child route
+                    const isExactMatch = location.pathname === item.href
+                    const isChildRoute = location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard'
+                    const isActive = isExactMatch || isChildRoute
+
+                    return (
+                      <Link
+                        key={index}
+                        to={item.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
+                          isActive
+                            ? "bg-muted text-primary"
+                            : "text-muted-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </div>
               )
             })}
           </nav>

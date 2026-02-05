@@ -191,8 +191,8 @@ export default function MySkPage() {
                                 <TableCell className="text-right">
                                     {sk.status === 'Approved' && (
                                         <Button size="sm" variant="outline" onClick={() => handleDownload(sk)}>
-                                            <Download className="mr-2 h-3 w-3" />
-                                            Unduh PDF
+                                            <FileText className="mr-2 h-3 w-3" />
+                                            Unduh Word
                                         </Button>
                                     )}
                                 </TableCell>

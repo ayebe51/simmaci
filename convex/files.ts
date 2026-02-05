@@ -9,11 +9,11 @@ export const generateUploadUrl = mutation({
   },
 });
 
-// Save Template Metadata
+// Save Template Metadata & Content (Base64) - Bypass Storage
 export const saveTemplate = mutation({
   args: {
     key: v.string(), // e.g. "sk_template_gty"
-    storageId: v.id("_storage"),
+    base64: v.string(), // Content
     mimeType: v.string(),
   },
   handler: async (ctx, args) => {
@@ -23,10 +23,17 @@ export const saveTemplate = mutation({
       .first();
 
     const now = Date.now();
+    
+    // Validate Size (approx 1MB limit check)
+    if (args.base64.length > 1000000) {
+        throw new Error("File terlalu besar (Max 1MB untuk SK Template). Gunakan kompresi.");
+    }
+
     if (existing) {
       // Update existing
       await ctx.db.patch(existing._id, { 
-          storageId: args.storageId, 
+          // We store Content in 'value' field (string)
+          value: args.base64,
           mimeType: args.mimeType,
           updatedAt: now 
       });
@@ -34,28 +41,16 @@ export const saveTemplate = mutation({
       // Insert new
       await ctx.db.insert("settings", { 
           key: args.key, 
-          storageId: args.storageId, 
+          value: args.base64, 
           mimeType: args.mimeType,
           updatedAt: now,
-          value: "TEMPLATE_FILE" // Placeholder value
       });
     }
   },
 });
 
-// List settings (Safe)
-export const listSettings = query({
-  handler: async (ctx) => {
-    try {
-        return await ctx.db.query("settings").collect();
-    } catch (e) {
-        return [];
-    }
-  },
-});
-
-// Get File URL
-export const getFileUrl = query({
+// Get File Content (Base64)
+export const getFileContent = query({
   args: { key: v.string() },
   handler: async (ctx, args) => {
     const setting = await ctx.db
@@ -63,7 +58,7 @@ export const getFileUrl = query({
       .withIndex("by_key", (q) => q.eq("key", args.key))
       .first();
     
-    if (!setting || !setting.storageId) return null;
-    return await ctx.storage.getUrl(setting.storageId);
+    if (!setting || !setting.value) return null;
+    return setting.value; // Returns Base64 string
   },
 });

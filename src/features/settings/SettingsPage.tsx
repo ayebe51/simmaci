@@ -20,13 +20,9 @@ export default function SettingsPage() {
   // Ensure we don't crash if api.settings is not yet available in the generated object
   const isApiReady = !!api.settings
   
-  // Cloud Hooks (Refactored to api.files)
-  // DISABLE QUERY TEMPORARILY to fix White Screen
-  // const cloudSettings = useQuery(isApiReady ? api.settings.list : "skip")
-  const cloudSettings: any[] = [] // Mock empty array so page loads
-  
-  // Use 'files' module instead of 'settings'
-  const generateUploadUrl = useMutation(api.files ? api.files.generateUploadUrl : api.auth.changePassword)
+  // Cloud Hooks (Database Storage Mode)
+  const cloudSettings: any[] = [] 
+  // const generateUploadUrl = useMutation(api.files ? api.files.generateUploadUrl : api.auth.changePassword) // Removed
   const saveTemplate = useMutation(api.files ? api.files.saveTemplate : api.auth.changePassword)
 
   // Cloud Upload Handler
@@ -38,30 +34,27 @@ export default function SettingsPage() {
       try {
           setIsUploading(key)
           
-          // 1. Get URL
-          const postUrl = await generateUploadUrl()
+          // CONVERSION: File -> Base64
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
           
-          // 2. POST File
-          const result = await fetch(postUrl, {
-              method: "POST",
-              headers: { "Content-Type": file.type },
-              body: file,
-          })
-          const { storageId } = await result.json()
+          reader.onload = async () => {
+              const base64 = reader.result as string;
+              
+              // DIRECT SAVE TO DB (Bypassing Storage Service)
+              await saveTemplate({
+                  key,
+                  base64,
+                  mimeType: file.type
+              })
 
-          // 3. Save ID to Settings
-          await saveTemplate({
-              key,
-              storageId,
-              mimeType: file.type
-          })
-
-          toast.success("Template berhasil diupload ke Cloud!")
+              toast.success("Template berhasil disimpan di Cloud Database!")
+              // window.location.reload() // Optional
+          };
           
-          // Force re-render logic if needed, but react query should handle invalidation if we used it.
-          // Since we mocked the query, it won't auto-update UI to show "Cloud".
-          // But the functionality works.
-          // I will add a manual page reload to hint the user? No.
+          reader.onerror = (error) => {
+              throw new Error("Gagal membaca file: " + error);
+          };
 
       } catch (err: any) {
           console.error(err)

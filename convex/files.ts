@@ -66,15 +66,20 @@ export const getFileContent = query({
 // List Settings (Metadata Only - Optimized)
 export const listSettings = query({
   handler: async (ctx) => {
-    // Force deployment update TS: 12347
-    const settings = await ctx.db.query("settings").collect();
-    // Use Safe Access and Default Values
-    return settings.map((doc) => ({
-        _id: doc._id,
-        _creationTime: doc._creationTime,
-        key: doc.key || "unknown", // Fallback
-        mimeType: doc.mimeType || "application/octet-stream",
-        updatedAt: doc.updatedAt || doc._creationTime
-    }));
+    try {
+        // Force deployment update TS: 99999
+        const settings = await ctx.db.query("settings").collect();
+        // Use Safe Access and Default Values
+        return settings.map((doc) => ({
+            _id: doc._id,
+            _creationTime: doc._creationTime,
+            key: doc.key || "unknown", 
+            mimeType: doc.mimeType || "application/octet-stream",
+            updatedAt: doc.updatedAt || doc._creationTime
+        }));
+    } catch (e) {
+        console.error("Failed to list settings (Schema Violation?):", e);
+        return []; // Fallback to empty to preventing White Screen
+    }
   },
 });

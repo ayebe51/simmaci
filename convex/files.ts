@@ -2,8 +2,11 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Generate Upload URL for Files
-export const generateUploadUrl = mutation(async (ctx) => {
-  return await ctx.storage.generateUploadUrl();
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
 });
 
 // Save Template Metadata

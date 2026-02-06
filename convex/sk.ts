@@ -414,12 +414,17 @@ export const getTeachersWithSk = query({
     filteredTeachers = filteredTeachers.filter(t => t.isActive !== false);
 
     // 2. Filter based on verification status if provided
+    /* 
+    DISABLED FOR COMPATIBILITY: Frontend might still be sending { isVerified: true } from cached version.
+    We force ignore this filter to ensure the "Bypass Inbox" workflow works immediately.
+    
     if (args.isVerified !== undefined) {
         filteredTeachers = filteredTeachers.filter(t => {
             const isVerified = t.isVerified === true; 
             return isVerified === args.isVerified;
         });
     }
+    */
     
     return filteredTeachers;
   },

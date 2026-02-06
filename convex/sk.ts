@@ -401,8 +401,12 @@ export const getTeachersWithSk = query({
     isVerified: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    // fetches ALL teachers currently in the "teachers" table (the queue)
-    const teachers = await ctx.db.query("teachers").order("desc").collect();
+    // fetches ALL teachers, sorted by Most Recently Updated
+    const teachers = await ctx.db
+        .query("teachers")
+        .withIndex("by_updatedAt")
+        .order("desc")
+        .collect();
     
     // 1. Filter out teachers who already have SK generated (Soft Cleanup)
     // DISABLED: User wants to see uploaded data even if previously generated (UPSERT case)

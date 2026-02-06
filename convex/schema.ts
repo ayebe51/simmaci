@@ -32,7 +32,8 @@ export default defineSchema({
     .index("by_nuptk", ["nuptk"])
     .index("by_unit", ["unitKerja"])
     .index("by_kecamatan", ["kecamatan"])
-    .index("by_active", ["isActive"]),
+    .index("by_active", ["isActive"])
+    .index("by_updatedAt", ["updatedAt"]),
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)

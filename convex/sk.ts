@@ -405,12 +405,17 @@ export const getTeachersWithSk = query({
     const teachers = await ctx.db.query("teachers").order("desc").collect();
     
     // 1. Filter out teachers who already have SK generated (Soft Cleanup)
-    let filteredTeachers = teachers.filter(t => (t.isSkGenerated !== true));
+    // DISABLED: User wants to see uploaded data even if previously generated (UPSERT case)
+    // We let the Frontend decide what to show, or rely on "Verification" status if needed.
+    // For now, RETURN ALL ACTIVE TEACHERS to solve visibility issues.
+    let filteredTeachers = teachers; 
+    
+    // Optional: Filter only Active?
+    filteredTeachers = filteredTeachers.filter(t => t.isActive !== false);
 
     // 2. Filter based on verification status if provided
     if (args.isVerified !== undefined) {
         filteredTeachers = filteredTeachers.filter(t => {
-            // Treat undefined/null as false (Unverified)
             const isVerified = t.isVerified === true; 
             return isVerified === args.isVerified;
         });

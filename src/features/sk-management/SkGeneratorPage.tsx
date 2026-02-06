@@ -77,8 +77,8 @@ export default function SkGeneratorPage() {
   })
 
   // -- Fetch Signer Data (Headmaster) --
-  const headmasters = useQuery(api.headmasters.get)
-  const signer = headmasters?.[0]
+  const headmasters = useQuery(api.headmasters.list)
+  const signer = headmasters?.[0] as any
 
   // New: Global Tanggal Penetapan
   const [tanggalPenetapan, setTanggalPenetapan] = useState("")

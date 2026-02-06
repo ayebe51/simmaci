@@ -270,60 +270,21 @@ export const bulkCreate = mutation({
                 if (!existing) {
                     const id = await ctx.db.insert("teachers", {
                         ...cleanData,
+                        isVerified: false, // Force to Inbox
+                        isSkGenerated: false, // Ensure visible in Queue
                         createdAt: now,
                         updatedAt: now,
                     });
                     results.push(id);
-                    
-                    // CREATE SK SUBMISSION (DRAFT)
-                    // Matches User Expectation: Upload -> Inbox Approval
-                    await ctx.db.insert("skDocuments", {
-                        nomorSk: `REQ-${cleanData.nuptk}-${now}`, // Temporary ID
-                        jenisSk: cleanData.status === "GTY" ? "SK Guru Tetap Yayasan" :
-                                 cleanData.status === "GTT" ? "SK Guru Tidak Tetap" : 
-                                 "SK Tenaga Kependidikan", // Mapping
-                        teacherId: id,
-                        nama: cleanData.nama,
-                        unitKerja: cleanData.unitKerja,
-                        status: "draft", // Goes to "Perlu Diproses"
-                        tanggalPenetapan: new Date().toISOString().split('T')[0],
-                        createdAt: now,
-                        updatedAt: now,
-                        createdBy: "Bulk Upload"
-                    });
-
                 } else {
                     // UPDATE EXISTING RECORD (UPSERT)
                     await ctx.db.patch(existing._id, {
                         ...cleanData,
+                        isVerified: false, // Force re-verification on update
+                        isSkGenerated: false, // RESET this so it reappears in Queue even if previously generated
                         updatedAt: now,
                     });
                     results.push(existing._id);
-                    
-                    // Optional: Create draft for existing teachers too?
-                    // User implies Resubmission needs approval. So YES.
-                    // Check if already has pending draft?
-                     const pendingSk = await ctx.db
-                        .query("skDocuments")
-                        .withIndex("by_teacher", (q) => q.eq("teacherId", existing._id))
-                        .filter(q => q.eq(q.field("status"), "draft"))
-                        .first();
-                    
-                    if (!pendingSk) {
-                        await ctx.db.insert("skDocuments", {
-                            nomorSk: `REQ-${cleanData.nuptk}-${now}`,
-                            jenisSk: cleanData.status === "GTY" ? "SK Guru Tetap Yayasan" :
-                                     cleanData.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
-                            teacherId: existing._id,
-                            nama: cleanData.nama,
-                            unitKerja: cleanData.unitKerja,
-                            status: "draft",
-                            tanggalPenetapan: new Date().toISOString().split('T')[0],
-                            createdAt: now,
-                            updatedAt: now,
-                             createdBy: "Bulk Upload"
-                        });
-                    }
                 }
             } catch (err) {
                 console.error("Insert/Patch Error:", err);

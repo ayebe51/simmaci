@@ -53,8 +53,6 @@ function base64DataURLToArrayBuffer(dataURL: string) {
   return bytes.buffer;
 }
 
-// Helper to load base64 template to binary string (Legacy/Unused - Removed)
-
 // Simple Base64 check
 const Base64String = (str: string) => {
     try {
@@ -62,6 +60,17 @@ const Base64String = (str: string) => {
     } catch {
         return false;
     }
+}
+
+// Helper to load base64 template to binary string (Restored for Fallback)
+const loadTemplate = (key: string): string | null => {
+    const base64 = localStorage.getItem(key + "_blob")
+    if (!base64) return null
+    // Remove data:application...
+    const block = base64.split(";base64,");
+    const realData = block[1] ? block[1] : Base64String(base64) ? base64 : null;
+    if (!realData) return null
+    return atob(realData)
 }
 
 // Helper: Add 1 year to Indonesian Date String (e.g., "16 Juli 2024" -> "16 Juli 2025")
@@ -1028,7 +1037,7 @@ export default function SkGeneratorPage() {
                             title="Nomor Awal"
                         />
                         <Button 
-                            variant="sketch" 
+                            variant="outline" 
                             size="icon" 
                             className="bg-white border-input border text-slate-500 hover:text-black hover:bg-slate-100"
                             title="Reset Nomor ke 0001"

@@ -193,12 +193,12 @@ const generateBulkSkZip = async (
 
             // Configure Image Module
             const imageOpts = {
-                getImage: function (tagValue: string, tagName: string) {
+                getImage: function (tagValue: string, _tagName: string) {
                     return base64DataURLToArrayBuffer(tagValue);
                 },
-                getSize: function (img: any, tagValue: string, tagName: string) {
+                getSize: function (img: unknown, tagValue: string, _tagName: string) {
                     // Force 100x100px for QR Codes
-                    if (tagName === "qrcode") return [100, 100];
+                    if (_tagName === "qrcode") return [100, 100];
                     return [100, 100];
                 },
             };
@@ -209,7 +209,7 @@ const generateBulkSkZip = async (
                 linebreaks: true,
                 modules: [imageModule],
                 // Fix: Return empty string instead of "undefined" text
-                nullGetter: (part) => {
+                nullGetter: (_part) => {
                      // console.warn("Missing tag:", part.value) 
                      return "" 
                 }
@@ -952,7 +952,7 @@ export default function SkGeneratorPage() {
       }
       
       // --- 2. GENERATE ZIP (Now using valid SK IDs) ---
-      const res = await generateBulkSkZip(finalData, "SK_Masal_Maarif.zip", finalData, convex) 
+      const res = await generateBulkSkZip(finalData, "SK_Masal_Maarif.zip", { data: finalData }, convex) 
       
       if (res.successCount > 0) {
           // Auto-Increment

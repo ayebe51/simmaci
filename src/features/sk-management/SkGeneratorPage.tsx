@@ -21,6 +21,16 @@ import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
 import { useConvex } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
 function base64DataURLToArrayBuffer(dataURL: string) {
@@ -234,7 +244,8 @@ const generateBulkSkZip = async (
     
     
     if (successCount === 0 && errors.length > 0) {
-        alert(`Gagal Generate SK!\n\n${errors[0]}\n\n(Cek file ERRORS_REPORT.txt di dalam ZIP untuk detail lengkap)`)
+        // alert(`Gagal Generate SK!\n\n${errors[0]}\n\n(Cek file ERRORS_REPORT.txt di dalam ZIP untuk detail lengkap)`)
+        // return { successCount, errorCount: errors.length, error: errors[0] }
     }
 
     // CRITICAL FIX: Wrap ZIP generation in try-catch
@@ -263,11 +274,11 @@ const generateBulkSkZip = async (
         console.log(`✅ ZIP saved: ${filename}, Size: ${content.size} bytes`)
     } catch (zipError: any) {
         console.error("❌ CRITICAL: ZIP Generation Failed!", zipError)
-        alert(`CRITICAL ERROR: Gagal membuat file ZIP!\n\nError: ${zipError.message}\n\nSilakan cek console untuk detail.`)
+        // alert(`CRITICAL ERROR: Gagal membuat file ZIP!\n\nError: ${zipError.message}\n\nSilakan cek console untuk detail.`)
         throw zipError // Re-throw to prevent false success
     }
     
-    return { successCount, errorCount: errors.length }
+    return { successCount, errorCount: errors.length, firstError: errors[0] }
 }
 
 // 🔥 CONVEX REAL-TIME
@@ -299,6 +310,14 @@ export default function SkGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
+  
+  // Dialog State
+  const [dialogState, setDialogState] = useState({
+      open: false,
+      title: "",
+      message: "",
+      isError: false
+  })
   const itemsPerPage = 10
 
   const [nomorMulai, setNomorMulai] = useState("0001")
@@ -927,7 +946,7 @@ export default function SkGeneratorPage() {
               // If archive fails, we probably shouldn't generate the file? 
               // Or maybe generate but with invalid QR? 
               // Better to skip to ensure consistency.
-              alert(`Gagal menyimpan data untuk ${item.nama}: ${err.message}`)
+              // alert(`Gagal menyimpan data untuk ${item.nama}: ${err.message}`)
           }
       }
 
@@ -944,13 +963,30 @@ export default function SkGeneratorPage() {
           const nextStart = (parseInt(nomorMulai) || 0) + res.successCount
           setNomorMulai(String(nextStart).padStart(4, '0'))
           
-          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\nData sudah tersimpan di Bank Data SK.\nNomor Surat berikutnya: ${String(nextStart).padStart(4, '0')}`)
+          setDialogState({
+              open: true,
+              title: "Generasi SK Berhasil! 🎉",
+              message: `Berhasil membuat ${res.successCount} berkas SK.\nData juga telah tersimpan otomatis di database.\n\nNomor Surat berikutnya: ${String(nextStart).padStart(4, '0')}`,
+              isError: false
+          })
+      } else if (res.errorCount > 0) {
+           setDialogState({
+              open: true,
+              title: "Gagal Generate SK ❌",
+              message: `Gagal membuat dokumen: \n${res.firstError || "Unknown Error"}\n\nCek file ERRORS_REPORT.txt di dalam ZIP (jika terdownload) untuk detail lengkap.`,
+              isError: true
+          })
       }
       
       setIsGenerating(false)
     } catch (e: any) {
         console.error("❌ Critical Gen Error:", e)
-        alert(`Terjadi kesalahan sistem saat generate!\n\nError: ${e.message || e}\n\nCek console untuk detail lengkap.`)
+        setDialogState({
+              open: true,
+              title: "System Error ⚠️",
+              message: `Terjadi kesalahan sistem saat generate.\nError: ${e.message || e}`,
+              isError: true
+        })
         setIsGenerating(false)
     }
   }
@@ -1277,6 +1313,24 @@ export default function SkGeneratorPage() {
                 </div>
             )}
       </div>
+      {/* DIALOG POPUP */}
+      <AlertDialog open={dialogState.open} onOpenChange={(open) => setDialogState(prev => ({ ...prev, open }))}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle className={dialogState.isError ? "text-red-600" : "text-green-600"}>
+                {dialogState.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-line text-slate-700">
+                {dialogState.message}
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setDialogState(prev => ({ ...prev, open: false }))} className={dialogState.isError ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}>
+                OK, Mengerti
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+        </AlertDialog>
     </div>
   )
 }

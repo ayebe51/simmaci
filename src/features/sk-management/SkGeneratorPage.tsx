@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -193,10 +194,10 @@ const generateBulkSkZip = async (
 
             // Configure Image Module
             const imageOpts = {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 getImage: function (tagValue: string, _tagName: string) {
                     return base64DataURLToArrayBuffer(tagValue);
                 },
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 getSize: function (img: unknown, tagValue: string, _tagName: string) {
                     // Force 100x100px for QR Codes
                     if (_tagName === "qrcode") return [100, 100];
@@ -344,10 +345,7 @@ export default function SkGeneratorPage() {
   // New: Global Kecamatan Fallback
   const [defaultKecamatan, setDefaultKecamatan] = useState("") 
 
-  const calculateValidityDate = (start: string): string => {
-      if (!start) return "-"
-      return "-"
-  }
+
   
   // ... (Lines 249-876 skipped) ...
 

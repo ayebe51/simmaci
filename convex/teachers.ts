@@ -118,6 +118,7 @@ export const create = mutation({
       console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
       await ctx.db.patch(existing._id, {
         ...args,
+        isSkGenerated: false, // RESET STATUS so it appears in Generator Queue
         updatedAt: now,
       });
       return existing._id;

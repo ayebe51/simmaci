@@ -114,7 +114,13 @@ export const create = mutation({
       .first();
     
     if (existing) {
-      throw new Error(`Teacher with NUPTK ${args.nuptk} already exists`);
+      // UPSERT LOGIC: Update existing teacher for re-submission
+      console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
+      await ctx.db.patch(existing._id, {
+        ...args,
+        updatedAt: now,
+      });
+      return existing._id;
     }
     
     return await ctx.db.insert("teachers", {

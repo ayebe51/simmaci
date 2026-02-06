@@ -109,7 +109,7 @@ const generateBulkSkZip = async (
   filename = "SK_Masal_Maarif.zip",
   debugData?: Record<string, unknown>,
   convexClient?: ConvexReactClient // Injected Convex Client
-) => {
+): Promise<{ successCount: number; errorCount: number; firstError?: string }> => {
     const zip = new JSZip()
     const folder = zip.folder("SK_Generated")
     
@@ -470,7 +470,7 @@ export default function SkGeneratorPage() {
           const matchedTags = text.match(/\{{1,2}[^{}\n\r]+\}{1,2}/g) || []
           
           // Clean tags: remove braces and trim whitespace
-          const uniqueTags = Array.from(new Set(matchedTags.map(t => t.replace(/[\{\}]/g, '').trim())))
+          const uniqueTags = Array.from(new Set(matchedTags.map(t => t.replace(/[{}]/g, '').trim())))
 
           // Create a dummy data object with ALL available keys to check against
           const sampleData = {
@@ -904,8 +904,8 @@ export default function SkGeneratorPage() {
       console.log("MAPPED DATA SAMPLE:", mappedData[0]) // Debug Log
 
       // --- 1. PRE-ARCHIVE: Create SKs first to get IDs ---
-      const finalData: any[] = []
-      let successCount = 0
+      const finalData: TeacherCandidate[] = []
+      // successCount removed (component level)
 
       for (const item of mappedData) {
           try {
@@ -935,7 +935,7 @@ export default function SkGeneratorPage() {
                   _id: skId, // <--- CRITICAL: Overwrite with SK ID
                   original_teacher_id: (item as any)._id
               })
-              successCount++
+              // successCount++ removed
 
           } catch (err: any) {
               console.error("Failed to archive SK:", item.nama, err)

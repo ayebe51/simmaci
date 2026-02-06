@@ -19,7 +19,7 @@ import { saveAs } from "file-saver"
 import ImageModule from "docxtemplater-image-module-free"
 import JSZip from "jszip"
 import { useQuery } from "convex/react"
-import { api } from "../../../../convex/_generated/api"
+import { api } from "../../../convex/_generated/api"
 import { useDepartmentConfig } from "@/hooks/useDepartmentConfig"
 // import { toast } from "sonner" // Ensure you have this or use another toast lib if needed.
 import {

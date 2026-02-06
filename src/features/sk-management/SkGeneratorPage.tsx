@@ -43,7 +43,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "../../components/ui/alert-dialog"
 
 // Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
 function base64DataURLToArrayBuffer(dataURL: string) {

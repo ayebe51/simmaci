@@ -20,7 +20,7 @@ import { Link } from "react-router-dom"
 import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
 import { useConvex } from "convex/react"
-// api import removed if unused, but check if convexApi is used alias
+// api import removed
 import { ConvexReactClient } from "convex/react"
 
 interface TeacherCandidate {
@@ -147,8 +147,10 @@ const generateBulkSkZip = async (
         return "sk_template_tendik" // Default to Tendik
     }
 
-    // successCount removed
-    // const results = await Promise.all(...)
+    let successCount = 0;
+    const errors: string[] = []
+
+    for (const data of candidates) {
         try {
             const templateId = getTemplateId(data)
             

@@ -284,10 +284,9 @@ export default function SkGeneratorPage() {
   
   // MUTATIONS
   // MUTATIONS
+  // MUTATIONS
   const createSk = useMutation(convexApi.sk.create)
-  const deleteTeacher = useMutation(convexApi.sk.deleteTeacher)
-  const deleteAllTeachers = useMutation(convexApi.sk.deleteAllTeachers)
-  // FIXED: Point to the correct new mutation
+  // Unused mutations removed
   const deleteAllSkHistory = useMutation(convexApi.sk.deleteAllSk) 
   const markAsGenerated = useMutation(convexApi.sk.markTeacherAsGenerated) 
   
@@ -452,7 +451,7 @@ export default function SkGeneratorPage() {
           const matchedTags = text.match(/\{{1,2}[^{}\n\r]+\}{1,2}/g) || []
           
           // Clean tags: remove braces and trim whitespace
-          const uniqueTags = Array.from(new Set(matchedTags.map(t => t.replace(/[\{\}]/g, '').trim())))
+          const uniqueTags = Array.from(new Set(matchedTags.map(t => t.replace(/[{}]/g, '').trim())))
 
           // Create a dummy data object with ALL available keys to check against
           const sampleData = {
@@ -599,7 +598,7 @@ export default function SkGeneratorPage() {
       if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d // Avoid plain numbers being treated as ms timestamp unless filtered above
 
       // 2. Try DD/MM/YYYY or DD-MM-YYYY
-      const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+      const parts = str.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/)
       if (parts) {
           // parts[1] is Day, parts[2] is Month, parts[3] is Year
           return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
@@ -999,7 +998,7 @@ export default function SkGeneratorPage() {
                             title="Nomor Awal"
                         />
                         <Button 
-                            variant="sketch" 
+                            variant="outline" 
                             size="icon" 
                             className="bg-white border-input border text-slate-500 hover:text-black hover:bg-slate-100"
                             title="Reset Nomor ke 0001"

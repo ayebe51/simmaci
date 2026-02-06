@@ -197,129 +197,142 @@ export const bulkCreate = mutation({
     isFullSync: v.optional(v.boolean()) // Enable Full Sync Mode
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const results = [];
-    const errors = [];
-    
-    // Track NUPTKs processed in this batch for Full Sync
-    const processedNuptks = new Set<string>();
-    const unitsInBatch = new Set<string>();
+    try {
+        const now = Date.now();
+        const results = [];
+        const errors = [];
+        
+        // Track NUPTKs processed in this batch for Full Sync
+        const processedNuptks = new Set<string>();
+        const unitsInBatch = new Set<string>();
 
-    for (const teacher of args.teachers) {
-      if (!teacher) continue; // Skip nulls
-      
-      try {
-          if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
-          if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
-          if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
-      } catch (e) {
-          // Ignore pre-processing errors
-      }
-
-      try {
-        // Ensure required fields exist
-        if (!teacher.nuptk || !teacher.nama) {
-          results.push(null);
-          errors.push(`Missing required fields for: ${teacher.nama || 'Unknown'}`);
-          continue;
-        }
-        
-        // Filter out null/undefined values
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cleanData: any = {
-          nuptk: String(teacher.nuptk).trim(),
-          nama: String(teacher.nama).trim(),
-        };
-        
-        // Map optional fields
-        if (teacher.status) cleanData.status = teacher.status;
-        if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
-        else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; // Fallback for legacy
-        
-        if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
-        if (teacher.tmt) cleanData.tmt = teacher.tmt;
-        if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
-        if (teacher.mapel) cleanData.mapel = teacher.mapel;
-        if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
-        if (teacher.email) cleanData.email = teacher.email;
-        if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
-        if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified; // NEW
-        if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
-        
-        // Identity
-        if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
-        if (teacher.tanggalLahir) cleanData.tanggalLahir = teacher.tanggalLahir;
-        if (teacher.nip) cleanData.nip = teacher.nip;
-        if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
-        if (teacher.birthPlace) cleanData.tempatLahir = teacher.birthPlace; // Fallback
-        if (teacher.birthDate) cleanData.tanggalLahir = teacher.birthDate; // Fallback
-        
-        // Set Active
-        cleanData.isActive = true;
-
-        // Check for duplicate
-        const existing = await ctx.db
-            .query("teachers")
-            .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
-            .first();
+        for (const teacher of args.teachers) {
+        if (!teacher) continue; // Skip nulls
         
         try {
-            if (!existing) {
-                const id = await ctx.db.insert("teachers", {
-                    ...cleanData,
-                    createdAt: now,
-                    updatedAt: now,
-                });
-                results.push(id);
-            } else {
-                // UPDATE EXISTING RECORD (UPSERT)
-                await ctx.db.patch(existing._id, {
-                    ...cleanData,
-                    updatedAt: now,
-                });
-                results.push(existing._id);
+            if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
+            if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
+            if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
+        } catch (e) {
+            // Ignore pre-processing errors
+        }
+
+        try {
+            // Ensure required fields exist
+            if (!teacher.nuptk || !teacher.nama) {
+            results.push(null);
+            errors.push(`Missing required fields for: ${teacher.nama || 'Unknown'}`);
+            continue;
+            }
+            
+            // Filter out null/undefined values
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const cleanData: any = {
+            nuptk: String(teacher.nuptk).trim(),
+            nama: String(teacher.nama).trim(),
+            };
+            
+            // Map optional fields
+            if (teacher.status) cleanData.status = teacher.status;
+            if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
+            else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; // Fallback for legacy
+            
+            if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
+            if (teacher.tmt) cleanData.tmt = teacher.tmt;
+            if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
+            if (teacher.mapel) cleanData.mapel = teacher.mapel;
+            if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
+            if (teacher.email) cleanData.email = teacher.email;
+            if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
+            if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified; // NEW
+            if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
+            
+            // Identity
+            if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
+            if (teacher.tanggalLahir) cleanData.tanggalLahir = teacher.tanggalLahir;
+            if (teacher.nip) cleanData.nip = teacher.nip;
+            if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
+            if (teacher.birthPlace) cleanData.tempatLahir = teacher.birthPlace; // Fallback
+            if (teacher.birthDate) cleanData.tanggalLahir = teacher.birthDate; // Fallback
+            
+            // Set Active
+            cleanData.isActive = true;
+
+            // Check for duplicate
+            const existing = await ctx.db
+                .query("teachers")
+                .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
+                .first();
+            
+            try {
+                if (!existing) {
+                    const id = await ctx.db.insert("teachers", {
+                        ...cleanData,
+                        createdAt: now,
+                        updatedAt: now,
+                    });
+                    results.push(id);
+                } else {
+                    // UPDATE EXISTING RECORD (UPSERT)
+                    await ctx.db.patch(existing._id, {
+                        ...cleanData,
+                        updatedAt: now,
+                    });
+                    results.push(existing._id);
+                }
+            } catch (err) {
+                console.error("Insert/Patch Error:", err);
+                results.push(null);
+                errors.push(`Error for ${teacher.nama}: ${(err as Error).message}`);
             }
         } catch (err) {
+            console.error("Loop Error:", err);
             results.push(null);
-            errors.push(`Error for ${teacher.nama}: ${(err as Error).message}`);
+            errors.push(`Error for ${teacher.nama || 'Unknown'}: ${(err as Error).message}`);
         }
-      } catch (err) {
-        results.push(null);
-        errors.push(`Error for ${teacher.nama || 'Unknown'}: ${(err as Error).message}`);
-      }
-    }
+        }
 
-    // FULL SYNC LOGIC
-    let deactivatedCount = 0;
-    if (args.isFullSync && unitsInBatch.size > 0) {
-        // Foreach Unit involved in this batch
-        for (const unit of unitsInBatch) {
-            // Find all Active Teachers in this Unit
-            const teachersInUnit = await ctx.db
-                .query("teachers")
-                .withIndex("by_unit", (q) => q.eq("unitKerja", unit)) 
-                .collect();
-            
-            for (const t of teachersInUnit) {
-                // If teacher is active BUT not in processed list -> Deactivate
-                if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
-                    await ctx.db.patch(t._id, {
-                        isActive: false,
-                        updatedAt: now
-                    });
-                    deactivatedCount++;
+        // FULL SYNC LOGIC
+        let deactivatedCount = 0;
+        if (args.isFullSync && unitsInBatch.size > 0) {
+            // Foreach Unit involved in this batch
+            for (const unit of unitsInBatch) {
+                // Find all Active Teachers in this Unit
+                try {
+                    const teachersInUnit = await ctx.db
+                        .query("teachers")
+                        .withIndex("by_unit", (q) => q.eq("unitKerja", unit)) 
+                        .collect();
+                    
+                    for (const t of teachersInUnit) {
+                        // If teacher is active BUT not in processed list -> Deactivate
+                        if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
+                            await ctx.db.patch(t._id, {
+                                isActive: false,
+                                updatedAt: now
+                            });
+                            deactivatedCount++;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Full Sync Error:", err);
+                    errors.push(`Full Sync Warning: Failed to sync unit ${unit}`);
                 }
             }
         }
+        
+        return { 
+        count: results.filter(id => id !== null).length, 
+        ids: results,
+        errors: errors.length > 0 ? errors : undefined,
+        deactivated: deactivatedCount,
+        version: "4.0 (Global Try Catch)" 
+        };
+    } catch (criticalError: any) {
+        // CATCH GLOBAL CRASHES
+        console.error("CRITICAL BULK CREATE ERROR:", criticalError);
+        throw new Error(`CRITICAL SERVER ERROR: ${criticalError.message}`);
     }
-    
-    return { 
-      count: results.filter(id => id !== null).length, 
-      ids: results,
-      errors: errors.length > 0 ? errors : undefined,
-      deactivated: deactivatedCount,
-      version: "3.0 (Full Sync + Trim)" 
-    };
   },
 });
 

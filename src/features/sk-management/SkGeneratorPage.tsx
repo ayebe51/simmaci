@@ -278,10 +278,9 @@ export default function SkGeneratorPage() {
   const convex = useConvex()
   // Use Convex query to get teachers
   
-  // 🔥 ONLY SHOW TEACHERS WHO HAVE SUBMITTED SK
   // Teachers from master data import won't appear here
   // Only teachers who submitted SK via submission form will show
-  const teachersData = useQuery(convexApi.sk.getTeachersWithSk, { isVerified: true }) || []
+  const teachersData = useQuery(convexApi.sk.getTeachersWithSk) || []
   
   // MUTATIONS
   // MUTATIONS
@@ -1202,6 +1201,7 @@ export default function SkGeneratorPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
+                                                 <div className="flex gap-1">
                                                  <Button 
                                                     variant="ghost" 
                                                     size="icon" 
@@ -1214,6 +1214,22 @@ export default function SkGeneratorPage() {
                                                  >
                                                     <span className="text-xs font-bold">(?)</span>
                                                 </Button>
+
+                                                {(t as any).suratPermohonanUrl && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-6 w-6 text-orange-500 hover:text-orange-700"
+                                                        title="Lihat Surat Permohonan"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            window.open((t as any).suratPermohonanUrl, '_blank')
+                                                        }}
+                                                    >
+                                                        <FileDown className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))

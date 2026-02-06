@@ -516,7 +516,8 @@ export function BulkSkSubmission() {
         try {
             const bulkResult = await bulkCreateTeacherMutation({ 
                 teachers: convexTeachers,
-                isFullSync: isFullSync 
+                isFullSync: isFullSync,
+                suratPermohonanUrl: permohonanUrl || undefined
             })
             console.log("🔍 bulkCreate result:", bulkResult)
             

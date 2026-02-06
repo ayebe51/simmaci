@@ -194,7 +194,8 @@ export const bulkDelete = mutation({
 export const bulkCreate = mutation({
   args: {
     teachers: v.array(v.any()),
-    isFullSync: v.optional(v.boolean()) // Enable Full Sync Mode
+    isFullSync: v.optional(v.boolean()), // Enable Full Sync Mode
+    suratPermohonanUrl: v.optional(v.string()), // Batch Request File
   },
   handler: async (ctx, args) => {
     try {
@@ -247,7 +248,9 @@ export const bulkCreate = mutation({
             if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified;
         else cleanData.isVerified = false; // Set Unverified to force Approval Flow
             if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
-            if (teacher.draftSk) cleanData.draftSk = teacher.draftSk; // NEW: Draft SK record
+            if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
+            if (teacher.draftSk) cleanData.draftSk = teacher.draftSk; 
+            if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl; // Batch File
             
             // Identity
             if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;

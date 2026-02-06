@@ -206,9 +206,15 @@ export const bulkCreate = mutation({
     const unitsInBatch = new Set<string>();
 
     for (const teacher of args.teachers) {
-      if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
-      if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
-      if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
+      if (!teacher) continue; // Skip nulls
+      
+      try {
+          if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
+          if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
+          if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
+      } catch (e) {
+          // Ignore pre-processing errors
+      }
 
       try {
         // Ensure required fields exist

@@ -13,15 +13,17 @@ import {
 } from "@/components/ui/table"
 import { FileDown, FileText, Loader2 } from "lucide-react"
 import { useState } from "react"
-import PizZip from "pizzip"
-import Docxtemplater from "docxtemplater"
-import { saveAs } from "file-saver"
-import ImageModule from "docxtemplater-image-module-free"
-import JSZip from "jszip"
+// Imports removed to prevent Rollup Crash - used dynamically instead
+// import PizZip from "pizzip"
+// import Docxtemplater from "docxtemplater"
+// import { saveAs } from "file-saver"
+// import ImageModule from "docxtemplater-image-module-free"
+// import JSZip from "jszip"
+
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { useDepartmentConfig } from "@/hooks/useDepartmentConfig"
-// import { toast } from "sonner" // Ensure you have this or use another toast lib if needed.
+// import { toast } from "sonner" 
 import {
   Dialog,
   DialogContent,
@@ -52,7 +54,7 @@ function base64DataURLToArrayBuffer(dataURL: string) {
   return bytes.buffer;
 }
 
-export function SkGeneratorPage() {
+export default function SkGeneratorPage() {
   const { config } = useDepartmentConfig()
   
   // -- State for Template & Excel --
@@ -75,7 +77,6 @@ export function SkGeneratorPage() {
   })
 
   // -- Fetch Signer Data (Headmaster) --
-  // Assuming we use the first headmaster found or filter by active
   const headmasters = useQuery(api.headmasters.get)
   const signer = headmasters?.[0]
 
@@ -107,7 +108,6 @@ export function SkGeneratorPage() {
            const wsname = wb.SheetNames[0];
            const ws = wb.Sheets[wsname];
            const data = XLSX.utils.sheet_to_json(ws);
-           // Auto-map initial data
            setMappedData(data); 
          };
          reader.readAsBinaryString(file);
@@ -116,7 +116,7 @@ export function SkGeneratorPage() {
          setDialogState({
             open: true,
             title: "Error Module XLSX",
-            description: "Gagal memuat modul xlsx. Pastikan sudah diinstall.",
+            description: "Gagal memuat modul xlsx.",
             isError: true
          })
        }
@@ -141,6 +141,14 @@ export function SkGeneratorPage() {
     if (!templateFile) return;
     
     try {
+        // Load libraries dynamically
+        const PizZip = (await import("pizzip")).default;
+        const Docxtemplater = (await import("docxtemplater")).default;
+        // Handle both default and named exports for image module just in case
+        const ImageModuleMod = await import("docxtemplater-image-module-free");
+        const ImageModule = ImageModuleMod.default || ImageModuleMod;
+        const { saveAs } = await import("file-saver");
+
         const reader = new FileReader();
         reader.onload = function(evt) {
             if (evt.target?.result) {
@@ -177,7 +185,6 @@ export function SkGeneratorPage() {
                     // Inject QR Code if signer has signature
                     qrcode: signer?.signature || "", // Base64 string expected
                     
-                    // Dynamic fields from Excel are in 'data'
                 }).then(() => {
                     const out = doc.getZip().generate({
                         type: "blob",
@@ -213,9 +220,18 @@ export function SkGeneratorPage() {
 
      setIsProcessing(true);
      setProgress(0);
-     const masterZip = new JSZip();
 
      try {
+        // Load libs dynamically
+        const PizZip = (await import("pizzip")).default;
+        const Docxtemplater = (await import("docxtemplater")).default;
+        const ImageModuleMod = await import("docxtemplater-image-module-free");
+        const ImageModule = ImageModuleMod.default || ImageModuleMod;
+        const JSZip = (await import("jszip")).default;
+        const { saveAs } = await import("file-saver");
+
+        const masterZip = new JSZip();
+
         // Read template once
         const templateArrayBuffer = await templateFile.arrayBuffer();
         
@@ -271,7 +287,6 @@ export function SkGeneratorPage() {
 
   const handleReset = () => {
       setTemplateFile(null);
-      // setExcelData([]); // unused in view
       setMappedData([]);
       setTanggalPenetapan("");
       setDefaultKecamatan("");
@@ -426,7 +441,7 @@ export function SkGeneratorPage() {
                 {dialogState.title}
             </DialogTitle>
             <DialogDescription>
-              {dialogState.description}
+                {dialogState.description}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

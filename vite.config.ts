@@ -11,6 +11,9 @@ export default defineConfig({
     },
   },
   build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
     rollupOptions: {
       onwarn(warning, warn) {
         // Suppress warnings

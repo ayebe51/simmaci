@@ -212,8 +212,8 @@ export const bulkCreate = mutation({
         // Filter out null/undefined values
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const cleanData: any = {
-          nuptk: String(teacher.nuptk),
-          nama: String(teacher.nama),
+          nuptk: String(teacher.nuptk).trim(),
+          nama: String(teacher.nama).trim(),
         };
         
         // Map optional fields

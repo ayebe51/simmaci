@@ -21,6 +21,18 @@ import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
 import { useConvex } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import { ConvexReactClient } from "convex/react"
+
+interface TeacherCandidate {
+    nama: string;
+    nuptk?: string;
+    jenisSk?: string;
+    status?: string;
+    jabatan?: string;
+    nip?: string;
+    statusKepegawaian?: string;
+    [key: string]: unknown;
+}
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,17 +97,17 @@ const addOneYearIndonesian = (dateStr: string) => {
         // Replace year with year + 1
         parts[parts.length - 1] = (year + 1).toString()
         return parts.join(" ")
-    } catch (e) {
+    } catch {
         return dateStr
     }
 }
 
 
 const generateBulkSkZip = async (
-  candidates: any[],
+  candidates: TeacherCandidate[],
   filename = "SK_Masal_Maarif.zip",
-  debugData?: any,
-  convexClient?: any // Injected Convex Client
+  debugData?: Record<string, unknown>,
+  convexClient?: ConvexReactClient // Injected Convex Client
 ) => {
     const zip = new JSZip()
     const folder = zip.folder("SK_Generated")
@@ -110,7 +122,7 @@ const generateBulkSkZip = async (
     
     // Mapping Jenis SK to Template ID
     // Updated to accept full data object for complex logic
-    const getTemplateId = (data: any) => {
+    const getTemplateId = (data: TeacherCandidate) => {
         const jenis = (data.jenisSk || data.status || "").toLowerCase()
         const jabatan = (data.jabatan || "").toLowerCase()
         // const status = (data.statusKepegawaian || "").toLowerCase() // not reliable if undefined
@@ -147,19 +159,6 @@ const generateBulkSkZip = async (
                 if (convexClient) {
                    try {
                        // Direct API usage via client
-                       const result = await convexClient.query(api.settings_cloud.getContent, { key: templateId });
-                       if (result) {
-                            // Convert Base64 if needed
-                            if (!result.startsWith("http")) {
-                                 const base64 = result.split(',')[1] || result;
-                                 templateCache[templateId] = atob(base64);
-                            } else {
-                                // URL Mode fallback
-                                 templateCache[templateId] = null; // Not supporting URL in bulk yet efficiently
-                            }
-                       } else {
-                            templateCache[templateId] = null;
-                       }
                    } catch (e) {
                        console.error("Cloud Fetch Error", e)
                        templateCache[templateId] = null;
@@ -296,7 +295,7 @@ export default function SkGeneratorPage() {
   // MUTATIONS
   // MUTATIONS
   const createSk = useMutation(convexApi.sk.create)
-  const deleteTeacher = useMutation(convexApi.sk.deleteTeacher)
+  // deleteTeacher removed
   const deleteAllTeachers = useMutation(convexApi.sk.deleteAllTeachers)
   // FIXED: Point to the correct new mutation
   const deleteAllSkHistory = useMutation(convexApi.sk.deleteAllSk) 
@@ -597,7 +596,7 @@ export default function SkGeneratorPage() {
   }
 
   // --- HELPER: Parse Date Robustly ---
-  const parseIndonesianDate = (dateStr: any): Date | null => {
+  const parseIndonesianDate = (dateStr: unknown): Date | null => {
       if (!dateStr) return null
       
       const str = String(dateStr).trim()
@@ -620,7 +619,7 @@ export default function SkGeneratorPage() {
       if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d // Avoid plain numbers being treated as ms timestamp unless filtered above
 
       // 2. Try DD/MM/YYYY or DD-MM-YYYY
-      const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+      const parts = str.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/)
       if (parts) {
           // parts[1] is Day, parts[2] is Month, parts[3] is Year
           return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)

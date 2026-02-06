@@ -334,18 +334,16 @@ export default function SkGeneratorPage() {
   
   // ... (Lines 249-876 skipped) ...
 
-  const handleReset = async () => {
-    if (!confirm("⚠️ PERINGATAN KERAS!\n\nApakah anda yakin ingin MENGHAPUS SEMUA DATA GURU?\nTindakan ini tidak dapat dibatalkan.")) return
+    const handleReset = async () => {
+    if (!confirm("⚠️ KONFIRMASI RESET\n\nApakah anda yakin ingin MENGHAPUS SEMUA RIWAYAT SK?\nData Guru (Master Data) TIDAK akan terhapus.\nHanya data SK yang sudah digenerate akan dibersihkan.")) return
     
-    // Double confirmation
-    if(!confirm("Yakin? Data akan hilang selamanya.")) return
-
     setIsLoading(true)
     try {
-        await deleteAllTeachers()
-        await deleteAllSkHistory() // Also wipe SK History to prevent duplicates
+        // SAFETY FIX: Do NOT delete teachers. Only delete SK History.
+        // await deleteAllTeachers() 
+        await deleteAllSkHistory() 
         setNomorMulai("0001") // Reset Counter
-        alert("Semua data guru antrean DAN riwayat SK berhasil dihapus.\nNomor Surat kembali ke 0001.")
+        alert("Riwayat SK berhasil dibersihkan.\nData Guru tetap aman.")
     } catch (e: any) {
         console.error(e)
         alert("Gagal menghapus data: " + e.message)

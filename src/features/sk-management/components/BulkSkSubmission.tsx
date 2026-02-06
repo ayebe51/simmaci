@@ -514,7 +514,10 @@ export function BulkSkSubmission() {
         log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
         let teacherIds: any[] = [];
         try {
-            const bulkResult = await bulkCreateTeacherMutation({ teachers: convexTeachers })
+            const bulkResult = await bulkCreateTeacherMutation({ 
+                teachers: convexTeachers,
+                isFullSync: isFullSync 
+            })
             console.log("🔍 bulkCreate result:", bulkResult)
             
             // ERROR HANDLING: Check for partial failures

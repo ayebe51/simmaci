@@ -194,13 +194,22 @@ export const bulkDelete = mutation({
 export const bulkCreate = mutation({
   args: {
     teachers: v.array(v.any()),
+    isFullSync: v.optional(v.boolean()) // Enable Full Sync Mode
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const results = [];
     const errors = [];
     
+    // Track NUPTKs processed in this batch for Full Sync
+    const processedNuptks = new Set<string>();
+    const unitsInBatch = new Set<string>();
+
     for (const teacher of args.teachers) {
+      if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
+      if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
+      if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
+
       try {
         // Ensure required fields exist
         if (!teacher.nuptk || !teacher.nama) {
@@ -238,25 +247,26 @@ export const bulkCreate = mutation({
         if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
         if (teacher.birthPlace) cleanData.tempatLahir = teacher.birthPlace; // Fallback
         if (teacher.birthDate) cleanData.tanggalLahir = teacher.birthDate; // Fallback
+        
+        // Set Active
+        cleanData.isActive = true;
 
         // Check for duplicate
         const existing = await ctx.db
             .query("teachers")
-            .withIndex("by_nuptk", (q) => q.eq("nuptk", teacher.nuptk))
+            .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
             .first();
         
         try {
             if (!existing) {
                 const id = await ctx.db.insert("teachers", {
                     ...cleanData,
-                    isActive: true,
                     createdAt: now,
                     updatedAt: now,
                 });
                 results.push(id);
             } else {
                 // UPDATE EXISTING RECORD (UPSERT)
-                // This allows re-importing to fix missing fields or update data
                 await ctx.db.patch(existing._id, {
                     ...cleanData,
                     updatedAt: now,
@@ -272,12 +282,37 @@ export const bulkCreate = mutation({
         errors.push(`Error for ${teacher.nama || 'Unknown'}: ${(err as Error).message}`);
       }
     }
+
+    // FULL SYNC LOGIC
+    let deactivatedCount = 0;
+    if (args.isFullSync && unitsInBatch.size > 0) {
+        // Foreach Unit involved in this batch
+        for (const unit of unitsInBatch) {
+            // Find all Active Teachers in this Unit
+            const teachersInUnit = await ctx.db
+                .query("teachers")
+                .withIndex("by_unit", (q) => q.eq("unitKerja", unit)) 
+                .collect();
+            
+            for (const t of teachersInUnit) {
+                // If teacher is active BUT not in processed list -> Deactivate
+                if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
+                    await ctx.db.patch(t._id, {
+                        isActive: false,
+                        updatedAt: now
+                    });
+                    deactivatedCount++;
+                }
+            }
+        }
+    }
     
     return { 
       count: results.filter(id => id !== null).length, 
       ids: results,
       errors: errors.length > 0 ? errors : undefined,
-      version: "2.0 (Fix Upsert)" 
+      deactivated: deactivatedCount,
+      version: "3.0 (Full Sync + Trim)" 
     };
   },
 });

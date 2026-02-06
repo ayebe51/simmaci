@@ -275,6 +275,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
 export default function SkGeneratorPage() {
+  const convex = useConvex()
   // Use Convex query to get teachers
   
   // 🔥 ONLY SHOW TEACHERS WHO HAVE SUBMITTED SK

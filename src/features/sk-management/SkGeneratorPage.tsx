@@ -20,7 +20,7 @@ import { Link } from "react-router-dom"
 import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
 import { useConvex } from "convex/react"
-import { api } from "../../../convex/_generated/api"
+// api import removed if unused, but check if convexApi is used alias
 import { ConvexReactClient } from "convex/react"
 
 interface TeacherCandidate {
@@ -147,10 +147,8 @@ const generateBulkSkZip = async (
         return "sk_template_tendik" // Default to Tendik
     }
 
-    let successCount = 0;
-    const errors: string[] = []
-
-    for (const data of candidates) {
+    // successCount removed
+    // const results = await Promise.all(...)
         try {
             const templateId = getTemplateId(data)
             
@@ -342,10 +340,8 @@ export default function SkGeneratorPage() {
   // New: Global Kecamatan Fallback
   const [defaultKecamatan, setDefaultKecamatan] = useState("") 
 
-  // Helper function to calculate +1 Year
-  const calculateValidityDate = (startDateStr: string): string => {
-      // Check if Date is valid?
-      // Simple implementation
+  const calculateValidityDate = (start: string): string => {
+      if (!start) return "-"
       return "-"
   }
   
@@ -635,7 +631,7 @@ export default function SkGeneratorPage() {
       }
 
       // Split by space, dash, or slash
-      const txtParts = str.split(/[\s\-\/]+/)
+      const txtParts = str.split(/[\s\-/]+/)
       
       if (txtParts.length >= 3) {
           const day = txtParts[0].replace(/[^0-9]/g, '')

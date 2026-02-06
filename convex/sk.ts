@@ -294,6 +294,13 @@ export const batchUpdateStatus = mutation({
       
       await ctx.db.patch(id, updateData);
       
+      // 🔥 LINK: Verify Teacher when SK is Approved
+      if (args.status === "approved" && sk.teacherId) {
+          await ctx.db.patch(sk.teacherId, { isVerified: true });
+      } else if (args.status === "rejected" && sk.teacherId) {
+          await ctx.db.patch(sk.teacherId, { isVerified: false });
+      }
+      
       // 🔔 Notification: Notify SK creator
       if (sk.createdBy && args.status !== "draft") {
         try {

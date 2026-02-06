@@ -244,8 +244,10 @@ export const bulkCreate = mutation({
             if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
             if (teacher.email) cleanData.email = teacher.email;
             if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
-            if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified; // NEW
+            if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified;
+        else cleanData.isVerified = false; // Set Unverified to force Approval Flow
             if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
+            if (teacher.draftSk) cleanData.draftSk = teacher.draftSk; // NEW: Draft SK record
             
             // Identity
             if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
@@ -272,6 +274,24 @@ export const bulkCreate = mutation({
                         updatedAt: now,
                     });
                     results.push(id);
+                    
+                    // CREATE SK SUBMISSION (DRAFT)
+                    // Matches User Expectation: Upload -> Inbox Approval
+                    await ctx.db.insert("skDocuments", {
+                        nomorSk: `REQ-${cleanData.nuptk}-${now}`, // Temporary ID
+                        jenisSk: cleanData.status === "GTY" ? "SK Guru Tetap Yayasan" :
+                                 cleanData.status === "GTT" ? "SK Guru Tidak Tetap" : 
+                                 "SK Tenaga Kependidikan", // Mapping
+                        teacherId: id,
+                        nama: cleanData.nama,
+                        unitKerja: cleanData.unitKerja,
+                        status: "draft", // Goes to "Perlu Diproses"
+                        tanggalPenetapan: new Date().toISOString().split('T')[0],
+                        createdAt: now,
+                        updatedAt: now,
+                        createdBy: "Bulk Upload"
+                    });
+
                 } else {
                     // UPDATE EXISTING RECORD (UPSERT)
                     await ctx.db.patch(existing._id, {
@@ -279,6 +299,31 @@ export const bulkCreate = mutation({
                         updatedAt: now,
                     });
                     results.push(existing._id);
+                    
+                    // Optional: Create draft for existing teachers too?
+                    // User implies Resubmission needs approval. So YES.
+                    // Check if already has pending draft?
+                     const pendingSk = await ctx.db
+                        .query("skDocuments")
+                        .withIndex("by_teacher", (q) => q.eq("teacherId", existing._id))
+                        .filter(q => q.eq(q.field("status"), "draft"))
+                        .first();
+                    
+                    if (!pendingSk) {
+                        await ctx.db.insert("skDocuments", {
+                            nomorSk: `REQ-${cleanData.nuptk}-${now}`,
+                            jenisSk: cleanData.status === "GTY" ? "SK Guru Tetap Yayasan" :
+                                     cleanData.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
+                            teacherId: existing._id,
+                            nama: cleanData.nama,
+                            unitKerja: cleanData.unitKerja,
+                            status: "draft",
+                            tanggalPenetapan: new Date().toISOString().split('T')[0],
+                            createdAt: now,
+                            updatedAt: now,
+                             createdBy: "Bulk Upload"
+                        });
+                    }
                 }
             } catch (err) {
                 console.error("Insert/Patch Error:", err);

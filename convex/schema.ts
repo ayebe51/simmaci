@@ -24,6 +24,7 @@ export default defineSchema({
     isSkGenerated: v.optional(v.boolean()), // Status: SK Generated? (Soft Delete from Queue)
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
+    suratPermohonanUrl: v.optional(v.string()), // For Batch Upload request letter
     ktaNumber: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -39,9 +39,9 @@ function base64DataURLToArrayBuffer(dataURL: string) {
   }
   const stringBase64 = dataURL.replace(base64Regex, "");
   let binaryString;
+  if (typeof window !== "undefined") {
     binaryString = window.atob(stringBase64);
   } else {
-    // Fallback or Error for non-browser env
     throw new Error("Window not defined for base64 decoding");
   }
   const len = binaryString.length;

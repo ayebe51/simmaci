@@ -195,12 +195,17 @@ export const bulkDelete = mutation({
 export const bulkCreate = mutation({
   args: {
     teachers: v.array(v.any()),
+    isFullSync: v.optional(v.boolean()), // Feature: Full Synchronization
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     const results = [];
     const errors = [];
     
+    // Track processed NUPTKs and Units for Full Sync
+    const processedNuptks = new Set<string>();
+    const affectedUnits = new Set<string>();
+
     for (const teacher of args.teachers) {
       try {
         // Ensure required fields exist
@@ -210,6 +215,11 @@ export const bulkCreate = mutation({
           continue;
         }
         
+        // Track for Sync
+        processedNuptks.add(String(teacher.nuptk));
+        if (teacher.unitKerja) affectedUnits.add(teacher.unitKerja);
+        else if (teacher.satminkal) affectedUnits.add(teacher.satminkal);
+
         // Filter out null/undefined values
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const cleanData: any = {
@@ -273,12 +283,35 @@ export const bulkCreate = mutation({
         errors.push(`Error for ${teacher.nama || 'Unknown'}: ${(err as Error).message}`);
       }
     }
+
+    // --- FULL SYNC LOGIC ---
+    // If enabled, deactivate teachers in SAME UNITS who were NOT in the import list
+    let deactivatedCount = 0;
+    if (args.isFullSync && affectedUnits.size > 0) {
+        // Fetch all active teachers
+        const allTeachers = await ctx.db.query("teachers").filter(q => q.eq(q.field("isActive"), true)).collect();
+        
+        for (const t of allTeachers) {
+             // Only check teachers in the affected units
+             if (t.unitKerja && affectedUnits.has(t.unitKerja)) {
+                  // If teacher is NOT in the import list (by NUPTK)
+                  if (t.nuptk && !processedNuptks.has(t.nuptk)) {
+                      await ctx.db.patch(t._id, { 
+                          isActive: false,
+                          updatedAt: now 
+                      });
+                      deactivatedCount++;
+                  }
+             }
+        }
+    }
     
     return { 
       count: results.filter(id => id !== null).length, 
       ids: results,
       errors: errors.length > 0 ? errors : undefined,
-      version: "2.0 (Fix Upsert)" 
+      deactivated: deactivatedCount,
+      version: "2.1 (Full Sync)" 
     };
   },
 });

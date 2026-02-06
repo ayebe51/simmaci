@@ -402,6 +402,7 @@ export const getTeachersWithSk = query({
   },
   handler: async (ctx, args) => {
     // fetches ALL teachers, sorted by Most Recently Updated
+    // BEST PRACTICE: Use Database Index for Scalability (Not Memory Sort)
     const teachers = await ctx.db
         .query("teachers")
         .withIndex("by_updatedAt")

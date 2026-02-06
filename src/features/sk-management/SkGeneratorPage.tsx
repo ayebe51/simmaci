@@ -54,12 +54,6 @@ function base64DataURLToArrayBuffer(dataURL: string) {
 }
 
 // Helper to load base64 template to binary string (Legacy/Unused - Removed)
-    // Remove data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,
-    const block = base64.split(";base64,");
-    const realData = block[1] ? block[1] : Base64String(base64) ? base64 : null; // simplified
-    if (!realData) return null
-    return atob(realData)
-}
 
 // Simple Base64 check
 const Base64String = (str: string) => {

@@ -196,6 +196,7 @@ const generateBulkSkZip = async (
                 getImage: function (tagValue: string, _tagName: string) {
                     return base64DataURLToArrayBuffer(tagValue);
                 },
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 getSize: function (img: unknown, tagValue: string, _tagName: string) {
                     // Force 100x100px for QR Codes
                     if (_tagName === "qrcode") return [100, 100];
@@ -209,6 +210,7 @@ const generateBulkSkZip = async (
                 linebreaks: true,
                 modules: [imageModule],
                 // Fix: Return empty string instead of "undefined" text
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 nullGetter: (_part) => {
                      // console.warn("Missing tag:", part.value) 
                      return "" 
@@ -740,7 +742,7 @@ export default function SkGeneratorPage() {
       const yyyy = dateObj.getFullYear()
 
       // Calculate +1 Year Validity
-      const tanggalHabisBerlaku = calculateValidityDate(finalTanggalPenetapan)
+      // const tanggalHabisBerlaku removed
       const tanggalSuratMasukFormatted = parseIndonesianDate(tanggalSuratMasuk) 
             ? parseIndonesianDate(tanggalSuratMasuk)!.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'})
             : (tanggalSuratMasuk || "-")

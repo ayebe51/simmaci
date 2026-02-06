@@ -19,6 +19,8 @@ import Docxtemplater from "docxtemplater"
 import { Link } from "react-router-dom"
 import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
+import { useConvex } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 
 // Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
 function base64DataURLToArrayBuffer(dataURL: string) {
@@ -83,7 +85,8 @@ const addOneYearIndonesian = (dateStr: string) => {
 const generateBulkSkZip = async (
   candidates: any[],
   filename = "SK_Masal_Maarif.zip",
-  debugData?: any // Added for debugging
+  debugData?: any,
+  convexClient?: any // Injected Convex Client
 ) => {
     const zip = new JSZip()
     const folder = zip.folder("SK_Generated")
@@ -130,8 +133,34 @@ const generateBulkSkZip = async (
         try {
             const templateId = getTemplateId(data)
             
+            // NEW: Fetch from Cloud if not cached
             if (templateCache[templateId] === undefined) {
-                templateCache[templateId] = loadTemplate(templateId)
+                if (convexClient) {
+                   try {
+                       // Direct API usage via client
+                       const result = await convexClient.query(api.settings_cloud.getContent, { key: templateId });
+                       if (result) {
+                            // Convert Base64 if needed
+                            if (!result.startsWith("http")) {
+                                 const base64 = result.split(',')[1] || result;
+                                 templateCache[templateId] = atob(base64);
+                            } else {
+                                // URL Mode fallback
+                                 templateCache[templateId] = null; // Not supporting URL in bulk yet efficiently
+                            }
+                       } else {
+                            templateCache[templateId] = null;
+                       }
+                   } catch (e) {
+                       console.error("Cloud Fetch Error", e)
+                       templateCache[templateId] = null;
+                   }
+                }
+                
+                // Fallback to LocalStorage if Cloud failed or Client not provided
+                if (!templateCache[templateId]) {
+                    templateCache[templateId] = loadTemplate(templateId)
+                }
             }
 
             const content = templateCache[templateId]
@@ -907,7 +936,7 @@ export default function SkGeneratorPage() {
       }
       
       // --- 2. GENERATE ZIP (Now using valid SK IDs) ---
-      const res = await generateBulkSkZip(finalData, "SK_Masal_Maarif.zip", finalData) 
+      const res = await generateBulkSkZip(finalData, "SK_Masal_Maarif.zip", finalData, convex) 
       
       if (res.successCount > 0) {
           // Auto-Increment

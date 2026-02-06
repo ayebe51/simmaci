@@ -19,7 +19,8 @@ import Docxtemplater from "docxtemplater"
 import { Link } from "react-router-dom"
 import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
-import { useConvex } from "convex/react"
+import { useConvex, useQuery, useMutation } from "convex/react"
+import { api as convexApi } from "../../../convex/_generated/api"
 // api import removed
 import { ConvexReactClient } from "convex/react"
 
@@ -280,8 +281,7 @@ const generateBulkSkZip = async (
 }
 
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
+// Imports moved to top
 
 export default function SkGeneratorPage() {
   const convex = useConvex()

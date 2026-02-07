@@ -993,20 +993,9 @@ export default function SkGeneratorPage() {
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Reset SK History
             </Button>
-    const cleanSk = useMutation(api.cleanup.cleanSk)
-
-    const handleReset = async () => {
-        if (!confirm("⚠️ BERSIHKAN DRAFT \n\nHapus semua data 'Draft' yang nyangkut di Pengajuan SK?\n(Data Guru Master & SK Jadi TIDAK akan dihapus)")) return
-        
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const res: any = await cleanSk()
-            alert(`Selesai! Dihapus: ${res.draftsDeleted} draft.`)
-        } catch (error) {
-            console.error(error)
-            alert("Gagal reset.")
-        }
-    }
+            <Button variant="destructive" onClick={handleReset} disabled={isLoading} title="Hapus Data Guru + Riwayat SK">
+                <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data
+            </Button>
              <Button variant="outline" asChild>
                 <Link to="/dashboard/settings">
                     <Settings className="mr-2 h-4 w-4" /> Atur Template & Tanda Tangan

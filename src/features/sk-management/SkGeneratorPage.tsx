@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Trash2 } from "lucide-react"
+import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Trash2, Eye } from "lucide-react"
 import { useState, useEffect } from "react"
 // Removed: import { saveAs } from "file-saver" - using native browser download instead
 import JSZip from "jszip"

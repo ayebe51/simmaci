@@ -73,6 +73,7 @@ export const create = mutation({
     tanggalPenetapan: v.string(),
     status: v.optional(v.string()),
     fileUrl: v.optional(v.string()),
+    suratPermohonanUrl: v.optional(v.string()), // NEW field
     qrCode: v.optional(v.string()),
     createdBy: v.optional(v.string()), // 🔥 CHANGED to optional string (fix for bulk upload)
   },
@@ -402,18 +403,19 @@ export const getTeachersWithSk = query({
   },
   handler: async (ctx, args) => {
     // fetches ALL teachers, sorted by Most Recently Updated
-    // BEST PRACTICE: Use Database Index for Scalability (Not Memory Sort)
+    // BEST PRACTICE: Use Database Index for Scalability
     const teachers = await ctx.db
         .query("teachers")
         .withIndex("by_updatedAt")
         .order("desc")
         .collect();
     
+    // Manual Sort Removed (Using Database Index)
+    
     // 1. Filter out teachers who already have SK generated (Soft Cleanup)
-    // DISABLED: User wants to see uploaded data even if previously generated (UPSERT case)
-    // We let the Frontend decide what to show, or rely on "Verification" status if needed.
-    // For now, RETURN ALL ACTIVE TEACHERS to solve visibility issues.
-    let filteredTeachers = teachers; 
+    // ENABLED: Auto-hide after generation
+    let filteredTeachers = teachers;
+    filteredTeachers = filteredTeachers.filter(t => !t.isSkGenerated); 
     
     // Optional: Filter only Active?
     filteredTeachers = filteredTeachers.filter(t => t.isActive !== false);

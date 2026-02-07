@@ -1059,12 +1059,32 @@ export default function SkGeneratorPage() {
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-2 mt-2">
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">No. Surat Permohonan</label>
-                        <Input 
-                            value={nomorSuratMasuk}
-                            onChange={e => setNomorSuratMasuk(e.target.value)}
-                            placeholder="Contoh: 005/MWC/..."
-                            className="bg-white"
-                        />
+                        <div className="flex gap-1">
+                            <Input 
+                                value={nomorSuratMasuk}
+                                onChange={e => setNomorSuratMasuk(e.target.value)}
+                                placeholder="Contoh: 005/MWC/..."
+                                className="bg-white"
+                            />
+                            {/* VIEW LETTER BUTTON */}
+                            {(() => {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const url = teachersData?.find((t: any) => selectedIds.has(t._id) && t.suratPermohonanUrl)?.suratPermohonanUrl
+                                return (
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        type="button"
+                                        disabled={!url}
+                                        title={url ? "Lihat Surat Permohonan (Preview)" : "Pilih guru dengan surat dulu"}
+                                        onClick={() => url && window.open(url, '_blank')}
+                                        className="bg-white hover:bg-blue-50 text-blue-600 border-blue-200"
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                )
+                            })()}
+                        </div>
                     </div>
                     <div className="space-y-1">
                         <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tgl. Surat Permohonan</label>

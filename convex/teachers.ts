@@ -286,7 +286,7 @@ export const bulkCreate = mutation({
                 if (!existing) {
                     const id = await ctx.db.insert("teachers", {
                         ...cleanData,
-                        isVerified: false, // Force to Inbox
+                        isVerified: true, // FIXED: Bypass Approval Inbox for Bulk Upload
                         isSkGenerated: false, // Ensure visible in Queue
                         createdAt: now,
                         updatedAt: now,
@@ -296,8 +296,8 @@ export const bulkCreate = mutation({
                     // UPDATE EXISTING RECORD (UPSERT)
                     await ctx.db.patch(existing._id, {
                         ...cleanData,
-                        isVerified: false, // Force re-verification on update
-                        isSkGenerated: false, // RESET this so it reappears in Queue even if previously generated
+                        isVerified: true, // FIXED: Bypass Approval Inbox
+                        isSkGenerated: false, // RESET this so it reappears in Queue
                         updatedAt: now,
                     });
                     results.push(existing._id);

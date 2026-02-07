@@ -130,6 +130,7 @@ export default defineSchema({
     tanggalPenetapan: v.string(),
     status: v.string(), // 'draft', 'active', 'archived'
     fileUrl: v.optional(v.string()),
+    suratPermohonanUrl: v.optional(v.string()), // Original Request File
     qrCode: v.optional(v.string()),
     createdBy: v.optional(v.string()), // Optional string to support bulk upload
     // Archive metadata

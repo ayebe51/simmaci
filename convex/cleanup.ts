@@ -32,22 +32,22 @@ export const cleanSk = mutation({
 
     // 2. DELETE TEACHER CANDIDATES (If Requested)
     if (args.deleteTeachers) {
-        // Delete "Draft" AND "Active" candidates that have NOT generated SK yet
-        // OR simply delete ALL teachers in the list if they are not "Permanent Master"?
-        // Since we don't have a specific flag for "Bulk Upload", we rely on the user's intent to clear
-        // the "Generator Page".
-        // The generator page usually shows teachers who match certain criteria.
-        // SAFEGUARD: Delete only those who are NOT verified? No, bulk upload is verified.
+        // "Logika sama dengan ketika SK digenerate"
+        // Meaning: Do NOT delete the data. Just mark them as processed so they disappear from the list.
+        // This preserves "Master Data".
         
-        // Let's delete teachers created recently? No.
-        // Let's delete teachers who are NOT skGenerated.
         const candidates = await ctx.db
             .query("teachers")
-            .filter(q => q.eq(q.field("isSkGenerated"), false)) // Only delete those waiting for SK
+            .filter(q => q.eq(q.field("isSkGenerated"), false))
             .collect();
 
         for (const t of candidates) {
-            await ctx.db.delete(t._id);
+            // Mimic Generate Logic: Mark as generated (Hidden from queue), set Active/Verified
+            await ctx.db.patch(t._id, { 
+                isSkGenerated: true, 
+                isVerified: true, 
+                status: "active" 
+            });
         }
         teachersDeleted = candidates.length;
     }

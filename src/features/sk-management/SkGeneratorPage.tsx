@@ -297,6 +297,9 @@ export default function SkGeneratorPage() {
   // Unused mutations removed
   const deleteAllSkHistory = useMutation(convexApi.sk.deleteAllSk) 
   const markAsGenerated = useMutation(convexApi.sk.markTeacherAsGenerated) 
+  // FIXED: Add CleanSK hook for Smart Reset
+  const cleanSk = useMutation(convexApi.cleanup.cleanSk)
+
   
   // STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -336,20 +339,19 @@ export default function SkGeneratorPage() {
   // ... (Lines 249-876 skipped) ...
 
     const handleReset = async () => {
-    if (!confirm("⚠️ KONFIRMASI RESET\n\nApakah anda yakin ingin MENGHAPUS SEMUA RIWAYAT SK?\nData Guru (Master Data) TIDAK akan terhapus.\nHanya data SK yang sudah digenerate akan dibersihkan.")) return
+    if (!confirm("⚠️ BERSIHKAN DRAFT \n\nHapus semua data 'Draft' yang nyangkut di Pengajuan SK?\n(Data Guru Master & SK Jadi TIDAK akan dihapus)")) return
     
     setIsLoading(true)
     try {
-        // SAFETY FIX: Do NOT delete teachers. Only delete SK History.
-        // await deleteAllTeachers() 
-        await deleteAllSkHistory() 
-        setNomorMulai("0001") // Reset Counter
-        alert("Riwayat SK berhasil dibersihkan.\nData Guru tetap aman.")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res: any = await cleanSk()
+        alert(`Selesai! Dihapus: ${res.draftsDeleted} draft.`)
+        window.location.reload()
     } catch (e) {
         console.error(e)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errMsg = (e as any)?.message || String(e)
-        alert("Gagal menghapus data: " + errMsg)
+        alert("Gagal reset data: " + errMsg)
     } finally {
         setIsLoading(false)
     }
@@ -991,9 +993,20 @@ export default function SkGeneratorPage() {
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Reset SK History
             </Button>
-            <Button variant="destructive" onClick={handleReset} disabled={isLoading} title="Hapus Data Guru + Riwayat SK">
-                <Trash2 className="mr-2 h-4 w-4" /> Hapus Semua Data
-            </Button>
+    const cleanSk = useMutation(api.cleanup.cleanSk)
+
+    const handleReset = async () => {
+        if (!confirm("⚠️ BERSIHKAN DRAFT \n\nHapus semua data 'Draft' yang nyangkut di Pengajuan SK?\n(Data Guru Master & SK Jadi TIDAK akan dihapus)")) return
+        
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const res: any = await cleanSk()
+            alert(`Selesai! Dihapus: ${res.draftsDeleted} draft.`)
+        } catch (error) {
+            console.error(error)
+            alert("Gagal reset.")
+        }
+    }
              <Button variant="outline" asChild>
                 <Link to="/dashboard/settings">
                     <Settings className="mr-2 h-4 w-4" /> Atur Template & Tanda Tangan

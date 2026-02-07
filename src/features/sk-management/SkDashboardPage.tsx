@@ -59,7 +59,10 @@ export default function SkDashboardPage() {
   const verifyTeacherMutation = useMutation(convexApi.sk.verifyTeacher)
   const rejectTeacherMutation = useMutation(convexApi.sk.rejectTeacher)
   // We need to use valid mutations. create for SK is `create` not `approve`
+  // We need to use valid mutations. create for SK is `create` not `approve`
   const createSkMutation = useMutation(convexApi.sk.create)
+  // FIXED: Add CleanSK hook
+  const cleanSk = useMutation(convexApi.cleanup.cleanSk)
   
   // Selection state for batch operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -196,13 +199,17 @@ export default function SkDashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  const handleReset = async () => {
-    if (!confirm("⚠️ PERINGATAN! \n\nApakah anda yakin ingin MENGHAPUS SEMUA riwayat SK?\nTindakan ini akan mengarsipkan semua SK.")) return
+    const handleReset = async () => {
+    if (!confirm("⚠️ RESET PENGAJUAN SK \n\nApakah anda yakin ingin menghapus SEMUA data di 'Perlu Diproses' (Draft)?\nData Guru Master & SK yang sudah terbit TIDAK akan dihapus.")) return
     
     try {
-        const result = await archiveAllSk()
-        alert(`Berhasil mengarsipkan ${result.count} dokumen SK.`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = await cleanSk()
+        alert(`Berhasil membersihkan ${result.draftsDeleted} data sampah (Draft).`)
+        // Refresh?
+        window.location.reload() 
     } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         alert("Gagal reset data: " + (e as any).message)
     }
   }

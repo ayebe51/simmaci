@@ -20,10 +20,13 @@ export const cleanSk = mutation({
         }
         skDeleted = docs.length;
         
-        // Also reset 'isSkGenerated' on teachers?
-        const teachers = await ctx.db.query("teachers").collect();
+        // Optimize: Only fetch teachers that HAVE generated SK
+        const teachers = await ctx.db.query("teachers")
+            .filter(q => q.eq(q.field("isSkGenerated"), true))
+            .collect();
+            
         for(const t of teachers) {
-            if (t.isSkGenerated) await ctx.db.patch(t._id, { isSkGenerated: false });
+            await ctx.db.patch(t._id, { isSkGenerated: false });
         }
     }
 

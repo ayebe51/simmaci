@@ -433,7 +433,22 @@ export const getTeachersWithSk = query({
     }
     */
     
-    return filteredTeachers;
+    // 2. Filter based on verification status if provided
+    /* 
+    DISABLED FOR COMPATIBILITY: ...
+    */
+    
+    // 3. Resolve Storage IDs to URLs (for View Button)
+    const result = await Promise.all(filteredTeachers.map(async (t) => {
+        let finalUrl = t.suratPermohonanUrl;
+        // If it's a Storage ID (no http), resolve it
+        if (t.suratPermohonanUrl && !t.suratPermohonanUrl.startsWith("http")) {
+            finalUrl = await ctx.storage.getUrl(t.suratPermohonanUrl);
+        }
+        return { ...t, suratPermohonanUrl: finalUrl };
+    }));
+
+    return result;
   },
 });
 

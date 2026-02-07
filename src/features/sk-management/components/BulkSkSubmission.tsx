@@ -27,6 +27,7 @@ export function BulkSkSubmission() {
   const bulkCreateTeacherMutation = useMutation(convexApi.teachers.bulkCreate)
   const createTeacherMutation = useMutation(convexApi.teachers.create)
   const createSkMutation = useMutation(convexApi.sk.create)
+  const generateUploadUrl = useMutation(convexApi.files.generateUploadUrl)
   
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const [candidates, setCandidates] = useState<any[]>([])
@@ -428,9 +429,22 @@ export function BulkSkSubmission() {
     if (suratPermohonanFile) {
         log(`Mengupload surat permohonan: ${suratPermohonanFile.name}...`)
         try {
-            const uploadRes = await api.uploadFile(suratPermohonanFile);
-            permohonanUrl = uploadRes.url;
-            log(`Upload berhasil: ${permohonanUrl}`);
+            // STEP 1: Get Upload URL
+            const postUrl = await generateUploadUrl();
+            
+            // STEP 2: POST the file
+            const result = await fetch(postUrl, {
+                method: "POST",
+                headers: { "Content-Type": suratPermohonanFile.type },
+                body: suratPermohonanFile,
+            });
+
+            if (!result.ok) throw new Error(`Upload failed: ${result.statusText}`);
+            
+            const { storageId } = await result.json();
+            permohonanUrl = storageId; // Store Storage ID (Backend will resolve it)
+            
+            log(`Upload berhasil. Storage ID: ${storageId}`);
         } catch (e: any) {
             log(`Gagal upload file: ${e.message}`);
             alert("Gagal mengupload surat permohonan! " + e.message);

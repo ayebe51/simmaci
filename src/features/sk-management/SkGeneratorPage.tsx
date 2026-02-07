@@ -339,13 +339,14 @@ export default function SkGeneratorPage() {
   // ... (Lines 249-876 skipped) ...
 
     const handleReset = async () => {
-    if (!confirm("⚠️ BERSIHKAN DRAFT \n\nHapus semua data 'Draft' yang nyangkut di Pengajuan SK?\n(Data Guru Master & SK Jadi TIDAK akan dihapus)")) return
+    if (!confirm("⚠️ PERINGATAN KERAS \n\nHapus SEMUA Data Calon Guru di halaman ini?\n(Gunakan ini jika upload data anda salah)\n\nData SK History TETAP AMAN.")) return
     
     setIsLoading(true)
     try {
+        // Delete Teachers (Candidates), Keep SK
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res: any = await cleanSk()
-        alert(`Selesai! Dihapus: ${res.draftsDeleted} draft.`)
+        const res: any = await cleanSk({ deleteTeachers: true, deleteSk: false })
+        alert(`Selesai! Dihapus: ${res.teachersDeleted} data guru.`)
         window.location.reload()
     } catch (e) {
         console.error(e)
@@ -358,13 +359,16 @@ export default function SkGeneratorPage() {
   }
 
   const handleResetSkHistoryOnly = async () => {
-    if (!confirm("⚠️ KONFIRMASI PENTING \n\nApakah anda yakin ingin menghapus HANYA RIWAYAT SK?\n\n- Data guru antrean TETAP ADA.\n- Nomor SK yang sudah terbentuk akan DIHAPUS.\n- Anda bisa generate ulang dari awal.\n\nLanjutkan?")) return
+    if (!confirm("⚠️ PERINGATAN \n\nApakah anda yakin ingin menghapus SEMUA RIWAYAT SK?\n\n- Data guru antrean TETAP ADA.\n- Nomor SK yang sudah terbentuk akan DIHAPUS.\n\nLanjutkan?")) return
     
     setIsLoading(true)
     try {
-        const res = await deleteAllSkHistory()
+        // Delete SK, Keep Teachers
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res: any = await cleanSk({ deleteTeachers: false, deleteSk: true })
         setNomorMulai("0001") // Reset Counter
-        alert(`✅ Berhasil menghapus ${res.count} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
+        alert(`✅ Berhasil menghapus ${res.skDeleted} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
+        window.location.reload()
     } catch (e) {
         console.error(e)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1078,7 +1082,7 @@ export default function SkGeneratorPage() {
                                         size="icon"
                                         type="button"
                                         disabled={!url}
-                                        title={url ? "Lihat Surat Permohonan (Preview)" : "Pilih guru dengan surat dulu"}
+                                        title={url ? "Lihat Surat Permohonan (Preview)" : "Pilih salah satu guru ditabel bawah untuk melihat surat"}
                                         onClick={() => url && window.open(url, '_blank')}
                                         className="bg-white hover:bg-blue-50 text-blue-600 border-blue-200"
                                     >

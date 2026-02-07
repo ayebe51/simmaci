@@ -2,6 +2,18 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { validateSession } from "./auth_helpers";
 
+// --- STORAGE HELPERS ---
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
+
+export const getPhotoUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
 // Get all teachers with optional filters
 export const list = query({
   args: {
@@ -193,6 +205,7 @@ export const bulkDelete = mutation({
 // Bulk create teachers (for import) - ULTRA FLEXIBLE VERSION
 export const bulkCreate = mutation({
   args: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     teachers: v.array(v.any()),
     isFullSync: v.optional(v.boolean()), // Enable Full Sync Mode
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
@@ -214,7 +227,7 @@ export const bulkCreate = mutation({
             if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
             if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
             if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
-        } catch (e) {
+        } catch {
             // Ignore pre-processing errors
         }
 
@@ -340,6 +353,7 @@ export const bulkCreate = mutation({
     } catch (criticalError: any) {
         // CATCH GLOBAL CRASHES
         console.error("CRITICAL BULK CREATE ERROR:", criticalError);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         throw new Error(`CRITICAL SERVER ERROR: ${criticalError.message}`);
     }
   },
@@ -435,6 +449,7 @@ export const importTeachers = mutation({
           });
           success++;
         }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         console.error(`Import Error for ${t.nama}:`, err);
         errors.push(`${t.nama}: ${err.message}`);

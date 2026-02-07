@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -73,19 +73,21 @@ const addOneYearIndonesian = (dateStr: string) => {
         const year = parseInt(parts[parts.length - 1])
         if (isNaN(year)) return dateStr
         
-        // Replace year with year + 1
         parts[parts.length - 1] = (year + 1).toString()
         return parts.join(" ")
-    } catch (e) {
+    } catch {
         return dateStr
     }
 }
 
 
 const generateBulkSkZip = async (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   candidates: any[],
   filename = "SK_Masal_Maarif.zip",
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debugData?: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   convexClient?: any // Injected Convex Client
 ) => {
     const zip = new JSZip()
@@ -101,6 +103,7 @@ const generateBulkSkZip = async (
     
     // Mapping Jenis SK to Template ID
     // Updated to accept full data object for complex logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getTemplateId = (data: any) => {
         const jenis = (data.jenisSk || data.status || "").toLowerCase()
         const jabatan = (data.jabatan || "").toLowerCase()
@@ -184,10 +187,11 @@ const generateBulkSkZip = async (
 
             // Configure Image Module
             const imageOpts = {
-                getImage: function (tagValue: string, tagName: string) {
+                getImage: function (tagValue: string) {
                     return base64DataURLToArrayBuffer(tagValue);
                 },
-                getSize: function (img: any, tagValue: string, tagName: string) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                getSize: function (img: any, _tagValue: string, tagName: string) {
                     // Force 100x100px for QR Codes
                     if (tagName === "qrcode") return [100, 100];
                     return [100, 100];
@@ -200,7 +204,7 @@ const generateBulkSkZip = async (
                 linebreaks: true,
                 modules: [imageModule],
                 // Fix: Return empty string instead of "undefined" text
-                nullGetter: (part) => {
+                nullGetter: () => {
                      // console.warn("Missing tag:", part.value) 
                      return "" 
                 }
@@ -222,9 +226,10 @@ const generateBulkSkZip = async (
             folder?.file(`${safeName}_SK.docx`, out)
             successCount++
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Gen Error", error)
-            errors.push(`Gagal generate untuk ${data.nama}: ${error.message}`)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            errors.push(`Gagal generate untuk ${data.nama}: ${(error as any)?.message || String(error)}`)
         }
     }
 
@@ -261,9 +266,10 @@ const generateBulkSkZip = async (
         }, 250)
         
         console.log(`✅ ZIP saved: ${filename}, Size: ${content.size} bytes`)
-    } catch (zipError: any) {
+    } catch (zipError: unknown) {
         console.error("❌ CRITICAL: ZIP Generation Failed!", zipError)
-        alert(`CRITICAL ERROR: Gagal membuat file ZIP!\n\nError: ${zipError.message}\n\nSilakan cek console untuk detail.`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        alert(`CRITICAL ERROR: Gagal membuat file ZIP!\n\nError: ${(zipError as any)?.message || String(zipError)}\n\nSilakan cek console untuk detail.`)
         throw zipError // Re-throw to prevent false success
     }
     
@@ -280,10 +286,12 @@ export default function SkGeneratorPage() {
   
   // Teachers from master data import won't appear here
   // Only teachers who submitted SK via submission form will show
-  const teachersData = useQuery(convexApi.sk.getTeachersWithSk) || []
-  
-  // MUTATIONS
-  // MUTATIONS
+  // Properly detect loading state
+  const teachersDataRaw = useQuery(convexApi.sk.getTeachersWithSk, {})
+  const isQueryLoading = teachersDataRaw === undefined
+  const teachersData = teachersDataRaw || []
+
+
   // MUTATIONS
   const createSk = useMutation(convexApi.sk.create)
   // Unused mutations removed
@@ -323,12 +331,7 @@ export default function SkGeneratorPage() {
   // New: Global Kecamatan Fallback
   const [defaultKecamatan, setDefaultKecamatan] = useState("") 
 
-  // Helper function to calculate +1 Year
-  const calculateValidityDate = (startDateStr: string): string => {
-      // Check if Date is valid?
-      // Simple implementation
-      return "-"
-  }
+  // Helper function calculates +1 Year removed as it was unused stub
   
   // ... (Lines 249-876 skipped) ...
 
@@ -342,9 +345,11 @@ export default function SkGeneratorPage() {
         await deleteAllSkHistory() 
         setNomorMulai("0001") // Reset Counter
         alert("Riwayat SK berhasil dibersihkan.\nData Guru tetap aman.")
-    } catch (e: any) {
+    } catch (e) {
         console.error(e)
-        alert("Gagal menghapus data: " + e.message)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errMsg = (e as any)?.message || String(e)
+        alert("Gagal menghapus data: " + errMsg)
     } finally {
         setIsLoading(false)
     }
@@ -358,9 +363,11 @@ export default function SkGeneratorPage() {
         const res = await deleteAllSkHistory()
         setNomorMulai("0001") // Reset Counter
         alert(`✅ Berhasil menghapus ${res.count} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
-    } catch (e: any) {
+    } catch (e) {
         console.error(e)
-        alert("Gagal menghapus riwayat SK: " + e.message)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errMsg = (e as any)?.message || String(e)
+        alert("Gagal menghapus riwayat SK: " + errMsg)
     } finally {
         setIsLoading(false)
     }
@@ -478,8 +485,8 @@ export default function SkGeneratorPage() {
 
           const availableKeys = new Set(Object.keys(sampleData))
           
-          const found = []
-          const missing = []
+          const found: string[] = []
+          const missing: string[] = []
 
           uniqueTags.forEach(tag => {
               if (availableKeys.has(tag)) found.push(tag)
@@ -513,8 +520,10 @@ export default function SkGeneratorPage() {
 
           alert(msg)
 
-      } catch (e: any) {
-          alert("Error: " + e.message)
+      } catch (e: unknown) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const errMsg = (e as any)?.message || String(e)
+          alert("Error: " + errMsg)
       }
   }
 
@@ -522,6 +531,7 @@ export default function SkGeneratorPage() {
 
 
   // --- SMART LOGIC: Explain Classification ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const explainClassification = (t: any) => {
       const p = (t.pendidikanTerakhir || "").toLowerCase()
       const n = (t.nama || "").toLowerCase()
@@ -575,6 +585,7 @@ export default function SkGeneratorPage() {
   }
 
   // --- HELPER: Parse Date Robustly ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parseIndonesianDate = (dateStr: any): Date | null => {
       if (!dateStr) return null
       
@@ -614,7 +625,7 @@ export default function SkGeneratorPage() {
       }
 
       // Split by space, dash, or slash
-      const txtParts = str.split(/[\s\-\/]+/)
+      const txtParts = str.split(/[\s-/]+/)
       
       if (txtParts.length >= 3) {
           const day = txtParts[0].replace(/[^0-9]/g, '')
@@ -721,20 +732,19 @@ export default function SkGeneratorPage() {
       const yyyy = dateObj.getFullYear()
 
       // Calculate +1 Year Validity
-      const tanggalHabisBerlaku = calculateValidityDate(finalTanggalPenetapan)
       const tanggalSuratMasukFormatted = parseIndonesianDate(tanggalSuratMasuk) 
             ? parseIndonesianDate(tanggalSuratMasuk)!.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'})
             : (tanggalSuratMasuk || "-")
-
       // Map teacher data to template keys clearly
       const mappedData = selectedData.map((t, idx) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir, t.tmt, t.nama, (t as any).jabatan, t.status)
-              
-              const tmt = t.tmt || ''
-          const tmtParsed = parseIndonesianDate(tmt)
-          const tmtFormatted = tmtParsed 
-                ? tmtParsed.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) 
-                : (tmt || '-')
+              // 2. Parse TMT (Tanggal Mulai Tugas)
+              const tmtDate = parseIndonesianDate(String(t.tmt || ""))
+              // let masaKerjaTahun = 0 // Unused
+              const tmtFormatted = tmtDate 
+                ? tmtDate.toLocaleDateString('id-ID', {day: '2-digit', month: 'long', year: 'numeric'}) 
+                : (t.tmt || '-')
 
           // Auto-Numbering Logic
           // Parse Start Number
@@ -760,12 +770,15 @@ export default function SkGeneratorPage() {
 
           // Fallback Kecamatan Logic:
           // 1. Teacher Data (highest priority) -> 2. Global Input -> 3. "....."
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const rawKecamatan = (t as any).kecamatan
           const kecamatan = (rawKecamatan && rawKecamatan.length > 2) ? rawKecamatan : (defaultKecamatan || ".....")
 
 
           // TTL Construction - FIX: Use correct field names from database
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const birthPlace = (t as any).tempatLahir || ""
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const birthDate = (t as any).tanggalLahir || ""
           let ttl = "-"
           if(birthPlace || birthDate) {
@@ -825,6 +838,7 @@ export default function SkGeneratorPage() {
             UNIT_KERJA: t.unitKerja || '-',
             STATUS: t.status,
             TTL: ttl,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             PENDIDIKAN: (t as any).pendidikanTerakhir || '-',
             TMT: tmtFormatted,
             TANGGAL_MULAI_TUGAS: tmtFormatted,
@@ -839,10 +853,13 @@ export default function SkGeneratorPage() {
             unit_kerja: t.unitKerja || '-',
             status: t.status,
             ttl: ttl,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             pendidikan: (t as any).pendidikanTerakhir || '-',
             tmt: tmtFormatted,
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             pangkat: (t as any).pangkat || "-", // Fallback common field
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             golongan: (t as any).golongan || "-",
 
             // --- KITCHEN SINK ALIASES (Space, TitleCase, dots) ---
@@ -885,8 +902,8 @@ export default function SkGeneratorPage() {
       console.log("MAPPED DATA SAMPLE:", mappedData[0]) // Debug Log
 
       // --- 1. PRE-ARCHIVE: Create SKs first to get IDs ---
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const finalData: any[] = []
-      let successCount = 0
 
       for (const item of mappedData) {
           try {
@@ -895,6 +912,7 @@ export default function SkGeneratorPage() {
                   jenisSk: item.jenisSk,
                   status: "active",
                   nama: item.nama,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   teacherId: (item as any)._id, // Original Teacher ID
                   jabatan: item.JABATAN,
                   unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap",
@@ -906,24 +924,29 @@ export default function SkGeneratorPage() {
 
               // MODIFIED (SAFEGUARD): User requested NOT to delete teacher data after generation
               // Use Soft-Cleanup instead: Mark as Generated
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               if ((item as any)._id) {
+                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                  await markAsGenerated({ id: (item as any)._id })
               }
 
               // PUSH WITH NEW ID (For QR Code)
               finalData.push({
                   ...item,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   _id: skId, // <--- CRITICAL: Overwrite with SK ID
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   original_teacher_id: (item as any)._id
               })
-              successCount++
 
-          } catch (err: any) {
+          } catch (err: unknown) {
               console.error("Failed to archive SK:", item.nama, err)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const errMsg = (err as any)?.message || String(err)
               // If archive fails, we probably shouldn't generate the file? 
               // Or maybe generate but with invalid QR? 
               // Better to skip to ensure consistency.
-              alert(`Gagal menyimpan data untuk ${item.nama}: ${err.message}`)
+              alert(`Gagal menyimpan data untuk ${item.nama}: ${errMsg}`)
           }
       }
 
@@ -944,9 +967,11 @@ export default function SkGeneratorPage() {
       }
       
       setIsGenerating(false)
-    } catch (e: any) {
+    } catch (e) {
         console.error("❌ Critical Gen Error:", e)
-        alert(`Terjadi kesalahan sistem saat generate!\n\nError: ${e.message || e}\n\nCek console untuk detail lengkap.`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errMsg = (e as any)?.message || String(e)
+        alert(`Terjadi kesalahan sistem saat generate!\n\nError: ${errMsg}\n\nCek console untuk detail lengkap.`)
         setIsGenerating(false)
     }
   }
@@ -1167,7 +1192,7 @@ export default function SkGeneratorPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {isLoading ? (
+                                {isQueryLoading || isLoading ? (
                                     <TableRow>
                                         <TableCell colSpan={8} className="h-24 text-center">
                                             <Loader2 className="h-6 w-6 animate-spin mx-auto"/>
@@ -1193,6 +1218,7 @@ export default function SkGeneratorPage() {
                                             <TableCell>{t.pendidikanTerakhir || '-'}</TableCell>
                                             <TableCell>{t.nuptk || t.nip || '-'}</TableCell>
                                             <TableCell>{t.mapel || '-'}</TableCell>
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                             <TableCell>{t.unitKerja || (t as any).satminkal || '-'}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
@@ -1214,6 +1240,7 @@ export default function SkGeneratorPage() {
                                                     <span className="text-xs font-bold">(?)</span>
                                                 </Button>
 
+                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                                 {(t as any).suratPermohonanUrl && (
                                                     <Button 
                                                         variant="ghost" 
@@ -1222,6 +1249,7 @@ export default function SkGeneratorPage() {
                                                         title="Lihat Surat Permohonan"
                                                         onClick={(e) => {
                                                             e.stopPropagation()
+                                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                             window.open((t as any).suratPermohonanUrl, '_blank')
                                                         }}
                                                     >

@@ -34,7 +34,8 @@ const TYPE_COLORS = [
 
 export default function SkReportPageSimple() {
   // 1. User Context & Role Safety
-  let user = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let user: any = null
   let isOperator = false
   let userUnitKerja = ''
   
@@ -78,11 +79,13 @@ export default function SkReportPageSimple() {
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     schoolId: effectiveSchoolId as any, 
     status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
   }
 
-  const reportData = useQuery(api.reports.generateSkReport, queryArgs)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reportData = useQuery(api.reports.generateSkReport, queryArgs) as any
 
   // 4. Handlers
   const handlePrint = () => {
@@ -116,6 +119,7 @@ export default function SkReportPageSimple() {
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
 
       // Details Sheet
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const detailsData = reportData.data.map((item: any, i: number) => ({
         'No': i + 1,
         'Nomor SK': item.nomorSk,
@@ -204,21 +208,25 @@ export default function SkReportPageSimple() {
           </CardHeader>
           <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-1">
-                <Label className="text-xs">Tanggal Awal</Label>
+                <Label htmlFor="startDate" className="text-xs">Tanggal Awal</Label>
                 <input 
+                  id="startDate"
                   type="date" 
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={startDate}
                   onChange={e => setStartDate(e.target.value)}
+                  aria-label="Tanggal Awal"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Tanggal Akhir</Label>
+                <Label htmlFor="endDate" className="text-xs">Tanggal Akhir</Label>
                 <input 
+                  id="endDate"
                   type="date" 
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={endDate}
                   onChange={e => setEndDate(e.target.value)}
+                  aria-label="Tanggal Akhir"
                 />
               </div>
               <div className="space-y-1">
@@ -370,7 +378,8 @@ export default function SkReportPageSimple() {
                                 outerRadius={80}
                                 paddingAngle={5}
                                 dataKey="value"
-                                label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                label={({name, percent}: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
                             >
                                 <Cell fill={COLORS.approved} />
                                 <Cell fill={COLORS.pending} />
@@ -479,6 +488,7 @@ export default function SkReportPageSimple() {
                         </td>
                       </tr>
                     ) : (
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       reportData.data.map((row: any, i: number) => (
                         <tr key={row._id} className="hover:bg-slate-50">
                           <td className="p-3 text-center">{i + 1}</td>

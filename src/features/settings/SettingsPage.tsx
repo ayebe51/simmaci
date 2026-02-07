@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const isApiReady = !!api.settings
 
   // Switch to NEW Module: settings_cloud
-  // Use 'any' cast to avoid TS errors during deployment if types aren't generated yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apiCloud = (api as any).settings_cloud;
   
   // Use Safe Query from New Module
@@ -62,9 +62,10 @@ export default function SettingsPage() {
               throw new Error("Gagal membaca file: " + error);
           };
 
-      } catch (err: any) {
+      } catch (err: unknown) {
           console.error(err)
-          toast.error("Gagal upload: " + err.message)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          toast.error("Gagal upload: " + (err as any).message)
       } finally {
           setIsUploading(null)
       }
@@ -141,7 +142,7 @@ export default function SettingsPage() {
     
     // Check if template exists
     if (localStorage.getItem("sk_template_blob")) {
-        setHasTemplate(true)
+        // Template exists logic if needed
     }
   }, [])
 
@@ -161,6 +162,7 @@ export default function SettingsPage() {
 
   const handleDownloadBackup = () => {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const backupData: Record<string, any> = {}
         // Collect all keys related to the app
         const keysToBackup = [
@@ -350,6 +352,8 @@ export default function SettingsPage() {
                                                     disabled={isUploading === template.id}
                                                     className="absolute inset-0 opacity-0 cursor-pointer"
                                                     onChange={(e) => handleCloudUpload(e, template.id)}
+                                                    aria-label={`Upload template ${template.label}`}
+                                                    title={`Upload template ${template.label}`}
                                                 />
                                             </div>
                                         </div>
@@ -392,15 +396,17 @@ export default function SettingsPage() {
                     <div className="space-y-3 p-4 border rounded-md bg-slate-50">
                         <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 1: Ketua</h4>
                         <div className="grid gap-2">
-                            <Label>Nama Lengkap</Label>
+                            <Label htmlFor="signerKetuaName">Nama Lengkap</Label>
                             <Input 
+                                id="signerKetuaName"
                                 value={settings.signerKetuaName} 
                                 onChange={(e) => handleChange("signerKetuaName", e.target.value)} 
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label>NIY / NIP (Opsional)</Label>
+                            <Label htmlFor="signerKetuaNip">NIY / NIP (Opsional)</Label>
                             <Input 
+                                id="signerKetuaNip"
                                 value={settings.signerKetuaNip} 
                                 onChange={(e) => handleChange("signerKetuaNip", e.target.value)} 
                             />
@@ -411,15 +417,17 @@ export default function SettingsPage() {
                     <div className="space-y-3 p-4 border rounded-md bg-slate-50">
                         <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 2: Sekretaris</h4>
                         <div className="grid gap-2">
-                            <Label>Nama Lengkap</Label>
+                            <Label htmlFor="signerSekretarisName">Nama Lengkap</Label>
                             <Input 
+                                id="signerSekretarisName"
                                 value={settings.signerSekretarisName} 
                                 onChange={(e) => handleChange("signerSekretarisName", e.target.value)} 
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label>NIY / NIP (Opsional)</Label>
+                            <Label htmlFor="signerSekretarisNip">NIY / NIP (Opsional)</Label>
                             <Input 
+                                id="signerSekretarisNip"
                                 value={settings.signerSekretarisNip} 
                                 onChange={(e) => handleChange("signerSekretarisNip", e.target.value)} 
                             />
@@ -427,8 +435,9 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="grid gap-2 pt-4 border-t">
-                         <Label>Prefix Nomor SK</Label>
+                         <Label htmlFor="skPrefix">Prefix Nomor SK</Label>
                          <Input 
+                            id="skPrefix"
                             value={settings.skPrefix} 
                             onChange={(e) => handleChange("skPrefix", e.target.value)} 
                         />

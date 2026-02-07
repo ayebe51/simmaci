@@ -119,6 +119,8 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
         ref={fileInputRef} 
         accept="image/png, image/jpeg, image/jpg"
         onChange={handleFileSelect}
+        aria-label="Upload Foto Guru"
+        title="Upload Foto Guru"
       />
       
       <p className="text-[10px] text-muted-foreground text-center">

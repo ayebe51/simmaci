@@ -2,7 +2,7 @@
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
     "noEmit": false,
-    "strict": false,
+    "strict": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
     "noUnusedLocals": false,

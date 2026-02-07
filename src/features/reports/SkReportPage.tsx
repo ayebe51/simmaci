@@ -11,7 +11,8 @@ import * as XLSX from 'xlsx'
 
 export default function SkReportPage() {
   // Get user - with error handling
-  let user = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let user: any = null
   let isOperator = false
   
   try {
@@ -42,12 +43,14 @@ export default function SkReportPage() {
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     schoolId: (selectedSchool && selectedSchool !== 'all') ? selectedSchool as any : operatorSchoolId as any,
     status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
   }
   
   // Fetch report data - with error handling
-  const reportData = useQuery(api.reports.generateSkReport, queryArgs)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reportData = useQuery(api.reports.generateSkReport, queryArgs) as any
   
   // Debug logging
   console.log('🔍 SK Report Debug:', {
@@ -99,6 +102,7 @@ export default function SkReportPage() {
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
 
       // Sheet 2: Data SK
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const skData = reportData.data.map((sk: any, index: number) => ({
         'No': index + 1,
         'Nomor SK': sk.nomorSk,
@@ -160,21 +164,25 @@ export default function SkReportPage() {
             {/* Date Range */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label>Tanggal Mulai</Label>
+                <Label htmlFor="startDate">Tanggal Mulai</Label>
                 <input
+                  id="startDate"
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="w-full mt-1 p-2 border rounded"
+                  aria-label="Tanggal Mulai"
                 />
               </div>
               <div>
-                <Label>Tanggal Akhir</Label>
+                <Label htmlFor="endDate">Tanggal Akhir</Label>
                 <input
+                  id="endDate"
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="w-full mt-1 p-2 border rounded"
+                  aria-label="Tanggal Akhir"
                 />
               </div>
             </div>
@@ -305,6 +313,7 @@ export default function SkReportPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {reportData.data.slice(0, 10).map((sk: any, index: number) => (
                     <tr key={sk._id} className="border-b hover:bg-gray-50">
                       <td className="p-2">{index + 1}</td>

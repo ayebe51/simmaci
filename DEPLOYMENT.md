@@ -3,24 +3,29 @@
 Panduan ini akan membantu Anda menginstall aplikasi SIM Maarif (Frontend & Backend) ke server VPS (Virtual Private Server) agar bisa diakses secara online menggunakan domain sendiri (contoh: `sim.maarif.nu`).
 
 ## 📋 Prasyarat
-1.  **VPS** dengan OS **Ubuntu 20.04** atau **22.04 LTS** (Min. RAM 2GB disarankan).
-2.  **Domain** yang sudah diarahkan ke IP VPS Anda (A Record).
-3.  Akses root/ssh ke server.
+
+1. **VPS** dengan OS **Ubuntu 20.04** atau **22.04 LTS** (Min. RAM 2GB disarankan).
+2. **Domain** yang sudah diarahkan ke IP VPS Anda (A Record).
+3. Akses root/ssh ke server.
 
 ---
 
 ## 1. Persiapan Server
+
 Login ke server Anda melalui SSH:
+
 ```bash
 ssh root@ip-vps-anda
 ```
 
 Update paket sistem:
+
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
 Install alat dasar:
+
 ```bash
 sudo apt install -y curl git unzip build-essential
 ```
@@ -28,6 +33,7 @@ sudo apt install -y curl git unzip build-essential
 ---
 
 ## 2. Instalasi NodeJS & PM2
+
 Kita akan menggunakan **Node.js LTS (v20)**.
 
 ```bash
@@ -47,6 +53,7 @@ sudo npm install -g pm2
 ---
 
 ## 3. Instalasi Database (PostgreSQL)
+
 Aplikasi SIM Maarif direkomendasikan menggunakan PostgreSQL untuk production.
 
 ```bash
@@ -61,6 +68,7 @@ psql
 ```
 
 Di dalam prompt SQL (`postgres=#`), jalankan perintah berikut (ubah `password123` dengan password aman):
+
 ```sql
 CREATE DATABASE sim_maarif;
 CREATE USER sim_user WITH ENCRYPTED PASSWORD 'password_super_rahasia';
@@ -69,6 +77,7 @@ GRANT ALL PRIVILEGES ON DATABASE sim_maarif TO sim_user;
 ```
 
 Keluar dari user postgres:
+
 ```bash
 exit
 ```
@@ -78,6 +87,7 @@ exit
 ## 4. Setup Backend (NestJS)
 
 ### A. Clone Repository
+
 Kita akan simpan aplikasi di folder `/var/www/simmaci`.
 
 ```bash
@@ -87,9 +97,11 @@ cd /var/www/simmaci
 # Clone repo (Ganti URL dengan repo GitHub Anda jika ada, atau upload manual via SFTP)
 # Jika upload manual, pastikan folder 'backend' dan 'frontend' terupload.
 ```
+
 *Asumsi: Folder proyek Anda sudah ada di `/var/www/simmaci` (berisi folder `backend` dan `frontend`)*.
 
 ### B. Install & Build Backend
+
 ```bash
 cd /var/www/simmaci/backend
 
@@ -101,11 +113,15 @@ npm run build
 ```
 
 ### C. Konfigurasi Environment (.env)
+
 Buat file `.env` untuk production:
+
 ```bash
 nano .env
 ```
+
 Isi dengan konfigurasi berikut (sesuaikan password DB):
+
 ```env
 PORT=3000
 DATABASE_TYPE=postgres
@@ -117,14 +133,17 @@ DATABASE_NAME=sim_maarif
 JWT_SECRET=REDACTED_EXAMPLE_JWT_SECRET_001
 # Hapus fallback secret di kode jika ada!
 ```
+
 Simpan dengan `Ctrl+X`, `Y`, `Enter`.
 
 ### D. Jalankan Backend dengan PM2
+
 ```bash
 pm2 start dist/main.js --name "sim-backend"
 pm2 save
 pm2 startup
 ```
+
 Backend sekarang berjalan di port 3000.
 
 ---
@@ -132,33 +151,42 @@ Backend sekarang berjalan di port 3000.
 ## 5. Setup Frontend (Vite React)
 
 ### A. Konfigurasi API URL
+
 Masuk ke folder frontend:
+
 ```bash
 cd /var/www/simmaci
 # (Folder root frontend, sejajar dengan package.json frontend)
 ```
 
 Edit/Buat file `.env.production`:
+
 ```bash
 nano .env.production
 ```
+
 Isi dengan URL domain backend (nanti kita setup di Nginx):
+
 ```env
 VITE_API_URL=https://sim.maarif.nu/api
 # Jika satu domain, bisa gunakan relative path atau full path
 ```
+
 *Catatan: Jika backend dan frontend di domain yang sama (misal `/api` untuk backend), pastikan Nginx dikonfigurasi dengan benar.*
 
 ### B. Build Frontend
+
 ```bash
 npm install
 npm run build
 ```
+
 Hasil build akan ada di folder `dist`.
 
 ---
 
 ## 6. Instalasi & Konfigurasi Nginx (Reverse Proxy)
+
 Nginx bertugas melayani Frontend (file statis) dan meneruskan request `/api` ke Backend.
 
 ```bash
@@ -167,6 +195,7 @@ sudo apt install -y nginx
 ```
 
 Buat konfigurasi server block:
+
 ```bash
 sudo nano /etc/nginx/sites-available/sim-maarif
 ```
@@ -208,6 +237,7 @@ server {
 ```
 
 Aktifkan konfigurasi:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/sim-maarif /etc/nginx/sites-enabled/
 sudo nginx -t # Cek error
@@ -217,6 +247,7 @@ sudo systemctl restart nginx
 ---
 
 ## 7. Setup SSL (HTTPS) Gratis dengan Certbot
+
 Agar website aman (gembok hijau).
 
 ```bash
@@ -225,24 +256,30 @@ sudo apt install -y certbot python3-certbot-nginx
 # Request SSL
 sudo certbot --nginx -d sim.maarif.nu
 ```
+
 Ikuti instruksi di layar. Certbot akan otomatis mengupdate konfigurasi Nginx Anda.
 
 ---
 
 ## 8. Selesai! 🎉
+
 Buka domain Anda `https://sim.maarif.nu`.
+
 - Frontend harusnya muncul.
 - Coba Login.
 - Cek data-data.
 
 ## 🛠️ Troubleshooting (Jika Error)
 
-1.  **Backend Error:**
-    Cek log PM2:
-    ```bash
-    pm2 logs sim-backend
-    ```
-2.  **Nginx 502 Bad Gateway:**
-    Artinya Backend mati. Cek `pm2 list` atau pastikan port backend benar (3000).
-3.  **Halaman White Page di Production:**
-    Seringkali karena path asset salah. Pastikan build frontend sukses dan `index.html` bisa diakses.
+1. **Backend Error:**
+   Cek log PM2:
+
+   ```bash
+   pm2 logs sim-backend
+   ```
+
+2. **Nginx 502 Bad Gateway:**
+   Artinya Backend mati. Cek `pm2 list` atau pastikan port backend benar (3000).
+
+3. **Halaman White Page di Production:**
+   Seringkali karena path asset salah. Pastikan build frontend sukses dan `index.html` bisa diakses.

@@ -247,7 +247,10 @@ export const bulkCreate = mutation({
             };
             
             // Map optional fields
-            if (teacher.status) cleanData.status = teacher.status;
+            // Map optional fields
+            // FIXED: Force 'active' for bulk upload to bypass "Pengajuan SK" (Draft)
+            cleanData.status = "active"; 
+            // if (teacher.status) cleanData.status = teacher.status; // <-- OVERRIDE THIS
             if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
             else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; // Fallback for legacy
             

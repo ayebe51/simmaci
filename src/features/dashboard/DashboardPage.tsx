@@ -10,7 +10,7 @@ import {
 import { useState } from "react"
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { DashboardCharts } from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 
@@ -55,11 +55,29 @@ export default function DashboardPage() {
     skCount: 0,
   }
 
-  const masterDataStats = [
-    { title: "Total Sekolah", value: stats.schoolCount, icon: School, color: "text-blue-500" },
-    { title: "Total Guru/PTK", value: stats.teacherCount, icon: Users, color: "text-green-500" },
-    { title: "Total Siswa", value: stats.studentCount, icon: Users, color: "text-orange-500" },
-  ]
+  const totalTeachers = analyticsStats?.totalTeachers || stats.teacherCount
+  const totalSchools = analyticsStats?.totalSchools || stats.schoolCount
+  const totalSk = stats.skCount
+
+  const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+    if (!data || data.length === 0) return null
+    return (
+      <div className="h-[40px] w-[80px]">
+          <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data}>
+                  <Line 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke={color} 
+                      strokeWidth={2} 
+                      dot={false} 
+                      isAnimationActive={false}
+                  />
+              </LineChart>
+          </ResponsiveContainer>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -78,23 +96,60 @@ export default function DashboardPage() {
          </p>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* TOTAL SEKOLAH */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Sekolah</CardTitle>
+            <School className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalSchools}</div>
+            <p className="text-xs text-muted-foreground mt-1">Unit Pendidikan Terdaftar</p>
+          </CardContent>
+        </Card>
 
+        {/* TOTAL GURU */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Guru/PTK</CardTitle>
+            <Users className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent className="flex justify-between items-end">
+            <div>
+              <div className="text-2xl font-bold">{totalTeachers}</div>
+              <p className="text-xs text-muted-foreground mt-1">Guru & Tendik Aktif</p>
+            </div>
+            <Sparkline data={analyticsStats?.teacherTrend || []} color="#22c55e" />
+          </CardContent>
+        </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {masterDataStats.map((stat, i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+        {/* TOTAL SISWA */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Siswa</CardTitle>
+            <Users className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.studentCount || 0}</div>
+             <p className="text-xs text-muted-foreground mt-1">Data Belum Tersedia</p>
+          </CardContent>
+        </Card>
 
-            </CardContent>
-          </Card>
-        ))}
+        {/* TOTAL SK */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total SK Terbit</CardTitle>
+            <FileText className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent className="flex justify-between items-end">
+             <div>
+                <div className="text-2xl font-bold">{skStats?.total || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">SK Telah Diproses</p>
+             </div>
+             <Sparkline data={skTrend || []} color="#a855f7" />
+          </CardContent>
+        </Card>
       </div>
 
        {/* 📊 PETA MUTU / ANALYTICS CHARTS */}

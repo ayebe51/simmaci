@@ -63,11 +63,13 @@ export const getDashboardStats = query({
           statusCounts[statusLabel]++;
       }
 
-      // B. Certification Status
-      if (t.isCertified) {
-        certCounts["Sudah Sertifikasi"]++;
-      } else {
-        certCounts["Belum Sertifikasi"]++;
+      // B. Certification Status (Only for Teachers, exclude Tendik)
+      if (statusLabel !== "Tendik") {
+          if (t.isCertified) {
+            certCounts["Sudah Sertifikasi"]++;
+          } else {
+            certCounts["Belum Sertifikasi"]++;
+          }
       }
 
       // C. Unit Kerja (School)

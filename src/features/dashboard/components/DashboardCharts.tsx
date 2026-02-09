@@ -45,7 +45,11 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
   if (!isClient) return null
   if (hasError) return <Card className="mt-6"><CardContent>Charts unavailable.</CardContent></Card>
 
-  const statusData = data?.status || []
+  // Filter & Sort Data for Better Visualization
+  const statusData = (data?.status || [])
+    .filter(d => d.value > 0) // Hide 0 values
+    .sort((a, b) => b.value - a.value) // Sort Largest to Smallest
+
   const unitData = data?.units || []
   const certData = data?.certification || []
   const kecData = data?.kecamatan || []
@@ -54,10 +58,14 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
   const totalStatus = statusData.reduce((a, b) => a + b.value, 0)
   const totalCert = certData.reduce((a, b) => a + b.value, 0)
 
+  // Calculate Percentages for Insights
+  const uncertifiedCount = certData.find(c => c.name.includes("Belum"))?.value || 0
+  const uncertifiedPercent = totalCert > 0 ? Math.round((uncertifiedCount / totalCert) * 100) : 0
+
   return (
     <div className="space-y-6 mt-6">
         
-        {/* ROW 1: Status & Unit Kerja (Swapped positions for better flow? No, keep layout but change types) */}
+        {/* ROW 1: Status & Unit Kerja */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             {/* Unit Kerja - Horizontal Bar */}
             <Card className="col-span-4">
@@ -98,7 +106,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
             <Card className="col-span-3">
                 <CardHeader>
                 <CardTitle>Status Kepegawaian</CardTitle>
-                <CardDescription>Proporsi guru berdasarkan status.</CardDescription>
+                <CardDescription>Proporsi SDM berdasarkan status.</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <div className="h-[300px] relative">
@@ -122,13 +130,21 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                         ))}
                                     </Pie>
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                    <Legend 
+                                        verticalAlign="bottom" 
+                                        height={36} 
+                                        iconType="circle"
+                                        formatter={(value, entry: any) => {
+                                            const percent = ((entry.payload.value / totalStatus) * 100).toFixed(0);
+                                            return <span className="text-slate-600 font-medium ml-1">{value}: {entry.payload.value} ({percent}%)</span>
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                             {/* Center Label */}
                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
                                 <span className="text-3xl font-bold text-slate-700">{totalStatus}</span>
-                                <span className="block text-xs text-muted-foreground uppercase tracking-wider">Guru</span>
+                                <span className="block text-xs text-muted-foreground uppercase tracking-wider">TOTAL</span>
                             </div>
                         </>
                     ) : <div className="flex items-center justify-center h-full text-muted-foreground">No Data</div>}
@@ -170,17 +186,31 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                         ))}
                                     </Pie>
                                     <Tooltip content={<CustomTooltip />} />
-                                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                    <Legend 
+                                        verticalAlign="bottom" 
+                                        height={36} 
+                                        iconType="circle"
+                                        formatter={(value, entry: any) => {
+                                            const percent = ((entry.payload.value / totalCert) * 100).toFixed(0);
+                                            return <span className="text-slate-600 font-medium ml-1">{value}: {entry.payload.value} ({percent}%)</span>
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                             {/* Center Label */}
                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
                                 <span className="text-3xl font-bold text-slate-700">{totalCert}</span>
-                                <span className="block text-xs text-muted-foreground uppercase tracking-wider">Total</span>
+                                <span className="block text-xs text-muted-foreground uppercase tracking-wider">GURU</span>
                             </div>
                         </>
                     ) : <div className="flex items-center justify-center h-full text-muted-foreground">No Data</div>}
                 </div>
+                {/* Insight Text */}
+                {uncertifiedPercent > 50 && (
+                    <div className="text-center mt-[-10px] pb-4 px-4 text-xs text-amber-600 font-medium bg-amber-50 rounded-md py-2 mx-8">
+                        ⚠️ Perhatian: {uncertifiedPercent}% guru belum tersertifikasi.
+                    </div>
+                )}
                 </CardContent>
             </Card>
 

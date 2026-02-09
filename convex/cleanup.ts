@@ -14,7 +14,8 @@ export const cleanSk = mutation({
 
     // 1. DELETE SK HISTORY (If Requested)
     if (args.deleteSk) {
-        const docs = await ctx.db.query("skDocuments").collect();
+        // LIMIT TO 100 TO PREVENT TIMEOUT
+        const docs = await ctx.db.query("skDocuments").take(100);
         for (const doc of docs) {
             await ctx.db.delete(doc._id);
         }
@@ -23,7 +24,7 @@ export const cleanSk = mutation({
         // Optimize: Only fetch teachers that HAVE generated SK
         const teachers = await ctx.db.query("teachers")
             .filter(q => q.eq(q.field("isSkGenerated"), true))
-            .collect();
+            .take(100);
             
         for(const t of teachers) {
             await ctx.db.patch(t._id, { isSkGenerated: false });
@@ -33,13 +34,11 @@ export const cleanSk = mutation({
     // 2. DELETE TEACHER CANDIDATES (If Requested)
     if (args.deleteTeachers) {
         // "Logika sama dengan ketika SK digenerate"
-        // Meaning: Do NOT delete the data. Just mark them as processed so they disappear from the list.
-        // This preserves "Master Data".
         
         const candidates = await ctx.db
             .query("teachers")
             .filter(q => q.eq(q.field("isSkGenerated"), false))
-            .collect();
+            .take(100); // LIMIT 100
 
         for (const t of candidates) {
             // Mimic Generate Logic: Mark as generated (Hidden from queue), set Active/Verified
@@ -58,7 +57,7 @@ export const cleanSk = mutation({
          const draftTeachers = await ctx.db
             .query("teachers")
             .filter(q => q.eq(q.field("status"), "draft"))
-            .collect();
+            .take(100); // LIMIT 100
          for (const t of draftTeachers) await ctx.db.delete(t._id);
          teachersDeleted = draftTeachers.length;
     }

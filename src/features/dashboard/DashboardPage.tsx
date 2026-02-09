@@ -81,141 +81,209 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+  // Helper logic for trends
+  const currentMonthTeacherCount = analyticsStats?.teacherTrend?.[5]?.count || 0
+  const previousMonthTeacherCount = analyticsStats?.teacherTrend?.[4]?.count || 0
+  const teacherGrowth = currentMonthTeacherCount - previousMonthTeacherCount
+  const teacherGrowthLabel = teacherGrowth > 0 ? `+${teacherGrowth} bulan ini` : "Stabil"
+
+  return (
+    <div className="space-y-8">
+      {/* HEADER SECTION */}
       <div className="flex flex-col gap-2">
-         <div className="flex items-center gap-3">
-           <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+         <div className="flex items-center justify-between">
+           <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Overview</h1>
+              <p className="text-slate-500 mt-1">
+                  Selamat datang, <span className="font-semibold text-slate-900">{user?.name || "Admin"}</span>.
+                  <span className="ml-2 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border">
+                    {user?.role === 'super_admin' ? 'Super Admin' : 'Operator'}
+                  </span>
+              </p>
+           </div>
            {convexStats && (
-             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-100 border border-green-300 rounded-full">
-               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-               <span className="text-xs font-semibold text-green-700">LIVE</span>
+             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm">
+               <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+               <span className="text-xs font-bold text-emerald-700">SYSTEM LIVE</span>
              </div>
            )}
          </div>
-         <p className="text-muted-foreground">
-            Selamat datang, <span className="font-semibold text-foreground">{user?.name || "Admin"}</span> ({user?.role === 'super_admin' ? 'Super Admin' : 'Operator'}).
-         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* TOTAL SEKOLAH */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Sekolah</CardTitle>
-            <School className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSchools}</div>
-            <p className="text-xs text-muted-foreground mt-1">Unit Pendidikan Terdaftar</p>
-          </CardContent>
-        </Card>
-
-        {/* TOTAL GURU */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Guru/PTK</CardTitle>
-            <Users className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent className="flex justify-between items-end">
-            <div>
-              <div className="text-2xl font-bold">{totalTeachers}</div>
-              <p className="text-xs text-muted-foreground mt-1">Guru & Tendik Aktif</p>
+      {/* OVERVIEW STATS (GRID 4) */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        
+        {/* 1. TOTAL SEKOLAH */}
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between space-x-4">
+                <div className="flex flex-col space-y-1">
+                    <span className="text-sm font-medium text-slate-500">Total Sekolah</span>
+                    <span className="text-3xl font-extrabold text-slate-900">{totalSchools}</span>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-full">
+                    <School className="h-6 w-6 text-blue-600" />
+                </div>
             </div>
-            <Sparkline data={analyticsStats?.teacherTrend || []} color="#22c55e" />
+            <div className="mt-4 flex items-center text-xs">
+                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">Terverifikasi</span>
+                <span className="text-slate-400 ml-auto">Semester Genap</span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* TOTAL SISWA */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Siswa</CardTitle>
-            <Users className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.studentCount || 0}</div>
-             <p className="text-xs text-muted-foreground mt-1">Data Belum Tersedia</p>
+        {/* 2. TOTAL GURU (With Sparkline) */}
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between space-x-4">
+                <div className="flex flex-col space-y-1 z-10">
+                    <span className="text-sm font-medium text-slate-500">Total Guru/PTK</span>
+                    <span className="text-3xl font-extrabold text-slate-900">{totalTeachers}</span>
+                </div>
+                <div className="p-3 bg-emerald-50 rounded-full z-10">
+                    <Users className="h-6 w-6 text-emerald-600" />
+                </div>
+            </div>
+            
+            <div className="mt-4 flex items-end justify-between">
+                <div className="flex items-center space-x-2 text-xs">
+                   {teacherGrowth > 0 ? (
+                       <span className="flex items-center text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">
+                           <Users className="h-3 w-3 mr-1" /> {teacherGrowthLabel}
+                       </span>
+                   ) : (
+                       <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md text-xs">Data Stabil</span>
+                   )}
+                </div>
+                {/* Sparkline placed absolutely or normally */}
+                <div className="absolute right-0 bottom-0 opacity-20 transform translate-y-2 scale-110">
+                   <Sparkline data={analyticsStats?.teacherTrend || []} color="#059669" />
+                </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* TOTAL SK */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total SK Terbit</CardTitle>
-            <FileText className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent className="flex justify-between items-end">
-             <div>
-                <div className="text-2xl font-bold">{skStats?.total || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">SK Telah Diproses</p>
-             </div>
-             <Sparkline data={skTrend || []} color="#a855f7" />
+        {/* 3. TOTAL SISWA (Empty State Handling) */}
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+          <CardContent className="p-6">
+             <div className="flex items-center justify-between space-x-4">
+                <div className="flex flex-col space-y-1">
+                    <span className="text-sm font-medium text-slate-500">Total Siswa</span>
+                    {stats.studentCount > 0 ? (
+                        <span className="text-3xl font-extrabold text-slate-900">{stats.studentCount}</span>
+                    ) : (
+                        <span className="text-xl font-bold text-slate-400">--</span>
+                    )}
+                </div>
+                <div className="p-3 bg-orange-50 rounded-full">
+                    <Users className="h-6 w-6 text-orange-600" />
+                </div>
+            </div>
+            <div className="mt-4">
+                 {stats.studentCount === 0 ? (
+                     <button className="text-xs bg-orange-100 text-orange-700 font-semibold px-3 py-1.5 rounded-md hover:bg-orange-200 transition-colors w-full border border-orange-200">
+                         + Import Data Siswa
+                     </button>
+                 ) : (
+                     <span className="text-xs text-slate-400">Data SIBOS Pintar</span>
+                 )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4. TOTAL SK (With Sparkline) */}
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden relative">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between space-x-4">
+                <div className="flex flex-col space-y-1 z-10">
+                    <span className="text-sm font-medium text-slate-500">Total SK Terbit</span>
+                    <span className="text-3xl font-extrabold text-slate-900">{skStats?.total || 0}</span>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-full z-10">
+                    <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+            </div>
+            <div className="mt-4 flex justify-between items-end">
+                <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-medium">
+                    {skStats?.approved || 0} Selesai
+                </span>
+                <div className="opacity-80 -mr-2">
+                     <Sparkline data={skTrend || []} color="#9333ea" />
+                </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-       {/* 📊 PETA MUTU / ANALYTICS CHARTS */}
+       {/* 📊 CHART SECTION */}
        <DashboardCharts data={analyticsStats} />
 
-       {/* 📊 SK MONITORING SECTION */}
+       {/* 📊 SK MONITORING SECTION (Semantic Borders) */}
        {skStats && (
-         <>
-           <div className="mt-8">
-             <h2 className="text-2xl font-bold tracking-tight mb-4">Monitoring Surat Keputusan</h2>
+         <div className="mt-2 space-y-4">
+           <div className="flex items-center justify-between">
+             <h2 className="text-xl font-bold tracking-tight text-slate-800">Monitoring Status SK</h2>
+             <button className="text-sm text-blue-600 hover:underline">Lihat Semua Pengajuan &rarr;</button>
            </div>
 
-           {/* SK Statistics Cards */}
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-             <Card>
-               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium">Total SK</CardTitle>
-                 <FileText className="h-4 w-4 text-blue-500" />
-               </CardHeader>
-               <CardContent>
-                 <div className="text-2xl font-bold">{skStats.total}</div>
-                 <p className="text-xs text-muted-foreground">
-                   Semua pengajuan SK
-                 </p>
+           <div className="grid gap-4 md:grid-cols-4">
+             {/* Total Applied */}
+             <Card className="border-l-4 border-l-blue-500 shadow-sm">
+               <CardContent className="p-4 flex items-center justify-between">
+                 <div>
+                    <p className="text-sm text-slate-500 font-medium">Total Pengajuan</p>
+                    <p className="text-2xl font-bold text-slate-900">{skStats.total}</p>
+                 </div>
+                 <div className="bg-blue-50 p-2 rounded-full">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                 </div>
                </CardContent>
              </Card>
 
-             <Card>
-               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-                 <Clock className="h-4 w-4 text-yellow-500" />
-               </CardHeader>
-               <CardContent>
-                 <div className="text-2xl font-bold text-yellow-600">{skStats.pending}</div>
-                 <p className="text-xs text-muted-foreground">
-                   Menunggu persetujuan
-                 </p>
+             {/* Pending */}
+             <Card className="border-l-4 border-l-yellow-500 shadow-sm bg-yellow-50/10">
+               <CardContent className="p-4 flex items-center justify-between">
+                 <div>
+                    <p className="text-sm text-slate-500 font-medium">Menunggu Review</p>
+                    <p className="text-2xl font-bold text-yellow-600">{skStats.pending}</p>
+                 </div>
+                 <div className="bg-yellow-100 p-2 rounded-full">
+                    <Clock className="h-5 w-5 text-yellow-600" />
+                 </div>
                </CardContent>
              </Card>
 
-             <Card>
-               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium">Disetujui</CardTitle>
-                 <CheckCircle className="h-4 w-4 text-green-500" />
-               </CardHeader>
-               <CardContent>
-                 <div className="text-2xl font-bold text-green-600">{skStats.approved}</div>
-                 <p className="text-xs text-muted-foreground">
-                   SK telah disetujui
-                 </p>
+             {/* Approved */}
+             <Card className="border-l-4 border-l-green-500 shadow-sm bg-green-50/10">
+               <CardContent className="p-4 flex items-center justify-between">
+                 <div>
+                    <p className="text-sm text-slate-500 font-medium">Disetujui</p>
+                    <p className="text-2xl font-bold text-green-600">{skStats.approved}</p>
+                 </div>
+                 <div className="bg-green-100 p-2 rounded-full">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                 </div>
                </CardContent>
              </Card>
 
-             <Card>
-               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                 <CardTitle className="text-sm font-medium">Ditolak</CardTitle>
-                 <AlertOctagon className="h-4 w-4 text-red-500" />
-               </CardHeader>
-               <CardContent>
-                 <div className="text-2xl font-bold text-red-600">{skStats.rejected}</div>
-                 <p className="text-xs text-muted-foreground">
-                   Perlu perbaikan
-                 </p>
+             {/* Rejected */}
+             <Card className="border-l-4 border-l-red-500 shadow-sm bg-red-50/10">
+               <CardContent className="p-4 flex items-center justify-between">
+                 <div>
+                    <p className="text-sm text-slate-500 font-medium">Perlu Perbaikan</p>
+                    <p className="text-2xl font-bold text-red-600">{skStats.rejected}</p>
+                 </div>
+                 <div className="bg-red-100 p-2 rounded-full">
+                    <AlertOctagon className="h-5 w-5 text-red-600" />
+                 </div>
                </CardContent>
              </Card>
            </div>
+         </div>
+       )}
 
            {/* SK Trend Chart */}
            {skTrend && skTrend.length > 0 && (

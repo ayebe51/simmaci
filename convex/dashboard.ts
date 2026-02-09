@@ -269,41 +269,90 @@ export const getSchoolStats = query({
 
     const schoolName = user.unit;
 
-    // Parallelize queries for performance
-    const [teachers, students, skDrafts, skApproved, totalSk] = await Promise.all([
-      // Teacher Count (Active)
-      ctx.db.query("teachers")
-        .collect()
-        .then(res => res.filter(t => t.unitKerja === schoolName && t.isActive).length),
-      
+    // Fetch All Teachers for this School (for aggregation)
+    const teachersList = await ctx.db.query("teachers").collect().then(res => res.filter(t => t.unitKerja === schoolName && t.isActive));
+    
+    // 1. Calculate Teacher Trend (Last 6 Months)
+    const now = new Date();
+    const last6Months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        return {
+            monthKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+            label: d.toLocaleString('id-ID', { month: 'short' }),
+            count: 0
+        };
+    }).reverse();
+
+    for (const t of teachersList) {
+        const d = new Date(t.createdAt);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const bucket = last6Months.find(b => b.monthKey === key);
+        if (bucket) {
+            bucket.count++;
+        }
+    }
+    const teacherTrend = last6Months.map(({ label, count }) => ({ month: label, count }));
+
+    // 2. Status Breakdown
+    const statusCounts: Record<string, number> = { "PNS": 0, "GTY": 0, "GTT": 0, "Tendik": 0 };
+    const certCounts: Record<string, number> = { "Sudah Sertifikasi": 0, "Belum Sertifikasi": 0 };
+
+    for (const t of teachersList) {
+       // A. Status
+       let rawStatus = (t.status || "").trim().toUpperCase();
+       let statusLabel = ""; 
+       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK")) statusLabel = "PNS";
+       else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP")) statusLabel = "GTY";
+       else if (rawStatus.includes("GTT") || rawStatus.includes("HONOR")) statusLabel = "GTT";
+       else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("OPERATOR")) statusLabel = "Tendik";
+       
+       if (!statusLabel) statusLabel = "GTT"; // Default
+       if (statusCounts[statusLabel] !== undefined) statusCounts[statusLabel]++;
+
+       // B. Certification (Exclude Tendik)
+       if (statusLabel !== "Tendik") {
+          if (t.isCertified) certCounts["Sudah Sertifikasi"]++;
+          else certCounts["Belum Sertifikasi"]++;
+       }
+    }
+
+    const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+    const certData = Object.entries(certCounts).map(([name, value]) => ({ name, value }));
+
+    // Parallelize other queries
+    const [students, skDrafts, skApproved, totalSk, skTrend] = await Promise.all([
       // Student Count
-      ctx.db.query("students")
-        .collect()
-        .then(res => res.filter(s => s.namaSekolah === schoolName).length),
-        
+      ctx.db.query("students").collect().then(res => res.filter(s => s.namaSekolah === schoolName).length),
       // SK Drafts
-      ctx.db.query("skDocuments")
-        .collect()
-        .then(res => res.filter(sk => sk.unitKerja === schoolName && sk.status === "draft").length),
-
+      ctx.db.query("skDocuments").collect().then(res => res.filter(sk => sk.unitKerja === schoolName && sk.status === "draft").length),
       // SK Verified
-      ctx.db.query("skDocuments")
-        .collect()
-        .then(res => res.filter(sk => sk.unitKerja === schoolName && (sk.status === "approved" || sk.status === "active")).length),
-
+      ctx.db.query("skDocuments").collect().then(res => res.filter(sk => sk.unitKerja === schoolName && (sk.status === "approved" || sk.status === "active")).length),
       // Total SK
-       ctx.db.query("skDocuments")
-        .collect()
-        .then(res => res.filter(sk => sk.unitKerja === schoolName).length),
+       ctx.db.query("skDocuments").collect().then(res => res.filter(sk => sk.unitKerja === schoolName).length),
+      // SK Trend (Re-use existing function logic or just call it? calling query from query is not allowed directly easily inside handler without `runQuery` which is internal. 
+      // Simplified Trend for SK: Group by month for this school
+       ctx.db.query("skDocuments").collect().then(res => {
+          const schoolSks = res.filter(sk => sk.unitKerja === schoolName);
+           // ... logic similar to teacher trend ...
+           const skTrendData = last6Months.map(b => ({...b, count: 0})); // Reuse buckets
+           // We need deep copy or re-calc
+           return []; // Placeholder if too complex to inline. 
+           // ACTUALLY: The frontend calls `getSkTrendByMonth` separately! I don't need to return it here.
+           // BUT I need `teacherTrend` here.
+       })
     ]);
 
     return {
       schoolName,
-      teachers,
+      teachers: teachersList.length,
       students,
-      skDrafts,
-      skApproved,
-      totalSk,
+      skDrafts, // "Pending" for UI
+      skApproved, // "Total SK" for UI? No, Approved
+      totalSk, // All applied
+      skRejected: await ctx.db.query("skDocuments").collect().then(res => res.filter(sk => sk.unitKerja === schoolName && sk.status === "rejected").length),
+      teacherTrend,
+      status: statusData,
+      certification: certData,
       debug: { role: user.role, unit: user.unit }
     };
   }

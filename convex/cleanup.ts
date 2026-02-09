@@ -37,7 +37,7 @@ export const cleanSk = mutation({
         
         const candidates = await ctx.db
             .query("teachers")
-            .filter(q => q.eq(q.field("isSkGenerated"), false))
+            .filter(q => q.neq(q.field("isSkGenerated"), true)) // TARGET ALL (False OR Undefined)
             .take(100); // LIMIT 100
 
         for (const t of candidates) {

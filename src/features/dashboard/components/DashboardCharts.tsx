@@ -125,7 +125,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                     label={({name, percent}) => `${(percent * 100).toFixed(0)}%`}
                                 >
                                     {certData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.name.includes("Belum") ? '#e5e7eb' : '#22c55e'} />
+                                        <Cell key={`cell-${index}`} fill={entry.name.includes("Belum") ? '#ef4444' : '#22c55e'} />
                                     ))}
                                 </Pie>
                                 <Tooltip />

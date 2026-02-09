@@ -32,7 +32,7 @@ export const getDashboardStats = query({
       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) statusLabel = "PNS";
       else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP YAYASAN") || rawStatus.includes("GURU TETAP") || rawStatus.includes("GURU") || rawStatus.includes("PENGAJAR")) statusLabel = "GTY";
       else if (rawStatus.includes("GTT") || rawStatus.includes("TIDAK TETAP") || rawStatus.includes("HONOR")) statusLabel = "GTT";
-      else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("TATA USAHA") || rawStatus.includes("ADMINISTRASI") || rawStatus.includes("OPS") || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA") || rawStatus.includes("KEAMANAN") || rawStatus.includes("KEBERSIHAN")) statusLabel = "Tendik";
+      else if (rawStatus.includes("TENDIK") || rawStatus === "TU" || rawStatus.includes("TATA USAHA") || rawStatus.includes("ADMINISTRASI") || rawStatus === "OPS" || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA") || rawStatus.includes("KEAMANAN") || rawStatus.includes("KEBERSIHAN")) statusLabel = "Tendik";
       
       
       // Fallback: If status is ambiguous/empty, check TMT (Tenure)

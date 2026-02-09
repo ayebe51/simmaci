@@ -11,16 +11,32 @@ export const getDashboardStats = query({
     const teachers = await ctx.db.query("teachers").collect();
     
     // Aggregation Containers
-    const statusCounts: Record<string, number> = {};
+    const statusCounts: Record<string, number> = {
+        "PNS": 0,
+        "GTY": 0,
+        "GTT": 0,
+        "Tendik": 0,
+        "Lainnya": 0
+    };
     const certCounts: Record<string, number> = { "Sudah Sertifikasi": 0, "Belum Sertifikasi": 0 };
     const unitCounts: Record<string, number> = {};
     const kecamatanCounts: Record<string, number> = {};
 
     // 2. Iterate and Aggregate
     for (const t of teachers) {
-      // A. Status Kepegawaian (GTY, GTT, PNS, PPPK, etc)
-      const status = normalize(t.status);
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
+      // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
+      // Normalize specifically to handle variations
+      let rawStatus = (t.status || "").trim().toUpperCase();
+      let statusLabel = "Lainnya";
+
+      if (rawStatus.includes("PNS") || rawStatus.includes("ASN")) statusLabel = "PNS";
+      else if (rawStatus.includes("GTY")) statusLabel = "GTY";
+      else if (rawStatus.includes("GTT")) statusLabel = "GTT";
+      else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("TATA USAHA")) statusLabel = "Tendik";
+      else if (rawStatus === "ACTIVE" || rawStatus === "AKTIF") statusLabel = "Lainnya"; // Or map to GTY if requested? Defaulting to Lainnya to reveal data issue
+      else if (rawStatus !== "") statusLabel = "Lainnya"; // Unknown
+
+      statusCounts[statusLabel]++;
 
       // B. Certification Status
       if (t.isCertified) {
@@ -42,8 +58,8 @@ export const getDashboardStats = query({
     
     // Status Data
     const statusData = Object.entries(statusCounts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value); // Sort Descending
+      .filter(([_, value]) => value > 0 || ["PNS", "GTY", "GTT", "Tendik"].includes(_)) // Keep main keys even if 0
+      .map(([name, value]) => ({ name, value }));
 
     // Certification Data
     const certData = Object.entries(certCounts)

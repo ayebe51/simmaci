@@ -315,6 +315,8 @@ export default function SkGeneratorPage() {
   // MODAL STATES
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showHistoryConfirm, setShowHistoryConfirm] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successCount, setSuccessCount] = useState(0)
 
   // RESTORED STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -980,16 +982,18 @@ export default function SkGeneratorPage() {
       // --- 2. GENERATE ZIP (Now using valid SK IDs) ---
       const res = await generateBulkSkZip(finalData, "SK_Masal_Maarif.zip", finalData, convex) 
       
-      if (res.successCount > 0) {
-          // Auto-Increment
-          const nextStart = (parseInt(nomorMulai) || 0) + res.successCount
-          setNomorMulai(String(nextStart).padStart(4, '0'))
-          
-          alert(`Berhasil membuat ${res.successCount} SK! (Cek Download)\n\nData sudah tersimpan di Bank Data SK.\nNomor Surat berikutnya: ${String(nextStart).padStart(4, '0')}`)
-      }
-      
-      setIsGenerating(false)
-    } catch (e) {
+       if (res.successCount > 0) {
+           // Auto-Increment
+           const nextStart = (parseInt(nomorMulai) || 0) + res.successCount
+           setNomorMulai(String(nextStart).padStart(4, '0'))
+           
+           // Show Success Modal
+           setSuccessCount(res.successCount)
+           setShowSuccessModal(true)
+       }
+       
+       setIsGenerating(false)
+     } catch (e) {
         console.error("❌ Critical Gen Error:", e)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errMsg = (e as any)?.message || String(e)
@@ -1401,7 +1405,28 @@ export default function SkGeneratorPage() {
         </DialogContent>
       </Dialog>
 
-      {/* 2. RESET HISTORY SK */}
+
+      {/* 3. SUCCESS GENERATION MODAL */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="max-w-md text-center">
+            <div className="flex flex-col items-center justify-center py-6 gap-4">
+            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2">
+                <CheckCircle className="h-10 w-10" />
+            </div>
+            <DialogTitle className="text-2xl font-bold text-green-700">Selesai!</DialogTitle>
+            <div className="text-slate-600">
+                Berhasil membuat <b>{successCount} SK</b>.
+                <br/>
+                File SK sudah otomatis terunduh (ZIP).
+                <br/>
+                Data SK juga sudah tersimpan di database.
+            </div>
+            <Button className="w-full mt-4 bg-green-600 hover:bg-green-700" onClick={() => setShowSuccessModal(false)}>
+                Tutup & Lanjutkan
+            </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={showHistoryConfirm} onOpenChange={setShowHistoryConfirm}>
         <DialogContent className="max-w-md">
           <DialogHeader>

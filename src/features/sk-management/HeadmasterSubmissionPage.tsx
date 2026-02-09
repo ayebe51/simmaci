@@ -20,12 +20,7 @@ import { Id } from "../../../convex/_generated/dataModel"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
+// Unused imports removed
 } from "@/components/ui/command"
 import {
   Popover,
@@ -65,7 +60,7 @@ export default function HeadmasterSubmissionPage() {
 
   // 🔥 REAL-TIME CONVEX QUERIES
   const convexTeachers = useQuery(convexApi.teachers.list, { token: localStorage.getItem("token") || undefined })
-  const convexSchools = useQuery(convexApi.schools.list)
+  const convexSchools = useQuery(convexApi.schools.list, {})
   
   // Map to interface with id
   const teachers = useMemo(() => (convexTeachers || []).map(t => ({

@@ -24,6 +24,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
   const photoUrl = useQuery(api.teachers.getPhotoUrl, teacher.photoId ? { storageId: teacher.photoId } : "skip");
   
   // Verification URL (points to public verify page)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const baseUrl = (import.meta.env as any).VITE_APP_URL || window.location.origin;
   const verifyUrl = `${baseUrl}/verify/teacher/${teacher.nuptk || "unknown"}`;
 
@@ -38,8 +39,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
       {/* We use pixel width 500px for display clarity */}
       <div 
         ref={cardRef}
-        className="w-[500px] h-[316px] bg-gradient-to-br from-green-600 to-green-800 rounded-xl shadow-2xl relative overflow-hidden text-white"
-        style={{ fontFamily: 'Inter, sans-serif' }}
+        className="w-[500px] h-[316px] bg-gradient-to-br from-green-600 to-green-800 rounded-xl shadow-2xl relative overflow-hidden text-white font-sans"
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>

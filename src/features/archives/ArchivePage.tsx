@@ -50,7 +50,7 @@ export default function ArchivePage() {
   // Auth
   const token = localStorage.getItem("token")
   const user = JSON.parse(localStorage.getItem("user") || "{}")
-  // const isOperator = user.role === "operator" // Unused variable
+  // const isOperator = user.role === "operator" // Unused variable removed
   
   // Data Fetching
   const archives = useQuery(api.archives.list, { 
@@ -262,9 +262,9 @@ export default function ArchivePage() {
                                      {getCategoryBadge(archive.category)}
                                  </TableCell>
                                  <TableCell className="text-right">
-                                     <div className="flex justify-end gap-2">
+                                    <div className="flex justify-end gap-2">
                                          <Button variant="ghost" size="icon" asChild title="Lihat">
-                                             <a href={archive.fileUrl} target="_blank" rel="noreferrer">
+                                             <a href={archive.fileUrl} target="_blank" rel="noreferrer" aria-label={`Lihat dokumen ${archive.nomorSk}`}>
                                                  <Eye className="h-4 w-4 text-blue-600" />
                                              </a>
                                          </Button>

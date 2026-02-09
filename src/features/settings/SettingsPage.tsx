@@ -324,6 +324,7 @@ export default function SettingsPage() {
                                                     type="file" accept=".docx"
                                                     disabled={isUploading === template.id}
                                                     className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    aria-label="Upload Template Word"
                                                     onChange={(e) => handleCloudUpload(e, template.id)}
                                                 />
                                             </div>

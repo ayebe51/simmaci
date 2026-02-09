@@ -295,7 +295,6 @@ export default function SkGeneratorPage() {
   // MUTATIONS
   const createSk = useMutation(convexApi.sk.create)
   // Unused mutations removed
-  const deleteAllSkHistory = useMutation(convexApi.sk.deleteAllSk) 
   const markAsGenerated = useMutation(convexApi.sk.markTeacherAsGenerated) 
   // FIXED: Add CleanSK hook for Smart Reset
   const cleanSk = useMutation(convexApi.cleanup.cleanSk)
@@ -744,7 +743,7 @@ export default function SkGeneratorPage() {
       // Map teacher data to template keys clearly
       const mappedData = selectedData.map((t, idx) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir, t.tmt, t.nama, (t as any).jabatan, t.status)
+              const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir || "", t.tmt || "", t.nama || "", (t as any).jabatan || "", t.status)
               // 2. Parse TMT (Tanggal Mulai Tugas)
               const tmtDate = parseIndonesianDate(String(t.tmt || ""))
               // let masaKerjaTahun = 0 // Unused

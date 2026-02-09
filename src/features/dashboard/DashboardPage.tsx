@@ -333,8 +333,8 @@ export default function DashboardPage() {
                </CardContent>
              </Card>
            )}
-         </>
-       )}
+
+
 
        {/* 📋 ACTIVITY & STATUS SECTION - Moved to bottom */}
        <div className="grid gap-4 md:grid-cols-2 mt-6">

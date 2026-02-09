@@ -240,3 +240,56 @@ export const getMonthlyReport = query({
     };
   },
 });
+
+// --- TEACHER REKAP REPORT ---
+export const getTeacherRekap = query({
+  args: {
+    unit: v.optional(v.string()), // Filter by unit (for Admin)
+    status: v.optional(v.string()), // Filter by status kepegawaian
+    sertifikasi: v.optional(v.string()), // Filter by certification status
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", identity.email!))
+      .first();
+
+    if (!user) return [];
+
+    let teachers = await ctx.db.query("teachers").collect();
+
+    // 1. RBAC Filter
+    if (user.role === "operator") {
+       if (!user.unit) return [];
+       teachers = teachers.filter(t => t.unitKerja === user.unit);
+    } else if (args.unit && args.unit !== "all") {
+       // Admin filter
+       teachers = teachers.filter(t => t.unitKerja === args.unit);
+    }
+
+    // 2. Status Filter
+    if (args.status && args.status !== "all") {
+      teachers = teachers.filter(t => t.status === args.status);
+    }
+
+    // 3. Sertifikasi Filter
+    if (args.sertifikasi && args.sertifikasi !== "all") {
+      const isCertified = args.sertifikasi === "Sudah" || args.sertifikasi === "Certified";
+      teachers = teachers.filter(t => !!t.isCertified === isCertified);
+    }
+
+    // 4. Enrich & Format
+    return teachers.map(t => ({
+      nama: t.nama || "-",
+      nip: t.nip || "-",
+      unitKerja: t.unitKerja || "-",
+      status: t.status || "-",
+      sertifikasi: t.isCertified ? "Sudah" : "Belum",
+      telepon: t.phoneNumber || "-",
+      email: t.email || "-"
+    }));
+  }
+});

@@ -19,7 +19,8 @@ import {
   Gavel,
   Archive,
   ArrowRightLeft,
-  ChevronDown
+  ChevronDown,
+  CreditCard
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -56,6 +57,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
         { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
         { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
+        { label: "Digital KTA", href: "/dashboard/kta", icon: CreditCard },
       ]
     },
     {
@@ -64,6 +66,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
         { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
         { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
+        { label: "Laporan Guru", href: "/dashboard/reports", icon: FileBarChart },
       ]
     },
     {

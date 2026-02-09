@@ -57,27 +57,8 @@ export default function DashboardPage() {
 
   const totalTeachers = analyticsStats?.totalTeachers || stats.teacherCount
   const totalSchools = analyticsStats?.totalSchools || stats.schoolCount
-  const totalSk = stats.skCount
 
-  const Sparkline = ({ data, color }: { data: any[], color: string }) => {
-    if (!data || data.length === 0) return null
-    return (
-      <div className="h-[40px] w-[80px]">
-          <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                  <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke={color} 
-                      strokeWidth={2} 
-                      dot={false} 
-                      isAnimationActive={false}
-                  />
-              </LineChart>
-          </ResponsiveContainer>
-      </div>
-    )
-  }
+  // Helper logic for trends
 
   // Helper logic for trends
   const currentMonthTeacherCount = analyticsStats?.teacherTrend?.[5]?.count || 0
@@ -384,5 +365,26 @@ export default function DashboardPage() {
           </Card>
        </div>
      </div>
+      </div>
+  )
+}
+
+const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+  if (!data || data.length === 0) return null
+  return (
+    <div className="h-[40px] w-[80px]">
+        <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+                <Line 
+                    type="monotone" 
+                    dataKey="count" 
+                    stroke={color} 
+                    strokeWidth={2} 
+                    dot={false} 
+                    isAnimationActive={false}
+                />
+            </LineChart>
+        </ResponsiveContainer>
+    </div>
   )
 }

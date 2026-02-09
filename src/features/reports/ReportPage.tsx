@@ -4,85 +4,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Printer, Search, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-// import { api } from "@/lib/api"
+import { useQuery } from "convex/react"
+import { api } from "../../../convex/_generated/api"
 import { toast } from "sonner"
-
-const api = {
-  getTeachers: async () => [] as any[]
-}
 
 export default function ReportPage() {
   const [reportType, setReportType] = useState("teachers_by_unit")
   const [selectedUnit, setSelectedUnit] = useState("all")
   const [units, setUnits] = useState<string[]>([])
   const [previewData, setPreviewData] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [allData, setAllData] = useState<any[]>([])
   
-  // Load real data from API
+  // Load real data from Convex
+  const teachers = useQuery(api.reports.getTeacherRekap, {
+      unit: undefined, // Fetch all for initial client-side filtering (or optimize later)
+      status: undefined,
+      sertifikasi: undefined
+  });
+
+  const isLoading = teachers === undefined;
+
   useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
-      setIsLoading(true)
-      try {
-          // Fetch from API
-          const res = await api.getTeachers();
-          const teachers = Array.isArray(res) ? res : (res as any).data || [];
-          
-          // Map Backend Fields to Report Format
-          const mapped = teachers.map((t: any) => ({
-              ...t,
-              // Fix: API returns 'unitKerja', not 'satminkal'. Use t.unitKerja first.
-              unitKerja: t.unitKerja || t.satminkal || "Tanpa Unit",
-              nip: t.nuptk || t.nip || "-"
-          }));
-
-          setAllData(mapped);
-
-          // Extract unique Units
-          const uniqueUnits = Array.from(new Set(mapped.map((t: any) => t.unitKerja))).sort() as string[]
-          setUnits(uniqueUnits)
-          
-          generatePreview(mapped, reportType, selectedUnit)
-      } catch (e) {
-          console.error(e)
-          toast.error("Gagal memuat data guru")
-      } finally {
-          setIsLoading(false)
-      }
-  }
-
-  // Regenerate when filters change
-  useEffect(() => {
-    if (allData.length > 0) {
-        generatePreview(allData, reportType, selectedUnit)
+    if (teachers) {
+        // Extract unique Units
+        const uniqueUnits = Array.from(new Set(teachers.map((t: any) => t.unitKerja))).sort() as string[]
+        setUnits(uniqueUnits)
+        
+        generatePreview(teachers, reportType, selectedUnit)
     }
-  }, [reportType, selectedUnit, allData])
+  }, [teachers, reportType, selectedUnit])
 
-  const generatePreview = (teachers: any[], type: string, unit: string) => {
+  const generatePreview = (data: any[], type: string, unit: string) => {
       if (type === "teachers_by_unit") {
-          let filtered = teachers
+          let filtered = data
           if (unit !== "all") {
-              filtered = teachers.filter(t => t.unitKerja === unit)
+              filtered = data.filter(t => t.unitKerja === unit)
           }
           setPreviewData(filtered)
       } else if (type === "stats") {
           // Generate Stats (PNS, GTY, GTT)
           const stats: Record<string, any> = {}
-          teachers.forEach(t => {
+          
+          // Initialize units
+          const unitList = unit === "all" ? units : [unit];
+          
+          data.forEach(t => {
               const u = t.unitKerja || "Tanpa Unit"
               if (!stats[u]) stats[u] = { name: u, pns: 0, gty: 0, gtt: 0, total: 0 }
               
               const s = (t.status || "").toUpperCase()
               if (s.includes("PNS") || s.includes("ASN") || s.includes("PPPK")) stats[u].pns++
-              else if (s.includes("GTY")) stats[u].gty++
+              else if (s.includes("GTY") || s.includes("TETAP YAYASAN")) stats[u].gty++
               else stats[u].gtt++
               
               stats[u].total++
           })
-          setPreviewData(Object.values(stats))
+
+          // Filter by selected unit if needed (though logic above mostly handles aggregations)
+          if (unit !== "all") {
+             setPreviewData([stats[unit] || { name: unit, pns:0, gty:0, gtt:0, total:0 }])
+          } else {
+             setPreviewData(Object.values(stats))
+          }
       }
   }
 

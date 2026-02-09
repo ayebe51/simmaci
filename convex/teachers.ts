@@ -1,5 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { validateSession } from "./auth_helpers";
 
 // --- STORAGE HELPERS ---
@@ -94,6 +95,57 @@ export const getByNuptk = query({
   },
 });
 
+// --- RBAC HELPER ---
+async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefined, currentTeacherId?: Id<"teachers">) {
+    const identity = await ctx.auth.getUserIdentity();
+    
+    // 1. If not logged in, throw error (Strict Mode)
+    if (!identity) {
+        throw new Error("Unauthorized: Harap login terlebih dahulu.");
+    }
+
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", identity.email!))
+        .first();
+
+    if (!user) {
+        throw new Error("Unauthorized: User tidak ditemukan.");
+    }
+
+    // 2. Admin is God Mode
+    if (user.role === 'admin') {
+        return user; // Pass
+    }
+
+    // 3. Operator Logic
+    if (user.role === 'operator') {
+        // Enforce Unit
+        if (!user.unit) {
+            throw new Error("Forbidden: Akun operator tidak memiliki Unit Kerja.");
+        }
+
+        // A. If targetUnit is provided (Create/Update), it MUST match user.unit
+        if (targetUnit && targetUnit.trim().toLowerCase() !== user.unit.trim().toLowerCase()) {
+            throw new Error(`Forbidden: Anda tidak berhak mengelola data unit '${targetUnit}'.`);
+        }
+
+        // B. If acting on existing teacher (Update/Delete), verify ownership
+        if (currentTeacherId) {
+            const existing = await ctx.db.get(currentTeacherId);
+            if (!existing) return user; // Let the mutation handle "not found"
+            
+            if (existing.unitKerja !== user.unit) {
+                 throw new Error("Forbidden: Anda tidak memiliki akses ke guru ini.");
+            }
+        }
+
+        return user;
+    }
+
+    throw new Error("Forbidden: Role tidak dikenali.");
+}
+
 // Create new teacher
 export const create = mutation({
   args: {
@@ -108,7 +160,7 @@ export const create = mutation({
     unitKerja: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
-    tmt: v.optional(v.string()),  // NEW: Tanggal Mulai Tugas
+    tmt: v.optional(v.string()),
     isCertified: v.optional(v.boolean()),
     phoneNumber: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -117,6 +169,12 @@ export const create = mutation({
     photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
+    // RBAC CHECK
+    const user = await validateWriteAccess(ctx, args.unitKerja);
+    
+    // For Operators, FORCE unitKerja to match their account (Double Safety)
+    const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
+
     const now = Date.now();
     
     // Check for duplicate NUPTK
@@ -126,10 +184,16 @@ export const create = mutation({
       .first();
     
     if (existing) {
+      // RBAC CHECK FOR UPDATE
+      if (user.role === 'operator' && existing.unitKerja !== user.unit) {
+          throw new Error("Forbidden: NUPTK terdaftar di sekolah lain.");
+      }
+
       // UPSERT LOGIC: Update existing teacher for re-submission
       console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
       await ctx.db.patch(existing._id, {
         ...args,
+        unitKerja: finalUnit, // Ensure secure unit
         updatedAt: now,
       });
       return existing._id;
@@ -137,6 +201,7 @@ export const create = mutation({
     
     return await ctx.db.insert("teachers", {
       ...args,
+      unitKerja: finalUnit, // Ensure secure unit
       isActive: args.isActive ?? true,
       createdAt: now,
       updatedAt: now,
@@ -159,7 +224,7 @@ export const update = mutation({
     unitKerja: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
-    tmt: v.optional(v.string()),  // NEW: Tanggal Mulai Tugas
+    tmt: v.optional(v.string()),
     isCertified: v.optional(v.boolean()),
     phoneNumber: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -169,6 +234,11 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
+
+    // RBAC CHECK
+    // Pass ID to verify ownership of existing record
+    // Pass new unitKerja to verify they aren't moving it to unauthorized unit
+    await validateWriteAccess(ctx, updates.unitKerja, id);
     
     await ctx.db.patch(id, {
       ...updates,
@@ -183,6 +253,9 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("teachers") },
   handler: async (ctx, args) => {
+    // RBAC CHECK
+    await validateWriteAccess(ctx, undefined, args.id);
+
     await ctx.db.patch(args.id, {
       isActive: false,
       updatedAt: Date.now(),
@@ -190,10 +263,15 @@ export const remove = mutation({
   },
 });
 
-// Bulk delete all teachers (hard delete)
+// Bulk delete all teachers (hard delete) - PROTECTED (Admin Only)
 export const bulkDelete = mutation({
   args: {},
   handler: async (ctx) => {
+    const user = await validateWriteAccess(ctx, undefined);
+    if (user.role !== 'admin') {
+        throw new Error("Forbidden: Hanya Admin yang bisa menghapus semua data.");
+    }
+
     const allTeachers = await ctx.db.query("teachers").collect();
     for (const teacher of allTeachers) {
       await ctx.db.delete(teacher._id);
@@ -211,6 +289,8 @@ export const bulkCreate = mutation({
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
   },
   handler: async (ctx, args) => {
+    const user = await validateWriteAccess(ctx, undefined);
+
     try {
         const now = Date.now();
         const results = [];
@@ -220,13 +300,19 @@ export const bulkCreate = mutation({
         const processedNuptks = new Set<string>();
         const unitsInBatch = new Set<string>();
 
+        // If Operator, simplify things: The batch MUST be for their unit.
+        // We will override any excel unit with User's unit.
+        const enforcedUnit = user.role === 'operator' ? user.unit : null;
+
         for (const teacher of args.teachers) {
         if (!teacher) continue; // Skip nulls
         
         try {
             if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
-            if (teacher.unitKerja) unitsInBatch.add(teacher.unitKerja);
-            if (teacher.satminkal) unitsInBatch.add(teacher.satminkal);
+            // Unit Strategy:
+            // - operator: enforcedUnit
+            // - admin: use provided unit or fallback
+            // We'll resolve this in cleanData below
         } catch {
             // Ignore pre-processing errors
         }
@@ -247,13 +333,21 @@ export const bulkCreate = mutation({
             };
             
             // Map optional fields
-            // Map optional fields
             // FIXED: Force 'active' for bulk upload to bypass "Pengajuan SK" (Draft)
             cleanData.status = "active"; 
-            // if (teacher.status) cleanData.status = teacher.status; // <-- OVERRIDE THIS
-            if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
-            else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; // Fallback for legacy
             
+            // --- UNIT LOGIC ---
+            if (enforcedUnit) {
+                cleanData.unitKerja = enforcedUnit; // Override for Operator
+                unitsInBatch.add(enforcedUnit);
+            } else {
+                if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
+                else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; 
+                
+                if (cleanData.unitKerja) unitsInBatch.add(cleanData.unitKerja);
+            }
+            // ------------------
+
             if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
             if (teacher.tmt) cleanData.tmt = teacher.tmt;
             if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
@@ -262,8 +356,7 @@ export const bulkCreate = mutation({
             if (teacher.email) cleanData.email = teacher.email;
             if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
             if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified;
-        else cleanData.isVerified = false; // Set Unverified to force Approval Flow
-            if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
+            else cleanData.isVerified = false; // Set Unverified to force Approval Flow
             if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
             if (teacher.draftSk) cleanData.draftSk = teacher.draftSk; 
             if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl; // Batch File
@@ -296,11 +389,18 @@ export const bulkCreate = mutation({
                     });
                     results.push(id);
                 } else {
+                    // RBAC CHECK FOR EXISTING UPDATE IN BULK
+                    if (user.role === 'operator' && existing.unitKerja !== user.unit) {
+                        // Skip quietly or error? 
+                        // Let's error so they know something is wrong
+                        throw new Error("NUPTK owned by another school");
+                    }
+
                     // UPDATE EXISTING RECORD (UPSERT)
                     await ctx.db.patch(existing._id, {
                         ...cleanData,
                         isVerified: true, // FIXED: Bypass Approval Inbox
-                        isSkGenerated: false, // RESET this so it reappears in Generator Queue (As requested)
+                        isSkGenerated: false, 
                         updatedAt: now,
                     });
                     results.push(existing._id);
@@ -318,11 +418,14 @@ export const bulkCreate = mutation({
         }
 
         // FULL SYNC LOGIC
+        // Only allow syncing units user has access to
         let deactivatedCount = 0;
         if (args.isFullSync && unitsInBatch.size > 0) {
             // Foreach Unit involved in this batch
             for (const unit of unitsInBatch) {
-                // Find all Active Teachers in this Unit
+                // RBAC Full Sync Protection
+                if (user.role === 'operator' && unit !== user.unit) continue;
+
                 try {
                     const teachersInUnit = await ctx.db
                         .query("teachers")
@@ -332,6 +435,7 @@ export const bulkCreate = mutation({
                     for (const t of teachersInUnit) {
                         // If teacher is active BUT not in processed list -> Deactivate
                         if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
+                            // Double check RBAC if existing teacher somehow mismatches (shouldnt happen if by_unit is correct)
                             await ctx.db.patch(t._id, {
                                 isActive: false,
                                 updatedAt: now
@@ -351,7 +455,7 @@ export const bulkCreate = mutation({
         ids: results,
         errors: errors.length > 0 ? errors : undefined,
         deactivated: deactivatedCount,
-        version: "4.0 (Global Try Catch)" 
+        version: "4.1 (RBAC Secured)" 
         };
     } catch (criticalError: any) {
         // CATCH GLOBAL CRASHES
@@ -392,6 +496,9 @@ export const importTeachers = mutation({
     teachers: v.array(v.any()), // Accept loose JSON to prevent validation errors before processing
   },
   handler: async (ctx, args) => {
+    const user = await validateWriteAccess(ctx, undefined);
+    const enforcedUnit = user.role === 'operator' ? user.unit : null;
+
     const now = Date.now();
     let success = 0;
     let updated = 0;
@@ -406,7 +513,13 @@ export const importTeachers = mutation({
         if (!nuptk || !nama) continue; // Skip invalid rows
 
         // Map Fields (Prioritize New Names, Fallback to Old/Excel Names)
-        const unit = t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "";
+        let unit = t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "";
+        
+        // RBAC OVERRIDE
+        if (enforcedUnit) {
+            unit = enforcedUnit;
+        }
+
         const status = t.status || t.STATUS || t.Status || "GTT";
         const tmt = t.tmt || t.TMT || "";
         const pendidikan = t.pendidikanTerakhir || t.pendidikan || t.PENDIDIKAN || "";
@@ -438,16 +551,19 @@ export const importTeachers = mutation({
           .first();
 
         if (existing) {
+          // RBAC CHECK
+          if (user.role === 'operator' && existing.unitKerja !== user.unit) {
+              throw new Error("Forbidden: Data belongs to another school");
+          }
+
           // UPSERT (Update)
           await ctx.db.patch(existing._id, cleanData);
           updated++;
         } else {
           // INSERT (New)
-          // Convex requires all fields to match schema structure
-          // We spread cleanData and ensure required fields (if any) are present
           await ctx.db.insert("teachers", {
             ...cleanData,
-            isActive: true,
+            isActive: true, // Default active for imports
             createdAt: now,
           });
           success++;

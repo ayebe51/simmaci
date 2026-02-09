@@ -172,6 +172,7 @@ export const create = mutation({
 });
 
 // Update school
+// Update school
 export const update = mutation({
   args: {
     id: v.id("schools"),
@@ -186,6 +187,26 @@ export const update = mutation({
     statusJamiyyah: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // RBAC Check
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) {
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .first();
+
+        if (user && user.role === "operator") {
+             if (!user.unit) throw new Error("Forbidden");
+             // Verify the school being updated matches user's unit
+             const school = await ctx.db.get(args.id);
+             if (!school) throw new Error("School not found");
+             
+             if (school.nama !== user.unit) {
+                 throw new Error("Forbidden: Anda hanya hak edit sekolah sendiri.");
+             }
+        }
+    }
+
     const { id, ...updates } = args;
     
     await ctx.db.patch(id, {

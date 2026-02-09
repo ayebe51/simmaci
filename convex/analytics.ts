@@ -134,15 +134,4 @@ export const getDashboardStats = query({
       totalSk: 0 // Placeholder (fetched separately)
     };
   },
-});      .map(([name, jumlah]) => ({ name, jumlah }))
-      .sort((a, b) => b.jumlah - a.jumlah);
-
-    return {
-      totalTeachers: teachers.length,
-      status: statusData,
-      certification: certData,
-      units: unitData,
-      kecamatan: kecamatanData
-    };
-  },
 });

@@ -19,6 +19,7 @@ import SettingsPage from "./features/settings/SettingsPage"
 import HeadmasterExpiryPage from "./features/monitoring/HeadmasterExpiryPage"
 import ReportPage from "./features/reports/ReportPage"
 import SkReportPageSimple from "./features/reports/SkReportPageSimple"
+import KtaGeneratorPage from "./features/kta/KtaGeneratorPage"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
 import EventsPage from "./features/events/EventsPage"
 import CreateEventPage from "./features/events/CreateEventPage"
@@ -75,6 +76,7 @@ export default function App() {
                         </ErrorBoundary>
                       } />
                       <Route path="reports" element={<ReportPage />} />
+                      <Route path="kta" element={<KtaGeneratorPage />} />
                       <Route path="events" element={<EventsPage />} />
                       <Route path="events/new" element={<CreateEventPage />} />
                       <Route path="events/:id" element={<EventDetailPage />} />

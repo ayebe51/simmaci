@@ -96,9 +96,43 @@ export const getDashboardStats = query({
       .sort((a, b) => b.jumlah - a.jumlah)
       .slice(0, 5);
 
-    // Kecamatan Data
     const kecamatanData = Object.entries(kecamatanCounts)
       .map(([name, jumlah]) => ({ name, jumlah }))
+      .sort((a, b) => b.jumlah - a.jumlah);
+
+    // 4. Teacher Trend (Last 6 Months)
+    const now = new Date();
+    const last6Months = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        return {
+            monthKey: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+            label: d.toLocaleString('id-ID', { month: 'short' }),
+            count: 0
+        };
+    }).reverse();
+
+    for (const t of teachers) {
+        const d = new Date(t.createdAt);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const bucket = last6Months.find(b => b.monthKey === key);
+        if (bucket) {
+            bucket.count++;
+        }
+    }
+
+    return {
+      status: statusData,
+      units: unitData,
+      certification: certData,
+      kecamatan: kecamatanData,
+      teacherTrend: last6Months.map(({ label, count }) => ({ month: label, count })),
+      totalTeachers: teachers.length,
+      totalSchools: Object.keys(unitCounts).length,
+      totalStudents: 0, // Placeholder
+      totalSk: 0 // Placeholder (fetched separately)
+    };
+  },
+});      .map(([name, jumlah]) => ({ name, jumlah }))
       .sort((a, b) => b.jumlah - a.jumlah);
 
     return {

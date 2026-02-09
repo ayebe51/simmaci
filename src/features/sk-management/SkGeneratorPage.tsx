@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Trash2, Eye } from "lucide-react"
+import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Eye } from "lucide-react"
 import { useState, useEffect } from "react"
 // Removed: import { saveAs } from "file-saver" - using native browser download instead
 import JSZip from "jszip"
@@ -279,6 +279,18 @@ const generateBulkSkZip = async (
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
+import { toast } from "sonner"
+
+// ... imports
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { AlertCircle, Trash2 } from "lucide-react"
 
 export default function SkGeneratorPage() {
   const convex = useConvex()
@@ -300,7 +312,11 @@ export default function SkGeneratorPage() {
   const cleanSk = useMutation(convexApi.cleanup.cleanSk)
 
   
-  // STATES
+  // MODAL STATES
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showHistoryConfirm, setShowHistoryConfirm] = useState(false)
+
+  // RESTORED STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [hasStoredTemplate, setHasStoredTemplate] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -333,48 +349,49 @@ export default function SkGeneratorPage() {
   // New: Global Kecamatan Fallback
   const [defaultKecamatan, setDefaultKecamatan] = useState("") 
 
-  // Helper function calculates +1 Year removed as it was unused stub
-  
-  // ... (Lines 249-876 skipped) ...
-
     const handleReset = async () => {
-    if (!confirm("⚠️ PERINGATAN KERAS \n\nHapus SEMUA Data Calon Guru di halaman ini?\n(Gunakan ini jika upload data anda salah)\n\nData SK History TETAP AMAN.")) return
-    
-    setIsLoading(true)
-    try {
-        // Delete Teachers (Candidates), Keep SK
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const res: any = await cleanSk({ deleteTeachers: true, deleteSk: false })
-        alert(`Selesai! Dihapus: ${res.teachersDeleted} data guru.`)
-        window.location.reload()
-    } catch (e) {
-        console.error(e)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const errMsg = (e as any)?.message || String(e)
-        alert("Gagal reset data: " + errMsg)
-    } finally {
-        setIsLoading(false)
+        // TRIGGER MODAL INSTEAD OF NATIVE CONFIRM
+        setShowResetConfirm(true)
     }
-  }
+
+    const performReset = async () => {
+        setIsLoading(true)
+        try {
+            // Delete Teachers (Candidates), Keep SK
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const res: any = await cleanSk({ deleteTeachers: true, deleteSk: false })
+            toast.success(`Selesai! Dihapus: ${res.teachersDeleted} data guru.`)
+            setTimeout(() => window.location.reload(), 1000)
+        } catch (e) {
+            console.error(e)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const errMsg = (e as any)?.message || String(e)
+            toast.error("Gagal reset data: " + errMsg)
+        } finally {
+            setIsLoading(false)
+            setShowResetConfirm(false)
+        }
+    }
 
   const handleResetSkHistoryOnly = async () => {
-    if (!confirm("⚠️ PERINGATAN \n\nApakah anda yakin ingin menghapus SEMUA RIWAYAT SK?\n\n- Data guru antrean TETAP ADA.\n- Nomor SK yang sudah terbentuk akan DIHAPUS.\n\nLanjutkan?")) return
-    
+        // TRIGGER MODAL INSTEAD OF NATIVE CONFIRM
+        setShowHistoryConfirm(true)
+  }
+
+  const performResetHistory = async () => {
     setIsLoading(true)
     try {
         // Delete SK, Keep Teachers
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const res: any = await cleanSk({ deleteTeachers: false, deleteSk: true })
         setNomorMulai("0001") // Reset Counter
-        alert(`✅ Berhasil menghapus ${res.skDeleted} Riwayat SK.\nData Guru aman.\nSilakan generate ulang.`)
-        window.location.reload()
+        toast.success(`✅ Berhasil reset ${res.skDeleted} Riwayat SK.`)
+        setTimeout(() => window.location.reload(), 1000)
     } catch (e) {
-        console.error(e)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const errMsg = (e as any)?.message || String(e)
-        alert("Gagal menghapus riwayat SK: " + errMsg)
+         toast.error("Gagal hapus history: " + e)
     } finally {
         setIsLoading(false)
+        setShowHistoryConfirm(false)
     }
   }
 
@@ -1342,6 +1359,80 @@ export default function SkGeneratorPage() {
                     )}
                 </div>
             )}
+
+      {/* --- ESTETIK MODALS (Using Dialog because AlertDialog component is missing) --- */}
+      
+      {/* 1. RESET DATA CANDIDATE */}
+      <Dialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+                <Trash2 className="h-6 w-6" />
+                <DialogTitle className="text-xl">Konfirmasi Hapus</DialogTitle>
+            </div>
+            <DialogDescription className="text-base text-slate-700">
+              Yakin ingin menghapus <b>SEMUA Data Calon Guru</b> di halaman ini?
+              <br /><br />
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800 flex gap-2 items-start">
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div>
+                      <strong>Perhatian:</strong>
+                      <ul className="list-disc ml-4 mt-1 space-y-1">
+                          <li>Data Guru (Master) <b>TETAP AMAN</b>.</li>
+                          <li>Data Pengajuan akan <b>DIHAPUS</b> dari antrean.</li>
+                          <li>Gunakan ini jika upload Excel anda salah/double.</li>
+                      </ul>
+                  </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowResetConfirm(false)} disabled={isLoading}>
+                Batal
+            </Button>
+            <Button 
+                onClick={(e) => { e.preventDefault(); performReset(); }}
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={isLoading}
+            >
+                {isLoading ? "Menghapus..." : "Ya, Hapus Semua"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. RESET HISTORY SK */}
+      <Dialog open={showHistoryConfirm} onOpenChange={setShowHistoryConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-amber-600 mb-2">
+                <AlertCircle className="h-6 w-6" />
+                <DialogTitle className="text-xl">Reset Riwayat SK</DialogTitle>
+            </div>
+            <DialogDescription className="text-base text-slate-700">
+              Yakin ingin menghapus <b>SEMUA Riwayat SK</b> yang sudah terbit?
+              <br /><br />
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
+                  ⚠️ <b>Nomor SK akan di-reset kembali ke 0001.</b>
+                  <br/>
+                  Pastikan anda sudah mem-backup/download SK penting sebelumnya.
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+             <Button variant="outline" onClick={() => setShowHistoryConfirm(false)} disabled={isLoading}>
+                Batal
+            </Button>
+            <Button 
+                onClick={(e) => { e.preventDefault(); performResetHistory(); }}
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                disabled={isLoading}
+            >
+                {isLoading ? "Mereset..." : "Ya, Reset History"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   )

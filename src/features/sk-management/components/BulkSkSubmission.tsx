@@ -19,14 +19,21 @@ import {
 import { useNavigate } from "react-router-dom"
 import { useMutation } from "convex/react"
 import { api as convexApi } from "../../../../convex/_generated/api"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
 
 export function BulkSkSubmission() {
   const navigate = useNavigate()
   
   // Convex mutations for bulk operations
   const bulkCreateTeacherMutation = useMutation(convexApi.teachers.bulkCreate)
-  const createTeacherMutation = useMutation(convexApi.teachers.create)
-  const createSkMutation = useMutation(convexApi.sk.create)
   const generateUploadUrl = useMutation(convexApi.files.generateUploadUrl)
   
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -39,6 +46,13 @@ export function BulkSkSubmission() {
   
   // New State for Surat Permohonan
   const [suratPermohonanFile, setSuratPermohonanFile] = useState<File | null>(null)
+
+  // MODAL STATES
+  const [showValidationModal, setShowValidationModal] = useState(false)
+  const [validationData, setValidationData] = useState<{row: number, mapping: string, preview: any} | null>(null)
+  
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successData, setSuccessData] = useState<{count: number}>({count: 0})
 
   const log = (msg: string) => setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`])
 
@@ -161,7 +175,7 @@ export function BulkSkSubmission() {
                     const exclusions = HEADER_EXCLUSIONS[key] || []
 
                     // Find index where header matches AND passes exclusion rules
-                    const foundIndex = rowStr.findIndex((cell, idx) => {
+                    const foundIndex = rowStr.findIndex((cell, _idx) => {
                         const cellLower = cell.toLowerCase()
                         const isMatch = possibleHeaders.some(ph => cellLower.includes(ph))
                         const isExcluded = exclusions.some(ex => cellLower.includes(ex))
@@ -190,8 +204,14 @@ export function BulkSkSubmission() {
                     // Log detected mapping
                     const detected = Object.keys(colMap).map(k => `${k} -> Index ${colMap[k]} (${rows[i][parseInt(colMap[k])]})`).join("\n")
                     log(`Detected Columns:\n${detected}`)
-                    // Show visible alert for mapping
-                    alert(`✅ Header Terdeteksi di Baris ${i + 1}!\n\nMapping Kolom:\n${detected}`)
+                    
+                    // Show Estetik Modal
+                    setValidationData({
+                        row: i + 1,
+                        mapping: detected,
+                        preview: rows[i+1] // Preview First Data Row if exists
+                    })
+                    setShowValidationModal(true)
                 }
                 break
                 }
@@ -215,7 +235,7 @@ export function BulkSkSubmission() {
                 if(!rawRow || rawRow.length === 0) continue;
                 
                 const newObj: any = {}
-                let hasData = false;
+                // hasData check removed as per lint
 
                 // Extract Raw Values first using the Map
                 const rawVals: Record<string, any> = {}
@@ -287,33 +307,6 @@ export function BulkSkSubmission() {
     }
   }
 
-  // --- HELPER: Excel Serial to Date ---
-  const excelDateToJSDate = (serial: number) => {
-     // Excel base date is approx Dec 30 1899. 
-     // Fast formula: (serial - 25569) * 86400 * 1000 for Unix ms, but let's use the Date dictionary method for stability
-     // Adjust for leap year bug in Excel (1900 is strictly not leap, Excel says yes). 
-     // For typical dates > 2000, simple offset is fine.
-     const utc_days  = Math.floor(serial - 25569);
-     const utc_value = utc_days * 86400;                                        
-     const date_info = new Date(utc_value * 1000);
-     
-     // Improve robustness for local timezone offsets if needed, but usually UTC conversion is adequate for just Dates
-     // Actually a simpler constructor approach:
-     const date = new Date((serial - (25567 + 2)) * 86400 * 1000); 
-     // 25569 is 1970-01-01. 
-     
-     // Let's use the most reliable "days add" method
-     const d = new Date(1900, 0, serial - 1) // Excel counts from 1900-01-01 as 1. JS months are 0-indexed.
-     
-     // FIX: toISOString() uses UTC, which might be "Yesterday" if local time is +GMT (Indo is +7)
-     // Use local date components instead to preserve "July 18"
-     const year = d.getFullYear()
-     const month = String(d.getMonth() + 1).padStart(2, '0')
-     const day = String(d.getDate()).padStart(2, '0')
-     
-     return `${year}-${month}-${day}`
-  }
-
   // --- HELPER: Parse Date Robustly (Unified with TeacherListPage) ---
   const parseIndonesianDate = (dateStr: any): Date | null => {
       if (!dateStr) return null
@@ -327,7 +320,7 @@ export function BulkSkSubmission() {
       const str = String(dateStr).trim()
       
       // 2. Stringified Number (Excel Serial) - allow decimals
-      if (/^[\d\.]+$/.test(str) && !isNaN(parseFloat(str))) { 
+      if (/^[\d.]+$/.test(str) && !isNaN(parseFloat(str))) { 
           const val = parseFloat(str)
           // Heuristic: Excel dates are usually > 10000 (after 1927). 
           if (val > 1000) {
@@ -341,7 +334,7 @@ export function BulkSkSubmission() {
       if (!isNaN(d.getTime()) && !/^\d+$/.test(str)) return d
       
       // 4. DD/MM/YYYY
-      const parts = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/)
+      const parts = str.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/)
       if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`)
       
       // 5. Indonesian Months
@@ -352,7 +345,7 @@ export function BulkSkSubmission() {
           'jul': '07', 'aug': '08', 'agt': '08', 'sep': '09', 'oct': '10', 'okt': '10', 'nov': '11', 'dec': '12', 'des': '12'
       }
 
-      const txtParts = str.split(/[\s\-\/]+/)
+      const txtParts = str.split(/[\s\-/]+/)
       if (txtParts.length >= 3) {
           const day = txtParts[0].replace(/[^0-9]/g, '')
           const monthTxt = txtParts[1].toLowerCase()
@@ -558,16 +551,17 @@ export function BulkSkSubmission() {
         // 2. SK Submission Creation REMOVED to prevent premature data entry.
         // The SK will be created ONLY when generated in SK Generator page.
         
-        const resultMessage = `Berhasil memproses!\n\nData Guru: ${convexTeachers.length} data masuk antrean.\n\nSilakan 'Approve' data ini di menu 'Daftar Guru' atau abaikan jika auto-approve.`
-        alert(resultMessage)
+        setSuccessData({ count: convexTeachers.length })
+        setShowSuccessModal(true)
         
-        // Navigate to Teacher List to verify/approve? Or Generator?
-        // Generator is where they will mint the SK.
-        navigate("/dashboard/sk") // Redirect to Dashboard so they can Approve (Verify) the data first.
+        // Removed Navigate - Let user click OK on modal to navigate
+        // navigate("/dashboard/sk") 
 
     } catch (e: any) {
         console.error("Bulk Submission Error:", e)
-        alert("Terjadi kesalahan saat memproses data: " + (e.message || "Unknown error"))
+        const msg = "Terjadi kesalahan saat memproses data: " + (e.message || "Unknown error")
+        toast.error(msg)
+        setUploadError(msg)
     } finally {
         setIsProcessing(false)
     }
@@ -782,6 +776,63 @@ export function BulkSkSubmission() {
         </div>
 
       </CardContent>
+   {/* --- ESTETIK MODALS --- */}
+
+      {/* 1. VALIDATION MODAL */}
+      <Dialog open={showValidationModal} onOpenChange={setShowValidationModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-green-600 mb-2">
+                <CheckCircle className="h-6 w-6" />
+                <DialogTitle>File Excel Terbaca!</DialogTitle>
+            </div>
+            <DialogDescription>
+              Sistem berhasil membaca struktur Excel anda.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-slate-50 p-4 rounded-md text-sm border font-mono whitespace-pre-wrap max-h-[300px] overflow-auto">
+             <div className="font-bold text-slate-700 mb-2">Header ditemukan di Baris {validationData?.row}</div>
+             <div className="text-slate-600">{validationData?.mapping}</div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowValidationModal(false)}>
+              Lanjut Proses
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. SUCCESS MODAL */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="max-w-md text-center">
+            <div className="flex flex-col items-center justify-center py-6 gap-4">
+                <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                    <CheckCircle className="h-10 w-10" />
+                </div>
+                <DialogTitle className="text-2xl font-bold text-green-700">Berhasil!</DialogTitle>
+                <div className="text-slate-600">
+                    <p className="font-semibold text-lg">{successData.count} Data Guru Masuk Antrean.</p>
+                    <p className="text-sm mt-2 text-slate-500">
+                        Data sudah otomatis <b>Verified</b> dan masuk ke Generator SK.
+                    </p>
+                </div>
+                
+                <Button 
+                    className="w-full mt-4 bg-green-600 hover:bg-green-700" 
+                    onClick={() => {
+                        setShowSuccessModal(false)
+                        navigate("/dashboard/sk/generator") // Go straight to Generator
+                    }}
+                >
+                    Buka Generator SK
+                </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
+
     </Card>
   )
 }
+// End of file

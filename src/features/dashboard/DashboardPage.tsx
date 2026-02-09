@@ -1,16 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { 
   FileText, 
   Users, 
   School, 
   Clock, 
   CheckCircle, 
-  XCircle, 
   AlertOctagon 
 } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -18,27 +15,24 @@ import DashboardCharts from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 
 export default function DashboardPage() {
-  // Load user directly to prevent flash and avoid useEffect
+  // Load user directly
   const [user] = useState<any>(() => {
     const u = localStorage.getItem("user")
     return u ? JSON.parse(u) : null
   })
 
-  // Placeholder for alerts
-
-  
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
-  const convexStats = useQuery(convexApi.dashboard.getStats)
-  const analyticsStats = useQuery(convexApi.analytics.getDashboardStats) // New Peta Mutu Data
-  const logs = useQuery(convexApi.logs.getRecentLogs, {}) // New Activity Logs
+  const convexStats = useQuery(api.dashboard.getStats)
+  const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
+  const logs = useQuery(api.logs.getRecentLogs, {}) // New Activity Logs
   
   // 📊 SK MONITORING QUERIES
   const operatorSchool = user?.role === "operator" ? user?.unitKerja : undefined
   
-  const skStats = useQuery(convexApi.dashboard.getSkStatistics, { 
+  const skStats = useQuery(api.dashboard.getSkStatistics, { 
     unitKerja: operatorSchool 
   })
-  const skTrend = useQuery(convexApi.dashboard.getSkTrendByMonth, { 
+  const skTrend = useQuery(api.dashboard.getSkTrendByMonth, { 
     months: 6,
     unitKerja: operatorSchool 
   })
@@ -47,7 +41,6 @@ export default function DashboardPage() {
   if (user && user.role === 'operator') {
       return <DashboardOperator />
   }
-
 
   // Use Convex real-time data directly
   const stats = convexStats ? {

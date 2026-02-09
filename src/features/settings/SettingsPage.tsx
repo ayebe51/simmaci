@@ -131,25 +131,43 @@ export default function SettingsPage() {
       }
   }
 
+  // User Role State
+  const [userRole, setUserRole] = useState<string | null>(null)
+
   // Load from local storage on mount
   useEffect(() => {
+    // 1. Get User Role
+    try {
+        const userStr = localStorage.getItem("user")
+        if (userStr) {
+            const user = JSON.parse(userStr)
+            setUserRole(user.role || "operator")
+            
+            // If NOT Super Admin, redirect to Profil/Security
+            if (user.role !== "super_admin") {
+                setActiveTab("profil")
+            }
+        }
+    } catch (e) {
+        console.error("Error parsing user", e)
+    }
+
+    // 2. Load Settings
     const saved = localStorage.getItem("app_settings")
     if (saved) {
         try {
             setSettings(prev => ({ ...prev, ...JSON.parse(saved) }))
         } catch (e) { console.error("Failed to parse settings", e) }
     }
-    
-    // Check if template exists
-    if (localStorage.getItem("sk_template_blob")) {
-        // Template exists logic if needed
-    }
   }, [])
+
+  const isAdmin = userRole === "super_admin"
 
   const handleChange = (key: string, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }))
   }
 
+  // ... (Keep handleSave, handleDownloadBackup, handleRestoreBackup, handleResetData) ...
   const handleSave = () => {
     setIsSaving(true)
     setTimeout(() => {
@@ -159,35 +177,16 @@ export default function SettingsPage() {
     }, 800)
   }
 
-
   const handleDownloadBackup = () => {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const backupData: Record<string, any> = {}
-        // Collect all keys related to the app
-        const keysToBackup = [
-            "app_schools", 
-            "app_teachers", 
-            "app_students", 
-            "app_settings", 
-            "sk_submissions",
-            "sk_template_name",
-            "sk_template_blob"
-        ]
-
+        const keysToBackup = ["app_schools", "app_teachers", "app_students", "app_settings", "sk_submissions", "sk_template_name", "sk_template_blob"]
         keysToBackup.forEach(key => {
             const val = localStorage.getItem(key)
             if (val) backupData[key] = val
         })
-
-        const payload = {
-            version: "1.0",
-            timestamp: new Date().toISOString(),
-            data: backupData
-        }
-
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" })
-
+        const blob = new Blob([JSON.stringify({ version: "1.0", timestamp: new Date().toISOString(), data: backupData }, null, 2)], { type: "application/json" })
         const url = URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
@@ -196,75 +195,61 @@ export default function SettingsPage() {
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
-
         toast.success("Backup berhasil didownload.")
-    } catch (error) {
-        console.error("Backup failed", error)
-        toast.error("Gagal membuat backup.")
-    }
+    } catch (error) { console.error(error); toast.error("Gagal membuat backup.") }
   }
 
-  const handleRestoreBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleRestoreBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       if (!file) return
-
       const reader = new FileReader()
       reader.onload = (event) => {
           try {
               const json = JSON.parse(event.target?.result as string)
-              if (!json.data || !json.version) {
-                  throw new Error("Format file backup tidak valid.")
-              }
-
-              // Restore keys
-              Object.keys(json.data).forEach(key => {
-                  localStorage.setItem(key, json.data[key])
-              })
-              
-              toast.success("Data berhasil dipulihkan! Halaman akan dimuat ulang...")
+              if (!json.data || !json.version) throw new Error("Format file backup tidak valid.")
+              Object.keys(json.data).forEach(key => localStorage.setItem(key, json.data[key]))
+              toast.success("Data berhasil dipulihkan! Reloading...")
               setTimeout(() => window.location.reload(), 1500)
-
-          } catch (err) {
-              console.error("Restore failed", err)
-              toast.error("Gagal memulihkan data. Pastikan file benar.")
-          }
+          } catch (err) { console.error(err); toast.error("Gagal restore.") }
       }
       reader.readAsText(file)
   }
 
-
-
   const handleResetData = () => {
-    if (confirm("PERINGATAN: Tindakan ini akan menghapus SEMUA data Guru, Siswa, dan SK yang tersimpan di browser ini. Lanjutkan?")) {
+    if (confirm("PERINGATAN: Hapus SEMUA data?")) {
         localStorage.clear()
-        alert("System Reset Complete. Refreshing...")
         window.location.reload()
     }
   }
+
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
             <h1 className="text-2xl font-bold tracking-tight">Pengaturan Sistem</h1>
-            <p className="text-muted-foreground">Konfigurasi profil lembaga, template SK, dan pejabat penandatangan.</p>
+            <p className="text-muted-foreground">
+                {isAdmin ? "Konfigurasi profil lembaga, template SK, dan pejabat penandatangan." : "Kelola profil lembaga dan keamanan akun anda."}
+            </p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Menyimpan..." : <><Save className="mr-2 h-4 w-4" /> Simpan Perubahan</>}
-        </Button>
+        {isAdmin && (
+            <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? "Menyimpan..." : <><Save className="mr-2 h-4 w-4" /> Simpan Perubahan</>}
+            </Button>
+        )}
       </div>
 
       <Tabs defaultValue="template" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-
-           <TabsTrigger value="template">Template SK</TabsTrigger>
-           <TabsTrigger value="signer">Penandatangan</TabsTrigger>
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5 lg:w-[700px]' : 'grid-cols-2 lg:w-[400px]'}`}>
+           {isAdmin && <TabsTrigger value="template">Template SK</TabsTrigger>}
+           {isAdmin && <TabsTrigger value="signer">Penandatangan</TabsTrigger>}
            <TabsTrigger value="profil">Profil Lembaga</TabsTrigger>
            <TabsTrigger value="security">Keamanan Akun</TabsTrigger>
-           <TabsTrigger value="system">System</TabsTrigger>
+           {isAdmin && <TabsTrigger value="system">System</TabsTrigger>}
         </TabsList>
 
-        {/* Template Tab */}
+        {/* Template Tab (Admin Only) */}
+        {isAdmin && (
         <TabsContent value="template">
             {!isApiReady ? (
                  <div className="p-8 text-center bg-amber-50 rounded border border-amber-200 text-amber-800">
@@ -283,7 +268,6 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
-                        {/* Cloud Logic */}
                         {[
                             { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY" },
                             { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT" },
@@ -292,13 +276,9 @@ export default function SettingsPage() {
                             { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS" },
                             { id: "sk_template_kamad_plt", label: "SK Kamad (PLT)", desc: "Khusus Pelaksana Tugas (PLT)" },
                         ].map((template) => {
-                            // Check Cloud Status
                             const cloudSetting = cloudSettings?.find(s => s.key === template.id)
-                            // V2 uses Base64 DB, so if record exists, it IS stored. No storageId needed.
                             const hasCloud = !!cloudSetting 
                             const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
-
-                            // Check Local (Legacy)
                             const hasLocal = !!localStorage.getItem(template.id + "_blob")
 
                             return (
@@ -318,13 +298,8 @@ export default function SettingsPage() {
                                                 <p className="text-[10px] text-green-600">Update: {cloudTime}</p>
                                             </div>
                                             <Button 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="h-7 text-xs"
-                                                onClick={() => {
-                                                   // Trigger file input click
-                                                   document.getElementById(`upload-${template.id}`)?.click()
-                                                }}
+                                                variant="outline" size="sm" className="h-7 text-xs"
+                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
                                             >
                                                 Ganti
                                             </Button>
@@ -333,11 +308,10 @@ export default function SettingsPage() {
                                         <div className="space-y-2">
                                             {hasLocal && (
                                                 <div className="text-[10px] bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-2">
-                                                    ⚠️ File ada di Browser ini (Lokal), tapi BELUM di Cloud. <br/>
-                                                    <strong>Harap Upload Ulang agar bisa download.</strong>
+                                                    ⚠️ File ada di Browser (Lokal), tapi BELUM di Cloud. <br/>
+                                                    <strong>Harap Upload Ulang.</strong>
                                                 </div>
                                             )}
-
                                             <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative">
                                                 <div className="text-center space-y-1">
                                                     <Download className="mx-auto h-4 w-4 text-muted-foreground" />
@@ -347,13 +321,10 @@ export default function SettingsPage() {
                                                 </div>
                                                 <input 
                                                     id={`upload-${template.id}`}
-                                                    type="file" 
-                                                    accept=".docx"
+                                                    type="file" accept=".docx"
                                                     disabled={isUploading === template.id}
                                                     className="absolute inset-0 opacity-0 cursor-pointer"
                                                     onChange={(e) => handleCloudUpload(e, template.id)}
-                                                    aria-label={`Upload template ${template.label}`}
-                                                    title={`Upload template ${template.label}`}
                                                 />
                                             </div>
                                         </div>
@@ -382,8 +353,10 @@ export default function SettingsPage() {
             </Card>
             )}
         </TabsContent>
+        )}
 
-        {/* Signer Tab */}
+        {/* Signer Tab (Admin Only) */}
+        {isAdmin && (
         <TabsContent value="signer">
             <Card>
                 <CardHeader>
@@ -391,94 +364,68 @@ export default function SettingsPage() {
                     <CardDescription>Konfigurasi nama Ketua dan Sekretaris yang akan muncul di SK.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    
-                    {/* KETUA */}
                     <div className="space-y-3 p-4 border rounded-md bg-slate-50">
                         <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 1: Ketua</h4>
                         <div className="grid gap-2">
                             <Label htmlFor="signerKetuaName">Nama Lengkap</Label>
-                            <Input 
-                                id="signerKetuaName"
-                                value={settings.signerKetuaName} 
-                                onChange={(e) => handleChange("signerKetuaName", e.target.value)} 
-                            />
+                            <Input id="signerKetuaName" value={settings.signerKetuaName} onChange={(e) => handleChange("signerKetuaName", e.target.value)} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="signerKetuaNip">NIY / NIP (Opsional)</Label>
-                            <Input 
-                                id="signerKetuaNip"
-                                value={settings.signerKetuaNip} 
-                                onChange={(e) => handleChange("signerKetuaNip", e.target.value)} 
-                            />
+                            <Input id="signerKetuaNip" value={settings.signerKetuaNip} onChange={(e) => handleChange("signerKetuaNip", e.target.value)} />
                         </div>
                     </div>
 
-                    {/* SEKRETARIS */}
                     <div className="space-y-3 p-4 border rounded-md bg-slate-50">
                         <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 2: Sekretaris</h4>
                         <div className="grid gap-2">
                             <Label htmlFor="signerSekretarisName">Nama Lengkap</Label>
-                            <Input 
-                                id="signerSekretarisName"
-                                value={settings.signerSekretarisName} 
-                                onChange={(e) => handleChange("signerSekretarisName", e.target.value)} 
-                            />
+                            <Input id="signerSekretarisName" value={settings.signerSekretarisName} onChange={(e) => handleChange("signerSekretarisName", e.target.value)} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="signerSekretarisNip">NIY / NIP (Opsional)</Label>
-                            <Input 
-                                id="signerSekretarisNip"
-                                value={settings.signerSekretarisNip} 
-                                onChange={(e) => handleChange("signerSekretarisNip", e.target.value)} 
-                            />
+                            <Input id="signerSekretarisNip" value={settings.signerSekretarisNip} onChange={(e) => handleChange("signerSekretarisNip", e.target.value)} />
                         </div>
                     </div>
 
                     <div className="grid gap-2 pt-4 border-t">
                          <Label htmlFor="skPrefix">Prefix Nomor SK</Label>
-                         <Input 
-                            id="skPrefix"
-                            value={settings.skPrefix} 
-                            onChange={(e) => handleChange("skPrefix", e.target.value)} 
-                        />
+                         <Input id="skPrefix" value={settings.skPrefix} onChange={(e) => handleChange("skPrefix", e.target.value)} />
                          <p className="text-[10px] text-muted-foreground">Format nomor: [Auto]/[Prefix]/[Bulan]/[Tahun]</p>
                     </div>
                 </CardContent>
             </Card>
         </TabsContent>
+        )}
 
-        {/* Profil Tab */}
+        {/* Profil Tab (Allowed for Everyone, though usually Admin sets it. We'll leave it visible for now as requested) */}
         <TabsContent value="profil">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> Profil Yayasan / Cabang</CardTitle>
-                    <CardDescription>Informasi ini digunakan jika template membutuhkan data lembaga dinamis.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> {isAdmin ? "Profil Yayasan / Cabang" : "Profil Lembaga Anda"}</CardTitle>
+                    <CardDescription>Informasi ini digunakan dalam Kop Surat dan Data Lembaga.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
                         <Label>Nama Yayasan / Cabang</Label>
-                        <Input 
-                            value={settings.namaYayasan} 
-                            onChange={(e) => handleChange("namaYayasan", e.target.value)} 
-                        />
+                        <Input value={settings.namaYayasan} onChange={(e) => handleChange("namaYayasan", e.target.value)} disabled={!isAdmin} />
+                        {!isAdmin && <p className="text-[10px] text-muted-foreground">Hubungi Admin PC untuk mengubah data induk.</p>}
                     </div>
                     <div className="grid gap-2">
                         <Label>Alamat Lengkap</Label>
-                        <Input 
-                            value={settings.alamatYayasan} 
-                            onChange={(e) => handleChange("alamatYayasan", e.target.value)} 
-                        />
+                        <Input value={settings.alamatYayasan} onChange={(e) => handleChange("alamatYayasan", e.target.value)} disabled={!isAdmin} />
                     </div>
                     <div className="grid gap-2">
                         <Label>Telepon / Kontak</Label>
-                        <Input 
-                            value={settings.teleponYayasan} 
-                            onChange={(e) => handleChange("teleponYayasan", e.target.value)} 
-                        />
+                        <Input value={settings.teleponYayasan} onChange={(e) => handleChange("teleponYayasan", e.target.value)} disabled={!isAdmin} />
                     </div>
                 </CardContent>
             </Card>
         </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security">
+             {/* ... existing security tab ... */}
 
         {/* Security Tab */}
         <TabsContent value="security">
@@ -551,7 +498,8 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* System Tab */}
+        {/* System Tab (Admin Only) */}
+        {isAdmin && (
         <TabsContent value="system" className="space-y-4">
           <div className="grid gap-6">
               {/* BACKUP SECTION */}
@@ -603,6 +551,7 @@ export default function SettingsPage() {
               </div>
           </div>
         </TabsContent>
+        )}
         
       </Tabs>
     </div>

@@ -1,9 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { School, Users, FileText, CheckCircle, AlertOctagon, Clock } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { 
+  FileText, 
+  Users, 
+  School, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertOctagon 
+} from "lucide-react"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useQuery } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
-import { DashboardCharts } from "./components/DashboardCharts"
+import { api } from "../../../convex/_generated/api"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import DashboardCharts from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 
 export default function DashboardPage() {
@@ -166,25 +177,44 @@ export default function DashboardPage() {
                </CardHeader>
                <CardContent>
                  <div className="h-[300px] w-full">
-                   <div className="flex items-end justify-around h-full gap-2 pb-8">
-                     {skTrend.map((data, idx) => {
-                       const maxCount = Math.max(...skTrend.map(d => d.count))
-                       const height = maxCount > 0 ? (data.count / maxCount) * 100 : 0
-                       
-                       return (
-                         <div key={idx} className="flex flex-col items-center flex-1">
-                           <div className="text-xs font-semibold mb-1">{data.count}</div>
-                           <div 
-                             className="w-full bg-blue-500 hover:bg-blue-600 transition-all rounded-t-md" 
-                             style={{ height: `${height}%`, minHeight: data.count > 0 ? '20px' : '0px' }}
-                           />
-                           <div className="text-xs text-muted-foreground mt-2 whitespace-nowrap">
-                             {data.month}
-                           </div>
-                         </div>
-                       )
-                     })}
-                   </div>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                            data={skTrend}
+                            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                        >
+                            <defs>
+                                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis 
+                                dataKey="month" 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{fontSize: 12, fill: '#6b7280'}}
+                                dy={10}
+                            />
+                            <YAxis 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{fontSize: 12, fill: '#6b7280'}}
+                            />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                cursor={{ stroke: '#3b82f6', strokeWidth: 1 }}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="count" 
+                                stroke="#3b82f6" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorCount)" 
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
                  </div>
                </CardContent>
              </Card>

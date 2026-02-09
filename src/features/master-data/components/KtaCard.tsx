@@ -35,11 +35,46 @@ export default function KtaCard({ teacher }: KtaCardProps) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* CARD CONTAINER (CR-80 Size approx 85.6mm x 54mm) -> Aspect Ratio ~1.58 */}
-      {/* We use pixel width 500px for display clarity */}
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #kta-card-container, #kta-card-container * {
+              visibility: visible;
+            }
+            #kta-card-container {
+              position: fixed;
+              left: 50%;
+              top: 50%;
+              transform: translate(-50%, -50%);
+              width: 500px !important;
+              height: 316px !important;
+              margin: 0;
+              padding: 0;
+              box-shadow: none !important;
+              border: 1px solid #ddd;
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            .no-print {
+              display: none !important;
+            }
+            /* Hide Dialog Overlay */
+            div[role="dialog"] {
+                background: none !important;
+                box-shadow: none !important;
+            }
+          }
+        `}
+      </style>
+
+      {/* CARD CONTAINER */}
       <div 
+        id="kta-card-container"
         ref={cardRef}
-        className="w-[500px] h-[316px] bg-gradient-to-br from-green-600 to-green-800 rounded-xl shadow-2xl relative overflow-hidden text-white font-sans"
+        className="w-[500px] h-[316px] bg-gradient-to-br from-green-600 to-green-800 rounded-xl shadow-2xl relative overflow-hidden text-white font-sans shrink-0"
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay"></div>
@@ -47,7 +82,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
         {/* HEADER */}
         <div className="absolute top-0 left-0 right-0 h-16 bg-white/10 backdrop-blur-sm border-b border-white/20 flex items-center px-4 justify-between">
            <div className="flex items-center gap-3">
-              <img src="/logo-maarif.png" alt="Logo" className="h-10 w-10 drop-shadow-md" /> {/* Ensure logo exists or use fallback */}
+              <img src="/logo-maarif.png" alt="Logo" className="h-10 w-10 drop-shadow-md" />
               <div className="flex flex-col">
                  <h1 className="text-sm font-bold tracking-wider leading-tight uppercase text-yellow-300">Kartu Tanda Anggota</h1>
                  <h2 className="text-[10px] uppercase tracking-widest text-white/80">LP Ma'arif NU Cilacap</h2>
@@ -103,15 +138,12 @@ export default function KtaCard({ teacher }: KtaCardProps) {
       </div>
 
       {/* ACTIONS */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 no-print">
         <Button variant="outline" onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-2" /> Cetak / Save PDF
         </Button>
-        <Button disabled>
-            <Download className="w-4 h-4 mr-2" /> Download PNG (Coming Soon)
-        </Button>
       </div>
-      <p className="text-xs text-muted-foreground mt-2 text-center max-w-[500px]">
+      <p className="text-xs text-muted-foreground mt-2 text-center max-w-[500px] no-print">
           * Gunakan fitur "Print to PDF" browser untuk menyimpan kartu ini dengan kualitas tinggi. Pastikan opsi "Background Graphics" dicentang pada pengaturan print.
       </p>
     </div>

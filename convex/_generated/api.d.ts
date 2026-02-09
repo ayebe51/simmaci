@@ -19,6 +19,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as debug from "../debug.js";
 import type * as debug_check from "../debug_check.js";
 import type * as debug_sk_stats from "../debug_sk_stats.js";
+import type * as debug_status from "../debug_status.js";
 import type * as debugging from "../debugging.js";
 import type * as files from "../files.js";
 import type * as headmaster from "../headmaster.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   debug: typeof debug;
   debug_check: typeof debug_check;
   debug_sk_stats: typeof debug_sk_stats;
+  debug_status: typeof debug_status;
   debugging: typeof debugging;
   files: typeof files;
   headmaster: typeof headmaster;

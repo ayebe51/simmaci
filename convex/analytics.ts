@@ -27,13 +27,37 @@ export const getDashboardStats = query({
       // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
       // Normalize specifically to handle variations
       let rawStatus = (t.status || "").trim().toUpperCase();
-      let statusLabel = ""; // Default empty, skip if not matched
+      let statusLabel = ""; 
 
       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) statusLabel = "PNS";
-      else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP YAYASAN") || rawStatus.includes("GURU TETAP")) statusLabel = "GTY";
+      else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP YAYASAN") || rawStatus.includes("GURU TETAP") || rawStatus.includes("GURU") || rawStatus.includes("PENGAJAR")) statusLabel = "GTY";
       else if (rawStatus.includes("GTT") || rawStatus.includes("TIDAK TETAP") || rawStatus.includes("HONOR")) statusLabel = "GTT";
       else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("TATA USAHA") || rawStatus.includes("ADMINISTRASI") || rawStatus.includes("OPS") || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA") || rawStatus.includes("KEAMANAN") || rawStatus.includes("KEBERSIHAN")) statusLabel = "Tendik";
       
+      
+      // Fallback: If status is ambiguous/empty, check TMT (Tenure)
+      if (!statusLabel && t.tmt) {
+          // Parse TMT
+          const tmtDate = new Date(t.tmt);
+          if (!isNaN(tmtDate.getTime())) {
+              const now = new Date();
+              const diffTime = Math.abs(now.getTime() - tmtDate.getTime());
+              const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+              
+              if (diffYears >= 2) {
+                  statusLabel = "GTY";
+              } else {
+                  statusLabel = "GTT";
+              }
+          }
+      }
+
+      // Final fallback if no TMT and no status
+      if (!statusLabel) {
+         if (rawStatus.includes("GURU")) statusLabel = "GTT"; // Assume new if unknown
+         else statusLabel = "GTT"; // Safe default
+      }
+
       // Only increment if matched
       if (statusLabel && statusCounts[statusLabel] !== undefined) {
           statusCounts[statusLabel]++;

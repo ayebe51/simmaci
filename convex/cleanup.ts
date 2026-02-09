@@ -39,7 +39,8 @@ export const cleanSk = mutation({
             .query("teachers")
             .filter(q => q.neq(q.field("isSkGenerated"), true)) // TARGET ALL (False OR Undefined)
             .take(100); // LIMIT 100
-
+        
+        for (const t of candidates) {
             // Mimic Generate Logic: Mark as generated (Hidden from queue), set Active/Verified
             // FIXED: Do NOT overwrite status if it is already valid (GTY, GTT, etc.)
             const updatePayload: any = { 

@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 // Get all SK documents with optional filters
 export const list = query({
@@ -430,10 +431,10 @@ export const getTeachersWithSk = query({
     
     // 3. Resolve Storage IDs to URLs (for View Button)
     const result = await Promise.all(filteredTeachers.map(async (t) => {
-        let finalUrl = t.suratPermohonanUrl;
+        let finalUrl: string | null | undefined = t.suratPermohonanUrl;
         // If it's a Storage ID (no http), resolve it
         if (t.suratPermohonanUrl && !t.suratPermohonanUrl.startsWith("http")) {
-            finalUrl = await ctx.storage.getUrl(t.suratPermohonanUrl);
+            finalUrl = await ctx.storage.getUrl(t.suratPermohonanUrl as Id<"_storage">);
         }
         return { ...t, suratPermohonanUrl: finalUrl };
     }));

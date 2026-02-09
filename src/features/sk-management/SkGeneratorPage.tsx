@@ -959,7 +959,6 @@ export default function SkGeneratorPage() {
                   ...item,
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   _id: skId, // <--- CRITICAL: Overwrite with SK ID
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   original_teacher_id: (item as any)._id
               })
 

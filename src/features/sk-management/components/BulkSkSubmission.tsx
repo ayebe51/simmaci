@@ -235,9 +235,7 @@ export function BulkSkSubmission() {
                 if(!rawRow || rawRow.length === 0) continue;
                 
                 const newObj: any = {}
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                let hasData = false
-
+                
                 // Extract Raw Values first using the Map
                 const rawVals: Record<string, any> = {}
                 allKeys.forEach(k => {
@@ -285,13 +283,12 @@ export function BulkSkSubmission() {
                 // Let's pass the already formatted string
                 if (newObj["nama"]) {
                     extractedData.push(newObj)
-                    hasData = true
                 }
                 
-                // DEBUG: Row 0 Analysis
+                // DEBUG: Row 0 Analysis (Logged to console instead of alert)
                 if (r === headerRowIndex + 1) {
                     const debugColMap = Object.entries(colMap).map(([k, v]) => `${k}:Index ${v}`).join(', ')
-                    alert(`🔍 Analysis Baris Data Pertama:\n\nNama: ${newObj["nama"]}\nUnit: ${newObj["unitKerja"]}\nTMT Raw: ${rawVals["Tanggal Mulai Tugas"]}\nTMT Parsed: ${newObj["tmt"]}\nTTL: ${newObj["ttl"]}\n\nDetected Cols: ${debugColMap}`)
+                    console.log(`🔍 Analysis Baris Data Pertama:\n\nNama: ${newObj["nama"]}\nUnit: ${newObj["unitKerja"]}\nTMT Raw: ${rawVals["Tanggal Mulai Tugas"]}\nTMT Parsed: ${newObj["tmt"]}\nTTL: ${newObj["ttl"]}\n\nDetected Cols: ${debugColMap}`)
                 }
             }
             
@@ -510,7 +507,6 @@ export function BulkSkSubmission() {
 
         // --- DEBUG PAYLOAD INSPECTOR ---
         if (convexTeachers.length > 0) {
-            const sample = convexTeachers[0]
             // Debug payload removed
             // console.log("Payload Check:", payload)
             console.log("PAYLOAD FULL:", convexTeachers)

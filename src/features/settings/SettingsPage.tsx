@@ -423,11 +423,7 @@ export default function SettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* Security Tab */}
-        <TabsContent value="security">
-             {/* ... existing security tab ... */}
 
-        {/* Security Tab */}
         <TabsContent value="security">
             <Card>
                 <CardHeader>

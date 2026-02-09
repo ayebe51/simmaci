@@ -40,13 +40,19 @@ export const cleanSk = mutation({
             .filter(q => q.neq(q.field("isSkGenerated"), true)) // TARGET ALL (False OR Undefined)
             .take(100); // LIMIT 100
 
-        for (const t of candidates) {
             // Mimic Generate Logic: Mark as generated (Hidden from queue), set Active/Verified
-            await ctx.db.patch(t._id, { 
+            // FIXED: Do NOT overwrite status if it is already valid (GTY, GTT, etc.)
+            const updatePayload: any = { 
                 isSkGenerated: true, 
-                isVerified: true, 
-                status: "active" 
-            });
+                isVerified: true
+            };
+            
+            // Only force status to 'active' if currently draft or empty
+            if (!t.status || t.status === "draft") {
+                updatePayload.status = "active";
+            }
+
+            await ctx.db.patch(t._id, updatePayload);
         }
         teachersDeleted = candidates.length;
     }

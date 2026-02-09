@@ -300,7 +300,7 @@ export const bulkCreate = mutation({
                     await ctx.db.patch(existing._id, {
                         ...cleanData,
                         isVerified: true, // FIXED: Bypass Approval Inbox
-                        // isSkGenerated: false, // REMOVED: Do not reset if already generated. Preserve state.
+                        isSkGenerated: false, // RESET this so it reappears in Generator Queue (As requested)
                         updatedAt: now,
                     });
                     results.push(existing._id);

@@ -209,17 +209,26 @@ export default function DashboardOperator() {
       {/* QUICK ACTIONS */}
       <div>
         <h3 className="text-lg font-semibold mb-3">Akses Cepat</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-                { label: "Data Guru", icon: Users, path: "/dashboard/master/teachers", color: "bg-blue-100 text-blue-700" },
-                { label: "Data Siswa", icon: School, path: "/dashboard/master/students", color: "bg-orange-100 text-orange-700" },
-                { label: "Ajukan SK Kolektif", icon: FileText, path: "/dashboard/sk/submission", color: "bg-green-100 text-green-700" },
-                { label: "Profil Sekolah", icon: School, path: "/dashboard/school/profile", color: "bg-purple-100 text-purple-700" },
+                { label: "Data Guru", description: "Kelola data pengajar", icon: Users, path: "/dashboard/master/teachers", color: "bg-blue-100 text-blue-600", border: "hover:border-blue-200" },
+                { label: "Data Siswa", description: "Database siswa aktif", icon: School, path: "/dashboard/master/students", color: "bg-orange-100 text-orange-600", border: "hover:border-orange-200" },
+                { label: "Ajukan SK Kolektif", description: "Buat pengajuan baru", icon: FileText, path: "/dashboard/sk/submission", color: "bg-green-100 text-green-600", border: "hover:border-green-200" },
+                { label: "Profil Sekolah", description: "Update informasi lembaga", icon: School, path: "/dashboard/school/profile", color: "bg-purple-100 text-purple-600", border: "hover:border-purple-200" },
             ].map((action, i) => (
-                <Card key={i} className="cursor-pointer hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-primary" onClick={() => navigate(action.path)}>
-                    <CardContent className="flex flex-col items-center justify-center p-6 gap-3 text-center">
-                        <div className={`p-3 rounded-full ${action.color}`}><action.icon className="h-6 w-6" /></div>
-                        <span className="font-medium text-sm">{action.label}</span>
+                <Card 
+                    key={i} 
+                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border border-slate-200 group ${action.border}`} 
+                    onClick={() => navigate(action.path)}
+                >
+                    <CardContent className="p-4 flex items-center gap-4">
+                        <div className={`p-3 rounded-xl ${action.color} group-hover:scale-105 transition-transform`}>
+                            <action.icon className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h4 className="font-semibold text-slate-800 text-sm">{action.label}</h4>
+                            <p className="text-xs text-slate-500 mt-0.5">{action.description}</p>
+                        </div>
                     </CardContent>
                 </Card>
             ))}

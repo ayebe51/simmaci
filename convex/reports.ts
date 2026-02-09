@@ -184,3 +184,59 @@ export const getSchoolSummary = query({
     }
   }
 })
+
+// Get Monthly Report Data
+export const getMonthlyReport = query({
+  args: {
+    month: v.string(), // Format: "MM-YYYY" (e.g. "02-2026")
+    unitKerja: v.optional(v.string()), // Optional filter
+  },
+  handler: async (ctx, args) => {
+    const teachers = await ctx.db.query("teachers").collect();
+    const sks = await ctx.db.query("skDocuments").collect();
+    
+    // Filter by Unit Kerja if provided
+    const filteredTeachers = args.unitKerja 
+      ? teachers.filter(t => t.unitKerja === args.unitKerja)
+      : teachers;
+
+    // 1. Teacher Stats (Active)
+    const activeTeachers = filteredTeachers.filter(t => t.isActive !== false);
+    
+    const statusCounts: Record<string, number> = {
+      pns: 0,
+      gty: 0,
+      gtt: 0,
+      tendik: 0,
+      lainnya: 0
+    };
+
+    activeTeachers.forEach(t => {
+      let raw = (t.status || "").toUpperCase();
+      if (raw.includes("PNS") || raw.includes("ASN") || raw.includes("PPPK")) statusCounts.pns++;
+      else if (raw.includes("GTY") || raw.includes("TETAP YAYASAN") || raw.includes("GURU TETAP")) statusCounts.gty++;
+      else if (raw.includes("GTT") || raw.includes("TIDAK TETAP") || raw.includes("HONOR")) statusCounts.gtt++;
+      else if (raw.includes("TENDIK") || raw.includes("TU") || raw.includes("TATA USAHA") || raw.includes("ADMINISTRASI")) statusCounts.tendik++;
+      else statusCounts.lainnya++; 
+    });
+
+    // 2. SK Stats (Generated in this month)
+    const [monthStr, yearStr] = args.month.split("-");
+    const targetMonth = parseInt(monthStr) - 1; // 0-indexed
+    const targetYear = parseInt(yearStr);
+
+    const newSkCount = sks.filter(sk => {
+        if (!sk._creationTime) return false;
+        const d = new Date(sk._creationTime);
+        return d.getMonth() === targetMonth && d.getFullYear() === targetYear;
+    }).length;
+
+    return {
+      period: args.month,
+      totalTeachers: activeTeachers.length,
+      statusBreakdown: statusCounts,
+      newSkIssued: newSkCount,
+      generatedAt: new Date().toISOString(),
+    };
+  },
+});

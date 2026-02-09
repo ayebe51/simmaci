@@ -11,7 +11,7 @@ import { useState } from "react"
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import DashboardCharts from "./components/DashboardCharts"
+import { DashboardCharts } from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 
 export default function DashboardPage() {

@@ -29,11 +29,11 @@ export const getDashboardStats = query({
       let rawStatus = (t.status || "").trim().toUpperCase();
       let statusLabel = "Lainnya";
 
-      if (rawStatus.includes("PNS") || rawStatus.includes("ASN")) statusLabel = "PNS";
-      else if (rawStatus.includes("GTY")) statusLabel = "GTY";
-      else if (rawStatus.includes("GTT")) statusLabel = "GTT";
-      else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("TATA USAHA")) statusLabel = "Tendik";
-      else if (rawStatus === "ACTIVE" || rawStatus === "AKTIF") statusLabel = "Lainnya"; // Or map to GTY if requested? Defaulting to Lainnya to reveal data issue
+      if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) statusLabel = "PNS";
+      else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP YAYASAN") || rawStatus.includes("GURU TETAP")) statusLabel = "GTY";
+      else if (rawStatus.includes("GTT") || rawStatus.includes("TIDAK TETAP") || rawStatus.includes("HONOR")) statusLabel = "GTT";
+      else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("TATA USAHA") || rawStatus.includes("ADMINISTRASI") || rawStatus.includes("OPS") || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA") || rawStatus.includes("KEAMANAN") || rawStatus.includes("KEBERSIHAN")) statusLabel = "Tendik";
+      else if (rawStatus === "ACTIVE" || rawStatus === "AKTIF" || rawStatus === "TRUE") statusLabel = "Lainnya"; 
       else if (rawStatus !== "") statusLabel = "Lainnya"; // Unknown
 
       statusCounts[statusLabel]++;

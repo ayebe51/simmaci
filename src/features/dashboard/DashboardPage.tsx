@@ -79,8 +79,6 @@ export default function DashboardPage() {
     )
   }
 
-  return (
-    <div className="space-y-6">
   // Helper logic for trends
   const currentMonthTeacherCount = analyticsStats?.teacherTrend?.[5]?.count || 0
   const previousMonthTeacherCount = analyticsStats?.teacherTrend?.[4]?.count || 0

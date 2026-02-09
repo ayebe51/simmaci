@@ -16,6 +16,7 @@ import type * as auth from "../auth.js";
 import type * as auth_helpers from "../auth_helpers.js";
 import type * as cleanup from "../cleanup.js";
 import type * as dashboard from "../dashboard.js";
+import type * as debug from "../debug.js";
 import type * as debug_check from "../debug_check.js";
 import type * as debug_sk_stats from "../debug_sk_stats.js";
 import type * as debugging from "../debugging.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   auth_helpers: typeof auth_helpers;
   cleanup: typeof cleanup;
   dashboard: typeof dashboard;
+  debug: typeof debug;
   debug_check: typeof debug_check;
   debug_sk_stats: typeof debug_sk_stats;
   debugging: typeof debugging;

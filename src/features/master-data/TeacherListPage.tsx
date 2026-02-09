@@ -163,7 +163,7 @@ export default function TeacherListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false) // Import modal state
   
   // NEW: Schools data for dropdown in Add/Edit Modal
-  const schools = useQuery(convexApi.schools.list) || []
+  const schools = useQuery(convexApi.schools.list, {}) || []
   const [schoolSearch, setSchoolSearch] = useState("")
   const [openSchoolDropdown, setOpenSchoolDropdown] = useState(false)
 
@@ -810,7 +810,27 @@ export default function TeacherListPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status" className="text-right">Status</Label>
-                    <Input id="status" className="col-span-3" value={formData.status || ""} onChange={e => setFormData({...formData, status: e.target.value})} placeholder="PNS / GTY / GTT" />
+                    <Select 
+                        value={
+                            // Normalization for existing data display
+                            (formData.status || "").includes("PNS") || (formData.status || "").includes("ASN") ? "PNS" :
+                            (formData.status || "").includes("GTY") || (formData.status || "").includes("Yayasan") ? "GTY" :
+                            (formData.status || "").includes("GTT") || (formData.status || "").includes("Honor") ? "GTT" :
+                            (formData.status || "").includes("Tendik") || (formData.status || "").includes("TU") ? "Tendik" :
+                            formData.status || "GTY" // Default fallback
+                        } 
+                        onValueChange={(val) => setFormData({...formData, status: val})}
+                    >
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Pilih status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="PNS">PNS / ASN</SelectItem>
+                            <SelectItem value="GTY">GTY (Guru Tetap Yayasan)</SelectItem>
+                            <SelectItem value="GTT">GTT (Guru Tidak Tetap)</SelectItem>
+                            <SelectItem value="Tendik">Tenaga Kependidikan</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="unitKerja" className="text-right">Satminkal</Label>
@@ -1004,7 +1024,7 @@ export default function TeacherListPage() {
           }
 
           // 3. Extract Data using detected columns
-          const jsonData = []
+          const jsonData: any[] = []
           for(let r = headerRowIndex + 1; r < rows.length; r++) {
               const row = rows[r]
               if (!row || row.length === 0) continue

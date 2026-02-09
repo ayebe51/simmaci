@@ -16,7 +16,7 @@ export const getDashboardStats = query({
         "GTY": 0,
         "GTT": 0,
         "Tendik": 0,
-        "Lainnya": 0
+        // "Lainnya" removed per user request
     };
     const certCounts: Record<string, number> = { "Sudah Sertifikasi": 0, "Belum Sertifikasi": 0 };
     const unitCounts: Record<string, number> = {};
@@ -27,16 +27,17 @@ export const getDashboardStats = query({
       // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
       // Normalize specifically to handle variations
       let rawStatus = (t.status || "").trim().toUpperCase();
-      let statusLabel = "Lainnya";
+      let statusLabel = ""; // Default empty, skip if not matched
 
       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) statusLabel = "PNS";
       else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP YAYASAN") || rawStatus.includes("GURU TETAP")) statusLabel = "GTY";
       else if (rawStatus.includes("GTT") || rawStatus.includes("TIDAK TETAP") || rawStatus.includes("HONOR")) statusLabel = "GTT";
       else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("TATA USAHA") || rawStatus.includes("ADMINISTRASI") || rawStatus.includes("OPS") || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA") || rawStatus.includes("KEAMANAN") || rawStatus.includes("KEBERSIHAN")) statusLabel = "Tendik";
-      else if (rawStatus === "ACTIVE" || rawStatus === "AKTIF" || rawStatus === "TRUE") statusLabel = "Lainnya"; 
-      else if (rawStatus !== "") statusLabel = "Lainnya"; // Unknown
-
-      statusCounts[statusLabel]++;
+      
+      // Only increment if matched
+      if (statusLabel && statusCounts[statusLabel] !== undefined) {
+          statusCounts[statusLabel]++;
+      }
 
       // B. Certification Status
       if (t.isCertified) {

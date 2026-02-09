@@ -235,7 +235,8 @@ export function BulkSkSubmission() {
                 if(!rawRow || rawRow.length === 0) continue;
                 
                 const newObj: any = {}
-                // hasData check removed as per lint
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                let hasData = false
 
                 // Extract Raw Values first using the Map
                 const rawVals: Record<string, any> = {}

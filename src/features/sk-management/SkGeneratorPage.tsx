@@ -23,6 +23,45 @@ import { useConvex } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { toast } from "sonner"
 
+// --- TYPES ---
+interface Teacher {
+    _id: string;
+    _creationTime?: number;
+    nama: string;
+    nip?: string;
+    nuptk?: string;
+    jabatan?: string;
+    unitKerja?: string;
+    status?: string;
+    tmt?: string;
+    tempatLahir?: string;
+    tanggalLahir?: string;
+    pendidikanTerakhir?: string;
+    pangkat?: string;
+    golongan?: string;
+    mapel?: string;
+    satminkal?: string;
+    suratPermohonanUrl?: string | null;
+    nomorSk?: string;
+    jenisSk?: string;
+    statusKepegawaian?: string;
+    kecamatan?: string;
+    isActive?: boolean;
+    [key: string]: unknown; 
+}
+
+interface CleanupResult {
+    teachersDeleted?: number;
+    skDeleted?: number;
+    draftsDeleted?: number;
+    success?: boolean;
+}
+
+interface ConvexClientMinimal {
+    query: (q: any, args: any) => Promise<any>;
+}
+
+
 // Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
 function base64DataURLToArrayBuffer(dataURL: string) {
   const base64Regex = /^data:image\/(png|jpg|svg|svg\+xml);base64,/;
@@ -83,13 +122,10 @@ const addOneYearIndonesian = (dateStr: string) => {
 
 
 const generateBulkSkZip = async (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  candidates: any[],
+  candidates: Teacher[],
   filename = "SK_Masal_Maarif.zip",
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  debugData?: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  convexClient?: any // Injected Convex Client
+  debugData?: unknown,
+  convexClient?: ConvexClientMinimal // Injected Convex Client
 ) => {
     const zip = new JSZip()
     const folder = zip.folder("SK_Generated")
@@ -104,8 +140,8 @@ const generateBulkSkZip = async (
     
     // Mapping Jenis SK to Template ID
     // Updated to accept full data object for complex logic
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const getTemplateId = (data: any) => {
+     
+    const getTemplateId = (data: Teacher) => {
         const jenis = (data.jenisSk || data.status || "").toLowerCase()
         const jabatan = (data.jabatan || "").toLowerCase()
         // const status = (data.statusKepegawaian || "").toLowerCase() // not reliable if undefined
@@ -191,8 +227,8 @@ const generateBulkSkZip = async (
                 getImage: function (tagValue: string) {
                     return base64DataURLToArrayBuffer(tagValue);
                 },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                getSize: function (img: any, _tagValue: string, tagName: string) {
+                 
+                getSize: function (img: unknown, _tagValue: string, tagName: string) {
                     // Force 100x100px for QR Codes
                     if (tagName === "qrcode") return [100, 100];
                     return [100, 100];
@@ -229,8 +265,8 @@ const generateBulkSkZip = async (
 
         } catch (error: unknown) {
             console.error("Gen Error", error)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            errors.push(`Gagal generate untuk ${data.nama}: ${(error as any)?.message || String(error)}`)
+             
+            errors.push(`Gagal generate untuk ${data.nama}: ${(error as Error)?.message || String(error)}`)
         }
     }
 
@@ -269,7 +305,7 @@ const generateBulkSkZip = async (
         console.log(`✅ ZIP saved: ${filename}, Size: ${content.size} bytes`)
     } catch (zipError: unknown) {
         console.error("❌ CRITICAL: ZIP Generation Failed!", zipError)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         toast.error(`CRITICAL ERROR: Gagal membuat file ZIP! ${(zipError as any)?.message || String(zipError)}`)
         throw zipError // Re-throw to prevent false success
     }
@@ -302,7 +338,7 @@ export default function SkGeneratorPage() {
   // Properly detect loading state
   const teachersDataRaw = useQuery(convexApi.sk.getTeachersWithSk, {})
   const isQueryLoading = teachersDataRaw === undefined
-  const teachersData = teachersDataRaw || []
+  const teachersData = (teachersDataRaw || []) as Teacher[]
 
 
   // MUTATIONS
@@ -373,13 +409,13 @@ export default function SkGeneratorPage() {
         setIsLoading(true)
         try {
             // Delete Teachers (Candidates), Keep SK
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const res: any = await cleanSk({ deleteTeachers: true, deleteSk: false })
+             
+            const res = await cleanSk({ deleteTeachers: true, deleteSk: false }) as CleanupResult
             toast.success(`Selesai! Dihapus: ${res.teachersDeleted} data guru.`)
             setTimeout(() => window.location.reload(), 1000)
         } catch (e) {
             console.error(e)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             const errMsg = (e as any)?.message || String(e)
             toast.error("Gagal reset data: " + errMsg)
         } finally {
@@ -397,7 +433,7 @@ export default function SkGeneratorPage() {
     setIsLoading(true)
     try {
         // Delete SK, Keep Teachers
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const res: any = await cleanSk({ deleteTeachers: false, deleteSk: true })
         setNomorMulai("0001") // Reset Counter
         toast.success(`✅ Berhasil reset ${res.skDeleted} Riwayat SK.`)
@@ -558,7 +594,7 @@ export default function SkGeneratorPage() {
           showTextResult("Hasil Analisa Template", msg)
 
       } catch (e: unknown) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           const errMsg = (e as any)?.message || String(e)
           toast.error("Error Analisa: " + errMsg)
       }
@@ -568,8 +604,8 @@ export default function SkGeneratorPage() {
 
 
   // --- SMART LOGIC: Explain Classification ---
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const explainClassification = (t: any) => {
+   
+  const explainClassification = (t: Teacher) => {
       const p = (t.pendidikanTerakhir || "").toLowerCase()
       const n = (t.nama || "").toLowerCase()
       const tmt = t.tmt
@@ -622,8 +658,8 @@ export default function SkGeneratorPage() {
   }
 
   // --- HELPER: Parse Date Robustly ---
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseIndonesianDate = (dateStr: any): Date | null => {
+   
+  const parseIndonesianDate = (dateStr: unknown): Date | null => {
       if (!dateStr) return null
       
       const str = String(dateStr).trim()
@@ -777,8 +813,8 @@ export default function SkGeneratorPage() {
             : (tanggalSuratMasuk || "-")
       // Map teacher data to template keys clearly
       const mappedData = selectedData.map((t, idx) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const derivedJenisSk = determineJenisSk((t as any).pendidikanTerakhir || "", t.tmt || "", t.nama || "", (t as any).jabatan || "", t.status)
+               
+              const derivedJenisSk = determineJenisSk(t.pendidikanTerakhir || "", t.tmt || "", t.nama || "", t.jabatan || "", t.status)
               // 2. Parse TMT (Tanggal Mulai Tugas)
               const tmtDate = parseIndonesianDate(String(t.tmt || ""))
               // let masaKerjaTahun = 0 // Unused
@@ -810,15 +846,15 @@ export default function SkGeneratorPage() {
 
           // Fallback Kecamatan Logic:
           // 1. Teacher Data (highest priority) -> 2. Global Input -> 3. "....."
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           const rawKecamatan = (t as any).kecamatan
           const kecamatan = (rawKecamatan && rawKecamatan.length > 2) ? rawKecamatan : (defaultKecamatan || ".....")
 
 
           // TTL Construction - FIX: Use correct field names from database
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           const birthPlace = (t as any).tempatLahir || ""
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           const birthDate = (t as any).tanggalLahir || ""
           let ttl = "-"
           if(birthPlace || birthDate) {
@@ -878,7 +914,7 @@ export default function SkGeneratorPage() {
             UNIT_KERJA: t.unitKerja || '-',
             STATUS: t.status,
             TTL: ttl,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             PENDIDIKAN: (t as any).pendidikanTerakhir || '-',
             TMT: tmtFormatted,
             TANGGAL_MULAI_TUGAS: tmtFormatted,
@@ -893,13 +929,13 @@ export default function SkGeneratorPage() {
             unit_kerja: t.unitKerja || '-',
             status: t.status,
             ttl: ttl,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             pendidikan: (t as any).pendidikanTerakhir || '-',
             tmt: tmtFormatted,
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             pangkat: (t as any).pangkat || "-", // Fallback common field
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             golongan: (t as any).golongan || "-",
 
             // --- KITCHEN SINK ALIASES (Space, TitleCase, dots) ---
@@ -942,7 +978,7 @@ export default function SkGeneratorPage() {
       console.log("MAPPED DATA SAMPLE:", mappedData[0]) // Debug Log
 
       // --- 1. PRE-ARCHIVE: Create SKs first to get IDs ---
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const finalData: any[] = []
 
       for (const item of mappedData) {
@@ -952,7 +988,7 @@ export default function SkGeneratorPage() {
                   jenisSk: item.jenisSk,
                   status: "active",
                   nama: item.nama,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                   
                   teacherId: (item as any)._id, // Original Teacher ID
                   jabatan: item.JABATAN,
                   unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap",
@@ -964,23 +1000,23 @@ export default function SkGeneratorPage() {
 
               // MODIFIED (SAFEGUARD): User requested NOT to delete teacher data after generation
               // Use Soft-Cleanup instead: Mark as Generated
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+               
               if ((item as any)._id) {
-                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  
                  await markAsGenerated({ id: (item as any)._id })
               }
 
               // PUSH WITH NEW ID (For QR Code)
               finalData.push({
                   ...item,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                   
                   _id: skId, // <--- CRITICAL: Overwrite with SK ID
                   original_teacher_id: (item as any)._id
               })
 
           } catch (err: unknown) {
               console.error("Failed to archive SK:", item.nama, err)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+               
               const errMsg = (err as any)?.message || String(err)
               // If archive fails, we probably shouldn't generate the file? 
               // Or maybe generate but with invalid QR? 
@@ -1010,7 +1046,7 @@ export default function SkGeneratorPage() {
        setIsGenerating(false)
      } catch (e) {
         console.error("❌ Critical Gen Error:", e)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const errMsg = (e as any)?.message || String(e)
         toast.error(`Terjadi kesalahan sistem saat generate! ${errMsg}`)
         setIsGenerating(false)
@@ -1109,7 +1145,7 @@ export default function SkGeneratorPage() {
                             />
                             {/* VIEW LETTER BUTTON */}
                             {(() => {
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                 
                                 const url = teachersData?.find((t: any) => selectedIds.has(t._id) && t.suratPermohonanUrl)?.suratPermohonanUrl
                                 return (
                                     <Button
@@ -1279,8 +1315,8 @@ export default function SkGeneratorPage() {
                                             <TableCell>{t.pendidikanTerakhir || '-'}</TableCell>
                                             <TableCell>{t.nuptk || t.nip || '-'}</TableCell>
                                             <TableCell>{t.mapel || '-'}</TableCell>
-                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                            <TableCell>{t.unitKerja || (t as any).satminkal || '-'}</TableCell>
+                                            { }
+                                            <TableCell>{t.unitKerja || t.satminkal || '-'}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {t.status}
@@ -1301,7 +1337,7 @@ export default function SkGeneratorPage() {
                                                     <span className="text-xs font-bold">(?)</span>
                                                 </Button>
 
-                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                { }
                                                 {(t as any).suratPermohonanUrl && (
                                                     <Button 
                                                         variant="ghost" 
@@ -1310,7 +1346,7 @@ export default function SkGeneratorPage() {
                                                         title="Lihat Surat Permohonan"
                                                         onClick={(e) => {
                                                             e.stopPropagation()
-                                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                             
                                                             window.open((t as any).suratPermohonanUrl, '_blank')
                                                         }}
                                                     >

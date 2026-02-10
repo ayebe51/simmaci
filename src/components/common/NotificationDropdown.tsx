@@ -23,7 +23,7 @@ export function NotificationDropdown() {
   
   // Get user from localStorage
   const userStr = localStorage.getItem("user")
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const user: any = userStr ? JSON.parse(userStr) : null
 
   // Fetch notifications from Convex

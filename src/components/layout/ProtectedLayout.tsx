@@ -9,10 +9,9 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
-      setIsAuthenticated(false)
-      // Only toast if we were trying to access a specific page and got booted
       if(location.pathname !== "/login" && location.pathname !== "/") {
           toast.error("Sesi habis, silakan login kembali.")
+          window.location.href = "/login"
       }
     } else {
       setIsAuthenticated(true)

@@ -36,7 +36,7 @@ export function BulkSkSubmission() {
   const bulkCreateTeacherMutation = useMutation(convexApi.teachers.bulkCreate)
   const generateUploadUrl = useMutation(convexApi.files.generateUploadUrl)
   
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+   
   const [candidates, setCandidates] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [isFullSync, setIsFullSync] = useState(false)
@@ -131,7 +131,7 @@ export function BulkSkSubmission() {
     saveAs(blob, "Template_Data_Guru_Maarif.xlsx");
   }
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
+   
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     setDebugLog([])

@@ -24,7 +24,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
   const photoUrl = useQuery(api.teachers.getPhotoUrl, teacher.photoId ? { storageId: teacher.photoId } : "skip");
   
   // Verification URL (points to public verify page)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const baseUrl = (import.meta.env as any).VITE_APP_URL || window.location.origin;
   const verifyUrl = `${baseUrl}/verify/teacher/${teacher.nuptk || "unknown"}`;
 

@@ -34,7 +34,7 @@ const TYPE_COLORS = [
 
 export default function SkReportPageSimple() {
   // 1. User Context & Role Safety
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let user: any = null
   let isOperator = false
   let userUnitKerja = ''
@@ -79,12 +79,12 @@ export default function SkReportPageSimple() {
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     schoolId: effectiveSchoolId as any, 
     status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const reportData = useQuery(api.reports.generateSkReport, queryArgs) as any
 
   // 4. Handlers
@@ -119,7 +119,7 @@ export default function SkReportPageSimple() {
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
 
       // Details Sheet
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const detailsData = reportData.data.map((item: any, i: number) => ({
         'No': i + 1,
         'Nomor SK': item.nomorSk,
@@ -378,7 +378,7 @@ export default function SkReportPageSimple() {
                                 outerRadius={80}
                                 paddingAngle={5}
                                 dataKey="value"
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                 
                                 label={({name, percent}: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
                             >
                                 <Cell fill={COLORS.approved} />
@@ -488,7 +488,7 @@ export default function SkReportPageSimple() {
                         </td>
                       </tr>
                     ) : (
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                       
                       reportData.data.map((row: any, i: number) => (
                         <tr key={row._id} className="hover:bg-slate-50">
                           <td className="p-3 text-center">{i + 1}</td>

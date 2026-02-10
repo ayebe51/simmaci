@@ -66,7 +66,7 @@ export const generateSingleSkDocx = async (skData: any, overridesContent?: any) 
         const templateId = getTemplateId(skData)
         
         // Use override if provided (ArrayBuffer or String), else load from LocalStorage
-        let content = overridesContent || loadTemplate(templateId) || loadTemplate("sk_template_tendik")
+        const content = overridesContent || loadTemplate(templateId) || loadTemplate("sk_template_tendik")
         
         if (!content) {
             throw new Error(`Template tidak ditemukan (ID: ${templateId}). Pastikan sudah upload di Settings.`)

@@ -35,7 +35,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
   const [isClient, setIsClient] = useState(false)
   const [hasError, setHasError] = useState(false)
 
-  useEffect(() => { setIsClient(true) }, [])
+  useEffect(() => { setIsClient(true) }, []) // eslint-disable-line react-hooks/set-state-in-effect
   useEffect(() => {
     const handleError = () => setHasError(true)
     window.addEventListener('error', handleError)

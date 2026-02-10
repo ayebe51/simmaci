@@ -11,7 +11,7 @@ import * as XLSX from 'xlsx'
 
 export default function SkReportPage() {
   // Get user - with error handling
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let user: any = null
   let isOperator = false
   
@@ -43,13 +43,13 @@ export default function SkReportPage() {
   const queryArgs = {
     startDate: startDate ? new Date(startDate).getTime() : undefined,
     endDate: endDate ? new Date(endDate + 'T23:59:59').getTime() : undefined,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     schoolId: (selectedSchool && selectedSchool !== 'all') ? selectedSchool as any : operatorSchoolId as any,
     status: (selectedStatus && selectedStatus !== 'all') ? selectedStatus : undefined,
   }
   
   // Fetch report data - with error handling
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const reportData = useQuery(api.reports.generateSkReport, queryArgs) as any
   
   // Debug logging
@@ -102,7 +102,7 @@ export default function SkReportPage() {
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan')
 
       // Sheet 2: Data SK
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const skData = reportData.data.map((sk: any, index: number) => ({
         'No': index + 1,
         'Nomor SK': sk.nomorSk,
@@ -313,7 +313,7 @@ export default function SkReportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  { }
                   {reportData.data.slice(0, 10).map((sk: any, index: number) => (
                     <tr key={sk._id} className="border-b hover:bg-gray-50">
                       <td className="p-2">{index + 1}</td>

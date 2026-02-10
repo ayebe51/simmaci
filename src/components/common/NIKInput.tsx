@@ -59,35 +59,25 @@ export const NIKInput: React.FC<NIKInputProps> = ({
   required = false,
   className = '',
 }) => {
-  const [warning, setWarning] = useState('');
-  const [province, setProvince] = useState('');
+  // Derived state for validation (avoids useEffect cycles)
+  const validation = React.useMemo(() => {
+    if (!value) return { warning: '', province: '' }
 
-  useEffect(() => {
-    if (!value) {
-      setWarning('');
-      setProvince('');
-      return;
-    }
-
-    // Must be exactly 16 digits
     if (!/^[0-9]{16}$/.test(value)) {
-      setWarning('NIK harus 16 digit angka');
-      setProvince('');
-      return;
+        return { warning: 'NIK harus 16 digit angka', province: '' }
     }
 
-    // Check province code (first 2 digits)
-    const provinceCode = value.substring(0, 2);
-    const provinceName = PROVINCE_CODES[provinceCode];
-
+    const provinceCode = value.substring(0, 2)
+    const provinceName = PROVINCE_CODES[provinceCode]
+    
     if (!provinceName) {
-      setWarning(`Kode provinsi ${provinceCode} tidak valid`);
-      setProvince('');
-    } else {
-      setWarning('');
-      setProvince(provinceName);
+        return { warning: `Kode provinsi ${provinceCode} tidak valid`, province: '' }
     }
-  }, [value]);
+
+    return { warning: '', province: provinceName }
+  }, [value])
+
+  const { warning, province } = validation
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow numbers, max 16 digits

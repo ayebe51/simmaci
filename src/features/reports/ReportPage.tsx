@@ -12,6 +12,21 @@ export default function ReportPage() {
   const [reportType, setReportType] = useState("teachers_by_unit")
   const [selectedUnit, setSelectedUnit] = useState("all")
   const [units, setUnits] = useState<string[]>([])
+
+  const generatePreview = (data: any[], type: string, unit: string) => {
+      if (type === "teachers_by_unit") {
+          let filtered = data
+          if (unit !== "ALL") {
+              filtered = data.filter(t => t.unitKerja === unit)
+          }
+          setPreviewData(filtered)
+      } else if (type === "teachers_by_status") {
+          // logic
+           setPreviewData(data)
+      } else {
+           setPreviewData(data)
+      }
+  }
   const [previewData, setPreviewData] = useState<any[]>([])
   
   // Load real data from Convex
@@ -33,40 +48,7 @@ export default function ReportPage() {
     }
   }, [teachers, reportType, selectedUnit])
 
-  const generatePreview = (data: any[], type: string, unit: string) => {
-      if (type === "teachers_by_unit") {
-          let filtered = data
-          if (unit !== "all") {
-              filtered = data.filter(t => t.unitKerja === unit)
-          }
-          setPreviewData(filtered)
-      } else if (type === "stats") {
-          // Generate Stats (PNS, GTY, GTT)
-          const stats: Record<string, any> = {}
-          
-          // Initialize units
-          const unitList = unit === "all" ? units : [unit];
-          
-          data.forEach(t => {
-              const u = t.unitKerja || "Tanpa Unit"
-              if (!stats[u]) stats[u] = { name: u, pns: 0, gty: 0, gtt: 0, total: 0 }
-              
-              const s = (t.status || "").toUpperCase()
-              if (s.includes("PNS") || s.includes("ASN") || s.includes("PPPK")) stats[u].pns++
-              else if (s.includes("GTY") || s.includes("TETAP YAYASAN")) stats[u].gty++
-              else stats[u].gtt++
-              
-              stats[u].total++
-          })
 
-          // Filter by selected unit if needed (though logic above mostly handles aggregations)
-          if (unit !== "all") {
-             setPreviewData([stats[unit] || { name: unit, pns:0, gty:0, gtt:0, total:0 }])
-          } else {
-             setPreviewData(Object.values(stats))
-          }
-      }
-  }
 
   const handlePrint = () => {
     window.print()

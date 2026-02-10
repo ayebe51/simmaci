@@ -94,7 +94,7 @@ export default function SkSubmissionPage() {
         toast.success("✅ Pengajuan berhasil dikirim! Data masuk antrean verifikasi.")
         navigate("/dashboard/teachers") // Redirect to Teacher List instead of SK Archive
     } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const errorMessage = (err as any).message || "Gagal mengajukan SK"
         toast.error(errorMessage)
     } finally {

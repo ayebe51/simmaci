@@ -1,4 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+  // Sparkline Component
+  const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+    if (!data || data.length === 0) return null
+    return (
+      <div className="flex items-end h-8 gap-0.5">
+          {data.map((d, i) => (
+              <div key={i} className="w-1 bg-current opacity-20 rounded-t" 
+                   style={{ height: `${Math.min((d.count / (Math.max(...data.map(i=>i.count)) || 1)) * 100, 100)}%`, color }} 
+              />
+          ))}
+      </div>
+    )
+  }
 import { School, Users, FileText, CheckCircle, Clock, AlertOctagon } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
@@ -20,19 +34,7 @@ export default function DashboardOperator() {
     unitKerja: user?.unitKerja || user?.unit 
   })
 
-  // Sparkline Component
-  const Sparkline = ({ data, color }: { data: any[], color: string }) => {
-    if (!data || data.length === 0) return null
-    return (
-      <div className="h-[40px] w-[80px]">
-          <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                  <Line type="monotone" dataKey="count" stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
-              </LineChart>
-          </ResponsiveContainer>
-      </div>
-    )
-  }
+
 
   // Teacher Growth Logic
   const currentMonthTeacherCount = stats?.teacherTrend?.[5]?.count || 0

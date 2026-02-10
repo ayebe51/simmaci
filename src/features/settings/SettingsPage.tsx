@@ -31,7 +31,7 @@ export default function SettingsPage() {
   const isApiReady = !!api.settings
 
   // Switch to NEW Module: settings_cloud
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const apiCloud = (api as any).settings_cloud;
   
   // Use Safe Query from New Module
@@ -75,7 +75,7 @@ export default function SettingsPage() {
 
       } catch (err: unknown) {
           console.error(err)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           toast.error("Gagal upload: " + (err as any).message)
       } finally {
           setIsUploading(null)
@@ -190,7 +190,7 @@ export default function SettingsPage() {
 
   const handleDownloadBackup = () => {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const backupData: Record<string, any> = {}
         const keysToBackup = ["app_schools", "app_teachers", "app_students", "app_settings", "sk_submissions", "sk_template_name", "sk_template_blob"]
         keysToBackup.forEach(key => {

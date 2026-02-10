@@ -98,16 +98,12 @@ export const getByNuptk = query({
 // --- RBAC HELPER ---
 // --- RBAC HELPER ---
 async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefined, currentTeacherId?: Id<"teachers">, token?: string) {
-    console.log("validateWriteAccess: START");
-    
     let user = null;
 
     // 0. Try Token Auth First (for custom sessions)
     if (token) {
-        console.log("validateWriteAccess: Using Token Auth");
         user = await validateSession(ctx, token);
         if (!user) {
-             console.error("validateWriteAccess: Invalid Token");
              throw new Error("Unauthorized: Sesi tidak valid atau kadaluarsa.");
         }
     } else {
@@ -116,10 +112,8 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
         
         // 1. If not logged in, throw error (Strict Mode)
         if (!identity) {
-            console.error("validateWriteAccess: No Identity");
             throw new Error("Unauthorized: Harap login terlebih dahulu.");
         }
-        console.log("validateWriteAccess: Identity:", identity.email);
 
         user = await ctx.db
             .query("users")
@@ -128,10 +122,8 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
     }
 
     if (!user) {
-        console.error("validateWriteAccess: No User in DB");
         throw new Error("Unauthorized: User tidak ditemukan.");
     }
-    console.log(`validateWriteAccess: User found (${user.role}). Unit: ${user.unit}`);
 
     // 2. Admin is God Mode
     if (user.role === 'admin') {
@@ -310,10 +302,8 @@ export const bulkCreate = mutation({
     token: v.optional(v.string()), // Authentication Token
   },
   handler: async (ctx, args) => {
-    // RESTORED AUTH WITH LOGGING
-    console.log("BulkCreate: Calling validateWriteAccess...");
+    // RESTORED AUTH
     const user = await validateWriteAccess(ctx, undefined, undefined, args.token);
-    console.log("BulkCreate: Auth Success:", user.email);
 
     try {
         const now = Date.now();
@@ -427,9 +417,14 @@ export const bulkCreate = mutation({
                     results.push(id);
                 } else {
                     // RBAC CHECK
-                    if (user.role === 'operator' && existing.unitKerja !== user.unit) {
-                         // We technically shouldn't update if it belongs to another unit
-                         throw new Error(`NUPTK ${cleanData.nuptk} terdaftar di unit lain (${existing.unitKerja}).`);
+                    if (user.role === 'operator') {
+                        const existingUnit = existing.unitKerja?.trim().toLowerCase() || "";
+                        const userUnit = user.unit?.trim().toLowerCase() || "";
+                        
+                        // Strict check by ID or Name
+                        if (existingUnit !== userUnit) {
+                            throw new Error(`NUPTK ${cleanData.nuptk} terdaftar di unit lain (${existing.unitKerja}).`);
+                        }
                     }
 
                     await ctx.db.patch(existing._id, cleanData);

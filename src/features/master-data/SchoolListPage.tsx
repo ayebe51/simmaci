@@ -633,7 +633,7 @@ export default function SchoolListPage() {
             };
 
             // Parse Excel data to school format with flexible column mapping
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             const schools = data.map((row: any) => {
               // Get all possible column values (case insensitive)
               const getColumn = (...names: string[]) => {

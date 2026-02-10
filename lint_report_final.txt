@@ -1,0 +1,303 @@
+
+D:\SIMMACI\src\components\common\NIKInput.tsx
+  67:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\components\common\NIKInput.tsx:67:7
+  65 |   useEffect(() => {
+  66 |     if (!value) {
+> 67 |       setWarning('');
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  68 |       setProvince('');
+  69 |       return;
+  70 |     }  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\components\common\NotificationDropdown.tsx
+  26:3  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\components\layout\ProtectedLayout.tsx
+  12:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\components\layout\ProtectedLayout.tsx:12:7
+  10 |     const token = localStorage.getItem("token")
+  11 |     if (!token) {
+> 12 |       setIsAuthenticated(false)
+     |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  13 |       // Only toast if we were trying to access a specific page and got booted
+  14 |       if(location.pathname !== "/login" && location.pathname !== "/") {
+  15 |           toast.error("Sesi habis, silakan login kembali.")  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\components\ui\badge.tsx
+  35:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\SIMMACI\src\components\ui\button.tsx
+  55:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\SIMMACI\src\components\ui\command.tsx
+  27:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+D:\SIMMACI\src\components\ui\input.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+D:\SIMMACI\src\features\dashboard\components\DashboardCharts.tsx
+  38:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\dashboard\components\DashboardCharts.tsx:38:21
+  36 |   const [hasError, setHasError] = useState(false)
+  37 |
+> 38 |   useEffect(() => { setIsClient(true) }, [])
+     |                     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  39 |   useEffect(() => {
+  40 |     const handleError = () => setHasError(true)
+  41 |     window.addEventListener('error', handleError)  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx
+   87:23  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:87:23
+  85 |                   </div>
+  86 |                   <div className="absolute right-0 bottom-0 opacity-20 transform translate-y-2 scale-110">
+> 87 |                      <Sparkline data={stats?.teacherTrend || []} color="#059669" />
+     |                       ^^^^^^^^^ This component is created during render
+  88 |                   </div>
+  89 |               </div>
+  90 |             </CardContent>
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:24:21
+  22 |
+  23 |   // Sparkline Component
+> 24 |   const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |     if (!data || data.length === 0) return null
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |     return (
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |     )
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |   }
+     | ^^^^ The component is created during render here
+  36 |
+  37 |   // Teacher Growth Logic
+  38 |   const currentMonthTeacherCount = stats?.teacherTrend?.[5]?.count || 0  react-hooks/static-components
+  128:25  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:128:25
+  126 |                   </span>
+  127 |                   <div className="opacity-80 -mr-2">
+> 128 |                        <Sparkline data={skTrend || []} color="#9333ea" />
+      |                         ^^^^^^^^^ This component is created during render
+  129 |                   </div>
+  130 |                </div>
+  131 |             </CardContent>
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:24:21
+  22 |
+  23 |   // Sparkline Component
+> 24 |   const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |     if (!data || data.length === 0) return null
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |     return (
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |     )
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |   }
+     | ^^^^ The component is created during render here
+  36 |
+  37 |   // Teacher Growth Logic
+  38 |   const currentMonthTeacherCount = stats?.teacherTrend?.[5]?.count || 0                                                      react-hooks/static-components
+
+D:\SIMMACI\src\features\emis-import\components\MappingStep.tsx
+  44:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\emis-import\components\MappingStep.tsx:44:5
+  42 |         }
+  43 |     })
+> 44 |     setMapping(initialMapping)
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  45 |   }, [headers])
+  46 |
+  47 |   const handleMapChange = (targetKey: string, sourceHeader: string) => {  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\features\events\EventDetailPage.tsx
+   36:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  290:9  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\events\EventDetailPage.tsx:290:9
+  288 |
+  289 |     useEffect(() => {
+> 290 |         fetchTally();
+      |         ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  291 |     }, [eventId]);
+  292 |
+  293 |     if (loading) return <div className="py-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2" /> Memuat data medali...</div>;  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\features\master-data\SchoolListPage.tsx
+  636:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\master-data\components\KtaCard.tsx
+  27:3  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\reports\ReportPage.tsx
+  32:9  error  Error: Cannot access variable before it is declared
+
+`generatePreview` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+D:\SIMMACI\src\features\reports\ReportPage.tsx:32:9
+  30 |         setUnits(uniqueUnits)
+  31 |         
+> 32 |         generatePreview(teachers, reportType, selectedUnit)
+     |         ^^^^^^^^^^^^^^^ `generatePreview` accessed before it is declared
+  33 |     }
+  34 |   }, [teachers, reportType, selectedUnit])
+  35 |
+
+D:\SIMMACI\src\features\reports\ReportPage.tsx:36:3
+  34 |   }, [teachers, reportType, selectedUnit])
+  35 |
+> 36 |   const generatePreview = (data: any[], type: string, unit: string) => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 37 |       if (type === "teachers_by_unit") {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 38 |           let filtered = data
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |       }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |   }
+     | ^^^^ `generatePreview` is declared here
+  70 |
+  71 |   const handlePrint = () => {
+  72 |     window.print()  react-hooks/immutability
+
+D:\SIMMACI\src\features\reports\SkReportPage.tsx
+   14:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   46:5   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   52:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  105:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  316:20  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\reports\SkReportPageSimple.tsx
+   37:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   82:5   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   87:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  122:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  381:33  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  491:23  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\settings\SettingsPage.tsx
+   34:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   78:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  193:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\sk-management\HeadmasterSubmissionPage.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\sk-management\SkDashboardPage.tsx
+    1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  206:9  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  212:9  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\sk-management\SkGeneratorPage.tsx
+    86:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+    89:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+    91:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   107:5   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   194:17  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   232:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   272:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   376:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   382:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   400:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   561:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   571:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   625:3   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   780:15  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   813:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   819:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   821:11  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   881:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   896:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   900:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   902:13  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   945:7   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   955:19  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   967:15  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   969:18  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   976:19  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+   983:15  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  1013:9   warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  1112:33  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  1282:46  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  1304:50  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  1313:61  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\sk-management\SkSubmissionPage.tsx
+  97:9  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\features\sk-management\components\BulkSkSubmission.tsx
+   39:3  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  134:3  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+
+D:\SIMMACI\src\hooks\usePermissions.ts
+  23:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\hooks\usePermissions.ts:23:9
+  21 |     if (userStr) {
+  22 |       try {
+> 23 |         setUser(JSON.parse(userStr));
+     |         ^^^^^^^ Avoid calling setState() directly within an effect
+  24 |       } catch (e) {
+  25 |         console.error('Failed to parse user from localStorage', e);
+  26 |       }  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\services\SkGeneratorService.ts
+  69:13  error  'content' is never reassigned. Use 'const' instead  prefer-const
+
+D:\SIMMACI\src\types\mammoth.d.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+✖ 72 problems (12 errors, 60 warnings)
+  1 error and 58 warnings potentially fixable with the `--fix` option.
+

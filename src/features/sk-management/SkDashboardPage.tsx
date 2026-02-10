@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -203,13 +203,11 @@ export default function SkDashboardPage() {
     if (!confirm("⚠️ RESET PENGAJUAN SK \n\nApakah anda yakin ingin menghapus SEMUA data di 'Perlu Diproses' (Draft)?\nData Guru Master & SK yang sudah terbit TIDAK akan dihapus.")) return
     
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = await cleanSk({})
         alert(`Berhasil membersihkan ${result.draftsDeleted} data sampah (Draft).`)
         // Refresh?
         window.location.reload() 
     } catch (e) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         alert("Gagal reset data: " + (e as any).message)
     }
   }

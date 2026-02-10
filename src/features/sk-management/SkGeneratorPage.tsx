@@ -21,6 +21,7 @@ import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
 import { useConvex } from "convex/react"
 import { api } from "../../../convex/_generated/api"
+import { toast } from "sonner"
 
 // Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
 function base64DataURLToArrayBuffer(dataURL: string) {
@@ -239,7 +240,7 @@ const generateBulkSkZip = async (
     
     
     if (successCount === 0 && errors.length > 0) {
-        alert(`Gagal Generate SK!\n\n${errors[0]}\n\n(Cek file ERRORS_REPORT.txt di dalam ZIP untuk detail lengkap)`)
+        toast.error(`Gagal Generate SK! ${errors[0]}`)
     }
 
     // CRITICAL FIX: Wrap ZIP generation in try-catch
@@ -269,7 +270,7 @@ const generateBulkSkZip = async (
     } catch (zipError: unknown) {
         console.error("❌ CRITICAL: ZIP Generation Failed!", zipError)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        alert(`CRITICAL ERROR: Gagal membuat file ZIP!\n\nError: ${(zipError as any)?.message || String(zipError)}\n\nSilakan cek console untuk detail.`)
+        toast.error(`CRITICAL ERROR: Gagal membuat file ZIP! ${(zipError as any)?.message || String(zipError)}`)
         throw zipError // Re-throw to prevent false success
     }
     
@@ -279,7 +280,7 @@ const generateBulkSkZip = async (
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
-import { toast } from "sonner"
+// import { toast } from "sonner" // Moved to top
 
 // ... imports
 import {
@@ -316,7 +317,19 @@ export default function SkGeneratorPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showHistoryConfirm, setShowHistoryConfirm] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
+
+  // TEXT RESULT MODAL (For Inspector & Explainer)
+  const [textResultOpen, setTextResultOpen] = useState(false)
+  const [textResultTitle, setTextResultTitle] = useState("")
+  const [textResultContent, setTextResultContent] = useState("")
+
+  const showTextResult = (title: string, content: string) => {
+      setTextResultTitle(title)
+      setTextResultContent(content)
+      setTextResultOpen(true)
+  }
 
   // RESTORED STATES
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -449,7 +462,7 @@ export default function SkGeneratorPage() {
   
   const handleBulkSign = () => {
       // Stub for future bulk sign action
-      alert(`Menandatangani ${selectedIds.size} SK secara digital (Simulasi)...`)
+      toast.info(`Menandatangani ${selectedIds.size} SK secara digital (Simulasi)...`)
   }
 
   const handleSelectOne = (id: string, checked: boolean) => {
@@ -470,7 +483,7 @@ export default function SkGeneratorPage() {
       const content = loadTemplate(templateId) || loadTemplate("sk_template_tendik")
       
       if (!content) {
-          alert("Tidak ada template yang tersimpan. Upload dulu!")
+          toast.error("Tidak ada template yang tersimpan. Upload dulu!")
           return
       }
 
@@ -524,7 +537,7 @@ export default function SkGeneratorPage() {
               msg += `Saya tidak menemukan tanda kurung { } atau {{ }} di dalam file Word anda.\n`
               msg += `Pastikan anda menulis variabel seperti ini: {NAMA}, {NIP}, dll.\n`
               msg += `Jangan gunakan [ ] atau < >.`
-              alert(msg)
+              showTextResult("Analisa Template: GAGAL", msg)
               return
           }
 
@@ -542,12 +555,12 @@ export default function SkGeneratorPage() {
               msg += `\n🎉 SEMPURNA! Semua variabel valid.`
           }
 
-          alert(msg)
+          showTextResult("Hasil Analisa Template", msg)
 
       } catch (e: unknown) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const errMsg = (e as any)?.message || String(e)
-          alert("Error: " + errMsg)
+          toast.error("Error Analisa: " + errMsg)
       }
   }
 
@@ -576,7 +589,7 @@ export default function SkGeneratorPage() {
 
       if (!hasEdu && !hasTitle) {
           log += `\nKESIMPULAN: TENDIK\n(Karena tidak ditemukan tanda S1 atau gelar akademik)`
-          alert(log)
+          showTextResult("Analisa Logika SK (AI)", log)
           return
       }
 
@@ -605,7 +618,7 @@ export default function SkGeneratorPage() {
           log += `\nKESIMPULAN: GTT (Guru Tidak Tetap)\n(Berpendidikan S1/Gelar tapi Masa Kerja < 2 Tahun)`
       }
       
-      alert(log)
+      showTextResult("Analisa Logika SK (AI)", log)
   }
 
   // --- HELPER: Parse Date Robustly ---
@@ -731,7 +744,10 @@ export default function SkGeneratorPage() {
 
   // Generate Handler
   const handleGenerate = async () => {
-    if (selectedIds.size === 0) return alert("Pilih minimal satu data guru.")
+    if (selectedIds.size === 0) {
+        toast.warning("Pilih minimal satu data guru.")
+        return
+    }
 
     setIsGenerating(true)
     try {
@@ -969,7 +985,7 @@ export default function SkGeneratorPage() {
               // If archive fails, we probably shouldn't generate the file? 
               // Or maybe generate but with invalid QR? 
               // Better to skip to ensure consistency.
-              alert(`Gagal menyimpan data untuk ${item.nama}: ${errMsg}`)
+              toast.error(`Gagal menyimpan data untuk ${item.nama}: ${errMsg}`)
           }
       }
 
@@ -996,7 +1012,7 @@ export default function SkGeneratorPage() {
         console.error("❌ Critical Gen Error:", e)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errMsg = (e as any)?.message || String(e)
-        alert(`Terjadi kesalahan sistem saat generate!\n\nError: ${errMsg}\n\nCek console untuk detail lengkap.`)
+        toast.error(`Terjadi kesalahan sistem saat generate! ${errMsg}`)
         setIsGenerating(false)
     }
   }
@@ -1168,7 +1184,7 @@ export default function SkGeneratorPage() {
             <div className="flex flex-wrap gap-2 mb-3">
                 {["{NAMA}", "{NIP}", "{TTL}", "{PENDIDIKAN}", "{TMT}", "{JABATAN}", "{UNIT_KERJA}", "{KECAMATAN}", "{NOMOR_SURAT}", "{NOMOR}", "{TANGGAL_PENETAPAN}", "{TANGGAL_HABIS_BERLAKU}", "{NOMOR_SURAT_MASUK}", "{TANGGAL_SURAT_MASUK}", "{TAHUN_AJARAN}"].map(tag => (
                     <span key={tag} 
-                          onClick={() => {navigator.clipboard.writeText(tag); alert(`Copied: ${tag}`)}}
+                        onClick={() => {navigator.clipboard.writeText(tag); toast.success(`Copied: ${tag}`)}}
                           className="bg-white px-2 py-1 rounded border text-xs font-mono font-bold select-all cursor-pointer hover:bg-slate-100 shadow-sm transition-colors text-blue-800" 
                           title="Klik untuk copy">
                         {tag}
@@ -1457,6 +1473,28 @@ export default function SkGeneratorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. TEXT RESULT MODAL (LOGS/INSPECTOR) */}
+      <Dialog open={textResultOpen} onOpenChange={setTextResultOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5 text-blue-600" />
+                {textResultTitle}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-slate-50 p-4 rounded-md border text-sm font-mono whitespace-pre-wrap">
+              {textResultContent}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setTextResultOpen(false)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </div>
   )

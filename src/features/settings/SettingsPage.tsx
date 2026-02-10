@@ -6,7 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff } from "lucide-react"
+import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useState, useEffect } from "react"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
@@ -15,6 +25,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("template")
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState<string | null>(null)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   // API Safety Check
   const isApiReady = !!api.settings
@@ -173,7 +184,7 @@ export default function SettingsPage() {
     setTimeout(() => {
         localStorage.setItem("app_settings", JSON.stringify(settings))
         setIsSaving(false)
-        alert("Pengaturan berhasil disimpan!")
+        toast.success("Pengaturan berhasil disimpan!")
     }, 800)
   }
 
@@ -216,10 +227,12 @@ export default function SettingsPage() {
   }
 
   const handleResetData = () => {
-    if (confirm("PERINGATAN: Hapus SEMUA data?")) {
-        localStorage.clear()
-        window.location.reload()
-    }
+     setShowResetConfirm(true)
+  }
+
+  const confirmReset = () => {
+      localStorage.clear()
+      window.location.reload()
   }
 
 
@@ -558,6 +571,26 @@ export default function SettingsPage() {
         )}
         
       </Tabs>
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Konfirmasi Reset Data
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              PERINGATAN: Tindakan ini akan <b>MENGHAPUS SELURUH DATA</b> aplikasi yang tersimpan di browser ini (Guru, Siswa, Sekolah, Pengaturan).
+              <br/><br/>
+              Data yang sudah dihapus <b>TIDAK DAPAT DIKEMBALIKAN</b> kecuali Anda memiliki backup JSON.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReset} className="bg-red-600 hover:bg-red-700 text-white">
+              Ya, Hapus Semua
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

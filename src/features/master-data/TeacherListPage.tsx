@@ -93,6 +93,9 @@ export default function TeacherListPage() {
   // Toggle status confirmation modal state
   const [toggleConfirmOpen, setToggleConfirmOpen] = useState(false)
   const [teacherToToggle, setTeacherToToggle] = useState<{id: string, name: string, currentStatus: boolean} | null>(null)
+  
+  // Delete All confirmation modal state
+  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false)
 
   // Map Convex data to existing Teacher interface
   const teachers = (convexTeachers || []).map((t: any) => ({
@@ -206,11 +209,11 @@ export default function TeacherListPage() {
         isActive: newStatus 
       })
       const action = newStatus ? "diaktifkan" : "dinonaktifkan"
-      alert(`✅ Guru "${teacherToToggle.name}" berhasil ${action}!`)
+      toast.success(`Guru "${teacherToToggle.name}" berhasil ${action}!`)
       setToggleConfirmOpen(false)
       setTeacherToToggle(null)
     } catch (error: any) {
-      alert("❌ Gagal mengubah status: " + error.message)
+      toast.error("Gagal mengubah status: " + error.message)
     }
   }
 
@@ -346,7 +349,7 @@ export default function TeacherListPage() {
 
   const handleSave = async () => {
       if(!formData.nama) {
-          alert("Nama wajib diisi!")
+          toast.error("Nama wajib diisi!")
           return
       }
 
@@ -381,18 +384,18 @@ export default function TeacherListPage() {
               id: formData.id as any,
               ...rawPayload
             })
-            alert("Berhasil memperbarui data guru")
+            toast.success("Berhasil memperbarui data guru")
         } else {
             // 🔥 Create via Convex
             await createTeacherMutation(rawPayload)
-            alert("Berhasil menambah guru")
+            toast.success("Berhasil menambah guru")
         }
         
         // Convex auto-updates UI, but close dialog
         closeDialog()
       } catch (e) {
           console.error("Save error:", e)
-          alert("Gagal menyimpan guru")
+          toast.error("Gagal menyimpan guru")
       }
   }
 
@@ -468,16 +471,17 @@ export default function TeacherListPage() {
       }
   }
 
-  const handleDeleteAll = async () => {
-      if (confirm(`PERHATIAN: Ini akan menghapus SEMUA ${teachers.length} data guru!\n\nApakah Anda yakin?`)) {
-          if (confirm("Konfirmasi sekali lagi - hapus semua data guru?")) {
-              try {
-                  const result = await bulkDeleteTeacherMutation({})
-                  toast.success(`Berhasil menghapus ${result.count} data guru!`)
-              } catch (e: any) {
-                  toast.error("Gagal menghapus: " + e.message)
-              }
-          }
+  const handleDeleteAll = () => {
+      setDeleteAllConfirmOpen(true)
+  }
+
+  const confirmDeleteAll = async () => {
+      try {
+          const result = await bulkDeleteTeacherMutation({})
+          toast.success(`Berhasil menghapus ${result.count} data guru!`)
+          setDeleteAllConfirmOpen(false)
+      } catch (e: any) {
+          toast.error("Gagal menghapus: " + e.message)
       }
   }
 
@@ -800,7 +804,7 @@ export default function TeacherListPage() {
                                     }
                                 } catch (e) {
                                     console.error("Auto NIM failed:", e)
-                                    alert("Gagal generate nomor otomatis.")
+                                    toast.error("Gagal generate nomor otomatis.")
                                 }
                             }}
                          >
@@ -971,7 +975,7 @@ export default function TeacherListPage() {
           console.log('[IMPORT] Total rows found:', rows.length)
 
           if (rows.length === 0) {
-              alert("File kosong or format tidak valid.")
+              toast.error("File kosong atau format tidak valid.")
               return
           }
 
@@ -1019,7 +1023,7 @@ export default function TeacherListPage() {
           }
 
           if (headerRowIndex === -1) {
-              alert("Gagal menemukan baris Header (Nama, NUPTK, dll) dalam 15 baris pertama.")
+              toast.error("Gagal menemukan baris Header (Nama, NUPTK, dll) dalam 15 baris pertama.")
               return
           }
 
@@ -1157,7 +1161,7 @@ export default function TeacherListPage() {
                   })
                   
                   const debugColMap = Object.entries(colMap).map(([k, v]) => `${k}: ${v}`).join(', ')
-                  alert(`🔍 Debug Baris Pertama:\n\nNama: ${nama}\nUnit: ${unitKerja}\nPendidikan: ${pendidikan}\nTTL: ${tempatLahir}, ${birthDateFormatted}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}\n\nDetected Cols: ${debugColMap}`)
+                  console.log(`🔍 Debug Baris Pertama:\n\nNama: ${nama}\nUnit: ${unitKerja}\nPendidikan: ${pendidikan}\nTTL: ${tempatLahir}, ${birthDateFormatted}\nTMT Raw: ${tmtVal}\nTMT Parsed: ${tmtFormatted}\nStatus: ${detectedStatus}\n\nDetected Cols: ${debugColMap}`)
               }
 
               return {
@@ -1190,7 +1194,7 @@ export default function TeacherListPage() {
           
           
           if (teachers.length === 0) {
-            alert('❌ Tidak ada data valid yang bisa diimport. Pastikan file Excel memiliki kolom: NUPTK dan Nama')
+            toast.error('❌ Tidak ada data valid yang bisa diimport. Pastikan file Excel memiliki kolom: NUPTK dan Nama')
             return
           }
 
@@ -1198,7 +1202,7 @@ export default function TeacherListPage() {
           if (teachers.length > 0) {
               const sample = teachers[0]
               const debugStr = `🚀 PAYLOAD DATA GURU CHECK:\n\nNama: ${sample.nama}\nUnit: ${sample.unitKerja}\nTMT: ${sample.tmt}\nStatus: ${sample.status}\nPendidikan: ${sample.pendidikanTerakhir}\n\nJika field di atas kosong, cek Header Excel anda.`
-              alert(debugStr)
+              console.log(debugStr)
               console.log("PAYLOAD FULL:", teachers)
           }
           // -------------------------------
@@ -1235,13 +1239,13 @@ export default function TeacherListPage() {
             
             if (result.errors && result.errors.length > 0) {
               console.warn('[IMPORT] Errors:', result.errors)
-              alert(`⚠️ Selesai! (Backend v${result.version || '?'})\n\nSukses: ${result.new} Baru, ${result.updated} Update\nError: ${result.errors.length}`)
+              toast.warning(`⚠️ Selesai dengan catatan! (v${result.version || '?'})\n\nSukses: ${result.new} Baru, ${result.updated} Update\nError: ${result.errors.length}`)
             } else {
-              alert(`✅ IMPOR SUKSES SEMPURNA! (Backend v${result.version || '?'})\n\nTotal: ${result.count} data masuk.`)
+              toast.success(`✅ IMPOR SUKSES SEMPURNA! (v${result.version || '?'})\n\nTotal: ${result.count} data masuk.`)
             }
           } catch (error: any) {
             console.error('[IMPORT ERROR]', error)
-            alert(`❌ Gagal import: ${error.message || 'Unknown error'}\n\nSilakan cek console (F12) untuk detail error.`)
+            toast.error(`❌ Gagal import: ${error.message || 'Unknown error'}`)
           }
         }}
       />
@@ -1341,6 +1345,34 @@ export default function TeacherListPage() {
         onClose={() => setIsBroadcastOpen(false)}
         recipients={selectedTeachersForBroadcast}
       />
+
+      {/* Delete ALL Confirmation Modal */}
+      <Dialog open={deleteAllConfirmOpen} onOpenChange={setDeleteAllConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Hapus SEMUA Data Guru?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+             <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
+              <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                ⚠️ PERINGATAN KERAS
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Tindakan ini akan menghapus <strong>SELURUH DATA GURU</strong> ({teachers.length} data) secara permanen.
+                <br/>
+                Data yang dihapus tidak dapat dipulihkan.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteAllConfirmOpen(false)}>Batal</Button>
+            <Button variant="destructive" onClick={confirmDeleteAll} className="bg-red-600 hover:bg-red-700">Ya, Hapus Semua</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

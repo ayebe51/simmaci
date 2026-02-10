@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -160,19 +161,19 @@ export default function StudentListPage() {
 
   const handleAdd = async () => {
       if (!formData.nama || !formData.nisn) {
-          alert("Nama dan NISN wajib diisi")
+          toast.error("Nama dan NISN wajib diisi")
           return
       }
       
       try {
           // TODO: Implement createStudent API
-          alert("Fitur tambah siswa belum diimplementasikan di backend")
+          toast.info("Fitur tambah siswa belum diimplementasikan di backend")
           // await api.createStudent(formData)
           // loadStudents()
           setIsAddOpen(false)
           setFormData({ nisn: "", nama: "", kelas: "", sekolah: "", jk: "L" })
       } catch (e) {
-          alert("Gagal menambah siswa")
+          toast.error("Gagal menambah siswa")
       }
   }
 
@@ -185,12 +186,12 @@ export default function StudentListPage() {
       if (!studentToDelete) return
       try {
           await deleteStudentMutation({ id: studentToDelete.id as any })
-          alert(`✅ Siswa "${studentToDelete.name}" berhasil dihapus!`)
+          toast.success(`Siswa "${studentToDelete.name}" berhasil dihapus!`)
           setDeleteConfirmOpen(false)
           setStudentToDelete(null)
       } catch (e: any) {
           console.error('Delete error:', e)
-          alert("❌ Gagal menghapus siswa: " + e.message)
+          toast.error("Gagal menghapus siswa: " + e.message)
       }
   }
 
@@ -211,7 +212,7 @@ export default function StudentListPage() {
           link.parentNode?.removeChild(link);
       } catch (e: any) {
           console.error(e)
-          alert("Gagal mengexport data.")
+          toast.error("Gagal mengexport data.")
       }
   }
 
@@ -228,7 +229,7 @@ export default function StudentListPage() {
           window.URL.revokeObjectURL(url);
       } catch (error) {
           console.error('Failed to download template:', error);
-          alert('Gagal mendownload template. Silakan coba lagi.');
+          toast.error('Gagal mendownload template. Silakan coba lagi.');
       }
   }
 

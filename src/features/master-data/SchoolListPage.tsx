@@ -143,6 +143,10 @@ export default function SchoolListPage() {
   // Delete confirmation modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [schoolToDelete, setSchoolToDelete] = useState<{id: string, name: string} | null>(null)
+  
+  // New Dialog States
+  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false)
+  const [generateAccountSchool, setGenerateAccountSchool] = useState<School | null>(null)
 
   // Get unique kecamatan 
   const uniqueKecamatan = [
@@ -156,7 +160,7 @@ export default function SchoolListPage() {
 
   const handleSave = async () => {
       if(!formData.nsm || !formData.nama) {
-          alert("NSM dan Nama sekolah wajib diisi!")
+          toast.error("NSM dan Nama sekolah wajib diisi!")
           return
       }
       try {
@@ -170,10 +174,9 @@ export default function SchoolListPage() {
              alamat: formData.alamat,
              kecamatan: formData.kecamatan,
              kepalaMadrasah: formData.kepala,
-             telepon: formData.noHpKepala,
              statusJamiyyah: formData.statusJamiyyah,
            })
-           alert("Berhasil update sekolah") 
+           toast.success("Berhasil update sekolah") 
         } else {
            // Create via Convex
            await createSchoolMutation({
@@ -187,11 +190,11 @@ export default function SchoolListPage() {
              statusJamiyyah: formData.statusJamiyyah,
              telepon: formData.noHpKepala,
            })
-           alert("Berhasil menambah sekolah")
+           toast.success("Berhasil menambah sekolah")
         }
         closeDialog()
       } catch (error) {
-          alert("Gagal menyimpan: " + (error as Error).message)
+          toast.error("Gagal menyimpan: " + (error as Error).message)
       }
   }
 
@@ -208,12 +211,12 @@ export default function SchoolListPage() {
           console.log('[DELETE] Calling mutation for:', schoolToDelete.name)
           await deleteSchoolMutation({ id: schoolToDelete.id as Id<"schools"> })
           console.log('[DELETE] Success!')
-          alert(`✅ Sekolah "${schoolToDelete.name}" berhasil dihapus!`)
+          toast.success(`Sekolah "${schoolToDelete.name}" berhasil dihapus!`)
           setDeleteConfirmOpen(false)
           setSchoolToDelete(null)
       } catch (error) {
           console.error('[DELETE] Error:', error)
-          alert("❌ Gagal menghapus: " + (error as Error).message)
+          toast.error("Gagal menghapus: " + (error as Error).message)
       }
   }
 
@@ -223,16 +226,17 @@ export default function SchoolListPage() {
       setSchoolToDelete(null)
   }
 
-  const handleDeleteAll = async () => {
-      if (confirm(`PERHATIAN: Ini akan menghapus SEMUA ${schools.length} data sekolah!\n\nApakah Anda yakin?`)) {
-          if (confirm("Konfirmasi sekali lagi - hapus semua data sekolah?")) {
-              try {
-                  const result = await bulkDeleteSchoolMutation({})
-                  alert(`Berhasil menghapus ${result.count} sekolah!`)
-              } catch (error) {
-                  alert("Gagal menghapus: " + (error as Error).message)
-              }
-          }
+  const handleDeleteAll = () => {
+      setDeleteAllConfirmOpen(true)
+  }
+
+  const confirmDeleteAll = async () => {
+      try {
+          const result = await bulkDeleteSchoolMutation({})
+          toast.success(`Berhasil menghapus ${result.count} sekolah!`)
+          setDeleteAllConfirmOpen(false)
+      } catch (error) {
+          toast.error("Gagal menghapus: " + (error as Error).message)
       }
   }
 
@@ -254,6 +258,7 @@ export default function SchoolListPage() {
 
   const handleBulkGenerate = async () => {
       if (!confirm("Fitur ini akan membuatkan akun untuk SEMUA sekolah yang belum punya akun.\n\nPassword default: 123456\n\nLanjutkan?")) return;
+
 
       try {
           const results = await bulkCreateAccounts();
@@ -340,11 +345,15 @@ export default function SchoolListPage() {
     }
   }
 
-  const handleGenerateAccount = async (school: School) => {
-      if (!window.confirm(`Buat akun untuk sekolah ${school.nama}?`)) return;
+  const handleGenerateAccount = (school: School) => {
+      setGenerateAccountSchool(school)
+  };
+
+  const confirmGenerateAccount = async () => {
+      if (!generateAccountSchool) return
       
       try {
-          const res = await createAccount({ schoolId: school.id as Id<"schools"> });
+          const res = await createAccount({ schoolId: generateAccountSchool.id as Id<"schools"> });
           setCredDialog({ 
               open: true, 
               email: res.email, 
@@ -353,8 +362,10 @@ export default function SchoolListPage() {
           toast.success(res.message);
       } catch (error) {
           toast.error("Gagal membuat akun: " + (error as Error).message);
+      } finally {
+          setGenerateAccountSchool(null)
       }
-  };
+  }
 
   const copyToClipboard = (text: string) => {
       navigator.clipboard.writeText(text);
@@ -676,7 +687,7 @@ export default function SchoolListPage() {
             const result = await bulkCreateSchoolMutation({ schools });
             alert(`Berhasil mengimpor ${result.count} dari ${schools.length} sekolah`)
           } catch (error) {
-            alert("Gagal import: " + (error as Error).message)
+            toast.error("Gagal import: " + (error as Error).message)
           }
         }}
       />

@@ -255,10 +255,12 @@ export default function SettingsPage() {
 
       <Tabs defaultValue="template" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto w-full justify-start gap-2 bg-transparent p-0 mb-6">
-           {isAdmin && (
+           {/* Template Tab (Privileged) */}
+           {(isAdmin || userRole === "admin_yayasan") && (
                <TabsTrigger value="template" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Template SK</TabsTrigger>
            )}
-           {isAdmin && (
+           {/* Signer Tab (Privileged) */}
+           {(isAdmin || userRole === "admin_yayasan") && (
                <TabsTrigger value="signer" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Penandatangan</TabsTrigger>
            )}
            <TabsTrigger value="profil" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Profil Lembaga</TabsTrigger>
@@ -268,8 +270,8 @@ export default function SettingsPage() {
            )}
         </TabsList>
 
-        {/* Template Tab (Admin Only) */}
-        {isAdmin && (
+        {/* Template Tab (Admin & Yayasan) */}
+        {(isAdmin || userRole === "admin_yayasan") && (
         <TabsContent value="template">
             {!isApiReady ? (
                  <div className="p-8 text-center bg-amber-50 rounded border border-amber-200 text-amber-800">
@@ -376,8 +378,8 @@ export default function SettingsPage() {
         </TabsContent>
         )}
 
-        {/* Signer Tab (Admin Only) */}
-        {isAdmin && (
+        {/* Signer Tab (Admin & Yayasan) */}
+        {(isAdmin || userRole === "admin_yayasan") && (
         <TabsContent value="signer">
             <Card>
                 <CardHeader>

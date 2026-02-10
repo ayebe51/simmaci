@@ -114,7 +114,7 @@ export default function AppShell({ children }: AppShellProps) {
                  }
 
                  // 2. YAYASAN & SUPER ADMIN
-                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK", "Arsip Digital", "Pengaturan"].includes(item.label)) {
+                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK", "Arsip Digital"].includes(item.label)) {
                      return ["super_admin", "admin_yayasan"].includes(userRole);
                  }
 

@@ -97,12 +97,15 @@ export const getByNuptk = query({
 
 // --- RBAC HELPER ---
 async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefined, currentTeacherId?: Id<"teachers">) {
+    console.log("validateWriteAccess: START");
     const identity = await ctx.auth.getUserIdentity();
     
     // 1. If not logged in, throw error (Strict Mode)
     if (!identity) {
+        console.error("validateWriteAccess: No Identity");
         throw new Error("Unauthorized: Harap login terlebih dahulu.");
     }
+    console.log("validateWriteAccess: Identity:", identity.email);
 
     const user = await ctx.db
         .query("users")
@@ -110,8 +113,10 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
         .first();
 
     if (!user) {
+        console.error("validateWriteAccess: No User in DB");
         throw new Error("Unauthorized: User tidak ditemukan.");
     }
+    console.log(`validateWriteAccess: User found (${user.role}). Unit: ${user.unit}`);
 
     // 2. Admin is God Mode
     if (user.role === 'admin') {
@@ -289,12 +294,10 @@ export const bulkCreate = mutation({
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
   },
   handler: async (ctx, args) => {
-    // try {
-    //    // RBAC CHECK (Moved inside try/catch to capture errors)
-    //    const user = await validateWriteAccess(ctx, undefined);
-
-    // DEBUG MODE: Bypass Auth to isolate the crash
-    const user = { role: 'admin', unit: null, name: 'Debug Admin' };
+    // RESTORED AUTH WITH LOGGING
+    console.log("BulkCreate: Calling validateWriteAccess...");
+    const user = await validateWriteAccess(ctx, undefined);
+    console.log("BulkCreate: Auth Success:", user.email);
 
     try {
         const now = Date.now();

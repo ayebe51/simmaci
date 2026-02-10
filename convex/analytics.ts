@@ -24,6 +24,9 @@ export const getDashboardStats = query({
 
     // 2. Iterate and Aggregate
     for (const t of teachers) {
+      // Skip inactive teachers
+      if (t.isActive === false) continue;
+
       // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
       // Normalize specifically to handle variations
       // A. Status Kepegawaian Logic

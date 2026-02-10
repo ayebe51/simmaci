@@ -298,7 +298,9 @@ export const getSchoolStats = query({
     const certCounts: Record<string, number> = { "Sudah Sertifikasi": 0, "Belum Sertifikasi": 0 };
 
     for (const t of teachersList) {
-       // A. Status
+        if (t.isActive === false) continue;
+        
+        // A. Status
        // A. Status Logic (Updated per user request)
        // Priority 1: PNS
        let rawStatus = (t.status || "").trim().toUpperCase();

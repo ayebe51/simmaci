@@ -58,64 +58,94 @@ export default function DashboardOperator() {
       ) : (
         <>
         {/* OVERVIEW CARDS */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Guru</CardTitle>
-              <Users className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-end">
-                <div>
-                   <div className="text-2xl font-extrabold">{stats.teachers}</div>
-                   <p className="text-xs text-muted-foreground mt-1">
-                      {teacherGrowthLabel} <span className="text-green-500 font-medium">Active</span>
-                   </p>
-                </div>
-                <div className="opacity-50 mb-1">
-                   <Sparkline data={stats?.teacherTrend || []} color="#22c55e" />
-                </div>
+        {/* OVERVIEW CARDS */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          
+          {/* 1. TOTAL GURU (With Sparkline) */}
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between space-x-4">
+                  <div className="flex flex-col space-y-1 z-10">
+                      <span className="text-sm font-medium text-slate-500">Total Guru</span>
+                      <span className="text-3xl font-extrabold text-slate-900">{stats.teachers}</span>
+                  </div>
+                  <div className="p-3 bg-emerald-50 rounded-full z-10">
+                      <Users className="h-6 w-6 text-emerald-600" />
+                  </div>
+              </div>
+              <div className="mt-4 flex items-end justify-between">
+                  <div className="flex items-center space-x-2 text-xs">
+                     {teacherGrowth > 0 ? (
+                         <span className="flex items-center text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">
+                             {teacherGrowthLabel}
+                         </span>
+                     ) : (
+                         <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md text-xs">Stabil</span>
+                     )}
+                  </div>
+                  <div className="absolute right-0 bottom-0 opacity-20 transform translate-y-2 scale-110">
+                     <Sparkline data={stats?.teacherTrend || []} color="#059669" />
+                  </div>
               </div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Siswa</CardTitle>
-              <School className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold">{stats.students}</div>
-              <p className="text-xs text-muted-foreground mt-1">Terdaftar di Simpatika</p>
+          {/* 2. TOTAL SISWA */}
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-6">
+               <div className="flex items-center justify-between space-x-4">
+                  <div className="flex flex-col space-y-1">
+                      <span className="text-sm font-medium text-slate-500">Total Siswa</span>
+                      <span className="text-3xl font-extrabold text-slate-900">{stats.students}</span>
+                  </div>
+                  <div className="p-3 bg-blue-50 rounded-full">
+                      <School className="h-6 w-6 text-blue-600" />
+                  </div>
+              </div>
+              <div className="mt-4 flex items-center text-xs">
+                  <span className="text-slate-400">Terdaftar di Simpatika</span>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">SK Terbit</CardTitle>
-              <CheckCircle className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-               <div className="flex justify-between items-end">
-                <div>
-                  <div className="text-2xl font-extrabold">{stats.skApproved}</div>
-                  <p className="text-xs text-muted-foreground mt-1">SK Telah Diproses</p>
-                </div>
-                <div className="opacity-50 mb-1">
-                   <Sparkline data={skTrend || []} color="#a855f7" />
-                </div>
+          {/* 3. SK TERBIT (With Sparkline) */}
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden relative">
+            <CardContent className="p-6">
+               <div className="flex items-center justify-between space-x-4">
+                  <div className="flex flex-col space-y-1 z-10">
+                      <span className="text-sm font-medium text-slate-500">SK Terbit</span>
+                      <span className="text-3xl font-extrabold text-slate-900">{stats.skApproved}</span>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-full z-10">
+                      <CheckCircle className="h-6 w-6 text-purple-600" />
+                  </div>
+               </div>
+               <div className="mt-4 flex justify-between items-end">
+                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-medium">
+                      Selesai Diproses
+                  </span>
+                  <div className="opacity-80 -mr-2">
+                       <Sparkline data={skTrend || []} color="#9333ea" />
+                  </div>
                </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Draft SK</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-extrabold">{stats.skDrafts}</div>
-              <p className="text-xs text-muted-foreground mt-1">Menunggu pengajuan</p>
+          {/* 4. DRAFT SK */}
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-6">
+               <div className="flex items-center justify-between space-x-4">
+                  <div className="flex flex-col space-y-1">
+                      <span className="text-sm font-medium text-slate-500">Draft SK</span>
+                      <span className="text-3xl font-extrabold text-slate-900">{stats.skDrafts}</span>
+                  </div>
+                  <div className="p-3 bg-yellow-50 rounded-full">
+                      <Clock className="h-6 w-6 text-yellow-600" />
+                  </div>
+               </div>
+               <div className="mt-4 flex items-center text-xs">
+                   <span className="text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md font-medium">Menunggu Pengajuan</span>
+               </div>
             </CardContent>
           </Card>
         </div>

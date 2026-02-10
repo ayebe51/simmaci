@@ -26,36 +26,40 @@ export const getDashboardStats = query({
     for (const t of teachers) {
       // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
       // Normalize specifically to handle variations
+      // A. Status Kepegawaian Logic
+      // Priority 1: Check Explicit PNS/ASN
       let rawStatus = (t.status || "").trim().toUpperCase();
-      let statusLabel = ""; 
+      let statusLabel = "";
+      
+      if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) {
+          statusLabel = "PNS";
+      } else {
+          // Priority 2: Check Education (Tendik if < S1)
+          const edu = (t.pendidikanTerakhir || "").trim().toUpperCase();
+          const tendikEdu = ["SD", "SMP", "SMA", "SMK", "D1", "D2", "D3"];
+          
+          if (tendikEdu.some(e => edu === e || edu.startsWith(e + " "))) { // Handle "SMA IPA" etc
+             statusLabel = "Tendik";
+          } else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA")) {
+             statusLabel = "Tendik";
+          } else {
+             // Priority 3: Check TMT for GTY/GTT
+             if (t.tmt) {
+                const tmtDate = new Date(t.tmt);
+                if (!isNaN(tmtDate.getTime())) {
+                   const now = new Date();
+                   const diffTime = Math.abs(now.getTime() - tmtDate.getTime());
+                   const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+                   statusLabel = diffYears >= 2 ? "GTY" : "GTT";
+                }
+             }
 
-      if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) statusLabel = "PNS";
-      else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP YAYASAN") || rawStatus.includes("GURU TETAP") || rawStatus.includes("GURU") || rawStatus.includes("PENGAJAR")) statusLabel = "GTY";
-      else if (rawStatus.includes("GTT") || rawStatus.includes("TIDAK TETAP") || rawStatus.includes("HONOR")) statusLabel = "GTT";
-      else if (rawStatus.includes("TENDIK") || rawStatus === "TU" || rawStatus.includes("TATA USAHA") || rawStatus.includes("ADMINISTRASI") || rawStatus === "OPS" || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA") || rawStatus.includes("KEAMANAN") || rawStatus.includes("KEBERSIHAN")) statusLabel = "Tendik";
-      
-      
-      // Fallback: If status is ambiguous/empty, check TMT (Tenure)
-      if (!statusLabel && t.tmt) {
-          // Parse TMT
-          const tmtDate = new Date(t.tmt);
-          if (!isNaN(tmtDate.getTime())) {
-              const now = new Date();
-              const diffTime = Math.abs(now.getTime() - tmtDate.getTime());
-              const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
-              
-              if (diffYears >= 2) {
-                  statusLabel = "GTY";
-              } else {
-                  statusLabel = "GTT";
-              }
+             // Fallback if no TMT
+             if (!statusLabel) {
+                 if (rawStatus.includes("GTY") || rawStatus.includes("TETAP")) statusLabel = "GTY";
+                 else statusLabel = "GTT";
+             }
           }
-      }
-
-      // Final fallback if no TMT and no status
-      if (!statusLabel) {
-         if (rawStatus.includes("GURU")) statusLabel = "GTT"; // Assume new if unknown
-         else statusLabel = "GTT"; // Safe default
       }
 
       // Only increment if matched

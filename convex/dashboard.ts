@@ -299,14 +299,41 @@ export const getSchoolStats = query({
 
     for (const t of teachersList) {
        // A. Status
+       // A. Status Logic (Updated per user request)
+       // Priority 1: PNS
        let rawStatus = (t.status || "").trim().toUpperCase();
        let statusLabel = ""; 
-       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK")) statusLabel = "PNS";
-       else if (rawStatus.includes("GTY") || rawStatus.includes("TETAP")) statusLabel = "GTY";
-       else if (rawStatus.includes("GTT") || rawStatus.includes("HONOR")) statusLabel = "GTT";
-       else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("OPERATOR")) statusLabel = "Tendik";
        
-       if (!statusLabel) statusLabel = "GTT"; // Default
+       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK")) {
+           statusLabel = "PNS";
+       } else {
+           // Priority 2: Education (Tendik)
+           const edu = (t.pendidikanTerakhir || "").trim().toUpperCase();
+           const tendikEdu = ["SD", "SMP", "SMA", "SMK", "D1", "D2", "D3"];
+           
+           if (tendikEdu.some(e => edu === e || edu.startsWith(e + " "))) {
+              statusLabel = "Tendik";
+           } else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("OPERATOR")) {
+              statusLabel = "Tendik";
+           } else {
+               // Priority 3: TMT
+               if (t.tmt) {
+                   const tmtDate = new Date(t.tmt);
+                   if (!isNaN(tmtDate.getTime())) {
+                      const now = new Date();
+                      const diffTime = Math.abs(now.getTime() - tmtDate.getTime());
+                      const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+                      statusLabel = diffYears >= 2 ? "GTY" : "GTT";
+                   }
+               }
+               
+               // Fallback
+               if (!statusLabel) {
+                   if (rawStatus.includes("GTY") || rawStatus.includes("TETAP")) statusLabel = "GTY";
+                   else statusLabel = "GTT";
+               }
+           }
+       }
        if (statusCounts[statusLabel] !== undefined) statusCounts[statusLabel]++;
 
        // B. Certification (Exclude Tendik)

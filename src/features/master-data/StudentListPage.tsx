@@ -126,10 +126,12 @@ export default function StudentListPage() {
       currentPage * itemsPerPage
   )
 
-  useEffect(() => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Better Pattern: Reset page during render if filters change
+  const [prevFilters, setPrevFilters] = useState({ searchTerm, sortConfig })
+  if (prevFilters.searchTerm !== searchTerm || prevFilters.sortConfig !== sortConfig) {
+      setPrevFilters({ searchTerm, sortConfig })
       setCurrentPage(1)
-  }, [searchTerm, sortConfig])
+  }
 
   // Auto-open Import Modal if requested via URL
   const [searchParams, setSearchParams] = useSearchParams()

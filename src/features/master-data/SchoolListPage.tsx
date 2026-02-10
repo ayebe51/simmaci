@@ -145,7 +145,7 @@ export default function SchoolListPage() {
   const [schoolToDelete, setSchoolToDelete] = useState<{id: string, name: string} | null>(null)
   
   // New Dialog States
-  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false)
+
   const [generateAccountSchool, setGenerateAccountSchool] = useState<School | null>(null)
 
   // Get unique kecamatan 
@@ -736,6 +736,37 @@ export default function SchoolListPage() {
         </DialogContent>
       </Dialog>
       
+      {/* Generate Account Confirmation Modal */}
+      <Dialog open={!!generateAccountSchool} onOpenChange={(open) => !open && setGenerateAccountSchool(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-blue-600">
+              <Key className="h-5 w-5" />
+              Generate Akun Sekolah
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-2">
+              Buat akun login untuk sekolah ini?
+            </p>
+            <p className="font-semibold text-lg mb-3">
+              {generateAccountSchool?.name}
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-2">
+              <p className="text-xs text-blue-800">
+                Password akan digenerate otomatis. Pastikan anda menyimpannya setelah ini.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setGenerateAccountSchool(null)}>Batal</Button>
+            <Button onClick={confirmGenerateAccount} className="bg-blue-600 hover:bg-blue-700">
+                Generate Akun
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Credentials Dialog */}
       <Dialog open={credDialog.open} onOpenChange={(open) => setCredDialog(p => ({...p, open}))}>
         <DialogContent>

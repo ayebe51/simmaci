@@ -204,7 +204,7 @@ export default function SkDashboardPage() {
     
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: any = await cleanSk()
+        const result: any = await cleanSk({})
         alert(`Berhasil membersihkan ${result.draftsDeleted} data sampah (Draft).`)
         // Refresh?
         window.location.reload() 
@@ -223,11 +223,12 @@ export default function SkDashboardPage() {
       currentPage * itemsPerPage
   )
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Better Pattern: Reset page during render if filters change
+  const [prevFilters, setPrevFilters] = useState({ searchTerm, filterType })
+  if (prevFilters.searchTerm !== searchTerm || prevFilters.filterType !== filterType) {
+      setPrevFilters({ searchTerm, filterType })
       setCurrentPage(1)
-  }, [searchTerm, filterType])
+  }
 
   return (
     <div className="space-y-6">

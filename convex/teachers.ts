@@ -284,7 +284,7 @@ export const bulkDelete = mutation({
 export const bulkCreate = mutation({
   args: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    teachers: v.array(v.any()),
+    teachers: v.array(v.any()), // We accept ANY structure and sanitize it inside
     isFullSync: v.optional(v.boolean()), // Enable Full Sync Mode
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
   },
@@ -305,125 +305,124 @@ export const bulkCreate = mutation({
         const enforcedUnit = user.role === 'operator' ? user.unit : null;
 
         for (const teacher of args.teachers) {
-        if (!teacher) continue; // Skip nulls
-        
-        try {
-            if (teacher.nuptk) processedNuptks.add(String(teacher.nuptk).trim());
-            // Unit Strategy:
-            // - operator: enforcedUnit
-            // - admin: use provided unit or fallback
-            // We'll resolve this in cleanData below
-        } catch {
-            // Ignore pre-processing errors
-        }
-
-        try {
-            // Ensure required fields exist
-            if (!teacher.nuptk || !teacher.nama) {
-            results.push(null);
-            errors.push(`Missing required fields for: ${teacher.nama || 'Unknown'}`);
-            continue;
-            }
+            if (!teacher) continue; // Skip nulls
             
-            // Filter out null/undefined values
+            // Helper to safe cast to string or undefined
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const cleanData: any = {
-            nuptk: String(teacher.nuptk).trim(),
-            nama: String(teacher.nama).trim(),
-            };
-            
-            // Map optional fields
-            // FIXED: Force 'active' for bulk upload to bypass "Pengajuan SK" (Draft)
-            cleanData.status = "active"; 
-            
-            // --- UNIT LOGIC ---
-            if (enforcedUnit) {
-                cleanData.unitKerja = enforcedUnit; // Override for Operator
-                unitsInBatch.add(enforcedUnit);
-            } else {
-                if (teacher.unitKerja) cleanData.unitKerja = teacher.unitKerja;
-                else if (teacher.satminkal) cleanData.unitKerja = teacher.satminkal; 
-                
-                if (cleanData.unitKerja) unitsInBatch.add(cleanData.unitKerja);
+            const safeString = (val: any): string | undefined => {
+                if (val === null || val === undefined || val === "") return undefined;
+                return String(val).trim();
             }
-            // ------------------
 
-            if (teacher.pendidikanTerakhir) cleanData.pendidikanTerakhir = teacher.pendidikanTerakhir;
-            if (teacher.tmt) cleanData.tmt = teacher.tmt;
-            if (teacher.kecamatan) cleanData.kecamatan = teacher.kecamatan;
-            if (teacher.mapel) cleanData.mapel = teacher.mapel;
-            if (teacher.phoneNumber) cleanData.phoneNumber = teacher.phoneNumber;
-            if (teacher.email) cleanData.email = teacher.email;
-            if (teacher.isCertified !== undefined) cleanData.isCertified = teacher.isCertified;
-            if (teacher.isVerified !== undefined) cleanData.isVerified = teacher.isVerified;
-            else cleanData.isVerified = false; // Set Unverified to force Approval Flow
-            if (teacher.pdpkpnu) cleanData.pdpkpnu = teacher.pdpkpnu;
-            if (teacher.draftSk) cleanData.draftSk = teacher.draftSk; 
-            if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl; // Batch File
-            
-            // Identity
-            if (teacher.tempatLahir) cleanData.tempatLahir = teacher.tempatLahir;
-            if (teacher.tanggalLahir) cleanData.tanggalLahir = teacher.tanggalLahir;
-            if (teacher.nip) cleanData.nip = teacher.nip;
-            if (teacher.jenisKelamin) cleanData.jenisKelamin = teacher.jenisKelamin;
-            if (teacher.birthPlace) cleanData.tempatLahir = teacher.birthPlace; // Fallback
-            if (teacher.birthDate) cleanData.tanggalLahir = teacher.birthDate; // Fallback
-            
-            // Set Active
-            cleanData.isActive = true;
-
-            // Check for duplicate
-            const existing = await ctx.db
-                .query("teachers")
-                .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
-                .first();
+            // Helper to safe cast to boolean
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const safeBool = (val: any): boolean | undefined => {
+                if (val === true || val === "true" || val === "ya" || val === "Ya") return true;
+                if (val === false || val === "false" || val === "tidak" || val === "Tidak") return false;
+                return undefined;
+            }
             
             try {
+                // 1. Mandatory Fields
+                const rawNuptk = safeString(teacher.nuptk || teacher.NUPTK);
+                const rawNama = safeString(teacher.nama || teacher.NAMA || teacher.Name);
+
+                if (!rawNuptk || !rawNama) {
+                    results.push(null);
+                    errors.push(`Missing NUPTK or Name for row: ${JSON.stringify(teacher).substring(0, 50)}...`);
+                    continue;
+                }
+                
+                processedNuptks.add(rawNuptk);
+
+                // 2. Prepare Clean Data
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const cleanData: any = {
+                    nuptk: rawNuptk,
+                    nama: rawNama,
+                    updatedAt: now,
+                };
+                
+                // 3. Status & Activity
+                cleanData.status = safeString(teacher.status || teacher.STATUS) || "active"; 
+                cleanData.isActive = true; // Force active on import
+
+                // 4. Unit Logic
+                if (enforcedUnit) {
+                    cleanData.unitKerja = enforcedUnit; // Override for Operator
+                    unitsInBatch.add(enforcedUnit);
+                } else {
+                    const rawUnit = safeString(teacher.unitKerja || teacher.UnitKerja || teacher.satminkal);
+                    if (rawUnit) {
+                        cleanData.unitKerja = rawUnit;
+                        unitsInBatch.add(rawUnit);
+                    }
+                }
+
+                // 5. Optional Fields Mapping
+                const mapField = (source: any, targetKey: string) => {
+                    const val = safeString(source);
+                    if (val !== undefined) cleanData[targetKey] = val;
+                };
+
+                mapField(teacher.pendidikanTerakhir || teacher.pendidikan, 'pendidikanTerakhir');
+                mapField(teacher.tmt || teacher.TMT, 'tmt');
+                mapField(teacher.kecamatan || teacher.Kecamatan, 'kecamatan');
+                mapField(teacher.mapel || teacher.Mapel, 'mapel');
+                mapField(teacher.phoneNumber || teacher.hp, 'phoneNumber');
+                mapField(teacher.email, 'email');
+                mapField(teacher.pdpkpnu, 'pdpkpnu');
+                
+                // Identity
+                mapField(teacher.tempatLahir || teacher.birthPlace, 'tempatLahir');
+                mapField(teacher.tanggalLahir || teacher.birthDate, 'tanggalLahir');
+                mapField(teacher.nip || teacher.NIP, 'nip');
+                mapField(teacher.jenisKelamin || teacher.jk, 'jenisKelamin');
+                
+                // Booleans
+                const isCertified = safeBool(teacher.isCertified || teacher.sertifikasi);
+                if (isCertified !== undefined) cleanData.isCertified = isCertified;
+
+                const isVerified = safeBool(teacher.isVerified);
+                if (isVerified !== undefined) cleanData.isVerified = isVerified;
+                else cleanData.isVerified = true; // Auto-verify imports
+
+                cleanData.isSkGenerated = false;
+
+                if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl;
+
+                // 6. DB Operations
+                const existing = await ctx.db
+                    .query("teachers")
+                    .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
+                    .first();
+                
                 if (!existing) {
-                    const id = await ctx.db.insert("teachers", {
-                        ...cleanData,
-                        isVerified: true, // FIXED: Bypass Approval Inbox for Bulk Upload
-                        isSkGenerated: false, // Ensure visible in Queue
-                        createdAt: now,
-                        updatedAt: now,
-                    });
+                    cleanData.createdAt = now;
+                    const id = await ctx.db.insert("teachers", cleanData);
                     results.push(id);
                 } else {
-                    // RBAC CHECK FOR EXISTING UPDATE IN BULK
+                    // RBAC CHECK
                     if (user.role === 'operator' && existing.unitKerja !== user.unit) {
-                        // Skip quietly or error? 
-                        // Let's error so they know something is wrong
-                        throw new Error("NUPTK owned by another school");
+                         // We technically shouldn't update if it belongs to another unit
+                         throw new Error(`NUPTK ${cleanData.nuptk} terdaftar di unit lain (${existing.unitKerja}).`);
                     }
 
-                    // UPDATE EXISTING RECORD (UPSERT)
-                    await ctx.db.patch(existing._id, {
-                        ...cleanData,
-                        isVerified: true, // FIXED: Bypass Approval Inbox
-                        isSkGenerated: false, 
-                        updatedAt: now,
-                    });
+                    await ctx.db.patch(existing._id, cleanData);
                     results.push(existing._id);
                 }
-            } catch (err) {
-                console.error("Insert/Patch Error:", err);
+
+            } catch (err: any) {
+                console.error(`Row Error (${teacher.nama}):`, err);
                 results.push(null);
-                errors.push(`Error for ${teacher.nama}: ${(err as Error).message}`);
+                errors.push(`Error for ${teacher.nama || 'Unknown'}: ${err.message}`);
             }
-        } catch (err) {
-            console.error("Loop Error:", err);
-            results.push(null);
-            errors.push(`Error for ${teacher.nama || 'Unknown'}: ${(err as Error).message}`);
-        }
         }
 
-        // FULL SYNC LOGIC
-        // Only allow syncing units user has access to
+        // FULL SYNC LOGIC (Unchanged but safer)
         let deactivatedCount = 0;
         if (args.isFullSync && unitsInBatch.size > 0) {
-            // Foreach Unit involved in this batch
             for (const unit of unitsInBatch) {
-                // RBAC Full Sync Protection
                 if (user.role === 'operator' && unit !== user.unit) continue;
 
                 try {
@@ -433,9 +432,7 @@ export const bulkCreate = mutation({
                         .collect();
                     
                     for (const t of teachersInUnit) {
-                        // If teacher is active BUT not in processed list -> Deactivate
                         if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
-                            // Double check RBAC if existing teacher somehow mismatches (shouldnt happen if by_unit is correct)
                             await ctx.db.patch(t._id, {
                                 isActive: false,
                                 updatedAt: now
@@ -451,16 +448,16 @@ export const bulkCreate = mutation({
         }
         
         return { 
-        count: results.filter(id => id !== null).length, 
-        ids: results,
-        errors: errors.length > 0 ? errors : undefined,
-        deactivated: deactivatedCount,
-        version: "4.1 (RBAC Secured)" 
+            count: results.filter(id => id !== null).length, 
+            ids: results,
+            errors: errors.length > 0 ? errors : undefined,
+            deactivated: deactivatedCount,
+            version: "4.2 (Robust Type Safe)" 
         };
+
     } catch (criticalError: any) {
-        // CATCH GLOBAL CRASHES
         console.error("CRITICAL BULK CREATE ERROR:", criticalError);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // Return structured error so UI handles it instead of crashing
         throw new Error(`CRITICAL SERVER ERROR: ${criticalError.message}`);
     }
   },

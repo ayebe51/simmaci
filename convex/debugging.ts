@@ -37,4 +37,28 @@ export const debugTeacherStats = query({
   }
 });
 
+// Create Yayasan Admin
+export const createYayasanAdmin = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", "maarifnuclp@gmail.com"))
+      .first();
+
+    if (existing) return "User already exists";
+
+    await ctx.db.insert("users", {
+        email: "maarifnuclp@gmail.com",
+        name: "Admin Yayasan",
+        passwordHash: btoa("maarif2024"), // Base64
+        role: "admin_yayasan",
+        isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+    });
+    return "User created successfully";
+  },
+});
+
 

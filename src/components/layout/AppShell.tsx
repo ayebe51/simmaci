@@ -108,12 +108,19 @@ export default function AppShell({ children }: AppShellProps) {
               const userRole = user?.role || ""
 
               const visibleItems = group.items.filter(item => {
-                 if (item.label === "Generator SK" && userRole !== "super_admin") return false
-                 if (item.label === "Manajemen User" && userRole !== "super_admin") return false
-                 if (item.label === "Health Data" && userRole !== "super_admin") return false
-                 if (item.label === "Approval Yayasan" && !["super_admin", "admin_yayasan"].includes(userRole)) return false
-                 if (item.label === "Monitoring Kepala" && !["super_admin", "admin_yayasan"].includes(userRole)) return false
-                 return true
+                 // 1. SUPER ADMIN ONLY
+                 if (["Generator SK", "Manajemen User", "Health Data", "Pengaturan"].includes(item.label)) {
+                     return userRole === "super_admin";
+                 }
+
+                 // 2. YAYASAN & SUPER ADMIN
+                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK", "Arsip Digital"].includes(item.label)) {
+                     return ["super_admin", "admin_yayasan"].includes(userRole);
+                 }
+
+                 // 3. OPERATOR (DEFAULT)
+                 // Operator can see everything else (Master Data, New SK, My SK, etc)
+                 return true;
               })
 
               if (visibleItems.length === 0) return null

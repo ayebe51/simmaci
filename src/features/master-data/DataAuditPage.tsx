@@ -9,12 +9,13 @@ import { AlertCircle, FileWarning, UserX, CalendarX, Stethoscope } from "lucide-
 export default function DataAuditPage() {
   const issues = useQuery(api.audit.runHealthCheck);
 
-  // Group by type for summary
+  // Group by type for summary (Safe Access)
+  const safeIssues = issues || [];
   const summary = {
-      dupes: issues?.filter(i => i.type.includes("DUPLICATE")).length || 0,
-      missing: issues?.filter(i => i.type.includes("MISSING")).length || 0,
-      future: issues?.filter(i => i.type.includes("FUTURE")).length || 0,
-      age: issues?.filter(i => i.type.includes("AGE")).length || 0,
+      dupes: safeIssues.filter(i => i.type.includes("DUPLICATE")).length,
+      missing: safeIssues.filter(i => i.type.includes("MISSING")).length,
+      future: safeIssues.filter(i => i.type.includes("FUTURE")).length,
+      age: safeIssues.filter(i => i.type.includes("AGE")).length,
   };
 
   const getIcon = (type: string) => {

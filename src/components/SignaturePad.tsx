@@ -3,10 +3,10 @@ import { Button } from '@/components/ui/button';
 
 interface SignaturePadProps {
     onSave: (blob: Blob) => void;
-    onCancel: () => void;
+    // onCancel removed as unused
 }
 
-export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
+export function SignaturePad({ onSave }: SignaturePadProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [hasSignature, setHasSignature] = useState(false);
@@ -31,36 +31,43 @@ export function SignaturePad({ onSave, onCancel }: SignaturePadProps) {
         }
     }, []);
 
-    const getPos = (e: any) => {
+    const getPos = (e: React.MouseEvent | React.TouchEvent | any) => {
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        let clientX, clientY;
+        
+        if ('touches' in e) {
+             clientX = e.touches[0].clientX;
+             clientY = e.touches[0].clientY;
+        } else {
+             clientX = (e as React.MouseEvent).clientX;
+             clientY = (e as React.MouseEvent).clientY;
+        }
+
         return {
             x: clientX - rect.left,
             y: clientY - rect.top
         };
     };
 
-    const startDrawing = (e: any) => {
+    const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
         setIsDrawing(true);
         const ctx = canvasRef.current?.getContext('2d');
         const pos = getPos(e);
         ctx?.beginPath();
         ctx?.moveTo(pos.x, pos.y);
-       // e.preventDefault(); // Sometimes blocks clicking, let's see. 
-       // Generally preventDefault on touch is needed to stop scroll.
     };
 
-    const draw = (e: any) => {
+    const draw = (e: React.MouseEvent | React.TouchEvent) => {
         if (!isDrawing) return;
         const ctx = canvasRef.current?.getContext('2d');
         const pos = getPos(e);
         ctx?.lineTo(pos.x, pos.y);
         ctx?.stroke();
         setHasSignature(true);
-        e.preventDefault();
+        // e.preventDefault(); 
     };
 
     const stopDrawing = () => {

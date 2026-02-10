@@ -119,7 +119,7 @@ export default function KtaGeneratorPage() {
                         <div className="absolute top-16 left-4">
                             <div className="w-20 h-24 bg-white rounded-md border-2 border-green-200 shadow-sm overflow-hidden">
                                 {selectedTeacher.fotoProfile ? (
-                                    <img src={selectedTeacher.fotoProfile} className="w-full h-full object-cover" />
+                                    <img src={selectedTeacher.fotoProfile} alt="Foto Profil" className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-100">
                                         <div className="text-4xl">👤</div>
@@ -169,7 +169,7 @@ export default function KtaGeneratorPage() {
 
                         <div className="absolute bottom-4 left-4 flex items-end gap-3">
                              <div className="border p-1 rounded bg-white">
-                                {qrCodeUrl && <img src={qrCodeUrl} className="w-16 h-16" />}
+                                {qrCodeUrl && <img src={qrCodeUrl} alt="QR Code" className="w-16 h-16" />}
                              </div>
                              <div className="text-[8px] text-gray-500 mb-1">
                                  Scan untuk validasi data anggota.

@@ -1473,9 +1473,7 @@ export default function SkGeneratorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       {/* 4. TEXT RESULT MODAL (LOGS/INSPECTOR) */}
       <Dialog open={textResultOpen} onOpenChange={setTextResultOpen}>

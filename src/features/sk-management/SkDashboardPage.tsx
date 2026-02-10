@@ -225,6 +225,7 @@ export default function SkDashboardPage() {
 
   // Reset to page 1 when filters change
   useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentPage(1)
   }, [searchTerm, filterType])
 

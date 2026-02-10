@@ -1,0 +1,452 @@
+
+D:\SIMMACI\src\components\SignaturePad.tsx
+  34:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\components\approval\ApprovalTimeline.tsx
+  72:29  error  'index' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\components\common\DuplicateIndicator.tsx
+  17:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\components\common\NIKInput.tsx
+  67:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\components\common\NIKInput.tsx:67:7
+  65 |   useEffect(() => {
+  66 |     if (!value) {
+> 67 |       setWarning('');
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  68 |       setProvince('');
+  69 |       return;
+  70 |     }  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\components\common\PhoneInput.tsx
+  1:27  error  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\components\layout\ProtectedLayout.tsx
+   1:20  error  'Outlet' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  12:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\components\layout\ProtectedLayout.tsx:12:7
+  10 |     const token = localStorage.getItem("token")
+  11 |     if (!token) {
+> 12 |       setIsAuthenticated(false)
+     |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  13 |       // Only toast if we were trying to access a specific page and got booted
+  14 |       if(location.pathname !== "/login" && location.pathname !== "/") {
+  15 |           toast.error("Sesi habis, silakan login kembali.")  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\components\ui\SoftPageHeader.tsx
+   1:10  error  'useNavigate' is defined but never used   @typescript-eslint/no-unused-vars
+   2:10  error  'LucideIcon' is defined but never used    @typescript-eslint/no-unused-vars
+  33:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\components\ui\badge.tsx
+  35:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\SIMMACI\src\components\ui\button.tsx
+  55:18  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\SIMMACI\src\components\ui\command.tsx
+  27:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  27:11  error  'CommandDialogProps' is defined but never used                    @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\components\ui\input.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+D:\SIMMACI\src\features\approval\YayasanApprovalPage.tsx
+   12:10  error  'SignaturePad' is defined but never used                 @typescript-eslint/no-unused-vars
+   36:10  error  'isSignModalOpen' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   36:27  error  'setIsSignModalOpen' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   38:10  error  'signTargetId' is assigned a value but never used        @typescript-eslint/no-unused-vars
+   38:24  error  'setSignTargetId' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   75:9   error  'currentTahunAjaran' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  121:39  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  121:65  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+  169:19  error  Unexpected any. Specify a different type                 @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\archives\ArchivePage.tsx
+   91:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\auth\LoginPage.tsx
+  49:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\auth\RegisterPage.tsx
+  53:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\dashboard\DashboardPage.tsx
+   21:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  376:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\dashboard\components\DashboardCharts.tsx
+    2:98  error  'Label' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   19:52  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   38:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\dashboard\components\DashboardCharts.tsx:38:21
+  36 |   const [hasError, setHasError] = useState(false)
+  37 |
+> 38 |   useEffect(() => { setIsClient(true) }, [])
+     |                     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  39 |   useEffect(() => {
+  40 |     const handleError = () => setHasError(true)
+  41 |     window.addEventListener('error', handleError)  react-hooks/set-state-in-effect
+  137:67  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  193:67  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx
+   24:47  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   56:21  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   87:23  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:87:23
+  85 |                   </div>
+  86 |                   <div className="absolute right-0 bottom-0 opacity-20 transform translate-y-2 scale-110">
+> 87 |                      <Sparkline data={stats?.teacherTrend || []} color="#059669" />
+     |                       ^^^^^^^^^ This component is created during render
+  88 |                   </div>
+  89 |               </div>
+  90 |             </CardContent>
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:24:21
+  22 |
+  23 |   // Sparkline Component
+> 24 |   const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |     if (!data || data.length === 0) return null
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |     return (
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |     )
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |   }
+     | ^^^^ The component is created during render here
+  36 |
+  37 |   // Teacher Growth Logic
+  38 |   const currentMonthTeacherCount = stats?.teacherTrend?.[5]?.count || 0  react-hooks/static-components
+  128:25  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:128:25
+  126 |                   </span>
+  127 |                   <div className="opacity-80 -mr-2">
+> 128 |                        <Sparkline data={skTrend || []} color="#9333ea" />
+      |                         ^^^^^^^^^ This component is created during render
+  129 |                   </div>
+  130 |                </div>
+  131 |             </CardContent>
+
+D:\SIMMACI\src\features\dashboard\components\DashboardOperator.tsx:24:21
+  22 |
+  23 |   // Sparkline Component
+> 24 |   const Sparkline = ({ data, color }: { data: any[], color: string }) => {
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |     if (!data || data.length === 0) return null
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |     return (
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |     )
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |   }
+     | ^^^^ The component is created during render here
+  36 |
+  37 |   // Teacher Growth Logic
+  38 |   const currentMonthTeacherCount = stats?.teacherTrend?.[5]?.count || 0                                                      react-hooks/static-components
+
+D:\SIMMACI\src\features\emis-import\EmisImportPage.tsx
+  2:10  error  'api' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\emis-import\components\FileUploadStep.tsx
+  14:58  error  'disabled' is defined but never used      @typescript-eslint/no-unused-vars
+  56:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\emis-import\components\MappingStep.tsx
+  44:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\emis-import\components\MappingStep.tsx:44:5
+  42 |         }
+  43 |     })
+> 44 |     setMapping(initialMapping)
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  45 |   }, [headers])
+  46 |
+  47 |   const handleMapChange = (targetKey: string, sourceHeader: string) => {  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\features\emis-import\components\PreviewStep.tsx
+  18:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\events\CompetitionDetailPage.tsx
+   18:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  169:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  170:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\events\CreateEventPage.tsx
+  2:10  error  'API_URL' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\events\EventDetailPage.tsx
+   14:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  222:51  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  264:40  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  290:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\events\EventDetailPage.tsx:290:9
+  288 |
+  289 |     useEffect(() => {
+> 290 |         fetchTally();
+      |         ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  291 |     }, [eventId]);
+  292 |
+  293 |     if (loading) return <div className="py-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2" /> Memuat data medali...</div>;  react-hooks/set-state-in-effect
+  291:8   warning  React Hook useEffect has a missing dependency: 'fetchTally'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+
+D:\SIMMACI\src\features\events\EventsPage.tsx
+  10:40  error  Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  11:10  error  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  37:16  error  'e' is defined but never used                   @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\kta\KtaGeneratorPage.tsx
+   1:20  error  'useRef' is defined but never used        @typescript-eslint/no-unused-vars
+   6:39  error  'Download' is defined but never used      @typescript-eslint/no-unused-vars
+  13:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  80:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\master-data\SchoolDetailPage.tsx
+   2:10  error  'useEffect' is defined but never used      @typescript-eslint/no-unused-vars
+   2:21  error  'useState' is defined but never used       @typescript-eslint/no-unused-vars
+  11:11  error  'Teacher' is defined but never used        @typescript-eslint/no-unused-vars
+  23:11  error  'School' is defined but never used         @typescript-eslint/no-unused-vars
+  43:9   error  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  46:71  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  69:49  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\master-data\SchoolListPage.tsx
+  148:10  error  'deleteAllConfirmOpen' is assigned a value but never used    @typescript-eslint/no-unused-vars
+  233:9   error  'confirmDeleteAll' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  352:9   error  'confirmGenerateAccount' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\master-data\StudentListPage.tsx
+   55:13  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   65:51  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  130:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\master-data\StudentListPage.tsx:130:7
+  128 |
+  129 |   useEffect(() => {
+> 130 |       setCurrentPage(1)
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  131 |   }, [searchTerm, sortConfig])
+  132 |
+  133 |   // Auto-open Import Modal if requested via URL                                                                                                                                    react-hooks/set-state-in-effect
+  137:11  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\master-data\StudentListPage.tsx:137:11
+  135 |   useEffect(() => {
+  136 |       if (searchParams.get("action") === "import") {
+> 137 |           setIsImportModalOpen(true)
+      |           ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  138 |           // Clear param to prevent reopening on refresh
+  139 |           setSearchParams(params => {
+  140 |               params.delete("action")  react-hooks/set-state-in-effect
+  175:16  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  188:67  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  192:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  213:19  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\master-data\TeacherListPage.tsx
+   101:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   124:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   183:13  error  '_e' is defined but never used            @typescript-eslint/no-unused-vars
+   208:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   215:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   360:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   384:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   468:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   483:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   941:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1031:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1036:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1055:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1103:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1186:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1246:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\master-data\components\KtaCard.tsx
+  3:19  error  'Download' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\mutations\MutationPage.tsx
+    6:52  error  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+   26:26  error  'Search' is defined but never used           @typescript-eslint/no-unused-vars
+   26:43  error  'Building2' is defined but never used        @typescript-eslint/no-unused-vars
+   83:46  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  100:21  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  231:44  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\reports\ReportPage.tsx
+   9:10  error    'toast' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  15:50  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  29:65  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  32:9   error    Error: Cannot access variable before it is declared
+
+`generatePreview` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+D:\SIMMACI\src\features\reports\ReportPage.tsx:32:9
+  30 |         setUnits(uniqueUnits)
+  31 |         
+> 32 |         generatePreview(teachers, reportType, selectedUnit)
+     |         ^^^^^^^^^^^^^^^ `generatePreview` accessed before it is declared
+  33 |     }
+  34 |   }, [teachers, reportType, selectedUnit])
+  35 |
+
+D:\SIMMACI\src\features\reports\ReportPage.tsx:36:3
+  34 |   }, [teachers, reportType, selectedUnit])
+  35 |
+> 36 |   const generatePreview = (data: any[], type: string, unit: string) => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 37 |       if (type === "teachers_by_unit") {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 38 |           let filtered = data
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 68 |       }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 69 |   }
+     | ^^^^ `generatePreview` is declared here
+  70 |
+  71 |   const handlePrint = () => {
+  72 |     window.print()  react-hooks/immutability
+  34:6   warning  React Hook useEffect has a missing dependency: 'generatePreview'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  36:34  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  45:39  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  48:17  error    'unitList' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\sk-management\MySkPage.tsx
+   21:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   31:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   37:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\sk-management\SkDashboardPage.tsx
+   57:9  error    'archiveAllSk' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   63:9  error    'createSkMutation' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  206:9  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  212:9  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  228:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\features\sk-management\SkDashboardPage.tsx:228:7
+  226 |   // Reset to page 1 when filters change
+  227 |   useEffect(() => {
+> 228 |       setCurrentPage(1)
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  229 |   }, [searchTerm, filterType])
+  230 |
+  231 |   return (  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\features\sk-management\SkDetailPage.tsx
+  107:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\sk-management\SkGeneratorPage.tsx
+  976:19  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')
+  978:49  error    Unexpected any. Specify a different type                                                               @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\features\sk-management\SkPrintPage.tsx
+  1:10  error  'useRef' is defined but never used     @typescript-eslint/no-unused-vars
+  1:18  error  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\features\sk-management\components\BulkSkSubmission.tsx
+   10:10  error  'api' is defined but never used   @typescript-eslint/no-unused-vars
+  178:64  error  '_idx' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\SIMMACI\src\hooks\usePermissions.ts
+  23:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\SIMMACI\src\hooks\usePermissions.ts:23:9
+  21 |     if (userStr) {
+  22 |       try {
+> 23 |         setUser(JSON.parse(userStr));
+     |         ^^^^^^^ Avoid calling setState() directly within an effect
+  24 |       } catch (e) {
+  25 |         console.error('Failed to parse user from localStorage', e);
+  26 |       }  react-hooks/set-state-in-effect
+
+D:\SIMMACI\src\lib\api.ts
+   6:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  14:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\SIMMACI\src\services\SkGeneratorService.ts
+   41:37  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   63:52  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   63:76  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   69:13  error  'content' is never reassigned. Use 'const' instead  prefer-const
+  103:37  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  132:21  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+✖ 140 problems (135 errors, 5 warnings)
+  1 error and 3 warnings potentially fixable with the `--fix` option.
+

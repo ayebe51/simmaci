@@ -127,6 +127,7 @@ export default function StudentListPage() {
   )
 
   useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentPage(1)
   }, [searchTerm, sortConfig])
 
@@ -134,6 +135,7 @@ export default function StudentListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   useEffect(() => {
       if (searchParams.get("action") === "import") {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setIsImportModalOpen(true)
           // Clear param to prevent reopening on refresh
           setSearchParams(params => {

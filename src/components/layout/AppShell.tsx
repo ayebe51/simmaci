@@ -109,12 +109,12 @@ export default function AppShell({ children }: AppShellProps) {
 
               const visibleItems = group.items.filter(item => {
                  // 1. SUPER ADMIN ONLY
-                 if (["Generator SK", "Manajemen User", "Health Data", "Pengaturan"].includes(item.label)) {
+                 if (["Generator SK", "Manajemen User", "Health Data"].includes(item.label)) {
                      return userRole === "super_admin";
                  }
 
                  // 2. YAYASAN & SUPER ADMIN
-                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK", "Arsip Digital"].includes(item.label)) {
+                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK", "Arsip Digital", "Pengaturan"].includes(item.label)) {
                      return ["super_admin", "admin_yayasan"].includes(userRole);
                  }
 

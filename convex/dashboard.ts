@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { determineTeacherStatus } from "./utils";
 
 // Get real-time dashboard statistics
 export const getStats = query({
@@ -301,44 +302,12 @@ export const getSchoolStats = query({
         if (t.isActive === false) continue;
         
         // A. Status
-       // A. Status Logic (Updated per user request)
-       // Priority 1: PNS
-       let rawStatus = (t.status || "").trim().toUpperCase();
-       let statusLabel = ""; 
-       
-       if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK")) {
-           statusLabel = "PNS";
-       } else {
-           // Priority 2: Education (Tendik)
-           const edu = (t.pendidikanTerakhir || "").trim().toUpperCase();
-           const tendikEdu = ["SD", "SMP", "SMA", "SMK", "D1", "D2", "D3"];
-           
-           if (tendikEdu.some(e => edu === e || edu.startsWith(e + " "))) {
-              statusLabel = "Tendik";
-           } else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("OPERATOR")) {
-              statusLabel = "Tendik";
-           } else {
-               // Priority 3: TMT
-               if (t.tmt) {
-                   const tmtDate = new Date(t.tmt);
-                   if (!isNaN(tmtDate.getTime())) {
-                      const now = new Date();
-                      const diffTime = Math.abs(now.getTime() - tmtDate.getTime());
-                      const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
-                      statusLabel = diffYears >= 2 ? "GTY" : "GTT";
-                   }
-               }
-               
-               // Fallback
-               if (!statusLabel) {
-                   if (rawStatus.includes("GTY") || rawStatus.includes("TETAP")) statusLabel = "GTY";
-                   else statusLabel = "GTT";
-               }
-           }
-       }
-       if (statusCounts[statusLabel] !== undefined) statusCounts[statusLabel]++;
+       // Use shared helper
+       const statusLabel = determineTeacherStatus(t);
 
-       // B. Certification (Exclude Tendik)
+       if (statusCounts[statusLabel] !== undefined) {
+           statusCounts[statusLabel]++;
+       }  // B. Certification (Exclude Tendik)
        if (statusLabel !== "Tendik") {
           if (t.isCertified) certCounts["Sudah Sertifikasi"]++;
           else certCounts["Belum Sertifikasi"]++;

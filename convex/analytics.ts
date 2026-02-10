@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { determineTeacherStatus } from "./utils";
 
 // Helper to normalize strings for aggregation
 const normalize = (str?: string) => (str || "Tidak Diketahui").trim();
@@ -30,40 +31,9 @@ export const getDashboardStats = query({
       // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
       // Normalize specifically to handle variations
       // A. Status Kepegawaian Logic
-      // Priority 1: Check Explicit PNS/ASN
-      let rawStatus = (t.status || "").trim().toUpperCase();
-      let statusLabel = "";
-      
-      if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) {
-          statusLabel = "PNS";
-      } else {
-          // Priority 2: Check Education (Tendik if < S1)
-          const edu = (t.pendidikanTerakhir || "").trim().toUpperCase();
-          const tendikEdu = ["SD", "SMP", "SMA", "SMK", "D1", "D2", "D3"];
-          
-          if (tendikEdu.some(e => edu === e || edu.startsWith(e + " "))) { // Handle "SMA IPA" etc
-             statusLabel = "Tendik";
-          } else if (rawStatus.includes("TENDIK") || rawStatus.includes("TU") || rawStatus.includes("OPERATOR") || rawStatus.includes("PENJAGA")) {
-             statusLabel = "Tendik";
-          } else {
-             // Priority 3: Check TMT for GTY/GTT
-             if (t.tmt) {
-                const tmtDate = new Date(t.tmt);
-                if (!isNaN(tmtDate.getTime())) {
-                   const now = new Date();
-                   const diffTime = Math.abs(now.getTime() - tmtDate.getTime());
-                   const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
-                   statusLabel = diffYears >= 2 ? "GTY" : "GTT";
-                }
-             }
-
-             // Fallback if no TMT
-             if (!statusLabel) {
-                 if (rawStatus.includes("GTY") || rawStatus.includes("TETAP")) statusLabel = "GTY";
-                 else statusLabel = "GTT";
-             }
-          }
-      }
+      // A. Status Kepegawaian (GTY, GTT, PNS, Tendik)
+      // Use shared helper
+      const statusLabel = determineTeacherStatus(t);
 
       // Only increment if matched
       if (statusLabel && statusCounts[statusLabel] !== undefined) {

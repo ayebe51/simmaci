@@ -17,7 +17,8 @@ import {
   Archive,
   ArrowRightLeft,
   ChevronDown,
-  CreditCard
+  CreditCard,
+  Stethoscope
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -71,6 +72,7 @@ export default function AppShell({ children }: AppShellProps) {
       items: [
         { label: "Approval Yayasan", href: "/dashboard/approval/yayasan", icon: Gavel },
         { label: "Manajemen User", href: "/dashboard/users", icon: Users },
+        { label: "Health Data", href: "/audit", icon: Stethoscope },
         { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
         { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
       ]
@@ -108,6 +110,7 @@ export default function AppShell({ children }: AppShellProps) {
               const visibleItems = group.items.filter(item => {
                  if (item.label === "Generator SK" && userRole !== "super_admin") return false
                  if (item.label === "Manajemen User" && userRole !== "super_admin") return false
+                 if (item.label === "Health Data" && userRole !== "super_admin") return false
                  if (item.label === "Approval Yayasan" && !["super_admin", "admin_yayasan"].includes(userRole)) return false
                  if (item.label === "Monitoring Kepala" && !["super_admin", "admin_yayasan"].includes(userRole)) return false
                  return true

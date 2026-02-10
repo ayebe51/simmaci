@@ -32,6 +32,7 @@ import ArchivePage from "./features/archives/ArchivePage"
 import MutationPage from "./features/mutations/MutationPage"
 import SchoolProfilePage from "./features/schools/SchoolProfilePage"
 import ChangePasswordPage from "./features/auth/ChangePasswordPage"
+import DataAuditPage from '@/features/master-data/DataAuditPage';
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 
@@ -67,6 +68,7 @@ export default function App() {
                       <Route path="sk-saya" element={<MySkPage />} />
                       <Route path="sk/:id" element={<SkDetailPage />} />
                       <Route path="generator" element={<SkGeneratorPage />} />
+                      <Route path="audit" element={<DataAuditPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       <Route path="change-password" element={<ChangePasswordPage />} />
                       <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />

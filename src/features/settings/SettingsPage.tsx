@@ -241,14 +241,177 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="template" value={activeTab} onValueChange={setActiveTab}>
-        {/* ...TabsList... */}
-        {/* ... */}
-        
+        <TabsList className="flex flex-wrap h-auto w-full justify-start gap-2 bg-transparent p-0 mb-6">
+           {isAdmin && (
+               <TabsTrigger value="template" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Template SK</TabsTrigger>
+           )}
+           {isAdmin && (
+               <TabsTrigger value="signer" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Penandatangan</TabsTrigger>
+           )}
+           <TabsTrigger value="profil" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Profil Lembaga</TabsTrigger>
+           <TabsTrigger value="security" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Keamanan Akun</TabsTrigger>
+           {isAdmin && (
+               <TabsTrigger value="system" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">System</TabsTrigger>
+           )}
+        </TabsList>
+
+        {/* Template Tab (Admin Only) */}
+        {isAdmin && (
+        <TabsContent value="template">
+            {!isApiReady ? (
+                 <div className="p-8 text-center bg-amber-50 rounded border border-amber-200 text-amber-800">
+                    <h3 className="font-bold">⚠️ Sistem Sedang Update</h3>
+                    <p>Module API Settings belum terbaca oleh browser. Mohon tunggu 1-2 menit lalu Refresh Halaman.</p>
+                </div>
+            ) : cloudSettings === undefined ? (
+                <div className="p-8 text-center text-muted-foreground animate-pulse">
+                    Memuat data cloud...
+                </div>
+            ) : (
+                <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Template Generator SK</CardTitle>
+                    <CardDescription>Upload file Word (.docx) untuk masing-masing jenis SK.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {[
+                            { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY" },
+                            { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT" },
+                            { id: "sk_template_tendik", label: "SK Tenaga Kependidikan", desc: "Template untuk Staff/TU" },
+                            { id: "sk_template_kamad_pns", label: "SK Kamad (PNS)", desc: "Khusus Kepala Sekolah PNS" },
+                            { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS" },
+                            { id: "sk_template_kamad_plt", label: "SK Kamad (PLT)", desc: "Khusus Pelaksana Tugas (PLT)" },
+                        ].map((template) => {
+                            const cloudSetting = cloudSettings?.find(s => s.key === template.id)
+                            const hasCloud = !!cloudSetting 
+                            const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
+                            const hasLocal = !!localStorage.getItem(template.id + "_blob")
+
+                            return (
+                                <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
+                                    <div className="mb-3">
+                                        <h3 className="font-semibold text-sm text-slate-800">{template.label}</h3>
+                                        <p className="text-xs text-muted-foreground">{template.desc}</p>
+                                    </div>
+                                    
+                                    {hasCloud ? (
+                                        <div className="flex items-center gap-3 p-3 bg-white border rounded border-green-200">
+                                            <div className="bg-green-100 p-2 rounded-full text-green-600">
+                                                <CheckCircle className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-medium truncate">Tersimpan di Cloud ✅</p>
+                                                <p className="text-[10px] text-green-600">Update: {cloudTime}</p>
+                                            </div>
+                                            <Button 
+                                                variant="outline" size="sm" className="h-7 text-xs"
+                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                            >
+                                                Ganti
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {hasLocal && (
+                                                <div className="text-[10px] bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-2">
+                                                    ⚠️ File ada di Browser (Lokal), tapi BELUM di Cloud. <br/>
+                                                    <strong>Harap Upload Ulang.</strong>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative">
+                                                <div className="text-center space-y-1">
+                                                    <Download className="mx-auto h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-xs text-slate-500 block">
+                                                        {isUploading === template.id ? "Mengupload..." : "Upload .docx ke Cloud"}
+                                                    </span>
+                                                </div>
+                                                <input 
+                                                    id={`upload-${template.id}`}
+                                                    type="file" accept=".docx"
+                                                    disabled={isUploading === template.id}
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    aria-label="Upload Template Word"
+                                                    onChange={(e) => handleCloudUpload(e, template.id)}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                
+                    <div className="bg-blue-50 p-4 rounded-md text-xs text-blue-700 space-y-2 border border-blue-100">
+                         <p className="font-semibold">Bantuan Placeholder:</p>
+                         <p>Gunakan kode berikut di dalam file Word anda, sistem akan otomatis menggantinya:</p>
+                         <div className="grid grid-cols-2 gap-2 font-mono">
+                             <span>{`{{NAMA}}`} - Nama Lengkap</span>
+                             <span>{`{{NIP}}`} - NIP/PegID</span>
+                             <span>{`{{JABATAN}}`} - Jabatan</span>
+                             <span>{`{{UNIT_KERJA}}`} - Unit Kerja</span>
+                             <span>{`{{STATUS}}`} - Status Kepegawaian</span>
+                             <span>{`{{TTL}}`} - Tempat, Tgl Lahir</span>
+                             <span>{`{{PENDIDIKAN}}`} - Pendidikan Terakhir</span>
+                             <span>{`{{KETUA_NAMA}}`} - Nama Ketua</span>
+                             <span>{`{{SEKRETARIS_NAMA}}`} - Nama Sekretaris</span>
+                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+            )}
+        </TabsContent>
+        )}
+
+        {/* Signer Tab (Admin Only) */}
+        {isAdmin && (
+        <TabsContent value="signer">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileSignature className="h-5 w-5"/> Pejabat Penandatangan</CardTitle>
+                    <CardDescription>Konfigurasi nama Ketua dan Sekretaris yang akan muncul di SK.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="space-y-3 p-4 border rounded-md bg-slate-50">
+                        <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 1: Ketua</h4>
+                        <div className="grid gap-2">
+                            <Label htmlFor="signerKetuaName">Nama Lengkap</Label>
+                            <Input id="signerKetuaName" value={settings.signerKetuaName} onChange={(e) => handleChange("signerKetuaName", e.target.value)} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="signerKetuaNip">NIY / NIP (Opsional)</Label>
+                            <Input id="signerKetuaNip" value={settings.signerKetuaNip} onChange={(e) => handleChange("signerKetuaNip", e.target.value)} />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 p-4 border rounded-md bg-slate-50">
+                        <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 2: Sekretaris</h4>
+                        <div className="grid gap-2">
+                            <Label htmlFor="signerSekretarisName">Nama Lengkap</Label>
+                            <Input id="signerSekretarisName" value={settings.signerSekretarisName} onChange={(e) => handleChange("signerSekretarisName", e.target.value)} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="signerSekretarisNip">NIY / NIP (Opsional)</Label>
+                            <Input id="signerSekretarisNip" value={settings.signerSekretarisNip} onChange={(e) => handleChange("signerSekretarisNip", e.target.value)} />
+                        </div>
+                    </div>
+
+                    <div className="grid gap-2 pt-4 border-t">
+                         <Label htmlFor="skPrefix">Prefix Nomor SK</Label>
+                         <Input id="skPrefix" value={settings.skPrefix} onChange={(e) => handleChange("skPrefix", e.target.value)} />
+                         <p className="text-[10px] text-muted-foreground">Format nomor: [Auto]/[Prefix]/[Bulan]/[Tahun]</p>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+        )}
+
         {/* Profil Tab */}
         <TabsContent value="profil">
             <Card>
                 <CardHeader>
-                    {/* ... */}
+                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> {isAdmin ? "Profil Yayasan / Cabang" : "Profil Lembaga Anda"}</CardTitle>
+                    <CardDescription>Informasi ini digunakan dalam Kop Surat dan Data Lembaga.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">

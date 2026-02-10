@@ -8,6 +8,7 @@ import {
   AlertOctagon 
 } from "lucide-react"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
@@ -15,6 +16,7 @@ import { DashboardCharts } from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   // Load user directly
   const [user] = useState<any>(() => {
     const u = localStorage.getItem("user")
@@ -163,7 +165,10 @@ export default function DashboardPage() {
             </div>
             <div className="mt-4">
                  {stats.studentCount === 0 ? (
-                     <button className="text-xs bg-orange-100 text-orange-700 font-semibold px-3 py-1.5 rounded-md hover:bg-orange-200 transition-colors w-full border border-orange-200">
+                     <button 
+                         onClick={() => navigate("/dashboard/master/students?action=import")}
+                         className="text-xs bg-orange-100 text-orange-700 font-semibold px-3 py-1.5 rounded-md hover:bg-orange-200 transition-colors w-full border border-orange-200"
+                     >
                          + Import Data Siswa
                      </button>
                  ) : (

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
+import { useSearchParams } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -127,6 +128,19 @@ export default function StudentListPage() {
   useEffect(() => {
       setCurrentPage(1)
   }, [searchTerm, sortConfig])
+
+  // Auto-open Import Modal if requested via URL
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+      if (searchParams.get("action") === "import") {
+          setIsImportModalOpen(true)
+          // Clear param to prevent reopening on refresh
+          setSearchParams(params => {
+              params.delete("action")
+              return params
+          })
+      }
+  }, [searchParams, setSearchParams])
 
   // Sort Handler
   const requestSort = (key: keyof Student) => {

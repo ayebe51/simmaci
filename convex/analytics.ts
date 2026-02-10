@@ -129,9 +129,9 @@ export const getDashboardStats = query({
       kecamatan: kecamatanData,
       teacherTrend: last6Months.map(({ label, count }) => ({ month: label, count })),
       totalTeachers: teachers.length,
-      totalSchools: Object.keys(unitCounts).length,
-      totalStudents: 0, // Placeholder
-      totalSk: 0 // Placeholder (fetched separately)
+      totalSchools: await ctx.db.query("schools").collect().then(s => s.length),
+      totalStudents: await ctx.db.query("students").collect().then(s => s.length),
+      totalSk: await ctx.db.query("skDocuments").collect().then(s => s.length)
     };
   },
 });

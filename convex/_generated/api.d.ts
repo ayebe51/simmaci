@@ -31,6 +31,7 @@ import type * as maintenance from "../maintenance.js";
 import type * as mutations from "../mutations.js";
 import type * as notifications from "../notifications.js";
 import type * as reports from "../reports.js";
+import type * as reproduce_bulk from "../reproduce_bulk.js";
 import type * as schools from "../schools.js";
 import type * as settings from "../settings.js";
 import type * as settings_cloud from "../settings_cloud.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   mutations: typeof mutations;
   notifications: typeof notifications;
   reports: typeof reports;
+  reproduce_bulk: typeof reproduce_bulk;
   schools: typeof schools;
   settings: typeof settings;
   settings_cloud: typeof settings_cloud;

@@ -518,10 +518,12 @@ export function BulkSkSubmission() {
         log(`Mengirim ${convexTeachers.length} data guru ke Convex...`)
         let teacherIds: any[] = [];
         try {
+            const token = localStorage.getItem("token") || undefined;
             const bulkResult = await bulkCreateTeacherMutation({ 
                 teachers: convexTeachers,
                 isFullSync: isFullSync,
-                suratPermohonanUrl: permohonanUrl || undefined
+                suratPermohonanUrl: permohonanUrl || undefined,
+                token: token
             })
             console.log("🔍 bulkCreate result:", bulkResult)
             

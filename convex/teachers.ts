@@ -96,21 +96,36 @@ export const getByNuptk = query({
 });
 
 // --- RBAC HELPER ---
-async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefined, currentTeacherId?: Id<"teachers">) {
+// --- RBAC HELPER ---
+async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefined, currentTeacherId?: Id<"teachers">, token?: string) {
     console.log("validateWriteAccess: START");
-    const identity = await ctx.auth.getUserIdentity();
     
-    // 1. If not logged in, throw error (Strict Mode)
-    if (!identity) {
-        console.error("validateWriteAccess: No Identity");
-        throw new Error("Unauthorized: Harap login terlebih dahulu.");
-    }
-    console.log("validateWriteAccess: Identity:", identity.email);
+    let user = null;
 
-    const user = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", identity.email!))
-        .first();
+    // 0. Try Token Auth First (for custom sessions)
+    if (token) {
+        console.log("validateWriteAccess: Using Token Auth");
+        user = await validateSession(ctx, token);
+        if (!user) {
+             console.error("validateWriteAccess: Invalid Token");
+             throw new Error("Unauthorized: Sesi tidak valid atau kadaluarsa.");
+        }
+    } else {
+        // 1. Standard Convex Auth
+        const identity = await ctx.auth.getUserIdentity();
+        
+        // 1. If not logged in, throw error (Strict Mode)
+        if (!identity) {
+            console.error("validateWriteAccess: No Identity");
+            throw new Error("Unauthorized: Harap login terlebih dahulu.");
+        }
+        console.log("validateWriteAccess: Identity:", identity.email);
+
+        user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .first();
+    }
 
     if (!user) {
         console.error("validateWriteAccess: No User in DB");
@@ -292,11 +307,12 @@ export const bulkCreate = mutation({
     teachers: v.array(v.any()), // We accept ANY structure and sanitize it inside
     isFullSync: v.optional(v.boolean()), // Enable Full Sync Mode
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
+    token: v.optional(v.string()), // Authentication Token
   },
   handler: async (ctx, args) => {
     // RESTORED AUTH WITH LOGGING
     console.log("BulkCreate: Calling validateWriteAccess...");
-    const user = await validateWriteAccess(ctx, undefined);
+    const user = await validateWriteAccess(ctx, undefined, undefined, args.token);
     console.log("BulkCreate: Auth Success:", user.email);
 
     try {

@@ -109,7 +109,7 @@ export default function SchoolListPage() {
   })
   
   // Use `paginatedSchools` for rendering instead of `schools`
-  const schools = paginatedSchools // Alias for compatibility with existing render code
+
 
   const loadSchools = async () => {
     // No longer needed - Convex auto-updates!

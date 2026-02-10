@@ -83,7 +83,7 @@ export default function TeacherListPage() {
 
   // Mutations for real-time updates
   const updateTeacherMutation = useMutation(convexApi.teachers.update)
-  const removeTeacherMutation = useMutation(convexApi.teachers.remove)
+
   // const removeTeacherMutation = useMutation(convexApi.teachers.remove)
   const bulkDeleteTeacherMutation = useMutation(convexApi.teachers.bulkDelete)
   const createTeacherMutation = useMutation(convexApi.teachers.create)

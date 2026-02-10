@@ -317,7 +317,7 @@ export default function SkGeneratorPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showHistoryConfirm, setShowHistoryConfirm] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
+
   const [successCount, setSuccessCount] = useState(0)
 
   // TEXT RESULT MODAL (For Inspector & Explainer)

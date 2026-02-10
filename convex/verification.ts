@@ -44,14 +44,15 @@ export const verifyByCode = query({
     }
     
     // Get teacher data if exists
-    let teacherInfo = null;
+    let teacherInfo: any = null;
     if (sk.teacherId) {
       const teacher = await ctx.db.get(sk.teacherId);
       if (teacher) {
         teacherInfo = {
           nama: teacher.nama,
           nuptk: teacher.nuptk,
-          nip: teacher.nip || "-"
+          nip: teacher.nip || "-",
+          isActive: teacher.isActive
         };
       }
     }
@@ -61,17 +62,27 @@ export const verifyByCode = query({
       teacherInfo = {
         nama: sk.nama,
         nuptk: "-",
-        nip: "-"
+        nip: "-",
+        isActive: false // Assume inactive if no linked teacher
       };
+    } else {
+        // Ensure isActive is boolean
+        teacherInfo.isActive = teacherInfo.isActive ?? true;
     }
     
+    // Expiration Logic (1 Year Validity)
+    const issuedDate = sk.createdAt;
+    const oneYear = 1000 * 60 * 60 * 24 * 365; // 1 Year in ms
+    const validUntilTimestamp = issuedDate + oneYear;
+    const isExpired = Date.now() > validUntilTimestamp;
+
     return {
       skNumber: sk.nomorSk,
       status: sk.status,
       teacher: teacherInfo,
       issuedDate: sk.createdAt,
-      validUntil: sk.tanggalPenetapan,
-      // Add more verification details if needed
+      validUntil: new Date(validUntilTimestamp).toISOString(),
+      isExpired: isExpired, 
       isQrValid: true
     };
   },

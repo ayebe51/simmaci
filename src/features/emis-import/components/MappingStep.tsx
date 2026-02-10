@@ -29,6 +29,7 @@ export default function MappingStep({ headers, sampleData, onNext, onBack }: Map
   const [mapping, setMapping] = useState<Record<string, string>>({})
 
   // Auto-map logic
+  // Auto-map logic
   useEffect(() => {
     const initialMapping: Record<string, string> = {}
     TARGET_SCHEMA.forEach(field => {
@@ -42,6 +43,7 @@ export default function MappingStep({ headers, sampleData, onNext, onBack }: Map
         }
     })
     setMapping(initialMapping)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headers])
 
   const handleMapChange = (targetKey: string, sourceHeader: string) => {

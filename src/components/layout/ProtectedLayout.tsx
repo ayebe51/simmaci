@@ -3,20 +3,17 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const location = useLocation()
+  const token = localStorage.getItem("token")
+  const isAuthenticated = !!token
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
     if (!token) {
       if(location.pathname !== "/login" && location.pathname !== "/") {
           toast.error("Sesi habis, silakan login kembali.")
           window.location.href = "/login"
       }
-    } else {
-      setIsAuthenticated(true)
     }
-  }, [location])
+  }, [location, token])
 
   if (isAuthenticated === null) {
       return null // Or a loader

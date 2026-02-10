@@ -14,18 +14,17 @@ export interface User {
  * Get current user from localStorage
  */
 export const useUser = (): User | null => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error('Failed to parse user from localStorage', e);
-      }
+    try {
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (e) {
+      console.error('Failed to parse user from localStorage', e);
+      return null;
     }
-  }, []);
+  });
+
+  // No effect needed for initial load anymore
 
   return user;
 };

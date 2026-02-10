@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Copy } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Copy, Key } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"

@@ -4,7 +4,8 @@ import { api } from "../../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, FileWarning, UserX, CalendarX, Stethoscope } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, FileWarning, UserX, CalendarX, Stethoscope, Download } from "lucide-react";
 
 export default function DataAuditPage() {
   const issues = useQuery(api.audit.runHealthCheck);
@@ -38,6 +39,29 @@ export default function DataAuditPage() {
            <p className="text-slate-500">Analisis otomatis kualitas data guru dan tendik.</p>
         </div>
         <div className="flex space-x-2">
+            <Button variant="outline" size="sm" onClick={() => {
+                if (!issues) return;
+                
+                // 1. Convert to CSV
+                const headers = ["Tipe,Masalah,Nama,Sekolah,Severity"];
+                const rows = issues.map(i => 
+                    `"${i.type}","${i.message}","${i.name || '-'}","${i.school || '-'}","${i.severity}"`
+                );
+                const csvContent = [headers, ...rows].join("\n");
+                
+                // 2. Trigger Download
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `Data_Audit_Report_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }}>
+                <Download className="mr-2 h-4 w-4" />
+                Export Laporan
+            </Button>
             <Badge variant="outline" className="px-3 py-1 bg-white">
                 <Stethoscope className="mr-2 h-4 w-4 text-green-600" />
                 Total Isu: {issues?.length || 0}

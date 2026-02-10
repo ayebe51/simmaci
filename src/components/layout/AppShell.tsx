@@ -72,7 +72,7 @@ export default function AppShell({ children }: AppShellProps) {
       items: [
         { label: "Approval Yayasan", href: "/dashboard/approval/yayasan", icon: Gavel },
         { label: "Manajemen User", href: "/dashboard/users", icon: Users },
-        { label: "Health Data", href: "/audit", icon: Stethoscope },
+        { label: "Health Data", href: "/dashboard/audit", icon: Stethoscope },
         { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
         { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
       ]

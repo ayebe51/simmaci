@@ -289,9 +289,10 @@ export const bulkCreate = mutation({
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
   },
   handler: async (ctx, args) => {
-    const user = await validateWriteAccess(ctx, undefined);
-
     try {
+        // RBAC CHECK (Moved inside try/catch to capture errors)
+        const user = await validateWriteAccess(ctx, undefined);
+
         const now = Date.now();
         const results = [];
         const errors = [];

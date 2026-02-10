@@ -85,6 +85,14 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
+                <a 
+                  href="https://wa.me/6282227438003?text=Assalamu%27alaikum%20Admin%2C%20saya%20lupa%20password%20akun%20SIMMACI.%20Mohon%20bantu%20reset."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Lupa Password?
+                </a>
               </div>
               <Input id="password" type="password" required placeholder="***" />
             </div>

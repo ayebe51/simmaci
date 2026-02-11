@@ -103,6 +103,14 @@ export default function HeadmasterSubmissionPage() {
         const endDate = new Date(tmtDate)
         endDate.setFullYear(endDate.getFullYear() + 4)
 
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.alert("Sesi Anda telah berakhir. Harap login kembali.");
+            localStorage.clear();
+            navigate("/login");
+            return;
+        }
+
         const payload = {
             teacherId: data.teacherId as Id<"teachers">,
             teacherName: selectedTeacher?.nama || "Unknown",
@@ -113,7 +121,7 @@ export default function HeadmasterSubmissionPage() {
             endDate: endDate.toISOString().split('T')[0],
             status: "pending",
             skUrl: finalUrl || undefined,
-            token: localStorage.getItem("token") || undefined, // Send Token!
+            token: token, // Send Token!
         };
         console.log("Submitting Payload:", payload);
 
@@ -127,6 +135,14 @@ export default function HeadmasterSubmissionPage() {
             ? err.data.message // Specific ConvexError
             : err.message || "Gagal mengajukan"; // Standard Error or string
         
+        // Handle Unauthorized specifically
+        if (errorMessage.includes("Unauthorized") || errorMessage.includes("login")) {
+             window.alert("Sesi Login Kadaluarsa. Harap login ulang.");
+             localStorage.clear();
+             navigate("/login");
+             return;
+        }
+
         // FORCE SHOW ERROR via Alert to ensure user sees it
         window.alert(`DEBUG ERROR: ${errorMessage}\n\nFull Details: ${JSON.stringify(err, null, 2)}`);
         

@@ -129,11 +129,16 @@ export default function TeacherListPage() {
     // 0. Priorities Stored Status (Manual Override)
     // If the user explicitly set a status (e.g. PNS, PPPK, GTY), respect it.
     if (teacher.status && teacher.status !== "" && teacher.status !== "-") {
-        // Special formatting if needed, or just return as is
-        // Mapping basic values to full labels if they match keys
-        if (teacher.status === "GTY") return "GTY (Guru Tetap Yayasan)";
-        if (teacher.status === "GTT") return "GTT (Guru Tidak Tetap)";
-        return teacher.status;
+        const s = teacher.status.toLowerCase().trim();
+        
+        // IGNORE "active"/"aktif" -> This is likely a mistake from import (confusing isActive with Status Kepegawaian)
+        if (s !== "active" && s !== "aktif" && s !== "non-active" && s !== "non-aktif") {
+             // Special formatting if needed, or just return as is
+             // Mapping basic values to full labels if they match keys
+             if (teacher.status === "GTY") return "GTY (Guru Tetap Yayasan)";
+             if (teacher.status === "GTT") return "GTT (Guru Tidak Tetap)";
+             return teacher.status;
+        }
     }
 
     // 1. Check Education Level (S1 or higher)

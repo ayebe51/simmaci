@@ -179,13 +179,14 @@ export const create = mutation({
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
+    token: v.optional(v.string()), // Auth Token
   },
   handler: async (ctx, args) => {
     try {
         console.log("Mutation teachers:create called with args:", args);
         
         // RBAC CHECK
-        const user = await validateWriteAccess(ctx, args.unitKerja);
+        const user = await validateWriteAccess(ctx, args.unitKerja, undefined, args.token);
         console.log("User validated:", user?.name, user?.role);
         
         // For Operators, FORCE unitKerja to match their account (Double Safety)
@@ -256,14 +257,15 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
+    const { id, token, ...updates } = args;
 
     // RBAC CHECK
     // Pass ID to verify ownership of existing record
     // Pass new unitKerja to verify they aren't moving it to unauthorized unit
-    await validateWriteAccess(ctx, updates.unitKerja, id);
+    await validateWriteAccess(ctx, updates.unitKerja, id, token);
     
     await ctx.db.patch(id, {
       ...updates,

@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 
 export const listUniqueStatuses = query({
   args: {},
@@ -12,5 +12,39 @@ export const listUniqueStatuses = query({
     });
 
     return statusCounts;
+  },
+});
+
+export const testInsert = mutation({
+  args: {},
+  handler: async (ctx) => {
+    try {
+        console.log("TESTING INSERT...");
+        const now = Date.now();
+        const dummy = {
+            nuptk: "9999999999999999",
+            nama: "TEST TEACHER " + now,
+            unitKerja: "TEST UNIT",
+            status: "GTT",
+            mapel: "TEST MAPEL",
+            phoneNumber: "08123456789",
+            pdpkpnu: "Belum",
+            kecamatan: "Cilacap Tengah",
+            tempatLahir: "Cilacap",
+            tanggalLahir: "2000-01-01",
+            tmt: "2020-01-01",
+            isCertified: false,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+        };
+        
+        const id = await ctx.db.insert("teachers", dummy);
+        console.log("INSERT SUCCESS:", id);
+        return id;
+    } catch (e: any) {
+        console.error("INSERT FAILED:", e);
+        throw new Error(e.message);
+    } 
   },
 });

@@ -1,4 +1,6 @@
 import { query, mutation } from "./_generated/server";
+import { create } from "./teachers";
+import { api } from "./_generated/api";
 import { v } from "convex/values";
 import { validateSession, requireAuth } from "./auth_helpers";
 
@@ -68,6 +70,78 @@ export const list = query({
         }
     }));
 
+
     return results;
   }
 });
+
+export const testInsert = mutation({
+  args: {},
+  handler: async (ctx) => {
+    try {
+        console.log("TESTING INSERT...");
+        const now = Date.now();
+        const dummy = {
+            nuptk: "9999999999999999",
+            nama: "TEST TEACHER " + now,
+            unitKerja: "TEST UNIT",
+            status: "GTT",
+            mapel: "TEST MAPEL",
+            phoneNumber: "08123456789",
+            pdpkpnu: "Belum",
+            kecamatan: "Cilacap Tengah",
+            tempatLahir: "Cilacap",
+            tanggalLahir: "2000-01-01",
+            tmt: "2020-01-01",
+            isCertified: false,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+        };
+        
+        const id = await ctx.db.insert("teachers", dummy);
+        console.log("INSERT SUCCESS:", id);
+        return id;
+    } catch (e: any) {
+        console.error("INSERT FAILED:", e);
+        throw new Error(e.message);
+    } 
+  },
+});
+
+export const testCreate = mutation({
+  args: {},
+  handler: async (ctx) => {
+    try {
+        console.log("TESTING CREATE DELEGATE...");
+        const now = Date.now();
+        const dummy = {
+            nuptk: "8888888888888888",
+            nama: "TEST DELEGATE " + now,
+            unitKerja: "TEST UNIT",
+            status: "GTT",
+            mapel: "TEST MAPEL",
+            phoneNumber: "08123456789",
+            pdpkpnu: "Belum",
+            kecamatan: "Cilacap Tengah",
+            tempatLahir: "Cilacap",
+            tanggalLahir: "2000-01-01",
+            tmt: "2020-01-01",
+            isCertified: false,
+            isActive: true,
+            // nip, email, photoId omitted
+        };
+        
+        // Directly call the handler of teachers:create
+        // We cast to any because the handler property is internal/typed awkwardly
+        const result = await (create as any).handler(ctx, dummy);
+        console.log("CREATE DELEGATE SUCCESS:", result);
+        return result;
+    } catch (e: any) {
+        console.error("CREATE DELEGATE FAILED:", e);
+        throw new Error(e.message);
+    } 
+  },
+});
+
+

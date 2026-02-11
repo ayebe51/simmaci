@@ -386,6 +386,12 @@ export default function TeacherListPage() {
         if (formData.isCertified !== undefined) cleanPayload.isCertified = formData.isCertified;
         if (formData.photoId) cleanPayload.photoId = formData.photoId;
         
+        // Add Token for Custom Auth
+        const token = localStorage.getItem("token");
+        if (token) {
+            cleanPayload.token = token;
+        }
+
         console.log("[DEBUG] Payload being sent (CLEAN):", cleanPayload);
 
         if (isEditMode && formData.id) {

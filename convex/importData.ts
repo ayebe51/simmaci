@@ -55,17 +55,23 @@ export const run = mutation({
         const cleanData = {
           nuptk,
           nama,
-          unitKerja: t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "",
+          // Safe defaults for optional string fields to prevent "undefined" errors
+          unitKerja: String(t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "-").trim(),
           status: normalizeStatus(rawStatus),
-          tmt: t.tmt || t.TMT || "",
-          pendidikanTerakhir: t.pendidikanTerakhir || t.pendidikan || t.PENDIDIKAN || "",
-          mapel: t.mapel || t.MAPEL || t.jabatan || "",
+          tmt: String(t.tmt || t.TMT || "-").trim(),
+          pendidikanTerakhir: String(t.pendidikanTerakhir || t.pendidikan || t.PENDIDIKAN || "-").trim(),
+          mapel: String(t.mapel || t.MAPEL || t.jabatan || "-").trim(),
+          
+          // Identity fields (undefined is okay here if schema allows optional)
           nip: t.nip || t.NIP || undefined,
           tempatLahir: t.tempatLahir || t.birthPlace || undefined,
           tanggalLahir: t.tanggalLahir || t.birthDate || undefined,
           jenisKelamin: t.jenisKelamin || t.jk || undefined,
+          
+          // Booleans & Enums
           pdpkpnu: normalizePdpkpnu(rawPdpkpnu),
           isCertified: normalizeCert(rawCert),
+          
           updatedAt: now,
         };
 

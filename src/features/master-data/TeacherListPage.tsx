@@ -356,46 +356,56 @@ export default function TeacherListPage() {
       try {
         console.log("[DEBUG] formData before payload:", formData);
         
-        // Build payload with only defined values
-        const rawPayload: any = {
+        // Build payload with ONLY defined values in convex/teachers.ts:create
+        // Explicitly ensuring NO undefined or extra fields leak through
+        const cleanPayload: any = {
             nuptk: String(formData.nuptk || `TMP-${Date.now()}`),
-            nama: String(formData.nama || ""),
+            nama: String(formData.nama || "").trim(),
         };
         
-        // Add optional fields only if they have values
-        if (formData.status) rawPayload.status = formData.status;
-        if (formData.unitKerja || formData.satminkal) rawPayload.unitKerja = formData.unitKerja || formData.satminkal;
-        if (formData.mapel) rawPayload.mapel = formData.mapel;
-        if (formData.phoneNumber) rawPayload.phoneNumber = formData.phoneNumber;
-        if (formData.pdpkpnu) rawPayload.pdpkpnu = formData.pdpkpnu;
-        if (formData.kecamatan) rawPayload.kecamatan = formData.kecamatan;
-        if (formData.tempatLahir || formData.birthPlace) rawPayload.tempatLahir = formData.tempatLahir || formData.birthPlace;
-        if (formData.tanggalLahir || formData.birthDate) rawPayload.tanggalLahir = formData.tanggalLahir || formData.birthDate;
-        if (formData.tmt) rawPayload.tmt = formData.tmt;
-        if (formData.tmt) rawPayload.tmt = formData.tmt;
-        if (formData.isCertified !== undefined) rawPayload.isCertified = formData.isCertified;
-        if (formData.photoId) rawPayload.photoId = formData.photoId; // Include Photo ID
+        // Add optional fields only if they have values (and are not empty strings)
+        const addIfPresent = (key: string, val: any) => {
+            if (val !== undefined && val !== null && val !== "") {
+                cleanPayload[key] = val;
+            }
+        }
+
+        addIfPresent("status", formData.status);
+        // Prioritize unitKerja, fallback to satminkal (legacy UI field)
+        addIfPresent("unitKerja", formData.unitKerja || formData.satminkal);
+        addIfPresent("mapel", formData.mapel);
+        addIfPresent("phoneNumber", formData.phoneNumber);
+        addIfPresent("pdpkpnu", formData.pdpkpnu); // Fix typo: pdpkpnu (correct) vs pdkpnu (wrong)
+        addIfPresent("kecamatan", formData.kecamatan);
         
-        console.log("[DEBUG] Payload being sent:", rawPayload);
+        // Handle Legacy Field Mapping (Frontend uses birthPlace/birthDate, Backend uses tempatLahir/tanggalLahir)
+        addIfPresent("tempatLahir", formData.tempatLahir || formData.birthPlace);
+        addIfPresent("tanggalLahir", formData.tanggalLahir || formData.birthDate);
+        
+        addIfPresent("tmt", formData.tmt);
+        if (formData.isCertified !== undefined) cleanPayload.isCertified = formData.isCertified;
+        if (formData.photoId) cleanPayload.photoId = formData.photoId;
+        
+        console.log("[DEBUG] Payload being sent (CLEAN):", cleanPayload);
 
         if (isEditMode && formData.id) {
             // 🔥 Update via Convex
             await updateTeacherMutation({ 
               id: formData.id as any,
-              ...rawPayload
+              ...cleanPayload
             })
             toast.success("Berhasil memperbarui data guru")
         } else {
             // 🔥 Create via Convex
-            await createTeacherMutation(rawPayload)
+            await createTeacherMutation(cleanPayload)
             toast.success("Berhasil menambah guru")
         }
         
         // Convex auto-updates UI, but close dialog
         closeDialog()
-      } catch (e) {
+      } catch (e: any) {
           console.error("Save error:", e)
-          toast.error("Gagal menyimpan guru")
+          toast.error("Gagal menyimpan guru: " + (e.message || "Unknown error"))
       }
   }
 

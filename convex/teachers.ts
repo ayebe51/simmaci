@@ -200,6 +200,10 @@ export const create = mutation({
           .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
           .first();
         
+        // Destructure token out of args so it's not written to DB
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { token, ...teacherData } = args;
+
         if (existing) {
           console.log("Existing teacher found:", existing._id);
           // RBAC CHECK FOR UPDATE
@@ -210,7 +214,7 @@ export const create = mutation({
           // UPSERT LOGIC: Update existing teacher for re-submission
           console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
           await ctx.db.patch(existing._id, {
-            ...args,
+            ...teacherData,
             unitKerja: finalUnit, // Ensure secure unit
             updatedAt: now,
           });
@@ -219,7 +223,7 @@ export const create = mutation({
         
         console.log("Inserting new teacher...");
         const newIds = await ctx.db.insert("teachers", {
-          ...args,
+          ...teacherData,
           unitKerja: finalUnit, // Ensure secure unit
           isActive: args.isActive ?? true,
           createdAt: now,

@@ -181,43 +181,56 @@ export const create = mutation({
     photoId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    // RBAC CHECK
-    const user = await validateWriteAccess(ctx, args.unitKerja);
-    
-    // For Operators, FORCE unitKerja to match their account (Double Safety)
-    const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
+    try {
+        console.log("Mutation teachers:create called with args:", args);
+        
+        // RBAC CHECK
+        const user = await validateWriteAccess(ctx, args.unitKerja);
+        console.log("User validated:", user?.name, user?.role);
+        
+        // For Operators, FORCE unitKerja to match their account (Double Safety)
+        const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
 
-    const now = Date.now();
-    
-    // Check for duplicate NUPTK
-    const existing = await ctx.db
-      .query("teachers")
-      .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
-      .first();
-    
-    if (existing) {
-      // RBAC CHECK FOR UPDATE
-      if (user.role === 'operator' && existing.unitKerja !== user.unit) {
-          throw new Error("Forbidden: NUPTK terdaftar di sekolah lain.");
-      }
+        const now = Date.now();
+        
+        // Check for duplicate NUPTK
+        const existing = await ctx.db
+          .query("teachers")
+          .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
+          .first();
+        
+        if (existing) {
+          console.log("Existing teacher found:", existing._id);
+          // RBAC CHECK FOR UPDATE
+          if (user.role === 'operator' && existing.unitKerja !== user.unit) {
+              throw new Error("Forbidden: NUPTK terdaftar di sekolah lain.");
+          }
 
-      // UPSERT LOGIC: Update existing teacher for re-submission
-      console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
-      await ctx.db.patch(existing._id, {
-        ...args,
-        unitKerja: finalUnit, // Ensure secure unit
-        updatedAt: now,
-      });
-      return existing._id;
+          // UPSERT LOGIC: Update existing teacher for re-submission
+          console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
+          await ctx.db.patch(existing._id, {
+            ...args,
+            unitKerja: finalUnit, // Ensure secure unit
+            updatedAt: now,
+          });
+          return existing._id;
+        }
+        
+        console.log("Inserting new teacher...");
+        const newIds = await ctx.db.insert("teachers", {
+          ...args,
+          unitKerja: finalUnit, // Ensure secure unit
+          isActive: args.isActive ?? true,
+          createdAt: now,
+          updatedAt: now,
+        });
+        console.log("Insert success:", newIds);
+        return newIds;
+    } catch (e: any) {
+        console.error("FAIL in teachers:create :", e);
+        // Throw a clean error that clients can display
+        throw new Error(`Server Error: ${e.message}`);
     }
-    
-    return await ctx.db.insert("teachers", {
-      ...args,
-      unitKerja: finalUnit, // Ensure secure unit
-      isActive: args.isActive ?? true,
-      createdAt: now,
-      updatedAt: now,
-    });
   },
 });
 

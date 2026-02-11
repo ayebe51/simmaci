@@ -142,6 +142,7 @@ export default function SchoolListPage() {
 
   // Delete confirmation modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false) // Added missing state
   const [schoolToDelete, setSchoolToDelete] = useState<{id: string, name: string} | null>(null)
   
   // New Dialog States
@@ -261,7 +262,8 @@ export default function SchoolListPage() {
 
 
       try {
-          const results = await bulkCreateAccounts();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const results: any = await bulkCreateAccounts();
           
           // Prepare Data for Excel
           const data = results.map((r, i) => ({
@@ -377,7 +379,11 @@ export default function SchoolListPage() {
       <SoftPageHeader
         title="Data Lembaga (Sekolah)"
         description="Manajemen data satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
-        actions={[
+        actions={(() => {
+          const user = userStr ? JSON.parse(userStr) : null;
+          if (user?.role === "operator") return []; // Hide all buttons for operators
+
+          return [
           {
             label: 'Export Excel',
             onClick: handleExport,
@@ -399,7 +405,7 @@ export default function SchoolListPage() {
           {
             label: 'Generate Akun',
             onClick: handleBulkGenerate,
-            variant: 'purple', // Reusing purple since 'Delete All' is conditional/hidden for many
+            variant: 'purple',
             icon: <KeyRound className="h-5 w-5 text-gray-700" />
           },
           {
@@ -408,7 +414,8 @@ export default function SchoolListPage() {
             variant: 'blue',
             icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
           }
-        ]}
+        ];
+        })()}
       />
 
       <Card>
@@ -750,7 +757,7 @@ export default function SchoolListPage() {
               Buat akun login untuk sekolah ini?
             </p>
             <p className="font-semibold text-lg mb-3">
-              {generateAccountSchool?.name}
+              {generateAccountSchool?.nama}
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-2">
               <p className="text-xs text-blue-800">

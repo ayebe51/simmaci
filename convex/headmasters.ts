@@ -52,7 +52,8 @@ export const list = query({
             birthDate: teacher.tanggalLahir,   // Map to legacy field
             address: teacher.unitKerja,  // Fallback
             jabatan: "Kepala Madrasah",
-            statusKepegawaian: teacher.status
+            statusKepegawaian: teacher.status,
+            suratPermohonanUrl: teacher.suratPermohonanUrl,
           } : null,
           school: school ? {
             _id: school._id,

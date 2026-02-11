@@ -310,6 +310,33 @@ export default function SettingsPage() {
                                         <p className="text-xs text-muted-foreground">{template.desc}</p>
                                     </div>
                                     
+                                    <input 
+                                        id={`upload-${template.id}`}
+                                        type="file" accept=".docx"
+                                        disabled={isUploading === template.id}
+                                        className="hidden" // Always hidden, triggered by buttons
+                                        aria-label="Upload Template Word"
+                                        onChange={(e) => handleCloudUpload(e, template.id)}
+                                    />
+
+                                    <input 
+                                        id={`upload-${template.id}`}
+                                        type="file" accept=".docx"
+                                        disabled={isUploading === template.id}
+                                        className="hidden" 
+                                        aria-label="Upload Template Word"
+                                        onChange={(e) => handleCloudUpload(e, template.id)}
+                                    />
+                                    
+                                    <input 
+                                        id={`upload-${template.id}`}
+                                        type="file" accept=".docx"
+                                        disabled={isUploading === template.id}
+                                        className="hidden" 
+                                        aria-label="Upload Template Word"
+                                        onChange={(e) => handleCloudUpload(e, template.id)}
+                                    />
+                                    
                                     {hasCloud ? (
                                         <div className="flex items-center gap-3 p-3 bg-white border rounded border-green-200">
                                             <div className="bg-green-100 p-2 rounded-full text-green-600">
@@ -334,21 +361,15 @@ export default function SettingsPage() {
                                                     <strong>Harap Upload Ulang.</strong>
                                                 </div>
                                             )}
-                                            <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative">
+                                            <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative"
+                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                            >
                                                 <div className="text-center space-y-1">
                                                     <Download className="mx-auto h-4 w-4 text-muted-foreground" />
                                                     <span className="text-xs text-slate-500 block">
                                                         {isUploading === template.id ? "Mengupload..." : "Upload .docx ke Cloud"}
                                                     </span>
                                                 </div>
-                                                <input 
-                                                    id={`upload-${template.id}`}
-                                                    type="file" accept=".docx"
-                                                    disabled={isUploading === template.id}
-                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    aria-label="Upload Template Word"
-                                                    onChange={(e) => handleCloudUpload(e, template.id)}
-                                                />
                                             </div>
                                         </div>
                                     )}

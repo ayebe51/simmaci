@@ -1,5 +1,5 @@
 import { query, mutation, MutationCtx } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { validateSession } from "./auth_helpers";
 
@@ -228,8 +228,8 @@ export const create = mutation({
         return newIds;
     } catch (e: any) {
         console.error("FAIL in teachers:create :", e);
-        // Throw a clean error that clients can display
-        throw new Error(`Server Error: ${e.message}`);
+        // Throw a clean error that clients can display using ConvexError (safe for Prod)
+        throw new ConvexError(`Server Error: ${e.message}`);
     }
   },
 });

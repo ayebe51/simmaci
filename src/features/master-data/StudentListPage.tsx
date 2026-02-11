@@ -244,12 +244,7 @@ export default function StudentListPage() {
             variant: 'mint',
             icon: <Download className="h-5 w-5 text-gray-700" />
           },
-          {
-            label: 'Download Template',
-            onClick: handleDownloadTemplate,
-            variant: 'purple',
-            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
-          },
+
           {
             label: 'Tambah Manual',
             onClick: () => setIsAddOpen(true),

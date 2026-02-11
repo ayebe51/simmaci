@@ -105,7 +105,7 @@ export default function HeadmasterSubmissionPage() {
 
         const token = localStorage.getItem("token");
         if (!token) {
-            window.alert("Sesi Anda telah berakhir. Harap login kembali.");
+            toast.error("Sesi Anda telah berakhir. Harap login kembali.");
             localStorage.clear();
             navigate("/login");
             return;
@@ -121,9 +121,8 @@ export default function HeadmasterSubmissionPage() {
             endDate: endDate.toISOString().split('T')[0],
             status: "pending",
             skUrl: finalUrl || undefined,
-            token: token, // Send Token!
+            token: token,
         };
-        console.log("Submitting Payload:", payload);
 
         await createHeadmasterMutation(payload)
         
@@ -137,15 +136,12 @@ export default function HeadmasterSubmissionPage() {
         
         // Handle Unauthorized specifically
         if (errorMessage.includes("Unauthorized") || errorMessage.includes("login")) {
-             window.alert("Sesi Login Kadaluarsa. Harap login ulang.");
+             toast.error("Sesi Login Kadaluarsa. Harap login ulang.");
              localStorage.clear();
              navigate("/login");
              return;
         }
 
-        // FORCE SHOW ERROR via Alert to ensure user sees it
-        window.alert(`DEBUG ERROR: ${errorMessage}\n\nFull Details: ${JSON.stringify(err, null, 2)}`);
-        
         toast.error(errorMessage);
     } finally {
         setIsSubmitting(false)

@@ -56,10 +56,14 @@ export default function SchoolProfilePage() {
       return
     }
 
+    // Sanitize payload: remove 'email' (it's not in the args), check empty strings
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { email, ...cleanData } = formData; 
+
     try {
       await updateProfile({
-        ...formData,
-        schoolEmail: formData.email,
+        ...cleanData,
+        schoolEmail: formData.email, // Map correctly
         token: token
       })
       toast.success("Profil sekolah berhasil diperbarui!")

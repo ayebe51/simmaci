@@ -22,6 +22,7 @@ import ExcelImportModal from "./components/ExcelImportModal"
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
+import { downloadStudentTemplate, processStudentImport } from "./student-import-utils"
 
 interface Student {
   id: string
@@ -73,6 +74,7 @@ export default function StudentListPage() {
 
   // Convex mutations
   const deleteStudentMutation = useMutation(convexApi.students.remove)
+  const bulkCreateStudentMutation = useMutation(convexApi.students.bulkCreate)
 
   // Delete confirmation modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -220,20 +222,13 @@ export default function StudentListPage() {
       }
   }
 
-  const downloadTemplate = async () => {
+  const handleDownloadTemplate = () => {
       try {
-          const blob = await api.downloadStudentTemplate();
-          const url = window.URL.createObjectURL(new Blob([blob]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', 'TEMPLATE_IMPORT_DATA_SISWA.xlsx');
-          document.body.appendChild(link);
-          link.click();
-          link.parentNode?.removeChild(link);
-          window.URL.revokeObjectURL(url);
+          downloadStudentTemplate();
+          toast.success("Template berhasil didownload!");
       } catch (error) {
           console.error('Failed to download template:', error);
-          toast.error('Gagal mendownload template. Silakan coba lagi.');
+          toast.error('Gagal mendownload template.');
       }
   }
 
@@ -251,7 +246,7 @@ export default function StudentListPage() {
           },
           {
             label: 'Download Template',
-            onClick: downloadTemplate,
+            onClick: handleDownloadTemplate,
             variant: 'purple',
             icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
           },
@@ -425,9 +420,23 @@ export default function StudentListPage() {
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={loadStudents}
         title="Import Data Siswa"
-        description="Upload file Excel (.xlsx) untuk import data siswa"
+        description="Upload file Excel (.xlsx) untuk import data siswa. Pastikan format sesuai template."
+        onDownloadTemplate={handleDownloadTemplate}
         onFileImport={async (file) => {
-          await api.importStudents(file)
+          try {
+             // 1. Parse Excel
+             const data = await processStudentImport(file);
+             if (data.length === 0) throw new Error("File kosong atau format salah.");
+             
+             // 2. Send to Backend
+             const result = await bulkCreateStudentMutation({ students: data });
+             
+             // 3. Feedback
+             toast.success(`Berhasil import ${result.count} data siswa!`);
+          } catch (err: any) {
+             console.error(err);
+             throw new Error(err.message || "Gagal import data.");
+          }
         }}
       />
 

@@ -22,9 +22,10 @@ export default function SchoolProfilePage() {
   // Get current user to get school name
   const userStr = localStorage.getItem("user")
   const user = userStr ? JSON.parse(userStr) : null
+  const token = localStorage.getItem("token")
 
   // Fetch school data directly using the secure backend query
-  const school = useQuery(api.schools.getMyself, user?.email ? { email: user.email } : "skip")
+  const school = useQuery(api.schools.getMyself, token ? { token } : "skip")
   // Fallback for loading state display
 
   const updateProfile = useMutation(api.schools.updateSelf)
@@ -50,7 +51,7 @@ export default function SchoolProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user?.email) {
+    if (!token) {
       toast.error("Sesi tidak valid. Silakan login ulang.")
       return
     }
@@ -59,7 +60,7 @@ export default function SchoolProfilePage() {
       await updateProfile({
         ...formData,
         schoolEmail: formData.email,
-        email: user.email
+        token: token
       })
       toast.success("Profil sekolah berhasil diperbarui!")
     } catch (error) {

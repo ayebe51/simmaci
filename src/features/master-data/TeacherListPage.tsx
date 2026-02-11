@@ -392,6 +392,15 @@ export default function TeacherListPage() {
             cleanPayload.token = token;
         }
 
+        // PARANOID CLEANING: Ensure no system fields leak
+        delete cleanPayload.createdAt;
+        delete cleanPayload.updatedAt;
+        delete cleanPayload._id;
+        delete cleanPayload.id;
+        delete cleanPayload.creationTime;
+
+        console.log("[DEBUG] Payload Keys:", Object.keys(cleanPayload));
+        console.log("[DEBUG] Has createdAt?:", "createdAt" in cleanPayload);
         console.log("[DEBUG] Payload being sent (CLEAN):", cleanPayload);
 
         if (isEditMode && formData.id) {

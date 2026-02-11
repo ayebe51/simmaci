@@ -126,6 +126,16 @@ export default function TeacherListPage() {
     const nama = (teacher.nama || "").toLowerCase()
     const tmt = teacher.tmt
 
+    // 0. Priorities Stored Status (Manual Override)
+    // If the user explicitly set a status (e.g. PNS, PPPK, GTY), respect it.
+    if (teacher.status && teacher.status !== "" && teacher.status !== "-") {
+        // Special formatting if needed, or just return as is
+        // Mapping basic values to full labels if they match keys
+        if (teacher.status === "GTY") return "GTY (Guru Tetap Yayasan)";
+        if (teacher.status === "GTT") return "GTT (Guru Tidak Tetap)";
+        return teacher.status;
+    }
+
     // 1. Check Education Level (S1 or higher)
     const educationKeywords = ["s1", "s.1", "sarjana", "s2", "s.2", "magister", "s3", "s.3", "doktor", "div", "d4"]
     const titleKeywords = ["s.pd", "s.ag", "s.e", "s.kom", "s.h", "s.sos", "s.hum", "s.ip", "m.pd", "m.ag", "m.e", "m.kom", "dra.", "drs.", "lc.", "b.a"]

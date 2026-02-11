@@ -98,7 +98,8 @@ export default function YayasanApprovalPage() {
   const handleDirectApprove = async (id: string) => {
       try {
           toast.info("Menyetujui dokumen...")
-          const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user" 
+          const userObj = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null;
+          const userId = userObj?._id || userObj?.id || "temp_user"; 
           await approveMutation({ 
             id: id as Id<"headmasterTenures">,
             approvedBy: userId as Id<"users">
@@ -121,7 +122,8 @@ export default function YayasanApprovalPage() {
           const skUrl = (uploadRes as any).url || (uploadRes as any).filename
 
           toast.info("Menyimpan SK Final...")
-          const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user"
+          const userObj = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null;
+          const userId = userObj?._id || userObj?.id || "temp_user";
           await approveMutation({ 
             id: uploadTargetId as Id<"headmasterTenures">,
             approvedBy: userId as Id<"users">,
@@ -156,7 +158,8 @@ export default function YayasanApprovalPage() {
       }
       try {
           toast.info("Memproses penolakan...");
-          const userId = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!).id : "temp_user"
+          const userObj = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null;
+          const userId = userObj?._id || userObj?.id || "temp_user";
           await rejectMutation({ 
             id: rejectTargetId as Id<"headmasterTenures">,
             rejectedBy: userId as Id<"users">

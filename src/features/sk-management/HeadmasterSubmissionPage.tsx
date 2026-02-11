@@ -94,14 +94,10 @@ export default function HeadmasterSubmissionPage() {
             finalUrl = (uploadRes as any).url || (uploadRes as any).filename
         }
 
-        // Get userId from localStorage
-        const userStr = localStorage.getItem("user")
-        const userId = userStr ? JSON.parse(userStr).id : "temp_user_id"
-        
         // Find teacher and school names for denormalization
         const selectedTeacher = teachers.find(t => t.id === data.teacherId)
         const selectedSchool = schools.find(s => s.id === data.schoolId)
-        
+
         // Calculate end date (4 years from TMT)
         const tmtDate = new Date(data.tmt)
         const endDate = new Date(tmtDate)
@@ -117,7 +113,7 @@ export default function HeadmasterSubmissionPage() {
             endDate: endDate.toISOString().split('T')[0],
             status: "pending",
             skUrl: finalUrl || undefined,
-            createdBy: userId as Id<"users">,
+            token: localStorage.getItem("token") || undefined, // Send Token!
         })
         
         toast.success("Pengajuan Kepala Madrasah Berhasil!")

@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { validateSession } from "./auth_helpers";
 
 // Get all headmaster tenures with optional filters + enriched with teacher & school data
 export const list = query({
@@ -86,14 +87,54 @@ export const create = mutation({
     endDate: v.string(),
     status: v.optional(v.string()),
     skUrl: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")), // Made optional, derived from token
+    token: v.optional(v.string()), // Auth Token
   },
   handler: async (ctx, args) => {
+    // 1. AUTH & RBAC
+    let user = null;
+    if (args.token) {
+        user = await validateSession(ctx, args.token);
+    } else {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity?.email) {
+             user = await ctx.db
+                .query("users")
+                .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                .first();
+        }
+    }
+
+    if (!user) {
+        throw new Error("Unauthorized: Harap login terlebih dahulu.");
+    }
+
+    // 2. Operator Logic: Must match Unit Kerja
+    if (user.role === 'operator') {
+        if (!user.unit) {
+            throw new Error("Forbidden: Akun operator tidak memiliki Unit Kerja.");
+        }
+        
+        // Normalize comparison
+        const targetUnit = args.schoolName.trim().toLowerCase();
+        const userUnit = user.unit.trim().toLowerCase();
+        
+        // Simple check: School Name must contain Unit Kerja (or vice versa? usually exact match or includes)
+        // Given existing patterns, let's try exact match or includes
+        if (!targetUnit.includes(userUnit) && !userUnit.includes(targetUnit)) {
+             throw new Error(`Forbidden: Anda tidak berhak mengajukan untuk madrasah '${args.schoolName}'.`);
+        }
+    }
+
     const now = Date.now();
     
+    // 3. Clean Payload (remove token)
+    const { token, ...payload } = args;
+
     return await ctx.db.insert("headmasterTenures", {
-      ...args,
+      ...payload,
       status: args.status || "pending",
+      createdBy: user._id, // Enforce creator
       createdAt: now,
       updatedAt: now,
     });

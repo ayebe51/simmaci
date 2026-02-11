@@ -103,7 +103,7 @@ export default function HeadmasterSubmissionPage() {
         const endDate = new Date(tmtDate)
         endDate.setFullYear(endDate.getFullYear() + 4)
 
-        await createHeadmasterMutation({
+        const payload = {
             teacherId: data.teacherId as Id<"teachers">,
             teacherName: selectedTeacher?.nama || "Unknown",
             schoolId: data.schoolId as Id<"schools">,
@@ -114,12 +114,23 @@ export default function HeadmasterSubmissionPage() {
             status: "pending",
             skUrl: finalUrl || undefined,
             token: localStorage.getItem("token") || undefined, // Send Token!
-        })
+        };
+        console.log("Submitting Payload:", payload);
+
+        await createHeadmasterMutation(payload)
         
         toast.success("Pengajuan Kepala Madrasah Berhasil!")
         navigate("/dashboard/sk")
     } catch (err: any) {
-        toast.error(err.message || "Gagal mengajukan")
+        console.error("Submission Error:", err);
+        const errorMessage = err.data instanceof Object && 'message' in err.data 
+            ? err.data.message // Specific ConvexError
+            : err.message || "Gagal mengajukan"; // Standard Error or string
+        
+        // FORCE SHOW ERROR via Alert to ensure user sees it
+        window.alert(`DEBUG ERROR: ${errorMessage}\n\nFull Details: ${JSON.stringify(err, null, 2)}`);
+        
+        toast.error(errorMessage);
     } finally {
         setIsSubmitting(false)
     }

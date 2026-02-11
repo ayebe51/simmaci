@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { validateSession } from "./auth_helpers";
 
 // Get all headmaster tenures with optional filters + enriched with teacher & school data
@@ -91,53 +91,60 @@ export const create = mutation({
     token: v.optional(v.string()), // Auth Token
   },
   handler: async (ctx, args) => {
-    // 1. AUTH & RBAC
-    let user = null;
-    if (args.token) {
-        user = await validateSession(ctx, args.token);
-    } else {
-        const identity = await ctx.auth.getUserIdentity();
-        if (identity?.email) {
-             user = await ctx.db
-                .query("users")
-                .withIndex("by_email", (q) => q.eq("email", identity.email!))
-                .first();
+    try {
+        // 1. AUTH & RBAC
+        let user = null;
+        if (args.token) {
+            user = await validateSession(ctx, args.token);
+        } else {
+            const identity = await ctx.auth.getUserIdentity();
+            if (identity?.email) {
+                 user = await ctx.db
+                    .query("users")
+                    .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                    .first();
+            }
         }
-    }
 
-    if (!user) {
-        throw new Error("Unauthorized: Harap login terlebih dahulu.");
-    }
-
-    // 2. Operator Logic: Must match Unit Kerja
-    if (user.role === 'operator') {
-        if (!user.unit) {
-            throw new Error("Forbidden: Akun operator tidak memiliki Unit Kerja.");
+        if (!user) {
+            throw new ConvexError("Unauthorized: Harap login terlebih dahulu.");
         }
+
+        // 2. Operator Logic: Must match Unit Kerja
+        if (user.role === 'operator') {
+            if (!user.unit) {
+                throw new ConvexError("Forbidden: Akun operator tidak memiliki Unit Kerja.");
+            }
+            
+            // Normalize comparison
+            const targetUnit = args.schoolName.trim().toLowerCase();
+            const userUnit = user.unit.trim().toLowerCase();
+            
+            // Simple check
+            if (!targetUnit.includes(userUnit) && !userUnit.includes(targetUnit)) {
+                 throw new ConvexError(`Forbidden: Anda tidak berhak mengajukan untuk madrasah '${args.schoolName}'.`);
+            }
+        }
+
+        const now = Date.now();
         
-        // Normalize comparison
-        const targetUnit = args.schoolName.trim().toLowerCase();
-        const userUnit = user.unit.trim().toLowerCase();
-        
-        // Simple check: School Name must contain Unit Kerja (or vice versa? usually exact match or includes)
-        // Given existing patterns, let's try exact match or includes
-        if (!targetUnit.includes(userUnit) && !userUnit.includes(targetUnit)) {
-             throw new Error(`Forbidden: Anda tidak berhak mengajukan untuk madrasah '${args.schoolName}'.`);
-        }
+        // 3. Clean Payload (remove token and potentially undefined createdBy from args)
+        const { token, createdBy, ...payload } = args;
+
+        return await ctx.db.insert("headmasterTenures", {
+          ...payload,
+          status: args.status || "pending",
+          createdBy: user._id, // Enforce creator
+          createdAt: now,
+          updatedAt: now,
+        });
+    } catch (err: any) {
+        console.error("Headmaster Create Error:", err);
+        // If it's already a ConvexError, rethrow it
+        if (err.data) throw err;
+        // Otherwise, wrap it
+        throw new ConvexError(err.message || "Terjadi kesalahan internal server.");
     }
-
-    const now = Date.now();
-    
-    // 3. Clean Payload (remove token)
-    const { token, ...payload } = args;
-
-    return await ctx.db.insert("headmasterTenures", {
-      ...payload,
-      status: args.status || "pending",
-      createdBy: user._id, // Enforce creator
-      createdAt: now,
-      updatedAt: now,
-    });
   },
 });
 

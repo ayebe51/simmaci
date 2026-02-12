@@ -13,7 +13,6 @@ export default function PublicVerificationPage() {
     const isTest = id?.toLowerCase().startsWith("tes");
     
     // TEMPORARY: DISABLE QUERY TO FIX 404
-    // TEMPORARY: DISABLE QUERY TO FIX 404
     const verificationData = useQuery(
         convexApi.verification.verifyByCode, 
         id && !isTest ? { code: id } : "skip"

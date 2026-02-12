@@ -425,25 +425,29 @@ export default function YayasanApprovalPage() {
                                             const parseFlexibleDate = (dateStr: string | null | undefined) => {
                                                 if (!dateStr) return null;
                                                 // 1. Try ISO/Standard Date first
-                                                let d = new Date(dateStr);
+                                                const d = new Date(dateStr);
                                                 if (!isNaN(d.getTime())) return d;
                                                 
                                                 // 2. Try parsing splits with multiple delimiters
                                                 const parts = dateStr.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
                                                 if (parts) {
                                                     // Try DD-MM-YYYY (Indonesian standard)
-                                                    let d1 = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                                                    const d1 = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
                                                     if (!isNaN(d1.getTime())) return d1;
                                                     
                                                     // Try MM-DD-YYYY (US standard - fallback for 07-19-2007)
-                                                    let d2 = new Date(`${parts[3]}-${parts[1]}-${parts[2]}`);
+                                                    const d2 = new Date(`${parts[3]}-${parts[1]}-${parts[2]}`);
                                                     if (!isNaN(d2.getTime())) return d2;
                                                 }
                                                 return null;
                                             };
 
                                             const teacherTmtDate = parseFlexibleDate(item.teacher?.tmt);
-                                            console.log("DEBUG TMT RAW:", item.teacher?.tmt, "PARSED:", teacherTmtDate);
+                                            console.log("🔥 DEBUG TMT SOURCE:", {
+                                                rawTmt: item.teacher?.tmt,
+                                                parsedTmt: teacherTmtDate,
+                                                teacherObj: item.teacher
+                                            });
 
                                             // ...
 

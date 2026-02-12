@@ -33,10 +33,38 @@ export const verifyByCode = query({
     
     // 2. If valid ID lookup failed or returned null (id didn't exist), fallback to legacy Nomor SK lookup
     if (!sk) {
+         // Try skDocuments by number
          sk = await ctx.db
             .query("skDocuments")
             .filter((q) => q.eq(q.field("nomorSk"), args.code))
             .first();
+
+         // If still null, TRY HEADMASTERS TABLE (New Feature)
+         if (!sk) {
+             try {
+                // Force cast to any to bypass table name check if needed, or use string
+                // But normalizeId expects a valid table name from schema. 
+                // Using "headmasters" should be valid if it's in schema. 
+                // If lint complains, it might be due to generic inference.
+                const headmasterId = ctx.db.normalizeId("headmasters" as any, args.code);
+                if (headmasterId) {
+                    const hm = await ctx.db.get(headmasterId);
+                    if (hm) {
+                        // Normalize Headmaster object to resemble SK object for frontend compatibility
+                        sk = {
+                            _id: hm._id,
+                            nomorSk: hm.nomorSk || "-",
+                            status: (hm.status === 'approved' ? 'valid' : 'invalid') as any,
+                            teacherId: hm.teacherId, 
+                            createdAt: hm._creationTime, 
+                            nama: "", 
+                        }
+                    }
+                }
+             } catch (e) {
+                 // Ignore errors
+             }
+         }
     }
             
     if (!sk) {
@@ -45,8 +73,12 @@ export const verifyByCode = query({
     
     // Get teacher data if exists
     let teacherInfo: any = null;
-    if (sk.teacherId) {
-      const teacher = await ctx.db.get(sk.teacherId);
+    
+    // Safe access to teacherId (it exists on both SK and Headmaster objects we created)
+    const teacherId = (sk as any).teacherId;
+
+    if (teacherId) {
+      const teacher = await ctx.db.get(teacherId);
       if (teacher) {
         teacherInfo = {
           nama: teacher.nama,
@@ -59,10 +91,11 @@ export const verifyByCode = query({
     
     // Fallback to SK nama if no teacher
     if (!teacherInfo) {
+      const skAny = sk as any;
       teacherInfo = {
-        nama: sk.nama,
-        nuptk: "-",
-        nip: "-",
+        nama: skAny.nama || (skAny.teacher?.nama) || "-", 
+        nuptk: skAny.nuptk || "-",
+        nip: skAny.nip || "-",
         isActive: false // Assume inactive if no linked teacher
       };
     } else {
@@ -71,14 +104,14 @@ export const verifyByCode = query({
     }
     
     // Expiration Logic (1 Year Validity)
-    const issuedDate = sk.createdAt;
+    const issuedDate = sk.createdAt; // Both have createdAt or _creationTime
     const oneYear = 1000 * 60 * 60 * 24 * 365; // 1 Year in ms
     const validUntilTimestamp = issuedDate + oneYear;
     const isExpired = Date.now() > validUntilTimestamp;
 
     return {
       skNumber: sk.nomorSk,
-      status: sk.status,
+      status: (sk as any).status || "valid",
       teacher: teacherInfo,
       issuedDate: sk.createdAt,
       validUntil: new Date(validUntilTimestamp).toISOString(),

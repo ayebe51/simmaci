@@ -54,6 +54,7 @@ export const list = query({
             jabatan: "Kepala Madrasah",
             statusKepegawaian: teacher.status,
             suratPermohonanUrl: teacher.suratPermohonanUrl,
+            tmt: teacher.tmt, // Expose Teacher TMT
           } : null,
           school: school ? {
             _id: school._id,

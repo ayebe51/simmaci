@@ -391,13 +391,18 @@ export default function YayasanApprovalPage() {
                                             
                                             // --- ROBUST DATA MAPPING ---
                                             // --- QR CODE GENERATION ---
+                                            // --- QR CODE GENERATION ---
                                             let qrDataUrl = "";
                                             try {
                                                 const verificationUrl = `${window.location.origin}/verify/${item.id}`;
                                                 qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
+                                                console.log("✅ Generated QR Data URL:", qrDataUrl.substring(0, 50) + "...");
                                             } catch (err) {
-                                                console.error("QR Fail", err);
+                                                console.error("❌ QR Fail", err);
                                             }
+                                            
+                                            // LOG TEMPLATE CONTENT
+                                            // console.log("Template Content Preview:", zip.file("word/document.xml")?.asText().substring(0, 500));
 
                                             const dateObj = parseDateSimple(tanggalPenetapan)
                                             const dd = String(dateObj.getDate()).padStart(2, '0')
@@ -575,8 +580,12 @@ export default function YayasanApprovalPage() {
                                             
                                             const imageOpts = {
                                                 getImage: function (tagValue: string) {
+                                                    console.log("🔍 getImage called for tag:", tagValue.substring(0, 30) + "...");
                                                     const base64Regex = /^data:image\/(png|jpg|svg|svg\+xml);base64,/;
-                                                    if (!base64Regex.test(tagValue)) return false;
+                                                    if (!base64Regex.test(tagValue)) {
+                                                        console.warn("⚠️ getImage: Invalid base64 format");
+                                                        return false;
+                                                    }
                                                     const stringBase64 = tagValue.replace(base64Regex, "");
                                                     let binaryString;
                                                     if (typeof window !== "undefined") binaryString = window.atob(stringBase64);
@@ -587,6 +596,7 @@ export default function YayasanApprovalPage() {
                                                     return bytes.buffer;
                                                 },
                                                 getSize: function (img: any, tagValue: string, tagName: string) {
+                                                    console.log("📏 getSize called for:", tagName);
                                                     if (tagName === "qrcode") return [100, 100];
                                                     return [100, 100];
                                                 },

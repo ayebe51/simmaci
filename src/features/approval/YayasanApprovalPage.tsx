@@ -364,6 +364,12 @@ export default function YayasanApprovalPage() {
 
                                  <Button size="sm" variant="outline" onClick={async () => {
                                     try {
+                                        // --- UI DEBUGGER (Blocking Alert) ---
+                                        const debugTmt = item.teacher?.tmt || "NULL";
+                                        const debugId = item.id;
+                                        // Simple alert to guarantee visibility
+                                        alert(`DEBUG INFO:\nID: ${debugId}\nRaw TMT: "${debugTmt}"`);
+
                                         toast.info("Memproses SK...");
                                         
                                         // 1. Smart Selection
@@ -479,19 +485,6 @@ export default function YayasanApprovalPage() {
                                                 parsedTmt: teacherTmtDate,
                                                 teacherObj: item.teacher
                                             });
-
-                                            // --- UI DEBUGGER (Moved Here) ---
-                                            toast(
-                                                <div className="text-xs font-mono space-y-1">
-                                                    <p className="font-bold">DEBUG INFO (Screenshot Ini):</p>
-                                                    <p>ID: {item.id}</p>
-                                                    <p>Raw TMT: "{item.teacher?.tmt}"</p>
-                                                    <p>Parsed TMT: {teacherTmtDate ? teacherTmtDate.toLocaleDateString() : "NULL"}</p>
-                                                    <p>Backup TMT: {item.startDate}</p>
-                                                    <p>Status: {item.status}</p>
-                                                </div>,
-                                                { duration: 10000 }
-                                            );
 
                                             // ...
 

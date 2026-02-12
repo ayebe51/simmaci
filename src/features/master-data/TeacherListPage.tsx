@@ -951,6 +951,21 @@ export default function TeacherListPage() {
                     <Input id="pdpkpnu" className="col-span-3" value={formData.pdpkpnu || ""} onChange={e => setFormData({...formData, pdpkpnu: e.target.value})} placeholder="Sudah / Belum" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="sertifikasi" className="text-right">Sertifikasi</Label>
+                    <Select 
+                        value={formData.isCertified ? "Sudah" : "Belum"} 
+                        onValueChange={(val) => setFormData({...formData, isCertified: val === "Sudah"})}
+                    >
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Status Sertifikasi" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Sudah">Sudah Sertifikasi</SelectItem>
+                            <SelectItem value="Belum">Belum Sertifikasi</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="tempatLahir" className="text-right">Tempat Lahir</Label>
                     <Input id="tempatLahir" className="col-span-3" value={formData.tempatLahir || ""} onChange={e => setFormData({...formData, tempatLahir: e.target.value})} placeholder="Contoh: Cilacap" />
                 </div>

@@ -459,10 +459,10 @@ export default function YayasanApprovalPage() {
                                                 // --- DATES ---
                                                 TMT: (item.teacher?.tmt && new Date(item.teacher.tmt).getFullYear() > 1900)
                                                     ? new Date(item.teacher.tmt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
-                                                    : "-",
+                                                    : (item.startDate ? new Date(item.startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"),
                                                 "TMT_GURU": (item.teacher?.tmt && new Date(item.teacher.tmt).getFullYear() > 1900)
                                                     ? new Date(item.teacher.tmt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
-                                                    : "-",
+                                                    : (item.startDate ? new Date(item.startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"),
                                                 "TMT_KAMAD": finalTmt,
                                                 "Tanggal Penetapan": finalPenetapan,
                                                 "TANGGAL PENETAPAN": finalPenetapan,
@@ -552,7 +552,14 @@ export default function YayasanApprovalPage() {
                                                 const docFile = zip.file("word/document.xml");
                                                 if (docFile) {
                                                     let content = docFile.asText();
-                                                    // Replace standard tag with image tag syntax if missing
+                                                    
+                                                    // 1. Clean XML Split Tags (e.g. {<...>qr<...>code})
+                                                    // This handles cases where Word splits the tag formatting
+                                                    content = content.replace(/{<[^>]+>q<[^>]+>r<[^>]+>c<[^>]+>o<[^>]+>d<[^>]+>e}/g, "{qrcode}");
+                                                    content = content.replace(/{<[^>]+>qrcode}/g, "{qrcode}");
+                                                    content = content.replace(/{qrcode<[^>]+>}/g, "{qrcode}");
+                                                    
+                                                    // 2. Replace standard tag with image tag syntax if missing
                                                     if (content.includes("qrcode") && !content.includes("%qrcode")) {
                                                         content = content.replace(/{qrcode}/g, "{%qrcode}");
                                                         zip.file("word/document.xml", content);

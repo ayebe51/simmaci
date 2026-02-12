@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { validateSession, requireAuth, validatePassword } from "./auth_helpers";
 
@@ -308,27 +308,51 @@ export const bulkCreate = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const results = [];
+    console.log("MUTATION schools:bulkCreate START");
+    console.log(`Processing ${args.schools.length} schools...`);
     
-    for (const school of args.schools) {
-      // Check duplicates
-      const existing = await ctx.db
-        .query("schools")
-        .withIndex("by_nsm", (q) => q.eq("nsm", school.nsm))
-        .first();
-      
-      if (!existing) {
-        const id = await ctx.db.insert("schools", {
-          ...school,
-          createdAt: now,
-          updatedAt: now,
-        });
-        results.push(id);
-      }
+    try {
+        const now = Date.now();
+        const results = [];
+        const errors = [];
+        
+        for (const school of args.schools) {
+          try {
+              // Check duplicates
+              const existing = await ctx.db
+                .query("schools")
+                .withIndex("by_nsm", (q) => q.eq("nsm", school.nsm))
+                .first();
+              
+              if (!existing) {
+                const id = await ctx.db.insert("schools", {
+                  ...school,
+                  createdAt: now,
+                  updatedAt: now,
+                });
+                results.push(id);
+              } else {
+                console.log(`Skipping duplicate NSM: ${school.nsm}`);
+              }
+          } catch (rowError: any) {
+              console.error(`Error processing school ${school.nsm}:`, rowError);
+              errors.push(`Row ${school.nsm}: ${rowError.message}`);
+          }
+        }
+        
+        console.log(`Bulk Create Finished. Success: ${results.length}, Errors: ${errors.length}`);
+        
+        if (errors.length > 0) {
+            console.error("Errors encountered:", errors);
+        }
+
+        return { count: results.length, ids: results }; // Return success count even if some failed? 
+        // Or throw if ALL failed? 
+        // For now, return count.
+    } catch (e: any) {
+        console.error("FAIL in schools:bulkCreate :", e);
+        throw new ConvexError(`Import Failed: ${e.message}`);
     }
-    
-    return { count: results.length, ids: results };
   },
 });
 

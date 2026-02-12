@@ -130,8 +130,8 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
         throw new Error("Unauthorized: User tidak ditemukan.");
     }
 
-    // 2. Admin is God Mode
-    if (user.role === 'admin') {
+    // 2. Admin is God Mode (Support both 'admin' and 'super_admin')
+    if (user.role === 'admin' || user.role === 'super_admin') {
         return user; // Pass
     }
 

@@ -782,6 +782,9 @@ export default function YayasanApprovalPage() {
             </div>
           )}
         </CardContent>
+        <div className="p-4 bg-slate-100 text-xs text-slate-500 text-center font-mono border-t">
+              DEBUG ENV: {import.meta.env.VITE_CONVEX_URL}
+        </div>
       </Card>
 
       {/* Signature modal removed - feature disabled */}

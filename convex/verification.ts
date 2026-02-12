@@ -50,19 +50,16 @@ export const verifyByCode = query({
                         // Normalize Headmaster object to resemble SK object for frontend compatibility
                         sk = {
                             _id: hm._id,
-                            nomorSk: (hm as any).skUrl ? "SK-DIGITAL" : "-", // Headmasters might not have nomorSk column directly? checking schema... 
-                            // Schema says 'headmasterTenures' has NO 'nomorSk'. It has 'skUrl'. 
-                            // Wait, 'teacher_mutations' has 'skNumber'. 'skDocuments' has 'nomorSk'.
-                            // 'headmasterTenures' seems to lack a 'nomorSk' field in schema! 
-                            // It usually joins with teacher or relies on SK generation.
-                            // Let's check schema again. Lines 150-169. NO 'nomorSk'.
-                            // We might need to fetch the SK Number from somewhere else or just say "SK Digital"
-                            
+                            nomorSk: (hm as any).skUrl ? "SK-DIGITAL" : "-", 
                             status: (hm.status === 'approved' ? 'valid' : 'invalid') as any,
                             teacherId: hm.teacherId, 
                             createdAt: hm._creationTime, 
                             nama: "", 
-                        }
+                            // Add missing required fields from skDocuments schema to avoid strict TS errors
+                            jenisSk: "kamad",
+                            tanggalPenetapan: hm.startDate,
+                            updatedAt: hm._creationTime,
+                        } as any;
                     }
                 }
              } catch (e) {
@@ -81,11 +78,12 @@ export const verifyByCode = query({
     // Safe access to teacherId (it exists on both SK and Headmaster objects we created)
     const teacherId = (sk as any).teacherId;
 
+
     if (teacherId) {
-      const teacher = await ctx.db.get(teacherId);
+      const teacher = (await ctx.db.get(teacherId)) as any;
       if (teacher) {
         teacherInfo = {
-          nama: teacher.nama,
+          nama: teacher.nama || teacher.name || "-", // Fallback for Users if mixed
           nuptk: teacher.nuptk,
           nip: teacher.nip || "-",
           isActive: teacher.isActive

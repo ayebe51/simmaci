@@ -62,7 +62,9 @@ export default function SettingsPage() {
                       base64,
                       mimeType: file.type
                   })
-                  toast.success("Template berhasil disimpan di Cloud (New)!")
+                  // CRITICAL FIX: Sync to LocalStorage for immediate use by Generator
+                  localStorage.setItem(key + "_blob", base64);
+                  toast.success("Template berhasil disimpan di Cloud & Browser!")
               } else {
                   toast.error("Module Cloud belum siap. Coba refresh.")
               }

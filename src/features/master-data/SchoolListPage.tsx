@@ -617,7 +617,26 @@ export default function SchoolListPage() {
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={loadSchools}
         title="Import Data Sekolah"
-        description="Upload file Excel (.xlsx) untuk import data sekolah"
+        description="Upload file Excel (.xlsx) untuk import data sekolah. Pastikan kolom sesuai template."
+        onDownloadTemplate={() => {
+            const templateData = [
+                {
+                    "NSM": "121233010001",
+                    "Nama Madrasah": "MI Ma'arif NU 01 Cilacap",
+                    "NPSN": "60712345",
+                    "Alamat": "Jl. Kemerdekaan No. 45",
+                    "Kecamatan": "Cilacap Tengah",
+                    "No HP Kepala": "081234567890",
+                    "Kepala Madrasah": "Ahmad S.Pd.I",
+                    "Status": "Maarif",
+                    "Akreditasi": "A"
+                }
+            ];
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template");
+            XLSX.writeFile(wb, "Template_Import_Sekolah.xlsx");
+        }}
         onImport={async (data) => {
           try {
             // Helper: Extract kecamatan from alamat
@@ -689,6 +708,13 @@ export default function SchoolListPage() {
                 akreditasi,
               };
             }).filter((s) => s.nsm && s.nama); // Only include valid entries
+
+            if (schools.length === 0 && data.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const headers = Object.keys(data[0] as any).join(", ");
+                alert(`Gagal import! Tidak ada data valid ditemukan.\n\nSistem mencari kolom: NSM, Nama Madrasah.\n\nKolom yang ditemukan di file Excel: \n${headers}`);
+                return;
+            }
 
             // Use Convex bulk create
             const result = await bulkCreateSchoolMutation({ schools });

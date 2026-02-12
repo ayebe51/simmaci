@@ -146,7 +146,7 @@ export default function SkPrintPage() {
                                             <td>2.</td>
                                             <td>Tempat/Tgl Lahir</td>
                                             <td>:</td>
-                                            <td>-</td> 
+                                            <td>{sk.teacher?.tempatLahir || "-"}, {sk.teacher?.tanggalLahir ? new Date(sk.teacher.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}</td> 
                                         </tr>
                                         <tr>
                                             <td>3.</td>

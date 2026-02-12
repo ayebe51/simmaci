@@ -250,24 +250,37 @@ const generateBulkSkZip = async (
             // Format Dates to Indonesian
             const renderData = { ...data };
             
-            if (renderData.tanggalLahir) {
+            // Helper for Indo Date
+            const formatIndoDate = (dateStr: string) => {
+                if (!dateStr) return "";
+                const months = [
+                    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+                ];
                 try {
-                    // Handle "YYYY-MM-DD" or standard date strings
-                    const dateParts = renderData.tanggalLahir.split("-");
-                    if (dateParts.length === 3) {
-                         // Create date from parts to avoid timezone issues (YYYY, MM-1, DD)
-                         const dateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
-                         renderData.tanggalLahir = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-                    } else {
-                         // Fallback for other formats
-                         const d = new Date(renderData.tanggalLahir);
-                         if (!isNaN(d.getTime())) {
-                             renderData.tanggalLahir = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    const parts = dateStr.split("-");
+                    if (parts.length === 3) {
+                         const day = parseInt(parts[2]);
+                         const month = parseInt(parts[1]) - 1;
+                         const year = parseInt(parts[0]);
+                         if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                             return `${day} ${months[month]} ${year}`;
                          }
+                    }
+                    const d = new Date(dateStr);
+                    if (!isNaN(d.getTime())) {
+                        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
                     }
                 } catch (e) {
                     console.error("Date format error", e);
                 }
+                return dateStr;
+            };
+
+            if (renderData.tanggalLahir) {
+                renderData.tanggalLahir = formatIndoDate(renderData.tanggalLahir);
+                // Also set lowercase key just in case template uses it
+                renderData["tanggallahir"] = renderData.tanggalLahir;
             }
 
             // Render with QR Code

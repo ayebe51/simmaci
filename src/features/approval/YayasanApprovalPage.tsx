@@ -527,20 +527,14 @@ export default function YayasanApprovalPage() {
                                             console.log("DEBUG SK ITEM:", item);
                                             console.log("DEBUG SK DATA:", data);
                                             
-                                            const blob = await generateSkDocx(templateBlob, data); // Await async wrapper if needed, but generateSkDocx is sync in basic version? 
-                                            // Actually generateSkDocx usually async if it handles images/QR. 
-                                            // IMPORTANT: We need to make sure generateSkDocx handles QR!
-                                            // The simple one imported from @/lib/sk-generator might NOT handle images.
-                                            // I must replicate the image module logic HERE or update the lib.
-                                            // For safety, I will implement a local 'generateSkWithQr' logic here or assume 'generateSkDocx' needs update.
-                                            // Let's assume for now I need to INLINE the generation logic similar to SkGeneratorPage because passing 'qrcode' string to standard templater won't work without ImageModule.
-                                            
                                             // INLINE REPLACEMENT FOR GENERATION TO SUPPORT IMAGE MODULE
                                             const { default: PizZip } = await import("pizzip");
                                             const { default: Docxtemplater } = await import("docxtemplater");
                                             const { default: ImageModule } = await import("docxtemplater-image-module-free");
 
-                                            const zip = new PizZip(templateBlob);
+                                            // Fix: PizZip expects raw base64, not Data URL
+                                            const cleanBlob = templateBlob.replace(/^data:.*?;base64,/, "");
+                                            const zip = new PizZip(cleanBlob, { base64: true });
 
                                             // 🔥 MAGIC FIX: Auto-convert {qrcode} to {%qrcode} for Image Module
                                             try {

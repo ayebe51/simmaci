@@ -424,16 +424,20 @@ export default function YayasanApprovalPage() {
                                             // Helper to parse various date formats
                                             const parseFlexibleDate = (dateStr: string | null | undefined) => {
                                                 if (!dateStr) return null;
-                                                // Try standard Date
+                                                // 1. Try ISO/Standard Date first
                                                 let d = new Date(dateStr);
                                                 if (!isNaN(d.getTime())) return d;
                                                 
-                                                // Try DD-MM-YYYY or DD/MM/YYYY
-                                                const parts = dateStr.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+                                                // 2. Try parsing splits with multiple delimiters
+                                                const parts = dateStr.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
                                                 if (parts) {
-                                                    // Assumption: DD-MM-YYYY (Common in ID)
-                                                    d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
-                                                    if (!isNaN(d.getTime())) return d;
+                                                    // Try DD-MM-YYYY (Indonesian standard)
+                                                    let d1 = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                                                    if (!isNaN(d1.getTime())) return d1;
+                                                    
+                                                    // Try MM-DD-YYYY (US standard - fallback for 07-19-2007)
+                                                    let d2 = new Date(`${parts[3]}-${parts[1]}-${parts[2]}`);
+                                                    if (!isNaN(d2.getTime())) return d2;
                                                 }
                                                 return null;
                                             };
@@ -632,7 +636,10 @@ export default function YayasanApprovalPage() {
                                             };
 
                                             const doc = new Docxtemplater(zip, {
-                                                modules: [new ImageModule(imageOpts)],
+                                                modules: [new ImageModule({
+                                                    ...imageOpts,
+                                                    centered: false
+                                                })],
                                                 paragraphLoop: true,
                                                 linebreaks: true,
                                                 nullGetter: () => ""

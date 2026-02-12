@@ -973,7 +973,30 @@ export default function TeacherListPage() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={loadTeachers}
-        onDownloadTeacherTemplate={handleDownloadTemplate}
+        onDownloadTemplate={async () => {
+            const XLSX = await import('xlsx');
+            const templateData = [
+                {
+                    "Nama": "Ahmad S.Pd.I",
+                    "NUPTK": "1234567890123456",
+                    "Unit Kerja": "MI Ma'arif NU 01 Cilacap",
+                    "Tempat Lahir": "Cilacap",
+                    "Tanggal Lahir": "1990-01-01",
+                    "Jenis Kelamin": "L",
+                    "Pendidikan Terakhir": "S1",
+                    "Status": "GTY",
+                    "TMT": "2015-07-01",
+                    "Sertifikasi": "Sudah",
+                    "PDPKPNU": "Sudah",
+                    "No HP": "081234567890",
+                    "Email": "ahmad@example.com"
+                }
+            ];
+            const ws = XLSX.utils.json_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template Guru");
+            XLSX.writeFile(wb, "Template_Import_Guru.xlsx");
+        }}
         title="Import Data Guru"
         description="Upload file Excel (.xlsx) untuk import data guru"
         onFileImport={async (file) => {

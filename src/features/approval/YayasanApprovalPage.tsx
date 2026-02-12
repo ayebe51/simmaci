@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { BadgeCheck, CheckCircle, Download, FileText, XCircle, Upload } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { api } from "@/lib/api"  // Keep for file upload only
 import { toast } from "sonner"
 import QRCode from "qrcode" // NEW: QR Code support
@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { SignaturePad } from "@/components/SignaturePad"
 import {
   Dialog,
   DialogContent,
@@ -301,7 +300,9 @@ export default function YayasanApprovalPage() {
                 ) : requests.length === 0 ? (
                     <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada pengajuan pending.</TableCell></TableRow>
                 ) : (
-                  paginatedRequests.map((item) => (
+                  paginatedRequests.map((item) => {
+                    if (!item) return null;
+                    return (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
                           {item.teacher?.nama}
@@ -629,8 +630,10 @@ export default function YayasanApprovalPage() {
                             </div>
                         )}
                       </TableCell>
+
                     </TableRow>
-                  ))
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

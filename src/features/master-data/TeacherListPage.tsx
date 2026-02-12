@@ -889,28 +889,13 @@ export default function TeacherListPage() {
                                 onChange={(e) => {
                                     setSchoolSearch(e.target.value)
                                     setOpenSchoolDropdown(true)
-                                    // Also update form data temporarily to allow typing new schools if needed? 
-                                    // Better to force selection but allow typing for filtering.
-                                    // Wait, if I bind value to formData.unitKerja, typing filters weirdly.
-                                    // Strategy: Logic similar to Headmaster page.
-                                    // But here we might want to allow custom names? 
-                                    // "Satminkal" might be outside the list? 
-                                    // User wants "Search in Dropdown".
-                                    // Let's assume standard behavior: Input for filtering, click to select.
-                                    
-                                    // If we bind value to custom search, we need to handle "Edit" mode where value is already set.
-                                    // I will use a separate Input for search if dropdown is open? No, that's complex.
-                                    
-                                    // SIMPLIFIED MANUAL DROPDOWN (Matches other pages):
-                                    // 1. Trigger button (Display Name) -> Opens Popover -> Input + List.
-                                    // BUT, here it's inside a Dialog, so Popover might be clipped or complex.
-                                    // I'll use a simple absolute div overlay "Suggestions" below the input.
                                     setFormData({...formData, unitKerja: e.target.value, satminkal: e.target.value})
                                 }}
-                                onFocus={() => setOpenSchoolDropdown(true)}
-                                // onBlur={() => setTimeout(() => setOpenSchoolDropdown(false), 200)} // Removed, using onMouseDown
+                                onFocus={() => !isOperator && setOpenSchoolDropdown(true)}
                                 className="w-full"
                                 autoComplete="off"
+                                disabled={isOperator} // LOCK for operators
+                                title={isOperator ? "Anda hanya dapat menambahkan guru di sekolah Anda sendiri." : ""}
                             />
                             {openSchoolDropdown && (
                                 <div className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-white p-1 shadow-lg text-sm">

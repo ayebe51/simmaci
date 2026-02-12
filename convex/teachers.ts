@@ -265,8 +265,9 @@ export const update = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
-    photoId: v.optional(v.id("_storage")),
-    token: v.optional(v.string()),
+    // Support Legacy/Lowercase fields from older frontends
+    tanggallahir: v.optional(v.string()), 
+    tempatlahir: v.optional(v.string()), 
   },
   handler: async (ctx, args) => {
     console.log("---------------------------------------------------");
@@ -276,14 +277,19 @@ export const update = mutation({
     try {
         const { id, token, ...updates } = args;
 
-        console.log("1. Validating Write Access...");
-        console.log("   - Unit:", updates.unitKerja);
-        console.log("   - ID:", id);
-        console.log("   - Token present:", !!token);
+        // LEGACY MAPPING: Handle lowercase fields
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const finalUpdates: any = { ...updates };
+        if ((args as any).tanggallahir) finalUpdates.tanggalLahir = (args as any).tanggallahir;
+        if ((args as any).tempatlahir) finalUpdates.tempatLahir = (args as any).tempatlahir;
 
+        console.log("1. Validating Write Access...");
+        console.log("   - Unit:", finalUpdates.unitKerja);
+        console.log("   - ID:", id);
+        
         try {
             // RBAC CHECK
-            await validateWriteAccess(ctx, updates.unitKerja, id, token);
+            await validateWriteAccess(ctx, finalUpdates.unitKerja, id, token);
             console.log("2. Access Validated.");
         } catch (rbacError: any) {
             console.error("RBAC Validation Failed:", rbacError);
@@ -292,16 +298,13 @@ export const update = mutation({
         
         console.log("3. Patching DB...");
         await ctx.db.patch(id, {
-          ...updates,
+          ...finalUpdates,
           updatedAt: Date.now(),
         });
         console.log("4. Patch Success.");
         return id;
     } catch (e: any) {
         console.error("FAIL in teachers:update :", e);
-        // Ensure we throw a descriptive error
-        // If it's already a ConvexError (unlikely if it was "Server Error"), rethrow
-        // If it's a JS Error, wrap it.
         throw new ConvexError(`Update Failed: ${e.message}`);
     }
   },

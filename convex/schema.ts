@@ -12,7 +12,8 @@ export default defineSchema({
     tanggalLahir: v.optional(v.string()),
     pendidikanTerakhir: v.optional(v.string()),
     mapel: v.optional(v.string()),
-    unitKerja: v.optional(v.string()),
+    unitKerja: v.optional(v.string()), // DEPRECATED: Use schoolId
+    schoolId: v.optional(v.id("schools")), // NEW: ID-based link
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
     tmt: v.optional(v.string()),  // Tanggal Mulai Tugas
@@ -33,7 +34,8 @@ export default defineSchema({
     .index("by_unit", ["unitKerja"])
     .index("by_kecamatan", ["kecamatan"])
     .index("by_active", ["isActive"])
-    .index("by_updatedAt", ["updatedAt"]),
+    .index("by_updatedAt", ["updatedAt"])
+    .index("by_schoolId", ["schoolId"]), // NEW Index
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)
@@ -90,7 +92,8 @@ export default defineSchema({
     name: v.string(),
     passwordHash: v.string(),
     role: v.string(), // 'admin', 'operator', 'viewer'
-    unit: v.optional(v.string()),
+    unit: v.optional(v.string()), // DEPRECATED: Use schoolId
+    schoolId: v.optional(v.id("schools")), // NEW: ID-based link
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),

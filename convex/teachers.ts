@@ -137,7 +137,25 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
 
     // 3. Operator Logic
     if (user.role === 'operator') {
-        // Enforce Unit
+        // NEW: School ID Check (Priority)
+        if (user.schoolId) {
+             // A. If acting on existing teacher, check schoolId match
+             if (currentTeacherId) {
+                const existing = await ctx.db.get(currentTeacherId);
+                if (!existing) return user;
+                
+                if (existing.schoolId !== user.schoolId) {
+                     // Fallback to string check if schoolId absent on target (legacy data)
+                     if (!existing.schoolId && existing.unitKerja === user.unit) {
+                         return user; // Allow legacy match
+                     }
+                     throw new Error("Forbidden: Anda tidak memiliki akses ke guru ini (School ID Mismatch).");
+                }
+             }
+             return user;
+        }
+
+        // FALLBACK: Legacy String Logic
         if (!user.unit) {
             throw new Error("Forbidden: Akun operator tidak memiliki Unit Kerja.");
         }
@@ -185,6 +203,7 @@ export const create = mutation({
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
     token: v.optional(v.string()), // Auth Token
+    schoolId: v.optional(v.id("schools")), // Optional direct set for Super Admin
   },
   handler: async (ctx, args) => {
     try {
@@ -196,6 +215,8 @@ export const create = mutation({
         
         // For Operators, FORCE unitKerja to match their account (Double Safety)
         const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
+        // NEW: Force schoolId if user has it
+        const finalSchoolId = user.role === 'operator' ? user.schoolId : (args as any).schoolId; 
 
         const now = Date.now();
         
@@ -230,6 +251,7 @@ export const create = mutation({
         const newIds = await ctx.db.insert("teachers", {
           ...teacherData,
           unitKerja: finalUnit, // Ensure secure unit
+          schoolId: finalSchoolId, // Ensure secure ID linkage
           isActive: args.isActive ?? true,
           createdAt: now,
           updatedAt: now,
@@ -267,6 +289,7 @@ export const update = mutation({
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.id("_storage")),
     token: v.optional(v.string()),
+    schoolId: v.optional(v.id("schools")), // Optional update
     // Support Legacy/Lowercase fields from older frontends
     tanggallahir: v.optional(v.string()), 
     tempatlahir: v.optional(v.string()), 
@@ -291,8 +314,14 @@ export const update = mutation({
         
         try {
             // RBAC CHECK
-            await validateWriteAccess(ctx, finalUpdates.unitKerja, id, token);
+            const user = await validateWriteAccess(ctx, finalUpdates.unitKerja, id, token);
             console.log("2. Access Validated.");
+
+            // PROTECT SCHOOL ID
+            if (user.role === 'operator') {
+                delete finalUpdates.schoolId; // Operator cannot move teachers between schools
+                delete finalUpdates.unitKerja; // Operator cannot rename unit
+            }
         } catch (rbacError: any) {
             console.error("RBAC Validation Failed:", rbacError);
             throw new Error(`RBAC Check Failed: ${rbacError.message}`);
@@ -536,10 +565,22 @@ export const bulkCreate = mutation({
 // Get teacher count by filters
 export const count = query({
   args: {
-    unitKerja: v.optional(v.string()),
+    unitKerja: v.optional(v.string()), // Deprecated
+    schoolId: v.optional(v.id("schools")), // New
     kecamatan: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Optimized Path: Filter by School ID if present
+    if (args.schoolId) {
+        const teachers = await ctx.db
+            .query("teachers")
+            .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId)) // Needs Index!
+            .collect();
+        // Post-filter for active status if needed, though index should ideally cover it
+        return teachers.filter(t => t.isActive !== false).length;
+    }
+
+    // Fallback Path (Legacy)
     let teachers = await ctx.db
       .query("teachers")
       .withIndex("by_active", (q) => q.eq("isActive", true))

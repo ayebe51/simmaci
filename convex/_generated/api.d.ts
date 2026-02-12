@@ -29,6 +29,7 @@ import type * as headmasters from "../headmasters.js";
 import type * as importData from "../importData.js";
 import type * as logs from "../logs.js";
 import type * as maintenance from "../maintenance.js";
+import type * as migrations from "../migrations.js";
 import type * as mutations from "../mutations.js";
 import type * as notifications from "../notifications.js";
 import type * as reports from "../reports.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   importData: typeof importData;
   logs: typeof logs;
   maintenance: typeof maintenance;
+  migrations: typeof migrations;
   mutations: typeof mutations;
   notifications: typeof notifications;
   reports: typeof reports;

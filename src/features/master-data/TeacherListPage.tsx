@@ -801,9 +801,10 @@ export default function TeacherListPage() {
       </Card>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl w-full max-h-[85vh] overflow-y-auto sm:max-w-[800px]">
             <DialogHeader>
                 <DialogTitle>{isEditMode ? 'Edit' : 'Tambah'} Guru Manual</DialogTitle>
+                <p className="text-muted-foreground text-sm">Lengkapi data guru di bawah ini.</p>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 {/* Photo Upload Section */}

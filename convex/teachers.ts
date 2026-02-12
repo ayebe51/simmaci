@@ -46,6 +46,11 @@ export const list = query({
     
         
         // RBAC Logic
+        // 🔥 DEBUG BYPASS
+        if (args.unitKerja === "DEBUG_ALL") {
+             // Bypass index to see EVERYTHING
+            return await ctx.db.query("teachers").collect();
+        }
 
         if (user && user.role === "operator" && user.unit) {
             teachers = teachers.filter(t => t.unitKerja === user.unit);

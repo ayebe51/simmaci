@@ -41,22 +41,33 @@ export default function SkSubmissionPage() {
   const [activeTab, setActiveTab] = useState("single")
   const fileInputRef = useRef<HTMLInputElement>(null)
    
-  const [isSuperAdmin] = useState(() => {
+  // Role Check
+  const [userRole, setUserRole] = useState<{ role: string, unit?: string } | null>(() => {
     try {
         const str = localStorage.getItem("user");
-        return str ? JSON.parse(str).role === "super_admin" : false;
-    } catch { return false }
-  })
-  
-  // Removed useEffect for role checking to avoid lint warning
-  
+        if (!str) return null;
+        const u = JSON.parse(str);
+        return { role: u.role, unit: u.unitKerja };
+    } catch { return null }
+  });
+
+  const isOperator = userRole?.role === "operator";
+  const isSuperAdmin = userRole?.role === "super_admin";
+
   const form = useForm<SkFormValues>({
     resolver: zodResolver(skSchema),
     defaultValues: {
       jenisPengajuan: "new",
     }
   })
+  
+  // Pre-fill unit for operator
+  if (isOperator && userRole?.unit && form.getValues("unitKerja") !== userRole.unit) {
+      form.setValue("unitKerja", userRole.unit);
+  }
 
+  // Effect to re-verify if needed (optional)
+  
   // 🔥 CONVEX MUTATIONS
   const createTeacherMutation = useMutation(convexApi.teachers.create)
 
@@ -194,7 +205,13 @@ export default function SkSubmissionPage() {
                      </div>
                       <div className="grid gap-2">
                         <Label htmlFor="unitKerja">Unit Kerja / Madrasah</Label>
-                        <Input id="unitKerja" placeholder="Nama Lembaga" {...form.register("unitKerja")} />
+                        <Input 
+                            id="unitKerja" 
+                            placeholder="Nama Lembaga" 
+                            {...form.register("unitKerja")} 
+                            readOnly={isOperator}
+                            className={isOperator ? "bg-slate-100 text-muted-foreground" : ""}
+                        />
                         {form.formState.errors.unitKerja && (
                            <p className="text-sm text-red-500">{form.formState.errors.unitKerja.message}</p>
                          )}

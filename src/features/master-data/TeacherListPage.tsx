@@ -903,6 +903,17 @@ export default function TeacherListPage() {
                         </SelectContent>
                     </Select>
                 </div>
+                {/* NEW: Explicit Kecamatan Input */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="kecamatan" className="text-right">Kecamatan</Label>
+                    <Input 
+                        id="kecamatan" 
+                        className="col-span-3" 
+                        value={formData.kecamatan || ""} 
+                        onChange={e => setFormData({...formData, kecamatan: e.target.value})} 
+                        placeholder="Contoh: Cilacap Tengah"
+                    />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status" className="text-right">Status</Label>
                     <Select 

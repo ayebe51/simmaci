@@ -435,9 +435,10 @@ export default function YayasanApprovalPage() {
                                                     nomorSk: generatedNomor 
                                                 });
                                                 console.log("✅ SK Number Saved:", generatedNomor);
+                                                alert(`SUKSES UPDATE DATABASE!\nNomor SK: ${generatedNomor}\n\nSilakan Scan QR Code sekarang.`);
                                             } catch (e) {
                                                 console.error("❌ Failed to save SK Number:", e);
-                                                toast.error("Gagal menyimpan Nomor SK ke database (Dokumen tetap terunduh)");
+                                                alert(`GAGAL UPDATE DATABASE:\n${(e as Error).message}`);
                                             }
 
                                             // Helper to parse various date formats

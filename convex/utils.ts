@@ -9,7 +9,7 @@ export function determineTeacherStatus(teacher: any): string {
     // 0. Safety Check
     if (!teacher) return "GTT";
 
-    let rawStatus = (teacher.status || "").trim().toUpperCase();
+    const rawStatus = (teacher.status || "").trim().toUpperCase();
     
     // Priority 1: Check Explicit PNS/ASN
     if (rawStatus.includes("PNS") || rawStatus.includes("ASN") || rawStatus.includes("PPPK") || rawStatus.includes("CPNS")) {

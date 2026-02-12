@@ -312,8 +312,16 @@ export default function YayasanApprovalPage() {
                           <Badge variant="outline">Ke-{item.periode}</Badge>
                       </TableCell>
                       <TableCell>
-                          {new Date(item.tmt).toLocaleDateString("id-ID")} s.d. <br/>
-                          {new Date(item.endDate).toLocaleDateString("id-ID")}
+                          {(() => {
+                              try {
+                                return new Date(item.tmt).toLocaleDateString("id-ID")
+                              } catch { return "-" }
+                          })()} s.d. <br/>
+                          {(() => {
+                              try {
+                                return new Date(item.endDate).toLocaleDateString("id-ID")
+                              } catch { return "-" }
+                          })()}
                       </TableCell>
                       <TableCell>
                          <StatusBadge status={item.status} />
@@ -530,6 +538,37 @@ export default function YayasanApprovalPage() {
                                             const { default: ImageModule } = await import("docxtemplater-image-module-free");
 
                                             const zip = new PizZip(templateBlob);
+
+                                            // 🔥 MAGIC FIX: Auto-convert {qrcode} to {%qrcode} for Image Module
+                                            try {
+                                                const docFile = zip.file("word/document.xml");
+                                                if (docFile) {
+                                                    let content = docFile.asText();
+                                                    // Replace standard tag with image tag syntax if missing
+                                                    if (content.includes("qrcode") && !content.includes("%qrcode")) {
+                                                        content = content.replace(/{qrcode}/g, "{%qrcode}");
+                                                        zip.file("word/document.xml", content);
+                                                        console.log("Auto-fixed QR Code tag in template");
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.warn("Failed to auto-fix template tags", e);
+                                            }
+                                            
+                                            // Handle SK Number "...." issue
+                                            const safeNomor = (!rawNomor || rawNomor === "....") ? "0001" : rawNomor;
+                                            
+                                            // Update data with safe number
+                                            data["NOMOR"] = safeNomor;
+                                            const safeGeneratedNomor = nomorFormat
+                                              .replace(/{NOMOR}/g, safeNomor) 
+                                              .replace(/{TANGGAL}/g, dd)
+                                              .replace(/{BULAN}/g, mmAngka)
+                                              .replace(/{BL_ROMA}/g, mmRoma)
+                                              .replace(/{TAHUN}/g, String(yyyy));
+                                            
+                                            data["NOMOR SURAT"] = safeGeneratedNomor;
+                                            data["NOMOR_SK"] = safeGeneratedNomor;
                                             
                                             const imageOpts = {
                                                 getImage: function (tagValue: string) {
@@ -709,18 +748,27 @@ export default function YayasanApprovalPage() {
  }
  
  function StatusBadge({ status }: { status: string }) {
+    // Normalise status to title case for display, but handle lowercase keys
+    const safeStatus = (status || "draft").toLowerCase();
+    
+    // Map based on lowercase keys
     const map: Record<string, string> = {
-        'Draft': 'bg-gray-100 text-gray-800',
-        'Submitted': 'bg-blue-100 text-blue-800',
-        'Verified': 'bg-purple-100 text-purple-800',
-        'Approved': 'bg-green-100 text-green-800',
-        'Rejected': 'bg-red-100 text-red-800',
-        'Active': 'bg-emerald-100 text-emerald-800',
-        'Expired': 'bg-orange-100 text-orange-800',
+        'draft': 'bg-gray-100 text-gray-800',
+        'pending': 'bg-yellow-100 text-yellow-800', // Added pending
+        'submitted': 'bg-blue-100 text-blue-800',
+        'verified': 'bg-purple-100 text-purple-800',
+        'approved': 'bg-green-100 text-green-800',
+        'rejected': 'bg-red-100 text-red-800',
+        'active': 'bg-emerald-100 text-emerald-800', 
+        'expired': 'bg-orange-100 text-orange-800',
     }
+    
+    // Display label: Capitalize first letter
+    const label = safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1);
+
     return (
-        <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium border", map[status] || map['Draft'])}>
-            {status}
+        <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium border", map[safeStatus] || map['draft'])}>
+            {label}
         </span>
     )
 }

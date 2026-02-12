@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { api } from "../../../convex/_generated/api";
+import { toast } from "sonner";
 
 export default function CreateEventPage() {
   const navigate = useNavigate();

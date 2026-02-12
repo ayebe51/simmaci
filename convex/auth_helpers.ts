@@ -90,7 +90,7 @@ export function validatePassword(password: string) {
   if (!/\d/.test(password)) {
     throw new Error("Password harus mengandung minimal 1 angka.");
   }
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     throw new Error("Password harus mengandung minimal 1 simbol unik.");
   }
 }

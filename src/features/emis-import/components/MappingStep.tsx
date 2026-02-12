@@ -42,8 +42,8 @@ export default function MappingStep({ headers, sampleData, onNext, onBack }: Map
             initialMapping[field.key] = match
         }
     })
+    // eslint-disable-next-line
     setMapping(initialMapping)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headers])
 
   const handleMapChange = (targetKey: string, sourceHeader: string) => {

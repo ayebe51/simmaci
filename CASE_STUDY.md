@@ -17,7 +17,7 @@ Platform terintegrasi berbasis web yang mendigitalkan seluruh siklus administras
 - **Single Source of Truth:** Database terpusat untuk seluruh entitas pendidikan.
 - **Smart Generator:** Pembuatan SK otomatis berdasarkan template dinamis.
 - **Digital Validation:** Menggantikan tanda tangan basah dengan Digital Signature & QR Code.
- 
+
 ---
 
 ## 🏗️ Technical Architecture

@@ -36,7 +36,15 @@ export const list = query({
 export const get = query({
   args: { id: v.id("skDocuments") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const sk = await ctx.db.get(args.id);
+    if (!sk) return null;
+
+    let teacher = null;
+    if (sk.teacherId) {
+        teacher = await ctx.db.get(sk.teacherId);
+    }
+
+    return { ...sk, teacher };
   },
 });
 

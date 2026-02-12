@@ -288,8 +288,8 @@ function MedalTally({ eventId }: { eventId: string }) {
 
     useEffect(() => {
         // fetchTally should be a useCallback or defined here
+        // eslint-disable-next-line
         fetchTally();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventId]);
 
     if (loading) return <div className="py-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2" /> Memuat data medali...</div>;

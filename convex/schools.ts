@@ -294,65 +294,69 @@ export const createSchoolAccount = mutation({
 // Bulk create schools (for import)
 export const bulkCreate = mutation({
   args: {
-    schools: v.array(v.object({
-      nsm: v.string(),
-      nama: v.string(),
-      npsn: v.optional(v.string()),
-      alamat: v.optional(v.string()),
-      kecamatan: v.optional(v.string()),
-      telepon: v.optional(v.string()),
-      email: v.optional(v.string()),
-      kepalaMadrasah: v.optional(v.string()),
-      akreditasi: v.optional(v.string()),
-      statusJamiyyah: v.optional(v.string()),
-    })),
+    schools: v.array(v.any()), // Accept ANY structure for maximum leniency
   },
   handler: async (ctx, args) => {
     console.log("MUTATION schools:bulkCreate START");
     console.log(`Processing ${args.schools.length} schools...`);
     
-    try {
-        const now = Date.now();
-        const results = [];
-        const errors = [];
-        
-        for (const school of args.schools) {
-          try {
-              // Check duplicates
-              const existing = await ctx.db
-                .query("schools")
-                .withIndex("by_nsm", (q) => q.eq("nsm", school.nsm))
-                .first();
-              
-              if (!existing) {
-                const id = await ctx.db.insert("schools", {
-                  ...school,
-                  createdAt: now,
-                  updatedAt: now,
-                });
-                results.push(id);
-              } else {
-                console.log(`Skipping duplicate NSM: ${school.nsm}`);
-              }
-          } catch (rowError: any) {
-              console.error(`Error processing school ${school.nsm}:`, rowError);
-              errors.push(`Row ${school.nsm}: ${rowError.message}`);
-          }
-        }
-        
-        console.log(`Bulk Create Finished. Success: ${results.length}, Errors: ${errors.length}`);
-        
-        if (errors.length > 0) {
-            console.error("Errors encountered:", errors);
-        }
+    const now = Date.now();
+    const results = [];
+    const errors = [];
+    
+    for (const rawSchool of args.schools) {
+      try {
+           // 1. Sanitize & Normalize (Leniency logic)
+           const safeString = (val: any) => (val ? String(val).trim() : undefined);
+           
+           const nsm = safeString(rawSchool.nsm || rawSchool.NSM);
+           const nama = safeString(rawSchool.nama || rawSchool.Nama || rawSchool.NAMA);
 
-        return { count: results.length, ids: results }; // Return success count even if some failed? 
-        // Or throw if ALL failed? 
-        // For now, return count.
-    } catch (e: any) {
-        console.error("FAIL in schools:bulkCreate :", e);
-        throw new ConvexError(`Import Failed: ${e.message}`);
+           // Skip invalid rows without throwing
+           if (!nsm || !nama) {
+               errors.push(`Skipping row: Missing NSM or Nama`);
+               continue;
+           }
+
+           // 2. Construct Clean Object
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           const school: any = {
+               nsm,
+               nama, 
+               createdAt: now,
+               updatedAt: now,
+           };
+
+           // Optional fields (Allow empty)
+           if (rawSchool.npsn) school.npsn = safeString(rawSchool.npsn);
+           if (rawSchool.alamat) school.alamat = safeString(rawSchool.alamat);
+           if (rawSchool.kecamatan) school.kecamatan = safeString(rawSchool.kecamatan);
+           if (rawSchool.telepon) school.telepon = safeString(rawSchool.telepon);
+           if (rawSchool.email) school.email = safeString(rawSchool.email);
+           if (rawSchool.kepalaMadrasah) school.kepalaMadrasah = safeString(rawSchool.kepalaMadrasah);
+           if (rawSchool.akreditasi) school.akreditasi = safeString(rawSchool.akreditasi);
+           if (rawSchool.statusJamiyyah) school.statusJamiyyah = safeString(rawSchool.statusJamiyyah);
+
+          // 3. Database Insert
+          const existing = await ctx.db
+            .query("schools")
+            .withIndex("by_nsm", (q) => q.eq("nsm", school.nsm))
+            .first();
+          
+          if (!existing) {
+            const id = await ctx.db.insert("schools", school);
+            results.push(id);
+          } else {
+            console.log(`Skipping duplicate NSM: ${school.nsm}`);
+          }
+      } catch (rowError: any) {
+          console.error(`Error processing school row:`, rowError);
+          errors.push(`Row Error: ${rowError.message}`);
+      }
     }
+    
+    console.log(`Bulk Create Finished. Success: ${results.length}, Errors: ${errors.length}`);
+    return { count: results.length, ids: results }; 
   },
 });
 

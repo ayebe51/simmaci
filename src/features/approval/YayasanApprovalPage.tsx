@@ -435,10 +435,10 @@ export default function YayasanApprovalPage() {
                                                     nomorSk: generatedNomor 
                                                 });
                                                 console.log("✅ SK Number Saved:", generatedNomor);
-                                                alert(`SUKSES UPDATE DATABASE!\nNomor SK: ${generatedNomor}\n\nSilakan Scan QR Code sekarang.`);
+                                                toast.success(`Nomor SK Disimpan: ${generatedNomor}`);
                                             } catch (e) {
                                                 console.error("❌ Failed to save SK Number:", e);
-                                                alert(`GAGAL UPDATE DATABASE:\n${(e as Error).message}`);
+                                                toast.error(`Gagal update DB: ${(e as Error).message}`);
                                             }
 
                                             // Helper to parse various date formats
@@ -783,9 +783,6 @@ export default function YayasanApprovalPage() {
             </div>
           )}
         </CardContent>
-        <div className="p-4 bg-slate-100 text-xs text-slate-500 text-center font-mono border-t">
-              DEBUG ENV: {import.meta.env.VITE_CONVEX_URL}
-        </div>
       </Card>
 
       {/* Signature modal removed - feature disabled */}

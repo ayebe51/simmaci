@@ -452,7 +452,13 @@ export default function YayasanApprovalPage() {
                                                 TANGGAL_BERAKHIR: finalValid,
                                                 
                                                 // --- DATES ---
-                                                TMT: finalTmt,
+                                                TMT: (item.teacher?.tmt && new Date(item.teacher.tmt).getFullYear() > 1900)
+                                                    ? new Date(item.teacher.tmt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+                                                    : "-",
+                                                "TMT_GURU": (item.teacher?.tmt && new Date(item.teacher.tmt).getFullYear() > 1900)
+                                                    ? new Date(item.teacher.tmt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+                                                    : "-",
+                                                "TMT_KAMAD": finalTmt,
                                                 "Tanggal Penetapan": finalPenetapan,
                                                 "TANGGAL PENETAPAN": finalPenetapan,
                                                 

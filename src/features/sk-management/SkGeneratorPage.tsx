@@ -251,12 +251,13 @@ const generateBulkSkZip = async (
             const renderData = { ...data };
             
             // Helper for Indo Date
+            const months = [
+                "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+            ];
+
             const formatIndoDate = (dateStr: string) => {
                 if (!dateStr) return "";
-                const months = [
-                    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-                    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-                ];
                 try {
                     const parts = dateStr.split("-");
                     if (parts.length === 3) {
@@ -278,9 +279,34 @@ const generateBulkSkZip = async (
             };
 
             if (renderData.tanggalLahir) {
-                renderData.tanggalLahir = formatIndoDate(renderData.tanggalLahir);
-                // Also set lowercase key just in case template uses it
+                renderData.tanggalLahir = formatIndoDate(renderData.tanggalLahir as string);
                 renderData["tanggallahir"] = renderData.tanggalLahir;
+            }
+
+            // Proactively format other common date fields
+            if (renderData.tmt) {
+                 renderData.tmt = formatIndoDate(renderData.tmt as string);
+                 renderData["TMT"] = renderData.tmt; // Common uppercase key
+            }
+
+            if (renderData.tanggalPenetapan) {
+                 renderData.tanggalPenetapan = formatIndoDate(renderData.tanggalPenetapan as string);
+            }
+            
+            // Format CreatedAt / Tanggal SK
+            // Priority: createdAt > _creationTime > Now
+            const rawCreated = renderData.createdAt || renderData._creationTime;
+            
+            if (rawCreated) {
+                 const d = new Date(rawCreated as string | number);
+                 if (!isNaN(d.getTime())) {
+                     renderData["tanggal_sk"] = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                     renderData["Tanggal_SK"] = renderData["tanggal_sk"];
+                 }
+            } else {
+                 // Default to today if missing
+                 const d = new Date();
+                 renderData["tanggal_sk"] = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
             }
 
             // Render with QR Code

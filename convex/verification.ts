@@ -39,21 +39,25 @@ export const verifyByCode = query({
             .filter((q) => q.eq(q.field("nomorSk"), args.code))
             .first();
 
-         // If still null, TRY HEADMASTERS TABLE (New Feature)
+         // If still null, TRY HEADMASTER TENURES TABLE (Correct Table Name)
          if (!sk) {
              try {
-                // Force cast to any to bypass table name check if needed, or use string
-                // But normalizeId expects a valid table name from schema. 
-                // Using "headmasters" should be valid if it's in schema. 
-                // If lint complains, it might be due to generic inference.
-                const headmasterId = ctx.db.normalizeId("headmasters" as any, args.code);
+                // Correct table name from schema is 'headmasterTenures'
+                const headmasterId = ctx.db.normalizeId("headmasterTenures" as any, args.code);
                 if (headmasterId) {
                     const hm = await ctx.db.get(headmasterId);
                     if (hm) {
                         // Normalize Headmaster object to resemble SK object for frontend compatibility
                         sk = {
                             _id: hm._id,
-                            nomorSk: hm.nomorSk || "-",
+                            nomorSk: (hm as any).skUrl ? "SK-DIGITAL" : "-", // Headmasters might not have nomorSk column directly? checking schema... 
+                            // Schema says 'headmasterTenures' has NO 'nomorSk'. It has 'skUrl'. 
+                            // Wait, 'teacher_mutations' has 'skNumber'. 'skDocuments' has 'nomorSk'.
+                            // 'headmasterTenures' seems to lack a 'nomorSk' field in schema! 
+                            // It usually joins with teacher or relies on SK generation.
+                            // Let's check schema again. Lines 150-169. NO 'nomorSk'.
+                            // We might need to fetch the SK Number from somewhere else or just say "SK Digital"
+                            
                             status: (hm.status === 'approved' ? 'valid' : 'invalid') as any,
                             teacherId: hm.teacherId, 
                             createdAt: hm._creationTime, 

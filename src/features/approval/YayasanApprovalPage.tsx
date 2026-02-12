@@ -424,21 +424,52 @@ export default function YayasanApprovalPage() {
                                             // Helper to parse various date formats
                                             const parseFlexibleDate = (dateStr: string | null | undefined) => {
                                                 if (!dateStr) return null;
+                                                
+                                                // 0. Clean string
+                                                const cleanStr = dateStr.trim();
+                                                
                                                 // 1. Try ISO/Standard Date first
-                                                const d = new Date(dateStr);
+                                                const d = new Date(cleanStr);
                                                 if (!isNaN(d.getTime())) return d;
                                                 
-                                                // 2. Try parsing splits with multiple delimiters
-                                                const parts = dateStr.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+                                                // 2. Try parsing splits with multiple delimiters (DD-MM-YYYY)
+                                                const parts = cleanStr.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
                                                 if (parts) {
                                                     // Try DD-MM-YYYY (Indonesian standard)
                                                     const d1 = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
                                                     if (!isNaN(d1.getTime())) return d1;
                                                     
-                                                    // Try MM-DD-YYYY (US standard - fallback for 07-19-2007)
+                                                    // Try MM-DD-YYYY (US standard - fallback)
                                                     const d2 = new Date(`${parts[3]}-${parts[1]}-${parts[2]}`);
                                                     if (!isNaN(d2.getTime())) return d2;
                                                 }
+                                                
+                                                // 3. Try Indonesian Month Names (e.g. "19 Juli 2007")
+                                                const indoMonths = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
+                                                const shortIndoMonths = ["jan", "feb", "mar", "apr", "mei", "jun", "jul", "agu", "sep", "okt", "nov", "des"];
+                                                
+                                                const lowerStr = cleanStr.toLowerCase();
+                                                let monthIndex = -1;
+                                                
+                                                // Find month index
+                                                indoMonths.forEach((m, i) => { if (lowerStr.includes(m)) monthIndex = i; });
+                                                if (monthIndex === -1) {
+                                                    shortIndoMonths.forEach((m, i) => { if (lowerStr.includes(m)) monthIndex = i; });
+                                                }
+
+                                                if (monthIndex !== -1) {
+                                                    // Extract year and day
+                                                    const yearMatch = lowerStr.match(/\d{4}/);
+                                                    const dayMatch = lowerStr.match(/^\d{1,2}/) || lowerStr.match(/\s\d{1,2}\s/);
+                                                    
+                                                    if (yearMatch && dayMatch) {
+                                                        const year = parseInt(yearMatch[0]);
+                                                        const day = parseInt(dayMatch[0].trim());
+                                                        const d3 = new Date(year, monthIndex, day);
+                                                        if (!isNaN(d3.getTime())) return d3;
+                                                    }
+                                                }
+
                                                 return null;
                                             };
 

@@ -269,19 +269,24 @@ export const update = mutation({
     token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, token, ...updates } = args;
+    try {
+        const { id, token, ...updates } = args;
 
-    // RBAC CHECK
-    // Pass ID to verify ownership of existing record
-    // Pass new unitKerja to verify they aren't moving it to unauthorized unit
-    await validateWriteAccess(ctx, updates.unitKerja, id, token);
-    
-    await ctx.db.patch(id, {
-      ...updates,
-      updatedAt: Date.now(),
-    });
-    
-    return id;
+        // RBAC CHECK
+        // Pass ID to verify ownership of existing record
+        // Pass new unitKerja to verify they aren't moving it to unauthorized unit
+        await validateWriteAccess(ctx, updates.unitKerja, id, token);
+        
+        await ctx.db.patch(id, {
+          ...updates,
+          updatedAt: Date.now(),
+        });
+        
+        return id;
+    } catch (e: any) {
+        console.error("FAIL in teachers:update :", e);
+        throw new ConvexError(`${e.message}`);
+    }
   },
 });
 

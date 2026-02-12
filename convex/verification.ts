@@ -42,20 +42,19 @@ export const verifyByCode = query({
          // If still null, TRY HEADMASTER TENURES TABLE (Correct Table Name)
          if (!sk) {
              try {
-                // Correct table name from schema is 'headmasterTenures'
+                // 1. Try treating code as a direct ID
                 const headmasterId = ctx.db.normalizeId("headmasterTenures" as any, args.code);
                 if (headmasterId) {
                     const hm = await ctx.db.get(headmasterId);
                     if (hm) {
-                        // Normalize Headmaster object to resemble SK object for frontend compatibility
+                         // FOUND IT! Map to SK format
                         sk = {
                             _id: hm._id,
-                            nomorSk: (hm as any).skUrl ? "SK-DIGITAL" : "-", 
+                            nomorSk: (hm as any).skUrl ? "SK-DIGITAL" : "SK-PENDING", 
                             status: (hm.status === 'approved' ? 'valid' : 'invalid') as any,
                             teacherId: hm.teacherId, 
                             createdAt: hm._creationTime, 
                             nama: "", 
-                            // Add missing required fields from skDocuments schema to avoid strict TS errors
                             jenisSk: "kamad",
                             tanggalPenetapan: hm.startDate,
                             updatedAt: hm._creationTime,

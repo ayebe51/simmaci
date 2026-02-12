@@ -54,7 +54,8 @@ export const list = query({
             jabatan: "Kepala Madrasah",
             statusKepegawaian: teacher.status,
             suratPermohonanUrl: teacher.suratPermohonanUrl,
-            tmt: teacher.tmt, // Expose Teacher TMT
+            // 🔥 TMT FALLBACK: If teacher.tmt is missing, use tenure.startDate
+            tmt: teacher.tmt || tenure.startDate || "-", 
           } : null,
           school: school ? {
             _id: school._id,

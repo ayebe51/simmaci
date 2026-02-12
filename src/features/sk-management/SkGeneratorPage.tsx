@@ -247,9 +247,32 @@ const generateBulkSkZip = async (
                 }
             });
 
+            // Format Dates to Indonesian
+            const renderData = { ...data };
+            
+            if (renderData.tanggalLahir) {
+                try {
+                    // Handle "YYYY-MM-DD" or standard date strings
+                    const dateParts = renderData.tanggalLahir.split("-");
+                    if (dateParts.length === 3) {
+                         // Create date from parts to avoid timezone issues (YYYY, MM-1, DD)
+                         const dateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                         renderData.tanggalLahir = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    } else {
+                         // Fallback for other formats
+                         const d = new Date(renderData.tanggalLahir);
+                         if (!isNaN(d.getTime())) {
+                             renderData.tanggalLahir = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                         }
+                    }
+                } catch (e) {
+                    console.error("Date format error", e);
+                }
+            }
+
             // Render with QR Code
             doc.render({
-                ...data,
+                ...renderData,
                 qrcode: qrDataUrl // {%qrcode} tag in Docx
             });
 

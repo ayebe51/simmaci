@@ -401,6 +401,23 @@ export default function YayasanApprovalPage() {
                                                 console.error("❌ QR Fail", err);
                                             }
                                             
+                                            // --- UI DEBUGGER (Temporary) ---
+                                            // Show this to the user to debug TMT & ID
+                                            const teacherTmtDate = parseFlexibleDate(item.teacher?.tmt);
+                                            
+                                            toast(
+                                                <div className="text-xs font-mono space-y-1">
+                                                    <p className="font-bold">DEBUG INFO (Screenshot Ini):</p>
+                                                    <p>ID: {item.id}</p>
+                                                    <p>Raw TMT: "{item.teacher?.tmt}"</p>
+                                                    <p>Parsed TMT: {teacherTmtDate ? teacherTmtDate.toLocaleDateString() : "NULL"}</p>
+                                                    <p>Backup TMT: {item.startDate}</p>
+                                                    <p>Status: {item.status}</p>
+                                                </div>,
+                                                { duration: 10000 }
+                                            );
+
+                                            
                                             // LOG TEMPLATE CONTENT
                                             // console.log("Template Content Preview:", zip.file("word/document.xml")?.asText().substring(0, 500));
 

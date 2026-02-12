@@ -421,8 +421,30 @@ export default function YayasanApprovalPage() {
                                               .replace(/{BL_ROMA}/g, mmRoma)
                                               .replace(/{TAHUN}/g, String(yyyy))
 
+                                            // Helper to parse various date formats
+                                            const parseFlexibleDate = (dateStr: string | null | undefined) => {
+                                                if (!dateStr) return null;
+                                                // Try standard Date
+                                                let d = new Date(dateStr);
+                                                if (!isNaN(d.getTime())) return d;
+                                                
+                                                // Try DD-MM-YYYY or DD/MM/YYYY
+                                                const parts = dateStr.match(/(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+                                                if (parts) {
+                                                    // Assumption: DD-MM-YYYY (Common in ID)
+                                                    d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                                                    if (!isNaN(d.getTime())) return d;
+                                                }
+                                                return null;
+                                            };
+
+                                            const teacherTmtDate = parseFlexibleDate(item.teacher?.tmt);
+                                            console.log("DEBUG TMT RAW:", item.teacher?.tmt, "PARSED:", teacherTmtDate);
+
+                                            // ...
+
                                             const finalTmt = new Date(item.endDate).getFullYear() > 1970 
-                                                ? new Date(item.tmt).toLocaleDateString("id-ID", {day: 'numeric', month: 'long', year: 'numeric'})
+                                                ? (teacherTmtDate ? teacherTmtDate.toLocaleDateString("id-ID", {day: 'numeric', month: 'long', year: 'numeric'}) : "-")
                                                 : "-";
                                             
                                             // Handle invalid dates gracefully
@@ -457,11 +479,11 @@ export default function YayasanApprovalPage() {
                                                 TANGGAL_BERAKHIR: finalValid,
                                                 
                                                 // --- DATES ---
-                                                TMT: (item.teacher?.tmt && new Date(item.teacher.tmt).getFullYear() > 1900)
-                                                    ? new Date(item.teacher.tmt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+                                                TMT: (teacherTmtDate && teacherTmtDate.getFullYear() > 1900)
+                                                    ? teacherTmtDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
                                                     : (item.startDate ? new Date(item.startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"),
-                                                "TMT_GURU": (item.teacher?.tmt && new Date(item.teacher.tmt).getFullYear() > 1900)
-                                                    ? new Date(item.teacher.tmt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+                                                "TMT_GURU": (teacherTmtDate && teacherTmtDate.getFullYear() > 1900)
+                                                    ? teacherTmtDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
                                                     : (item.startDate ? new Date(item.startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"),
                                                 "TMT_KAMAD": finalTmt,
                                                 "Tanggal Penetapan": finalPenetapan,

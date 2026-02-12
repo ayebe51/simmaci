@@ -265,6 +265,8 @@ export const update = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
+    token: v.optional(v.string()),
     // Support Legacy/Lowercase fields from older frontends
     tanggallahir: v.optional(v.string()), 
     tempatlahir: v.optional(v.string()), 

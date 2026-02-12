@@ -269,23 +269,40 @@ export const update = mutation({
     token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    console.log("---------------------------------------------------");
+    console.log("Mutation teachers:update START");
+    console.log("Args:", JSON.stringify(args));
+    
     try {
         const { id, token, ...updates } = args;
 
-        // RBAC CHECK
-        // Pass ID to verify ownership of existing record
-        // Pass new unitKerja to verify they aren't moving it to unauthorized unit
-        await validateWriteAccess(ctx, updates.unitKerja, id, token);
+        console.log("1. Validating Write Access...");
+        console.log("   - Unit:", updates.unitKerja);
+        console.log("   - ID:", id);
+        console.log("   - Token present:", !!token);
+
+        try {
+            // RBAC CHECK
+            await validateWriteAccess(ctx, updates.unitKerja, id, token);
+            console.log("2. Access Validated.");
+        } catch (rbacError: any) {
+            console.error("RBAC Validation Failed:", rbacError);
+            throw new Error(`RBAC Check Failed: ${rbacError.message}`);
+        }
         
+        console.log("3. Patching DB...");
         await ctx.db.patch(id, {
           ...updates,
           updatedAt: Date.now(),
         });
-        
+        console.log("4. Patch Success.");
         return id;
     } catch (e: any) {
         console.error("FAIL in teachers:update :", e);
-        throw new ConvexError(`${e.message}`);
+        // Ensure we throw a descriptive error
+        // If it's already a ConvexError (unlikely if it was "Server Error"), rethrow
+        // If it's a JS Error, wrap it.
+        throw new ConvexError(`Update Failed: ${e.message}`);
     }
   },
 });

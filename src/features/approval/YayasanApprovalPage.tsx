@@ -423,7 +423,9 @@ export default function YayasanApprovalPage() {
                                             let finalValid = "-";
                                             try {
                                                 finalValid = new Date(item.endDate).toLocaleDateString("id-ID", {day: 'numeric', month: 'long', year: 'numeric'})
-                                            } catch(e) {}
+                                             } catch(e) {
+                                                // Ignore invalid date
+                                             }
                                             
                                             const finalPenetapan = tanggalPenetapan || new Date().toLocaleDateString("id-ID", {day: 'numeric', month: 'long', year: 'numeric'})
 

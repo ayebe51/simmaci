@@ -397,6 +397,7 @@ export default function TeacherListPage() {
         addIfPresent("tempatLahir", formData.tempatLahir || formData.birthPlace);
         addIfPresent("tanggalLahir", formData.tanggalLahir || formData.birthDate);
         
+        addIfPresent("pendidikanTerakhir", formData.pendidikanTerakhir); // ADDED
         addIfPresent("tmt", formData.tmt);
         if (formData.isCertified !== undefined) cleanPayload.isCertified = formData.isCertified;
         if (formData.photoId) cleanPayload.photoId = formData.photoId;
@@ -441,7 +442,7 @@ export default function TeacherListPage() {
 
   const openAdd = () => {
       setIsEditMode(false)
-      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "" })
+      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "" })
       setIsAddOpen(true)
   }
 
@@ -487,7 +488,7 @@ export default function TeacherListPage() {
   const closeDialog = () => {
       setIsAddOpen(false)
       setIsEditMode(false)
-      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "" })
+      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "" })
   }
 
   const handleExport = async () => {
@@ -854,16 +855,31 @@ export default function TeacherListPage() {
                     </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="pendidikanTerakhir" className="text-right">Pendidikan</Label>
+                    <Select 
+                        value={formData.pendidikanTerakhir} 
+                        onValueChange={(val) => setFormData({...formData, pendidikanTerakhir: val})}
+                    >
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Pilih Pendidikan Terakhir" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="SD">SD</SelectItem>
+                            <SelectItem value="SMP">SMP</SelectItem>
+                            <SelectItem value="SMA">SMA/SMK</SelectItem>
+                            <SelectItem value="D1">D1</SelectItem>
+                            <SelectItem value="D2">D2</SelectItem>
+                            <SelectItem value="D3">D3</SelectItem>
+                            <SelectItem value="S1">S1 / D4</SelectItem>
+                            <SelectItem value="S2">S2</SelectItem>
+                            <SelectItem value="S3">S3</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="status" className="text-right">Status</Label>
                     <Select 
-                        value={
-                            // Normalization for existing data display
-                            (formData.status || "").includes("PNS") || (formData.status || "").includes("ASN") ? "PNS" :
-                            (formData.status || "").includes("GTY") || (formData.status || "").includes("Yayasan") ? "GTY" :
-                            (formData.status || "").includes("GTT") || (formData.status || "").includes("Honor") ? "GTT" :
-                            (formData.status || "").includes("Tendik") || (formData.status || "").includes("TU") ? "Tendik" :
-                            formData.status || "GTY" // Default fallback
-                        } 
+                        value={formData.status} 
                         onValueChange={(val) => setFormData({...formData, status: val})}
                     >
                         <SelectTrigger className="col-span-3">

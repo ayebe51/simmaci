@@ -164,6 +164,7 @@ export const update = mutation({
     endDate: v.optional(v.string()),
     status: v.optional(v.string()),
     skUrl: v.optional(v.string()),
+    nomorSk: v.optional(v.string()), // Added nomorSk
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -183,6 +184,7 @@ export const approve = mutation({
     id: v.id("headmasterTenures"),
     approvedBy: v.id("users"),
     skUrl: v.optional(v.string()),
+    nomorSk: v.optional(v.string()), // Added nomorSk
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -193,13 +195,19 @@ export const approve = mutation({
       throw new Error("Headmaster tenure not found");
     }
     
-    await ctx.db.patch(args.id, {
+    const patchData: any = {
       status: "approved",
       approvedBy: args.approvedBy,
       approvedAt: now,
       skUrl: args.skUrl,
       updatedAt: now,
-    });
+    };
+
+    if (args.nomorSk) {
+        patchData.nomorSk = args.nomorSk;
+    }
+    
+    await ctx.db.patch(args.id, patchData);
     
     // 📝 Log approval history
     try {

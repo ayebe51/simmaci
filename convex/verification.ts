@@ -58,7 +58,7 @@ export const verifyByCode = query({
                          // FOUND IT! Map to SK format
                         sk = {
                             _id: hm._id,
-                            nomorSk: (hm as any).skUrl ? "SK DIGITAL" : "SK DIGITAL", // Default to SK DIGITAL for now
+                            nomorSk: (hm as any).nomorSk || "SK DIGITAL", // Prioritize saved Nomor SK
                             status: (hm.status === 'approved' ? 'valid' : 'invalid') as any,
                             teacherId: hm.teacherId, 
                             createdAt: hm._creationTime, 

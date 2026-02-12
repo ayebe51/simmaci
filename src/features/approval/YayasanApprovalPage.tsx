@@ -31,6 +31,7 @@ export default function YayasanApprovalPage() {
   // 🔥 CONVEX MUTATIONS
   const approveMutation = useMutation(convexApi.headmasters.approve)
   const rejectMutation = useMutation(convexApi.headmasters.reject)
+  const updateTenure = useMutation(convexApi.headmasters.update) // 🔥 Added Update Mutation
 
   // --- SIGNATURE STATE ---
   const [isSignModalOpen, setIsSignModalOpen] = useState(false)
@@ -426,6 +427,18 @@ export default function YayasanApprovalPage() {
                                               .replace(/{BULAN}/g, mmAngka)
                                               .replace(/{BL_ROMA}/g, mmRoma)
                                               .replace(/{TAHUN}/g, String(yyyy))
+
+                                            // 🔥 SAVE GENERATED NOMOR TO DB
+                                            try {
+                                                await updateTenure({ 
+                                                    id: item.id as Id<"headmasterTenures">, 
+                                                    nomorSk: generatedNomor 
+                                                });
+                                                console.log("✅ SK Number Saved:", generatedNomor);
+                                            } catch (e) {
+                                                console.error("❌ Failed to save SK Number:", e);
+                                                toast.error("Gagal menyimpan Nomor SK ke database (Dokumen tetap terunduh)");
+                                            }
 
                                             // Helper to parse various date formats
                                             const parseFlexibleDate = (dateStr: string | null | undefined) => {

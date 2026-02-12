@@ -20,7 +20,12 @@ export const inspect = query({
         hasTenures: tenureCount > 0,
       },
       TEACHER_SAMPLES: teachers.map(t => ({ id: t._id, nama: t.nama, tmt: t.tmt })),
-      TENURE_SAMPLES: tenures.map(t => ({ id: t._id, teacherId: t.teacherId, skUrl: t.skUrl })),
+      TENURE_SAMPLES: tenures.map(t => ({ 
+          id: t._id, 
+          teacherId: t.teacherId, 
+          skUrl: t.skUrl,
+          nomorSk: (t as any).nomorSk // Check if this exists
+      })),
       SEARCH_ID_CHECK: "jx79t573s6nbav3etsyw4peyc180z1q7",
       ID_FOUND: tenures.some(t => t._id === "jx79t573s6nbav3etsyw4peyc180z1q7")
     };

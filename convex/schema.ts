@@ -156,6 +156,7 @@ export default defineSchema({
     startDate: v.string(),
     endDate: v.string(),
     status: v.string(), // 'pending', 'approved', 'rejected', 'active', 'expired'
+    nomorSk: v.optional(v.string()), // Saved generated SK Number
     skUrl: v.optional(v.string()),
     approvedBy: v.optional(v.id("users")),
     approvedAt: v.optional(v.number()),

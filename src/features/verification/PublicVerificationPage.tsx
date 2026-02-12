@@ -133,18 +133,32 @@ export default function PublicVerificationPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground font-semibold uppercase">Status Keaktifan</p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <Badge variant={data.teacher?.isActive ? "default" : "destructive"} 
-                                                   className={data.teacher?.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
-                                                {data.teacher?.isActive ? "AKTIF MENGAJAR" : "NON-AKTIF / KELUAR"}
-                                            </Badge>
+                                    <div className="flex items-start gap-3">
+                                        {data.jenisSk === "kamad" ? (
+                                            <ShieldCheck className="w-5 h-5 text-slate-400 mt-0.5" />
+                                        ) : (
+                                            <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
+                                        )}
+                                        <div>
+                                            <p className="text-xs text-muted-foreground font-semibold uppercase">
+                                                {data.jenisSk === "kamad" ? "Validasi Jabatan" : "Status Keaktifan"}
+                                            </p>
+                                            
+                                            {/* CUSTOM HEADMASTER DESCRIPTION */}
+                                            {data.description ? (
+                                                <div className="mt-1 bg-blue-50 border border-blue-100 p-2 rounded text-sm text-blue-800 font-medium">
+                                                    {data.description}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant={data.teacher?.isActive ? "default" : "destructive"} 
+                                                           className={data.teacher?.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
+                                                        {data.teacher?.isActive ? "AKTIF MENGAJAR" : "NON-AKTIF / KELUAR"}
+                                                    </Badge>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
                             </div>
                         </>
                     )}

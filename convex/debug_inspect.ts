@@ -6,31 +6,23 @@ import { v } from "convex/values";
 export const inspect = query({
   args: {},
   handler: async (ctx) => {
-    // 1. Search for teacher "Maslahul" - FULL SCAN to be sure
-    const teachers = await ctx.db.query("teachers").collect();
-      
-    const matches = teachers.filter(t => t.nama && t.nama.toLowerCase().includes("maslahul"));
+    // 1. Env Info (if possible, or just deduce from data)
+    const teacherCount = (await ctx.db.query("teachers").take(1)).length;
+    const tenureCount = (await ctx.db.query("headmasterTenures").take(1)).length;
 
-    // 2. Get recent Headmaster Tenures
-    const tenures = await ctx.db.query("headmasterTenures").collect();
-    const targetTenure = tenures.find(t => t.teacherName?.toLowerCase().includes("maslahul") || t._id === "jx79t573s6nbav3etsyw4peyc180z1q7");
+    // 2. Raw Samples
+    const teachers = await ctx.db.query("teachers").take(5);
+    const tenures = await ctx.db.query("headmasterTenures").take(5);
 
     return {
-      TEACHER_MATCHES: matches.map(m => ({
-          id: m._id,
-          nama: m.nama,
-          tmt: m.tmt,
-          tmt_type: typeof m.tmt,
-          unit: m.unitKerja,
-          isActive: m.isActive
-      })),
-      TENURE_MATCH: targetTenure ? {
-          id: targetTenure._id,
-          teacherId: targetTenure.teacherId,
-          teacherName: targetTenure.teacherName,
-          status: targetTenure.status,
-          skUrl: targetTenure.skUrl
-      } : "Tenure Not Found"
+      ENV_CHECK: {
+        hasTeachers: teacherCount > 0,
+        hasTenures: tenureCount > 0,
+      },
+      TEACHER_SAMPLES: teachers.map(t => ({ id: t._id, nama: t.nama, tmt: t.tmt })),
+      TENURE_SAMPLES: tenures.map(t => ({ id: t._id, teacherId: t.teacherId, skUrl: t.skUrl })),
+      SEARCH_ID_CHECK: "jx79t573s6nbav3etsyw4peyc180z1q7",
+      ID_FOUND: tenures.some(t => t._id === "jx79t573s6nbav3etsyw4peyc180z1q7")
     };
   },
 });

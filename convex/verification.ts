@@ -47,10 +47,18 @@ export const verifyByCode = query({
                 if (headmasterId) {
                     const hm = await ctx.db.get(headmasterId);
                     if (hm) {
+                        // Fetch School for Description
+                        const school = await ctx.db.get(hm.schoolId);
+                        const schoolName = school ? (school as any).nama : "";
+                        const startYear = new Date(hm.startDate).getFullYear();
+                        const endYear = new Date(hm.endDate).getFullYear();
+                        
+                        const description = `Aktif Menjadi Kepala ${schoolName}\nPeriode ${startYear}-${endYear}`;
+
                          // FOUND IT! Map to SK format
                         sk = {
                             _id: hm._id,
-                            nomorSk: (hm as any).skUrl ? "SK-DIGITAL" : "SK-PENDING", 
+                            nomorSk: (hm as any).skUrl ? "SK DIGITAL" : "SK DIGITAL", // Default to SK DIGITAL for now
                             status: (hm.status === 'approved' ? 'valid' : 'invalid') as any,
                             teacherId: hm.teacherId, 
                             createdAt: hm._creationTime, 
@@ -58,6 +66,7 @@ export const verifyByCode = query({
                             jenisSk: "kamad",
                             tanggalPenetapan: hm.startDate,
                             updatedAt: hm._creationTime,
+                            description: description // Custom field for frontend
                         } as any;
                     }
                 }
@@ -117,7 +126,9 @@ export const verifyByCode = query({
       issuedDate: sk.createdAt,
       validUntil: new Date(validUntilTimestamp).toISOString(),
       isExpired: isExpired, 
-      isQrValid: true
+      isQrValid: true,
+      description: (sk as any).description, // Pass description to frontend
+      jenisSk: (sk as any).jenisSk
     };
   },
 });

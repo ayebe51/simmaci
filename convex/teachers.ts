@@ -109,7 +109,7 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
     if (token) {
         user = await validateSession(ctx, token);
         if (!user) {
-             throw new Error("Unauthorized: Sesi tidak valid atau kadaluarsa.");
+             throw new ConvexError("Unauthorized: Sesi tidak valid atau kadaluarsa.");
         }
     } else {
         // 1. Standard Convex Auth
@@ -117,7 +117,7 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
         
         // 1. If not logged in, throw error (Strict Mode)
         if (!identity) {
-            throw new Error("Unauthorized: Harap login terlebih dahulu.");
+            throw new ConvexError("Unauthorized: Harap login terlebih dahulu.");
         }
 
         user = await ctx.db
@@ -127,7 +127,7 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
     }
 
     if (!user) {
-        throw new Error("Unauthorized: User tidak ditemukan.");
+        throw new ConvexError("Unauthorized: User tidak ditemukan.");
     }
 
     // 2. Admin is God Mode (Support both 'admin' and 'super_admin')
@@ -144,12 +144,18 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
                 const existing = await ctx.db.get(currentTeacherId);
                 if (!existing) return user;
                 
-                if (existing.schoolId !== user.schoolId) {
-                     // Fallback to string check if schoolId absent on target (legacy data)
-                     if (!existing.schoolId && existing.unitKerja === user.unit) {
-                         return user; // Allow legacy match
-                     }
-                     throw new Error("Forbidden: Anda tidak memiliki akses ke guru ini (School ID Mismatch).");
+                // Strict School ID Match
+                if (existing.schoolId && existing.schoolId !== user.schoolId) {
+                     throw new ConvexError(`Forbidden: Anda tidak memiliki akses ke guru ini. (School ID: ${existing.schoolId} vs ${user.schoolId})`);
+                }
+
+                // Fallback for legacy data (no schoolId on teacher) -> Check Unit Name
+                if (!existing.schoolId) {
+                    const existingUnit = existing.unitKerja?.trim().toLowerCase() || "";
+                    const userUnit = user.unit?.trim().toLowerCase() || "";
+                    if (existingUnit !== userUnit) {
+                         throw new ConvexError(`Forbidden: Satminkal tidak cocok. Teacher: ${existingUnit}, User: ${userUnit}`);
+                    }
                 }
              }
              return user;
@@ -157,12 +163,14 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
 
         // FALLBACK: Legacy String Logic
         if (!user.unit) {
-            throw new Error("Forbidden: Akun operator tidak memiliki Unit Kerja.");
+            throw new ConvexError("Forbidden: Akun operator tidak memiliki Unit Kerja.");
         }
 
+        const userUnitNormalized = user.unit.trim().toLowerCase();
+
         // A. If targetUnit is provided (Create/Update), it MUST match user.unit
-        if (targetUnit && targetUnit.trim().toLowerCase() !== user.unit.trim().toLowerCase()) {
-            throw new Error(`Forbidden: Anda tidak berhak mengelola data unit '${targetUnit}'.`);
+        if (targetUnit && targetUnit.trim().toLowerCase() !== userUnitNormalized) {
+            throw new ConvexError(`Forbidden: Anda tidak berhak mengelola data unit '${targetUnit}'.`);
         }
 
         // B. If acting on existing teacher (Update/Delete), verify ownership
@@ -170,15 +178,15 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
             const existing = await ctx.db.get(currentTeacherId);
             if (!existing) return user; // Let the mutation handle "not found"
             
-            if (existing.unitKerja !== user.unit) {
-                 throw new Error("Forbidden: Anda tidak memiliki akses ke guru ini.");
+            if (existing.unitKerja?.trim().toLowerCase() !== userUnitNormalized) {
+                 throw new ConvexError("Forbidden: Anda tidak memiliki akses ke guru ini.");
             }
         }
 
         return user;
     }
 
-    throw new Error("Forbidden: Role tidak dikenali.");
+    throw new ConvexError("Forbidden: Role tidak dikenali.");
 }
 
 // Create new teacher
@@ -217,7 +225,9 @@ export const create = mutation({
         const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
         // NEW: Force schoolId if user has it
         const finalSchoolId = user.role === 'operator' ? user.schoolId : (args as any).schoolId; 
-
+        
+        // ... (rest of the logic remains similar but simplified error handling)
+        
         const now = Date.now();
         
         // Check for duplicate NUPTK
@@ -234,14 +244,14 @@ export const create = mutation({
           console.log("Existing teacher found:", existing._id);
           // RBAC CHECK FOR UPDATE
           if (user.role === 'operator' && existing.unitKerja !== user.unit) {
-              throw new Error("Forbidden: NUPTK terdaftar di sekolah lain.");
+              throw new ConvexError("Forbidden: NUPTK terdaftar di sekolah lain.");
           }
 
-          // UPSERT LOGIC: Update existing teacher for re-submission
+          // UPSERT LOGIC
           console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
           await ctx.db.patch(existing._id, {
             ...teacherData,
-            unitKerja: finalUnit, // Ensure secure unit
+            unitKerja: finalUnit,
             updatedAt: now,
           });
           return existing._id;
@@ -250,8 +260,8 @@ export const create = mutation({
         console.log("Inserting new teacher...");
         const newIds = await ctx.db.insert("teachers", {
           ...teacherData,
-          unitKerja: finalUnit, // Ensure secure unit
-          schoolId: finalSchoolId, // Ensure secure ID linkage
+          unitKerja: finalUnit,
+          schoolId: finalSchoolId,
           isActive: args.isActive ?? true,
           createdAt: now,
           updatedAt: now,
@@ -259,8 +269,8 @@ export const create = mutation({
         console.log("Insert success:", newIds);
         return newIds;
     } catch (e: any) {
+        if (e instanceof ConvexError) throw e;
         console.error("FAIL in teachers:create :", e);
-        // Throw a clean error that clients can display using ConvexError (safe for Prod)
         throw new ConvexError(`Server Error: ${e.message}`);
     }
   },
@@ -312,19 +322,14 @@ export const update = mutation({
         console.log("   - Unit:", finalUpdates.unitKerja);
         console.log("   - ID:", id);
         
-        try {
-            // RBAC CHECK
-            const user = await validateWriteAccess(ctx, finalUpdates.unitKerja, id, token);
-            console.log("2. Access Validated.");
+        // RBAC CHECK - Let ConvexError bubble up
+        const user = await validateWriteAccess(ctx, finalUpdates.unitKerja, id, token);
+        console.log("2. Access Validated.");
 
-            // PROTECT SCHOOL ID
-            if (user.role === 'operator') {
-                delete finalUpdates.schoolId; // Operator cannot move teachers between schools
-                delete finalUpdates.unitKerja; // Operator cannot rename unit
-            }
-        } catch (rbacError: any) {
-            console.error("RBAC Validation Failed:", rbacError);
-            throw new Error(`RBAC Check Failed: ${rbacError.message}`);
+        // PROTECT SCHOOL ID
+        if (user.role === 'operator') {
+            delete finalUpdates.schoolId; // Operator cannot move teachers between schools
+            delete finalUpdates.unitKerja; // Operator cannot rename unit
         }
         
         console.log("3. Patching DB...");
@@ -335,6 +340,7 @@ export const update = mutation({
         console.log("4. Patch Success.");
         return id;
     } catch (e: any) {
+        if (e instanceof ConvexError) throw e;
         console.error("FAIL in teachers:update :", e);
         throw new ConvexError(`Update Failed: ${e.message}`);
     }

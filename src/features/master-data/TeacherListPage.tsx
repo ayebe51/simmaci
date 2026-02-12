@@ -391,7 +391,17 @@ export default function TeacherListPage() {
         addIfPresent("mapel", formData.mapel);
         addIfPresent("phoneNumber", formData.phoneNumber);
         addIfPresent("pdpkpnu", formData.pdpkpnu); // Fix typo: pdpkpnu (correct) vs pdkpnu (wrong)
-        addIfPresent("kecamatan", formData.kecamatan);
+        
+        // Auto-fill Kecamatan if missing
+        if (!formData.kecamatan && (formData.unitKerja || formData.satminkal)) {
+            const unit = formData.unitKerja || formData.satminkal;
+            const matchedSchool = schools.find(s => s.nama?.trim().toLowerCase() === unit?.trim().toLowerCase());
+            if (matchedSchool && matchedSchool.kecamatan) {
+                cleanPayload.kecamatan = matchedSchool.kecamatan;
+            }
+        } else {
+             addIfPresent("kecamatan", formData.kecamatan);
+        }
         
         // Handle Legacy Field Mapping (Frontend uses birthPlace/birthDate, Backend uses tempatLahir/tanggalLahir)
         addIfPresent("tempatLahir", formData.tempatLahir || formData.birthPlace);
@@ -442,7 +452,24 @@ export default function TeacherListPage() {
 
   const openAdd = () => {
       setIsEditMode(false)
-      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "" })
+      
+      const initialData: Partial<Teacher> = { 
+          nuptk: "", nama: "", status: "GTY", 
+          satminkal: "", mapel: "", phoneNumber: "", 
+          birthPlace: "", birthDate: "", pendidikanTerakhir: "" 
+      }
+
+      // Pre-fill for Operator
+      if (userUnit) {
+          initialData.unitKerja = userUnit;
+          // Find school to get kecamatan
+          const matchedSchool = schools.find(s => s.nama?.trim().toLowerCase() === userUnit.trim().toLowerCase());
+          if (matchedSchool && matchedSchool.kecamatan) {
+              initialData.kecamatan = matchedSchool.kecamatan;
+          }
+      }
+
+      setFormData(initialData)
       setIsAddOpen(true)
   }
 

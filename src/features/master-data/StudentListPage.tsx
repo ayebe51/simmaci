@@ -198,55 +198,59 @@ export default function StudentListPage() {
   const updateStudentMutation = useMutation(convexApi.students.update);
 
   const handleAdd = async () => {
+      // Validate Required Fields
       if (!formData.nama || !formData.nisn) {
           toast.error("Nama dan NISN wajib diisi")
           return
       }
+
+      // Helper to clean empty strings to undefined
+      const clean = (val: string | undefined) => (val && val.trim() !== "") ? val.trim() : undefined;
       
       try {
           if (formData.id) {
             // Update existing student
             await updateStudentMutation({
                 id: formData.id as any,
-                nisn: formData.nisn,
-                nama: formData.nama,
+                nisn: formData.nisn.trim(),
+                nama: formData.nama.trim(),
                 // Optional fields
-                nik: formData.nik,
-                nomorIndukMaarif: formData.nomorIndukMaarif,
+                nik: clean(formData.nik),
+                nomorIndukMaarif: clean(formData.nomorIndukMaarif),
                 jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan",
-                tempatLahir: formData.tempatLahir,
-                tanggalLahir: formData.tanggalLahir,
-                namaAyah: formData.namaAyah,
-                namaIbu: formData.namaIbu,
-                alamat: formData.alamat,
-                kecamatan: formData.kecamatan,
-                namaSekolah: formData.sekolah || userUnit || undefined,
-                npsn: formData.npsn,
-                kelas: formData.kelas,
-                nomorTelepon: formData.nomorTelepon,
-                namaWali: formData.namaWali,
+                tempatLahir: clean(formData.tempatLahir),
+                tanggalLahir: clean(formData.tanggalLahir),
+                namaAyah: clean(formData.namaAyah),
+                namaIbu: clean(formData.namaIbu),
+                alamat: clean(formData.alamat),
+                kecamatan: clean(formData.kecamatan),
+                namaSekolah: clean(formData.sekolah) || userUnit || undefined,
+                npsn: clean(formData.npsn),
+                kelas: clean(formData.kelas),
+                nomorTelepon: clean(formData.nomorTelepon),
+                namaWali: clean(formData.namaWali),
             })
             toast.success("Berhasil memperbarui data siswa")
           } else {
             // Create new student
             await createStudentMutation({
-                nisn: formData.nisn!,
-                nama: formData.nama!,
+                nisn: formData.nisn.trim(),
+                nama: formData.nama.trim(),
                 // Optional fields
-                nik: formData.nik,
-                nomorIndukMaarif: formData.nomorIndukMaarif,
+                nik: clean(formData.nik),
+                nomorIndukMaarif: clean(formData.nomorIndukMaarif),
                 jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan", 
-                tempatLahir: formData.tempatLahir,
-                tanggalLahir: formData.tanggalLahir,
-                namaAyah: formData.namaAyah,
-                namaIbu: formData.namaIbu,
-                alamat: formData.alamat,
-                kecamatan: formData.kecamatan,
-                namaSekolah: formData.sekolah || userUnit || undefined,
-                npsn: formData.npsn,
-                kelas: formData.kelas,
-                nomorTelepon: formData.nomorTelepon,
-                namaWali: formData.namaWali,
+                tempatLahir: clean(formData.tempatLahir),
+                tanggalLahir: clean(formData.tanggalLahir),
+                namaAyah: clean(formData.namaAyah),
+                namaIbu: clean(formData.namaIbu),
+                alamat: clean(formData.alamat),
+                kecamatan: clean(formData.kecamatan),
+                namaSekolah: clean(formData.sekolah) || userUnit || undefined,
+                npsn: clean(formData.npsn),
+                kelas: clean(formData.kelas),
+                nomorTelepon: clean(formData.nomorTelepon),
+                namaWali: clean(formData.namaWali),
             })
             toast.success("Berhasil menambah siswa")
           }
@@ -254,11 +258,17 @@ export default function StudentListPage() {
           setIsAddOpen(false)
           setFormData({ 
               nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
-              nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: ""
+              nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: "", nik: "", namaAyah: "", namaIbu: "", npsn: ""
           })
       } catch (e: any) {
           console.error(e)
-          toast.error(`Gagal ${formData.id ? 'mengedit' : 'menambah'} siswa: ` + (e.message || "Unknown error"))
+          const errorMsg = e.message || "Unknown error";
+          // Handle specific Convex errors readable
+          if (errorMsg.includes("NISN sudah terdaftar")) {
+             toast.error("Gagal: NISN sudah terdaftar di sistem");
+          } else {
+             toast.error(`Gagal ${formData.id ? 'mengedit' : 'menambah'} siswa: ` + errorMsg)
+          }
       }
   }
 
@@ -485,15 +495,15 @@ export default function StudentListPage() {
                 <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="nisn">NISN <span className="text-red-500">*</span></Label>
-                        <Input id="nisn" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="NISN" />
+                        <Input id="nisn" value={formData.nisn || ""} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="NISN" />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="nama">Nama Lengkap <span className="text-red-500">*</span></Label>
-                        <Input id="nama" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} placeholder="Nama Siswa" />
+                        <Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} placeholder="Nama Siswa" />
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="nik">NIK</Label>
-                        <Input id="nik" value={formData.nik} onChange={e => setFormData({...formData, nik: e.target.value})} placeholder="NIK Siswa" />
+                        <Input id="nik" value={formData.nik || ""} onChange={e => setFormData({...formData, nik: e.target.value})} placeholder="NIK Siswa" />
                     </div>
                 </div>
 
@@ -501,15 +511,15 @@ export default function StudentListPage() {
                 <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="tempat_lahir">Tempat Lahir</Label>
-                        <Input id="tempat_lahir" value={formData.tempatLahir} onChange={e => setFormData({...formData, tempatLahir: e.target.value})} />
+                        <Input id="tempat_lahir" value={formData.tempatLahir || ""} onChange={e => setFormData({...formData, tempatLahir: e.target.value})} />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="tanggal_lahir">Tanggal Lahir</Label>
-                        <Input id="tanggal_lahir" type="date" value={formData.tanggalLahir} onChange={e => setFormData({...formData, tanggalLahir: e.target.value})} />
+                        <Input id="tanggal_lahir" type="date" value={formData.tanggalLahir || ""} onChange={e => setFormData({...formData, tanggalLahir: e.target.value})} />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="kelas">Kelas</Label>
-                        <Input id="kelas" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})} placeholder="Contoh: 7A" />
+                        <Input id="kelas" value={formData.kelas || ""} onChange={e => setFormData({...formData, kelas: e.target.value})} placeholder="Contoh: 7A" />
                     </div>
                 </div>
 
@@ -517,7 +527,7 @@ export default function StudentListPage() {
                 <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="jk">Jenis Kelamin</Label>
-                        <Select value={formData.jk} onValueChange={(val: "L" | "P") => setFormData({...formData, jk: val})}>
+                        <Select value={formData.jk || "L"} onValueChange={(val: "L" | "P") => setFormData({...formData, jk: val})}>
                             <SelectTrigger id="jk">
                                 <SelectValue placeholder="Pilih L/P" />
                             </SelectTrigger>
@@ -529,11 +539,11 @@ export default function StudentListPage() {
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="nama_ayah">Nama Ayah</Label>
-                        <Input id="nama_ayah" value={formData.namaAyah} onChange={e => setFormData({...formData, namaAyah: e.target.value})} />
+                        <Input id="nama_ayah" value={formData.namaAyah || ""} onChange={e => setFormData({...formData, namaAyah: e.target.value})} />
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="nama_ibu">Nama Ibu</Label>
-                        <Input id="nama_ibu" value={formData.namaIbu} onChange={e => setFormData({...formData, namaIbu: e.target.value})} />
+                        <Input id="nama_ibu" value={formData.namaIbu || ""} onChange={e => setFormData({...formData, namaIbu: e.target.value})} />
                     </div>
                 </div>
 
@@ -543,7 +553,7 @@ export default function StudentListPage() {
                         <Label htmlFor="sekolah">Asal Sekolah</Label>
                          <Input 
                             id="sekolah" 
-                            value={formData.sekolah} 
+                            value={formData.sekolah || ""} 
                             onChange={e => setFormData({...formData, sekolah: e.target.value})} 
                             disabled={!!userUnit} 
                             placeholder={userUnit ? "Otomatis terisi" : "Nama Sekolah"} 
@@ -551,7 +561,7 @@ export default function StudentListPage() {
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="npsn">NPSN</Label>
-                        <Input id="npsn" value={formData.npsn} onChange={e => setFormData({...formData, npsn: e.target.value})} placeholder="NPSN Sekolah" />
+                        <Input id="npsn" value={formData.npsn || ""} onChange={e => setFormData({...formData, npsn: e.target.value})} placeholder="NPSN Sekolah" />
                     </div>
                 </div>
 
@@ -559,11 +569,11 @@ export default function StudentListPage() {
                  <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
                      <div className="grid gap-2">
                         <Label htmlFor="alamat">Alamat</Label>
-                        <Input id="alamat" value={formData.alamat} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Alamat Lengkap" />
+                        <Input id="alamat" value={formData.alamat || ""} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Alamat Lengkap" />
                     </div>
                      <div className="grid gap-2">
                         <Label htmlFor="nomor_telepon">No. Telepon</Label>
-                        <Input id="nomor_telepon" value={formData.nomorTelepon} onChange={e => setFormData({...formData, nomorTelepon: e.target.value})} />
+                        <Input id="nomor_telepon" value={formData.nomorTelepon || ""} onChange={e => setFormData({...formData, nomorTelepon: e.target.value})} />
                     </div>
                 </div>
             </div>

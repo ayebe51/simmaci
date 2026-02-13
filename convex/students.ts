@@ -117,6 +117,11 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
+
+    const existing = await ctx.db.get(id);
+    if (!existing) {
+      throw new Error("Data siswa tidak ditemukan");
+    }
     
     await ctx.db.patch(id, {
       ...updates,

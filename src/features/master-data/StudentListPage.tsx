@@ -86,7 +86,7 @@ export default function StudentListPage() {
     nama: s.nama || "",
     kelas: s.kelas || "",
     sekolah: s.namaSekolah || "",
-    jk: s.jenisKelamin === "Perempuan" ? "P" : "L",
+    jk: (s.jenisKelamin === "Perempuan" ? "P" : "L") as "L" | "P",
     // Map additional fields
     nik: s.nik,
     tempatLahir: s.tempatLahir,

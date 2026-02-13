@@ -262,7 +262,6 @@ export default function SchoolListPage() {
 
 
       try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const results: any = await bulkCreateAccounts();
           
           // Prepare Data for Excel
@@ -710,7 +709,6 @@ export default function SchoolListPage() {
             }).filter((s) => s.nsm && s.nama); // Only include valid entries
 
             if (schools.length === 0 && data.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const headers = Object.keys(data[0] as any).join(", ");
                 alert(`Gagal import! Tidak ada data valid ditemukan.\n\nSistem mencari kolom: NSM, Nama Madrasah.\n\nKolom yang ditemukan di file Excel: \n${headers}`);
                 return;

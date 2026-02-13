@@ -37,6 +37,7 @@ import type * as reproduce_bulk from "../reproduce_bulk.js";
 import type * as schools from "../schools.js";
 import type * as settings from "../settings.js";
 import type * as settings_cloud from "../settings_cloud.js";
+import type * as settings_tenant from "../settings_tenant.js";
 import type * as sk from "../sk.js";
 import type * as students from "../students.js";
 import type * as teachers from "../teachers.js";
@@ -80,6 +81,7 @@ declare const fullApi: ApiFromModules<{
   schools: typeof schools;
   settings: typeof settings;
   settings_cloud: typeof settings_cloud;
+  settings_tenant: typeof settings_tenant;
   sk: typeof sk;
   students: typeof students;
   teachers: typeof teachers;

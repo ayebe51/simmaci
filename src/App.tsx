@@ -16,6 +16,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import SkGeneratorPage from "./features/sk-management/SkGeneratorPage"
 import SkPrintPage from "./features/sk-management/SkPrintPage"
 import SettingsPage from "./features/settings/SettingsPage"
+import SchoolSettingsPage from "./features/settings/SchoolSettingsPage"
 import HeadmasterExpiryPage from "./features/monitoring/HeadmasterExpiryPage"
 import ReportPage from "./features/reports/ReportPage"
 import SkReportPageSimple from "./features/reports/SkReportPageSimple"
@@ -72,6 +73,8 @@ export default function App() {
                         <Route path="generator" element={<SkGeneratorPage />} />
                         <Route path="audit" element={<DataAuditPage />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        {/* New Tenant Settings */}
+                        <Route path="settings/school" element={<SchoolSettingsPage />} />
                         <Route path="change-password" element={<ChangePasswordPage />} />
                         <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
                         <Route path="reports/sk" element={

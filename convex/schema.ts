@@ -124,6 +124,23 @@ export default defineSchema({
       updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // 🔥 MULTI-TENANT: Per-School Settings
+  tenant_settings: defineTable({
+    schoolId: v.id("schools"),
+    // Branding
+    logoUrl: v.optional(v.string()), // URL or Storage ID
+    kopSuratId: v.optional(v.id("_storage")), // Uploaded image for Header
+    
+    // Signatures (Pejabat Penandatangan)
+    kepalaSekolahNama: v.optional(v.string()),
+    kepalaSekolahNip: v.optional(v.string()),
+    
+    // Customization
+    nomorSuratFormat: v.optional(v.string()), // e.g. "{NO}/SK/MI/{TH}"
+    
+    updatedAt: v.number(),
+  }).index("by_school", ["schoolId"]),
+
   // SK (Surat Keputusan) documents
   skDocuments: defineTable({
     nomorSk: v.string(),
@@ -132,7 +149,8 @@ export default defineSchema({
     nama: v.string(),
     jabatan: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
-
+    // Link to School (Tenant)
+    schoolId: v.optional(v.id("schools")),
 
     tanggalPenetapan: v.string(),
     status: v.string(), // 'draft', 'active', 'archived'

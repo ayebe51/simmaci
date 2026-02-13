@@ -207,7 +207,7 @@ export default function StudentListPage() {
       // Helper to clean empty strings to undefined
       const clean = (val: string | undefined | null) => (val && val.trim().length > 0) ? val.trim() : undefined;
       
-      const payload = {
+      const payload: any = {
         nisn: formData.nisn.trim(),
         nama: formData.nama.trim(),
         // Optional fields
@@ -229,7 +229,10 @@ export default function StudentListPage() {
         namaWali: clean(formData.namaWali),
       };
 
-      console.log("Submitting Student Payload:", payload);
+      // Strip undefined keys
+      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+      console.log("Submitting Student Payload (Cleaned):", payload);
 
       try {
           if (formData.id) {

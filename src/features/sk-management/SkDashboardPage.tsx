@@ -60,7 +60,14 @@ export default function SkDashboardPage() {
 
   // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
   // DEBUG: Removing filter to see ALL teachers
-  const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, { isVerified: false })
+  // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
+  // DEBUG: Removing filter to see ALL teachers
+  const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, { 
+    isVerified: false,
+    // Pass context for server-side filtering
+    userRole: user?.role,
+    userUnit: user?.unitKerja,
+  })
 
   // Mutations
   const archiveAllSk = useMutation(convexApi.sk.archiveAll)

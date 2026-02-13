@@ -451,19 +451,39 @@ export const deleteAllTeachers = mutation({
   },
 });
 
-// Get teachers (The Queue for SK Generation)
+// Get teachers (The Quee for SK Generation)
 export const getTeachersWithSk = query({
   args: {
     isVerified: v.optional(v.boolean()),
+    // Security update: Enforce context
+    userRole: v.optional(v.string()), 
+    userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // fetches ALL teachers, sorted by Most Recently Updated
     // BEST PRACTICE: Use Database Index for Scalability
-    const teachers = await ctx.db
+    let teachers = await ctx.db
         .query("teachers")
         .withIndex("by_updatedAt")
         .order("desc")
         .collect();
+
+    // 🔥 SECURITY: Enforce Unit Filtering for Non-Admins
+    const superRoles = ["super_admin", "admin_yayasan", "admin"];
+    const userRole = args.userRole || "";
+    const isSuper = superRoles.includes(userRole);
+
+    if (!isSuper) {
+        if (args.userUnit) {
+             teachers = teachers.filter(t => t.unitKerja === args.userUnit);
+        } else {
+             // 🚨 STRICT MODE: Prevent leak if no context
+             return [];
+        }
+    } else if (args.userUnit) {
+        // Admin optional filter
+        teachers = teachers.filter(t => t.unitKerja === args.userUnit);
+    }
     
     // Manual Sort Removed (Using Database Index)
     

@@ -74,23 +74,34 @@ export const create = mutation({
     namaWali: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    
-    // Check if NISN already exists
-    const existing = await ctx.db
-      .query("students")
-      .withIndex("by_nisn", (q) => q.eq("nisn", args.nisn))
-      .first();
-    
-    if (existing) {
-      throw new Error("NISN sudah terdaftar");
+    try {
+      const now = Date.now();
+      
+      // Check if NISN already exists
+      const existing = await ctx.db
+        .query("students")
+        .withIndex("by_nisn", (q) => q.eq("nisn", args.nisn))
+        .first();
+      
+      if (existing) {
+        throw new Error("NISN sudah terdaftar");
+      }
+
+      // Normalize Jenis Kelamin (L/P)
+      let jk = args.jenisKelamin;
+      if (jk === "Laki-laki") jk = "L";
+      if (jk === "Perempuan") jk = "P";
+      
+      return await ctx.db.insert("students", {
+        ...args,
+        jenisKelamin: jk, // Use normalized value
+        createdAt: now,
+        updatedAt: now,
+      });
+    } catch (e: any) {
+      console.error("Failed to create student:", e);
+      throw new Error(e.message || "Gagal membuat data siswa");
     }
-    
-    return await ctx.db.insert("students", {
-      ...args,
-      createdAt: now,
-      updatedAt: now,
-    });
   },
 });
 

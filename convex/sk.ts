@@ -8,12 +8,34 @@ export const list = query({
     jenisSk: v.optional(v.string()),
     status: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
+    // Security update: Enforce context
+    userRole: v.optional(v.string()), 
+    userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let docs = await ctx.db.query("skDocuments").collect();
     
     // Filter out archived SK (so Reset Data works)
     docs = docs.filter(sk => sk.status !== "archived");
+
+    // 🔥 SECURITY: Enforce Unit Filtering for Non-Admins
+    const superRoles = ["super_admin", "admin_yayasan", "admin"];
+    const userRole = args.userRole || "";
+    const isSuper = superRoles.includes(userRole);
+
+    if (!isSuper) {
+        if (args.userUnit) {
+            // Force filter by user's unit
+            docs = docs.filter(sk => sk.unitKerja === args.userUnit);
+        } else {
+            // 🚨 STRICT MODE: If non-admin and no unit context provided (old frontend), 
+            // return empty list to prevent data leak.
+            return [];
+        }
+    } else if (args.unitKerja) {
+        // For Admins: Allow filtering by specific unit if requested
+        docs = docs.filter(sk => sk.unitKerja === args.unitKerja);
+    }
     
     // Apply filters
     if (args.jenisSk && args.jenisSk !== "all") {
@@ -22,10 +44,6 @@ export const list = query({
     
     if (args.status && args.status !== "all") {
       docs = docs.filter(sk => sk.status === args.status);
-    }
-    
-    if (args.unitKerja) {
-      docs = docs.filter(sk => sk.unitKerja === args.unitKerja);
     }
     
     return docs;

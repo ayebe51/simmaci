@@ -43,10 +43,19 @@ export default function SkDashboardPage() {
   
   // 🔥 REAL-TIME CONVEX QUERY
   // 1. Get SK Documents (Approved/Rejected/Issued)
+  // Retrieve user context for security filtering
+  const user = useMemo(() => {
+      try {
+          return JSON.parse(localStorage.getItem("user") || "{}");
+      } catch { return {}; }
+  }, []);
+
   const skDocuments = useQuery(convexApi.sk.list, {
     jenisSk: filterType === "all" ? undefined : filterType,
     status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
-    // If "Draft", we don't look at SKs (unless legacy). We look at Teachers Queue.
+    // Pass context for server-side filtering
+    userRole: user?.role,
+    userUnit: user?.unitKerja,
   })
 
   // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab

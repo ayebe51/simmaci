@@ -205,53 +205,43 @@ export default function StudentListPage() {
       }
 
       // Helper to clean empty strings to undefined
-      const clean = (val: string | undefined) => (val && val.trim() !== "") ? val.trim() : undefined;
+      const clean = (val: string | undefined | null) => (val && val.trim().length > 0) ? val.trim() : undefined;
       
+      const payload = {
+        nisn: formData.nisn.trim(),
+        nama: formData.nama.trim(),
+        // Optional fields
+        nik: clean(formData.nik),
+        nomorIndukMaarif: clean(formData.nomorIndukMaarif),
+        jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan",
+        tempatLahir: clean(formData.tempatLahir),
+        tanggalLahir: clean(formData.tanggalLahir),
+        namaAyah: clean(formData.namaAyah),
+        namaIbu: clean(formData.namaIbu),
+        alamat: clean(formData.alamat),
+        kecamatan: clean(formData.kecamatan),
+        // Ensure namaSekolah is either the cleaned input OR userUnit OR undefined. 
+        // Logic: if input is present, use it. If not, use userUnit. If userUnit is null/empty, use undefined.
+        namaSekolah: clean(formData.sekolah) ?? (userUnit || undefined),
+        npsn: clean(formData.npsn),
+        kelas: clean(formData.kelas),
+        nomorTelepon: clean(formData.nomorTelepon),
+        namaWali: clean(formData.namaWali),
+      };
+
+      console.log("Submitting Student Payload:", payload);
+
       try {
           if (formData.id) {
             // Update existing student
             await updateStudentMutation({
                 id: formData.id as any,
-                nisn: formData.nisn.trim(),
-                nama: formData.nama.trim(),
-                // Optional fields
-                nik: clean(formData.nik),
-                nomorIndukMaarif: clean(formData.nomorIndukMaarif),
-                jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan",
-                tempatLahir: clean(formData.tempatLahir),
-                tanggalLahir: clean(formData.tanggalLahir),
-                namaAyah: clean(formData.namaAyah),
-                namaIbu: clean(formData.namaIbu),
-                alamat: clean(formData.alamat),
-                kecamatan: clean(formData.kecamatan),
-                namaSekolah: clean(formData.sekolah) || userUnit || undefined,
-                npsn: clean(formData.npsn),
-                kelas: clean(formData.kelas),
-                nomorTelepon: clean(formData.nomorTelepon),
-                namaWali: clean(formData.namaWali),
+                ...payload
             })
             toast.success("Berhasil memperbarui data siswa")
           } else {
             // Create new student
-            await createStudentMutation({
-                nisn: formData.nisn.trim(),
-                nama: formData.nama.trim(),
-                // Optional fields
-                nik: clean(formData.nik),
-                nomorIndukMaarif: clean(formData.nomorIndukMaarif),
-                jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan", 
-                tempatLahir: clean(formData.tempatLahir),
-                tanggalLahir: clean(formData.tanggalLahir),
-                namaAyah: clean(formData.namaAyah),
-                namaIbu: clean(formData.namaIbu),
-                alamat: clean(formData.alamat),
-                kecamatan: clean(formData.kecamatan),
-                namaSekolah: clean(formData.sekolah) || userUnit || undefined,
-                npsn: clean(formData.npsn),
-                kelas: clean(formData.kelas),
-                nomorTelepon: clean(formData.nomorTelepon),
-                namaWali: clean(formData.namaWali),
-            })
+            await createStudentMutation(payload)
             toast.success("Berhasil menambah siswa")
           }
           
@@ -261,7 +251,7 @@ export default function StudentListPage() {
               nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: "", nik: "", namaAyah: "", namaIbu: "", npsn: ""
           })
       } catch (e: any) {
-          console.error(e)
+          console.error("Mutation Error:", e)
           const errorMsg = e.message || "Unknown error";
           // Handle specific Convex errors readable
           if (errorMsg.includes("NISN sudah terdaftar")) {

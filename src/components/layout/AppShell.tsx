@@ -74,8 +74,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Manajemen User", href: "/dashboard/users", icon: Users },
         { label: "Health Data", href: "/dashboard/audit", icon: Stethoscope },
         { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
-        { label: "Pengaturan Sekolah", href: "/dashboard/settings/school", icon: School },
-        { label: "Pengaturan Global", href: "/dashboard/settings", icon: Settings },
+        { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
       ]
     }
   ]

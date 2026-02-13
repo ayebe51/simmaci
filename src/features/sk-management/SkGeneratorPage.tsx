@@ -401,9 +401,6 @@ export default function SkGeneratorPage() {
   const teachersDataRaw = useQuery(convexApi.sk.getTeachersWithSk, {})
   const isQueryLoading = teachersDataRaw === undefined
   const teachersData = (teachersDataRaw || []) as Teacher[]
-  
-  // 🔥 TENANT SETTINGS (For Logo, Signatures)
-  const tenantSettings = useQuery(api.settings_tenant.get)
 
 
   // MUTATIONS
@@ -877,21 +874,10 @@ export default function SkGeneratorPage() {
       // Get selected teacher objects
       const selectedData = teachersData.filter(t => selectedIds.has(t._id))
       
-      // Get Settings for Signers (Priority: Tenant > LocalStorage > Default)
+      // Get Settings for Signers
       const settingsStr = localStorage.getItem("app_settings")
-      const localSettings = settingsStr ? JSON.parse(settingsStr) : {}
+      const settings = settingsStr ? JSON.parse(settingsStr) : {}
 
-      // Resolve Signers
-      const ketuaNama = tenantSettings?.kepalaSekolahNama || localSettings.signerKetuaName || "H. Munib"
-      const ketuaNip = tenantSettings?.kepalaSekolahNip || localSettings.signerKetuaNip || "-"
-      // Sekretaris is not in Tenant Settings yet, use Global or Local
-      const sekretarisNama = localSettings.signerSekretarisName || "-"
-      const sekretarisNip = localSettings.signerSekretarisNip || "-"
-
-      // Custom Format Override?
-      // Note: We use the state `nomorFormat` which is bind to Input. 
-      // Ideally we should have set `nomorFormat` state from tenantSettings on load.
-      
       // PREPARE DATE COMPONENTS
       // Default to today if empty
       const finalTanggalPenetapan = tanggalPenetapan || new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})
@@ -1065,11 +1051,11 @@ export default function SkGeneratorPage() {
             "Tahun Pelajaran": tahunAjaran,
             "Th Pelajaran": tahunAjaran,
 
-            // Inject Global Signers (Priority: Tenant > Local > Default)
-            KETUA_NAMA: ketuaNama,
-            KETUA_NIP: ketuaNip,
-            SEKRETARIS_NAMA: sekretarisNama,
-            SEKRETARIS_NIP: sekretarisNip
+            // Inject Global Signers
+            KETUA_NAMA: settings.signerKetuaName || "H. Munib",
+            KETUA_NIP: settings.signerKetuaNip || "-",
+            SEKRETARIS_NAMA: settings.signerSekretarisName || "-",
+            SEKRETARIS_NIP: settings.signerSekretarisNip || "-"
         }
       })
       

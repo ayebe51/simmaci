@@ -195,6 +195,8 @@ export default function StudentListPage() {
   
   // ... (existing code)
 
+  const updateStudentMutation = useMutation(convexApi.students.update);
+
   const handleAdd = async () => {
       if (!formData.nama || !formData.nisn) {
           toast.error("Nama dan NISN wajib diisi")
@@ -202,30 +204,61 @@ export default function StudentListPage() {
       }
       
       try {
-          await createStudentMutation({
-              nisn: formData.nisn!,
-              nama: formData.nama!,
-              // Optional fields
-              nomorIndukMaarif: formData.nomorIndukMaarif,
-              jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan", // Map back to backend format
-              tempatLahir: formData.tempatLahir,
-              tanggalLahir: formData.tanggalLahir,
-              alamat: formData.alamat,
-              kecamatan: formData.kecamatan,
-              namaSekolah: formData.sekolah || userUnit || undefined, // Use userUnit if available
-              kelas: formData.kelas,
-              nomorTelepon: formData.nomorTelepon,
-              namaWali: formData.namaWali,
-          })
+          if (formData.id) {
+            // Update existing student
+            await updateStudentMutation({
+                id: formData.id as any,
+                nisn: formData.nisn,
+                nama: formData.nama,
+                // Optional fields
+                nik: formData.nik,
+                nomorIndukMaarif: formData.nomorIndukMaarif,
+                jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan",
+                tempatLahir: formData.tempatLahir,
+                tanggalLahir: formData.tanggalLahir,
+                namaAyah: formData.namaAyah,
+                namaIbu: formData.namaIbu,
+                alamat: formData.alamat,
+                kecamatan: formData.kecamatan,
+                namaSekolah: formData.sekolah || userUnit || undefined,
+                npsn: formData.npsn,
+                kelas: formData.kelas,
+                nomorTelepon: formData.nomorTelepon,
+                namaWali: formData.namaWali,
+            })
+            toast.success("Berhasil memperbarui data siswa")
+          } else {
+            // Create new student
+            await createStudentMutation({
+                nisn: formData.nisn!,
+                nama: formData.nama!,
+                // Optional fields
+                nik: formData.nik,
+                nomorIndukMaarif: formData.nomorIndukMaarif,
+                jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan", 
+                tempatLahir: formData.tempatLahir,
+                tanggalLahir: formData.tanggalLahir,
+                namaAyah: formData.namaAyah,
+                namaIbu: formData.namaIbu,
+                alamat: formData.alamat,
+                kecamatan: formData.kecamatan,
+                namaSekolah: formData.sekolah || userUnit || undefined,
+                npsn: formData.npsn,
+                kelas: formData.kelas,
+                nomorTelepon: formData.nomorTelepon,
+                namaWali: formData.namaWali,
+            })
+            toast.success("Berhasil menambah siswa")
+          }
           
-          toast.success("Berhasil menambah siswa")
           setIsAddOpen(false)
           setFormData({ 
               nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
               nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: ""
           })
       } catch (e: any) {
-          toast.error("Gagal menambah siswa: " + (e.message || "Unknown error"))
+          console.error(e)
+          toast.error(`Gagal ${formData.id ? 'mengedit' : 'menambah'} siswa: ` + (e.message || "Unknown error"))
       }
   }
 
@@ -434,10 +467,18 @@ export default function StudentListPage() {
         </CardContent>
     </Card>
 
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+      <Dialog open={isAddOpen} onOpenChange={(open) => {
+          setIsAddOpen(open)
+          if (!open) {
+              setFormData({ 
+                  nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
+                  nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: ""
+              })
+          }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-                <DialogTitle>Tambah Data Siswa</DialogTitle>
+                <DialogTitle>{formData.id ? "Edit Data Siswa" : "Tambah Data Siswa"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
                 {/* Row 1: NISN, Nama, NIK */}

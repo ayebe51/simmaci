@@ -213,7 +213,7 @@ export default function StudentListPage() {
         // Optional fields
         nik: clean(formData.nik),
         nomorIndukMaarif: clean(formData.nomorIndukMaarif),
-        jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan",
+        jenisKelamin: formData.jk, // Send "L" or "P" directly based on user suggestion
         tempatLahir: clean(formData.tempatLahir),
         tanggalLahir: clean(formData.tanggalLahir),
         namaAyah: clean(formData.namaAyah),

@@ -610,3 +610,22 @@ export const debugListAllTeachers = query({
         return await ctx.db.query("teachers").collect();
     }
 });
+
+export const debugListAllSk = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("skDocuments").collect(); // Unfiltered
+  },
+});
+
+export const getLastSkNumber = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get the most recently created SK
+    const lastSk = await ctx.db.query("skDocuments")
+      .order("desc") // Order by _creationTime by default
+      .first();
+      
+    return lastSk?.nomorSk || null;
+  },
+});

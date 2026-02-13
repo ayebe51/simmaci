@@ -1,0 +1,303 @@
+Total SK Found: 54
+Top 50 Most Recent SKs:
+--------------------------------------------------
+[13/2/2026] ID: j977q7zx8grc73k36pkcrk8ahs812333
+  Name: Itta Qunnisa
+  Unit: "MI MA'ARIF NU 01 BOJONG"
+  Status: active
+  SK No: 0001/PC.L/A.II/H-34.B/24.29/13/2/2026
+--------------------------------------------------
+[12/2/2026] ID: j975mgwdjq5szqvb5cndv9dry9810d33
+  Name: Slamet Subkhi, S.Pd.I
+  Unit: "MI MA'ARIF NU 01 BOJONG"
+  Status: active
+  SK No: 0001/PC.L/A.II/H-34.B/24.29/12/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j97br9y2kkk001f1q2g550fg6580z63s
+  Name: Muhtar
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0007/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j97ew12p72d7f1ampkadk03t5n80ycdn
+  Name: Turyono
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0006/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j976qgkzbjpwxdp3a9n8cae6j980zzqf
+  Name: Mohamad syukur
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0005/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j977crm15d59rsn7gs1364wtfs80zq7m
+  Name: Siti Musyaropah
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0004/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j979mqe4a3awa5v4kty0jfbhhs80zzp2
+  Name: Khoeriyah
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0003/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j97eja0gzd97g24x5n6dwv75zx80ywet
+  Name: Muhajir
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0002/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[11/2/2026] ID: j971f8qfchnzcytzerh1p1ayc980zzq7
+  Name: Sittatun Ghonimah
+  Unit: "MI AL MA'ARIF 01 CIKLAPA"
+  Status: active
+  SK No: 0001/PC.L/A.II/H-34.B/24.29/11/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j9776qsb93p08wwkjfedzv4n3x80tsqa
+  Name: MASDUKI BAEHAKI, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0048/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j972nthkd083ssk6tr34fajtnh80tnxf
+  Name: AHMAD SAFI', S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0047/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j9766nx78v4k2yr1qq4z38fry580tptv
+  Name: MASLAHUL MU'MIN, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0046/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97600fvysqj2br0yhf3ky13v180vk2f
+  Name: TORIK MUSTAFID, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0045/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j973y8qvsj1vw85w8gg5cr291h80vwbs
+  Name: USWATUN CHASANAH, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0044/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j976z95a9t957xyj20vp6nhb7n80tqp2
+  Name: ISNAENIYATUN AMARYANI, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0043/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97bnxma9gyhf0kthjqhmqx59n80vef3
+  Name: MUNAWAROH
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0042/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97bvg4asf9hjm1xmyhbr8x2gd80vn8m
+  Name: ANZILI ROHMAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0041/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j979sn868yvh7xa3xmqc1371en80vek4
+  Name: LAINI MASFUFAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0040/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97fhf9k2bcqvdf3mj7vjb5xfd80txcy
+  Name: MASDUKI BAEHAKI, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0038/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j979zzvyenxzxrnvn8zb717p9d80th3b
+  Name: AHMAD SAFI', S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0037/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97ee8ybw0e9x057njympwhhyh80t7hp
+  Name: MASLAHUL MU'MIN, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0036/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97cyry2wc61ewv4s3n9q2w9vx80tkje
+  Name: TORIK MUSTAFID, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0035/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j9748fnfth4djc3rvh14tkmg8s80v6hp
+  Name: USWATUN CHASANAH, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0034/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97enbdsk8djr9azz09wrgjbkd80vw8q
+  Name: ISNAENIYATUN AMARYANI, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0033/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97ehs96xcd9s35m5yzc93b0xs80v78j
+  Name: MUNAWAROH
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0032/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j978x07ntda9qnf25ht96wh9qh80tgw9
+  Name: ANZILI ROHMAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0031/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97dpj44kpxd1ska0m5d0cvees80tmfx
+  Name: LAINI MASFUFAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0030/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97203kq6pd28d49qw80kby14980vz1m
+  Name: MASDUKI BAEHAKI, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0027/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97dap247tms11tmq6ah0qwaan80v708
+  Name: AHMAD SAFI', S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0026/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j979reah2m6eenk167wf92f3tx80v0nx
+  Name: MASLAHUL MU'MIN, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0025/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j973jj1q8nesgw5ttqnap5zws180v7g3
+  Name: TORIK MUSTAFID, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0024/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97fysym9hgs0dqs5e17526h7980v5ah
+  Name: USWATUN CHASANAH, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0023/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j9784j6bbqjny6jd48cerdhd6580v539
+  Name: ISNAENIYATUN AMARYANI, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0022/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j974bcy51a6n1wsfhwz1650xp180vh79
+  Name: MUNAWAROH
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0021/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j972m1ydpybb8c7460v30ea03s80tzf2
+  Name: ANZILI ROHMAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0020/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j973m9v9p9myfzp3kfc26qnfvs80tjse
+  Name: LAINI MASFUFAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0019/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97dkdg6vws8avh1p98ms989mh80v62w
+  Name: MASDUKI BAEHAKI, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0018/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97famgfwycec2jsc954q1j2fd80v5a0
+  Name: AHMAD SAFI', S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0017/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97erb51r4az3nr41pd8c28cxx80vjev
+  Name: MASLAHUL MU'MIN, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0016/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97e540304nc1axwn42gqdtjys80vf6j
+  Name: TORIK MUSTAFID, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0015/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97a0tpda1kcdx3n8nm01ep38d80tsg1
+  Name: USWATUN CHASANAH, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0014/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j974sa24z9b41pekmqqzw86jvs80t4zn
+  Name: ISNAENIYATUN AMARYANI, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0013/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j9764c9vqz4tk4gvj2sddap5b580vj9m
+  Name: MUNAWAROH
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0012/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j9748p7na0rx94mx7qq5a0n0ms80t6m2
+  Name: ANZILI ROHMAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0011/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j975dc83vm9c6mr5jgs9bqb0pd80v72b
+  Name: LAINI MASFUFAH, S.Pd.
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0010/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j970x1z5s9c5cqg8jhw0ynw95d80verg
+  Name: MASDUKI BAEHAKI, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0009/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97fffztkamx035c2bnv6xbdas80v86c
+  Name: AHMAD SAFI', S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0008/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j970myxejsy7t550ndezgggefd80tzjk
+  Name: MASLAHUL MU'MIN, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0007/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97bds0gg8bknq4dq5aajv2rn980thzr
+  Name: TORIK MUSTAFID, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0006/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------
+[9/2/2026] ID: j97dxcdjd548z655qwmmwdwrds80tvjs
+  Name: USWATUN CHASANAH, S.Pd.I
+  Unit: "MI Ma'arif Gandrungmanis"
+  Status: active
+  SK No: 0005/PC.L/A.II/H-34.B/24.29/09/2/2026
+--------------------------------------------------

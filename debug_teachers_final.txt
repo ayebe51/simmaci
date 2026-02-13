@@ -1,0 +1,6 @@
+
+✅ Total Teachers: 28
+Found 1 teachers for 'Cimanggu'.
+
+⚠️ ORPHANED? Teachers with 'isSkGenerated: true' but no SK in previous check:
+- Bisri Mustofa, S. Pd (Unit: MTsS Ma'arif NU Cimanggu)

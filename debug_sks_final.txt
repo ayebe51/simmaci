@@ -1,0 +1,7 @@
+
+✅ Total SKs in Database: 54
+
+--- UNIT SUMMARY ---
+- "MI Ma'arif Gandrungmanis": 45
+- "MI AL MA'ARIF 01 CIKLAPA": 7
+- "MI MA'ARIF NU 01 BOJONG": 2

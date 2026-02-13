@@ -1,0 +1,11 @@
+
+DEBUG REPORT: SK Data Summary (2026-02-13T04:57:04.653Z)
+-----------------------------
+Total SKs: 54
+By Unit Kerja:
+{
+  "MI Ma'arif Gandrungmanis": 45,
+  "MI AL MA'ARIF 01 CIKLAPA": 7,
+  "MI MA'ARIF NU 01 BOJONG": 2
+}
+      

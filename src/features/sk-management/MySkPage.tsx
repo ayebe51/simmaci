@@ -46,10 +46,16 @@ export default function MySkPage() {
   const [currentHmPage, setCurrentHmPage] = useState(1)
   const itemsPerPage = 10
 
+  // Determine if user has admin privileges
+  const isSuper = ["super_admin", "admin_yayasan", "admin"].includes(user?.role || "")
+
   // 🔥 REAL-TIME CONVEX QUERY for SK - Auto-updates!
   const convexSkData = useQuery(convexApi.sk.list, {
-    unitKerja: user?.unitKerja || undefined,
-    status: "active" // Only show active/approved SK
+    // If Admin, show ALL (pass undefined). If Operator, filter by their Unit.
+    unitKerja: isSuper ? undefined : (user?.unitKerja || undefined),
+    status: "active", // Only show active/approved SK
+    userRole: user?.role, // Pass context for security
+    userUnit: user?.unitKerja // Pass context for security
   })
 
   // 🔥 REAL-TIME CONVEX QUERY for Headmaster - Auto-updates!

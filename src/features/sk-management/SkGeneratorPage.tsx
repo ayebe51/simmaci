@@ -511,9 +511,29 @@ export default function SkGeneratorPage() {
 
   
   // Teachers loaded via Convex useQuery (real-time, no need for manual fetch)
+  
+  // 🔥 FETCH LAST SK NUMBER FOR AUTO-INCREMENT
+  const lastSkNumber = useQuery(convexApi.sk.getLastSkNumber)
+
+  useEffect(() => {
+    if (lastSkNumber) {
+        // Try to parse the sequence number from formats like "0045/PC.L..."
+        // Look for the first 4 digits
+        const match = lastSkNumber.match(/^(\d{4})/);
+        if (match) {
+            const lastSeq = parseInt(match[1]);
+            if (!isNaN(lastSeq)) {
+                // Auto-increment by 1
+                const nextSeq = String(lastSeq + 1).padStart(4, '0');
+                setNomorMulai(nextSeq);
+                toast.info(`Nomor SK otomatis dilanjutkan ke: ${nextSeq}`);
+            }
+        }
+    }
+  }, [lastSkNumber])
+  
   useEffect(() => {
     // 2. Check for ANY stored template
-
     if (
         localStorage.getItem("sk_template_gty_blob") || 
         localStorage.getItem("sk_template_gtt_blob") || 
@@ -549,11 +569,13 @@ export default function SkGeneratorPage() {
 
   
 
+  const [currentUser, setCurrentUser] = useState<any>(null) // Added state for user context
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   useEffect(() => {
         const u = localStorage.getItem("user")
         if (u) {
             const user = JSON.parse(u)
+            setCurrentUser(user)
             setIsSuperAdmin(user.role === "super_admin")
         }
   }, [])
@@ -1053,7 +1075,8 @@ export default function SkGeneratorPage() {
                    
                   teacherId: (item as any)._id, // Original Teacher ID
                   jabatan: item.JABATAN,
-                  unitKerja: item.UNIT_KERJA || "LP Maarif NU Cilacap",
+                  // IMPROVED: Fallback to Current User's Unit if Teacher's unit is missing
+                  unitKerja: item.UNIT_KERJA !== '-' ? item.UNIT_KERJA : (currentUser?.unitKerja || "LP Maarif NU Cilacap"),
                   nomorSk: item.NOMOR_SURAT,
                   tanggalPenetapan: item.TANGGAL_PENETAPAN,
                   fileUrl: "Generated via Bulk ZIP",

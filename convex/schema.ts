@@ -46,14 +46,18 @@ export default defineSchema({
   // Students table
   students: defineTable({
     nisn: v.string(),
+    nik: v.optional(v.string()), // New: NIK
     nomorIndukMaarif: v.optional(v.string()),
     nama: v.string(),
     jenisKelamin: v.optional(v.string()),
     tempatLahir: v.optional(v.string()),
     tanggalLahir: v.optional(v.string()),
+    namaAyah: v.optional(v.string()), // New: Nama Ayah
+    namaIbu: v.optional(v.string()), // New: Nama Ibu
     alamat: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
     namaSekolah: v.optional(v.string()),
+    npsn: v.optional(v.string()), // New: NPSN
     kelas: v.optional(v.string()),
     nomorTelepon: v.optional(v.string()),
     namaWali: v.optional(v.string()),

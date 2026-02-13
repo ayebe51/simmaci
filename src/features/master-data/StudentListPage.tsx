@@ -31,16 +31,33 @@ interface Student {
   kelas: string
   sekolah: string
   jk: "L" | "P"
+  // Optional fields for detailed view/edit
+  nik?: string
+  tempatLahir?: string
+  tanggalLahir?: string
+  namaAyah?: string
+  namaIbu?: string
+  alamat?: string
+  kecamatan?: string
+  nomorTelepon?: string
+  npsn?: string
+  namaWali?: string
+  nomorIndukMaarif?: string
 }
 
 export default function StudentListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   
+  const createStudentMutation = useMutation(convexApi.students.create);
+
   // Manual Add Logic
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [formData, setFormData] = useState<Partial<Student>>({
-      nisn: "", nama: "", kelas: "", sekolah: "", jk: "L"
+      nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
+      nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
   })
+
+  
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   // PERMISSION: Filter by Unit Kerja for Operators
@@ -70,6 +87,17 @@ export default function StudentListPage() {
     kelas: s.kelas || "",
     sekolah: s.namaSekolah || "",
     jk: s.jenisKelamin === "Perempuan" ? "P" : "L",
+    // Map additional fields
+    nik: s.nik,
+    tempatLahir: s.tempatLahir,
+    tanggalLahir: s.tanggalLahir,
+    namaAyah: s.namaAyah,
+    namaIbu: s.namaIbu,
+    alamat: s.alamat,
+    kecamatan: s.kecamatan,
+    nomorTelepon: s.nomorTelepon,
+    npsn: s.npsn,
+    namaWali: s.namaWali,
   }))
 
   // Convex mutations
@@ -164,6 +192,8 @@ export default function StudentListPage() {
       }
       return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
   }
+  
+  // ... (existing code)
 
   const handleAdd = async () => {
       if (!formData.nama || !formData.nisn) {
@@ -172,14 +202,30 @@ export default function StudentListPage() {
       }
       
       try {
-          // TODO: Implement createStudent API
-          toast.info("Fitur tambah siswa belum diimplementasikan di backend")
-          // await api.createStudent(formData)
-          // loadStudents()
+          await createStudentMutation({
+              nisn: formData.nisn!,
+              nama: formData.nama!,
+              // Optional fields
+              nomorIndukMaarif: formData.nomorIndukMaarif,
+              jenisKelamin: formData.jk === "L" ? "Laki-laki" : "Perempuan", // Map back to backend format
+              tempatLahir: formData.tempatLahir,
+              tanggalLahir: formData.tanggalLahir,
+              alamat: formData.alamat,
+              kecamatan: formData.kecamatan,
+              namaSekolah: formData.sekolah || userUnit || undefined, // Use userUnit if available
+              kelas: formData.kelas,
+              nomorTelepon: formData.nomorTelepon,
+              namaWali: formData.namaWali,
+          })
+          
+          toast.success("Berhasil menambah siswa")
           setIsAddOpen(false)
-          setFormData({ nisn: "", nama: "", kelas: "", sekolah: "", jk: "L" })
-      } catch (e) {
-          toast.error("Gagal menambah siswa")
+          setFormData({ 
+              nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
+              nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: ""
+          })
+      } catch (e: any) {
+          toast.error("Gagal menambah siswa: " + (e.message || "Unknown error"))
       }
   }
 
@@ -231,6 +277,8 @@ export default function StudentListPage() {
           toast.error('Gagal mendownload template.');
       }
   }
+
+  // ... (existing code)
 
   return (
     <div className="space-y-6">
@@ -368,38 +416,95 @@ export default function StudentListPage() {
     </Card>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>Tambah Data Siswa</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="nisn" className="text-right">NISN</Label>
-                    <Input id="nisn" className="col-span-3" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} />
+                {/* Row 1: NISN, Nama, NIK */}
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="nisn">NISN <span className="text-red-500">*</span></Label>
+                        <Input id="nisn" value={formData.nisn} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="NISN" />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="nama">Nama Lengkap <span className="text-red-500">*</span></Label>
+                        <Input id="nama" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} placeholder="Nama Siswa" />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="nik">NIK</Label>
+                        <Input id="nik" value={formData.nik} onChange={e => setFormData({...formData, nik: e.target.value})} placeholder="NIK Siswa" />
+                    </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="nama" className="text-right">Nama</Label>
-                    <Input id="nama" className="col-span-3" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
+
+                {/* Row 2: Tempat Lahir, Tanggal Lahir, Kelas */}
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="tempat_lahir">Tempat Lahir</Label>
+                        <Input id="tempat_lahir" value={formData.tempatLahir} onChange={e => setFormData({...formData, tempatLahir: e.target.value})} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="tanggal_lahir">Tanggal Lahir</Label>
+                        <Input id="tanggal_lahir" type="date" value={formData.tanggalLahir} onChange={e => setFormData({...formData, tanggalLahir: e.target.value})} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="kelas">Kelas</Label>
+                        <Input id="kelas" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})} placeholder="Contoh: 7A" />
+                    </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="jk" className="text-right">Jenis Kelamin</Label>
-                    <Select value={formData.jk} onValueChange={(val: "L" | "P") => setFormData({...formData, jk: val})}>
-                        <SelectTrigger id="jk" className="col-span-3">
-                            <SelectValue placeholder="Pilih L/P" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="L">Laki-laki</SelectItem>
-                            <SelectItem value="P">Perempuan</SelectItem>
-                        </SelectContent>
-                    </Select>
+
+                {/* Row 3: Jenis Kelamin, Nama Ayah, Nama Ibu */}
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="jk">Jenis Kelamin</Label>
+                        <Select value={formData.jk} onValueChange={(val: "L" | "P") => setFormData({...formData, jk: val})}>
+                            <SelectTrigger id="jk">
+                                <SelectValue placeholder="Pilih L/P" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="L">Laki-laki</SelectItem>
+                                <SelectItem value="P">Perempuan</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="nama_ayah">Nama Ayah</Label>
+                        <Input id="nama_ayah" value={formData.namaAyah} onChange={e => setFormData({...formData, namaAyah: e.target.value})} />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="nama_ibu">Nama Ibu</Label>
+                        <Input id="nama_ibu" value={formData.namaIbu} onChange={e => setFormData({...formData, namaIbu: e.target.value})} />
+                    </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="kelas" className="text-right">Kelas</Label>
-                    <Input id="kelas" className="col-span-3" value={formData.kelas} onChange={e => setFormData({...formData, kelas: e.target.value})} />
+
+                {/* Row 4: Asal Sekolah, NPSN */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="sekolah">Asal Sekolah</Label>
+                         <Input 
+                            id="sekolah" 
+                            value={formData.sekolah} 
+                            onChange={e => setFormData({...formData, sekolah: e.target.value})} 
+                            disabled={!!userUnit} 
+                            placeholder={userUnit ? "Otomatis terisi" : "Nama Sekolah"} 
+                        />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="npsn">NPSN</Label>
+                        <Input id="npsn" value={formData.npsn} onChange={e => setFormData({...formData, npsn: e.target.value})} placeholder="NPSN Sekolah" />
+                    </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="sekolah" className="text-right">Asal Sekolah</Label>
-                    <Input id="sekolah" className="col-span-3" value={formData.sekolah} onChange={e => setFormData({...formData, sekolah: e.target.value})} />
+
+                {/* Additional Fields (Collapsed/Optional) */}
+                 <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
+                     <div className="grid gap-2">
+                        <Label htmlFor="alamat">Alamat</Label>
+                        <Input id="alamat" value={formData.alamat} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Alamat Lengkap" />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="nomor_telepon">No. Telepon</Label>
+                        <Input id="nomor_telepon" value={formData.nomorTelepon} onChange={e => setFormData({...formData, nomorTelepon: e.target.value})} />
+                    </div>
                 </div>
             </div>
             <DialogFooter>

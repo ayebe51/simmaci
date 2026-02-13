@@ -208,8 +208,8 @@ export default function StudentListPage() {
       const clean = (val: string | undefined | null) => (val && val.trim().length > 0) ? val.trim() : undefined;
       
       const payload: any = {
-        nisn: formData.nisn.trim(),
-        nama: formData.nama.trim(),
+        nisn: String(formData.nisn).trim(),
+        nama: String(formData.nama).trim(),
         // Optional fields
         nik: clean(formData.nik),
         nomorIndukMaarif: clean(formData.nomorIndukMaarif),
@@ -220,9 +220,8 @@ export default function StudentListPage() {
         namaIbu: clean(formData.namaIbu),
         alamat: clean(formData.alamat),
         kecamatan: clean(formData.kecamatan),
-        // Ensure namaSekolah is either the cleaned input OR userUnit OR undefined. 
-        // Logic: if input is present, use it. If not, use userUnit. If userUnit is null/empty, use undefined.
-        namaSekolah: clean(formData.sekolah) ?? (userUnit || undefined),
+        // Ensure namaSekolah is strictly string or undefined
+        namaSekolah: clean(formData.sekolah) ?? (userUnit ? String(userUnit) : undefined),
         npsn: clean(formData.npsn),
         kelas: clean(formData.kelas),
         nomorTelepon: clean(formData.nomorTelepon),
@@ -232,7 +231,7 @@ export default function StudentListPage() {
       // Strip undefined keys
       Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-      console.log("Submitting Student Payload (Cleaned):", payload);
+      console.log("Submitting Student Payload (Cleaned JSON):", JSON.stringify(payload, null, 2));
 
       try {
           if (formData.id) {

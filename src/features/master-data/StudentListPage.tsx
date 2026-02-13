@@ -321,32 +321,41 @@ export default function StudentListPage() {
             </div>
         </CardHeader>
         <CardContent>
-            <div className="rounded-md border">
-                <Table>
+                <div className="overflow-x-auto">
+                <Table className="min-w-[1200px]">
                   <TableHeader>
                     <TableRow>
-                      <TableHead onClick={() => requestSort('nisn')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <TableHead onClick={() => requestSort('nisn')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[120px]">
                           <div className="flex items-center">NISN {getSortIcon('nisn')}</div>
                       </TableHead>
-                      <TableHead onClick={() => requestSort('nama')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <TableHead onClick={() => requestSort('nama')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[200px]">
                           <div className="flex items-center">Nama Lengkap {getSortIcon('nama')}</div>
                       </TableHead>
-                      <TableHead onClick={() => requestSort('jk')} className="cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center">L/P {getSortIcon('jk')}</div>
+                      <TableHead onClick={() => requestSort('nik')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[140px]">
+                          <div className="flex items-center">NIK {getSortIcon('nik')}</div>
                       </TableHead>
-                      <TableHead onClick={() => requestSort('kelas')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <TableHead className="w-[180px]">Tempat/Tgl Lahir</TableHead>
+                      <TableHead onClick={() => requestSort('kelas')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[80px]">
                           <div className="flex items-center">Kelas {getSortIcon('kelas')}</div>
                       </TableHead>
-                      <TableHead onClick={() => requestSort('sekolah')} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                      <TableHead onClick={() => requestSort('jk')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[60px]">
+                          <div className="flex items-center">L/P {getSortIcon('jk')}</div>
+                      </TableHead>
+                      <TableHead className="w-[150px]">Nama Ayah</TableHead>
+                      <TableHead className="w-[150px]">Nama Ibu</TableHead>
+                      <TableHead onClick={() => requestSort('sekolah')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[200px]">
                           <div className="flex items-center">Asal Sekolah {getSortIcon('sekolah')}</div>
                       </TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
+                      <TableHead onClick={() => requestSort('npsn')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[100px]">
+                          <div className="flex items-center">NPSN {getSortIcon('npsn')}</div>
+                      </TableHead>
+                      <TableHead className="text-right w-[100px] sticky right-0 bg-background shadow-sm">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedStudents.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
+                            <TableCell colSpan={11} className="h-24 text-center">
                                 Tidak ada data siswa ditemukan.
                             </TableCell>
                         </TableRow>
@@ -355,10 +364,20 @@ export default function StudentListPage() {
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.nisn}</TableCell>
                             <TableCell>{item.nama}</TableCell>
-                            <TableCell>{item.jk}</TableCell>
+                            <TableCell>{item.nik || "-"}</TableCell>
+                            <TableCell>
+                                <div className="flex flex-col text-xs">
+                                    <span>{item.tempatLahir || "-"}</span>
+                                    <span className="text-muted-foreground">{item.tanggalLahir || "-"}</span>
+                                </div>
+                            </TableCell>
                             <TableCell>{item.kelas}</TableCell>
+                            <TableCell>{item.jk}</TableCell>
+                            <TableCell>{item.namaAyah || "-"}</TableCell>
+                            <TableCell>{item.namaIbu || "-"}</TableCell>
                             <TableCell>{item.sekolah}</TableCell>
-                            <TableCell className="text-right space-x-2">
+                            <TableCell>{item.npsn || "-"}</TableCell>
+                            <TableCell className="text-right space-x-2 sticky right-0 bg-background shadow-sm">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                                     setFormData(item)
                                     setIsAddOpen(true)
@@ -370,7 +389,7 @@ export default function StudentListPage() {
                     )}
                   </TableBody>
                 </Table>
-            </div>
+                </div>
             
             {/* Pagination Controls */}
             <div className="flex items-center justify-end space-x-2 py-4">

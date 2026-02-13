@@ -34,17 +34,45 @@ export const list = query({
 
 // Get single SK by ID
 export const get = query({
-  args: { id: v.id("skDocuments") },
+  args: { id: v.string() }, // Changed from v.id to allow debugging invalid IDs
   handler: async (ctx, args) => {
-    const sk = await ctx.db.get(args.id);
-    if (!sk) return null;
+    try {
+      // Manual ID validation/casting
+      let skId: Id<"skDocuments">;
+      try {
+        skId = args.id as Id<"skDocuments">;
+        // Optionally validate format here if needed, but casting is usually enough for type safety
+        // Real validation happens when we try to use it with ctx.db.get
+      } catch (e) {
+         throw new Error("Invalid ID format");
+      }
 
-    let teacher = null;
-    if (sk.teacherId) {
-        teacher = await ctx.db.get(sk.teacherId);
+      const sk = await ctx.db.get(skId);
+      if (!sk) return null;
+
+      let teacher = null;
+      if (sk.teacherId) {
+        try {
+          teacher = await ctx.db.get(sk.teacherId);
+        } catch (err) {
+          console.error(`Error fetching teacher ${sk.teacherId} for SK ${sk._id}:`, err);
+        }
+      }
+
+      // Safe return with fallbacks to prevent frontend crashes
+      return { 
+          ...sk, 
+          // Ensure critical fields exist
+          createdAt: sk.createdAt || Date.now(), 
+          teacherId: sk.teacherId || null,
+          teacher: teacher || null,
+      };
+    } catch (e: any) {
+      console.error(`Error in sk:get for id ${args.id}:`, e);
+      // Return null or throw a clean error depending on desired behavior
+      // For now, throwing a clean error is better than "Server Error"
+      throw new Error(`Gagal mengambil data SK: ${e.message}`);
     }
-
-    return { ...sk, teacher };
   },
 });
 

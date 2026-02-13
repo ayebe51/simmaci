@@ -35,6 +35,7 @@ import ChangePasswordPage from "./features/auth/ChangePasswordPage"
 import DataAuditPage from '@/features/master-data/DataAuditPage';
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
+import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 
 // Create a client
 const queryClient = new QueryClient()
@@ -54,41 +55,43 @@ export default function App() {
             element={
               <ProtectedLayout>
                   <AppShell>
-                    <Routes>
-                      <Route path="/" element={<DashboardPage />} />
-                      <Route path="master/schools" element={<SchoolListPage />} />
-                      <Route path="master/schools/:id" element={<SchoolDetailPage />} />
-                      <Route path="master/students" element={<StudentListPage />} />
-                      <Route path="master/teachers" element={<TeacherListPage />} />
-                      <Route path="users" element={<UserListPage />} />
-                      <Route path="school/profile" element={<SchoolProfilePage />} />
-                      <Route path="sk" element={<SkDashboardPage />} />
-                      <Route path="sk/new" element={<SkSubmissionPage />} />
-                      <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
-                      <Route path="sk-saya" element={<MySkPage />} />
-                      <Route path="sk/:id" element={<SkDetailPage />} />
-                      <Route path="generator" element={<SkGeneratorPage />} />
-                      <Route path="audit" element={<DataAuditPage />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="change-password" element={<ChangePasswordPage />} />
-                      <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
-                      <Route path="reports/sk" element={
-                        <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
-                          <SkReportPageSimple />
-                        </ErrorBoundary>
-                      } />
-                      <Route path="reports" element={<ReportPage />} />
-                      <Route path="kta" element={<KtaGeneratorPage />} />
-                      <Route path="events" element={<EventsPage />} />
-                      <Route path="events/new" element={<CreateEventPage />} />
-                      <Route path="events/:id" element={<EventDetailPage />} />
-                      <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
-                      <Route path="sk/:id/print" element={<SkPrintPage />} />
-                      <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
-                      <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
-                      <Route path="archive" element={<ArchivePage />} />
-                      <Route path="mutations" element={<MutationPage />} />
-                    </Routes>
+                    <GlobalErrorBoundary>
+                      <Routes>
+                        <Route path="/" element={<DashboardPage />} />
+                        <Route path="master/schools" element={<SchoolListPage />} />
+                        <Route path="master/schools/:id" element={<SchoolDetailPage />} />
+                        <Route path="master/students" element={<StudentListPage />} />
+                        <Route path="master/teachers" element={<TeacherListPage />} />
+                        <Route path="users" element={<UserListPage />} />
+                        <Route path="school/profile" element={<SchoolProfilePage />} />
+                        <Route path="sk" element={<SkDashboardPage />} />
+                        <Route path="sk/new" element={<SkSubmissionPage />} />
+                        <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
+                        <Route path="sk-saya" element={<MySkPage />} />
+                        <Route path="sk/:id" element={<SkDetailPage />} />
+                        <Route path="generator" element={<SkGeneratorPage />} />
+                        <Route path="audit" element={<DataAuditPage />} />
+                        <Route path="settings" element={<SettingsPage />} />
+                        <Route path="change-password" element={<ChangePasswordPage />} />
+                        <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
+                        <Route path="reports/sk" element={
+                          <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
+                            <SkReportPageSimple />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="reports" element={<ReportPage />} />
+                        <Route path="kta" element={<KtaGeneratorPage />} />
+                        <Route path="events" element={<EventsPage />} />
+                        <Route path="events/new" element={<CreateEventPage />} />
+                        <Route path="events/:id" element={<EventDetailPage />} />
+                        <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
+                        <Route path="sk/:id/print" element={<SkPrintPage />} />
+                        <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
+                        <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
+                        <Route path="archive" element={<ArchivePage />} />
+                        <Route path="mutations" element={<MutationPage />} />
+                      </Routes>
+                    </GlobalErrorBoundary>
                   </AppShell>
               </ProtectedLayout>
             }

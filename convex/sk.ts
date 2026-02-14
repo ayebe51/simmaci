@@ -528,14 +528,6 @@ export const getTeachersWithSk = query({
     userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // fetches ALL teachers, sorted by Most Recently Updated
-    // BEST PRACTICE: Use Database Index for Scalability
-    let teachers = await ctx.db
-        .query("teachers")
-        .withIndex("by_updatedAt")
-        .order("desc")
-        .collect();
-
     // Authenticate User
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
@@ -550,38 +542,33 @@ export const getTeachersWithSk = query({
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
     const isSuper = superRoles.includes(user.role);
 
-    // Apply Filters
-    if (!isSuper) {
-        if (user.role === "operator") {
-             // Priority: Filter by School ID if available
-             if (user.schoolId) {
-                 teachers = teachers.filter(t => t.schoolId === user.schoolId);
-             } else if (user.unit) {
-                 // Fallback: Filter by Unit Name
-                 teachers = teachers.filter(t => t.unitKerja === user.unit);
-             } else {
-                 return [];
-             }
-        } else {
-            return []; // Unknown role
-        }
-    } else {
-        // Admin: Optional filter by unit passed in args? 
-        // Logic below uses args.userUnit which is deprecated.
-        // If admin wants to filter, they should pass 'unitKerja' arg (not userUnit)
-        // But for compatibility with frontend that sends empty object, we just show all for admin.
-        // If args.userUnit IS passed (legacy), we can respect it.
+    // FETCH ALL TEACHERS FIRST (Base Query)
+    let teachers = await ctx.db
+        .query("teachers")
+        .withIndex("by_updatedAt")
+        .order("desc")
+        .collect();
+
+    // Filter Logic
+    if (user.role === "operator") {
+            if (user.schoolId) {
+                teachers = teachers.filter(t => t.schoolId === user.schoolId);
+            } else if (user.unit) {
+                teachers = teachers.filter(t => t.unitKerja === user.unit);
+            } else {
+                return [];
+            }
+    } else if (isSuper) {
+        // Admin: Allow viewing all, or filter by legacy arg if provided
         if (args.userUnit) {
              teachers = teachers.filter(t => t.unitKerja === args.userUnit);
         }
+    } else {
+        return []; // Unknown role
     }
     
-    // Manual Sort Removed (Using Database Index)
-    
-    // 1. Filter out teachers who already have SK generated (Soft Cleanup)
-    // ENABLED: Auto-hide after generation
     let filteredTeachers = teachers;
-    // Fix: Use explicit check against true to allow undefined/null/false
+    // Robust Filter: Use explicit check against true to allow undefined/null/false
     filteredTeachers = filteredTeachers.filter(t => t.isSkGenerated !== true); 
     
     // Optional: Filter only Active?

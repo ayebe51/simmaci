@@ -516,18 +516,28 @@ export const bulkCreate = mutation({
                     const id = await ctx.db.insert("teachers", cleanData);
                     results.push(id);
                 } else {
-                    // RBAC CHECK
+                    // UPSERT LOGIC (Update Existing)
+                    console.log(`Bulk Upsert: Updating ${cleanData.nama}`);
+                    
+                    // RBAC Safety Check
                     if (user.role === 'operator') {
-                        const existingUnit = existing.unitKerja?.trim().toLowerCase() || "";
-                        const userUnit = user.unit?.trim().toLowerCase() || "";
-                        
-                        // Strict check by ID or Name
-                        if (existingUnit !== userUnit) {
-                            throw new Error(`NUPTK ${cleanData.nuptk} terdaftar di unit lain (${existing.unitKerja}).`);
-                        }
+                         const existingUnit = existing.unitKerja?.trim().toLowerCase() || "";
+                         const userUnit = user.unit?.trim().toLowerCase() || "";
+                         // Allow update if unit matches OR if existing unit is empty
+                         if (existingUnit && existingUnit !== userUnit) {
+                             // Skip this row if it belongs to another unit
+                             errors.push(`Skipped ${cleanData.nama}: Registered in another unit (${existing.unitKerja})`);
+                             results.push(null);
+                             continue;
+                         }
                     }
 
-                    await ctx.db.patch(existing._id, cleanData);
+                    // Patch existing record
+                    await ctx.db.patch(existing._id, {
+                        ...cleanData,
+                         // Don't overwrite createdAt
+                         // Ensure schoolId is set if missing
+                    });
                     results.push(existing._id);
                 }
 

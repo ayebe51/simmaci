@@ -36,14 +36,16 @@ export const list = query({
         if (user.role === "operator") {
              // Priority: Filter by School ID if available
              if (user.schoolId) {
-                 docs = docs.filter(sk => sk.schoolId === user.schoolId);
-                 // Fallback: If SK has no schoolId, check unit string
-                 // This ensures old SKs are still visible if unit matches
-                 // BUT strict schoolId is better. 
-                 // Let's allow mixed: match ID OR match string
-                 // docs = docs.filter(sk => sk.schoolId === user.schoolId || sk.unitKerja === user.unit);
+                 docs = docs.filter(sk => {
+                    const idMatch = sk.schoolId === user.schoolId;
+                    const unitMatch = sk.unitKerja && user.unit && 
+                                      sk.unitKerja.trim().toLowerCase() === user.unit.trim().toLowerCase();
+                    return idMatch || unitMatch;
+                 });
              } else if (user.unit) {
-                 docs = docs.filter(sk => sk.unitKerja === user.unit);
+                 docs = docs.filter(sk => 
+                    sk.unitKerja && sk.unitKerja.trim().toLowerCase() === user.unit!.trim().toLowerCase()
+                 );
              } else {
                  return [];
              }
@@ -568,10 +570,18 @@ export const getTeachersWithSk = query({
     if (!isSuper) {
         if (user.role === "operator") {
              if (user.schoolId) {
-                 teachers = teachers.filter(t => t.schoolId === user.schoolId);
-                 console.log(`Filtered by Operator SchoolID (${user.schoolId}): ${teachers.length}`);
+                 // Robust Filter: Match ID OR Match Name (Case-insensitive)
+                 teachers = teachers.filter(t => {
+                     const idMatch = t.schoolId === user.schoolId;
+                     const unitMatch = t.unitKerja && user.unit && 
+                                       t.unitKerja.trim().toLowerCase() === user.unit.trim().toLowerCase();
+                     return idMatch || unitMatch;
+                 });
+                 console.log(`Filtered by Operator SchoolID/Unit (${user.schoolId} / ${user.unit}): ${teachers.length}`);
              } else if (user.unit) {
-                 teachers = teachers.filter(t => t.unitKerja === user.unit);
+                 teachers = teachers.filter(t => 
+                    t.unitKerja && t.unitKerja.trim().toLowerCase() === user.unit!.trim().toLowerCase()
+                 );
                  console.log(`Filtered by Operator Unit (${user.unit}): ${teachers.length}`);
              } else {
                  console.log("Operator has no SchoolID or Unit");

@@ -1,98 +1,44 @@
-[
-  {
-    "nuptk": "TMP-1766796594642637",
-    "nama": "ILZAM HABIK, M.Pd",
-    "status": "Honorer",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Sudah",
-    "gender": "L",
-    "birthPlace": "Cilacap",
-    "birthDate": "8 Mei 1989",
-    "phoneNumber": "087736597101",
-    "isCertified": false
-  },
-  {
-    "nuptk": "TMP-1766796594644101",
-    "nama": "NOFI NUR PRATIWI, S.Pd",
-    "status": "Sertifikasi",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Belum",
-    "gender": "P",
-    "birthPlace": "Cilacap",
-    "birthDate": "01 November 1989",
-    "phoneNumber": "085723442377",
-    "isCertified": true
-  },
-  {
-    "nuptk": "TMP-1766796594645722",
-    "nama": "WAHYUDI, S.Pd",
-    "status": "Sertifikasi",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Sudah",
-    "gender": "L",
-    "birthPlace": "Cilacap",
-    "birthDate": "26 Februari 1992",
-    "phoneNumber": "088227956225",
-    "isCertified": true
-  },
-  {
-    "nuptk": "TMP-1766796594647449",
-    "nama": "KHAIRIANSYAH AKBAR, S.Pd",
-    "status": "Honorer",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Sudah",
-    "gender": "L",
-    "birthPlace": "Ciamis",
-    "birthDate": "28 Juni 1996",
-    "phoneNumber": "081221643307",
-    "isCertified": false
-  },
-  {
-    "nuptk": "TMP-1766796594648290",
-    "nama": "MUHAMMAD ALWAN LUTHFI HAKIM, S.Sos",
-    "status": "Honorer",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Sudah",
-    "gender": "L",
-    "birthPlace": "Cilacap",
-    "birthDate": "28 Januari 1997",
-    "phoneNumber": "088216450293",
-    "isCertified": false
-  },
-  {
-    "nuptk": "TMP-1766796594649790",
-    "nama": "NOVITA TRIYANASARI, S.Pd",
-    "status": "Honorer",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Belum",
-    "gender": "P",
-    "birthPlace": "Cilacap",
-    "birthDate": "10 November 1997",
-    "phoneNumber": "085655957842",
-    "isCertified": false
-  },
-  {
-    "nuptk": "TMP-1766796594650988",
-    "nama": "WAHYULI MINANURROHMAN, S.Pd",
-    "status": "Honorer",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Belum",
-    "gender": "L",
-    "birthPlace": "Cilacap",
-    "birthDate": "01 Juli 1995",
-    "phoneNumber": "082115362440",
-    "isCertified": false
-  },
-  {
-    "nuptk": "TMP-1766796594653370",
-    "nama": "ANI RIANTI, S.E.",
-    "status": "Honorer",
-    "satminkal": "SMP MA'ARIF NU 1 MAJENANG",
-    "pdpkpnu": "Belum",
-    "gender": "P",
-    "birthPlace": "Cilacap",
-    "birthDate": "19 September 1999",
-    "phoneNumber": "085727304190",
-    "isCertified": false
-  }
-]
+{
+  "targetSchool": "NOT FOUND",
+  "matchedSchoolsCount": 2,
+  "matchedSchools": [
+    {
+      "_id": "j5798yq47we1m2vhke5nv4pfhn8114w6",
+      "nama": "SMP Ma'arif NU Cimanggu",
+      "nsm": "201030102207"
+    },
+    {
+      "_id": "j5728hj3bfe27fderm6kfz072s815n8x",
+      "nama": "MTs Ma'arif NU Cimanggu",
+      "nsm": "121233010040"
+    }
+  ],
+  "skCount": 0,
+  "sks": [],
+  "teacherCount": 1,
+  "teachers": [
+    {
+      "_id": "jh708fycs1f5p3b73a8xpnb4ts810pwx",
+      "nama": "Bisri Mustofa, S.Pd",
+      "unitKerja": "MTsS Ma'arif NU Cimanggu",
+      "missingSchoolId": true
+    }
+  ],
+  "userCount": 2,
+  "users": [
+    {
+      "_id": "jn7dcsehqt62ptan6jpzdj5yqx8117kk",
+      "email": "bizrie@gmail.com",
+      "name": "Bisri Mustofa",
+      "role": "operator",
+      "unit": "MTsS Ma'arif NU Cimanggu"
+    },
+    {
+      "_id": "jn7bx46b4y2gq8wpjv0td79wa9814xqa",
+      "email": "121233010040@maarif.nu",
+      "name": "Admin MTs Ma'arif NU Cimanggu",
+      "role": "operator",
+      "unit": "MTs Ma'arif NU Cimanggu"
+    }
+  ]
+}

@@ -1,33 +1,22 @@
-
-import { convexToJson } from "convex/values";
 import { query } from "./_generated/server";
-import { v } from "convex/values";
 
-export const inspect = query({
+export const recent = query({
   args: {},
   handler: async (ctx) => {
-    // 1. Env Info (if possible, or just deduce from data)
-    const teacherCount = (await ctx.db.query("teachers").take(1)).length;
-    const tenureCount = (await ctx.db.query("headmasterTenures").take(1)).length;
+    // Fetch 10 most recently updated teachers
+    const teachers = await ctx.db
+      .query("teachers")
+      .withIndex("by_updatedAt")
+      .order("desc")
+      .take(10);
 
-    // 2. Raw Samples
-    const teachers = await ctx.db.query("teachers").take(5);
-    const tenures = await ctx.db.query("headmasterTenures").take(5);
-
-    return {
-      ENV_CHECK: {
-        hasTeachers: teacherCount > 0,
-        hasTenures: tenureCount > 0,
-      },
-      TEACHER_SAMPLES: teachers.map(t => ({ id: t._id, nama: t.nama, tmt: t.tmt })),
-      TENURE_SAMPLES: tenures.map(t => ({ 
-          id: t._id, 
-          teacherId: t.teacherId, 
-          skUrl: t.skUrl,
-          nomorSk: (t as any).nomorSk // Check if this exists
-      })),
-      SEARCH_ID_CHECK: "jx79t573s6nbav3etsyw4peyc180z1q7",
-      ID_FOUND: tenures.some(t => t._id === "jx79t573s6nbav3etsyw4peyc180z1q7")
-    };
+    return teachers.map(t => ({
+      name: t.nama,
+      unit: t.unitKerja,
+      schoolId: t.schoolId,
+      isSkGenerated: t.isSkGenerated,
+      isActive: t.isActive,
+      updatedAt: new Date(t.updatedAt).toISOString()
+    }));
   },
 });

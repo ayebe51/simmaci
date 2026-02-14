@@ -163,3 +163,195 @@ export const forceBackfill = mutation({
     return `Force Backfill Complete. Fixed ${fixed} teachers.`;
   }
 });
+
+// 6. RBAC DIAGNOSTIC (Why can't I see my data?)
+export const checkAccess = query({
+  args: {
+    email: v.optional(v.string()) // Optional: Simulate specific user
+  },
+  handler: async (ctx, args) => {
+    let user;
+    
+    if (args.email) {
+        user = await ctx.db.query("users").withIndex("by_email", q=>q.eq("email", args.email!)).first();
+        if (!user) return { error: `User with email ${args.email} not found` };
+    } else {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return { error: "Not logged in. Use 'email' argument to simulate a user." };
+        
+        user = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", identity.email!))
+            .first();
+    }
+    
+    if (!user) return { error: "User record not found" };
+
+    const teachers = await ctx.db.query("teachers").take(5);
+    
+    return {
+        user: {
+            name: user.name,
+            role: user.role,
+            schoolId: user.schoolId,
+            unit: user.unit
+        },
+        analysis: teachers.map(t => {
+            let reason = "Visible";
+            let canSee = true;
+
+            // Check SK Generated
+            if (t.isSkGenerated) {
+                canSee = false; 
+                reason = "Hidden: SK Already Generated";
+            }
+
+            // Check RBAC
+            if (user.role === "operator" && canSee) {
+                if (user.schoolId) {
+                    if (t.schoolId !== user.schoolId) {
+                        canSee = false;
+                        reason = `Hidden: School ID Mismatch (User: ${user.schoolId} vs Teacher: ${t.schoolId})`;
+                    }
+                } else if (user.unit) {
+                    if (t.unitKerja !== user.unit) {
+                        canSee = false;
+                        reason = `Hidden: Unit Mismatch (User: ${user.unit} vs Teacher: ${t.unitKerja})`;
+                    }
+                } else {
+                    canSee = false;
+                    reason = "Hidden: User has no SchoolID or Unit";
+                }
+            }
+
+            return {
+                teacher: t.nama,
+                schoolId: t.schoolId,
+                unit: t.unitKerja,
+                isSkGenerated: t.isSkGenerated,
+                RESULT: canSee ? "VISIBLE" : reason
+            };
+        })
+    };
+  }
+});
+
+export const verifySkQuery = query({
+  args: {
+    role: v.optional(v.string()), 
+  },
+  handler: async (ctx, args) => {
+    const role = args.role || "super_admin";
+    const allTeachers = await ctx.db.query("teachers").collect();
+    
+    // 1. Total
+    const total = allTeachers.length;
+    
+    // 2. Verified Filter (if applicable, but mainly Active)
+    const active = allTeachers.filter(t => t.isActive === true);
+    
+    // 3. Not Generated SK
+    const validForSk = active.filter(t => !t.isSkGenerated);
+    
+    // 4. Sample
+    const sample = validForSk.slice(0, 3).map(t => ({
+        name: t.nama,
+        schoolId: t.schoolId,
+        unit: t.unitKerja,
+        isSkGenerated: t.isSkGenerated
+    }));
+
+    return {
+        step1_total: total,
+        step2_active: active.length,
+        step3_ready_for_sk: validForSk.length,
+        role_simulated: role,
+        sample_candidates: sample,
+        // Analysis
+        conclusion: validForSk.length === 0 ? "NO DATA AVAILABLE FOR GENERATION" : "DATA EXISTS - CHECK FRONTEND"
+    };
+  }
+});
+
+export const checkUserRoles = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    const roles = [...new Set(users.map(u => u.role))];
+    // Security: Only show names/roles, not emails if sensitive, but for debug we need to know who is who.
+    // Filter for admins
+    const admins = users.filter(u => u.role.includes("admin")).map(u => ({ name: u.name, role: u.role, email: u.email }));
+    return {
+        rolesFound: roles,
+        totalUsers: users.length,
+        admins: admins
+    };
+  }
+});
+
+export const debugOp = query({
+  args: {}, // No args needed
+  handler: async (ctx) => {
+    const keyword = "cimanggu"; // HARDCODED
+    // 1. Find the User/Operator
+    const users = await ctx.db.query("users").collect();
+    const operator = users.find(u => 
+        (u.name && u.name.toLowerCase().includes(keyword.toLowerCase())) ||
+        (u.unit && u.unit.toLowerCase().includes(keyword.toLowerCase()))
+    );
+
+    if (!operator) {
+        return { error: `No operator found matching '${keyword}'` };
+    }
+
+    // 2. Find Teachers that MIGHT match (by string)
+    const allTeachers = await ctx.db.query("teachers").collect();
+    const potentialMatches = allTeachers.filter(t => 
+        t.unitKerja && t.unitKerja.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    // 3. Analyze why they might be hidden
+    const analysis = potentialMatches.map(t => {
+        let status = "VISIBLE";
+        let reason = "OK";
+
+        // Check 1: SK Generated
+        if (t.isSkGenerated) {
+            status = "HIDDEN";
+            reason = "Already Generated";
+        }
+        // Check 2: Active
+        else if (t.isActive !== true) {
+             status = "HIDDEN";
+             reason = "Not Active";
+        }
+        // Check 3: RBAC (The likely culprit)
+        else {
+            const schoolMatch = operator.schoolId && t.schoolId === operator.schoolId;
+            const unitMatch = operator.unit && t.unitKerja === operator.unit;
+            
+            if (!schoolMatch && !unitMatch) {
+                status = "HIDDEN";
+                reason = `RBAC Fail. User Unit: '${operator.unit}', Teacher Unit: '${t.unitKerja}'. User SchoolId: '${operator.schoolId}', Teacher SchoolId: '${t.schoolId}'`;
+            }
+        }
+
+        return {
+            name: t.nama,
+            unit: t.unitKerja,
+            schoolId: t.schoolId,
+            status,
+            reason
+        };
+    });
+
+    return {
+        _OPERATOR_DEBUG: {
+            name: operator.name,
+            unit: operator.unit,
+            schoolId: operator.schoolId
+        },
+        _TEACHER_SAMPLE: analysis.slice(0, 1) // Just 1
+    };
+  }
+});

@@ -113,16 +113,20 @@ export default defineSchema({
       value: v.optional(v.string()), // For small text settings
       storageId: v.optional(v.id("_storage")), // For Files (Templates)
       mimeType: v.optional(v.string()),
+      schoolId: v.optional(v.id("schools")), // NEW: Tenant isolation
       updatedAt: v.number(),
-  }).index("by_key", ["key"]),
+  }).index("by_key", ["key"])
+    .index("by_schoolId", ["schoolId"]),
 
   // NEW Settings Table (V2) - Fresh Start
   settings_v2: defineTable({
       key: v.string(), 
       value: v.string(), // Base64 Content (Required in V2)
       mimeType: v.string(),
+      schoolId: v.optional(v.id("schools")), // NEW: Tenant isolation
       updatedAt: v.number(),
-  }).index("by_key", ["key"]),
+  }).index("by_key", ["key"])
+    .index("by_schoolId", ["schoolId"]),
 
   // SK (Surat Keputusan) documents
   skDocuments: defineTable({
@@ -132,6 +136,7 @@ export default defineSchema({
     nama: v.string(),
     jabatan: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
+    schoolId: v.optional(v.id("schools")), // NEW: ID Link
 
 
     tanggalPenetapan: v.string(),
@@ -151,7 +156,8 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_jenis", ["jenisSk"])
     .index("by_nomor", ["nomorSk"])
-    .index("by_archived", ["archivedAt"]),
+    .index("by_archived", ["archivedAt"])
+    .index("by_schoolId", ["schoolId"]), // NEW Index
 
   // Headmaster Tenures (Pengangkatan Kepala Madrasah)
   headmasterTenures: defineTable({

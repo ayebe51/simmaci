@@ -1,0 +1,170 @@
+{
+  "schools": [
+    {
+      "_id": "j571102dcpdqe5278qjzmntr79811ywq",
+      "nama": "MTs Plus Al Madinah Kroya",
+      "nsm": "121233010067"
+    },
+    {
+      "_id": "j57fkfk8k55p120acstnfbhb9h8112z8",
+      "nama": "SMP Masyitoh Kroya",
+      "nsm": "202030109045"
+    },
+    {
+      "_id": "j577ktfr7ekpjypcs96rf8new1811y1m",
+      "nama": "MTs Plus Al Hidayah Kroya",
+      "nsm": "121233010032"
+    },
+    {
+      "_id": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "nama": "MTs MA'ARIF NU 01 KROYA",
+      "nsm": "121233010029"
+    }
+  ],
+  "teachers": [
+    {
+      "_id": "jh7427xbf84cmkfhkjzygp2mpn814zfe",
+      "nama": "Ahmad Tajudin,S.Pd.I",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7bqb6wxw6p05ps3zrqydctjx815hsf",
+      "nama": "Dra. Andayani",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7bgp2604czff5va2dxnkr0n9814r37",
+      "nama": "Widiawti,S.E",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7b0hsv7d2pypegv5y0vxk741814vds",
+      "nama": "Eko Nugroho,S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7cq6r1gv35jrvw15560vy1d5814ysp",
+      "nama": "Nangimatul Mungarifah, S.Pd.I",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7fbgsbas02xxy1pxjt1m12858154nw",
+      "nama": "Mustaziroh, .S.Pd.I",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7bgpm8kxdhk2k70p0zbsrxgh815sev",
+      "nama": "Eli Maryuni, .S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh76grttr4n7w0y8b9160rzh7181498f",
+      "nama": "Siti Robingah, S.Pd.I",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh73nsy9eqbtpj550edxzv7ghn815y7w",
+      "nama": "Sodikun, .S.Pd.I",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7csy5g0jxbnrbksgm53mrn59815psy",
+      "nama": "Sunhaji Pramono, S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7e4k9n1bscyrdhxecqxxzpds815rg3",
+      "nama": "Liftihatinnida, S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh73y54w9jee5v814bdd2g5knh814nrn",
+      "nama": "Ibnu Luthfi, S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh71pgpyb5c0dexb9zh640gtxh814dtt",
+      "nama": "Ana Mudrika, S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh737gmnr1e10278tx9v1neswn814nwd",
+      "nama": "Anwar Hidayat, S.Pd",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7f19k6qxpz4x6pne7w3mft6n8158sw",
+      "nama": "Mami Suratmi",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7bnv28dtjfemzaqrtycy7rh5814jn1",
+      "nama": "Ernayanti, A.Md",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh7f4ecab0s61251pddmy93b85814ea6",
+      "nama": "Slamet utrisno",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    },
+    {
+      "_id": "jh75psp4whzf2r3adc64khqcbn815d82",
+      "nama": "Umar Ari Wibowo",
+      "unitKerja": "MTsS MA'ARIF NU 01 KROYA",
+      "schoolId": "j570rcs6z8jeng0w7d4tmmewzh815rcv",
+      "isVerified": true,
+      "isSkGenerated": false
+    }
+  ]
+}

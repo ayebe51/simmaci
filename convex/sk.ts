@@ -544,55 +544,36 @@ export const getTeachersWithSk = query({
 
     // FETCH ALL TEACHERS FIRST (Base Query)
     let teachers = await ctx.db
-        .query("teachers")
-        .withIndex("by_updatedAt")
-        .order("desc")
-        .collect();
+      .query("teachers")
+      .withIndex("by_active", (q) => q.eq("isActive", true))
+      .collect();
 
-    // Filter Logic
-    if (user.role === "operator") {
-            if (user.schoolId) {
-                teachers = teachers.filter(t => t.schoolId === user.schoolId);
-            } else if (user.unit) {
-                teachers = teachers.filter(t => t.unitKerja === user.unit);
-            } else {
-                return [];
-            }
-    } else if (isSuper) {
-        // Admin: Allow viewing all, or filter by legacy arg if provided
-        if (args.userUnit) {
-             teachers = teachers.filter(t => t.unitKerja === args.userUnit);
+    // FILTER: Only those who haven't had SK generated yet
+    teachers = teachers.filter(t => t.isSkGenerated !== true);
+
+    // RBAC FILTERING
+    if (!isSuper) {
+        if (user.role === "operator") {
+             if (user.schoolId) {
+                 teachers = teachers.filter(t => t.schoolId === user.schoolId);
+             } else if (user.unit) {
+                 teachers = teachers.filter(t => t.unitKerja === user.unit);
+             } else {
+                 return [];
+             }
+        } else {
+             return [];
         }
-    } else {
-        return []; // Unknown role
     }
-    
-    let filteredTeachers = teachers;
-    // Robust Filter: Use explicit check against true to allow undefined/null/false
-    filteredTeachers = filteredTeachers.filter(t => t.isSkGenerated !== true); 
-    
-    // Optional: Filter only Active?
-    filteredTeachers = filteredTeachers.filter(t => t.isActive !== false);
 
-    // 2. Filter based on verification status if provided
-    if (args.isVerified !== undefined) {
-        filteredTeachers = filteredTeachers.filter(t => {
-            const isVerified = t.isVerified === true; 
-            return isVerified === args.isVerified;
-        });
+    // Apply Verification Filter if requested
+    if (args.isVerified === true) {
+        teachers = teachers.filter(t => t.isVerified === true);
+    } else if (args.isVerified === false) {
+        teachers = teachers.filter(t => t.isVerified === false);
     }
-    
-    // 3. Resolve Storage IDs to URLs (for View Button)
-    const result = await Promise.all(filteredTeachers.map(async (t) => {
-        let finalUrl: string | null | undefined = t.suratPermohonanUrl;
-        // If it's a Storage ID (no http), resolve it
-        if (t.suratPermohonanUrl && !t.suratPermohonanUrl.startsWith("http")) {
-            finalUrl = await ctx.storage.getUrl(t.suratPermohonanUrl as Id<"_storage">);
-        }
-        return { ...t, suratPermohonanUrl: finalUrl };
-    }));
 
-    return result;
+    return teachers;
   },
 });
 
@@ -707,4 +688,20 @@ export const getLastSkNumber = query({
       
     return lastSk?.nomorSk || null;
   },
+});
+
+export const debugInsertSk = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const id = await ctx.db.insert("skDocuments", {
+        nomorSk: "DEBUG-SK-" + Date.now(),
+        jenisSk: "debug",
+        nama: "Debug SK",
+        tanggalPenetapan: new Date().toISOString(),
+        status: "draft",
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    });
+    return id;
+  }
 });

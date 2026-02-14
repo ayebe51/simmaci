@@ -443,6 +443,7 @@ export const bulkCreate = mutation({
                     nuptk: rawNuptk,
                     nama: rawNama,
                     updatedAt: now,
+                    isSkGenerated: false, // RESET FLAG: Ensure teacher appears in Generator Queue
                 };
                 
                 // 3. Status & Activity
@@ -658,6 +659,7 @@ export const importTeachers = mutation({
           isCertified: t.isCertified === true || t.isCertified === "true",
           
           updatedAt: now,
+          isSkGenerated: false, // RESET FLAG
         };
 
         // 2. Check Existing

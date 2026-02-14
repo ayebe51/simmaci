@@ -523,54 +523,75 @@ export const deleteAllTeachers = mutation({
 export const getTeachersWithSk = query({
   args: {
     isVerified: v.optional(v.boolean()),
-    // Security update: Enforce context
     userRole: v.optional(v.string()), 
     userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // DIAGNOSTIC LOGS
+    console.log("getTeachersWithSk called");
+    
     // Authenticate User
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    if (!identity) {
+        console.log("Auth Failed: No Identity");
+        return [];
+    }
 
     const user = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", identity.email!))
         .first();
 
-    if (!user) return [];
+    if (!user) {
+        console.log("Auth Failed: User not found in DB");
+        return [];
+    }
+    
+    console.log(`User: ${user.name}, Role: ${user.role}, SchoolId: ${user.schoolId}`);
 
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
     const isSuper = superRoles.includes(user.role);
 
-    // FETCH ALL TEACHERS FIRST (Base Query)
-    let teachers = await ctx.db
-      .query("teachers")
-      .withIndex("by_active", (q) => q.eq("isActive", true))
-      .collect();
+    // FETCH ALL TEACHERS (Direct Scan - safest)
+    let teachers = await ctx.db.query("teachers").collect();
+    console.log(`Total Teachers in DB: ${teachers.length}`);
+
+    // Filter Active
+    teachers = teachers.filter(t => t.isActive === true);
+    console.log(`Active Teachers: ${teachers.length}`);
 
     // FILTER: Only those who haven't had SK generated yet
     teachers = teachers.filter(t => t.isSkGenerated !== true);
+    console.log(`Ready for SK (Not Generated): ${teachers.length}`);
 
     // RBAC FILTERING
     if (!isSuper) {
         if (user.role === "operator") {
              if (user.schoolId) {
                  teachers = teachers.filter(t => t.schoolId === user.schoolId);
+                 console.log(`Filtered by Operator SchoolID (${user.schoolId}): ${teachers.length}`);
              } else if (user.unit) {
                  teachers = teachers.filter(t => t.unitKerja === user.unit);
+                 console.log(`Filtered by Operator Unit (${user.unit}): ${teachers.length}`);
              } else {
+                 console.log("Operator has no SchoolID or Unit");
                  return [];
              }
         } else {
+             console.log(`Role ${user.role} not authorized`);
              return [];
         }
+    } else {
+        console.log("Super Admin - Skip RBAC");
     }
 
     // Apply Verification Filter if requested
     if (args.isVerified === true) {
         teachers = teachers.filter(t => t.isVerified === true);
+        console.log(`Filtered Verified ONLY: ${teachers.length}`);
     } else if (args.isVerified === false) {
         teachers = teachers.filter(t => t.isVerified === false);
+        console.log(`Filtered Unverified ONLY: ${teachers.length}`);
     }
 
     return teachers;

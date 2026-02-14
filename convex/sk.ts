@@ -18,19 +18,37 @@ export const list = query({
     // Filter out archived SK (so Reset Data works)
     docs = docs.filter(sk => sk.status !== "archived");
 
-    // 🔥 SECURITY: Enforce Unit Filtering for Non-Admins
+    // Authenticate User
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", identity.email!))
+        .first();
+
+    if (!user) return [];
+
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
-    const userRole = args.userRole || "";
-    const isSuper = superRoles.includes(userRole);
+    const isSuper = superRoles.includes(user.role);
 
     if (!isSuper) {
-        if (args.userUnit) {
-            // Force filter by user's unit
-            docs = docs.filter(sk => sk.unitKerja === args.userUnit);
+        if (user.role === "operator") {
+             // Priority: Filter by School ID if available
+             if (user.schoolId) {
+                 docs = docs.filter(sk => sk.schoolId === user.schoolId);
+                 // Fallback: If SK has no schoolId, check unit string
+                 // This ensures old SKs are still visible if unit matches
+                 // BUT strict schoolId is better. 
+                 // Let's allow mixed: match ID OR match string
+                 // docs = docs.filter(sk => sk.schoolId === user.schoolId || sk.unitKerja === user.unit);
+             } else if (user.unit) {
+                 docs = docs.filter(sk => sk.unitKerja === user.unit);
+             } else {
+                 return [];
+             }
         } else {
-            // 🚨 STRICT MODE: If non-admin and no unit context provided (old frontend), 
-            // return empty list to prevent data leak.
-            return [];
+             return [];
         }
     } else if (args.unitKerja) {
         // For Admins: Allow filtering by specific unit if requested
@@ -116,6 +134,30 @@ export const getByTeacher = query({
   },
 });
 
+// Helper to resolve schoolId from unitKerja string
+async function resolveSchoolId(ctx: any, unitKerja?: string) {
+    if (!unitKerja) return undefined;
+    
+    // 1. Try exact match by name
+    const school = await ctx.db
+        .query("schools")
+        .filter((q: any) => q.eq(q.field("nama"), unitKerja))
+        .first();
+        
+    if (school) return school._id;
+
+    // 2. Try match by NSM (if unitKerja is NSM)
+    if (/^\d+$/.test(unitKerja)) {
+         const byNsm = await ctx.db
+            .query("schools")
+            .withIndex("by_nsm", (q: any) => q.eq("nsm", unitKerja))
+            .first();
+         if (byNsm) return byNsm._id;
+    }
+    
+    return undefined;
+}
+
 // Create new SK
 export const create = mutation({
   args: {
@@ -142,11 +184,15 @@ export const create = mutation({
         .withIndex("by_nomor", (q) => q.eq("nomorSk", args.nomorSk))
         .first();
       
+      // Auto-resolve schoolId
+      const schoolId = await resolveSchoolId(ctx, args.unitKerja);
+
       if (existing) {
         console.log(`Duplicate Nomor SK: ${args.nomorSk}, Updating existing record...`);
         // UPSERT LOGIC: Update existing instead of throwing
         await ctx.db.patch(existing._id, {
             ...args,
+            schoolId, // Update schoolId
             updatedAt: now,
             // Keep original createdAt and createdBy if not provided?
             // Overwriting is safer for "regeneration" context
@@ -156,6 +202,7 @@ export const create = mutation({
       
       const newId = await ctx.db.insert("skDocuments", {
         ...args,
+        schoolId, // Insert schoolId
         status: args.status || "draft",
         createdAt: now,
         updatedAt: now,
@@ -196,9 +243,25 @@ export const bulkCreate = mutation({
     
     console.log(`Starting bulkCreate for ${args.documents.length} documents by ${args.createdBy}`);
     
+    // Batch resolve school IDs optimization? 
+    // For now, resolve per-doc is safer as unitKerja might vary. 
+    // Optimization: Cache results in a Map
+    const schoolCache = new Map<string, any>(); // Id<"schools">
+
     try {
       for (const doc of args.documents) {
         try {
+          // Resolve School ID
+          let schoolId = undefined;
+          if (doc.unitKerja) {
+              if (schoolCache.has(doc.unitKerja)) {
+                  schoolId = schoolCache.get(doc.unitKerja);
+              } else {
+                  schoolId = await resolveSchoolId(ctx, doc.unitKerja);
+                  if (schoolId) schoolCache.set(doc.unitKerja, schoolId);
+              }
+          }
+
           // Check duplicates
           const existing = await ctx.db
             .query("skDocuments")
@@ -208,6 +271,7 @@ export const bulkCreate = mutation({
           if (!existing) {
             const id = await ctx.db.insert("skDocuments", {
               ...doc,
+              schoolId, // Insert matched ID
               status: doc.status || "active",
               createdBy: args.createdBy,
               createdAt: now,
@@ -216,6 +280,10 @@ export const bulkCreate = mutation({
             results.push(id);
           } else {
             console.log(`Skipping duplicate SK: ${doc.nomorSk}`);
+            // Optional: Update with schoolId if missing?
+            if (!existing.schoolId && schoolId) {
+                 await ctx.db.patch(existing._id, { schoolId });
+            }
           }
         } catch (innerError: any) {
           console.error(`Error processing SK ${doc.nomorSk}:`, innerError);
@@ -468,21 +536,44 @@ export const getTeachersWithSk = query({
         .order("desc")
         .collect();
 
-    // 🔥 SECURITY: Enforce Unit Filtering for Non-Admins
-    const superRoles = ["super_admin", "admin_yayasan", "admin"];
-    const userRole = args.userRole || "";
-    const isSuper = superRoles.includes(userRole);
+    // Authenticate User
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
 
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", identity.email!))
+        .first();
+
+    if (!user) return [];
+
+    const superRoles = ["super_admin", "admin_yayasan", "admin"];
+    const isSuper = superRoles.includes(user.role);
+
+    // Apply Filters
     if (!isSuper) {
+        if (user.role === "operator") {
+             // Priority: Filter by School ID if available
+             if (user.schoolId) {
+                 teachers = teachers.filter(t => t.schoolId === user.schoolId);
+             } else if (user.unit) {
+                 // Fallback: Filter by Unit Name
+                 teachers = teachers.filter(t => t.unitKerja === user.unit);
+             } else {
+                 return [];
+             }
+        } else {
+            return []; // Unknown role
+        }
+    } else {
+        // Admin: Optional filter by unit passed in args? 
+        // Logic below uses args.userUnit which is deprecated.
+        // If admin wants to filter, they should pass 'unitKerja' arg (not userUnit)
+        // But for compatibility with frontend that sends empty object, we just show all for admin.
+        // If args.userUnit IS passed (legacy), we can respect it.
         if (args.userUnit) {
              teachers = teachers.filter(t => t.unitKerja === args.userUnit);
-        } else {
-             // 🚨 STRICT MODE: Prevent leak if no context
-             return [];
         }
-    } else if (args.userUnit) {
-        // Admin optional filter
-        teachers = teachers.filter(t => t.unitKerja === args.userUnit);
     }
     
     // Manual Sort Removed (Using Database Index)
@@ -490,7 +581,8 @@ export const getTeachersWithSk = query({
     // 1. Filter out teachers who already have SK generated (Soft Cleanup)
     // ENABLED: Auto-hide after generation
     let filteredTeachers = teachers;
-    filteredTeachers = filteredTeachers.filter(t => !t.isSkGenerated); 
+    // Fix: Use explicit check against true to allow undefined/null/false
+    filteredTeachers = filteredTeachers.filter(t => t.isSkGenerated !== true); 
     
     // Optional: Filter only Active?
     filteredTeachers = filteredTeachers.filter(t => t.isActive !== false);

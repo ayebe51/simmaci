@@ -253,6 +253,7 @@ export const create = mutation({
             ...teacherData,
             unitKerja: finalUnit,
             updatedAt: now,
+            isSkGenerated: false, // RESET FLAG: Ensure teacher appears in Generator Queue
           });
           return existing._id;
         }
@@ -263,6 +264,7 @@ export const create = mutation({
           unitKerja: finalUnit,
           schoolId: finalSchoolId,
           isActive: args.isActive ?? true,
+          isSkGenerated: false, // Explicitly set to false
           createdAt: now,
           updatedAt: now,
         });

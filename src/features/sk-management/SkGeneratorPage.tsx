@@ -393,12 +393,23 @@ import { AlertCircle, Trash2 } from "lucide-react"
 
 export default function SkGeneratorPage() {
   const convex = useConvex()
-  // Use Convex query to get teachers
   
-  // Teachers from master data import won't appear here
-  // Only teachers who submitted SK via submission form will show
-  // Properly detect loading state
-  const teachersDataRaw = useQuery(convexApi.sk.getTeachersWithSk, {})
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+
+  useEffect(() => {
+        const u = localStorage.getItem("user")
+        if (u) {
+            const user = JSON.parse(u)
+            setCurrentUser(user)
+            setIsSuperAdmin(user.role === "super_admin")
+        }
+  }, [])
+
+  const teachersDataRaw = useQuery(convexApi.sk.getTeachersWithSk, {
+      userRole: currentUser?.role,
+      userUnit: currentUser?.unit || currentUser?.unitKerja
+  })
   const isQueryLoading = teachersDataRaw === undefined
   const teachersData = (teachersDataRaw || []) as Teacher[]
 
@@ -569,16 +580,6 @@ export default function SkGeneratorPage() {
 
   
 
-  const [currentUser, setCurrentUser] = useState<any>(null) // Added state for user context
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
-  useEffect(() => {
-        const u = localStorage.getItem("user")
-        if (u) {
-            const user = JSON.parse(u)
-            setCurrentUser(user)
-            setIsSuperAdmin(user.role === "super_admin")
-        }
-  }, [])
   
   const handleBulkSign = () => {
       // Stub for future bulk sign action

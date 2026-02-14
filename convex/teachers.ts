@@ -405,9 +405,12 @@ export const bulkCreate = mutation({
         // If Operator, simplify things: The batch MUST be for their unit.
         // We will override any excel unit with User's unit.
         const enforcedUnit = user.role === 'operator' ? user.unit : null;
+        const enforcedSchoolId = user.role === 'operator' ? user.schoolId : null; // NEW: Capture School ID
 
         for (const teacher of args.teachers) {
             if (!teacher) continue; // Skip nulls
+            
+            // ... (helper functions omitted for brevity if unchanged, but need to be careful with context)
             
             // Helper to safe cast to string or undefined
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -460,6 +463,14 @@ export const bulkCreate = mutation({
                         cleanData.unitKerja = rawUnit;
                         unitsInBatch.add(rawUnit);
                     }
+                }
+
+                // NEW: School ID Logic
+                if (enforcedSchoolId) {
+                    cleanData.schoolId = enforcedSchoolId;
+                } else if (teacher.schoolId) {
+                    // Allow admin to pass schoolId via Excel/API if structure supports it
+                    cleanData.schoolId = teacher.schoolId;
                 }
 
                 // 5. Optional Fields Mapping
@@ -615,6 +626,7 @@ export const importTeachers = mutation({
   handler: async (ctx, args) => {
     const user = await validateWriteAccess(ctx, undefined);
     const enforcedUnit = user.role === 'operator' ? user.unit : null;
+    const enforcedSchoolId = user.role === 'operator' ? user.schoolId : null; // NEW: Capture School ID
 
     const now = Date.now();
     let success = 0;
@@ -642,7 +654,7 @@ export const importTeachers = mutation({
         const pendidikan = t.pendidikanTerakhir || t.pendidikan || t.PENDIDIKAN || "";
         const mapel = t.mapel || t.MAPEL || t.jabatan || "";
         
-        const cleanData = {
+        const cleanData: any = {
           nuptk,
           nama,
           unitKerja: unit,
@@ -661,6 +673,13 @@ export const importTeachers = mutation({
           updatedAt: now,
           isSkGenerated: false, // RESET FLAG
         };
+
+        // NEW: School ID Logic
+        if (enforcedSchoolId) {
+             cleanData.schoolId = enforcedSchoolId;
+        } else if (t.schoolId) {
+             cleanData.schoolId = t.schoolId;
+        }
 
         // 2. Check Existing
         const existing = await ctx.db

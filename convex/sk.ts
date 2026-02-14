@@ -705,3 +705,21 @@ export const debugInsertSk = mutation({
     return id;
   }
 });
+
+// FORCE RESET TOOL
+export const forceResetSkFlags = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const teachers = await ctx.db.query("teachers").collect();
+    let count = 0;
+    for (const t of teachers) {
+        await ctx.db.patch(t._id, { 
+            isSkGenerated: false,
+            isActive: true, // Ensure active logic
+            isVerified: true // Ensure verification logic
+        });
+        count++;
+    }
+    return `Reset complete. Updated ${count} teachers.`;
+  }
+});

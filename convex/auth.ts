@@ -34,12 +34,45 @@ export const register = mutation({
     
     // Create user
     validatePassword(args.password); // Enforce password policy
+
+    // Resolve School ID if unit is provided
+    let schoolId = undefined;
+    if (args.unit) {
+        const unitName = args.unit;
+        // 1. Try exact name match
+        let school = await ctx.db
+            .query("schools")
+            .filter((q) => q.eq(q.field("nama"), unitName))
+            .first();
+        
+        // 2. Fallback: Try "MTs" instead of "MTsS" if starts with MTsS
+        if (!school && unitName.startsWith("MTsS ")) {
+             const normalized = unitName.replace("MTsS ", "MTs ");
+             school = await ctx.db
+                .query("schools")
+                .filter((q) => q.eq(q.field("nama"), normalized))
+                .first();
+        }
+
+        if (school) schoolId = school._id;
+        
+        // 3. Try NSM match if looks like number
+        if (!schoolId && /^\d+$/.test(unitName)) {
+             const byNsm = await ctx.db
+                .query("schools")
+                .withIndex("by_nsm", (q) => q.eq("nsm", unitName))
+                .first();
+             if (byNsm) schoolId = byNsm._id;
+        }
+    }
+
     const userId = await ctx.db.insert("users", {
       email: args.email,
       name: args.name,
       passwordHash: hashPassword(args.password),
       role: args.role || "operator",
       unit: args.unit,
+      schoolId: schoolId, // New field
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -87,6 +120,7 @@ export const login = mutation({
         name: user.name,
         role: user.role,
         unitKerja: user.unit, // Map to frontend format
+        schoolId: user.schoolId, // New field for frontend context
       },
       token, 
     };
@@ -109,6 +143,7 @@ export const getCurrentUser = query({
       name: user.name,
       role: user.role,
       unitKerja: user.unit, // Map to frontend format
+      schoolId: user.schoolId, // New field context
       isActive: user.isActive,
     };
   },

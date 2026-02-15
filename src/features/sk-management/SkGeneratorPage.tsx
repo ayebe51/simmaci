@@ -1325,6 +1325,26 @@ export default function SkGeneratorPage() {
                     </Link>
                 )}
             </div>
+
+            {/* EMERGENCY DEBUG BANNER */}
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded shadow-sm">
+                <p className="font-bold">⚠️ DEBUG INFO (Mohon Screenshot ini jika error berlanjut)</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono mt-2">
+                    <div>User: {currentUser?.name}</div>
+                    <div>Role: {currentUser?.role}</div>
+                    <div>SchoolID (Local): {currentUser?.schoolId || "-"}</div>
+                    <div>Stored Template: {hasStoredTemplate ? "YES" : "NO"}</div>
+                    <div>Total Data Loaded: {teachersData?.length || 0}</div>
+                    <div>Filtered Data: {filteredTeachers?.length || 0}</div>
+                    <div>Search Term: "{searchTerm}"</div>
+                    <div>Items Per Page: {itemsPerPage}</div>
+                </div>
+                 {teachersData?.length > 0 && (
+                    <div className="mt-2 text-xs border-t border-red-200 pt-1">
+                        Sample Data (Top): {teachersData[0].nama} / {teachersData[0].updatedAt} / {teachersData[0].schoolId}
+                    </div>
+                )}
+            </div>
         </div>
 
             {/* Step 2: Select Data (Now Main Step) */}

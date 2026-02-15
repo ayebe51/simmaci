@@ -1,75 +1,71 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-export const cleanSk = mutation({
+export const deduplicateTeachers = mutation({
   args: {
-    deleteTeachers: v.optional(v.boolean()),
-    deleteSk: v.optional(v.boolean())
+    dryRun: v.optional(v.boolean()),
+    targetSchoolId: v.optional(v.string()) // Optional: target specific school/unit
   },
   handler: async (ctx, args) => {
-    console.log("Cleanup script started (SMART CLEANUP)", args);
-
-    let skDeleted = 0;
-    let teachersDeleted = 0;
-
-    // 1. DELETE SK HISTORY (If Requested)
-    if (args.deleteSk) {
-        // LIMIT TO 100 TO PREVENT TIMEOUT
-        const docs = await ctx.db.query("skDocuments").take(100);
-        for (const doc of docs) {
-            await ctx.db.delete(doc._id);
-        }
-        skDeleted = docs.length;
+    const teachers = await ctx.db.query("teachers").collect();
+    
+    // Group by unique key (NUPTK or Name + School)
+    const groups = new Map<string, any[]>();
+    
+    // Relaxed Key: Name + (Unit OR School)
+    // Ignore NUPTK for matching, as duplicates often have empty/wrong NUPTK
+    for (const t of teachers) {
+        let location = t.unitKerja || "NOUNIT";
+        if (t.schoolId) location = t.schoolId; // Prefer ID if available
         
-        // Optimize: Only fetch teachers that HAVE generated SK
-        const teachers = await ctx.db.query("teachers")
-            .filter(q => q.eq(q.field("isSkGenerated"), true))
-            .take(100);
-            
-        for(const t of teachers) {
-            await ctx.db.patch(t._id, { isSkGenerated: false });
+        // Normalize
+        const nameKey = t.nama.trim().toLowerCase().replace(/[^a-z0-9]/g, ""); // aggressive normalize
+        const locKey = location.trim().toLowerCase();
+        
+        const key = `${nameKey}|${locKey}`;
+        
+        if (!groups.has(key)) {
+            groups.set(key, []);
         }
+        groups.get(key)!.push(t);
     }
 
-    // 2. DELETE TEACHER CANDIDATES (If Requested)
-    if (args.deleteTeachers) {
-        // "Logika sama dengan ketika SK digenerate"
-        
-        const candidates = await ctx.db
-            .query("teachers")
-            .filter(q => q.neq(q.field("isSkGenerated"), true)) // TARGET ALL (False OR Undefined)
-            .take(100); // LIMIT 100
-        
-        for (const t of candidates) {
-            // Mimic Generate Logic: Mark as generated (Hidden from queue), set Active/Verified
-            // FIXED: Do NOT overwrite status if it is already valid (GTY, GTT, etc.)
-            const updatePayload: any = { 
-                isSkGenerated: true, 
-                isVerified: true
-            };
+    let removed = 0;
+    let kept = 0;
+    const report = [];
+
+    const isDryRun = args.dryRun ?? false; // LIVE RUN ENABLED
+
+    for (const [key, group] of groups.entries()) {
+        if (group.length > 1) {
+            // Sort by updatedAt desc (keep newest)
+            group.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
             
-            // Only force status to 'active' if currently draft or empty
-            if (!t.status || t.status === "draft") {
-                updatePayload.status = "active";
+            const [keep, ...remove] = group;
+            kept++;
+            
+            if (!isDryRun) {
+                for (const r of remove) {
+                    await ctx.db.delete(r._id);
+                    removed++;
+                }
+            } else {
+                removed += remove.length; // Count hypothetical removals
             }
-
-            await ctx.db.patch(t._id, updatePayload);
+            
+            report.push(`Duplicate: ${keep.nama} (${group.length} copies). Kept ID: ${keep._id}, Removing: ${remove.length}`);
+        } else {
+            kept++;
         }
-        teachersDeleted = candidates.length;
     }
 
-    // 3. Always clean Draft/Unverified junk if just running default (no args)?
-    if (!args.deleteTeachers && !args.deleteSk) {
-         // Original default behavior: Clear drafts
-         const draftTeachers = await ctx.db
-            .query("teachers")
-            .filter(q => q.eq(q.field("status"), "draft"))
-            .take(100); // LIMIT 100
-         for (const t of draftTeachers) await ctx.db.delete(t._id);
-         teachersDeleted = draftTeachers.length;
-    }
-
-    console.log(`Cleanup finished. SK: ${skDeleted}, Teachers: ${teachersDeleted}`);
-    return { skDeleted, teachersDeleted };
-  },
+    return {
+        total_scanned: teachers.length,
+        unique_groups: groups.size,
+        duplicates_removed: removed,
+        dry_run: !!isDryRun,
+        // DUMP DATA FOR DEBUG
+        cimanggu_dump: teachers.filter(t => (t.unitKerja || "").toLowerCase().includes("cimanggu")).map(t => `${t.nama} | ${t.unitKerja} | ${t.nuptk}`)
+    };
+  }
 });

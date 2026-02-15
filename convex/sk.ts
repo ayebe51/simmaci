@@ -529,37 +529,33 @@ export const getTeachersWithSk = query({
     userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // DIAGNOSTIC LOGS
-    console.log("getTeachersWithSk called");
-    
-    // Authenticate User
+    // Authenticate
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-        console.log("Auth Failed: No Identity");
         return [];
     }
 
+    const { isVerified, userRole: argsUserRole, userUnit: argsUserUnit } = args;
+
+    // Fetch user with Smart Selection
     const users = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", identity.email!))
         .collect();
 
-    // Smart Select: Prefer Super Admin / Admin role if duplicates exist
     const user = users.find(u => {
         const r = (u.role || "").toLowerCase();
         return r.includes("super") || r.includes("admin_yayasan");
     }) || users[0];
 
     if (!user) {
-        console.log("Auth Failed: User not found in DB");
         return [];
     }
     
-    console.log(`User: ${user.name}, Role: ${user.role}, SchoolId: ${user.schoolId}`);
-
+    // RBAC Logic
+    const role = (user.role || "").toLowerCase();
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
-    const userRole = (user.role || "").toLowerCase().trim();
-    const isSuper = superRoles.some(r => r === userRole) || userRole.includes("admin");
+    const isSuper = superRoles.some(r => role.includes(r));
 
     // FETCH ALL TEACHERS (Direct Scan - safest)
     let teachers = await ctx.db.query("teachers").collect();

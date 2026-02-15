@@ -552,7 +552,8 @@ export const getTeachersWithSk = query({
     console.log(`User: ${user.name}, Role: ${user.role}, SchoolId: ${user.schoolId}`);
 
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
-    const isSuper = superRoles.some(r => r.toLowerCase() === (user.role || "").toLowerCase()) || (user.role || "").toLowerCase().includes("admin");
+    const userRole = (user.role || "").toLowerCase().trim();
+    const isSuper = superRoles.some(r => r === userRole) || userRole.includes("admin");
 
     // FETCH ALL TEACHERS (Direct Scan - safest)
     let teachers = await ctx.db.query("teachers").collect();
@@ -597,8 +598,12 @@ export const getTeachersWithSk = query({
 
     // Apply Verification Filter if requested
     if (args.isVerified === true) {
-        teachers = teachers.filter(t => t.isVerified === true);
-        console.log(`Filtered Verified ONLY: ${teachers.length}`);
+        if (isSuper) {
+             console.log("SUPER ADMIN: Bypassing Verified Filter");
+        } else {
+             teachers = teachers.filter(t => t.isVerified === true);
+             console.log(`Filtered Verified ONLY: ${teachers.length}`);
+        }
     } else if (args.isVerified === false) {
         teachers = teachers.filter(t => t.isVerified === false);
         console.log(`Filtered Unverified ONLY: ${teachers.length}`);
@@ -606,6 +611,13 @@ export const getTeachersWithSk = query({
 
     // Sort by UpdatedAt (Recent First) for better UX
     teachers.sort((a, b) => (b.updatedAt || b._creationTime) - (a.updatedAt || a._creationTime));
+
+    if (isSuper && teachers.length === 0) {
+        console.warn("SUPER ADMIN RETURN 0 DATA", { 
+            args, 
+            total: teachers.length
+        });
+    }
 
     return teachers;
   },
@@ -766,20 +778,22 @@ export const diagnoseSA = query({
     const active = teachers.filter(t => t.isActive === true);
     const ungenerated = active.filter(t => t.isSkGenerated !== true);
     
-    // Check Admins
-    const users = await ctx.db.query("users").collect();
-    const admins = users.filter(u => u.role && u.role.toLowerCase().includes("admin")).map(u => ({
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        schoolId: u.schoolId
-    }));
+    // Check RBAC Logic
+    const superRoles = ["super_admin", "admin_yayasan", "admin"];
+    
+    // Find the calling user (or any admin as proxy)
+    // For diagnosis, we look for the user with 'super_admin' role
+    const adminUser = (await ctx.db.query("users").collect()).find(u => u.role && u.role.toLowerCase().includes("super"));
+
+    if (!adminUser) return "NO SUPER ADMIN FOUND";
+
+    const isSuper = superRoles.some(r => r.toLowerCase() === (adminUser.role || "").toLowerCase()) || (adminUser.role || "").toLowerCase().includes("admin");
 
     return {
-        total: teachers.length,
-        active: active.length,
-        ungenerated: ungenerated.length,
-        admins: admins // Audit roles
+        NAME: adminUser.name,
+        ROLE_RAW: `"${adminUser.role}"`,
+        IS_SUPER_CALC: isSuper,
+        SHOULD_PASS: isSuper
     };
   }
 });

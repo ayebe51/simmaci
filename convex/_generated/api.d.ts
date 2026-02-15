@@ -27,6 +27,7 @@ import type * as debug_school_check from "../debug_school_check.js";
 import type * as debug_simple from "../debug_simple.js";
 import type * as debug_sk_stats from "../debug_sk_stats.js";
 import type * as debug_status from "../debug_status.js";
+import type * as debug_users from "../debug_users.js";
 import type * as debug_visibility from "../debug_visibility.js";
 import type * as debugging from "../debugging.js";
 import type * as files from "../files.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   debug_simple: typeof debug_simple;
   debug_sk_stats: typeof debug_sk_stats;
   debug_status: typeof debug_status;
+  debug_users: typeof debug_users;
   debug_visibility: typeof debug_visibility;
   debugging: typeof debugging;
   files: typeof files;

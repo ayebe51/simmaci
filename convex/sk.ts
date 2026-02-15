@@ -539,10 +539,16 @@ export const getTeachersWithSk = query({
         return [];
     }
 
-    const user = await ctx.db
+    const users = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", identity.email!))
-        .first();
+        .collect();
+
+    // Smart Select: Prefer Super Admin / Admin role if duplicates exist
+    const user = users.find(u => {
+        const r = (u.role || "").toLowerCase();
+        return r.includes("super") || r.includes("admin_yayasan");
+    }) || users[0];
 
     if (!user) {
         console.log("Auth Failed: User not found in DB");

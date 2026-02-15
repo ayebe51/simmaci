@@ -231,10 +231,27 @@ export const create = mutation({
         const now = Date.now();
         
         // Check for duplicate NUPTK
-        const existing = await ctx.db
+        let existing = await ctx.db
           .query("teachers")
           .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
           .first();
+
+        // FALLBACK: If Not Found by NUPTK, Check by Name + Unit (Fuzzy Match)
+        // Only if NUPTK is likely invalid/placeholder or strictly to prevent double-entry of same name in same unit
+        if (!existing) {
+             // 1. Check if NUPTK is "dummy" (optional, but good practice). For now, always check name collision in unit.
+             const candidates = await ctx.db
+                .query("teachers")
+                .withIndex("by_unit", (q) => q.eq("unitKerja", finalUnit))
+                .collect();
+             
+             // Fuzzy Name Match
+             existing = candidates.find(t => t.nama.trim().toLowerCase() === args.nama.trim().toLowerCase()) || null;
+             
+             if (existing) {
+                 console.log(`[Duplicate Check] Found by Name+Unit: ${existing.nama} (${finalUnit})`);
+             }
+        }
         
         // Destructure token out of args so it's not written to DB
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -380,7 +397,7 @@ export const bulkDelete = mutation({
   },
 });
 
-// Bulk create teachers (for import) - ULTRA FLEXIBLE VERSION
+// Bulk create teachers (for import) - ULTRA FLEXIBLE & ROBUST VERSION
 export const bulkCreate = mutation({
   args: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -405,173 +422,221 @@ export const bulkCreate = mutation({
         // If Operator, simplify things: The batch MUST be for their unit.
         // We will override any excel unit with User's unit.
         const enforcedUnit = user.role === 'operator' ? user.unit : null;
-        const enforcedSchoolId = user.role === 'operator' ? user.schoolId : null; // NEW: Capture School ID
+        const enforcedSchoolId = user.role === 'operator' ? user.schoolId : null; 
+
+        // PRE-PROCESSING: Normalize Input & Identify Units
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cleanInputs: any[] = [];
+        const normalizedUnitMap = new Map<string, string>(); // normalized -> original db unit
+
+        // Helper to safe cast to string or undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const safeString = (val: any): string | undefined => {
+            if (val === null || val === undefined || val === "") return undefined;
+            return String(val).trim();
+        }
+
+        // Helper to safe cast to boolean
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const safeBool = (val: any): boolean | undefined => {
+            if (val === true || val === "true" || val === "ya" || val === "Ya") return true;
+            if (val === false || val === "false" || val === "tidak" || val === "Tidak") return false;
+            return undefined;
+        }
+
+        // Normalizer for Fuzzy Matching
+        const normalize = (str: string | undefined) => {
+            if (!str) return "";
+            return str.toLowerCase().replace(/[^a-z0-9]/g, ""); // Remove punctuation, spaces
+        }
 
         for (const teacher of args.teachers) {
-            if (!teacher) continue; // Skip nulls
+             if (!teacher) continue;
+             
+             // 1. Mandatory Fields
+             const rawNuptk = safeString(teacher.nuptk || teacher.NUPTK);
+             const rawNama = safeString(teacher.nama || teacher.NAMA || teacher.Name);
+
+             if (!rawNuptk || !rawNama) {
+                 errors.push(`Missing NUPTK or Name for row: ${JSON.stringify(teacher).substring(0, 50)}...`);
+                 continue;
+             }
+             
+             processedNuptks.add(rawNuptk);
+
+             // 2. Prepare Clean Data
+             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             const cleanData: any = {
+                 nuptk: rawNuptk,
+                 nama: rawNama,
+                 updatedAt: now,
+                 isSkGenerated: false,
+             };
+             
+             // 3. Status & Activity
+             cleanData.status = safeString(teacher.status || teacher.STATUS) || "active"; 
+             cleanData.isActive = true; 
+
+             // 4. Unit Logic
+             if (enforcedUnit) {
+                 cleanData.unitKerja = enforcedUnit; 
+                 unitsInBatch.add(enforcedUnit);
+             } else {
+                 const rawUnit = safeString(teacher.unitKerja || teacher.UnitKerja || teacher.satminkal);
+                 if (rawUnit) {
+                     cleanData.unitKerja = rawUnit;
+                     unitsInBatch.add(rawUnit);
+                 }
+             }
+
+             // School ID Logic
+             if (enforcedSchoolId) cleanData.schoolId = enforcedSchoolId;
+             else if (teacher.schoolId) cleanData.schoolId = teacher.schoolId;
+
+             // 5. Optional Fields Mapping
+             const mapField = (source: any, targetKey: string) => {
+                 const val = safeString(source);
+                 if (val !== undefined) cleanData[targetKey] = val;
+             };
+
+             mapField(teacher.pendidikanTerakhir || teacher.pendidikan, 'pendidikanTerakhir');
+             mapField(teacher.tmt || teacher.TMT, 'tmt');
+             mapField(teacher.kecamatan || teacher.Kecamatan, 'kecamatan');
+             mapField(teacher.mapel || teacher.Mapel, 'mapel');
+             mapField(teacher.phoneNumber || teacher.hp, 'phoneNumber');
+             mapField(teacher.email, 'email');
+             mapField(teacher.pdpkpnu, 'pdpkpnu');
+             mapField(teacher.tempatLahir || teacher.birthPlace, 'tempatLahir');
+             mapField(teacher.tanggalLahir || teacher.birthDate, 'tanggalLahir');
+             mapField(teacher.nip || teacher.NIP, 'nip');
+             mapField(teacher.jenisKelamin || teacher.jk, 'jenisKelamin');
+             
+             const isCertified = safeBool(teacher.isCertified || teacher.sertifikasi);
+             if (isCertified !== undefined) cleanData.isCertified = isCertified;
+
+             const isVerified = safeBool(teacher.isVerified);
+             if (isVerified !== undefined) cleanData.isVerified = isVerified;
+             else cleanData.isVerified = true; 
+
+             if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl;
+
+             cleanInputs.push(cleanData);
+        }
+
+        // OPTIMIZATION: Prefetch Existing Teachers in Batch Units
+        console.log(`Prefetching teachers for units: ${Array.from(unitsInBatch).join(", ")}`);
+        
+        // Multi-level Lookup:
+        // 1. NUPTK -> Teacher (Direct DB Match)
+        // 2. Unit(Norm):Name(Norm) -> Teacher (Fuzzy Match)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fuzzyLookup = new Map<string, any>(); 
+        
+        for (const unit of unitsInBatch) {
+            const unitTeachers = await ctx.db
+                .query("teachers")
+                .withIndex("by_unit", (q) => q.eq("unitKerja", unit))
+                .collect();
             
-            // ... (helper functions omitted for brevity if unchanged, but need to be careful with context)
+            const normUnit = normalize(unit);
             
-            // Helper to safe cast to string or undefined
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const safeString = (val: any): string | undefined => {
-                if (val === null || val === undefined || val === "") return undefined;
-                return String(val).trim();
-            }
-
-            // Helper to safe cast to boolean
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const safeBool = (val: any): boolean | undefined => {
-                if (val === true || val === "true" || val === "ya" || val === "Ya") return true;
-                if (val === false || val === "false" || val === "tidak" || val === "Tidak") return false;
-                return undefined;
-            }
-            
-            try {
-                // 1. Mandatory Fields
-                const rawNuptk = safeString(teacher.nuptk || teacher.NUPTK);
-                const rawNama = safeString(teacher.nama || teacher.NAMA || teacher.Name);
-
-                if (!rawNuptk || !rawNama) {
-                    results.push(null);
-                    errors.push(`Missing NUPTK or Name for row: ${JSON.stringify(teacher).substring(0, 50)}...`);
-                    continue;
-                }
-                
-                processedNuptks.add(rawNuptk);
-
-                // 2. Prepare Clean Data
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const cleanData: any = {
-                    nuptk: rawNuptk,
-                    nama: rawNama,
-                    updatedAt: now,
-                    isSkGenerated: false, // RESET FLAG: Ensure teacher appears in Generator Queue
-                };
-                
-                // 3. Status & Activity
-                cleanData.status = safeString(teacher.status || teacher.STATUS) || "active"; 
-                cleanData.isActive = true; // Force active on import
-
-                // 4. Unit Logic
-                if (enforcedUnit) {
-                    cleanData.unitKerja = enforcedUnit; // Override for Operator
-                    unitsInBatch.add(enforcedUnit);
-                } else {
-                    const rawUnit = safeString(teacher.unitKerja || teacher.UnitKerja || teacher.satminkal);
-                    if (rawUnit) {
-                        cleanData.unitKerja = rawUnit;
-                        unitsInBatch.add(rawUnit);
-                    }
-                }
-
-                // NEW: School ID Logic
-                if (enforcedSchoolId) {
-                    cleanData.schoolId = enforcedSchoolId;
-                } else if (teacher.schoolId) {
-                    // Allow admin to pass schoolId via Excel/API if structure supports it
-                    cleanData.schoolId = teacher.schoolId;
-                }
-
-                // 5. Optional Fields Mapping
-                const mapField = (source: any, targetKey: string) => {
-                    const val = safeString(source);
-                    if (val !== undefined) cleanData[targetKey] = val;
-                };
-
-                mapField(teacher.pendidikanTerakhir || teacher.pendidikan, 'pendidikanTerakhir');
-                mapField(teacher.tmt || teacher.TMT, 'tmt');
-                mapField(teacher.kecamatan || teacher.Kecamatan, 'kecamatan');
-                mapField(teacher.mapel || teacher.Mapel, 'mapel');
-                mapField(teacher.phoneNumber || teacher.hp, 'phoneNumber');
-                mapField(teacher.email, 'email');
-                mapField(teacher.pdpkpnu, 'pdpkpnu');
-                
-                // Identity
-                mapField(teacher.tempatLahir || teacher.birthPlace, 'tempatLahir');
-                mapField(teacher.tanggalLahir || teacher.birthDate, 'tanggalLahir');
-                mapField(teacher.nip || teacher.NIP, 'nip');
-                mapField(teacher.jenisKelamin || teacher.jk, 'jenisKelamin');
-                
-                // Booleans
-                const isCertified = safeBool(teacher.isCertified || teacher.sertifikasi);
-                if (isCertified !== undefined) cleanData.isCertified = isCertified;
-
-                const isVerified = safeBool(teacher.isVerified);
-                if (isVerified !== undefined) cleanData.isVerified = isVerified;
-                else cleanData.isVerified = true; // Auto-verify imports
-
-                cleanData.isSkGenerated = false;
-
-                if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl;
-
-                // 6. DB Operations
-                const existing = await ctx.db
-                    .query("teachers")
-                    .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
-                    .first();
-                
-                if (!existing) {
-                    cleanData.createdAt = now;
-                    const id = await ctx.db.insert("teachers", cleanData);
-                    results.push(id);
-                } else {
-                    // UPSERT LOGIC (Update Existing)
-                    console.log(`Bulk Upsert: Updating ${cleanData.nama}`);
-                    
-                    // RBAC Safety Check
-                    if (user.role === 'operator') {
-                         const existingUnit = existing.unitKerja?.trim().toLowerCase() || "";
-                         const userUnit = user.unit?.trim().toLowerCase() || "";
-                         // Allow update if unit matches OR if existing unit is empty
-                         if (existingUnit && existingUnit !== userUnit) {
-                             // Skip this row if it belongs to another unit
-                             errors.push(`Skipped ${cleanData.nama}: Registered in another unit (${existing.unitKerja})`);
-                             results.push(null);
-                             continue;
-                         }
-                    }
-
-                    // Patch existing record
-                    await ctx.db.patch(existing._id, {
-                        ...cleanData,
-                         // Don't overwrite createdAt
-                         // Ensure schoolId is set if missing
-                    });
-                    results.push(existing._id);
-                }
-
-            } catch (err: any) {
-                console.error(`Row Error (${teacher.nama}):`, err);
-                results.push(null);
-                errors.push(`Error for ${teacher.nama || 'Unknown'}: ${err.message}`);
+            for (const t of unitTeachers) {
+                const key = `${normUnit}:${normalize(t.nama)}`;
+                fuzzyLookup.set(key, t);
+                 // Also map NUPTK just in case logic needs it locally, 
+                 // though we'll check DB by NUPTK row-by-row safely via indexed query if needed, 
+                 // but prefetching everything is safer for bulk checks.
             }
         }
 
-        // FULL SYNC LOGIC (Unchanged but safer)
+        // PROCESS BATCH
+        for (const cleanData of cleanInputs) {
+             try {
+                 // STRATEGY:
+                 // 1. Check Exact NUPTK (Highest Confidence)
+                 let existing = await ctx.db
+                     .query("teachers")
+                     .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanData.nuptk))
+                     .first();
+
+                 // 2. Fallback: Fuzzy Name + Unit
+                 if (!existing && cleanData.unitKerja) {
+                     const key = `${normalize(cleanData.unitKerja)}:${normalize(cleanData.nama)}`;
+                     const fuzzyMatch = fuzzyLookup.get(key);
+                     
+                     if (fuzzyMatch) {
+                         console.log(`[Bulk Dedup] Fuzzy match found! '${cleanData.nama}' matched '${fuzzyMatch.nama}'`);
+                         existing = fuzzyMatch;
+                     }
+                 }
+
+                 if (!existing) {
+                     cleanData.createdAt = now;
+                     const id = await ctx.db.insert("teachers", cleanData);
+                     results.push(id);
+                 } else {
+                     // Update Existing
+                     // RBAC Safety
+                     if (user.role === 'operator') {
+                          const existingUnit = existing.unitKerja?.trim().toLowerCase() || "";
+                          const userUnit = user.unit?.trim().toLowerCase() || "";
+                          if (existingUnit && existingUnit !== userUnit) {
+                              errors.push(`Skipped ${cleanData.nama}: Registered in another unit (${existing.unitKerja})`);
+                              results.push(null);
+                              continue;
+                          }
+                     }
+                     
+                     // Patch
+                     await ctx.db.patch(existing._id, {
+                         ...cleanData,
+                         // Preserve crucial original fields if needed, but update allows overwrites
+                     });
+                     results.push(existing._id);
+                 }
+
+             } catch (err: any) {
+                 console.error(`Row Error (${cleanData.nama}):`, err);
+                 results.push(null);
+                 errors.push(`Error for ${cleanData.nama}: ${err.message}`);
+             }
+        }
+
+        // FULL SYNC LOGIC (Deactivate missing)
         let deactivatedCount = 0;
         if (args.isFullSync && unitsInBatch.size > 0) {
             for (const unit of unitsInBatch) {
                 if (user.role === 'operator' && unit !== user.unit) continue;
-
-                try {
-                    const teachersInUnit = await ctx.db
-                        .query("teachers")
-                        .withIndex("by_unit", (q) => q.eq("unitKerja", unit)) 
-                        .collect();
-                    
-                    for (const t of teachersInUnit) {
-                        if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
-                            await ctx.db.patch(t._id, {
-                                isActive: false,
-                                updatedAt: now
-                            });
-                            deactivatedCount++;
-                        }
+                
+                // Re-fetch to be safe or reuse? Re-fetch safer for transaction consistency?
+                // Convex mutations are transactional, so we can reuse if we updated the map, 
+                // but we didn't update the map during the loop. 
+                // Let's just fetch active ones to be safe.
+                const teachersInUnit = await ctx.db
+                    .query("teachers")
+                    .withIndex("by_unit", (q) => q.eq("unitKerja", unit)) 
+                    .collect();
+                
+                for (const t of teachersInUnit) {
+                    if (t.isActive && t.nuptk && !processedNuptks.has(t.nuptk)) {
+                         // Check if this teacher was JUST updated (handled in the loop but NUPTK might differ?)
+                         // processedNuptks tracks the INPUT NUPTKs. 
+                         // If existing teacher has NUPTK 'A' but input had 'B' (and fuzzy matched), 
+                         // we updated teacher 'A' to have NUPTK 'B'.
+                         // So 'A' is no longer in DB effectively (it's 'B'). 
+                         // But we iterate 'teachersInUnit' which is SNAPSHOT at start? 
+                         // Convex mutations read-your-writes? Yes.
+                         // So query here will see updated NUPTKs.
+                         
+                         // Wait, if we updated a teacher, their NUPTK in DB is now cleanData.nuptk (which IS in processedNuptks).
+                         // So this logic holds.
+                         
+                        await ctx.db.patch(t._id, {
+                            isActive: false,
+                            updatedAt: now
+                        });
+                        deactivatedCount++;
                     }
-                } catch (err) {
-                    console.error("Full Sync Error:", err);
-                    errors.push(`Full Sync Warning: Failed to sync unit ${unit}`);
                 }
             }
         }
@@ -581,6 +646,7 @@ export const bulkCreate = mutation({
             ids: results,
             errors: errors.length > 0 ? errors : undefined,
             deactivated: deactivatedCount,
+
             version: "4.2 (Robust Type Safe)" 
         };
 

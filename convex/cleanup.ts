@@ -35,14 +35,33 @@ export const deduplicateTeachers = mutation({
     const report = [];
 
     const isDryRun = args.dryRun ?? false; // LIVE RUN ENABLED
+    // HARDCODE DISABLE DRY RUN FOR CLI EXECUTION
+    // const isDryRun = false; 
+
 
     for (const [key, group] of groups.entries()) {
         if (group.length > 1) {
-            // Sort by updatedAt desc (keep newest)
-            group.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            // STRATEGY: Keep the "Best" record
+            // 1. Sort by NUPTK presence (Valid NUPTK first)
+            // 2. Then by Certification (Certified first)
+            // 3. Then by UpdatedAt (Newest first)
+            group.sort((a, b) => {
+                const aHasNuptk = a.nuptk && a.nuptk.length > 5 && !a.nuptk.toLowerCase().includes("tmp");
+                const bHasNuptk = b.nuptk && b.nuptk.length > 5 && !b.nuptk.toLowerCase().includes("tmp");
+                
+                if (aHasNuptk && !bHasNuptk) return -1; // a comes first (keep)
+                if (!aHasNuptk && bHasNuptk) return 1;  // b comes first (keep)
+                
+                // If both or neither have NUPTK, check certification
+                if (a.isCertified && !b.isCertified) return -1;
+                if (!a.isCertified && b.isCertified) return 1;
+
+                // Finally newest update wins
+                return (b.updatedAt || 0) - (a.updatedAt || 0);
+            });
             
             const [keep, ...remove] = group;
-            kept++;
+            kept++; // We keep the first one
             
             if (!isDryRun) {
                 for (const r of remove) {
@@ -50,10 +69,10 @@ export const deduplicateTeachers = mutation({
                     removed++;
                 }
             } else {
-                removed += remove.length; // Count hypothetical removals
+                removed += remove.length;
+                report.push(`[Mock Delete] would remove ${remove.length} dupes for '${keep.nama}'. Keeping ID: ${keep._id} (NUPTK: ${keep.nuptk})`);
             }
             
-            report.push(`Duplicate: ${keep.nama} (${group.length} copies). Kept ID: ${keep._id}, Removing: ${remove.length}`);
         } else {
             kept++;
         }

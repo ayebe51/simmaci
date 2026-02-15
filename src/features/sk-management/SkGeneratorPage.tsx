@@ -1086,7 +1086,8 @@ export default function SkGeneratorPage() {
                   nomorSk: item.NOMOR_SURAT,
                   tanggalPenetapan: item.TANGGAL_PENETAPAN,
                   fileUrl: "Generated via Bulk ZIP",
-                  createdBy: "System"
+                  createdBy: "System",
+                  token: token, // Pass token from state
               })
 
               // MODIFIED (SAFEGUARD): User requested NOT to delete teacher data after generation

@@ -89,6 +89,8 @@ export default function SkSubmissionPage() {
         const nuptk = data.niy || `TEMP-${Date.now()}`
         
         // We don't need the returned ID anymore since we don't create SK immediately
+        const token = localStorage.getItem("token") || undefined;
+        
         await createTeacherMutation({
             nuptk: nuptk,
             nama: data.nama,
@@ -96,6 +98,7 @@ export default function SkSubmissionPage() {
             unitKerja: data.unitKerja,
             status: data.jenisSk.includes("Tetap") ? "GTY" : data.jenisSk.includes("Tidak Tetap") ? "GTT" : "Tendik",
             isActive: true,
+            token: token, // Pass token for active session check
             // TODO: If schema supports it, pass suratPermohonanUrl here. 
             // For now, we just queue the teacher data.
         })

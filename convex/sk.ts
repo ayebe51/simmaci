@@ -552,7 +552,7 @@ export const getTeachersWithSk = query({
     console.log(`User: ${user.name}, Role: ${user.role}, SchoolId: ${user.schoolId}`);
 
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
-    const isSuper = superRoles.includes(user.role);
+    const isSuper = superRoles.some(r => r.toLowerCase() === (user.role || "").toLowerCase()) || (user.role || "").toLowerCase().includes("admin");
 
     // FETCH ALL TEACHERS (Direct Scan - safest)
     let teachers = await ctx.db.query("teachers").collect();
@@ -755,5 +755,31 @@ export const forceResetSkFlags = mutation({
         count++;
     }
     return `Reset complete. Updated ${count} teachers.`;
+  }
+});
+
+// SAFETY DEBUG QUERY
+export const diagnoseSA = query({
+  args: {},
+  handler: async (ctx) => {
+    const teachers = await ctx.db.query("teachers").collect();
+    const active = teachers.filter(t => t.isActive === true);
+    const ungenerated = active.filter(t => t.isSkGenerated !== true);
+    
+    // Check Admins
+    const users = await ctx.db.query("users").collect();
+    const admins = users.filter(u => u.role && u.role.toLowerCase().includes("admin")).map(u => ({
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        schoolId: u.schoolId
+    }));
+
+    return {
+        total: teachers.length,
+        active: active.length,
+        ungenerated: ungenerated.length,
+        admins: admins // Audit roles
+    };
   }
 });

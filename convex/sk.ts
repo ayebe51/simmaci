@@ -521,32 +521,42 @@ export const deleteAllTeachers = mutation({
   },
 });
 
+import { validateSession } from "./auth_helpers";
+
+// ... existing imports ...
+
 // Get teachers (The Quee for SK Generation)
 export const getTeachersWithSk = query({
   args: {
     isVerified: v.optional(v.boolean()),
     userRole: v.optional(v.string()), 
     userUnit: v.optional(v.string()),
+    token: v.optional(v.string()), // New: Support custom auth
   },
   handler: async (ctx, args) => {
-    // Authenticate
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-        return [];
+    let user = null;
+
+    // 1. Try Token Auth (Priority)
+    if (args.token) {
+        user = await validateSession(ctx, args.token);
+    } 
+    
+    // 2. Fallback to Standard Convex Auth
+    if (!user) {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity) {
+            // Fetch user with Smart Selection
+            const users = await ctx.db
+                .query("users")
+                .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                .collect();
+
+            user = users.find(u => {
+                const r = (u.role || "").toLowerCase();
+                return r.includes("super") || r.includes("admin_yayasan");
+            }) || users[0];
+        }
     }
-
-    const { isVerified, userRole: argsUserRole, userUnit: argsUserUnit } = args;
-
-    // Fetch user with Smart Selection
-    const users = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", identity.email!))
-        .collect();
-
-    const user = users.find(u => {
-        const r = (u.role || "").toLowerCase();
-        return r.includes("super") || r.includes("admin_yayasan");
-    }) || users[0];
 
     if (!user) {
         return [];

@@ -396,9 +396,13 @@ export default function SkGeneratorPage() {
   
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [token, setToken] = useState<string | undefined>(undefined)
 
   useEffect(() => {
         const u = localStorage.getItem("user")
+        const t = localStorage.getItem("token")
+        if (t) setToken(t)
+        
         if (u) {
             const user = JSON.parse(u)
             setCurrentUser(user)
@@ -408,7 +412,8 @@ export default function SkGeneratorPage() {
 
   const teachersDataRaw = useQuery(convexApi.sk.getTeachersWithSk, {
       userRole: currentUser?.role,
-      userUnit: currentUser?.unit || currentUser?.unitKerja
+      userUnit: currentUser?.unit || currentUser?.unitKerja,
+      token: token
   })
   const isQueryLoading = teachersDataRaw === undefined
   const teachersData = (teachersDataRaw || []) as Teacher[]

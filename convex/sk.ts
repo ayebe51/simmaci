@@ -604,6 +604,9 @@ export const getTeachersWithSk = query({
         console.log(`Filtered Unverified ONLY: ${teachers.length}`);
     }
 
+    // Sort by UpdatedAt (Recent First) for better UX
+    teachers.sort((a, b) => (b.updatedAt || b._creationTime) - (a.updatedAt || a._creationTime));
+
     return teachers;
   },
 });

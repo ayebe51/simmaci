@@ -561,7 +561,7 @@ export default function SkGeneratorPage() {
     (t.isActive !== false) &&
     ((t.nama?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
     (t.unitKerja?.toLowerCase() || "").includes(searchTerm.toLowerCase()))
-  ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) // Sort Newest First
+  ).sort((a, b) => ((b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0))) // Sort Recently Updated First
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage)

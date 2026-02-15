@@ -10,18 +10,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare } from "lucide-react"
+import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate } from "react-router-dom"
-import StatusBadge from "@/components/shared/StatusBadge"
+// import StatusBadge from "@/components/shared/StatusBadge" // Replaced with inline or improved badge
 import type { StatusType } from "@/components/shared/StatusBadge"
 import { useState, useEffect, useMemo } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 // 🔥 CONVEX REAL-TIME
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
-
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 // Type definitions (to be moved to types/sk.ts later)
 interface SkSubmission {
@@ -29,6 +40,7 @@ interface SkSubmission {
   nomorSurat: string
   jenisSk: string
   nama: string
+  unitKerja?: string // NEW: Unit Kerja
   tanggalPengajuan: string
   status: StatusType
   suratPermohonanUrl?: string
@@ -60,8 +72,6 @@ export default function SkDashboardPage() {
 
   // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
   // DEBUG: Removing filter to see ALL teachers
-  // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
-  // DEBUG: Removing filter to see ALL teachers
   const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, { 
     isVerified: false,
     // Pass context for server-side filtering
@@ -74,7 +84,6 @@ export default function SkDashboardPage() {
   const batchUpdateStatusMutation = useMutation(convexApi.sk.batchUpdateStatus)
   const verifyTeacherMutation = useMutation(convexApi.sk.verifyTeacher)
   const rejectTeacherMutation = useMutation(convexApi.sk.rejectTeacher)
-  // We need to use valid mutations. create for SK is `create` not `approve`
   // We need to use valid mutations. create for SK is `create` not `approve`
   const createSkMutation = useMutation(convexApi.sk.create)
   // FIXED: Add CleanSK hook
@@ -93,6 +102,7 @@ export default function SkDashboardPage() {
             nomorSurat: "-", // No SK Number yet
             jenisSk: t.status === "GTY" ? "SK Guru Tetap Yayasan" : t.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
             nama: t.nama,
+            unitKerja: t.unitKerja, // Map Teacher Unit
             tanggalPengajuan: new Date(t.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
             status: "draft", // Visual status
             suratPermohonanUrl: undefined, // Or check if we can add this to teacher schema later
@@ -108,6 +118,7 @@ export default function SkDashboardPage() {
       nomorSurat: item.nomorSk || "-",
       jenisSk: item.jenisSk,
       nama: item.nama,
+      unitKerja: item.unitKerja || "-", // Map SK Unit
       tanggalPengajuan: new Date(item.createdAt).toLocaleDateString('id-ID', {
         day: 'numeric', month: 'short', year: 'numeric'
       }),
@@ -122,8 +133,10 @@ export default function SkDashboardPage() {
   // Batch selection handlers
   // Filter Logic (moved up)
   const filteredData = useMemo(() => skData.filter(item => {
-    const matchesSearch = item.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.jenisSk.toLowerCase().includes(searchTerm.toLowerCase())
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = item.nama.toLowerCase().includes(term) || 
+                          item.jenisSk.toLowerCase().includes(term) ||
+                          (item.unitKerja || "").toLowerCase().includes(term); // NEW: Search by Unit
     return matchesSearch
   }), [skData, searchTerm])
 
@@ -213,15 +226,13 @@ export default function SkDashboardPage() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  // const itemsPerPage = 10 // Defined later in pagination logic to avoid re-declare
 
-    const handleReset = async () => {
-    if (!confirm("⚠️ RESET PENGAJUAN SK \n\nApakah anda yakin ingin menghapus SEMUA data di 'Perlu Diproses' (Draft)?\nData Guru Master & SK yang sudah terbit TIDAK akan dihapus.")) return
-    
+  const handleReset = async () => {
+    // Logic moved to AlertDialog Action
     try {
         const result: any = await cleanSk({})
         alert(`Berhasil membersihkan ${result.draftsDeleted} data sampah (Draft).`)
-        // Refresh?
         window.location.reload() 
     } catch (e) {
         alert("Gagal reset data: " + (e as any).message)
@@ -231,6 +242,7 @@ export default function SkDashboardPage() {
 
 
   // Pagination Logic
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const paginatedData = filteredData.slice(
       (currentPage - 1) * itemsPerPage,
@@ -244,6 +256,23 @@ export default function SkDashboardPage() {
       setCurrentPage(1)
   }
 
+  // --- UI COMPONENTS ---
+
+  const renderStatusBadge = (status: string) => {
+      switch(status) {
+          case 'approved':
+          case 'Approved':
+              return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">Disetujui</Badge>;
+          case 'rejected':
+          case 'Rejected':
+              return <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200">Ditolak</Badge>;
+          case 'draft':
+              return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200">Menunggu</Badge>;
+          default:
+              return <Badge variant="outline">{status}</Badge>;
+      }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -255,10 +284,32 @@ export default function SkDashboardPage() {
         </div>
         <div className="flex items-center">
             {["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
-                <Button variant="destructive" className="mr-2" onClick={handleReset}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Reset Data
-                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="mr-2">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Reset Data
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center text-red-600">
+                                <AlertTriangle className="mr-2 h-5 w-5" />
+                                Konfirmasi Reset Data
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Apakah Anda yakin ingin menghapus data <strong>"Perlu Diproses" (Draft)</strong>?<br/><br/>
+                                Tindakan ini hanya akan menghapus antrean draft yang belum diproses. Data SK yang sudah terbit (Approved/Rejected) <strong>TIDAK</strong> akan dihapus.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleReset} className="bg-red-600 hover:bg-red-700">
+                                Ya, Hapus Draft
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             )}
             <Button onClick={() => navigate("/dashboard/sk/new")}>
             <FilePlus className="mr-2 h-4 w-4" />
@@ -293,7 +344,7 @@ export default function SkDashboardPage() {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari nama atau jenis SK..."
+                placeholder="Cari nama, unit kerja, atau jenis SK..." // UX Hint update
                 className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -329,6 +380,7 @@ export default function SkDashboardPage() {
                     )}
                   </TableHead>
                   <TableHead>Tanggal</TableHead>
+                  <TableHead>Unit Kerja / Madrasah</TableHead> {/* NEW COLUMN */}
                   <TableHead>Jenis SK</TableHead>
                   <TableHead>Nama Pemohon</TableHead>
                   <TableHead>Nomor Surat</TableHead>
@@ -339,13 +391,13 @@ export default function SkDashboardPage() {
               <TableBody>
                 {isLoading ? (
                      <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                             Memuat data...
                         </TableCell>
                     </TableRow>
                 ) : filteredData.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={7} className="h-24 text-center">
+                        <TableCell colSpan={8} className="h-24 text-center">
                             Tidak ada data ditemukan.
                         </TableCell>
                     </TableRow>
@@ -365,11 +417,12 @@ export default function SkDashboardPage() {
                           )}
                         </TableCell>
                         <TableCell>{new Date(item.tanggalPengajuan).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell className="text-muted-foreground">{item.unitKerja}</TableCell> {/* NEW DATA */}
                         <TableCell>{item.jenisSk}</TableCell>
                         <TableCell className="font-medium">{item.nama}</TableCell>
                         <TableCell>{item.nomorSurat}</TableCell>
                         <TableCell>
-                            <StatusBadge status={item.status} />
+                            {renderStatusBadge(item.status)} {/* IMPROVED BADGE */}
                         </TableCell>
                         <TableCell className="text-right">
                             {item.suratPermohonanUrl && (

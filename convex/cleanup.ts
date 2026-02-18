@@ -88,3 +88,23 @@ export const deduplicateTeachers = mutation({
     };
   }
 });
+// Hard delete drafts (cleanSk)
+export const cleanSk = mutation({
+  args: {
+    targetSchoolId: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const drafts = await ctx.db
+        .query("skDocuments")
+        .withIndex("by_status", q => q.eq("status", "draft"))
+        .collect();
+    
+    let deleted = 0;
+    for (const d of drafts) {
+        await ctx.db.delete(d._id);
+        deleted++;
+    }
+    
+    return { draftsDeleted: deleted };
+  }
+});

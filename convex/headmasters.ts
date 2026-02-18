@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { validateSession } from "./auth_helpers";
 
 // Get all headmaster tenures with optional filters + enriched with teacher & school data
@@ -55,9 +56,9 @@ export const list = query({
 
     // 🔥 ENRICH: Join with teacher and school data ONLY for this page
     const enrichedPage = await Promise.all(
-      result.page.map(async (tenure) => {
-        const teacher = await ctx.db.get(tenure.teacherId);
-        const school = await ctx.db.get(tenure.schoolId);
+      result.page.map(async (tenure: any) => {
+        const teacher = await ctx.db.get(tenure.teacherId as Id<"teachers">);
+        const school = await ctx.db.get(tenure.schoolId as Id<"schools">);
         
         return {
           ...tenure,

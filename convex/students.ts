@@ -46,17 +46,19 @@ export const listPaginated = query({
     }
 
     // 2. FILTER SCENARIO
-    let q = ctx.db.query("students");
+    const q = ctx.db.query("students");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let paginatedQuery: any = q;
 
     if (targetSchool) {
-        q = q.withIndex("by_school", q => q.eq("namaSekolah", targetSchool));
+        paginatedQuery = q.withIndex("by_school", q => q.eq("namaSekolah", targetSchool));
     } else if (targetKecamatan) {
-        q = q.withIndex("by_kecamatan", q => q.eq("kecamatan", targetKecamatan));
+        paginatedQuery = q.withIndex("by_kecamatan", q => q.eq("kecamatan", targetKecamatan));
     } else {
-        q = q.order("desc"); // Default sort (newest maybe? or just default)
+        paginatedQuery = q.order("desc"); // Default sort (newest maybe? or just default)
     }
 
-    return await q.paginate(args.paginationOpts);
+    return await paginatedQuery.paginate(args.paginationOpts);
   },
 });
 

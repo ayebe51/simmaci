@@ -161,7 +161,7 @@ export default function SkDashboardPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = new Set(filteredData.map(sk => sk.id))
+      const allIds = new Set(skData.map(sk => sk.id))
       setSelectedIds(allIds)
     } else {
       setSelectedIds(new Set())
@@ -385,7 +385,7 @@ export default function SkDashboardPage() {
                   <TableHead className="w-[50px]">
                     {["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
                         <Checkbox
-                        checked={filteredData.length > 0 && selectedIds.size === filteredData.length}
+                        checked={skData.length > 0 && selectedIds.size === skData.length}
                         onCheckedChange={handleSelectAll}
                         />
                     )}
@@ -406,7 +406,7 @@ export default function SkDashboardPage() {
                             Memuat data...
                         </TableCell>
                     </TableRow>
-                ) : filteredData.length === 0 ? (
+                ) : skData.length === 0 ? (
                     <TableRow>
                         <TableCell colSpan={8} className="h-24 text-center">
                             Tidak ada data ditemukan.

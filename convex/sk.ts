@@ -17,6 +17,10 @@ export const list = query({
     userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // DEBUG: Short circuit to verify ARGUMENTS are valid
+    // console.log("SK List SHORT CIRCUIT", args);
+    // return { page: [], isDone: true, continueCursor: "" };
+    
     console.log("SK List Query Started", args);
     try {
         // 1. Auth & RBAC
@@ -815,11 +819,17 @@ export const deleteAllSk = mutation({
   },
 });
 
-
-export const debugListAllTeachers = query({
+export const testList = query({
     args: {},
     handler: async (ctx) => {
-        return await ctx.db.query("teachers").collect();
+        const args = {
+            paginationOpts: { numItems: 20, cursor: null },
+            userRole: "super_admin",
+            search: undefined,
+            status: undefined,
+            jenisSk: undefined,
+        };
+        return await ctx.db.query("skDocuments").order("desc").paginate(args.paginationOpts as any);
     }
 });
 

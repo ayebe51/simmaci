@@ -65,6 +65,15 @@ export default function SkDashboardPage() {
       } catch { return {}; }
   }, []);
 
+  const queryArgs = {
+      jenisSk: filterType === "all" ? undefined : filterType,
+      status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
+      search: searchTerm || undefined, // Pass search to backend
+      userRole: user?.role || undefined, // Ensure null becomes undefined
+      userUnit: user?.unitKerja || undefined, // Ensure null becomes undefined
+  };
+  console.log("DEBUG: sk:list args:", queryArgs);
+
   const {
       results: skDocuments,
       status: skQueryStatus,
@@ -72,13 +81,7 @@ export default function SkDashboardPage() {
       isLoading: isSkLoading
   } = usePaginatedQuery(
       convexApi.sk.list,
-      {
-          jenisSk: filterType === "all" ? undefined : filterType,
-          status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
-          search: searchTerm || undefined, // Pass search to backend
-          userRole: user?.role || undefined, // Ensure null becomes undefined
-          userUnit: user?.unitKerja || undefined, // Ensure null becomes undefined
-      },
+      queryArgs,
       { initialNumItems: 20 }
   );
 

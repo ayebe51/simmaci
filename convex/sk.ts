@@ -17,120 +17,126 @@ export const list = query({
     userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // 1. Auth & RBAC
-    const identity = await ctx.auth.getUserIdentity();
-    
-    let userRole = args.userRole;
-    let userSchoolId = args.schoolId;
-    let userUnit = args.userUnit; // From Client
-
-    if (identity) {
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_email", (q) => q.eq("email", identity.email!))
-            .first();
+    console.log("SK List Query Started", args);
+    try {
+        // 1. Auth & RBAC
+        const identity = await ctx.auth.getUserIdentity();
         
-        if (user) {
-            userRole = user.role;
-            userSchoolId = user.schoolId;
-            userUnit = user.unit;
+        let userRole = args.userRole;
+        let userSchoolId = args.schoolId;
+        let userUnit = args.userUnit; // From Client
+
+        if (identity) {
+            const user = await ctx.db
+                .query("users")
+                .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                .first();
+            
+            if (user) {
+                userRole = user.role;
+                userSchoolId = user.schoolId;
+                userUnit = user.unit;
+            }
         }
-    }
+        
+        console.log("Auth Resolved:", { userRole, userSchoolId, userUnit, identityEmail: identity?.email });
 
-    // Default to "viewer" if no role found, but don't crash
-    if (!userRole) {
-         // console.warn("sk:list called without identity or userRole");
-         // return { page: [], isDone: true, continueCursor: "" };
-         // For debugging, we might allow it or just treat as empty
-    }
+        // Default to "viewer" if no role found
+        const superRoles = ["super_admin", "admin_yayasan", "admin"];
+        const isSuper = userRole ? superRoles.includes(userRole) : false;
 
-    const superRoles = ["super_admin", "admin_yayasan", "admin"];
-    const isSuper = userRole ? superRoles.includes(userRole) : false;
+        // 2. Determine Scope (School ID)
+        let targetSchoolId = args.schoolId; // If passed explicitly
 
-    // 2. Determine Scope (School ID)
-    let targetSchoolId = args.schoolId; // If passed explicitly
+        // If Admin passed unitKerja string, try to resolve it to ID
+        if (isSuper && args.unitKerja && !targetSchoolId) {
+             console.log("Resolving school for Admin unit:", args.unitKerja);
+             targetSchoolId = await resolveSchoolId(ctx, args.unitKerja);
+        }
 
-    // If Admin passed unitKerja string, try to resolve it to ID
-    if (isSuper && args.unitKerja && !targetSchoolId) {
-         targetSchoolId = await resolveSchoolId(ctx, args.unitKerja);
-    }
-
-    if (!isSuper) {
-        if (userRole === "operator") {
-            // Operator is STRICTLY limited to their school
-            if (userSchoolId) {
-                targetSchoolId = userSchoolId;
-            } else if (userUnit) {
-                // FALLBACK: Try to resolve legacy unit string
-                const resolved = await resolveSchoolId(ctx, userUnit);
-                if (resolved) targetSchoolId = resolved;
-                else {
-                     // If we can't map operator to a school ID, we can't paginate effectively restricted data
+        if (!isSuper) {
+            if (userRole === "operator") {
+                // Operator is STRICTLY limited to their school
+                if (userSchoolId) {
+                    targetSchoolId = userSchoolId;
+                } else if (userUnit) {
+                    const resolved = await resolveSchoolId(ctx, userUnit);
+                    if (resolved) targetSchoolId = resolved;
+                    else {
+                         console.warn("Operator unit not resolved:", userUnit);
+                         return { page: [], isDone: true, continueCursor: "" };
+                    }
+                } else {
+                     console.warn("Operator has no unit or schoolId");
                      return { page: [], isDone: true, continueCursor: "" };
                 }
-            } else {
-                 return { page: [], isDone: true, continueCursor: "" };
+            } 
+            if (!userRole) {
+                console.warn("No user role, returning empty.");
+                return { page: [], isDone: true, continueCursor: "" };
             }
-        } 
-        // If not super and not operator, maybe viewer? 
-        // For now, if no role, return empty?
-        if (!userRole) return { page: [], isDone: true, continueCursor: "" };
-    }
+        }
 
-    // 3. Construct Query based on Indexes
-    const q = ctx.db.query("skDocuments");
+        console.log("Scope Determined:", { targetSchoolId, isSuper });
 
-    // Case S: SEARCH (Priority if search term exists)
-    if (args.search) {
-        // Search Logic
-        let searchQ = q.withSearchIndex("search_sk", q => q.search("nama", args.search!));
+        // 3. Construct Query based on Indexes
+        const q = ctx.db.query("skDocuments");
 
-        // Apply filters to Search (Note: Search indexes support limited filtering fields defined in schema)
+        // Case S: SEARCH (Priority if search term exists)
+        if (args.search) {
+            console.log("Executing Search:", args.search);
+            // Search Logic
+            let searchQ = q.withSearchIndex("search_sk", q => q.search("nama", args.search!));
+
+            // Apply filters to Search
+            if (targetSchoolId) {
+                 searchQ = searchQ.filter(q => q.eq(q.field("schoolId"), targetSchoolId));
+            }
+            
+            if (args.status && args.status !== "all") {
+                 searchQ = searchQ.filter(q => q.eq(q.field("status"), args.status));
+            }
+
+            return await searchQ.paginate(args.paginationOpts);
+        }
+
+        // Case A: Filter by School (Operator default, or Admin filter)
         if (targetSchoolId) {
-             searchQ = searchQ.filter(q => q.eq(q.field("schoolId"), targetSchoolId));
+            if (args.status && args.status !== "all") {
+                 return await q.withIndex("by_school_status", q => 
+                    q.eq("schoolId", targetSchoolId!).eq("status", args.status!)
+                 ).order("desc").paginate(args.paginationOpts);
+            } 
+            else if (args.jenisSk && args.jenisSk !== "all") {
+                 return await q.withIndex("by_school_jenis", q => 
+                    q.eq("schoolId", targetSchoolId!).eq("jenisSk", args.jenisSk!)
+                 ).order("desc").paginate(args.paginationOpts);
+            } 
+            else {
+                 return await q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId!))
+                    .order("desc").paginate(args.paginationOpts);
+            }
+        }
+
+        // Case B: Global View (Super Admin only)
+        if (args.status && args.status !== "all") {
+            return await q.withIndex("by_status", q => q.eq("status", args.status!))
+                .order("desc").paginate(args.paginationOpts);
+        }
+
+        if (args.jenisSk && args.jenisSk !== "all") {
+            return await q.withIndex("by_jenis", q => q.eq("jenisSk", args.jenisSk!))
+                .order("desc").paginate(args.paginationOpts);
         }
         
-        if (args.status && args.status !== "all") {
-             searchQ = searchQ.filter(q => q.eq(q.field("status"), args.status));
-        }
-
-        return await searchQ.paginate(args.paginationOpts);
-    }
-
-    // Case A: Filter by School (Operator default, or Admin filter)
-    if (targetSchoolId) {
-        if (args.status && args.status !== "all") {
-             // Index: by_school_status
-             return await q.withIndex("by_school_status", q => 
-                q.eq("schoolId", targetSchoolId!).eq("status", args.status!)
-             ).order("desc").paginate(args.paginationOpts);
-        } 
-        else if (args.jenisSk && args.jenisSk !== "all") {
-             // Index: by_school_jenis
-             return await q.withIndex("by_school_jenis", q => 
-                q.eq("schoolId", targetSchoolId!).eq("jenisSk", args.jenisSk!)
-             ).order("desc").paginate(args.paginationOpts);
-        } 
-        else {
-             // Index: by_schoolId
-             return await q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId!))
-               .order("desc").paginate(args.paginationOpts);
-        }
-    }
-
-    // Case B: Global View (Super Admin only)
-    if (args.status && args.status !== "all") {
-        return await q.withIndex("by_status", q => q.eq("status", args.status!))
-            .order("desc").paginate(args.paginationOpts);
-    }
-
-    if (args.jenisSk && args.jenisSk !== "all") {
-        return await q.withIndex("by_jenis", q => q.eq("jenisSk", args.jenisSk!))
-            .order("desc").paginate(args.paginationOpts);
-    }
+        // Default: All recent
+        console.log("Default Query (All Recent)");
+        return await q.order("desc").paginate(args.paginationOpts);
     
-    // Default: All recent
-    return await q.order("desc").paginate(args.paginationOpts);
+    } catch(err: any) {
+        console.error("CRITICAL ERROR in sk:list:", err);
+        throw new Error(`Server Error details: ${err.message}`);
+    }
   },
 });
 

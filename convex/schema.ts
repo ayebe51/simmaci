@@ -145,7 +145,6 @@ export default defineSchema({
     nama: v.string(),
     jabatan: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
-    unitKerja: v.optional(v.string()),
     // schoolId: v.optional(v.id("schools")), // NEW: ID Link
     schoolId: v.optional(v.any()), // DEBUG: Relax to allow legacy strings while debugging
 

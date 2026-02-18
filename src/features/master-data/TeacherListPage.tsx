@@ -69,7 +69,7 @@ export default function TeacherListPage() {
   const userSchoolId = user?.unitKerja
   
   // If operator, force filter to their school
-  const effectiveUnitKerja = isOperator && userSchoolId ? userSchoolId : (filterKecamatan || undefined)
+  const effectiveUnitKerja = isOperator && userSchoolId ? userSchoolId : undefined
   
   // 🔥 PAGINATED QUERY
   const { 
@@ -80,9 +80,9 @@ export default function TeacherListPage() {
   } = usePaginatedQuery(
       convexApi.teachers.list, 
       {
-        unitKerja: effectiveUnitKerja || undefined,
-        kecamatan: filterKecamatan || undefined,
-        isCertified: filterCertified || "all",
+        unitKerja: effectiveUnitKerja, 
+        kecamatan: filterKecamatan === "all" ? undefined : (filterKecamatan || undefined),
+        isCertified: filterCertified === "all" ? undefined : filterCertified,
         status: activeFilter,
         search: searchTerm || undefined,
         token: localStorage.getItem("token") || undefined, 
@@ -359,12 +359,12 @@ export default function TeacherListPage() {
                            onChange={(e) => setSearchTerm(e.target.value)}
                        />
                    </div>
-                   <Select value={filterKecamatan} onValueChange={setFilterKecamatan}>
+                   <Select value={filterKecamatan || "all"} onValueChange={setFilterKecamatan}>
                        <SelectTrigger className="w-full sm:w-[180px]">
                            <SelectValue placeholder="Semua Kecamatan" />
                        </SelectTrigger>
                        <SelectContent>
-                           <SelectItem value="">Semua Kecamatan</SelectItem>
+                           <SelectItem value="all">Semua Kecamatan</SelectItem>
                            {uniqueKecamatan.map((k: any) => (
                                <SelectItem key={k} value={k}>{k}</SelectItem>
                            ))}
@@ -689,7 +689,7 @@ export default function TeacherListPage() {
            <button onClick={() => setIsBroadcastOpen(true)} className="flex items-center gap-2 text-green-400 hover:text-green-300 font-bold transition-colors">
               <Smartphone className="h-5 w-5" /> BROADCAST WA
            </button>
-           <button onClick={() => setSelectedTeacherIds(new Set())} className="ml-2 text-gray-400 p-1"><X className="h-4 w-4" /></button>
+           <button onClick={() => setSelectedTeacherIds(new Set())} className="ml-2 text-gray-400 p-1" aria-label="Clear selection"><X className="h-4 w-4" /></button>
         </div>
       )}
       <BroadcastModal isOpen={isBroadcastOpen} onClose={() => setIsBroadcastOpen(false)} recipients={selectedTeachersForBroadcast} />
@@ -705,7 +705,7 @@ export default function TeacherListPage() {
         <Dialog open={isKtaModalOpen} onOpenChange={setIsKtaModalOpen}>
              <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Preview KTA</DialogTitle></DialogHeader>
-                  <KtaCard teacher={selectedTeacherForKta} onClose={() => setIsKtaModalOpen(false)} />
+                  <KtaCard teacher={selectedTeacherForKta} />
              </DialogContent>
         </Dialog>
       )}

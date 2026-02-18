@@ -81,7 +81,7 @@ export default function SkDashboardPage() {
       isLoading: isSkLoading
   } = usePaginatedQuery(
       convexApi.sk.list,
-      queryArgs,
+      {} as any, // FORCE EMPTY ARGS
       { initialNumItems: 20 }
   );
 

@@ -37,10 +37,10 @@ export default defineSchema({
     .index("by_updatedAt", ["updatedAt"])
     // .index("by_schoolId", ["schoolId"]) // NEW Index (DISABLED FOR MIGRATION)
     // .index("by_school_active", ["schoolId", "isActive"]) // For efficient teacher listing by school (DISABLED)
-    .searchIndex("search_teacher", {
+    /* .searchIndex("search_teacher", {
       searchField: "nama",
       filterFields: ["isActive", "unitKerja", "kecamatan"], // Removed schoolId from filter
-    }),
+    }), */
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)
@@ -169,10 +169,10 @@ export default defineSchema({
     //  .index("by_schoolId", ["schoolId"]) // NEW Index
     //  .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
     //  .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
-     .searchIndex("search_sk", {
+    /* .searchIndex("search_sk", {
        searchField: "nama",
        filterFields: ["status", "nomorSk"], // Allow filtering search results
-     }),
+     }), */
  
    // Headmaster Tenures (Pengangkatan Kepala Madrasah)
    headmasterTenures: defineTable({

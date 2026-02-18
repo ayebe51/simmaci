@@ -47,7 +47,7 @@ export const testListBySchoolStatus = query({
 
         return await ctx.db.query("skDocuments")
         // .withIndex("by_school_status", q => q.eq("schoolId", schoolId as any).eq("status", "draft"))
-        .filter(q => q.eq(q.field("schoolId"), schoolId).eq(q.field("status"), "draft"))
+        .filter(q => q.and(q.eq(q.field("schoolId"), schoolId), q.eq(q.field("status"), "draft")))
             .order("desc")
             .paginate({numItems: 5, cursor: null});
     }

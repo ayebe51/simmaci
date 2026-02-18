@@ -12,7 +12,7 @@ import {
 import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Smartphone, X, Wand2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -187,6 +187,22 @@ export default function TeacherListPage() {
       nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
   })
 
+  // 📄 CLIENT-SIDE PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 20
+
+  // Reset page when filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+      setCurrentPage(1)
+  }, [searchTerm, filterKecamatan, filterCertified, activeFilter])
+
+  // Computed Teachers for Current Page
+  const paginatedTeachers = useMemo(() => {
+      const startIndex = (currentPage - 1) * itemsPerPage
+      return teachers.slice(startIndex, startIndex + itemsPerPage)
+  }, [teachers, currentPage])
+
   // Selection State
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<Set<string>>(new Set())
 
@@ -197,12 +213,17 @@ export default function TeacherListPage() {
       setSelectedTeacherIds(newSet)
   }
 
-  const toggleAll = () => {
-      if (selectedTeacherIds.size === teachers.length && teachers.length > 0) {
-          setSelectedTeacherIds(new Set())
+  // Toggle All on Current Page (User Expectation)
+  const toggleAllPage = () => {
+      const allOnPageSelected = paginatedTeachers.every(t => selectedTeacherIds.has(t.id))
+      
+      const newSet = new Set(selectedTeacherIds)
+      if (allOnPageSelected) {
+          paginatedTeachers.forEach(t => newSet.delete(t.id))
       } else {
-          setSelectedTeacherIds(new Set(teachers.map(t => t.id)))
+          paginatedTeachers.forEach(t => newSet.add(t.id))
       }
+      setSelectedTeacherIds(newSet)
   }
   
   const selectedTeachersForBroadcast = useMemo(() => {
@@ -397,9 +418,9 @@ export default function TeacherListPage() {
                     <TableRow>
                       <TableHead className="w-[40px]">
                           <Checkbox 
-                              checked={teachers.length > 0 && selectedTeacherIds.size === teachers.length}
-                              onCheckedChange={toggleAll}
-                              aria-label="Select all"
+                              checked={paginatedTeachers.length > 0 && paginatedTeachers.every(t => selectedTeacherIds.has(t.id))}
+                              onCheckedChange={toggleAllPage}
+                              aria-label="Select all on page"
                           />
                       </TableHead>
                       <TableHead>Nomor Induk</TableHead>
@@ -412,14 +433,18 @@ export default function TeacherListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {teachers.length === 0 ? (
+                    {paginatedTeachers.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={8} className="h-24 text-center">
-                                {isLoading ? "Sedang memuat data..." : "Tidak ada data guru ditemukan."}
+                                {isLoading || queryStatus === "LoadingMore" ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" /> Sedang memuat data...
+                                    </div>
+                                ) : "Tidak ada data guru ditemukan pada halaman ini."}
                             </TableCell>
                         </TableRow>
                     ) : (
-                        teachers.map((item) => (
+                        paginatedTeachers.map((item) => (
                           <TableRow key={item.id} className={!item.isActive ? "bg-slate-50 opacity-60" : ""}>
                             <TableCell>
                                 <Checkbox 
@@ -466,20 +491,33 @@ export default function TeacherListPage() {
                 </Table>
             </div>
             
-            <div className="flex flex-col items-center justify-center space-y-2 py-4">
-                {queryStatus === "CanLoadMore" && (
-                     <Button variant="outline" onClick={() => loadMore(20)} disabled={isLoading}>
-                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                         Muat Lebih Banyak
-                     </Button>
-                )}
-                 {queryStatus === "LoadingMore" && (
-                    <Button variant="outline" disabled>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat...
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between py-4">
+                <div className="text-sm text-muted-foreground">
+                    Halaman {currentPage} (Menampilkan {paginatedTeachers.length} dari {teachers.length}{queryStatus === "CanLoadMore" ? "+" : ""} data)
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || queryStatus === "LoadingMore"}
+                    >
+                        Sebelumnya
                     </Button>
-                )}
-                <div className="text-xs text-muted-foreground">
-                    Menampilkan {teachers.length} data
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (currentPage * itemsPerPage >= teachers.length && queryStatus === "CanLoadMore") {
+                                loadMore(itemsPerPage);
+                            }
+                            setCurrentPage(p => p + 1);
+                        }}
+                        disabled={(queryStatus === "Exhausted" && currentPage * itemsPerPage >= teachers.length) || queryStatus === "LoadingMore"}
+                    >
+                        {queryStatus === "LoadingMore" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Selanjutnya"}
+                    </Button>
                 </div>
             </div>
         </CardContent>

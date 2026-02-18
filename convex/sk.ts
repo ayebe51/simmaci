@@ -17,12 +17,8 @@ export const list = query({
     // userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // DEBUG: Short circuit to verify ARGUMENTS are valid
-    console.log("SK List SHORT CIRCUIT", args);
-    return { page: [], isDone: true, continueCursor: "" };
-    
     // console.log("SK List Query Started", args);
-    // try {
+    try {
         // 1. Auth & RBAC
         const identity = await ctx.auth.getUserIdentity();
         

@@ -38,7 +38,7 @@ export default defineSchema({
     .index("by_schoolId", ["schoolId"]) // NEW Index
     .index("by_school_active", ["schoolId", "isActive"]) // For efficient teacher listing by school
     .searchIndex("search_teacher", {
-      searchField: ["nama", "nip", "nuptk"],
+      searchField: "nama",
       filterFields: ["schoolId", "isActive", "unitKerja", "kecamatan"], // Allow filtering search results
     }),
 

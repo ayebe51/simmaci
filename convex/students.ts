@@ -1,6 +1,65 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+import { paginationOptsValidator } from "convex/server";
+
+// 🔥 PAGINATED LIST
+export const listPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    namaSekolah: v.optional(v.string()),
+    kecamatan: v.optional(v.string()),
+    search: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    let userUnit = "";
+    
+    // RBAC: Check User Role
+    if (identity && identity.email) {
+       const user = await ctx.db
+         .query("users")
+         .withIndex("by_email", (q) => q.eq("email", identity.email!))
+         .first();
+
+       if (user && user.role === "operator" && user.unit) {
+           userUnit = user.unit;
+       }
+    }
+
+    // Determine Filter Targets
+    const targetSchool = userUnit || (args.namaSekolah !== "all" ? args.namaSekolah : undefined);
+    const targetKecamatan = args.kecamatan !== "all" ? args.kecamatan : undefined;
+
+    // 1. SEARCH SCENARIO
+    if (args.search) {
+        let searchQ = ctx.db.query("students")
+            .withSearchIndex("search_students", q => q.search("nama", args.search!));
+
+        if (targetSchool) {
+            searchQ = searchQ.filter(q => q.eq(q.field("namaSekolah"), targetSchool));
+        } else if (targetKecamatan) {
+            searchQ = searchQ.filter(q => q.eq(q.field("kecamatan"), targetKecamatan));
+        }
+
+        return await searchQ.paginate(args.paginationOpts);
+    }
+
+    // 2. FILTER SCENARIO
+    let q = ctx.db.query("students");
+
+    if (targetSchool) {
+        q = q.withIndex("by_school", q => q.eq("namaSekolah", targetSchool));
+    } else if (targetKecamatan) {
+        q = q.withIndex("by_kecamatan", q => q.eq("kecamatan", targetKecamatan));
+    } else {
+        q = q.order("desc"); // Default sort (newest maybe? or just default)
+    }
+
+    return await q.paginate(args.paginationOpts);
+  },
+});
+
 // Get all students with optional filters
 export const list = query({
   args: {

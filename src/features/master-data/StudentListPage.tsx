@@ -20,7 +20,7 @@ import { api } from "@/lib/api"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import ExcelImportModal from "./components/ExcelImportModal"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { downloadStudentTemplate, processStudentImport } from "./student-import-utils"
 
@@ -74,13 +74,23 @@ export default function StudentListPage() {
     return null
   })
 
-  // 🔥 REAL-TIME CONVEX QUERY
-  const convexStudents = useQuery(convexApi.students.list, {
-    namaSekolah: userUnit || undefined,
-  })
+  // 🔥 REAL-TIME CONVEX PAGINATED QUERY
+  const {
+      results: rawStudents,
+      status: queryStatus,
+      loadMore,
+      isLoading
+  } = usePaginatedQuery(
+      convexApi.students.listPaginated,
+      {
+          namaSekolah: userUnit || undefined,
+          search: searchTerm || undefined,
+      },
+      { initialNumItems: 20 }
+  );
 
   // Map Convex data to Student interface
-  const students = (convexStudents || []).map((s: any) => ({
+  const students = (rawStudents || []).map((s: any) => ({
     id: s._id,
     nisn: s.nisn || "",
     nama: s.nama || "",
@@ -116,18 +126,9 @@ export default function StudentListPage() {
     // Kept for compatibility
   }
 
-
-  const filtered = students.filter(s => {
-    // 1. Role Filter
-    if (userUnit && s.sekolah !== userUnit) return false
-
-    return s.nama.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.nisn.includes(searchTerm) ||
-    s.sekolah.toLowerCase().includes(searchTerm.toLowerCase())
-  })
-
+  // Sort visible items
   const sortedStudents = useMemo(() => {
-    const sortableItems = [...filtered];
+    const sortableItems = [...students];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         // Handle undefined values
@@ -144,17 +145,7 @@ export default function StudentListPage() {
       });
     }
     return sortableItems;
-  }, [filtered, sortConfig]);
-
-  // Pagination Logic
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-  const totalPages = Math.ceil(sortedStudents.length / itemsPerPage)
-
-  const paginatedStudents = sortedStudents.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-  )
+  }, [students, sortConfig]);
 
   // Better Pattern: Reset page during render if filters change
   const [prevFilters, setPrevFilters] = useState({ searchTerm, sortConfig })
@@ -388,14 +379,14 @@ export default function StudentListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {paginatedStudents.length === 0 ? (
+                    {sortedStudents.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={11} className="h-24 text-center">
-                                Tidak ada data siswa ditemukan.
+                                {isLoading ? "Memuat data..." : "Tidak ada data siswa ditemukan."}
                             </TableCell>
                         </TableRow>
                     ) : (
-                        paginatedStudents.map((item) => (
+                        sortedStudents.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.nisn}</TableCell>
                             <TableCell>{item.nama}</TableCell>
@@ -427,44 +418,17 @@ export default function StudentListPage() {
                 </div>
             
             {/* Pagination Controls */}
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    Halaman {currentPage} dari {totalPages} ({filtered.length} data)
-                </div>
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(1)}
-                        disabled={currentPage === 1}
-                    >
-                        First
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                    >
-                        Prev
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                    >
-                        Next
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(totalPages)}
-                        disabled={currentPage === totalPages}
-                    >
-                        Last
-                    </Button>
-                </div>
+            {/* Load More Control */}
+            <div className="flex items-center justify-center py-4">
+               {queryStatus === "LoadingMore" ? (
+                   <span className="text-sm text-gray-500">Memuat lebih banyak...</span>
+               ) : (queryStatus === "CanLoadMore" ? (
+                   <Button variant="outline" onClick={() => loadMore(20)}>
+                      Load More
+                   </Button>
+               ) : (
+                   <span className="text-sm text-gray-400">Semua data telah dimuat ({sortedStudents.length})</span>
+               ))}
             </div>
         </CardContent>
     </Card>

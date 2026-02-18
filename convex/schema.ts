@@ -71,7 +71,11 @@ export default defineSchema({
   })
     .index("by_nisn", ["nisn"])
     .index("by_school", ["namaSekolah"])
-    .index("by_kecamatan", ["kecamatan"]),
+    .index("by_kecamatan", ["kecamatan"])
+    .searchIndex("search_students", {
+      searchField: "nama",
+      filterFields: ["namaSekolah", "kecamatan", "nisn"],
+    }),
 
   // Schools table
   schools: defineTable({

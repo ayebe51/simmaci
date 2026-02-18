@@ -124,7 +124,6 @@ export default defineSchema({
       mimeType: v.optional(v.string()),
       schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
       updatedAt: v.number(),
-      updatedAt: v.number(),
   }).index("by_key", ["key"]),
     // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
@@ -135,7 +134,7 @@ export default defineSchema({
       mimeType: v.string(),
       schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
       updatedAt: v.number(),
-  }).index("by_key", ["key"])
+  }).index("by_key", ["key"]),
     // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
   // SK (Surat Keputusan) documents

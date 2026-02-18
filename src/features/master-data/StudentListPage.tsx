@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet } from "lucide-react"
+import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Loader2 } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -147,6 +147,10 @@ export default function StudentListPage() {
     return sortableItems;
   }, [students, sortConfig]);
 
+  // 📄 CLIENT-SIDE PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 20
+
   // Better Pattern: Reset page during render if filters change
   const [prevFilters, setPrevFilters] = useState({ searchTerm, sortConfig })
   if (prevFilters.searchTerm !== searchTerm || prevFilters.sortConfig !== sortConfig) {
@@ -154,11 +158,17 @@ export default function StudentListPage() {
       setCurrentPage(1)
   }
 
+  // Computed Students for Current Page
+  const paginatedStudents = useMemo(() => {
+      const startIndex = (currentPage - 1) * itemsPerPage
+      return sortedStudents.slice(startIndex, startIndex + itemsPerPage)
+  }, [sortedStudents, currentPage])
+
   // Auto-open Import Modal if requested via URL
   const [searchParams, setSearchParams] = useSearchParams()
   useEffect(() => {
       if (searchParams.get("action") === "import") {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
+          // eslint-disable-next-line react-hooks/exhaustive-deps
           setIsImportModalOpen(true)
           // Clear param to prevent reopening on refresh
           setSearchParams(params => {
@@ -379,14 +389,18 @@ export default function StudentListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedStudents.length === 0 ? (
+                    {paginatedStudents.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={11} className="h-24 text-center">
-                                {isLoading ? "Memuat data..." : "Tidak ada data siswa ditemukan."}
+                                {isLoading || queryStatus === "LoadingMore" ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" /> Sedang memuat data...
+                                    </div>
+                                ) : "Tidak ada data siswa ditemukan pada halaman ini."}
                             </TableCell>
                         </TableRow>
                     ) : (
-                        sortedStudents.map((item) => (
+                        paginatedStudents.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.nisn}</TableCell>
                             <TableCell>{item.nama}</TableCell>
@@ -418,17 +432,33 @@ export default function StudentListPage() {
                 </div>
             
             {/* Pagination Controls */}
-            {/* Load More Control */}
-            <div className="flex items-center justify-center py-4">
-               {queryStatus === "LoadingMore" ? (
-                   <span className="text-sm text-gray-500">Memuat lebih banyak...</span>
-               ) : (queryStatus === "CanLoadMore" ? (
-                   <Button variant="outline" onClick={() => loadMore(20)}>
-                      Load More
-                   </Button>
-               ) : (
-                   <span className="text-sm text-gray-400">Semua data telah dimuat ({sortedStudents.length})</span>
-               ))}
+            <div className="flex items-center justify-between py-4">
+                <div className="text-sm text-muted-foreground">
+                    Halaman {currentPage} (Menampilkan {paginatedStudents.length} dari {sortedStudents.length}{queryStatus === "CanLoadMore" ? "+" : ""} data)
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1 || queryStatus === "LoadingMore"}
+                    >
+                        Sebelumnya
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (currentPage * itemsPerPage >= sortedStudents.length && queryStatus === "CanLoadMore") {
+                                loadMore(itemsPerPage);
+                            }
+                            setCurrentPage(p => p + 1);
+                        }}
+                        disabled={(queryStatus === "Exhausted" && currentPage * itemsPerPage >= sortedStudents.length) || queryStatus === "LoadingMore"}
+                    >
+                        {queryStatus === "LoadingMore" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Selanjutnya"}
+                    </Button>
+                </div>
             </div>
         </CardContent>
     </Card>

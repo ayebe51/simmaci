@@ -18,7 +18,8 @@ import type { StatusType } from "@/components/shared/StatusBadge"
 import { useState, useEffect, useMemo } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, usePaginatedQuery } from "convex/react"
+import { Loader2 } from "lucide-react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -53,7 +54,9 @@ export default function SkDashboardPage() {
   const [filterType, setFilterType] = useState("all")
   const [statusFilter, setStatusFilter] = useState<StatusType | "all">("draft") // Default view: Drafts only
   
-  // 🔥 REAL-TIME CONVEX QUERY
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  
   // 1. Get SK Documents (Approved/Rejected/Issued)
   // Retrieve user context for security filtering
   const user = useMemo(() => {
@@ -62,19 +65,27 @@ export default function SkDashboardPage() {
       } catch { return {}; }
   }, []);
 
-  const skDocuments = useQuery(convexApi.sk.list, {
-    jenisSk: filterType === "all" ? undefined : filterType,
-    status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
-    // Pass context for server-side filtering
-    userRole: user?.role,
-    userUnit: user?.unitKerja,
-  })
+  const {
+      results: skDocuments,
+      status: skQueryStatus,
+      loadMore,
+      isLoading: isSkLoading
+  } = usePaginatedQuery(
+      convexApi.sk.list,
+      {
+          jenisSk: filterType === "all" ? undefined : filterType,
+          status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
+          search: searchTerm || undefined, // Pass search to backend
+          userRole: user?.role,
+          userUnit: user?.unitKerja,
+      },
+      { initialNumItems: 20 }
+  );
 
   // 2. Get Teachers Queue (Candidates for SK) - Only for "Draft" tab
   // DEBUG: Removing filter to see ALL teachers
   const teacherQueue = useQuery(convexApi.sk.getTeachersWithSk, { 
     isVerified: false,
-    // Pass context for server-side filtering
     userRole: user?.role,
     userUnit: user?.unitKerja,
   })
@@ -84,9 +95,7 @@ export default function SkDashboardPage() {
   const batchUpdateStatusMutation = useMutation(convexApi.sk.batchUpdateStatus)
   const verifyTeacherMutation = useMutation(convexApi.sk.verifyTeacher)
   const rejectTeacherMutation = useMutation(convexApi.sk.rejectTeacher)
-  // We need to use valid mutations. create for SK is `create` not `approve`
   const createSkMutation = useMutation(convexApi.sk.create)
-  // FIXED: Add CleanSK hook
   const cleanSk = useMutation(convexApi.cleanup.cleanSk)
   
   // Selection state for batch operations
@@ -97,7 +106,14 @@ export default function SkDashboardPage() {
     // A. If Tab is "Draft" (Perlu Diproses), show Teacher Queue
     if (statusFilter === "draft") {
         if (!teacherQueue) return []
-        return teacherQueue.map(t => ({
+        // Client-side search for Teacher Queue (since it's a regular query)
+        let queue = teacherQueue;
+        if (searchTerm) {
+            const lower = searchTerm.toLowerCase();
+            queue = queue.filter(t => t.nama.toLowerCase().includes(lower) || (t.unitKerja || "").toLowerCase().includes(lower));
+        }
+
+        return queue.map(t => ({
             id: t._id,
             nomorSurat: "-", // No SK Number yet
             jenisSk: t.status === "GTY" ? "SK Guru Tetap Yayasan" : t.status === "GTT" ? "SK Guru Tidak Tetap" : "SK Tenaga Kependidikan",
@@ -126,19 +142,22 @@ export default function SkDashboardPage() {
       suratPermohonanUrl: item.fileUrl,
       isTeacher: false
     }))
-  }, [skDocuments, teacherQueue, statusFilter])
+  }, [skDocuments, teacherQueue, statusFilter, searchTerm])
 
-  const isLoading = statusFilter === "draft" ? teacherQueue === undefined : skDocuments === undefined;
+  const isLoading = statusFilter === "draft" ? teacherQueue === undefined : isSkLoading;
 
-  // Batch selection handlers
-  // Filter Logic (moved up)
-  const filteredData = useMemo(() => skData.filter(item => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch = item.nama.toLowerCase().includes(term) || 
-                          item.jenisSk.toLowerCase().includes(term) ||
-                          (item.unitKerja || "").toLowerCase().includes(term); // NEW: Search by Unit
-    return matchesSearch
-  }), [skData, searchTerm])
+  // Filters are now handled by Backend (for SK Filter/Status/Search) or Memo (skData construction)
+  // so we can just use skData directly.
+  
+  // Pagination Logic
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(skData.length / itemsPerPage)
+  
+  // Computed Slice
+  const paginatedData = useMemo(() => {
+      const startIndex = (currentPage - 1) * itemsPerPage
+      return skData.slice(startIndex, startIndex + itemsPerPage)
+  }, [skData, currentPage])
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -224,9 +243,7 @@ export default function SkDashboardPage() {
 
 
 
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1)
-  // const itemsPerPage = 10 // Defined later in pagination logic to avoid re-declare
+
 
   const handleReset = async () => {
     // Logic moved to AlertDialog Action
@@ -241,13 +258,7 @@ export default function SkDashboardPage() {
 
 
 
-  // Pagination Logic
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
-  const paginatedData = filteredData.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-  )
+
 
   // Better Pattern: Reset page during render if filters change
   const [prevFilters, setPrevFilters] = useState({ searchTerm, filterType })
@@ -446,43 +457,41 @@ export default function SkDashboardPage() {
           </div>
 
           {/* Pagination Controls */}
-          {!isLoading && filteredData.length > itemsPerPage && (
-            <div className="flex items-center justify-end space-x-2 py-4 px-2">
-              <div className="flex-1 text-sm text-muted-foreground">
-                Halaman {currentPage} dari {totalPages} ({filteredData.length} data)
+          {/* Note: skData is already "filtered" by backend for SKs, or client for Drafts.
+              We still do client-side slicing for "Page 1, 2, 3" navigation feel.
+          */}
+          {!isLoading && skData.length > 0 && (
+            <div className="flex items-center justify-between space-x-2 py-4 px-2">
+              <div className="text-sm text-muted-foreground">
+                Halaman {currentPage} (Menampilkan {paginatedData.length} dari {skData.length}{skQueryStatus === "CanLoadMore" && statusFilter !== "draft" ? "+" : ""} data)
               </div>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  First
-                </Button>
+              <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
+                  disabled={currentPage === 1 || skQueryStatus === "LoadingMore"}
                 >
-                  Prev
+                  Sebelumnya
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                        // If we are on the last page of CURRENTLY LOADED data, and we can load more from server...
+                        if (currentPage * itemsPerPage >= skData.length && skQueryStatus === "CanLoadMore" && statusFilter !== "draft") {
+                            loadMore(20);
+                        }
+                        setCurrentPage(p => p + 1);
+                  }}
+                  disabled={
+                      (statusFilter === "draft" && currentPage >= totalPages) || // Drafts are fully loaded
+                      (statusFilter !== "draft" && skQueryStatus === "Exhausted" && currentPage * itemsPerPage >= skData.length) ||
+                      skQueryStatus === "LoadingMore" ||
+                      (statusFilter !== "draft" && skQueryStatus !== "CanLoadMore" && currentPage * itemsPerPage >= skData.length)
+                  }
                 >
-                  Next
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  Last
+                  {skQueryStatus === "LoadingMore" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Selanjutnya"}
                 </Button>
               </div>
             </div>

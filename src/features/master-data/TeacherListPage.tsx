@@ -192,7 +192,6 @@ export default function TeacherListPage() {
   const itemsPerPage = 20
 
   // Reset page when filters change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
       setCurrentPage(1)
   }, [searchTerm, filterKecamatan, filterCertified, activeFilter])
@@ -471,7 +470,7 @@ export default function TeacherListPage() {
                             <TableCell>
                                 {item.isCertified ? (
                                     <div className="flex items-center text-green-600 text-xs"><BadgeCheck className="mr-1 h-3 w-3" /> Sertifikasi</div>
-                                ) : <span className="text-xs text-muted-foreground">-</span>}
+                                ) : <span className="text-xs text-muted-foreground">Honorer</span>}
                             </TableCell>
                             <TableCell className="text-center">
                                 {item.pdpkpnu === 'Sudah' ? <span className="text-green-600 font-bold">✓</span> : <span className="text-red-300">✗</span>}

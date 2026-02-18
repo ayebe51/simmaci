@@ -106,20 +106,28 @@ export const list = query({
 
         // Case A: Filter by School (Operator default, or Admin filter)
         if (targetSchoolId) {
+            console.log("Filtering by School (No Index - Migration Mode):", targetSchoolId);
+            
+            // Note: Since we disabled indexes for migration, we must filter normally or return all for now if filter not supported efficienty
+            // For safety/speed while fixing, let's just filter by schoolId manually on the query if possible, 
+            // OR just return pagination and filter in memory? No, can't map. 
+            // Actually, we can use .filter() but it's slow. 
+            // Better: Just return order("desc") and let the user see everything? 
+            // OR: Use q.filter(q => q.eq(q.field("schoolId"), targetSchoolId))
+            
+            let filteredQ = q;
+            
+            // MANUAL FILTER (Slow but works for debugging/migration)
+            filteredQ = filteredQ.filter(q => q.eq(q.field("schoolId"), targetSchoolId));
+
             if (args.status && args.status !== "all") {
-                 return await q.withIndex("by_school_status", q => 
-                    q.eq("schoolId", targetSchoolId!).eq("status", args.status!)
-                 ).order("desc").paginate(args.paginationOpts);
+                 filteredQ = filteredQ.filter(q => q.eq(q.field("status"), args.status));
             } 
             else if (args.jenisSk && args.jenisSk !== "all") {
-                 return await q.withIndex("by_school_jenis", q => 
-                    q.eq("schoolId", targetSchoolId!).eq("jenisSk", args.jenisSk!)
-                 ).order("desc").paginate(args.paginationOpts);
-            } 
-            else {
-                 return await q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId!))
-                    .order("desc").paginate(args.paginationOpts);
+                 filteredQ = filteredQ.filter(q => q.eq(q.field("jenisSk"), args.jenisSk));
             }
+
+            return await filteredQ.order("desc").paginate(args.paginationOpts);
         }
 
         // Case B: Global View (Super Admin only)

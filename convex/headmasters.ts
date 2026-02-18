@@ -22,7 +22,8 @@ export const list = query({
 
     // Apply filters via Index or .filter()
     if (args.schoolId) {
-        queryWithFilters = q.withIndex("by_school", q => q.eq("schoolId", args.schoolId!));
+        // queryWithFilters = q.withIndex("by_school", q => q.eq("schoolId", args.schoolId!));
+        queryWithFilters = q.filter(q => q.eq(q.field("schoolId"), args.schoolId));
     } else if (args.teacherId) {
         queryWithFilters = q.withIndex("by_teacher", q => q.eq("teacherId", args.teacherId!));
     } else if (args.status && args.status !== "all") {
@@ -345,7 +346,8 @@ export const getActiveBySchool = query({
   handler: async (ctx, args) => {
     const tenures = await ctx.db
       .query("headmasterTenures")
-      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      // .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .filter(q => q.eq(q.field("schoolId"), args.schoolId))
       .collect();
     
     // Find the currently active tenure

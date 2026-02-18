@@ -3,44 +3,13 @@ import { v } from "convex/values";
 
 export default defineSchema({
   // Teachers table
-  teachers: defineTable({
-    nuptk: v.string(),
-    nama: v.string(),
-    nip: v.optional(v.string()),
-    jenisKelamin: v.optional(v.string()),
-    tempatLahir: v.optional(v.string()),
-    tanggalLahir: v.optional(v.string()),
-    pendidikanTerakhir: v.optional(v.string()),
-    mapel: v.optional(v.string()),
-    unitKerja: v.optional(v.string()), // DEPRECATED: Use schoolId
-    schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
-    kecamatan: v.optional(v.string()),
-    status: v.optional(v.string()),
-    tmt: v.optional(v.string()),  // Tanggal Mulai Tugas
-    isCertified: v.optional(v.boolean()),
-    phoneNumber: v.optional(v.string()),
-    email: v.optional(v.string()),
-    isActive: v.optional(v.boolean()),
-    isVerified: v.optional(v.boolean()), // For SK Verification Workflow
-    isSkGenerated: v.optional(v.boolean()), // Status: SK Generated? (Soft Delete from Queue)
-    pdpkpnu: v.optional(v.string()),
-    photoId: v.optional(v.id("_storage")),
-    suratPermohonanUrl: v.optional(v.string()), // For Batch Upload request letter
-    ktaNumber: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_nuptk", ["nuptk"])
-    .index("by_unit", ["unitKerja"])
-    .index("by_kecamatan", ["kecamatan"])
-    .index("by_active", ["isActive"])
-    .index("by_updatedAt", ["updatedAt"])
-    // .index("by_schoolId", ["schoolId"]) // NEW Index (DISABLED FOR MIGRATION)
-    // .index("by_school_active", ["schoolId", "isActive"]) // For efficient teacher listing by school (DISABLED)
-    /* .searchIndex("search_teacher", {
-      searchField: "nama",
-      filterFields: ["isActive", "unitKerja", "kecamatan"], // Removed schoolId from filter
-    }), */
+  // Teachers table (RELAXED FOR DIAGNOSIS)
+  teachers: defineTable(v.any()), // Allows reading ANY data structure
+    // .index("by_nuptk", ["nuptk"])
+    // .index("by_unit", ["unitKerja"])
+    // .index("by_kecamatan", ["kecamatan"])
+    // .index("by_active", ["isActive"])
+    // .index("by_updatedAt", ["updatedAt"]),
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)
@@ -100,19 +69,10 @@ export default defineSchema({
     }),
 
   // Users table for authentication
-  users: defineTable({
-    email: v.string(),
-    name: v.string(),
-    passwordHash: v.string(),
-    role: v.string(), // 'admin', 'operator', 'viewer'
-    unit: v.optional(v.string()), // DEPRECATED: Use schoolId
-    schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
-    isActive: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_email", ["email"])
-    .index("by_role", ["role"]),
+  // Users table (RELAXED FOR DIAGNOSIS)
+  users: defineTable(v.any()),
+    // .index("by_email", ["email"])
+    // .index("by_role", ["role"]),
 
 
 
@@ -138,41 +98,13 @@ export default defineSchema({
     // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
   // SK (Surat Keputusan) documents
-  skDocuments: defineTable({
-    nomorSk: v.string(),
-    jenisSk: v.string(), // 'gty', 'gtt', 'kamad', 'tendik'
-    teacherId: v.optional(v.id("teachers")),
-    nama: v.string(),
-    jabatan: v.optional(v.string()),
-    unitKerja: v.optional(v.string()), // Legacy string support
-    schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
- 
- 
-     tanggalPenetapan: v.string(),
-     status: v.string(), // 'draft', 'active', 'archived'
-     fileUrl: v.optional(v.string()),
-     suratPermohonanUrl: v.optional(v.string()), // Original Request File
-     qrCode: v.optional(v.string()),
-     createdBy: v.optional(v.string()), // Optional string to support bulk upload
-     // Archive metadata
-     archivedAt: v.optional(v.number()), // Timestamp when archived
-     archivedBy: v.optional(v.id("users")), // Who archived it
-     archiveReason: v.optional(v.string()), // Optional reason for archiving
-     createdAt: v.number(),
-     updatedAt: v.number(),
-   })
-     .index("by_teacher", ["teacherId"])
-     .index("by_status", ["status"])
-     .index("by_jenis", ["jenisSk"])
-     .index("by_nomor", ["nomorSk"])
-     .index("by_archived", ["archivedAt"])
-    //  .index("by_schoolId", ["schoolId"]) // NEW Index
-    //  .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
-    //  .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
-    /* .searchIndex("search_sk", {
-       searchField: "nama",
-       filterFields: ["status", "nomorSk"], // Allow filtering search results
-     }), */
+  // SK Documents (RELAXED FOR DIAGNOSIS)
+  skDocuments: defineTable(v.any()),
+    // .index("by_teacher", ["teacherId"])
+    // .index("by_status", ["status"])
+    // .index("by_jenis", ["jenisSk"])
+    // .index("by_nomor", ["nomorSk"])
+    // .index("by_archived", ["archivedAt"])
  
    // Headmaster Tenures (Pengangkatan Kepala Madrasah)
    headmasterTenures: defineTable({

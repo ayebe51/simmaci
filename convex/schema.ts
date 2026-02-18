@@ -4,12 +4,7 @@ import { v } from "convex/values";
 export default defineSchema({
   // Teachers table
   // Teachers table (RELAXED FOR DIAGNOSIS)
-  teachers: defineTable(v.any()), // Allows reading ANY data structure
-    // .index("by_nuptk", ["nuptk"])
-    // .index("by_unit", ["unitKerja"])
-    // .index("by_kecamatan", ["kecamatan"])
-    // .index("by_active", ["isActive"])
-    // .index("by_updatedAt", ["updatedAt"]),
+  teachers: defineTable(v.any()),
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)
@@ -71,8 +66,6 @@ export default defineSchema({
   // Users table for authentication
   // Users table (RELAXED FOR DIAGNOSIS)
   users: defineTable(v.any()),
-    // .index("by_email", ["email"])
-    // .index("by_role", ["role"]),
 
 
 
@@ -100,11 +93,6 @@ export default defineSchema({
   // SK (Surat Keputusan) documents
   // SK Documents (RELAXED FOR DIAGNOSIS)
   skDocuments: defineTable(v.any()),
-    // .index("by_teacher", ["teacherId"])
-    // .index("by_status", ["status"])
-    // .index("by_jenis", ["jenisSk"])
-    // .index("by_nomor", ["nomorSk"])
-    // .index("by_archived", ["archivedAt"])
  
    // Headmaster Tenures (Pengangkatan Kepala Madrasah)
    headmasterTenures: defineTable({

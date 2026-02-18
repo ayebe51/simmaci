@@ -13,7 +13,7 @@ export default defineSchema({
     pendidikanTerakhir: v.optional(v.string()),
     mapel: v.optional(v.string()),
     unitKerja: v.optional(v.string()), // DEPRECATED: Use schoolId
-    schoolId: v.optional(v.id("schools")), // NEW: ID-based link
+    schoolId: v.optional(v.union(v.string(), v.id("schools"))), // NEW: ID-based link (Relaxed)
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
     tmt: v.optional(v.string()),  // Tanggal Mulai Tugas
@@ -106,7 +106,7 @@ export default defineSchema({
     passwordHash: v.string(),
     role: v.string(), // 'admin', 'operator', 'viewer'
     unit: v.optional(v.string()), // DEPRECATED: Use schoolId
-    schoolId: v.optional(v.id("schools")), // NEW: ID-based link
+    schoolId: v.optional(v.union(v.string(), v.id("schools"))), // NEW: ID-based link (Relaxed)
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -122,7 +122,7 @@ export default defineSchema({
       value: v.optional(v.string()), // For small text settings
       storageId: v.optional(v.id("_storage")), // For Files (Templates)
       mimeType: v.optional(v.string()),
-      schoolId: v.optional(v.id("schools")), // NEW: Tenant isolation
+      schoolId: v.optional(v.union(v.string(), v.id("schools"))), // NEW: Tenant isolation (Relaxed)
       updatedAt: v.number(),
   }).index("by_key", ["key"])
     .index("by_schoolId", ["schoolId"]),
@@ -132,7 +132,7 @@ export default defineSchema({
       key: v.string(), 
       value: v.string(), // Base64 Content (Required in V2)
       mimeType: v.string(),
-      schoolId: v.optional(v.id("schools")), // NEW: Tenant isolation
+      schoolId: v.optional(v.union(v.string(), v.id("schools"))), // NEW: Tenant isolation (Relaxed)
       updatedAt: v.number(),
   }).index("by_key", ["key"])
     .index("by_schoolId", ["schoolId"]),

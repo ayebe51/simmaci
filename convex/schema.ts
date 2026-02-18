@@ -35,7 +35,12 @@ export default defineSchema({
     .index("by_kecamatan", ["kecamatan"])
     .index("by_active", ["isActive"])
     .index("by_updatedAt", ["updatedAt"])
-    .index("by_schoolId", ["schoolId"]), // NEW Index
+    .index("by_schoolId", ["schoolId"]) // NEW Index
+    .index("by_school_active", ["schoolId", "isActive"]) // For efficient teacher listing by school
+    .searchIndex("search_teacher", {
+      searchField: ["nama", "nip", "nuptk"],
+      filterFields: ["schoolId", "isActive", "unitKerja", "kecamatan"], // Allow filtering search results
+    }),
 
   // Teacher Documents (Archive)
   // Teacher Documents Archive (Brankas Arsip)
@@ -157,7 +162,13 @@ export default defineSchema({
     .index("by_jenis", ["jenisSk"])
     .index("by_nomor", ["nomorSk"])
     .index("by_archived", ["archivedAt"])
-    .index("by_schoolId", ["schoolId"]), // NEW Index
+    .index("by_schoolId", ["schoolId"]) // NEW Index
+    .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
+    .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
+    .searchIndex("search_sk", {
+      searchField: "nama",
+      filterFields: ["schoolId", "status", "nomorSk"], // Allow filtering search results
+    }),
 
   // Headmaster Tenures (Pengangkatan Kepala Madrasah)
   headmasterTenures: defineTable({

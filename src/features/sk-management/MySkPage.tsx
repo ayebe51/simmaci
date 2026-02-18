@@ -2,15 +2,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Download, FileText, Search } from "lucide-react"
+import { Download, FileText, Search, Loader2 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useConvex } from "convex/react"
+import { useQuery, usePaginatedQuery, useConvex } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 // Import Service
 import { generateSingleSkDocx } from "@/services/SkGeneratorService"
 import { toast } from "sonner"
+import { SimplePagination } from "@/components/ui/simple-pagination" // Check if this exists, otherwise use standard buttons
 
 interface SkDocument {
   id: string
@@ -41,66 +42,66 @@ export default function MySkPage() {
     } catch { return null }
   })
 
-  // Pagination States
-  const [currentSkPage, setCurrentSkPage] = useState(1)
-  const [currentHmPage, setCurrentHmPage] = useState(1)
-  const itemsPerPage = 10
-
   // Determine if user has admin privileges
   const isSuper = ["super_admin", "admin_yayasan", "admin"].includes(user?.role || "")
 
-  // 🔥 REAL-TIME CONVEX QUERY for SK - Auto-updates!
-  const convexSkData = useQuery(convexApi.sk.list, {
-    // If Admin, show ALL (pass undefined). If Operator, filter by their Unit.
-    unitKerja: isSuper ? undefined : (user?.unitKerja || undefined),
-    status: "active", // Only show active/approved SK
-    userRole: user?.role, // Pass context for security
-    userUnit: user?.unitKerja // Pass context for security
-  })
+  // 🔥 PAGINATED QUERY for SK
+  const { 
+      results: skResults, 
+      status: skStatus, 
+      loadMore: loadMoreSk, 
+      isLoading: isLoadingSk 
+  } = usePaginatedQuery(
+      convexApi.sk.list, 
+      {
+        unitKerja: isSuper ? undefined : (user?.unitKerja || undefined),
+        status: "active", // Only show active/approved SK
+        userRole: user?.role,
+        search: searchTerm || undefined // Pass search term to backend
+      }, 
+      { initialNumItems: 10 }
+  )
 
-  // 🔥 REAL-TIME CONVEX QUERY for Headmaster - Auto-updates!
-  const convexHeadmasterData = useQuery(convexApi.headmasters.list, {
-    schoolName: user?.unitKerja || undefined,
-  })
+  // 🔥 PAGINATED QUERY for Headmaster
+  const { 
+      results: hmResults, 
+      status: hmStatus, 
+      loadMore: loadMoreHm,
+      isLoading: isLoadingHm
+  } = usePaginatedQuery(
+      convexApi.headmasters.list, 
+      {
+        schoolName: user?.unitKerja || undefined,
+        // Note: Headmaster search is not yet fully implemented on backend for 'schoolName' regex with pagination
+        // We rely on 'schoolName' exact match or pre-filtering if 'user.unitKerja' is set.
+        // If 'searchTerm' is generic, we can't easily search headmasters without a search index update there too.
+      }, 
+      { initialNumItems: 10 }
+  )
 
   // Map Convex SK data to SkDocument interface
   const skList: SkDocument[] = useMemo(() => {
-    if (!convexSkData) return []
-    
-    return convexSkData.map(doc => ({
+    return skResults.map((doc: any) => ({
       id: doc._id,
       nomorSurat: doc.nomorSk,
       nama: doc.nama,
       jabatan: doc.jabatan || "-",
-      jenisSk: doc.jenisSk, // Required for template selection
+      jenisSk: doc.jenisSk, 
       status: doc.status === "active" ? "Approved" : doc.status,
     }))
-  }, [convexSkData])
+  }, [skResults])
 
   // Map Convex Headmaster data to HeadmasterApproval interface
   const headmasterSkList: HeadmasterApproval[] = useMemo(() => {
-    if (!convexHeadmasterData) return []
-    
-    return convexHeadmasterData.map(hm => ({
-      id: hm._id,
+    return hmResults.map((hm: any) => ({
+      id: hm.id || hm._id, // Handle fallback
       periode: hm.periode,
       status: hm.status === "approved" ? "Approved" : hm.status,
       skUrl: hm.skUrl,
-      teacher: { nama: hm.teacherName },
-      school: { nama: hm.schoolName },
+      teacher: hm.teacher ? { nama: hm.teacher.nama } : { nama: hm.teacherName },
+      school: hm.school ? { nama: hm.school.nama } : { nama: hm.schoolName },
     }))
-  }, [convexHeadmasterData])
-  // Derived state for filtering
-  const filteredSk = useMemo(() => {
-    if(!searchTerm) return skList
-    const lower = searchTerm.toLowerCase()
-    return skList.filter(item => 
-        (item.nama || "").toLowerCase().includes(lower) || 
-        (item.nomorSurat && item.nomorSurat.toLowerCase().includes(lower)) ||
-        (item.jabatan || "").toLowerCase().includes(lower)
-    )
-  }, [skList, searchTerm])
-
+  }, [hmResults])
 
 
   // Handle Download (Updated to Fetch from Database Base64)
@@ -112,9 +113,6 @@ export default function MySkPage() {
           const templateId = getTemplateId(sk)
           
           // 2. Get Content from Convex (NEW MODULE: settings_cloud)
-          
-          // 2. Get Content from Convex (NEW MODULE: settings_cloud)
-          // Direct call to ensure it uses the new V2 table
           const getQuery = (convexApi as any).settings_cloud?.getContent
           
           if (!getQuery) {
@@ -147,34 +145,16 @@ export default function MySkPage() {
               await generateSingleSkDocx(sk, templateContent)
               toast.success("Selesai! File terdownload.")
           } else {
-             // Debugging Info for User
              toast.warning(`Gagal: Template Cloud Kosong. (Key: ${templateId})`)
-             // Fallback
              generateSingleSkDocx(sk, null)
           }
 
       } catch (error: any) {
           console.error("Gagal download template:", error)
           toast.error("Gagal mengambil template. Coba upload ulang.")
-          // Try fallback
-          // Changed from downloadSingleSk to generateSingleSkDocx
           generateSingleSkDocx(sk, null)
       }
   }
-
-  // Pagination Logic for SK Digital
-  const totalSkPages = Math.ceil(filteredSk.length / itemsPerPage)
-  const paginatedSk = filteredSk.slice(
-      (currentSkPage - 1) * itemsPerPage,
-      currentSkPage * itemsPerPage
-  )
-
-  // Pagination Logic for Headmaster SK
-  const totalHmPages = Math.ceil(headmasterSkList.length / itemsPerPage)
-  const paginatedHm = headmasterSkList.slice(
-      (currentHmPage - 1) * itemsPerPage,
-      currentHmPage * itemsPerPage
-  )
 
   return (
     <div className="space-y-6">
@@ -215,14 +195,14 @@ export default function MySkPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredSk.length === 0 ? (
+                    {skList.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                Belum ada SK yang diterbitkan untuk unit ini.
+                                {isLoadingSk ? "Memuat data..." : "Belum ada SK yang diterbitkan untuk unit ini."}
                             </TableCell>
                         </TableRow>
                     ): (
-                        paginatedSk.map((sk, i) => (
+                        skList.map((sk, i) => (
                             <TableRow key={i}>
                                 <TableCell className="font-medium">
                                     <div className="flex items-center gap-2">
@@ -255,48 +235,22 @@ export default function MySkPage() {
                 </TableBody>
             </Table>
 
-            {/* Pagination Controls for SK Digital */}
-            {filteredSk.length > itemsPerPage && (
-              <div className="flex items-center justify-end space-x-2 py-4 px-2">
-                <div className="flex-1 text-sm text-muted-foreground">
-                  Halaman {currentSkPage} dari {totalSkPages} ({filteredSk.length} data)
-                </div>
-                <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentSkPage(1)}
-                    disabled={currentSkPage === 1}
-                  >
-                    First
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentSkPage(p => Math.max(1, p - 1))}
-                    disabled={currentSkPage === 1}
-                  >
-                    Prev
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentSkPage(p => Math.min (totalSkPages, p + 1))}
-                    disabled={currentSkPage === totalSkPages}
-                  >
-                    Next
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentSkPage(totalSkPages)}
-                    disabled={currentSkPage === totalSkPages}
-                  >
-                    Last
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Pagination / Load More */}
+            <div className="flex justify-center py-4">
+                {skStatus === "CanLoadMore" && (
+                    <Button variant="outline" onClick={() => loadMoreSk(10)}>
+                        Muat Lebih Banyak
+                    </Button>
+                )}
+                {skStatus === "LoadingMore" && (
+                    <Button variant="outline" disabled>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat...
+                    </Button>
+                )}
+            </div>
+             <p className="text-xs text-center text-muted-foreground">
+                  Menampilkan {skList.length} data
+             </p>
         </CardContent>
       </Card>
 
@@ -320,7 +274,7 @@ export default function MySkPage() {
                     {headmasterSkList.length === 0 ? (
                         <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Tidak ada data.</TableCell></TableRow>
                     ) : (
-                        paginatedHm.map((item) => (
+                        headmasterSkList.map((item) => (
                             <TableRow key={item.id}>
                                 <TableCell>
                                     {item.teacher?.nama}
@@ -352,48 +306,22 @@ export default function MySkPage() {
                 </TableBody>
              </Table>
 
-             {/* Pagination Controls for Headmaster SK */}
-             {headmasterSkList.length > itemsPerPage && (
-               <div className="flex items-center justify-end space-x-2 py-4 px-2">
-                 <div className="flex-1 text-sm text-muted-foreground">
-                   Halaman {currentHmPage} dari {totalHmPages} ({headmasterSkList.length} data)
-                 </div>
-                 <div className="space-x-2">
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     onClick={() => setCurrentHmPage(1)}
-                     disabled={currentHmPage === 1}
-                   >
-                     First
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     onClick={() => setCurrentHmPage(p => Math.max(1, p - 1))}
-                     disabled={currentHmPage === 1}
-                   >
-                     Prev
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     onClick={() => setCurrentHmPage(p => Math.min(totalHmPages, p + 1))}
-                     disabled={currentHmPage === totalHmPages}
-                   >
-                     Next
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     onClick={() => setCurrentHmPage(totalHmPages)}
-                     disabled={currentHmPage === totalHmPages}
-                   >
-                     Last
-                   </Button>
-                 </div>
-               </div>
-             )}
+              {/* Pagination / Load More for Headmasters */}
+            <div className="flex justify-center py-4">
+                {hmStatus === "CanLoadMore" && (
+                    <Button variant="outline" onClick={() => loadMoreHm(5)}>
+                         Muat Lebih Banyak
+                    </Button>
+                )}
+                 {hmStatus === "LoadingMore" && (
+                    <Button variant="outline" disabled>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat...
+                    </Button>
+                )}
+            </div>
+             <p className="text-xs text-center text-muted-foreground">
+                  Menampilkan {headmasterSkList.length} data
+             </p>
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,5 @@
 import { query, mutation, MutationCtx } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v, ConvexError } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { validateSession } from "./auth_helpers";
@@ -15,68 +16,138 @@ export const getPhotoUrl = query({
   },
 });
 
-// Get all teachers with optional filters
+// Get all teachers with server-side pagination
 export const list = query({
   args: {
-    unitKerja: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+    unitKerja: v.optional(v.string()), // Admin Filter (Legacy String)
+    schoolId: v.optional(v.id("schools")), // Admin Filter (ID)
     kecamatan: v.optional(v.string()),
     isCertified: v.optional(v.string()),
+    search: v.optional(v.string()), // NEW: Search Term
+    status: v.optional(v.string()), // "active" | "inactive" | "all"
     token: v.optional(v.string()), // New Secure Token arg
   },
   handler: async (ctx, args) => {
     try {
-        let teachers = await ctx.db
-          .query("teachers")
-          .withIndex("by_active", (q) => q.eq("isActive", true))
-          .collect();
-        
+        // ... (User Auth & Scope Logic - unchange) ...
         // RBAC: Check identity via Session Token
         let user = null;
         if (args.token) {
             user = await validateSession(ctx, args.token);
         } else {
-            const identity = await ctx.auth.getUserIdentity();
-            if (identity?.email) {
-                 user = await ctx.db
-                    .query("users")
-                    .withIndex("by_email", (q) => q.eq("email", identity.email!))
-                    .first();
+             const identity = await ctx.auth.getUserIdentity();
+             if (identity?.email) {
+                  user = await ctx.db
+                     .query("users")
+                     .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                     .first();
+             }
+        }
+
+        // Determine Scope
+        let targetSchoolId = args.schoolId;
+        let targetUnit = args.unitKerja;
+
+        if (user && user.role === "operator") {
+            // Operator Restriction
+            if (user.schoolId) {
+                targetSchoolId = user.schoolId;
+                targetUnit = undefined; // Force ID usage
+            } else if (user.unit) {
+                targetUnit = user.unit;
+            } else {
+                return { page: [], isDone: true, continueCursor: "" };
             }
         }
     
-        
-        // RBAC Logic
-        // 🔥 DEBUG BYPASS
-        if (args.unitKerja === "DEBUG_ALL") {
-             // Bypass index to see EVERYTHING
-            return await ctx.db.query("teachers").collect();
+        const q = ctx.db.query("teachers"); 
+        let paginatedQuery: any = q;
+
+        // 0. SEARCH (Priority if search term exists)
+        if (args.search) {
+             let searchQ = q.withSearchIndex("search_teacher", q => q.search("nama", args.search!));
+
+             // Apply Filters to Search
+             if (targetSchoolId) {
+                  searchQ = searchQ.filter(q => q.eq(q.field("schoolId"), targetSchoolId));
+             } else if (targetUnit && targetUnit !== "all") {
+                  searchQ = searchQ.filter(q => q.eq(q.field("unitKerja"), targetUnit));
+             }
+             
+             if (args.kecamatan && args.kecamatan !== "all") {
+                  searchQ = searchQ.filter(q => q.eq(q.field("kecamatan"), args.kecamatan));
+             }
+
+             // Status Filter for Search
+             if (args.status === "active") {
+                searchQ = searchQ.filter(q => q.eq(q.field("isActive"), true));
+             } else if (args.status === "inactive") {
+                searchQ = searchQ.filter(q => q.eq(q.field("isActive"), false));
+             }
+
+             return await searchQ.paginate(args.paginationOpts);
         }
 
-        if (user && user.role === "operator" && user.unit) {
-            teachers = teachers.filter(t => t.unitKerja === user.unit);
+        // 1. Base Query Selection
+        if (targetSchoolId) {
+             if (args.status === "all") {
+                 // Use Index: by_schoolId (All teachers in school)
+                 paginatedQuery = q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId!));
+             } else {
+                 // Use Index: by_school_active (Active/Inactive teachers in school)
+                 const isActive = args.status !== "inactive"; // Default to true if not explicitly "inactive"
+                 paginatedQuery = q.withIndex("by_school_active", q => 
+                    q.eq("schoolId", targetSchoolId!).eq("isActive", isActive)
+                 );
+             }
+        } else if (targetUnit && targetUnit !== "all") {
+             // Use Index: by_unit
+             paginatedQuery = q.withIndex("by_unit", q => q.eq("unitKerja", targetUnit!));
+             
+             // Manual Filter for Status since composite index might not exist or be efficient
+             if (args.status === "active") {
+                 paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isActive"), true));
+             } else if (args.status === "inactive") {
+                 paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isActive"), false));
+             }
+        } else if (args.kecamatan) {
+             // Use Index: by_kecamatan
+             paginatedQuery = q.withIndex("by_kecamatan", q => q.eq("kecamatan", args.kecamatan!));
+              if (args.status === "active") {
+                 paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isActive"), true));
+             } else if (args.status === "inactive") {
+                 paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isActive"), false));
+             }
+        } else {
+             // No Location Filter (Admin View All)
+             if (args.status === "active") {
+                 paginatedQuery = q.withIndex("by_active", q => q.eq("isActive", true));
+             } else if (args.status === "inactive") {
+                 paginatedQuery = q.withIndex("by_active", q => q.eq("isActive", false));
+             } else {
+                 // All Teachers, default order
+                 paginatedQuery = q.order("desc");
+             }
         }
-    
-        // Apply filters
-        if (args.unitKerja && args.unitKerja !== "all") {
-          const searchUnit = args.unitKerja.toLowerCase().trim();
-          teachers = teachers.filter(t => 
-            t.unitKerja?.toLowerCase().trim() === searchUnit
-          );
-        }
+        // 2. Apply Additional Filters (Server-side filtering on stream)
         
-        if (args.kecamatan && args.kecamatan !== "all") {
-          teachers = teachers.filter(t => t.kecamatan === args.kecamatan);
-        }
-        
+        // Filter by isCertified
+        // Filter logic: string "true"/"false" or "all"
         if (args.isCertified && args.isCertified !== "all") {
-          const certified = args.isCertified === "true";
-          teachers = teachers.filter(t => t.isCertified === certified);
+            const isCert = args.isCertified === "true";
+             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isCertified"), isCert));
         }
-        
-        return teachers;
+
+        // 3. Paginate
+        // Note: Do not apply .order() here as indexes already determine order.
+        return await paginatedQuery.paginate(args.paginationOpts);
+
     } catch (error) {
         console.error("Error in teachers:list", error);
-        return [];
+        // Return empty page on error to avoid crash
+        return { page: [], isDone: true, continueCursor: "" };
     }
   },
 });

@@ -1,72 +1,119 @@
 import { query, mutation } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
-// Get all SK documents with optional filters
+// Get all SK documents with server-side pagination
 export const list = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     jenisSk: v.optional(v.string()),
     status: v.optional(v.string()),
-    unitKerja: v.optional(v.string()),
-    // Security update: Enforce context
+    unitKerja: v.optional(v.string()), // Optional Admin Filter
+    schoolId: v.optional(v.id("schools")), // Explicit School Filter
+    search: v.optional(v.string()), // NEW: Search Term
+    // Context args (optional, can generally be derived from auth)
     userRole: v.optional(v.string()), 
-    userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let docs = await ctx.db.query("skDocuments").collect();
-    
-    // Filter out archived SK (so Reset Data works)
-    docs = docs.filter(sk => sk.status !== "archived");
-
-    // Authenticate User
+    // 1. Auth & RBAC
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    if (!identity) throw new Error("Unauthorized");
 
     const user = await ctx.db
         .query("users")
         .withIndex("by_email", (q) => q.eq("email", identity.email!))
         .first();
 
-    if (!user) return [];
+    if (!user) throw new Error("User not found");
 
     const superRoles = ["super_admin", "admin_yayasan", "admin"];
     const isSuper = superRoles.includes(user.role);
 
+    // 2. Determine Scope (School ID)
+    let targetSchoolId = args.schoolId; // If passed explicitly
+
+    // If Admin passed unitKerja string, try to resolve it to ID
+    if (isSuper && args.unitKerja && !targetSchoolId) {
+         targetSchoolId = await resolveSchoolId(ctx, args.unitKerja);
+    }
+
     if (!isSuper) {
         if (user.role === "operator") {
-             // Priority: Filter by School ID if available
-             if (user.schoolId) {
-                 docs = docs.filter(sk => {
-                    const idMatch = sk.schoolId === user.schoolId;
-                    const unitMatch = sk.unitKerja && user.unit && 
-                                      sk.unitKerja.trim().toLowerCase() === user.unit.trim().toLowerCase();
-                    return idMatch || unitMatch;
-                 });
-             } else if (user.unit) {
-                 docs = docs.filter(sk => 
-                    sk.unitKerja && sk.unitKerja.trim().toLowerCase() === user.unit!.trim().toLowerCase()
-                 );
-             } else {
-                 return [];
-             }
+            // Operator is STRICTLY limited to their school
+            if (user.schoolId) {
+                targetSchoolId = user.schoolId;
+            } else if (user.unit) {
+                // FALLBACK: Try to resolve legacy unit string
+                const resolved = await resolveSchoolId(ctx, user.unit);
+                if (resolved) targetSchoolId = resolved;
+                else {
+                     // If we can't map operator to a school ID, we can't paginate effectively restricted data
+                     return { page: [], isDone: true, continueCursor: "" };
+                }
+            } else {
+                 return { page: [], isDone: true, continueCursor: "" };
+            }
         } else {
-             return [];
+             // Viewers or unknown roles see nothing
+             return { page: [], isDone: true, continueCursor: "" };
         }
-    } else if (args.unitKerja) {
-        // For Admins: Allow filtering by specific unit if requested
-        docs = docs.filter(sk => sk.unitKerja === args.unitKerja);
     }
-    
-    // Apply filters
-    if (args.jenisSk && args.jenisSk !== "all") {
-      docs = docs.filter(sk => sk.jenisSk === args.jenisSk);
+
+    // 3. Construct Query based on Indexes
+    const q = ctx.db.query("skDocuments");
+
+    // Case S: SEARCH (Priority if search term exists)
+    if (args.search) {
+        // Search Logic
+        let searchQ = q.withSearchIndex("search_sk", q => q.search("nama", args.search!));
+
+        // Apply filters to Search (Note: Search indexes support limited filtering fields defined in schema)
+        if (targetSchoolId) {
+             searchQ = searchQ.filter(q => q.eq(q.field("schoolId"), targetSchoolId));
+        }
+        
+        if (args.status && args.status !== "all") {
+             searchQ = searchQ.filter(q => q.eq(q.field("status"), args.status));
+        }
+
+        return await searchQ.paginate(args.paginationOpts);
     }
-    
+
+    // Case A: Filter by School (Operator default, or Admin filter)
+    if (targetSchoolId) {
+        if (args.status && args.status !== "all") {
+             // Index: by_school_status
+             return await q.withIndex("by_school_status", q => 
+                q.eq("schoolId", targetSchoolId!).eq("status", args.status!)
+             ).order("desc").paginate(args.paginationOpts);
+        } 
+        else if (args.jenisSk && args.jenisSk !== "all") {
+             // Index: by_school_jenis
+             return await q.withIndex("by_school_jenis", q => 
+                q.eq("schoolId", targetSchoolId!).eq("jenisSk", args.jenisSk!)
+             ).order("desc").paginate(args.paginationOpts);
+        } 
+        else {
+             // Index: by_schoolId
+             return await q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId!))
+               .order("desc").paginate(args.paginationOpts);
+        }
+    }
+
+    // Case B: Global View (Super Admin only)
     if (args.status && args.status !== "all") {
-      docs = docs.filter(sk => sk.status === args.status);
+        return await q.withIndex("by_status", q => q.eq("status", args.status!))
+            .order("desc").paginate(args.paginationOpts);
+    }
+
+    if (args.jenisSk && args.jenisSk !== "all") {
+        return await q.withIndex("by_jenis", q => q.eq("jenisSk", args.jenisSk!))
+            .order("desc").paginate(args.paginationOpts);
     }
     
-    return docs;
+    // Default: All recent
+    return await q.order("desc").paginate(args.paginationOpts);
   },
 });
 

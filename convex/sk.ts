@@ -14,6 +14,7 @@ export const list = query({
     search: v.optional(v.string()), // NEW: Search Term
     // Context args (optional, can generally be derived from auth)
     userRole: v.optional(v.string()), 
+    userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // 1. Auth & RBAC

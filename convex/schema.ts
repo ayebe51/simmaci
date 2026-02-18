@@ -144,46 +144,45 @@ export default defineSchema({
     teacherId: v.optional(v.id("teachers")),
     nama: v.string(),
     jabatan: v.optional(v.string()),
-    unitKerja: v.optional(v.string()),
-    // schoolId: v.optional(v.id("schools")), // NEW: ID Link
-    schoolId: v.optional(v.any()), // DEBUG: Relax to allow legacy strings while debugging
-
-
-    tanggalPenetapan: v.string(),
-    status: v.string(), // 'draft', 'active', 'archived'
-    fileUrl: v.optional(v.string()),
-    suratPermohonanUrl: v.optional(v.string()), // Original Request File
-    qrCode: v.optional(v.string()),
-    createdBy: v.optional(v.string()), // Optional string to support bulk upload
-    // Archive metadata
-    archivedAt: v.optional(v.number()), // Timestamp when archived
-    archivedBy: v.optional(v.id("users")), // Who archived it
-    archiveReason: v.optional(v.string()), // Optional reason for archiving
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_teacher", ["teacherId"])
-    .index("by_status", ["status"])
-    .index("by_jenis", ["jenisSk"])
-    .index("by_nomor", ["nomorSk"])
-    .index("by_archived", ["archivedAt"])
-    .index("by_schoolId", ["schoolId"]) // NEW Index
-    .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
-    .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
-    .searchIndex("search_sk", {
-      searchField: "nama",
-      filterFields: ["schoolId", "status", "nomorSk"], // Allow filtering search results
-    }),
-
-  // Headmaster Tenures (Pengangkatan Kepala Madrasah)
-  headmasterTenures: defineTable({
-    teacherId: v.id("teachers"),
-    teacherName: v.string(), // Denormalized for quick access
-    schoolId: v.id("schools"),
-    schoolName: v.string(), // Denormalized for quick access
-    periode: v.number(), // Periode ke- (1, 2, 3, etc.)
-    startDate: v.string(),
-    endDate: v.string(),
+    unitKerja: v.optional(v.string()), // Legacy string support
+    schoolId: v.optional(v.union(v.string(), v.id("schools"))), // Hybrid support during migration
+ 
+ 
+     tanggalPenetapan: v.string(),
+     status: v.string(), // 'draft', 'active', 'archived'
+     fileUrl: v.optional(v.string()),
+     suratPermohonanUrl: v.optional(v.string()), // Original Request File
+     qrCode: v.optional(v.string()),
+     createdBy: v.optional(v.string()), // Optional string to support bulk upload
+     // Archive metadata
+     archivedAt: v.optional(v.number()), // Timestamp when archived
+     archivedBy: v.optional(v.id("users")), // Who archived it
+     archiveReason: v.optional(v.string()), // Optional reason for archiving
+     createdAt: v.number(),
+     updatedAt: v.number(),
+   })
+     .index("by_teacher", ["teacherId"])
+     .index("by_status", ["status"])
+     .index("by_jenis", ["jenisSk"])
+     .index("by_nomor", ["nomorSk"])
+     .index("by_archived", ["archivedAt"])
+     .index("by_schoolId", ["schoolId"]) // NEW Index
+     .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
+     .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
+     .searchIndex("search_sk", {
+       searchField: "nama",
+       filterFields: ["schoolId", "status", "nomorSk"], // Allow filtering search results
+     }),
+ 
+   // Headmaster Tenures (Pengangkatan Kepala Madrasah)
+   headmasterTenures: defineTable({
+     teacherId: v.id("teachers"),
+     teacherName: v.string(), // Denormalized for quick access
+     schoolId: v.union(v.string(), v.id("schools")), // Relaxed for legacy data
+     schoolName: v.string(), // Denormalized for quick access
+     periode: v.number(), // Periode ke- (1, 2, 3, etc.)
+     startDate: v.string(),
+     endDate: v.string(),
     status: v.string(), // 'pending', 'approved', 'rejected', 'active', 'expired'
     nomorSk: v.optional(v.string()), // Saved generated SK Number
     skUrl: v.optional(v.string()),

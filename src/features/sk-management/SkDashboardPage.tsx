@@ -76,8 +76,8 @@ export default function SkDashboardPage() {
           jenisSk: filterType === "all" ? undefined : filterType,
           status: statusFilter === "all" || statusFilter === "draft" ? undefined : statusFilter, 
           search: searchTerm || undefined, // Pass search to backend
-          userRole: user?.role,
-          userUnit: user?.unitKerja,
+          userRole: user?.role || undefined, // Ensure null becomes undefined
+          userUnit: user?.unitKerja || undefined, // Ensure null becomes undefined
       },
       { initialNumItems: 20 }
   );

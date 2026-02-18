@@ -7,14 +7,14 @@ import { Id } from "./_generated/dataModel";
 export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
-    // jenisSk: v.optional(v.string()),
-    // status: v.optional(v.string()),
-    // unitKerja: v.optional(v.string()), // Optional Admin Filter
-    // schoolId: v.optional(v.id("schools")), // Explicit School Filter
-    // search: v.optional(v.string()), // NEW: Search Term
-    // // Context args (optional, can generally be derived from auth)
-    // userRole: v.optional(v.string()),
-    // userUnit: v.optional(v.string()),
+    jenisSk: v.optional(v.string()),
+    status: v.optional(v.string()),
+    unitKerja: v.optional(v.string()), // Optional Admin Filter
+    schoolId: v.optional(v.string()), // Relaxed to string for debugging/migration
+    search: v.optional(v.string()), // NEW: Search Term
+    // Context args (optional, can generally be derived from auth)
+    userRole: v.optional(v.string()),
+    userUnit: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // console.log("SK List Query Started", args);

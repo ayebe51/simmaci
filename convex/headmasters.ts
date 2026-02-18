@@ -9,7 +9,7 @@ import { validateSession } from "./auth_helpers";
 export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
-    schoolId: v.optional(v.id("schools")),
+    schoolId: v.optional(v.string()), // Relaxed for migration
     teacherId: v.optional(v.id("teachers")),
     status: v.optional(v.string()),
     schoolName: v.optional(v.string()), // Optional search
@@ -342,7 +342,7 @@ export const reject = mutation({
 
 // Get active headmaster for a school
 export const getActiveBySchool = query({
-  args: { schoolId: v.id("schools") },
+  args: { schoolId: v.string() }, // Relaxed from v.id("schools")
   handler: async (ctx, args) => {
     const tenures = await ctx.db
       .query("headmasterTenures")

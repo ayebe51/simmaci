@@ -21,7 +21,7 @@ export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
     unitKerja: v.optional(v.string()), // Admin Filter (Legacy String)
-    schoolId: v.optional(v.id("schools")), // Admin Filter (ID)
+    schoolId: v.optional(v.string()), // Admin Filter (ID) - Relaxed
     kecamatan: v.optional(v.string()),
     isCertified: v.optional(v.string()),
     search: v.optional(v.string()), // NEW: Search Term
@@ -93,12 +93,12 @@ export const list = query({
         if (targetSchoolId) {
              if (args.status === "all") {
                  // Use Index: by_schoolId (All teachers in school)
-                 paginatedQuery = q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId!));
+                 paginatedQuery = q.withIndex("by_schoolId", q => q.eq("schoolId", targetSchoolId as Id<"schools">));
              } else {
                  // Use Index: by_school_active (Active/Inactive teachers in school)
                  const isActive = args.status !== "inactive"; // Default to true if not explicitly "inactive"
                  paginatedQuery = q.withIndex("by_school_active", q => 
-                    q.eq("schoolId", targetSchoolId!).eq("isActive", isActive)
+                    q.eq("schoolId", targetSchoolId as Id<"schools">).eq("isActive", isActive)
                  );
              }
         } else if (targetUnit && targetUnit !== "all") {

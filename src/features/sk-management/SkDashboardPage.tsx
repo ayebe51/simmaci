@@ -74,14 +74,17 @@ export default function SkDashboardPage() {
   };
   console.log("DEBUG: sk:list args:", queryArgs);
 
+  // @ts-ignore
+  const listFunc = convexApi.sk_new?.list || convexApi.sk.list;
+
   const {
       results: skDocuments,
       status: skQueryStatus,
       loadMore,
       isLoading: isSkLoading
   } = usePaginatedQuery(
-      convexApi.sk.list,
-      {} as any, // FORCE EMPTY ARGS
+      listFunc,
+      queryArgs,
       { initialNumItems: 20 }
   );
 

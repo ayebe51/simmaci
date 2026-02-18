@@ -166,12 +166,12 @@ export default defineSchema({
      .index("by_jenis", ["jenisSk"])
      .index("by_nomor", ["nomorSk"])
      .index("by_archived", ["archivedAt"])
-     .index("by_schoolId", ["schoolId"]) // NEW Index
-     .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
-     .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
+    //  .index("by_schoolId", ["schoolId"]) // NEW Index
+    //  .index("by_school_status", ["schoolId", "status"]) // Optimizing pagination for school SKs
+    //  .index("by_school_jenis", ["schoolId", "jenisSk"]) // Optimizing pagination for school SKs by Type
      .searchIndex("search_sk", {
        searchField: "nama",
-       filterFields: ["schoolId", "status", "nomorSk"], // Allow filtering search results
+       filterFields: ["status", "nomorSk"], // Allow filtering search results
      }),
  
    // Headmaster Tenures (Pengangkatan Kepala Madrasah)
@@ -193,7 +193,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_teacher", ["teacherId"])
-    .index("by_school", ["schoolId"])
+    // .index("by_school", ["schoolId"])
     .index("by_status", ["status"])
     .index("by_periode", ["periode"]),
 

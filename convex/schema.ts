@@ -35,11 +35,11 @@ export default defineSchema({
     .index("by_kecamatan", ["kecamatan"])
     .index("by_active", ["isActive"])
     .index("by_updatedAt", ["updatedAt"])
-    .index("by_schoolId", ["schoolId"]) // NEW Index
-    .index("by_school_active", ["schoolId", "isActive"]) // For efficient teacher listing by school
+    // .index("by_schoolId", ["schoolId"]) // NEW Index (DISABLED FOR MIGRATION)
+    // .index("by_school_active", ["schoolId", "isActive"]) // For efficient teacher listing by school (DISABLED)
     .searchIndex("search_teacher", {
       searchField: "nama",
-      filterFields: ["schoolId", "isActive", "unitKerja", "kecamatan"], // Allow filtering search results
+      filterFields: ["isActive", "unitKerja", "kecamatan"], // Removed schoolId from filter
     }),
 
   // Teacher Documents (Archive)
@@ -125,7 +125,7 @@ export default defineSchema({
       schoolId: v.optional(v.union(v.string(), v.id("schools"))), // NEW: Tenant isolation (Relaxed)
       updatedAt: v.number(),
   }).index("by_key", ["key"])
-    .index("by_schoolId", ["schoolId"]),
+    // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
   // NEW Settings Table (V2) - Fresh Start
   settings_v2: defineTable({
@@ -135,7 +135,7 @@ export default defineSchema({
       schoolId: v.optional(v.union(v.string(), v.id("schools"))), // NEW: Tenant isolation (Relaxed)
       updatedAt: v.number(),
   }).index("by_key", ["key"])
-    .index("by_schoolId", ["schoolId"]),
+    // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
   // SK (Surat Keputusan) documents
   skDocuments: defineTable({

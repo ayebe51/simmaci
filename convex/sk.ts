@@ -26,7 +26,7 @@ export const list = query({
         let userSchoolId = args.schoolId;
         let userUnit = args.userUnit; // From Client
 
-        if (identity) {
+        if (identity && identity.email) {
             const user = await ctx.db
                 .query("users")
                 .withIndex("by_email", (q) => q.eq("email", identity.email!))
@@ -37,6 +37,8 @@ export const list = query({
                 userSchoolId = user.schoolId;
                 userUnit = user.unit;
             }
+        } else if (identity) {
+             console.warn("Identity found but NO EMAIL:", identity);
         }
         
         console.log("Auth Resolved:", { userRole, userSchoolId, userUnit, identityEmail: identity?.email });

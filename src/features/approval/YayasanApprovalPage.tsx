@@ -24,7 +24,8 @@ import { Id } from "../../../convex/_generated/dataModel"
 
 export default function YayasanApprovalPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
-  const allRequests = useQuery(convexApi.headmasters.list, {
+  // Use listAll for non-paginated access (since this page does client-side pagination)
+  const allRequests = useQuery(convexApi.headmasters.listAll, {
     status: undefined  // Get all statuses
   }) || []
 

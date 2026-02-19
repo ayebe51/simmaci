@@ -36,10 +36,17 @@ export const generateSkReport = query({
         
         // School filter
         if (args.schoolId) {
-          const school = await ctx.db.get(args.schoolId);
-          if (school) {
-            const targetSchoolName = school.nama;
-            filtered = filtered.filter(sk => sk.unitKerja === targetSchoolName);
+          try {
+              // Try to treat as ID first
+              const school = await ctx.db.get(args.schoolId as any);
+              if (school) {
+                const targetSchoolName = school.nama;
+                filtered = filtered.filter(sk => sk.unitKerja === targetSchoolName);
+              }
+          } catch (e) {
+              // If it failed (e.g. invalid ID), assume it IS the name (Legacy support)
+              // args.schoolId might be "MI Ma'arif 01" directly
+              filtered = filtered.filter(sk => sk.unitKerja === args.schoolId);
           }
         }
         

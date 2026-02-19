@@ -64,18 +64,22 @@ export const list = query({
 
         // SAFE Teacher Get
         // @ts-ignore
-        if (tenure.teacherId && typeof tenure.teacherId === 'string' && /^[a-zA-Z0-9]{32}$/.test(tenure.teacherId)) {
-            // @ts-ignore
-            teacher = await ctx.db.get(tenure.teacherId as Id<"teachers">).catch(() => null);
+        if (tenure.teacherId) {
+            try {
+                // @ts-ignore
+                teacher = await ctx.db.get(tenure.teacherId as Id<"teachers">);
+            } catch (e) { /* ignore invalid ID */ }
         }
 
         // SAFE School Get
         // @ts-ignore
         const sid = tenure.schoolId;
         // @ts-ignore
-        if (sid && typeof sid === 'string' && /^[a-zA-Z0-9]{32}$/.test(sid)) {
-            // @ts-ignore
-            school = await ctx.db.get(sid as Id<"schools">).catch(() => null);
+        if (sid) {
+            try {
+                // @ts-ignore
+                school = await ctx.db.get(sid as Id<"schools">);
+            } catch (e) { /* ignore invalid ID */ }
         }
         
         return {
@@ -376,6 +380,7 @@ export const getActiveBySchool = query({
   },
 });
 
+
 // Get count by status
 export const countByStatus = query({
   args: {
@@ -390,4 +395,93 @@ export const countByStatus = query({
     
     return tenures.length;
   },
+});
+
+// Non-paginated list for dashboards (e.g. Yayasan Approval)
+export const listAll = query({
+    args: {
+      status: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+      let q = ctx.db.query("headmasterTenures").order("desc");
+      
+      // Basic filtering
+      if (args.status && args.status !== 'all') {
+          // Manually filter after fetch if no index
+          // q = q.filter(...)
+      }
+      
+      const tenures = await q.take(100); // Limit to 100 recent
+  
+      // Enrich
+      const enriched = await Promise.all(tenures.map(async (t) => {
+          let teacher = null;
+          let school = null;
+          
+          if (t.teacherId) {
+             try { teacher = await ctx.db.get(t.teacherId as Id<"teachers">); } catch (e) { /* ignore */ }
+          }
+          if (t.schoolId) {
+             try { school = await ctx.db.get(t.schoolId as Id<"schools">); } catch (e) { /* ignore */ }
+          }
+  
+          // Filter by status if provided (in memory)
+          if (args.status && args.status !== 'all' && t.status !== args.status) return null;
+  
+          return {
+              ...t,
+              id: t._id,
+              teacher: teacher ? { nama: teacher.nama, nip: teacher.nip, tmt: teacher.tmt || t.startDate } : null,
+              school: school ? { nama: school.nama, district: school.kecamatan } : null,
+              schoolName: school ? school.nama : (t.schoolName || "Unknown"), // Fallback
+          };
+      }));
+  
+      return enriched.filter(item => item !== null);
+    }
+  });
+
+// Get expiring headmasters (for Monitoring)
+export const getExpiringHeadmasters = query({
+    args: {
+        thresholdDays: v.number(), // e.g. 365
+    },
+    handler: async (ctx, args) => {
+        const now = Date.now();
+        const threshold = now + (args.thresholdDays * 24 * 60 * 60 * 1000);
+        
+        // Fetch active tenures
+        const tenures = await ctx.db.query("headmasterTenures")
+            .filter(q => q.eq(q.field("status"), "active")) // Assuming 'active' status
+            .collect();
+            
+        const expiring = [];
+        
+        for (const t of tenures) {
+            if (!t.endDate) continue;
+            
+            const endDate = new Date(t.endDate).getTime();
+            // Check if expired OR expiring soon
+            if (endDate < threshold) {
+                let teacher = null;
+                try { teacher = await ctx.db.get(t.teacherId as Id<"teachers">); } catch (e) { /* ignore */ }
+                
+                const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+                
+                expiring.push({
+                    id: t._id,
+                    nama: teacher?.nama || t.teacherName || "Unknown",
+                    unitKerja: t.schoolName || "Unknown",
+                    periode: t.periode,
+                    maxPeriode: 3, // Hardcoded max
+                    tmt: t.startDate,
+                    expiryDate: t.endDate,
+                    daysRemaining,
+                    status: daysRemaining < 0 ? 'expired' : 'warning'
+                });
+            }
+        }
+        
+        return expiring.sort((a,b) => a.daysRemaining - b.daysRemaining);
+    }
 });

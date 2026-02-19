@@ -14,12 +14,13 @@ const getGoogleAuth = () => {
     throw new Error("Missing Google Credentials (GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY)");
   }
 
-  return new google.auth.JWT(
-    clientEmail,
-    undefined,
-    privateKey,
-    ['https://www.googleapis.com/auth/drive.file']
-  );
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: clientEmail,
+      private_key: privateKey,
+    },
+    scopes: ['https://www.googleapis.com/auth/drive.file'],
+  });
 };
 
 export const uploadFile = action({

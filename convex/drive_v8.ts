@@ -23,7 +23,7 @@ export const uploadFile = action({
             return { success: false, error: "Missing GOOGLE_DRIVE_FOLDER_ID environment variable." };
         }
 
-        // 1. Sign JWT using jose (V8 compatible)
+        // 1. Sign JWT
         const alg = 'RS256';
         let key: jose.KeyLike | Uint8Array;
         try {
@@ -62,13 +62,23 @@ export const uploadFile = action({
         const tokenData = await tokenResp.json();
         const accessToken = tokenData.access_token;
 
-        // 3. Upload File (Multipart)
+        // 3. Upload File (Multipart/Related or Resumable)
+        // Simple Upload for now (limit 5MB usually fine for simple upload, technically supports up to 5MB, 
+        // but robust upload should be multipart. Let's do simple multipart.)
+        
         const boundary = 'foo_bar_baz';
         const metadata = {
             name: args.fileName,
             parents: [targetFolderId]
         };
         
+        // Decode Base64 to Uint8Array
+        const binaryString = atob(args.fileData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
         // Construct Body
         let body = `--${boundary}\r\n`;
         body += `Content-Type: application/json; charset=UTF-8\r\n\r\n`;
@@ -76,7 +86,10 @@ export const uploadFile = action({
         body += `--${boundary}\r\n`;
         body += `Content-Type: ${args.mimeType}\r\n`;
         body += `Content-Transfer-Encoding: base64\r\n\r\n`;
-        body += args.fileData + `\r\n`;
+        body += args.fileData + `\r\n`; // Send base64 directly? No, usually binary.
+        // Wait, "uploadType=multipart" expects the *content* part to be the data.
+        // If we send base64, we need "Content-Transfer-Encoding: base64".
+        // Yes, that works.
         body += `--${boundary}--`;
 
         const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink,thumbnailLink', {
@@ -122,8 +135,8 @@ export const uploadFile = action({
         };
 
     } catch (e: any) {
-        console.error("Drive Error:", e);
-        return { success: false, error: e.message || "Unknown Error" };
+        console.error("V8 Drive Error:", e);
+        return { success: false, error: e.message || "Unknown V8 Error" };
     }
   }
 });

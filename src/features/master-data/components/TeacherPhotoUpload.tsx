@@ -52,13 +52,17 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
       });
 
       // 2. Upload to Google Drive
-      const result = await uploadToDrive({
+      const result: any = await uploadToDrive({
           fileData: base64,
           fileName: `FOTO_GURU_${Date.now()}.jpg`,
           mimeType: file.type
       });
 
       if (!result) throw new Error("Upload response empty");
+      
+      if (result.success === false) {
+          throw new Error(result.error);
+      }
       
       // 3. Callback to parent (Return URL or ID)
       // We prefer storing the "thumbnailLink" or "webContentLink" directly?
@@ -72,7 +76,8 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
       
     } catch (error: any) {
       console.error("Upload error:", error);
-      alert("Gagal mengupload foto: " + error.message);
+      alert(`DEBUG: Gagal Upload Foto.\nError: ${error.message}\n\nMohon fotokan ini ke admin.`);
+      // alert("Gagal mengupload foto: " + error.message);
     } finally {
       setIsUploading(false);
       // Reset input

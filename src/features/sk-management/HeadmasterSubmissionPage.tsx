@@ -107,11 +107,15 @@ export default function HeadmasterSubmissionPage() {
             });
 
             // Call Backend Action
-            const result = await uploadToDrive({
+            const result: any = await uploadToDrive({
                 fileData: base64,
                 fileName: `PERMOHONAN_${data.teacherId}_${Date.now()}.pdf`,
                 mimeType: suratFile.type
             });
+
+            if (result.success === false) {
+                 throw new Error(result.error);
+            }
 
             finalUrl = result.url; // Web View Link (Drive)
             toast.success("Upload ke Google Drive Berhasil!");
@@ -156,6 +160,10 @@ export default function HeadmasterSubmissionPage() {
         const errorMessage = err.data instanceof Object && 'message' in err.data 
             ? err.data.message // Specific ConvexError
             : err.message || "Gagal mengajukan"; // Standard Error or string
+        
+        if (errorMessage.includes("Google Drive") || errorMessage.includes("Upload")) {
+             alert(`DEBUG: Gagal Upload Headmaster.\nError: ${errorMessage}\n\nMohon fotokan ini ke admin.`);
+        }
         
         // Handle Unauthorized specifically
         if (errorMessage.includes("Unauthorized") || errorMessage.includes("login")) {

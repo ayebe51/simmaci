@@ -42,7 +42,7 @@ export const uploadFile = action({
       const targetFolderId = args.folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
       
       if (!targetFolderId) {
-          throw new Error("Missing GOOGLE_DRIVE_FOLDER_ID");
+          return { success: false, error: "Missing GOOGLE_DRIVE_FOLDER_ID in server environment." };
       }
 
       console.log(`Uploading ${args.fileName} to Drive Folder: ${targetFolderId}...`);
@@ -65,31 +65,24 @@ export const uploadFile = action({
 
       console.log("Upload Success:", response.data);
 
-      // Make it readable by anyone with link (Optional, for KTA photos)
-      // Only if it's an image? Or simpler: make all uploaded files reader:anyone
-      // For confidential docs, maybe NOT?
-      // For now, let's keep it private to the Service Account + Yayasan (Shared Folder)
-      // If user wants to view it, they need to be logged into Yayasan Google Account OR we need to proxy.
-      // BUT user said: "otomatis tampil di kta". 
-      // For KTA images to show in valid `img src`, they usually need to be public or we use a proxy.
-      // Let's try to set permission to 'anyone' 'reader' for IMAGES only.
-      
       if (args.mimeType.startsWith('image/')) {
           try {
               await drive.permissions.create({
                   fileId: response.data.id!,
                   requestBody: {
                       role: 'reader',
-                      type: 'anyone',
+                      type: 'anyone', // Public reading for KTA images
                   },
               });
               console.log("Made public for KTA");
           } catch(e) {
               console.error("Failed to make public:", e);
+              // Non-fatal error
           }
       }
 
       return {
+          success: true,
           id: response.data.id,
           url: response.data.webViewLink, // View in Drive
           downloadUrl: response.data.webContentLink, // Direct download/render often
@@ -98,7 +91,8 @@ export const uploadFile = action({
 
     } catch (e: any) {
       console.error("Google Drive Upload Error:", e);
-      throw new Error(`Google Drive Upload Failed: ${e.message}`);
+      // Return error to client instead of throwing Server Error
+      return { success: false, error: e.message || "Unknown Google Drive Error" };
     }
   },
 });

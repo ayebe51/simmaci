@@ -119,6 +119,10 @@ export default function SkSubmissionPage() {
                     mimeType: selectedFile.type
                 });
 
+                if ((result as any).success === false) {
+                     throw new Error((result as any).error);
+                }
+
                 driveUrl = result.url; // Web View Link
                 toast.success("Dokumen berhasil diupload!");
             } catch (uErr: any) {

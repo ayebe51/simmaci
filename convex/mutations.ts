@@ -62,8 +62,23 @@ export const list = query({
     
     // Enrich with teacher names?
     const results = await Promise.all(mutations.map(async (m) => {
-        const teacher = await ctx.db.get(m.teacherId);
-        const admin = await ctx.db.get(m.performedBy);
+        let teacher = null;
+        let admin = null;
+
+        // SAFE Teacher Get
+        // @ts-ignore
+        if (m.teacherId && typeof m.teacherId === 'string' && /^[a-zA-Z0-9]{32}$/.test(m.teacherId)) {
+             // @ts-ignore
+             teacher = await ctx.db.get(m.teacherId).catch(() => null);
+        }
+
+        // SAFE Admin Get
+        // @ts-ignore
+        if (m.performedBy && typeof m.performedBy === 'string' && /^[a-zA-Z0-9]{32}$/.test(m.performedBy)) {
+             // @ts-ignore
+             admin = await ctx.db.get(m.performedBy).catch(() => null);
+        }
+
         return {
             ...m,
             teacherName: teacher?.nama || "Unknown",

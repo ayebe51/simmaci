@@ -250,7 +250,8 @@ export const getTeacherRekap = query({
     sertifikasi: v.optional(v.string()), // Filter by certification status
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+    try {
+      const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
     const user = await ctx.db
@@ -292,5 +293,9 @@ export const getTeacherRekap = query({
       telepon: t.phoneNumber || "-",
       email: t.email || "-"
     }));
+    } catch (error) {
+        console.error("Error in getTeacherRekap:", error);
+        return [];
+    }
   }
 });

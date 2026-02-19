@@ -35,6 +35,7 @@ import type * as debug_users from "../debug_users.js";
 import type * as debug_visibility from "../debug_visibility.js";
 import type * as debugging from "../debugging.js";
 import type * as diagnose_data from "../diagnose_data.js";
+import type * as diagnose_regression from "../diagnose_regression.js";
 import type * as diagnose_simple from "../diagnose_simple.js";
 import type * as files from "../files.js";
 import type * as fix_data from "../fix_data.js";
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   debug_visibility: typeof debug_visibility;
   debugging: typeof debugging;
   diagnose_data: typeof diagnose_data;
+  diagnose_regression: typeof diagnose_regression;
   diagnose_simple: typeof diagnose_simple;
   files: typeof files;
   fix_data: typeof fix_data;

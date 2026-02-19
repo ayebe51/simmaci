@@ -14,10 +14,9 @@ export default function KtaGeneratorPage() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
 
   // Fetch teachers for search
-  const teachers = useQuery(api.teachers.list, { 
-      // We might need a search query, but for now list all and filter client side 
-      // or use the search endpoint if available. Let's use list and filter for simplicity if N is small.
-      // Actually, better to use the search mutation or just filter the list results.
+  // Fetch teachers for search (Use listAll for legacy behavior)
+  const teachers = useQuery(api.teachers.listAll, { 
+      // No pagination args needed
   }) || [];
 
   const filteredTeachers = search 

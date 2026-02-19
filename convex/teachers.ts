@@ -154,6 +154,62 @@ export const list = query({
   },
 });
 
+// Get ALL teachers (Non-paginated) for Legacy Components / Dropdowns
+export const listAll = query({
+  args: {
+    unitKerja: v.optional(v.string()),
+    schoolId: v.optional(v.string()), 
+    token: v.optional(v.string()), // Auth Token
+  },
+  handler: async (ctx, args) => {
+    try {
+        let user = null;
+        if (args.token) {
+            user = await validateSession(ctx, args.token);
+        } else {
+             const identity = await ctx.auth.getUserIdentity();
+             if (identity?.email) {
+                  user = await ctx.db
+                     .query("users")
+                     .withIndex("by_email", (q) => q.eq("email", identity.email!))
+                     .first();
+             }
+        }
+
+        let q = ctx.db.query("teachers");
+
+        // RBAC filtering
+        if (user && user.role === "operator") {
+             if (user.schoolId) {
+                 q = q.withIndex("by_schoolId", q => q.eq("schoolId", user.schoolId));
+             } else if (user.unit) {
+                 q = q.withIndex("by_unit", q => q.eq("unitKerja", user.unit));
+             } else {
+                 return [];
+             }
+        } else {
+             // Admin filters
+             if (args.schoolId) {
+                 q = q.filter(q => q.eq(q.field("schoolId"), args.schoolId)); // Use filter for relaxed type check
+             } else if (args.unitKerja) {
+                 q = q.withIndex("by_unit", q => q.eq("unitKerja", args.unitKerja));
+             }
+        }
+        
+        // Return only active teachers by default? 
+        // Or all? Legacy behavior was likely all or filtered by unit.
+        // Let's filter active just to be clean, unless explicitly needed. 
+        // But KTA might need inactive? Let's just return all for now to be safe.
+        
+        return await q.collect();
+
+    } catch (e) {
+        console.error("Error in listAll:", e);
+        return [];
+    }
+  }
+});
+
 // Get single teacher by ID
 export const get = query({
   args: { id: v.id("teachers") },

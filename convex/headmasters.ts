@@ -59,8 +59,24 @@ export const list = query({
     // 🔥 ENRICH: Join with teacher and school data ONLY for this page
     const enrichedPage = await Promise.all(
       result.page.map(async (tenure: any) => {
-        const teacher = await ctx.db.get(tenure.teacherId as Id<"teachers">);
-        const school = await ctx.db.get(tenure.schoolId as Id<"schools">);
+        let teacher = null;
+        let school = null;
+
+        // SAFE Teacher Get
+        // @ts-ignore
+        if (tenure.teacherId && typeof tenure.teacherId === 'string' && /^[a-zA-Z0-9]{32}$/.test(tenure.teacherId)) {
+            // @ts-ignore
+            teacher = await ctx.db.get(tenure.teacherId as Id<"teachers">).catch(() => null);
+        }
+
+        // SAFE School Get
+        // @ts-ignore
+        const sid = tenure.schoolId;
+        // @ts-ignore
+        if (sid && typeof sid === 'string' && /^[a-zA-Z0-9]{32}$/.test(sid)) {
+            // @ts-ignore
+            school = await ctx.db.get(sid as Id<"schools">).catch(() => null);
+        }
         
         return {
           ...tenure,
@@ -85,7 +101,11 @@ export const list = query({
             _id: school._id,
             nama: school.nama,
             district: school.kecamatan
-          } : null
+          } : {
+            _id: "dummy",
+            nama: tenure.schoolName || tenure.schoolId || "Unknown School",
+            district: "Unknown"
+          }
         };
       })
     );

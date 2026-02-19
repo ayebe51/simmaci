@@ -1,0 +1,98 @@
+{
+  "teachers": {
+    "total": 51,
+    "mixed": 0,
+    "errors": [],
+    "samples": [
+      {
+        "id": "jh7egcag5t34z5v12zt1tdt16h80mx0p",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "jh70ede0dxpyg2zar3dfmewn4d80my30",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "jh7exzss02r7j48e13ng8p42x180mrr7",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "jh7amhte0yxfr7a635ca18wm5180m2xk",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "jh74tmhe50bbfrsrkj23c6bkm180n6re",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      }
+    ]
+  },
+  "users": {
+    "total": 108,
+    "mixed": 0,
+    "errors": [],
+    "samples": [
+      {
+        "id": "jn7c45h0s3nzaveea0jeve9hs18089bc",
+        "val": "j5776vs2x38n65reggd5mdfv2x7z95hm",
+        "type": "string"
+      },
+      {
+        "id": "jn77rmm05whv6t6bm4yz6epm21809b6c",
+        "val": "j578bqbvggzypk0ha0hpterc4n7z8nga",
+        "type": "string"
+      },
+      {
+        "id": "jn75dahsjtba8gp4bj0enf0shx808w43",
+        "val": "j576mnqgkp2082y14c3azq43m97z9772",
+        "type": "string"
+      },
+      {
+        "id": "jn7b03f7566b2e0w1c6n4xesps8080wb",
+        "val": "j5744vecjbdz2yzsdmxxb3aghx7z8p76",
+        "type": "string"
+      },
+      {
+        "id": "jn7c8vfpa991tqygzw1gmsrnqh8094ky",
+        "val": "j574bj6etpx34sfgq0ekp3sgsd7z8bd8",
+        "type": "string"
+      }
+    ]
+  },
+  "skDocuments": {
+    "total": 90,
+    "mixed": 0,
+    "errors": [],
+    "samples": [
+      {
+        "id": "j97drqw0r87sfq9h0y2qh80wqn80vtt8",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "j977arjgkkkvpkr54zqjmtnwrh80t854",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "j979xaq0ehyd4dsx6pq3268j2d80vve8",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "j9707vm26xatxrj95x1kzr1yt580vdcn",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      },
+      {
+        "id": "j97dxcdjd548z655qwmmwdwrds80tvjs",
+        "val": "j57cw4hfjskjpwfhnr394vey117z8n2q",
+        "type": "string"
+      }
+    ]
+  }
+}

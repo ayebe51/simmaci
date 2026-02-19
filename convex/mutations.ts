@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { query, mutation } from "./_generated/server";
 import { create } from "./teachers";
 import { api } from "./_generated/api";

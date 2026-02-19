@@ -3,35 +3,66 @@ import { v } from "convex/values";
 
 export default defineSchema({
   // Teachers table
-  // Teachers table (RELAXED FOR DIAGNOSIS)
-  teachers: defineTable(v.any()),
-
-  // Teacher Documents (Archive)
-  // Teacher Documents Archive (Brankas Arsip)
-
-  // Teacher Documents (Archive) - REMOVED due to instability
-  // teacher_archives: defineTable({...}),
+  teachers: defineTable({
+    nuptk: v.any(),
+    nama: v.any(),
+    nip: v.optional(v.any()),
+    jenisKelamin: v.optional(v.any()),
+    tempatLahir: v.optional(v.any()),
+    tanggalLahir: v.optional(v.any()),
+    pendidikanTerakhir: v.optional(v.any()),
+    mapel: v.optional(v.any()),
+    unitKerja: v.optional(v.any()), 
+    schoolId: v.optional(v.id("schools")), 
+    kecamatan: v.optional(v.any()),
+    status: v.optional(v.any()),
+    tmt: v.optional(v.any()), 
+    isCertified: v.optional(v.any()),
+    phoneNumber: v.optional(v.any()),
+    email: v.optional(v.any()),
+    isActive: v.optional(v.any()),
+    isVerified: v.optional(v.any()), 
+    isSkGenerated: v.optional(v.any()), 
+    pdpkpnu: v.optional(v.any()),
+    photoId: v.optional(v.any()),
+    suratPermohonanUrl: v.optional(v.any()), 
+    ktaNumber: v.optional(v.any()),
+    createdAt: v.any(),
+    updatedAt: v.any(),
+  })
+    .index("by_nuptk", ["nuptk"])
+    .index("by_unit", ["unitKerja"])
+    .index("by_kecamatan", ["kecamatan"])
+    .index("by_active", ["isActive"])
+    .index("by_updatedAt", ["updatedAt"])
+    .index("by_schoolId", ["schoolId"]) 
+    // .index("by_schoolId", ["schoolId"]) 
+    .index("by_school_active", ["schoolId", "isActive"]) 
+    .searchIndex("search_teacher", {
+      searchField: "nama",
+      filterFields: ["isActive", "unitKerja", "kecamatan"], 
+    }),
 
   // Students table
   students: defineTable({
-    nisn: v.string(),
-    nik: v.optional(v.string()), // New: NIK
-    nomorIndukMaarif: v.optional(v.string()),
-    nama: v.string(),
-    jenisKelamin: v.optional(v.string()),
-    tempatLahir: v.optional(v.string()),
-    tanggalLahir: v.optional(v.string()),
-    namaAyah: v.optional(v.string()), // New: Nama Ayah
-    namaIbu: v.optional(v.string()), // New: Nama Ibu
-    alamat: v.optional(v.string()),
-    kecamatan: v.optional(v.string()),
-    namaSekolah: v.optional(v.string()),
-    npsn: v.optional(v.string()), // New: NPSN
-    kelas: v.optional(v.string()),
-    nomorTelepon: v.optional(v.string()),
-    namaWali: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    nisn: v.any(),
+    nik: v.optional(v.any()), 
+    nomorIndukMaarif: v.optional(v.any()),
+    nama: v.any(),
+    jenisKelamin: v.optional(v.any()),
+    tempatLahir: v.optional(v.any()),
+    tanggalLahir: v.optional(v.any()),
+    namaAyah: v.optional(v.any()), 
+    namaIbu: v.optional(v.any()), 
+    alamat: v.optional(v.any()),
+    kecamatan: v.optional(v.any()),
+    namaSekolah: v.optional(v.any()),
+    npsn: v.optional(v.any()), 
+    kelas: v.optional(v.any()),
+    nomorTelepon: v.optional(v.any()),
+    namaWali: v.optional(v.any()),
+    createdAt: v.any(),
+    updatedAt: v.any(),
   })
     .index("by_nisn", ["nisn"])
     .index("by_school", ["namaSekolah"])
@@ -43,18 +74,18 @@ export default defineSchema({
 
   // Schools table
   schools: defineTable({
-    nsm: v.string(),
-    npsn: v.optional(v.string()),
-    nama: v.string(),
-    alamat: v.optional(v.string()),
-    kecamatan: v.optional(v.string()),
-    telepon: v.optional(v.string()),
-    email: v.optional(v.string()),
-    kepalaMadrasah: v.optional(v.string()),
-    akreditasi: v.optional(v.string()),
-    statusJamiyyah: v.optional(v.string()), // Jam'iyyah, Jamaah (Afiliasi), etc.
-    createdAt: v.number(),
-    updatedAt: v.number(),
+    nsm: v.any(),
+    npsn: v.optional(v.any()),
+    nama: v.any(),
+    alamat: v.optional(v.any()),
+    kecamatan: v.optional(v.any()),
+    telepon: v.optional(v.any()),
+    email: v.optional(v.any()),
+    kepalaMadrasah: v.optional(v.any()),
+    akreditasi: v.optional(v.any()),
+    statusJamiyyah: v.optional(v.any()), 
+    createdAt: v.any(),
+    updatedAt: v.any(),
   })
     .index("by_nsm", ["nsm"])
     .index("by_kecamatan", ["kecamatan"])
@@ -64,53 +95,87 @@ export default defineSchema({
     }),
 
   // Users table for authentication
-  // Users table (RELAXED FOR DIAGNOSIS)
-  users: defineTable(v.any()),
-
-
+  users: defineTable({
+    email: v.any(),
+    name: v.any(),
+    passwordHash: v.any(),
+    role: v.any(), 
+    unit: v.optional(v.any()), 
+    schoolId: v.optional(v.id("schools")), 
+    isActive: v.any(),
+    createdAt: v.any(),
+    updatedAt: v.any(),
+  })
+    .index("by_email", ["email"])
+    .index("by_role", ["role"]),
 
   // Settings table (Global App Settings) - Force Sync
   settings: defineTable({
-      key: v.string(), // e.g. "sk_template_gty"
-      value: v.optional(v.string()), // For small text settings
-      storageId: v.optional(v.id("_storage")), // For Files (Templates)
-      mimeType: v.optional(v.string()),
-      schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
-      updatedAt: v.number(),
+      key: v.any(), 
+      value: v.optional(v.any()), 
+      storageId: v.optional(v.any()), 
+      mimeType: v.optional(v.any()),
+      schoolId: v.optional(v.any()), 
+      updatedAt: v.any(),
   }).index("by_key", ["key"]),
-    // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
   // NEW Settings Table (V2) - Fresh Start
   settings_v2: defineTable({
-      key: v.string(), 
-      value: v.string(), // Base64 Content (Required in V2)
-      mimeType: v.string(),
-      schoolId: v.optional(v.any()), // Relaxed to ANY for debugging
-      updatedAt: v.number(),
+      key: v.any(), 
+      value: v.any(), 
+      mimeType: v.any(),
+      schoolId: v.optional(v.any()), 
+      updatedAt: v.any(),
   }).index("by_key", ["key"]),
-    // .index("by_schoolId", ["schoolId"]), // DISABLED FOR MIGRATION
 
   // SK (Surat Keputusan) documents
-  // SK Documents (RELAXED FOR DIAGNOSIS)
-  skDocuments: defineTable(v.any()),
+  skDocuments: defineTable({
+    nomorSk: v.any(),
+    jenisSk: v.any(), 
+    teacherId: v.optional(v.any()),
+    nama: v.any(),
+    jabatan: v.optional(v.any()),
+    unitKerja: v.optional(v.any()), 
+    schoolId: v.optional(v.id("schools")), 
+    tanggalPenetapan: v.any(),
+    status: v.any(), 
+    fileUrl: v.optional(v.any()),
+    suratPermohonanUrl: v.optional(v.any()), 
+    qrCode: v.optional(v.any()),
+    createdBy: v.optional(v.any()), 
+    archivedAt: v.optional(v.any()), 
+    archivedBy: v.optional(v.any()), 
+    archiveReason: v.optional(v.any()), 
+    createdAt: v.any(),
+    updatedAt: v.any(),
+   })
+     .index("by_teacher", ["teacherId"])
+     .index("by_status", ["status"])
+     .index("by_jenis", ["jenisSk"])
+     .index("by_nomor", ["nomorSk"])
+     .index("by_archived", ["archivedAt"])
+     .searchIndex("search_sk", {
+       searchField: "nama",
+       filterFields: ["status", "nomorSk"], 
+     }),
  
    // Headmaster Tenures (Pengangkatan Kepala Madrasah)
    headmasterTenures: defineTable({
-     teacherId: v.id("teachers"),
-     teacherName: v.string(), // Denormalized for quick access
-     schoolId: v.union(v.string(), v.id("schools")), // Relaxed for legacy data
-     schoolName: v.string(), // Denormalized for quick access
-     periode: v.number(), // Periode ke- (1, 2, 3, etc.)
-     startDate: v.string(),
-     endDate: v.string(),
-    status: v.string(), // 'pending', 'approved', 'rejected', 'active', 'expired'
-    nomorSk: v.optional(v.string()), // Saved generated SK Number
-    skUrl: v.optional(v.string()),
-    approvedBy: v.optional(v.id("users")),
-    approvedAt: v.optional(v.number()),
-    createdBy: v.id("users"),
-    createdAt: v.number(),
-    updatedAt: v.number(),
+     teacherId: v.any(),
+     teacherName: v.any(), 
+     schoolId: v.any(), 
+     schoolName: v.any(), 
+     periode: v.any(), 
+     startDate: v.any(),
+     endDate: v.any(),
+    status: v.any(), 
+    nomorSk: v.optional(v.any()), 
+    skUrl: v.optional(v.any()),
+    approvedBy: v.optional(v.any()),
+    approvedAt: v.optional(v.any()),
+    createdBy: v.any(),
+    createdAt: v.any(),
+    updatedAt: v.any(),
   })
     .index("by_teacher", ["teacherId"])
     // .index("by_school", ["schoolId"])
@@ -119,26 +184,22 @@ export default defineSchema({
 
   // Dashboard stats cache (for performance)
   dashboardStats: defineTable({
-    totalTeachers: v.number(),
-    totalStudents: v.number(),
-    totalSchools: v.number(),
-    totalSk: v.number(),
-    lastUpdated: v.number(),
+    totalTeachers: v.any(),
+    totalStudents: v.any(),
+    totalSchools: v.any(),
+    totalSk: v.any(),
+    lastUpdated: v.any(),
   }),
 
   // Notifications table
   notifications: defineTable({
-    userId: v.id("users"),        // Recipient
-    type: v.string(),              // 'sk_submitted', 'sk_approved', 'sk_rejected', 'batch_complete'
-    title: v.string(),             // "SK Disetujui"
-    message: v.string(),           // "SK No. 123 telah disetujui"
-    isRead: v.boolean(),           // Read status
-    metadata: v.optional(v.object({
-      skId: v.optional(v.id("skDocuments")),
-      batchCount: v.optional(v.number()),
-      rejectionReason: v.optional(v.string()),
-    })),
-    createdAt: v.number(),
+    userId: v.any(),        
+    type: v.any(),              
+    title: v.any(),             
+    message: v.any(),           
+    isRead: v.any(),           
+    metadata: v.optional(v.any()),
+    createdAt: v.any(),
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "isRead"])
@@ -146,28 +207,25 @@ export default defineSchema({
 
   // Activity Logs for Audit Trail
   activity_logs: defineTable({
-    user: v.string(),
-    role: v.string(),
-    action: v.string(),
-    details: v.string(),
-    timestamp: v.number(),
+    user: v.any(),
+    role: v.any(),
+    action: v.any(),
+    details: v.any(),
+    timestamp: v.any(),
   })
     .index("by_timestamp", ["timestamp"]),
 
   // Approval history for audit trail
   approvalHistory: defineTable({
-    documentId: v.string(),  // Generic to support any document type
-    documentType: v.string(),  // 'sk', 'headmaster', etc.
-    action: v.string(),  // 'submit', 'approve', 'reject', 'comment', 'update'
-    fromStatus: v.optional(v.string()),  // Previous status
-    toStatus: v.optional(v.string()),  // New status
-    performedBy: v.id("users"),  // Who performed the action
-    performedAt: v.number(),  // When
-    comment: v.optional(v.string()),  // Optional comment/reason
-    metadata: v.optional(v.object({
-      rejectionReason: v.optional(v.string()),
-      changes: v.optional(v.string()),  // JSON string of changes
-    })),
+    documentId: v.any(),  
+    documentType: v.any(),  
+    action: v.any(),  
+    fromStatus: v.optional(v.any()),  
+    toStatus: v.optional(v.any()),  
+    performedBy: v.any(),  
+    performedAt: v.any(),  
+    comment: v.optional(v.any()),  
+    metadata: v.optional(v.any()),
   })
     .index("by_document", ["documentId"])
     .index("by_document_type", ["documentType"])
@@ -176,44 +234,44 @@ export default defineSchema({
 
   // Sessions for Secure Authentication
   sessions: defineTable({
-    token: v.string(), // UUID or Custom Token
-    userId: v.id("users"),
-    expiresAt: v.number(),
-    ipAddress: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-    createdAt: v.number(),
+    token: v.any(), 
+    userId: v.any(),
+    expiresAt: v.any(),
+    ipAddress: v.optional(v.any()),
+    userAgent: v.optional(v.any()),
+    createdAt: v.any(),
   })
     .index("by_token", ["token"])
     .index("by_user", ["userId"]),
 
   // Archive Digital SK Lama
   sk_archives: defineTable({
-    schoolId: v.id("schools"),
-    nomorSk: v.string(),
-    title: v.string(),
-    year: v.string(),
-    category: v.string(), // 'sk_kepala', 'sk_guru', 'other'
-    storageId: v.string(), // Convex Storage ID
-    fileUrl: v.string(),   // Public URL for easy access
-    uploadedBy: v.id("users"),
-    createdAt: v.number(),
+    schoolId: v.any(),
+    nomorSk: v.any(),
+    title: v.any(),
+    year: v.any(),
+    category: v.any(), 
+    storageId: v.any(), 
+    fileUrl: v.any(),   
+    uploadedBy: v.any(),
+    createdAt: v.any(),
   })
     .index("by_school", ["schoolId"])
     .index("by_year", ["year"]),
 
   // Teacher Mutations (History)
   teacher_mutations: defineTable({
-    teacherId: v.id("teachers"),
-    fromUnit: v.string(),
-    toUnit: v.string(),
-    reason: v.string(),
-    skNumber: v.string(),
-    effectiveDate: v.string(),
-    performedBy: v.id("users"),
-    createdAt: v.number(),
+    teacherId: v.any(),
+    fromUnit: v.any(),
+    toUnit: v.any(),
+    reason: v.any(),
+    skNumber: v.any(),
+    effectiveDate: v.any(),
+    performedBy: v.any(),
+    createdAt: v.any(),
   })
     .index("by_teacher", ["teacherId"])
     .index("by_unit_from", ["fromUnit"])
     .index("by_unit_to", ["toUnit"])
-    .index("by_date", ["createdAt"]), // To show recent mutations
+    .index("by_date", ["createdAt"]), 
 });

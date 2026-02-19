@@ -273,5 +273,14 @@ export default defineSchema({
     .index("by_teacher", ["teacherId"])
     .index("by_unit_from", ["fromUnit"])
     .index("by_unit_to", ["toUnit"])
-    .index("by_date", ["createdAt"]), 
+    .index("by_date", ["createdAt"]),
+
+  // Debug Logs for diagnosing remote issues
+  debug_logs: defineTable({
+    action: v.any(),
+    report: v.any(),
+    status: v.any(),
+    createdAt: v.any(),
+  })
+    .index("by_created", ["createdAt"]),
 });

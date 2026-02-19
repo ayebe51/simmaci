@@ -1,0 +1,28 @@
+- Deploying to https://successful-bison-83.convex.cloud...
+
+[36mA minor update is available for Convex[39m [2m(1.31.7 → 1.32.0)[22m
+[2mChangelog:[22m [4mhttps://github.com/get-convex/convex-js/blob/main/CHANGELOG.md#changelog[24m
+[32m✔[39m No indexes are deleted by this push
+Uploading functions to Convex...
+Generating TypeScript bindings...
+Running TypeScript...
+✖ TypeScript typecheck via `tsc` failed.
+To ignore failing typecheck, use `--typecheck=disable`.
+- Collecting TypeScript errors
+
+[96mconvex/debug_public.ts[0m:[93m5[0m:[93m14[0m - [91merror[0m[90m TS7022: [0m'trigger' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+
+[7m5[0m export const trigger = action({
+[7m [0m [91m             ~~~~~~~[0m
+[96mconvex/debug_public.ts[0m:[93m7[0m:[93m3[0m - [91merror[0m[90m TS7023: [0m'handler' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+
+[7m7[0m   handler: async (ctx) => {
+[7m [0m [91m  ~~~~~~~[0m
+
+[96mconvex/debug_public.ts[0m:[93m9[0m:[93m11[0m - [91merror[0m[90m TS7022: [0m'res' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+
+[7m9[0m     const res = await ctx.runAction(internal.debug_actions.check);
+[7m [0m [91m          ~~~[0m
+
+
+Found 3 errors in the same file, starting at: convex/debug_public.ts[90m:5[0m

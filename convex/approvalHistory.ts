@@ -78,7 +78,15 @@ export const getApprovalHistory = query({
     // Enrich with user data
     const enriched = await Promise.all(
       history.map(async (h) => {
-        const user = await ctx.db.get(h.performedBy)
+        let user = null;
+        // Safe check for valid ID format
+        // @ts-ignore
+        if (h.performedBy && typeof h.performedBy === 'string') {
+             // Try to fetch, catch error if invalid ID
+             // @ts-ignore
+             user = await ctx.db.get(h.performedBy).catch(() => null);
+        }
+        
         return {
           ...h,
           // @ts-ignore
@@ -121,7 +129,12 @@ export const getRecentApprovalActions = query({
     // Enrich with user data
     const enriched = await Promise.all(
       history.slice(0, limit).map(async (h) => {
-        const user = await ctx.db.get(h.performedBy)
+        let user = null;
+        // @ts-ignore
+        if (h.performedBy && typeof h.performedBy === 'string') {
+             // @ts-ignore
+             user = await ctx.db.get(h.performedBy).catch(() => null);
+        }
         return {
           ...h,
           performedByName: user?.name || "Unknown",

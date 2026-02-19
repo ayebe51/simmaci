@@ -11,7 +11,7 @@ export const list = query({
   args: {
     paginationOpts: paginationOptsValidator,
     schoolId: v.optional(v.string()), // Relaxed for migration
-    teacherId: v.optional(v.id("teachers")),
+    teacherId: v.optional(v.string()), // Relaxed from v.id
     status: v.optional(v.string()),
     schoolName: v.optional(v.string()), // Optional search
   },

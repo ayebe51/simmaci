@@ -9,7 +9,7 @@ import { validateSession, requireAuth } from "./auth_helpers";
 export const moveTeacher = mutation({
   args: {
     token: v.string(),
-    teacherId: v.id("teachers"),
+    teacherId: v.string(), // Relaxed from v.id
     toUnit: v.string(), // School Name
     reason: v.string(),
     skNumber: v.string(),
@@ -23,7 +23,16 @@ export const moveTeacher = mutation({
        throw new Error("Unauthorized: Only Admins can perform mutations.");
     }
 
-    const teacher = await ctx.db.get(args.teacherId);
+    // Safe Teacher Lookup
+    // @ts-ignore
+    let teacher = null;
+    try {
+        // @ts-ignore
+        teacher = await ctx.db.get(args.teacherId);
+    } catch {
+        // Invalid ID format or not found
+    }
+    
     if (!teacher) throw new Error("Teacher not found");
 
     const fromUnit = teacher.unitKerja || "Tidak Ada";

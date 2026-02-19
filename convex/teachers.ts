@@ -338,9 +338,10 @@ export const create = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
-    photoId: v.optional(v.id("_storage")),
+    photoId: v.optional(v.any()),
     token: v.optional(v.string()), // Auth Token
     schoolId: v.optional(v.id("schools")), // Optional direct set for Super Admin
+    suratPermohonanUrl: v.optional(v.string()), // New: Support Google Drive URL
   },
   handler: async (ctx, args) => {
     try {
@@ -445,9 +446,10 @@ export const update = mutation({
     email: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     pdpkpnu: v.optional(v.string()),
-    photoId: v.optional(v.id("_storage")),
+    photoId: v.optional(v.any()),
     token: v.optional(v.string()),
     schoolId: v.optional(v.id("schools")), // Optional update
+    suratPermohonanUrl: v.optional(v.string()), // New: Support Google Drive URL
     // Support Legacy/Lowercase fields from older frontends
     tanggallahir: v.optional(v.string()), 
     tempatlahir: v.optional(v.string()), 

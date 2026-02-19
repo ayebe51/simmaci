@@ -1,13 +1,13 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 
 interface TeacherPhotoUploadProps {
-  photoId?: Id<"_storage">;
-  onPhotoUploaded: (storageId: Id<"_storage">) => void;
+  photoId?: Id<"_storage"> | string;
+  onPhotoUploaded: (storageId: string | Id<"_storage">) => void;
   onRemovePhoto?: () => void; // Optional removal
   isEditing?: boolean;
 }
@@ -16,10 +16,15 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Fetch Photo URL if ID exists
-  const photoUrl = useQuery(api.teachers.getPhotoUrl, photoId ? { storageId: photoId } : "skip");
+  // 🔥 USE DRIVE UPLOAD
+  const uploadToDrive = useAction((api as any).drive.uploadFile);
   
-  const generateUploadUrl = useMutation(api.teachers.generateUploadUrl);
+  // Fetch Photo URL: If it's a Storage ID, fetch it. If it's a URL, use it directly.
+  const isStorageId = photoId && !photoId.startsWith("http");
+  const storageUrl = useQuery(api.teachers.getPhotoUrl, isStorageId ? { storageId: photoId as Id<"_storage"> } : "skip");
+  
+  // Final URL to display
+  const displayUrl = isStorageId ? storageUrl : photoId;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,26 +43,36 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
     try {
       setIsUploading(true);
       
-      // 1. Get Upload URL
-      const postUrl = await generateUploadUrl();
-      
-      // 2. Upload to Convex Storage
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+      // 1. Convert to Base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
       });
 
-      if (!result.ok) throw new Error("Upload failed");
+      // 2. Upload to Google Drive
+      const result = await uploadToDrive({
+          fileData: base64,
+          fileName: `FOTO_GURU_${Date.now()}.jpg`,
+          mimeType: file.type
+      });
 
-      const { storageId } = await result.json();
+      if (!result) throw new Error("Upload response empty");
       
-      // 3. Callback to parent
-      onPhotoUploaded(storageId);
+      // 3. Callback to parent (Return URL or ID)
+      // We prefer storing the "thumbnailLink" or "webContentLink" directly?
+      // Or construct a clean public URL helper?
+      // For now, let's use the 'thumbnail' provided by Drive which is usually public-friendly
+      // OR use a standard proxy URL structure.
+      // Let's store the `webContentLink` but we might need to process it to be embeddable.
+      // ACTUALLY: `drive.ts` returns `downloadUrl` = `webContentLink`.
       
-    } catch (error) {
+      onPhotoUploaded(result.downloadUrl as any); // Cast to any to bypass Id<"_storage"> strictness if parent allows
+      
+    } catch (error: any) {
       console.error("Upload error:", error);
-      alert("Gagal mengupload foto. Silakan coba lagi.");
+      alert("Gagal mengupload foto: " + error.message);
     } finally {
       setIsUploading(false);
       // Reset input
@@ -68,9 +83,9 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
   return (
     <div className="flex flex-col gap-3 items-center p-4 border rounded-lg bg-slate-50 border-dashed border-slate-300">
       <div className="relative w-32 h-40 bg-slate-200 rounded overflow-hidden flex items-center justify-center shadow-sm border">
-        {photoUrl ? (
+        {displayUrl ? (
           <img 
-            src={photoUrl} 
+            src={displayUrl} 
             alt="Foto Guru" 
             className="w-full h-full object-cover"
           />

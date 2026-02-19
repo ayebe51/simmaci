@@ -48,7 +48,7 @@ interface Teacher {
   tanggalLahir?: string
   tmt?: string
   pendidikanTerakhir?: string
-  photoId?: Id<"_storage">
+  photoId?: Id<"_storage"> | string
 }
 
 export default function TeacherListPage() {

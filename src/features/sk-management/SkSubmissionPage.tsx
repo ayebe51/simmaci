@@ -8,16 +8,16 @@ import { Checkbox } from "@/components/ui/checkbox" // Need to import Checkbox o
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save, FileText } from "lucide-react"
+import { ArrowLeft, Save, FileText, Upload, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
 // 🔥 CONVEX for SK creation
-import { useMutation } from "convex/react"
+import { useMutation, useAction } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
-// Keep old API for file upload only
+// Keep old API for file upload only (deprecated for this flow)
 import { api } from "@/lib/api"
 
 const skSchema = z.object({
@@ -35,7 +35,7 @@ const skSchema = z.object({
   pendidikanTerakhir: z.string().min(1, "Pendidikan Terakhir wajib diisi"),
   tmt: z.string().min(1, "Tanggal Mulai Tugas wajib diisi"),
   statusKepegawaian: z.string().optional(), // Explicit Status if needed, or derived
-  isCertified: z.boolean().default(false),
+  isCertified: z.boolean().optional(),
   pdpkpnu: z.string().optional(),
 })
 
@@ -44,8 +44,10 @@ type SkFormValues = z.infer<typeof skSchema>
 export default function SkSubmissionPage() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [activeTab, setActiveTab] = useState("single")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
    
   // Role Check
   const [userRole, setUserRole] = useState<{ role: string, unit?: string } | null>(() => {
@@ -73,28 +75,73 @@ export default function SkSubmissionPage() {
       form.setValue("unitKerja", userRole.unit);
   }
 
-  // 🔥 CONVEX MUTATIONS
+  // 🔥 CONVEX MUTATIONS & ACTIONS
   const createTeacherMutation = useMutation(convexApi.teachers.create)
+  const uploadToDrive = useAction((convexApi as any).drive.uploadFile)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          if (file.size > 5 * 1024 * 1024) { // 5MB limit
+              toast.error("Ukuran file maksimal 5MB");
+              return;
+          }
+          if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+              toast.error("Hanya file PDF atau Gambar yang diperbolehkan");
+              return;
+          }
+          setSelectedFile(file);
+          toast.success(`File terpilih: ${file.name}`);
+      }
+  }
 
   const onSubmit = async (data: SkFormValues) => {
     setIsSubmitting(true)
     try {
-        // Helper variables for file upload
-        const file = fileInputRef.current?.files?.[0]
-        if (file) {
-            toast.info("Mengupload dokumen...")
-            await api.uploadFile(file)
+        let driveUrl = undefined;
+
+        // 🔥 STEP 1: Upload to Google Drive (if file selected)
+        if (selectedFile) {
+            setIsUploading(true);
+            try {
+                toast.info("Mengupload dokumen ke Google Drive...");
+                
+                const base64 = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(selectedFile);
+                    reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                    reader.onerror = reject;
+                });
+
+                const result = await uploadToDrive({
+                    fileData: base64,
+                    fileName: `SK_REQ_${data.niy || data.nama}_${Date.now()}.pdf`,
+                    mimeType: selectedFile.type
+                });
+
+                driveUrl = result.url; // Web View Link
+                toast.success("Dokumen berhasil diupload!");
+            } catch (uErr) {
+                console.error("Upload Failed:", uErr);
+                toast.error("Gagal mengupload dokumen. Pengajuan akan dilanjutkan tanpa lampiran.");
+                // We proceed without file? Or stop? 
+                // Let's stop to be safe if they intended to upload.
+                // But generally better to ask user. For now, throw.
+                throw new Error("Gagal mengupload dokumen ke Google Drive.");
+            } finally {
+                setIsUploading(false);
+            }
         }
 
-        // 🔥 STEP 1: Create Teacher Record First
-        toast.info("Membuat data guru...")
+        // 🔥 STEP 2: Create Teacher Record with File URL
+        toast.info("Menyimpan data pengajuan...")
         
         // Generate NUPTK if NIY provided, otherwise use timestamp-based ID
         const nuptk = data.niy || `TEMP-${Date.now()}`
         
         const token = localStorage.getItem("token") || undefined;
         
-        // Map Status: Prefer explicit status if we add it, else derive from Jenis SK
+        // Map Status
         const statusMap: Record<string, string> = {
             "SK Guru Tetap Yayasan": "GTY",
             "SK Guru Tidak Tetap": "GTT",
@@ -102,9 +149,6 @@ export default function SkSubmissionPage() {
             "SK Kepala Madrasah": "Kepala"
         };
         const derivedStatus = statusMap[data.jenisSk] || "GTY";
-        // User requested "Status" column - likely Kepegawaian. 
-        // We act as if 'statusKepegawaian' input overrides derived if present, 
-        // but for now let's just use the logic or pass it.
         const finalStatus = data.statusKepegawaian || derivedStatus;
 
         await createTeacherMutation({
@@ -113,7 +157,7 @@ export default function SkSubmissionPage() {
             nip: data.niy, // Maps to 'Nomor Induk Ma'arif'
             unitKerja: data.unitKerja,
             status: finalStatus,
-            isActive: true,
+            isActive: true, // Auto-active for new submission? Or pending? Teachers usually active if they exist.
             
             // NEW FIELDS MAPPING
             tempatLahir: data.tempatLahir,
@@ -123,19 +167,23 @@ export default function SkSubmissionPage() {
             isCertified: data.isCertified,
             pdpkpnu: data.pdpkpnu,
             
+            // 🔥 GOOGLE DRIVE URL
+            suratPermohonanUrl: driveUrl,
+            
             token: token,
         })
 
 
-        // 🔥 STEP 2: Finish (No Draft SK Created - Waiting for Admin)
+        // 🔥 STEP 3: Finish
         toast.success("✅ Pengajuan berhasil dikirim! Data masuk antrean verifikasi.")
-        navigate("/dashboard/teachers") // Redirect to Teacher List instead of SK Archive
+        navigate("/dashboard/teachers") // Redirect to Teacher List
     } catch (err) {
-         
+        console.error("Submission Error:", err); 
         const errorMessage = (err as any).message || "Gagal mengajukan SK"
         toast.error(errorMessage)
     } finally {
         setIsSubmitting(false)
+        setIsUploading(false)
     }
   }
 
@@ -334,14 +382,34 @@ export default function SkSubmissionPage() {
                 </div>
     
                  <div className="grid gap-2">
-                    <Label htmlFor="dokumen">Upload Dokumen Pendukung (PDF)</Label>
-                    <div className="rounded-md border border-dashed p-6 text-center hover:bg-slate-50 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                        <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">Klik untuk upload surat permohonan / rekomendasi</p>
-                        <Input type="file" className="hidden" id="dokumen" accept=".pdf" ref={fileInputRef} onChange={(e) => {
-                             if(e.target.files?.[0]) toast.success(`File terpilih: ${e.target.files[0].name}`)
-                        }}/>
+                    <Label htmlFor="dokumen">Upload Surat Permohonan / Rekomendasi (PDF)</Label>
+                    <div 
+                        className="rounded-md border border-dashed p-6 text-center hover:bg-slate-50 cursor-pointer flex flex-col items-center justify-center gap-2" 
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        {isUploading ? (
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        ) : selectedFile ? (
+                            <div className="flex items-center gap-2 text-green-600 font-medium">
+                                <FileText className="h-8 w-8" />
+                                <span>{selectedFile.name}</span>
+                            </div>
+                        ) : (
+                            <>
+                                <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">Klik untuk upload surat permohonan</p>
+                            </>
+                        )}
+                        <Input 
+                            type="file" 
+                            className="hidden" 
+                            id="dokumen" 
+                            accept=".pdf, .jpg, .jpeg, .png" 
+                            ref={fileInputRef} 
+                            onChange={handleFileChange} 
+                        />
                     </div>
+                     <p className="text-[10px] text-muted-foreground">Maksimal 5MB. Format: PDF atau JPG/PNG.</p>
                  </div>
     
                 <div className="grid gap-2">
@@ -349,19 +417,10 @@ export default function SkSubmissionPage() {
                     <Textarea id="keterangan" placeholder="Catatan khusus untuk admin..." {...form.register("keterangan")} />
                 </div>
 
-                {/* FEATURE: Headmaster Requirement */}
-                {(form.watch("jenisSk") || "").includes("Kepala") && (
-                    <div className="rounded-md border border-amber-200 bg-amber-50 p-4 space-y-2">
-                        <Label className="text-amber-800">Surat Rekomendasi Fit & Proper Test</Label>
-                        <Input type="file" accept=".pdf" className="bg-white" />
-                        <p className="text-xs text-amber-700">Wajib untuk pengajuan SK Kepala Madrasah hasil seleksi.</p>
-                    </div>
-                )}
-
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => navigate("/dashboard/sk")}>Batal</Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                       {isSubmitting ? "Menyimpan..." : <><Save className="mr-2 h-4 w-4" /> Simpan Pengajuan</>}
+                    <Button type="submit" disabled={isSubmitting || isUploading}>
+                       {isSubmitting || isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><Save className="mr-2 h-4 w-4" /> Simpan Pengajuan</>}
                     </Button>
                 </div>
     

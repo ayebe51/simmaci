@@ -11,7 +11,7 @@ interface KtaCardProps {
     nama: string;
     nuptk: string;
     unitKerja?: string;
-    photoId?: Id<"_storage">;
+    photoId?: Id<"_storage"> | string;
     nip?: string;
     // Add other fields as needed
   };
@@ -20,8 +20,10 @@ interface KtaCardProps {
 export default function KtaCard({ teacher }: KtaCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   
-  // Fetch Photo URL
-  const photoUrl = useQuery(api.teachers.getPhotoUrl, teacher.photoId ? { storageId: teacher.photoId } : "skip");
+  // Fetch Photo URL Logic
+  const isStorageId = teacher.photoId && !teacher.photoId.startsWith("http");
+  const storageUrl = useQuery(api.teachers.getPhotoUrl, isStorageId ? { storageId: teacher.photoId as Id<"_storage"> } : "skip");
+  const displayUrl = isStorageId ? storageUrl : teacher.photoId;
   
   // Verification URL (points to public verify page)
    
@@ -98,8 +100,8 @@ export default function KtaCard({ teacher }: KtaCardProps) {
         <div className="absolute top-20 left-4 right-4 bottom-4 flex gap-4">
            {/* PHOTO AREA */}
            <div className="w-28 h-36 bg-white rounded-lg border-2 border-yellow-400 shadow-lg overflow-hidden flex-shrink-0">
-               {photoUrl ? (
-                   <img src={photoUrl} className="w-full h-full object-cover" alt="Foto" />
+               {displayUrl ? (
+                   <img src={displayUrl} className="w-full h-full object-cover" alt="Foto" crossOrigin="anonymous" />
                ) : (
                    <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs text-center p-2">
                        No Photo

@@ -154,8 +154,8 @@ export default function DashboardOperator() {
 
         {/* CHARTS SECTION */}
         <DashboardCharts data={{
-            status: stats.status,
-            certification: stats.certification,
+            status: stats.status || [],
+            certification: stats.certification || [],
             units: [], // Not relevant for single school
             kecamatan: [] // Not relevant for single school
         }} />

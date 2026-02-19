@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useMemo } from "react"
 // 🔥 CONVEX for data and mutations
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
 // Keep old API for file upload only
@@ -84,15 +84,37 @@ export default function HeadmasterSubmissionPage() {
   
   // 🔥 CONVEX MUTATION
   const createHeadmasterMutation = useMutation(convexApi.headmasters.create)
+  const uploadToDrive = useAction((convexApi as any).drive.uploadFile) // Corrected to useAction
 
   const onSubmit = async (data: HeadmasterForm) => {
     setIsSubmitting(true)
     try {
         let finalUrl = null;
         if (suratFile) {
-            toast.info("Mengunggah surat permohonan...")
-            const uploadRes = await api.uploadFile(suratFile)
-            finalUrl = (uploadRes as any).url || (uploadRes as any).filename
+            toast.info("Mengunggah surat ke Google Drive Yayasan...")
+            
+            // Convert to Base64
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(suratFile);
+                reader.onload = () => {
+                    const res = reader.result as string;
+                    // Remove Data URL prefix (e.g. "data:application/pdf;base64,")
+                    const base64Content = res.split(',')[1];
+                    resolve(base64Content);
+                };
+                reader.onerror = error => reject(error);
+            });
+
+            // Call Backend Action
+            const result = await uploadToDrive({
+                fileData: base64,
+                fileName: `PERMOHONAN_${data.teacherId}_${Date.now()}.pdf`,
+                mimeType: suratFile.type
+            });
+
+            finalUrl = result.url; // Web View Link (Drive)
+            toast.success("Upload ke Google Drive Berhasil!");
         }
 
         // Find teacher and school names for denormalization

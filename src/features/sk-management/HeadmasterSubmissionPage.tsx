@@ -54,7 +54,13 @@ export default function HeadmasterSubmissionPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
-          setSuratFile(e.target.files[0])
+          const file = e.target.files[0];
+          if (file.size > 500 * 1024) {
+              toast.error("Ukuran file maksimal 500KB");
+              e.target.value = ""; // Reset input
+              return;
+          }
+          setSuratFile(file)
       }
   }
 
@@ -378,7 +384,7 @@ export default function HeadmasterSubmissionPage() {
             <div className="grid gap-2">
                 <Label>Upload Scan Surat Permohonan (PDF/Gambar)</Label>
                 <Input type="file" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" />
-                <p className="text-[10px] text-muted-foreground">Maksimal 2MB.</p>
+                <p className="text-[10px] text-muted-foreground">Maksimal 500KB.</p>
             </div>
 
             <div className="grid gap-2">

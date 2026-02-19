@@ -46,7 +46,6 @@
     "docxtemplater-image-module-free": "^1.1.1",
     "file-saver": "^2.0.5",
     "googleapis": "^171.4.0",
-    "jose": "^6.1.3",
     "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
     "mammoth": "^1.11.0",

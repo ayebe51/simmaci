@@ -30,9 +30,9 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate (Max 2MB, Image)
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran foto maksimal 2MB");
+    // Validate (Max 500KB, Image)
+    if (file.size > 500 * 1024) {
+      alert("Ukuran foto maksimal 500KB");
       return;
     }
     if (!file.type.startsWith("image/")) {

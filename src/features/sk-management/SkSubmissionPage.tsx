@@ -82,8 +82,8 @@ export default function SkSubmissionPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-          if (file.size > 5 * 1024 * 1024) { // 5MB limit
-              toast.error("Ukuran file maksimal 5MB");
+          if (file.size > 500 * 1024) { // 500KB limit
+              toast.error("Ukuran file maksimal 500KB");
               return;
           }
           if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
@@ -412,7 +412,7 @@ export default function SkSubmissionPage() {
                             onChange={handleFileChange} 
                         />
                     </div>
-                     <p className="text-[10px] text-muted-foreground">Maksimal 5MB. Format: PDF atau JPG/PNG.</p>
+                     <p className="text-[10px] text-muted-foreground">Maksimal 500KB. Format: PDF atau JPG/PNG.</p>
                  </div>
     
                 <div className="grid gap-2">

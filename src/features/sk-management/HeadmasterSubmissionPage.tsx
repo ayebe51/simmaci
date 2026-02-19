@@ -59,7 +59,8 @@ export default function HeadmasterSubmissionPage() {
   }
 
   // 🔥 REAL-TIME CONVEX QUERIES
-  const convexTeachers = useQuery(convexApi.teachers.list, { token: localStorage.getItem("token") || undefined })
+  // Use listAll for dropdowns
+  const convexTeachers = useQuery(convexApi.teachers.listAll, { token: localStorage.getItem("token") || undefined })
   const convexSchools = useQuery(convexApi.schools.list, {})
   
   // Map to interface with id

@@ -62,7 +62,8 @@ export default function MutationPage() {
   // We need a way to search teachers.
   // Ideally a search API. For MVP, we might load all and filter in frontend (if not too many).
   // Or use `api.teachers.list`.
-  const teachers = useQuery(api.teachers.list, { token: token || undefined }) || []
+  // Use listAll for dropdowns (non-paginated)
+  const teachers = useQuery(api.teachers.listAll, { token: token || undefined }) || []
 
   // Mutations
   const moveTeacher = useMutation(api.mutations.moveTeacher)

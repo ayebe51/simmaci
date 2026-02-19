@@ -10,7 +10,7 @@ import * as XLSX from "xlsx"
 
   export default function HeadmasterExpiryPage() {
     // Fetch from Convex
-    const headmasters = useQuery(api.headmaster.getExpiringHeadmasters, { thresholdDays: 365 }) || []
+    const headmasters = useQuery(api.headmasters.getExpiringHeadmasters, { thresholdDays: 365 }) || []
 
   const handleDownloadExcel = () => {
     const data = headmasters.map((h, i) => ({

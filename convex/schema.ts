@@ -13,7 +13,7 @@ export default defineSchema({
     pendidikanTerakhir: v.optional(v.any()),
     mapel: v.optional(v.any()),
     unitKerja: v.optional(v.any()), 
-    schoolId: v.optional(v.id("schools")), // STRICT ENFORCEMENT
+    schoolId: v.optional(v.id("schools")), // STRICT RESTORED
     kecamatan: v.optional(v.any()),
     status: v.optional(v.any()),
     tmt: v.optional(v.any()), 
@@ -101,7 +101,7 @@ export default defineSchema({
     passwordHash: v.any(),
     role: v.any(), 
     unit: v.optional(v.any()), 
-    schoolId: v.optional(v.id("schools")), // STRICT ENFORCEMENT
+    schoolId: v.optional(v.id("schools")), // STRICT RESTORED
     isActive: v.any(),
     createdAt: v.any(),
     updatedAt: v.any(),
@@ -136,7 +136,7 @@ export default defineSchema({
     nama: v.any(),
     jabatan: v.optional(v.any()),
     unitKerja: v.optional(v.any()), 
-    schoolId: v.optional(v.id("schools")), // STRICT ENFORCEMENT
+    schoolId: v.optional(v.id("schools")), // STRICT RESTORED
     tanggalPenetapan: v.any(),
     status: v.any(), 
     fileUrl: v.optional(v.any()),

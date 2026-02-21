@@ -56,6 +56,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
         { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
         { label: "Digital KTA", href: "/dashboard/kta", icon: CreditCard },
+        { label: "Kartu Pelajar", href: "/dashboard/student-card", icon: CreditCard },
       ]
     },
     {

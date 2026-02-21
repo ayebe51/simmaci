@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Loader2 } from "lucide-react"
+import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Loader2, Camera } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -43,6 +43,7 @@ interface Student {
   npsn?: string
   namaWali?: string
   nomorIndukMaarif?: string
+  photoId?: string
 }
 
 export default function StudentListPage() {
@@ -108,6 +109,7 @@ export default function StudentListPage() {
     nomorTelepon: s.nomorTelepon,
     npsn: s.npsn,
     namaWali: s.namaWali,
+    photoId: s.photoId
   }))
 
   // Convex mutations
@@ -197,6 +199,8 @@ export default function StudentListPage() {
   // ... (existing code)
 
   const updateStudentMutation = useMutation(convexApi.students.update);
+  const generateUploadUrl = useMutation(convexApi.students.generateUploadUrl);
+  const getPhotoUrlQuery = convexApi.students.getPhotoUrl;
 
   const handleAdd = async () => {
       // Validate Required Fields
@@ -227,6 +231,7 @@ export default function StudentListPage() {
         kelas: clean(formData.kelas),
         nomorTelepon: clean(formData.nomorTelepon),
         namaWali: clean(formData.namaWali),
+        photoId: formData.photoId,
       };
 
       // Strip undefined keys
@@ -477,6 +482,33 @@ export default function StudentListPage() {
                 <DialogTitle>{formData.id ? "Edit Data Siswa" : "Tambah Data Siswa"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+                {/* Photo Upload Section */}
+                <div className="flex flex-col items-center justify-center border-b pb-6 space-y-3">
+                    <div className="relative w-24 h-24 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center group">
+                        {formData.photoId ? (
+                            <StudentPhotoPreview photoId={formData.photoId} />
+                        ) : (
+                            <Camera className="w-8 h-8 text-slate-300" />
+                        )}
+                        <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <span className="text-[10px] text-white font-medium">UBAH</span>
+                            <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={handlePhotoUpload}
+                                disabled={isUploadingPhoto}
+                            />
+                        </label>
+                        {isUploadingPhoto && (
+                            <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Foto Profil Siswa</p>
+                </div>
+
                 {/* Row 1: NISN, Nama, NIK */}
                 <div className="grid grid-cols-3 gap-4">
                     <div className="grid gap-2">
@@ -641,4 +673,10 @@ export default function StudentListPage() {
       </Dialog>
     </div>
   )
+}
+
+function StudentPhotoPreview({ photoId }: { photoId: string }) {
+    const url = useQuery(convexApi.students.getPhotoUrl, { photoId });
+    if (!url) return <div className="animate-pulse bg-slate-100 w-full h-full" />;
+    return <img src={url} alt="Siswa" className="w-full h-full object-cover" />;
 }

@@ -429,13 +429,88 @@ export default function SettingsPage() {
                              })}
                         </div>
                         <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-md">
-                            <h4 className="text-xs font-bold text-emerald-800 mb-1 uppercase">Panduan Template KTA:</h4>
+                            <h4 className="text-xs font-bold text-emerald-800 mb-1 uppercase">Panduan Template KTA Guru:</h4>
                             <ul className="text-[10px] text-emerald-700 space-y-1 list-disc pl-4">
                                 <li>Kosongkan area **Kiri Depan** untuk Foto Profil.</li>
                                 <li>Kosongkan area **Kiri Bawah Belakang** untuk QR Code Validasi.</li>
                                 <li>Teks (Nama, ID, Unit) akan otomatis dicetak di atas gambar yang Anda upload.</li>
-                                <li>Gunakan format **PNG** atau **JPG** dengan resolusi minimal **960x600 px** untuk hasil cetak tajam.</li>
+                                <li>Gunakan format **PNG** atau **JPG** dengan resolusi minimal **960x600 px**.</li>
                             </ul>
+                        </div>
+
+                        <div className="pt-8 border-t">
+                            <CardTitle className="text-md flex items-center gap-2 mb-4">
+                                <CreditCard className="h-4 w-4 text-blue-600"/> Template Kartu Pelajar (Siswa)
+                            </CardTitle>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                 {[
+                                    { id: "student_template_front", label: "Background Depan Siswa", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
+                                    { id: "student_template_back", label: "Background Belakang Siswa", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
+                                 ].map((template) => {
+                                    const cloudSetting = cloudSettings?.find(s => s.key === template.id)
+                                    const hasCloud = !!cloudSetting 
+                                    const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
+                                    
+                                    return (
+                                        <div key={template.id} className="border p-4 rounded-lg bg-blue-50/30 relative group">
+                                             <div className="mb-3">
+                                                <h3 className="font-semibold text-sm text-blue-900">{template.label}</h3>
+                                                <p className="text-xs text-muted-foreground">{template.desc}</p>
+                                            </div>
+                                            
+                                            <input 
+                                                id={`upload-${template.id}`}
+                                                type="file" accept="image/*"
+                                                disabled={isUploading === template.id}
+                                                className="hidden" 
+                                                aria-label={`Upload background ${template.label}`}
+                                                onChange={(e) => handleCloudUpload(e, template.id)}
+                                            />
+
+                                            {hasCloud ? (
+                                                <div className="space-y-3">
+                                                    <div className="h-24 bg-white border rounded overflow-hidden relative">
+                                                        <img 
+                                                            src={localStorage.getItem(template.id + "_blob") || ""} 
+                                                            className="w-full h-full object-cover opacity-50" 
+                                                            alt={`Preview ${template.label}`} 
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-blue-900/10">
+                                                            <CheckCircle className="h-8 w-8 text-blue-600" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] text-blue-600 font-medium">Aktif Siswa • {cloudTime}</span>
+                                                        <Button 
+                                                            variant="outline" size="sm" className="h-7 text-xs border-blue-200 text-blue-700"
+                                                            onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                                        >
+                                                            Ganti Gambar
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center p-8 border-2 border-dashed border-blue-200 rounded bg-white hover:bg-blue-50 transition-colors cursor-pointer"
+                                                    onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                                >
+                                                    <div className="text-center space-y-1">
+                                                        <CreditCard className="mx-auto h-5 w-5 text-blue-400" />
+                                                        <span className="text-xs text-blue-500 block">Upload Background Siswa</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                 })}
+                            </div>
+                            <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
+                                <h4 className="text-xs font-bold text-blue-800 mb-1 uppercase">Panduan Template Kartu Pelajar:</h4>
+                                <ul className="text-[10px] text-blue-700 space-y-1 list-disc pl-4">
+                                    <li>Tata letak data siswa: **Foto (Kiri Depan)**, **Nama/NISN (Kanan Depan)**.</li>
+                                    <li>**Barcode/QR Code** fokus di area bawah sisi belakang.</li>
+                                    <li>Optimalkan desain untuk identitas sekolah agar terlihat profesional saat dicetak.</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </CardContent>

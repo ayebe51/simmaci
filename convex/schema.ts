@@ -61,6 +61,9 @@ export default defineSchema({
     kelas: v.optional(v.any()),
     nomorTelepon: v.optional(v.any()),
     namaWali: v.optional(v.any()),
+    photoId: v.optional(v.any()),
+    isVerified: v.optional(v.any()),
+    qrCode: v.optional(v.any()),
     createdAt: v.any(),
     updatedAt: v.any(),
   })

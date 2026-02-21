@@ -186,6 +186,9 @@ export const update = mutation({
     kelas: v.optional(v.string()),
     nomorTelepon: v.optional(v.string()),
     namaWali: v.optional(v.string()),
+    photoId: v.optional(v.string()),
+    isVerified: v.optional(v.string()),
+    qrCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -273,4 +276,63 @@ export const count = query({
     
     return students.length;
   },
+});
+
+// 🔥 UPLOAD PHOTO HELPER
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
+
+// 🔥 GET NORMALIZED PHOTO URL
+export const getPhotoUrl = query({
+  args: { photoId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (!args.photoId) return null;
+    
+    // If it's already a full URL or Google Drive link, return it
+    if (args.photoId.startsWith("http")) return args.photoId;
+    
+    // If it's a Convex storage ID, get the URL
+    try {
+        return await ctx.storage.getUrl(args.photoId);
+    } catch (e) {
+        return null;
+    }
+  },
+});
+
+// 🔥 UPDATE PHOTO ID
+export const updatePhoto = mutation({
+    args: { id: v.id("students"), photoId: v.string() },
+    handler: async (ctx, args) => {
+        await ctx.db.patch(args.id, { 
+            photoId: args.photoId,
+            updatedAt: Date.now()
+        });
+        return args.id;
+    }
+});
+
+// 🔥 PUBLIC VERIFICATION FOR STUDENTS
+export const verifyByNisn = query({
+    args: { nisn: v.string() },
+    handler: async (ctx, args) => {
+        const student = await ctx.db
+            .query("students")
+            .withIndex("by_nisn", (q) => q.eq("nisn", args.nisn))
+            .first();
+        
+        if (!student) return null;
+
+        // Optionally get school details if helpful
+        let school = null;
+        if (student.npsn) {
+            school = await ctx.db.query("schools").filter(q => q.eq(q.field("npsn"), student.npsn)).first();
+        }
+
+        return {
+            ...student,
+            schoolName: school?.nama || student.namaSekolah
+        };
+    }
 });

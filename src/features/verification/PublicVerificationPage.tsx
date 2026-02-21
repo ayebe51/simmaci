@@ -1,12 +1,12 @@
 import { useParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, XCircle, ShieldCheck, FileText, User, Calendar, CalendarX } from "lucide-react"
+import { CheckCircle2, XCircle, ShieldCheck, FileText, User, Calendar, CalendarX, School } from "lucide-react"
 // 🔥 CONVEX for real-time verification
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
-export default function PublicVerificationPage({ isTeacher }: { isTeacher?: boolean }) {
+export default function PublicVerificationPage({ isTeacher, isStudent }: { isTeacher?: boolean, isStudent?: boolean }) {
     const { id } = useParams()
     
     // 🔥 REAL-TIME CONVEX QUERY
@@ -15,7 +15,7 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
     // Determine which query to use
     const skData = useQuery(
         convexApi.verification.verifyByCode, 
-        id && !isTest && !isTeacher ? { code: id } : "skip"
+        id && !isTest && !isTeacher && !isStudent ? { code: id } : "skip"
     );
 
     const teacherData = useQuery(
@@ -23,7 +23,12 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
         id && !isTest && isTeacher ? { nuptk: id } : "skip"
     );
 
-    const verificationData = isTeacher ? teacherData : skData;
+    const studentData = useQuery(
+        convexApi.verification.verifyByNisn,
+        id && !isTest && isStudent ? { nisn: id! } : "skip"
+    );
+
+    const verificationData = isTeacher ? teacherData : (isStudent ? studentData : skData);
     
     const status = isTest ? "test" : (verificationData === undefined ? "loading" 
                   : verificationData === null ? "invalid" 
@@ -70,7 +75,7 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
                         <ShieldCheck className="w-10 h-10 text-primary" />
                     </div>
                     <CardTitle className="text-2xl font-bold text-slate-800">
-                        {isTeacher ? "Verifikasi Anggota" : "Verifikasi Dokumen"}
+                        {isTeacher ? "Verifikasi Anggota" : (isStudent ? "Verifikasi Siswa" : "Verifikasi Dokumen")}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">Digital Verification System</p>
                 </CardHeader>
@@ -95,7 +100,7 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
                     {status === "valid" && data && (
                         <>
                             {/* LOGIC STATUS DISPLAY */}
-                            {data.teacher?.isActive === false ? (
+                            {isTeacher && (data as any).teacher?.isActive === false ? (
                                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                                     <XCircle className="w-16 h-16 text-red-600 mx-auto mb-3" />
                                     <h3 className="text-xl font-bold text-red-800">GURU NON-AKTIF</h3>
@@ -103,26 +108,26 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
                                         Dokumen Sah, namun Guru berstatus <b>TIDAK AKTIF</b> saat ini.
                                     </p>
                                 </div>
-                            ) : data.isExpired ? (
+                            ) : !isTeacher && !isStudent && (data as any).isExpired ? (
                                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 text-center">
                                     <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                                         <CalendarX className="w-10 h-10 text-orange-600" />
                                     </div>
                                     <h3 className="text-xl font-bold text-orange-800">SK KADALUWARSA</h3>
                                     <p className="text-sm text-orange-700 mt-1">
-                                        Masa berlaku 1 tahun telah berakhir pada <b>{data.validUntil ? new Date(data.validUntil).toLocaleDateString('id-ID') : "-"}</b>.
+                                        Masa berlaku 1 tahun telah berakhir pada <b>{(data as any).validUntil ? new Date((data as any).validUntil).toLocaleDateString('id-ID') : "-"}</b>.
                                     </p>
                                 </div>
                             ) : (
                                 <div className="bg-green-50 border border-green-100 rounded-lg p-6 text-center">
                                     <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-3" />
                                     <h3 className="text-xl font-bold text-green-800">
-                                        {isTeacher ? "ANGGOTA RESMI" : "DOKUMEN VALID"}
+                                        {isTeacher ? "ANGGOTA RESMI" : (isStudent ? "SISWA TERDAFTAR" : "DOKUMEN VALID")}
                                     </h3>
                                     <p className="text-sm text-green-700 mt-1">
                                         {isTeacher 
                                           ? "Data ini tercatat resmi di database Ma'arif Cilacap."
-                                          : "Dokumen ini tercatat resmi dan aktif."}
+                                          : (isStudent ? "Siswa ini terdaftar resmi di database Ma'arif Cilacap." : "Dokumen ini tercatat resmi dan aktif.")}
                                     </p>
                                 </div>
                             )}
@@ -132,20 +137,39 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
                                     <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
                                     <div>
                                         <p className="text-xs text-muted-foreground font-semibold uppercase">
-                                            {isTeacher ? "ID Keanggotaan" : "Nomor SK"}
+                                            {isTeacher ? "ID Keanggotaan" : (isStudent ? "NISN" : "Nomor SK")}
                                         </p>
-                                        <p className="font-medium text-slate-800 break-all">{data.skNumber || "-"}</p>
+                                        <p className="font-medium text-slate-800 break-all">
+                                            {(data as any).skNumber || (data as any).student?.nisn || "-"}
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-start gap-3">
                                     <User className="w-5 h-5 text-slate-400 mt-0.5" />
                                     <div>
-                                        <p className="text-xs text-muted-foreground font-semibold uppercase">Nama Pemilik</p>
-                                        <p className="font-medium text-slate-800">{data.teacher?.nama}</p>
-                                        <p className="text-xs text-slate-500">NUPTK: {data.teacher?.nuptk || "-"}</p>
+                                        <p className="text-xs text-muted-foreground font-semibold uppercase">
+                                            {isStudent ? "Nama Siswa" : "Nama Pemilik"}
+                                        </p>
+                                        <p className="font-medium text-slate-800">
+                                            {(data as any).teacher?.nama || (data as any).student?.nama}
+                                        </p>
+                                        {isTeacher && <p className="text-xs text-slate-500">NUPTK: {(data as any).teacher?.nuptk || "-"}</p>}
+                                        {isStudent && <p className="text-xs text-slate-500">NIK: {(data as any).student?.nik || "-"}</p>}
                                     </div>
                                 </div>
+
+                                {isStudent && (
+                                    <div className="flex items-start gap-3">
+                                        <School className="w-5 h-5 text-slate-400 mt-0.5" />
+                                        <div>
+                                            <p className="text-xs text-muted-foreground font-semibold uppercase">Asal Sekolah</p>
+                                            <p className="font-medium text-slate-800">
+                                                {(data as any).student?.schoolName || (data as any).student?.namaSekolah || "-"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
 
                                     <div className="flex items-start gap-3">
                                         {data.jenisSk === "kamad" ? (
@@ -165,9 +189,9 @@ export default function PublicVerificationPage({ isTeacher }: { isTeacher?: bool
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <Badge variant={data.teacher?.isActive ? "default" : "destructive"} 
-                                                           className={data.teacher?.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
-                                                        {data.teacher?.isActive ? "AKTIF MENGAJAR" : "NON-AKTIF / KELUAR"}
+                                                    <Badge variant={(data as any).teacher?.isActive ? "default" : "destructive"} 
+                                                           className={(data as any).teacher?.isActive ? "bg-green-600 hover:bg-green-700" : ""}>
+                                                        {(data as any).teacher?.isActive ? "AKTIF MENGAJAR" : "NON-AKTIF / KELUAR"}
                                                     </Badge>
                                                 </div>
                                             )}

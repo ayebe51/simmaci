@@ -166,3 +166,35 @@ export const verifyByNuptk = query({
     };
   },
 });
+// Verify Student by NISN (For Student Card QR Code)
+export const verifyByNisn = query({
+  args: { 
+    nisn: v.string() 
+  },
+  handler: async (ctx, args) => {
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_nisn", (q) => q.eq("nisn", args.nisn))
+      .first();
+
+    if (!student) {
+      return null;
+    }
+
+    return {
+      skNumber: "KARTU-PELAJAR",
+      status: "valid",
+      student: {
+        nama: student.nama,
+        nisn: student.nisn,
+        nik: student.nik || "-",
+        namaSekolah: student.namaSekolah
+      },
+      issuedDate: student._creationTime,
+      validUntil: null,
+      isExpired: false,
+      isQrValid: true,
+      jenisSk: "pelajar"
+    };
+  },
+});

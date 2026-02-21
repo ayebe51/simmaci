@@ -33,6 +33,7 @@ import MutationPage from "./features/mutations/MutationPage"
 import SchoolProfilePage from "./features/schools/SchoolProfilePage"
 import ChangePasswordPage from "./features/auth/ChangePasswordPage"
 import DataAuditPage from '@/features/master-data/DataAuditPage';
+import StudentCardPage from "./features/kta/StudentCardPage"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify/:id" element={<PublicVerificationPage />} />
           <Route path="/verify/teacher/:id" element={<PublicVerificationPage isTeacher />} />
+          <Route path="/verify/student/:id" element={<PublicVerificationPage isStudent />} />
           
           {/* Protected Routes Wrapper */}
           <Route
@@ -82,6 +84,7 @@ export default function App() {
                         } />
                         <Route path="reports" element={<ReportPage />} />
                         <Route path="kta" element={<KtaGeneratorPage />} />
+                        <Route path="student-card" element={<StudentCardPage />} />
                         <Route path="events" element={<EventsPage />} />
                         <Route path="events/new" element={<CreateEventPage />} />
                         <Route path="events/:id" element={<EventDetailPage />} />

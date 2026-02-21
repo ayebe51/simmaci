@@ -33,8 +33,7 @@ export const list = query({
     try {
         // ... (User Auth & Scope Logic - unchange) ...
         // RBAC: Check identity via Session Token
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let user: any = null;
+                let user: any = null;
         if (args.token) {
             user = await validateSession(ctx, args.token);
         } else {
@@ -138,8 +137,7 @@ export const list = query({
         // Filter logic: string "true"/"false" or "all"
         if (args.isCertified && args.isCertified !== "all") {
             const isCert = args.isCertified === "true";
-             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isCertified"), isCert));
+                         paginatedQuery = paginatedQuery.filter((q: any) => q.eq(q.field("isCertified"), isCert));
         }
 
         // 3. Paginate
@@ -386,8 +384,7 @@ export const create = mutation({
         }
         
         // Destructure token and legacy fields out of args so they're not written to DB
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { token, tanggallahir, tempatlahir, id: _id, ...cleanProps } = args;
+                const { token, tanggallahir, tempatlahir, id: _id, ...cleanProps } = args;
 
         if (existing) {
           console.log("Existing teacher found:", existing._id);
@@ -467,8 +464,7 @@ export const update = mutation({
         const { id, token, tanggallahir, tempatlahir, ...cleanUpdates } = args;
 
         // LEGACY MAPPING: Handle lowercase fields
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const finalUpdates: any = { ...cleanUpdates };
+                const finalUpdates: any = { ...cleanUpdates };
         if (tanggallahir) finalUpdates.tanggalLahir = tanggallahir;
         if (tempatlahir) finalUpdates.tempatLahir = tempatlahir;
 
@@ -538,8 +534,7 @@ export const bulkDelete = mutation({
 // Bulk create teachers (for import) - ULTRA FLEXIBLE & ROBUST VERSION
 export const bulkCreate = mutation({
   args: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    teachers: v.array(v.any()), // We accept ANY structure and sanitize it inside
+        teachers: v.array(v.any()), // We accept ANY structure and sanitize it inside
     isFullSync: v.optional(v.boolean()), // Enable Full Sync Mode
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
     token: v.optional(v.string()), // Authentication Token
@@ -563,20 +558,17 @@ export const bulkCreate = mutation({
         const enforcedSchoolId = user.role === 'operator' ? user.schoolId : null; 
 
         // PRE-PROCESSING: Normalize Input & Identify Units
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cleanInputs: any[] = [];
+                const cleanInputs: any[] = [];
         const normalizedUnitMap = new Map<string, string>(); // normalized -> original db unit
 
         // Helper to safe cast to string or undefined
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const safeString = (val: any): string | undefined => {
+                const safeString = (val: any): string | undefined => {
             if (val === null || val === undefined || val === "") return undefined;
             return String(val).trim();
         }
 
         // Helper to safe cast to boolean
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const safeBool = (val: any): boolean | undefined => {
+                const safeBool = (val: any): boolean | undefined => {
             if (val === true || val === "true" || val === "ya" || val === "Ya") return true;
             if (val === false || val === "false" || val === "tidak" || val === "Tidak") return false;
             return undefined;
@@ -603,8 +595,7 @@ export const bulkCreate = mutation({
              processedNuptks.add(rawNuptk);
 
              // 2. Prepare Clean Data
-             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-             const cleanData: any = {
+                          const cleanData: any = {
                  nuptk: rawNuptk,
                  nama: rawNama,
                  updatedAt: now,
@@ -667,8 +658,7 @@ export const bulkCreate = mutation({
         // Multi-level Lookup:
         // 1. NUPTK -> Teacher (Direct DB Match)
         // 2. Unit(Norm):Name(Norm) -> Teacher (Fuzzy Match)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fuzzyLookup = new Map<string, any>(); 
+                const fuzzyLookup = new Map<string, any>(); 
         
         for (const unit of unitsInBatch) {
             const unitTeachers = await ctx.db
@@ -919,8 +909,7 @@ export const importTeachers = mutation({
           });
           success++;
         }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
+            } catch (err: any) {
         console.error(`Import Error for ${t.nama}:`, err);
         errors.push(`${t.nama}: ${err.message}`);
       }

@@ -88,23 +88,51 @@ export const deduplicateTeachers = mutation({
     };
   }
 });
-// Hard delete drafts (cleanSk)
+// Hard delete drafts or full cleanup (cleanSk)
 export const cleanSk = mutation({
   args: {
-    targetSchoolId: v.optional(v.string())
+    targetSchoolId: v.optional(v.string()),
+    deleteTeachers: v.optional(v.boolean()),
+    deleteSk: v.optional(v.boolean())
   },
   handler: async (ctx, args) => {
-    const drafts = await ctx.db
-        .query("skDocuments")
-        .withIndex("by_status", q => q.eq("status", "draft"))
-        .collect();
-    
-    let deleted = 0;
-    for (const d of drafts) {
-        await ctx.db.delete(d._id);
-        deleted++;
+    let teachersDeleted = 0;
+    let skDeleted = 0;
+
+    // 1. Delete Teachers (Candidates) if requested
+    if (args.deleteTeachers) {
+        // Warning: This deletes ALL teachers. In production, this might be filtered by school.
+        const teachers = await ctx.db.query("teachers").collect();
+        for (const t of teachers) {
+            await ctx.db.delete(t._id);
+            teachersDeleted++;
+        }
+    }
+
+    // 2. Delete SK History if requested
+    if (args.deleteSk) {
+        const docs = await ctx.db.query("skDocuments").collect();
+        for (const d of docs) {
+            await ctx.db.delete(d._id);
+            skDeleted++;
+        }
+    } else {
+        // Default behavior: just clean drafts
+        const drafts = await ctx.db
+            .query("skDocuments")
+            .withIndex("by_status", q => q.eq("status", "draft"))
+            .collect();
+        
+        for (const d of drafts) {
+            await ctx.db.delete(d._id);
+            skDeleted++;
+        }
     }
     
-    return { draftsDeleted: deleted };
+    return { 
+        teachersDeleted, 
+        skDeleted,
+        success: true 
+    };
   }
 });

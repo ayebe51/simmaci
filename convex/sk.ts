@@ -299,8 +299,7 @@ export const create = mutation({
       const schoolId = await resolveSchoolId(ctx, args.unitKerja);
 
       // Destructure token out of args so it's not written to DB
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { token, ...skData } = args;
+            const { token, ...skData } = args;
 
       if (existing) {
         console.log(`Duplicate Nomor SK: ${args.nomorSk}, Updating existing record...`);

@@ -47,7 +47,9 @@ interface Teacher {
     statusKepegawaian?: string;
     kecamatan?: string;
     isActive?: boolean;
-    [key: string]: unknown; 
+    createdAt: number;
+    updatedAt: number;
+    [key: string]: any; 
 }
 
 interface CleanupResult {
@@ -568,7 +570,7 @@ export default function SkGeneratorPage() {
     (t.isActive !== false) &&
     ((t.nama?.toLowerCase() || "").includes(searchTerm.toLowerCase()) || 
     (t.unitKerja?.toLowerCase() || "").includes(searchTerm.toLowerCase()))
-  ).sort((a, b) => ((b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0))) // Sort Recently Updated First
+  ).sort((a, b) => ((b.updatedAt || b.createdAt || 0) as number) - ((a.updatedAt || a.createdAt || 0) as number)) // Sort Recently Updated First
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredTeachers.length / itemsPerPage)
@@ -1356,7 +1358,7 @@ export default function SkGeneratorPage() {
                 </div>
                  {teachersData?.length > 0 && (
                     <div className="mt-2 text-xs border-t border-red-200 pt-1">
-                        Sample Data (Top): {teachersData[0].nama} / {teachersData[0].updatedAt} / {teachersData[0].schoolId}
+                        Sample Data (Top): {String(teachersData[0].nama)} / {String(teachersData[0].updatedAt)} / {String(teachersData[0].schoolId)}
                     </div>
                 )}
             </div>

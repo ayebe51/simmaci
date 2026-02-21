@@ -6,18 +6,24 @@ import { CheckCircle2, XCircle, ShieldCheck, FileText, User, Calendar, CalendarX
 import { useQuery } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 
-export default function PublicVerificationPage() {
+export default function PublicVerificationPage({ isTeacher }: { isTeacher?: boolean }) {
     const { id } = useParams()
     
-    // 🔥 REAL-TIME CONVEX QUERY - Verify SK by code
+    // 🔥 REAL-TIME CONVEX QUERY
     const isTest = id?.toLowerCase().startsWith("tes");
     
-    // TEMPORARY: DISABLE QUERY TO FIX 404
-    const verificationData = useQuery(
+    // Determine which query to use
+    const skData = useQuery(
         convexApi.verification.verifyByCode, 
-        id && !isTest ? { code: id } : "skip"
-    )
-    // const verificationData = null; // Force null to mock not found
+        id && !isTest && !isTeacher ? { code: id } : "skip"
+    );
+
+    const teacherData = useQuery(
+        convexApi.verification.verifyByNuptk,
+        id && !isTest && isTeacher ? { nuptk: id } : "skip"
+    );
+
+    const verificationData = isTeacher ? teacherData : skData;
     
     const status = isTest ? "test" : (verificationData === undefined ? "loading" 
                   : verificationData === null ? "invalid" 
@@ -63,8 +69,10 @@ export default function PublicVerificationPage() {
                     <div className="mx-auto mb-4 bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center">
                         <ShieldCheck className="w-10 h-10 text-primary" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-slate-800">Verifikasi Dokumen</CardTitle>
-                    <p className="text-sm text-muted-foreground">Digital Signature Verification System</p>
+                    <CardTitle className="text-2xl font-bold text-slate-800">
+                        {isTeacher ? "Verifikasi Anggota" : "Verifikasi Dokumen"}
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">Digital Verification System</p>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6">
                     {status === "loading" && (
@@ -102,15 +110,19 @@ export default function PublicVerificationPage() {
                                     </div>
                                     <h3 className="text-xl font-bold text-orange-800">SK KADALUWARSA</h3>
                                     <p className="text-sm text-orange-700 mt-1">
-                                        Masa berlaku 1 tahun telah berakhir pada <b>{new Date(data.validUntil).toLocaleDateString('id-ID')}</b>.
+                                        Masa berlaku 1 tahun telah berakhir pada <b>{data.validUntil ? new Date(data.validUntil).toLocaleDateString('id-ID') : "-"}</b>.
                                     </p>
                                 </div>
                             ) : (
                                 <div className="bg-green-50 border border-green-100 rounded-lg p-6 text-center">
                                     <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-3" />
-                                    <h3 className="text-xl font-bold text-green-800">DOKUMEN VALID</h3>
+                                    <h3 className="text-xl font-bold text-green-800">
+                                        {isTeacher ? "ANGGOTA RESMI" : "DOKUMEN VALID"}
+                                    </h3>
                                     <p className="text-sm text-green-700 mt-1">
-                                        Dokumen ini tercatat resmi dan aktif.
+                                        {isTeacher 
+                                          ? "Data ini tercatat resmi di database Ma'arif Cilacap."
+                                          : "Dokumen ini tercatat resmi dan aktif."}
                                     </p>
                                 </div>
                             )}
@@ -119,7 +131,9 @@ export default function PublicVerificationPage() {
                                 <div className="flex items-start gap-3">
                                     <FileText className="w-5 h-5 text-slate-400 mt-0.5" />
                                     <div>
-                                        <p className="text-xs text-muted-foreground font-semibold uppercase">Nomor SK</p>
+                                        <p className="text-xs text-muted-foreground font-semibold uppercase">
+                                            {isTeacher ? "ID Keanggotaan" : "Nomor SK"}
+                                        </p>
                                         <p className="font-medium text-slate-800 break-all">{data.skNumber || "-"}</p>
                                     </div>
                                 </div>
@@ -145,9 +159,9 @@ export default function PublicVerificationPage() {
                                             </p>
                                             
                                             {/* CUSTOM HEADMASTER DESCRIPTION */}
-                                            {data.description ? (
+                                            {(data as any).description ? (
                                                 <div className="mt-1 bg-blue-50 border border-blue-100 p-2 rounded text-sm text-blue-800 font-medium">
-                                                    {data.description}
+                                                    {(data as any).description}
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-2 mt-1">

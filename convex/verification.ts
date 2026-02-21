@@ -132,3 +132,37 @@ export const verifyByCode = query({
     };
   },
 });
+
+// Verify Teacher by NUPTK (For KTA QR Code)
+export const verifyByNuptk = query({
+  args: { 
+    nuptk: v.string() 
+  },
+  handler: async (ctx, args) => {
+    const teacher = await ctx.db
+      .query("teachers")
+      .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
+      .first();
+
+    if (!teacher) {
+      return null;
+    }
+
+    // Map to verification format
+    return {
+      skNumber: "KTA-MEMBER",
+      status: "valid",
+      teacher: {
+        nama: teacher.nama,
+        nuptk: teacher.nuptk,
+        nip: teacher.nip || "-",
+        isActive: teacher.isActive ?? true
+      },
+      issuedDate: teacher._creationTime,
+      validUntil: null, // Membership doesn't expire like SK
+      isExpired: false,
+      isQrValid: true,
+      jenisSk: "kta"
+    };
+  },
+});

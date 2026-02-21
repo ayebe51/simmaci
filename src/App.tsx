@@ -48,6 +48,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify/:id" element={<PublicVerificationPage />} />
+          <Route path="/verify/teacher/:id" element={<PublicVerificationPage isTeacher />} />
           
           {/* Protected Routes Wrapper */}
           <Route

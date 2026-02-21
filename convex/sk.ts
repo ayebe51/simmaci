@@ -298,21 +298,23 @@ export const create = mutation({
       // Auto-resolve schoolId
       const schoolId = await resolveSchoolId(ctx, args.unitKerja);
 
+      // Destructure token out of args so it's not written to DB
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { token, ...skData } = args;
+
       if (existing) {
         console.log(`Duplicate Nomor SK: ${args.nomorSk}, Updating existing record...`);
         // UPSERT LOGIC: Update existing instead of throwing
         await ctx.db.patch(existing._id, {
-            ...args,
+            ...skData,
             schoolId, // Update schoolId
             updatedAt: now,
-            // Keep original createdAt and createdBy if not provided?
-            // Overwriting is safer for "regeneration" context
         });
         return existing._id;
       }
       
       const newId = await ctx.db.insert("skDocuments", {
-        ...args,
+        ...skData,
         schoolId, // Insert schoolId
         status: args.status || "draft",
         createdAt: now,

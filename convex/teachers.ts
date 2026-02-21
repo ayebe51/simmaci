@@ -385,9 +385,9 @@ export const create = mutation({
              }
         }
         
-        // Destructure token out of args so it's not written to DB
+        // Destructure token and legacy fields out of args so they're not written to DB
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { token, ...teacherData } = args;
+        const { token, tanggallahir, tempatlahir, id: _id, ...cleanProps } = args;
 
         if (existing) {
           console.log("Existing teacher found:", existing._id);
@@ -399,7 +399,7 @@ export const create = mutation({
           // UPSERT LOGIC
           console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
           await ctx.db.patch(existing._id, {
-            ...teacherData,
+            ...cleanProps,
             unitKerja: finalUnit,
             updatedAt: now,
             isSkGenerated: false, // RESET FLAG: Ensure teacher appears in Generator Queue
@@ -407,9 +407,11 @@ export const create = mutation({
           return existing._id;
         }
         
+        const { token: _t, tanggallahir: _tl, tempatlahir: _tpl, ...cleanInsertProps } = args;
+
         console.log("Inserting new teacher...");
-        const newIds = await ctx.db.insert("teachers", {
-          ...teacherData,
+        const newId = await ctx.db.insert("teachers", {
+          ...cleanInsertProps,
           unitKerja: finalUnit,
           schoolId: finalSchoolId,
           isActive: args.isActive ?? true,
@@ -417,8 +419,8 @@ export const create = mutation({
           createdAt: now,
           updatedAt: now,
         });
-        console.log("Insert success:", newIds);
-        return newIds;
+        console.log("Insert success:", newId);
+        return newId;
     } catch (e: any) {
         if (e instanceof ConvexError) throw e;
         console.error("FAIL in teachers:create :", e);
@@ -462,13 +464,13 @@ export const update = mutation({
     console.log("Args:", JSON.stringify(args));
     
     try {
-        const { id, token, ...updates } = args;
+        const { id, token, tanggallahir, tempatlahir, ...cleanUpdates } = args;
 
         // LEGACY MAPPING: Handle lowercase fields
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const finalUpdates: any = { ...updates };
-        if ((args as any).tanggallahir) finalUpdates.tanggalLahir = (args as any).tanggallahir;
-        if ((args as any).tempatlahir) finalUpdates.tempatLahir = (args as any).tempatlahir;
+        const finalUpdates: any = { ...cleanUpdates };
+        if (tanggallahir) finalUpdates.tanggalLahir = tanggallahir;
+        if (tempatlahir) finalUpdates.tempatLahir = tempatlahir;
 
         // 🔥 SANITIZE: Never allow empty string for ID fields
         if (finalUpdates.schoolId === "") delete finalUpdates.schoolId;

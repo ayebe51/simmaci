@@ -374,7 +374,7 @@ const generateBulkSkZip = async (
         throw zipError // Re-throw to prevent false success
     }
     
-    return { successCount, errorCount: errors.length }
+    return { successCount, errorCount: errors.length, errors }
 }
 
 // 🔥 CONVEX REAL-TIME

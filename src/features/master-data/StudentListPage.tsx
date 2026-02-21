@@ -623,36 +623,7 @@ export default function StudentListPage() {
                 <div className="flex flex-col items-center justify-center border-b pb-6 space-y-3">
                     <div className="relative w-24 h-24 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center group">
                         {formData.photoId ? (
-                            <Dialog open={isBulkConfirmOpen} onOpenChange={setIsBulkConfirmOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                  <div className="flex items-center gap-3 text-blue-600 mb-2">
-                      <div className="p-2 bg-blue-50 rounded-full">
-                          <AlertTriangle className="h-6 w-6" />
-                      </div>
-                      <DialogTitle className="text-xl">Konfirmasi Kelulusan</DialogTitle>
-                  </div>
-              </DialogHeader>
-              <div className="py-4">
-                  <p className="text-muted-foreground leading-relaxed">
-                      Apakah Anda yakin ingin meluluskan <span className="font-bold text-foreground">{selectedIds.length} siswa</span> yang telah dipilih? 
-                      Tindakan ini akan merubah status mereka menjadi <span className="font-semibold text-blue-600">Lulus</span> secara massal.
-                  </p>
-              </div>
-              <DialogFooter className="gap-2 sm:gap-0">
-                  <Button variant="outline" onClick={() => setIsBulkConfirmOpen(false)} disabled={isBulkActionLoading}>
-                      Batal
-                  </Button>
-                  <Button variant="blue" onClick={executeBulkGraduate} disabled={isBulkActionLoading} className="gap-2">
-                      {isBulkActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GraduationCap className="h-4 w-4" />}
-                      Luluskan Sekarang
-                  </Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
-
-      <StudentPhotoPreview 
-photoId={formData.photoId} />
+                            <StudentPhotoPreview photoId={formData.photoId} />
                         ) : (
                             <Camera className="w-8 h-8 text-slate-300" />
                         )}

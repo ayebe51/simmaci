@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, Download } from "lucide-react";
 import { useQuery } from "convex/react";
@@ -23,7 +23,19 @@ export default function KtaCard({ teacher }: KtaCardProps) {
   // Fetch Photo URL Logic
   const isStorageId = teacher.photoId && !teacher.photoId.startsWith("http");
   const storageUrl = useQuery(api.teachers.getPhotoUrl, isStorageId ? { storageId: teacher.photoId as Id<"_storage"> } : "skip");
-  const displayUrl = isStorageId ? storageUrl : teacher.photoId;
+  
+  // Final URL to display (with drive normalization)
+  const displayUrl = useMemo(() => {
+    const rawUrl = isStorageId ? storageUrl : teacher.photoId;
+    if (rawUrl && typeof rawUrl === 'string' && rawUrl.includes("drive.google.com")) {
+        // Fix for broken Drive links: Convert to direct embed link
+        const match = rawUrl.match(/id=([a-zA-Z0-9_-]+)/) || rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://lh3.googleusercontent.com/d/${match[1]}`;
+        }
+    }
+    return rawUrl;
+  }, [isStorageId, storageUrl, teacher.photoId]);
   
   // Verification URL (points to public verify page)
    

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff, AlertTriangle, CreditCard } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -293,42 +293,21 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
                         {[
-                            { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY" },
-                            { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT" },
-                            { id: "sk_template_tendik", label: "SK Tenaga Kependidikan", desc: "Template untuk Staff/TU" },
-                            { id: "sk_template_kamad_pns", label: "SK Kamad (PNS)", desc: "Khusus Kepala Sekolah PNS" },
-                            { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS" },
-                            { id: "sk_template_kamad_plt", label: "SK Kamad (PLT)", desc: "Khusus Pelaksana Tugas (PLT)" },
+                            { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY", type: "docx" },
+                            { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT", type: "docx" },
+                            { id: "sk_template_tendik", label: "SK Tenaga Kependidikan", desc: "Template untuk Staff/TU", type: "docx" },
+                            { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS", type: "docx" },
                         ].map((template) => {
                             const cloudSetting = cloudSettings?.find(s => s.key === template.id)
                             const hasCloud = !!cloudSetting 
                             const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
-                            const hasLocal = !!localStorage.getItem(template.id + "_blob")
-
+                            
                             return (
                                 <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
                                     <div className="mb-3">
                                         <h3 className="font-semibold text-sm text-slate-800">{template.label}</h3>
                                         <p className="text-xs text-muted-foreground">{template.desc}</p>
                                     </div>
-                                    
-                                    <input 
-                                        id={`upload-${template.id}`}
-                                        type="file" accept=".docx"
-                                        disabled={isUploading === template.id}
-                                        className="hidden" // Always hidden, triggered by buttons
-                                        aria-label="Upload Template Word"
-                                        onChange={(e) => handleCloudUpload(e, template.id)}
-                                    />
-
-                                    <input 
-                                        id={`upload-${template.id}`}
-                                        type="file" accept=".docx"
-                                        disabled={isUploading === template.id}
-                                        className="hidden" 
-                                        aria-label="Upload Template Word"
-                                        onChange={(e) => handleCloudUpload(e, template.id)}
-                                    />
                                     
                                     <input 
                                         id={`upload-${template.id}`}
@@ -356,22 +335,14 @@ export default function SettingsPage() {
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2">
-                                            {hasLocal && (
-                                                <div className="text-[10px] bg-amber-100 text-amber-800 p-2 rounded border border-amber-200 mb-2">
-                                                    ⚠️ File ada di Browser (Lokal), tapi BELUM di Cloud. <br/>
-                                                    <strong>Harap Upload Ulang.</strong>
-                                                </div>
-                                            )}
-                                            <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative"
-                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                            >
-                                                <div className="text-center space-y-1">
-                                                    <Download className="mx-auto h-4 w-4 text-muted-foreground" />
-                                                    <span className="text-xs text-slate-500 block">
-                                                        {isUploading === template.id ? "Mengupload..." : "Upload .docx ke Cloud"}
-                                                    </span>
-                                                </div>
+                                        <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative"
+                                            onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                        >
+                                            <div className="text-center space-y-1">
+                                                <Download className="mx-auto h-4 w-4 text-muted-foreground" />
+                                                <span className="text-xs text-slate-500 block">
+                                                    {isUploading === template.id ? "Mengupload..." : "Upload .docx"}
+                                                </span>
                                             </div>
                                         </div>
                                     )}
@@ -381,19 +352,91 @@ export default function SettingsPage() {
                     </div>
                 
                     <div className="bg-blue-50 p-4 rounded-md text-xs text-blue-700 space-y-2 border border-blue-100">
-                         <p className="font-semibold">Bantuan Placeholder:</p>
+                         <p className="font-semibold">Bantuan Placeholder SK (Word):</p>
                          <p>Gunakan kode berikut di dalam file Word anda, sistem akan otomatis menggantinya:</p>
-                         <div className="grid grid-cols-2 gap-2 font-mono">
+                         <div className="grid grid-cols-2 gap-2 font-mono text-[10px]">
                              <span>{`{{NAMA}}`} - Nama Lengkap</span>
                              <span>{`{{NIP}}`} - NIP/PegID</span>
-                             <span>{`{{JABATAN}}`} - Jabatan</span>
                              <span>{`{{UNIT_KERJA}}`} - Unit Kerja</span>
-                             <span>{`{{STATUS}}`} - Status Kepegawaian</span>
-                             <span>{`{{TTL}}`} - Tempat, Tgl Lahir</span>
-                             <span>{`{{PENDIDIKAN}}`} - Pendidikan Terakhir</span>
+                             <span>{`{{STATUS}}`} - Status</span>
                              <span>{`{{KETUA_NAMA}}`} - Nama Ketua</span>
-                             <span>{`{{SEKRETARIS_NAMA}}`} - Nama Sekretaris</span>
                          </div>
+                    </div>
+
+                    <div className="pt-6 border-t">
+                        <CardTitle className="text-md flex items-center gap-2 mb-4">
+                            <CreditCard className="h-4 w-4"/> Template Kartu Anggota (KTA)
+                        </CardTitle>
+                        <div className="grid gap-6 md:grid-cols-2">
+                             {[
+                                { id: "kta_template_front", label: "Background Depan", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
+                                { id: "kta_template_back", label: "Background Belakang", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
+                             ].map((template) => {
+                                const cloudSetting = cloudSettings?.find(s => s.key === template.id)
+                                const hasCloud = !!cloudSetting 
+                                const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
+                                
+                                return (
+                                    <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
+                                         <div className="mb-3">
+                                            <h3 className="font-semibold text-sm text-slate-800">{template.label}</h3>
+                                            <p className="text-xs text-muted-foreground">{template.desc}</p>
+                                        </div>
+                                        
+                                        <input 
+                                            id={`upload-${template.id}`}
+                                            type="file" accept="image/*"
+                                            disabled={isUploading === template.id}
+                                            className="hidden" 
+                                            aria-label={`Upload background ${template.label}`}
+                                            onChange={(e) => handleCloudUpload(e, template.id)}
+                                        />
+
+                                        {hasCloud ? (
+                                            <div className="space-y-3">
+                                                <div className="h-24 bg-white border rounded overflow-hidden relative">
+                                                    <img 
+                                                        src={localStorage.getItem(template.id + "_blob") || ""} 
+                                                        className="w-full h-full object-cover opacity-50" 
+                                                        alt={`Preview ${template.label}`} 
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-green-900/10">
+                                                        <CheckCircle className="h-8 w-8 text-green-600" />
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] text-green-600 font-medium">Aktif • {cloudTime}</span>
+                                                    <Button 
+                                                        variant="outline" size="sm" className="h-7 text-xs"
+                                                        onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                                    >
+                                                        Ganti Gambar
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center p-8 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
+                                            >
+                                                <div className="text-center space-y-1">
+                                                    <CreditCard className="mx-auto h-5 w-5 text-muted-foreground" />
+                                                    <span className="text-xs text-slate-500 block">Upload Background</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                             })}
+                        </div>
+                        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-md">
+                            <h4 className="text-xs font-bold text-emerald-800 mb-1 uppercase">Panduan Template KTA:</h4>
+                            <ul className="text-[10px] text-emerald-700 space-y-1 list-disc pl-4">
+                                <li>Kosongkan area **Kiri Depan** untuk Foto Profil.</li>
+                                <li>Kosongkan area **Kiri Bawah Belakang** untuk QR Code Validasi.</li>
+                                <li>Teks (Nama, ID, Unit) akan otomatis dicetak di atas gambar yang Anda upload.</li>
+                                <li>Gunakan format **PNG** atau **JPG** dengan resolusi minimal **960x600 px** untuk hasil cetak tajam.</li>
+                            </ul>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

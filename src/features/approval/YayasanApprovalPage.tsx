@@ -317,7 +317,7 @@ export default function YayasanApprovalPage() {
                       <TableCell>
                           {(() => {
                               try {
-                                return new Date(item.tmt).toLocaleDateString("id-ID")
+                                return new Date((item as any).tmt).toLocaleDateString("id-ID")
                               } catch { return "-" }
                           })()} s.d. <br/>
                           {(() => {
@@ -358,19 +358,16 @@ export default function YayasanApprovalPage() {
                              <div className="flex items-center justify-end space-x-2">
                                 <BadgeCheck className="w-5 h-5 text-green-600"/> 
                                 <span className="mr-2 hidden sm:inline">Disetujui</span>
-                                 {item.teacher?.suratPermohonanUrl && (
-                                     <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50" onClick={() => window.open(item.teacher?.suratPermohonanUrl, '_blank')}>
+                                 {((item as any).teacher?.suratPermohonanUrl) && (
+                                     <Button size="sm" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50" onClick={() => window.open((item as any).teacher?.suratPermohonanUrl, '_blank')}>
                                          <FileText className="w-4 h-4 mr-1"/> Lihat Surat
                                      </Button>
                                  )}
 
                                  <Button size="sm" variant="outline" onClick={async () => {
                                     try {
-                                        // --- UI DEBUGGER (Blocking Alert) ---
-                                        const debugTmt = item.teacher?.tmt || "NULL";
-                                        const debugId = item.id;
-                                        // Simple alert to guarantee visibility
-                                        alert(`DEBUG INFO:\nID: ${debugId}\nRaw TMT: "${debugTmt}"`);
+                                        // Simple log instead of alert
+                                        console.log(`Processing SK for ID: ${item.id}, TMT: ${(item.teacher as any)?.tmt}`);
 
                                         toast.info("Memproses SK...");
                                         
@@ -494,12 +491,12 @@ export default function YayasanApprovalPage() {
                                                 return null;
                                             };
 
-                                            const teacherTmtDate = parseFlexibleDate(item.teacher?.tmt);
-                                            console.log("🔥 DEBUG TMT SOURCE:", {
-                                                rawTmt: item.teacher?.tmt,
-                                                parsedTmt: teacherTmtDate,
-                                                teacherObj: item.teacher
-                                            });
+                                             const teacherTmtDate = parseFlexibleDate((item.teacher as any)?.tmt);
+                                             console.log("🔥 DEBUG TMT SOURCE:", {
+                                                 rawTmt: (item.teacher as any)?.tmt,
+                                                 parsedTmt: teacherTmtDate,
+                                                 teacherObj: item.teacher
+                                             });
 
                                             // ...
 
@@ -523,15 +520,15 @@ export default function YayasanApprovalPage() {
                                                 qrcode: qrDataUrl, 
                                                 
                                                 // --- STANDARD FIELDS ---
-                                                NAMA: item.teacher?.nama || "",
-                                                NIP: item.teacher?.nip || "-",
-                                                NUPTK: item.teacher?.nuptk || "-",
-                                                JABATAN: "Kepala Madrasah",
-                                                STATUS: "Tetap",
-                                                PENDIDIKAN: item.teacher?.pendidikanTerakhir || "-", 
-                                                ALAMAT: item.teacher?.address || "-",
-                                                KABUPATEN: "Cilacap",
-                                                TENTANG: "PENGANGKATAN KEPALA MADRASAH",
+                                                 NAMA: item.teacher?.nama || "",
+                                                 NIP: item.teacher?.nip || "-",
+                                                 NUPTK: (item.teacher as any)?.nuptk || "-",
+                                                 JABATAN: "Kepala Madrasah",
+                                                 STATUS: "Tetap",
+                                                 PENDIDIKAN: (item.teacher as any)?.pendidikanTerakhir || "-", 
+                                                 ALAMAT: (item.teacher as any)?.address || "-",
+                                                 KABUPATEN: "Cilacap",
+                                                 TENTANG: "PENGANGKATAN KEPALA MADRASAH",
                                                 TAHUN_AJARAN: tahunAjaran,
                                                 KETUA_NAMA: settings.signerKetuaName || ".....",
                                                 SEKRETARIS_NAMA: settings.signerSekretarisName || ".....",
@@ -539,11 +536,11 @@ export default function YayasanApprovalPage() {
                                                 TANGGAL_BERAKHIR: finalValid,
                                                 
                                                 // --- DATES ---
-                                                TMT: (teacherTmtDate && teacherTmtDate.getFullYear() > 1900)
-                                                    ? teacherTmtDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+                                                TMT: ((item.teacher as any)?.tmtDate && (item.teacher as any)?.tmtDate.getFullYear() > 1900)
+                                                    ? (item.teacher as any).tmtDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
                                                     : (item.startDate ? new Date(item.startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"),
-                                                "TMT_GURU": (teacherTmtDate && teacherTmtDate.getFullYear() > 1900)
-                                                    ? teacherTmtDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+                                                "TMT_GURU": ((item.teacher as any)?.tmtDate && (item.teacher as any)?.tmtDate.getFullYear() > 1900)
+                                                    ? (item.teacher as any).tmtDate.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
                                                     : (item.startDate ? new Date(item.startDate).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"),
                                                 "TMT_KAMAD": finalTmt,
                                                 "Tanggal Penetapan": finalPenetapan,
@@ -571,42 +568,42 @@ export default function YayasanApprovalPage() {
                                                 KECAMATAN: item.school?.district || defaultKecamatan || ".....",
                                                 "Kecamatan": item.school?.district || defaultKecamatan || ".....",
 
-                                                // --- PERSONAL IDENTITY / TTL ---
-                                                TTL: (item.teacher?.birthPlace && item.teacher?.birthDate) 
-                                                    ? `${item.teacher.birthPlace}, ${new Date(item.teacher.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                                                    : "-",
-                                                "TEMPAT_TANGGAL_LAHIR": (item.teacher?.birthPlace && item.teacher?.birthDate) 
-                                                    ? `${item.teacher.birthPlace}, ${new Date(item.teacher.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                                                    : "-",
-                                                "TEMPAT, TANGGAL LAHIR": (item.teacher?.birthPlace && item.teacher?.birthDate) 
-                                                    ? `${item.teacher.birthPlace}, ${new Date(item.teacher.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` 
-                                                    : "-",
-                                                "Tempat Tanggal Lahir": (item.teacher?.birthPlace && item.teacher?.birthDate) 
-                                                    ? `${item.teacher.birthPlace}, ${new Date(item.teacher.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                                                    : "-",
-                                                "Tempat/Tanggal Lahir": (item.teacher?.birthPlace && item.teacher?.birthDate) 
-                                                    ? `${item.teacher.birthPlace}, ${new Date(item.teacher.birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                                                    : "-",
-                                                
-                                                // --- MA'ARIF ID ---
-                                                "NOMOR INDUK MA'ARIF": item.teacher?.nuptk || "-", 
-                                                "NOMOR INDUK MA’ARIF": item.teacher?.nuptk || "-", 
-                                                "NOMOR INDUK MAARIF": item.teacher?.nuptk || "-",  
-                                                "Nomor Induk Maarif": item.teacher?.nuptk || "-",
+                                                 // --- PERSONAL IDENTITY / TTL ---
+                                                 TTL: (item.teacher?.birthPlace && (item.teacher as any)?.birthDate) 
+                                                     ? `${item.teacher.birthPlace}, ${new Date((item.teacher as any).birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                                     : "-",
+                                                 "TEMPAT_TANGGAL_LAHIR": (item.teacher?.birthPlace && (item.teacher as any)?.birthDate) 
+                                                     ? `${item.teacher.birthPlace}, ${new Date((item.teacher as any).birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                                     : "-",
+                                                 "TEMPAT, TANGGAL LAHIR": (item.teacher?.birthPlace && (item.teacher as any)?.birthDate) 
+                                                     ? `${item.teacher.birthPlace}, ${new Date((item.teacher as any).birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` 
+                                                     : "-",
+                                                 "Tempat Tanggal Lahir": (item.teacher?.birthPlace && (item.teacher as any)?.birthDate) 
+                                                     ? `${item.teacher.birthPlace}, ${new Date((item.teacher as any).birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                                     : "-",
+                                                 "Tempat/Tanggal Lahir": (item.teacher?.birthPlace && (item.teacher as any)?.birthDate) 
+                                                     ? `${item.teacher.birthPlace}, ${new Date((item.teacher as any).birthDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                                                     : "-",
+                                                 
+                                                 // --- MA'ARIF ID ---
+                                                 "NOMOR INDUK MA'ARIF": (item.teacher as any)?.nuptk || "-", 
+                                                 "NOMOR INDUK MA’ARIF": (item.teacher as any)?.nuptk || "-", 
+                                                 "NOMOR INDUK MAARIF": (item.teacher as any)?.nuptk || "-",  
+                                                 "Nomor Induk Maarif": (item.teacher as any)?.nuptk || "-",
 
-                                                // --- ALIASES ---
-                                                nama: item.teacher?.nama,
-                                                nip: item.teacher?.nip || "-",
-                                                nuptk: item.teacher?.nuptk || "-",
-                                                jabatan: "Kepala Madrasah",
-                                                unit_kerja: item.school?.nama,
-                                                madrasah: item.school?.nama,
-                                                lembaga: item.school?.nama,
-                                                tmt: finalTmt,
-                                                ttl: (item.teacher?.birthPlace && item.teacher?.birthDate) 
-                                                    ? `${item.teacher.birthPlace}, ${new Date(item.teacher.birthDate).toLocaleDateString('id-ID')}`
-                                                    : "-",
-                                                alamat: item.teacher?.address || "-",
+                                                 // --- ALIASES ---
+                                                 nama: item.teacher?.nama,
+                                                 nip: item.teacher?.nip || "-",
+                                                 nuptk: (item.teacher as any)?.nuptk || "-",
+                                                 jabatan: "Kepala Madrasah",
+                                                 unit_kerja: item.school?.nama,
+                                                 madrasah: item.school?.nama,
+                                                 lembaga: item.school?.nama,
+                                                 tmt: finalTmt,
+                                                 ttl: (item.teacher?.birthPlace && (item.teacher as any)?.birthDate) 
+                                                     ? `${item.teacher.birthPlace}, ${new Date((item.teacher as any).birthDate).toLocaleDateString('id-ID')}`
+                                                     : "-",
+                                                 alamat: (item.teacher as any)?.address || "-",
                                                 
                                                 "Nama": item.teacher?.nama,
                                                 "Jabatan": "Kepala Madrasah",

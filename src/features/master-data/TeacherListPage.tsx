@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Smartphone, X, Wand2 } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Smartphone, X, Wand2, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
@@ -249,6 +249,8 @@ export default function TeacherListPage() {
       setTeacherToToggle(null)
     } catch (error: any) {
       toast.error("Gagal: " + error.message)
+    } finally {
+        setTeacherToToggle(null) // Clear immediately
     }
   }
   
@@ -731,12 +733,37 @@ export default function TeacherListPage() {
       />
 
       <Dialog open={toggleConfirmOpen} onOpenChange={setToggleConfirmOpen}>
-        <DialogContent>
-           <DialogHeader><DialogTitle>Konfirmasi Ubah Status</DialogTitle></DialogHeader>
-           <p>Yakin ingin mengubah status <b>{teacherToToggle?.name}</b>?</p>
-           <DialogFooter>
-               <Button variant="outline" onClick={() => setToggleConfirmOpen(false)}>Batal</Button>
-               <Button variant="default" onClick={confirmToggle}>Ya</Button>
+        <DialogContent className="sm:max-w-[400px]">
+           <DialogHeader>
+               <div className={`flex items-center gap-3 mb-2 ${teacherToToggle?.currentStatus ? 'text-amber-600' : 'text-blue-600'}`}>
+                   <div className={`p-2 rounded-full ${teacherToToggle?.currentStatus ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                       {teacherToToggle?.currentStatus ? <Archive className="h-6 w-6" /> : <UserCheck className="h-6 w-6" />}
+                   </div>
+                   <DialogTitle className="text-xl font-bold">
+                       {teacherToToggle?.currentStatus ? 'Nonaktifkan Guru' : 'Aktifkan Guru'}
+                   </DialogTitle>
+               </div>
+           </DialogHeader>
+           <div className="py-2">
+               <p className="text-muted-foreground leading-relaxed">
+                   Apakah Anda yakin ingin {teacherToToggle?.currentStatus ? 'menonaktifkan' : 'mengaktifkan'} data guru:
+               </p>
+               <p className="font-bold text-lg mt-1 text-slate-800">{teacherToToggle?.name}</p>
+               <p className="text-xs text-muted-foreground mt-3 p-3 bg-slate-50 border rounded italic">
+                   {teacherToToggle?.currentStatus 
+                    ? "Guru yang non-aktif tidak akan muncul di daftar utama dan tidak dapat mengajukan SK." 
+                    : "Guru yang diaktifkan kembali akan dapat mengajukan SK dan muncul di laporan."}
+               </p>
+           </div>
+           <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+               <Button variant="ghost" onClick={() => setToggleConfirmOpen(false)}>Batal</Button>
+               <Button 
+                variant={teacherToToggle?.currentStatus ? "destructive" : "default"} 
+                onClick={confirmToggle}
+                className={teacherToToggle?.currentStatus ? "" : "bg-blue-600 hover:bg-blue-700"}
+               >
+                   Ya, {teacherToToggle?.currentStatus ? 'Nonaktifkan' : 'Aktifkan'}
+               </Button>
            </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -754,9 +781,34 @@ export default function TeacherListPage() {
       <BroadcastModal isOpen={isBroadcastOpen} onClose={() => setIsBroadcastOpen(false)} recipients={selectedTeachersForBroadcast} />
 
       <Dialog open={deleteAllConfirmOpen} onOpenChange={setDeleteAllConfirmOpen}>
-        <DialogContent><DialogHeader><DialogTitle>Hapus SEMUA?</DialogTitle></DialogHeader>
-           <p className="text-red-500">Tindakan ini permanen!</p>
-           <DialogFooter><Button variant="outline" onClick={() => setDeleteAllConfirmOpen(false)}>Batal</Button><Button variant="destructive" onClick={confirmDeleteAll}>Hapus</Button></DialogFooter>
+        <DialogContent className="sm:max-w-[400px]">
+           <DialogHeader>
+                <div className="flex items-center gap-3 text-red-600 mb-2">
+                    <div className="p-2 bg-red-50 rounded-full">
+                        <AlertTriangle className="h-6 w-6" />
+                    </div>
+                    <DialogTitle className="text-xl font-bold">Hapus Seluruh Data?</DialogTitle>
+                </div>
+           </DialogHeader>
+           <div className="py-2">
+               <p className="text-muted-foreground text-sm leading-relaxed">
+                   Tindakan ini akan menghapus <span className="font-bold text-red-600">SELURUH</span> data guru yang ada di sistem secara permanen.
+               </p>
+               <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                   <p className="text-xs text-red-800 font-bold flex items-center gap-2">
+                       <XCircle className="h-4 w-4" /> BAHAYA
+                   </p>
+                   <p className="text-[11px] text-red-700 mt-1">
+                       Data yang sudah dihapus tidak dapat dikembalikan dengan cara apa pun. Pastikan Anda sudah melakukan backup (Export Excel) terlebih dahulu!
+                   </p>
+               </div>
+           </div>
+           <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+               <Button variant="ghost" onClick={() => setDeleteAllConfirmOpen(false)}>Batal</Button>
+               <Button variant="destructive" onClick={confirmDeleteAll} className="bg-red-600 hover:bg-red-700 shadow-lg">
+                    Hapus Selamanya
+                </Button>
+           </DialogFooter>
         </DialogContent>
       </Dialog>
       

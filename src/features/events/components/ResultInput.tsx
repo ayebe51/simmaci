@@ -4,7 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Save } from 'lucide-react';
+import { Save, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Result {
   participantId: string;
@@ -64,10 +65,12 @@ export default function ResultInput({ competitionId, participants, results: init
           notes: data.notes,
         }),
       });
-      alert('Nilai tersimpan!');
+      toast.success(`Nilai untuk "${participants.find(p => p.id === participantId)?.name}" tersimpan`, {
+          icon: <CheckCircle2 className="h-4 w-4 text-green-600" />
+      });
     } catch (error) {
       console.error(error);
-      alert('Gagal menyimpan');
+      toast.error('Gagal menyimpan nilai');
     } finally {
       setSaving(false);
     }

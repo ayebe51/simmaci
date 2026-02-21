@@ -128,8 +128,11 @@ export default function SkSubmissionPage() {
             } catch (uErr: any) {
                 console.error("Upload Failed:", uErr);
                 const msg = uErr?.message || "Unknown Error";
-                alert(`DEBUG: Gagal Upload ke Google Drive.\nError: ${msg}\n\nMohon fotokan pesan ini ke admin.`);
-                toast.error(`Gagal upload: ${msg}`);
+                // Show a detailed error via toast/dialog for better UX
+                toast.error(`Gagal Upload ke Google Drive: ${msg}`, {
+                    description: "Mohon informasikan pesan ini kepada administrator sistem jika masalah berlanjut.",
+                    duration: 5000
+                });
                 throw new Error(`Gagal mengupload dokumen ke Google Drive: ${msg}`);
             } finally {
                 setIsUploading(false);

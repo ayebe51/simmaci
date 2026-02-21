@@ -455,9 +455,9 @@ export default function StudentListPage() {
                 </span>
                 <div className="h-4 w-px bg-blue-200 mx-1" />
                 <Button 
-                  variant="blue" 
+                  variant="outline" 
                   size="sm" 
-                  className="h-8 gap-2"
+                  className="h-8 gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                   onClick={handleBulkGraduate}
                   disabled={isBulkActionLoading}
                 >
@@ -780,43 +780,41 @@ export default function StudentListPage() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="h-5 w-5" />
-              Konfirmasi Hapus
-            </DialogTitle>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+                <div className="p-2 bg-red-50 rounded-full">
+                    <Trash2 className="h-6 w-6" />
+                </div>
+                <DialogTitle className="text-xl font-bold">Hapus Data Siswa</DialogTitle>
+            </div>
           </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground mb-2">
-              Yakin ingin menghapus siswa:
+          <div className="py-2">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Apakah Anda yakin ingin menghapus data siswa:
             </p>
-            <p className="font-semibold text-lg mb-3">
+            <p className="font-bold text-lg mt-1 text-slate-800">
               {studentToDelete?.name}
             </p>
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-2">
-              <p className="text-sm text-red-800 font-medium flex items-center gap-2">
-                ⚠️ Perhatian
-              </p>
-              <p className="text-xs text-red-700 mt-1">
-                Data akan terhapus <strong>PERMANENT</strong> dari database dan tidak dapat dikembalikan!
-              </p>
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                <p className="text-xs text-red-800 font-bold flex items-center gap-2">
+                    <XCircle className="h-4 w-4" /> PERINGATAN
+                </p>
+                <p className="text-[11px] text-red-700 mt-1 leading-normal">
+                   Data akan terhapus secara <strong>PERMANEN</strong> dari sistem. Tindakan ini tidak dapat dibatalkan.
+                </p>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={cancelDelete}
-            >
+          <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+            <Button variant="ghost" onClick={cancelDelete}>
               Batal
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 shadow-sm gap-2"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Ya, Hapus
+              <Trash2 className="h-4 w-4" /> Ya, Hapus Siswa
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -849,7 +847,7 @@ export default function StudentListPage() {
                   <Button variant="ghost" onClick={() => setIsBulkConfirmOpen(false)} disabled={isBulkActionLoading} className="text-slate-600">
                       Batal
                   </Button>
-                  <Button variant="blue" onClick={executeBulkGraduate} disabled={isBulkActionLoading} className="gap-2 shadow-sm">
+                  <Button variant="default" onClick={executeBulkGraduate} disabled={isBulkActionLoading} className="bg-blue-600 hover:bg-blue-700 gap-2 shadow-sm">
                       {isBulkActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GraduationCap className="h-4 w-4" />}
                       Ya, Luluskan Sekarang
                   </Button>

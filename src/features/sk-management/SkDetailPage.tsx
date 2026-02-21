@@ -11,6 +11,8 @@ import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Loader2 } from "lucide-react"
 
 interface SkDetail {
   id: string
@@ -50,6 +52,11 @@ export default function SkDetailPage() {
       return false
     }
   })
+
+  // Confirmation Dialog State
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | "revise" | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   
   // Helper to map Convex status to frontend badge status
   const getBadgeStatus = (backendStatus: string): StatusType => {
@@ -77,37 +84,36 @@ export default function SkDetailPage() {
 
   const isLoading = skDoc === undefined
 
-  const handleAction = async (action: "approve" | "reject" | "revise") => {
-      console.log("[DEBUG] handleAction called with action:", action, "| SK id:", id);
-      
-      // Confirmation
-      const confirmMsg = action === 'approve' ? 'Menyetujui' : action === 'reject' ? 'Menolak' : 'Merevisi';
-      const confirmed = window.confirm(`Apakah Anda yakin ingin ${confirmMsg} SK ini?`);
-      
-      console.log("[DEBUG] User confirmed:", confirmed);
-      if(!confirmed) return;
+  const handleAction = (action: "approve" | "reject" | "revise") => {
+      setPendingAction(action)
+      setIsConfirmOpen(true)
+  }
 
+  const executeAction = async () => {
+      if (!pendingAction || !id) return
+      
+      const confirmMsg = pendingAction === 'approve' ? 'Menyetujui' : pendingAction === 'reject' ? 'Menolak' : 'Merevisi';
+      
       try {
+          setIsProcessing(true)
           let status = "";
-          if (action === "approve") status = "active";
-          else if (action === "reject") status = "archived";
-          else if (action === "revise") status = "draft";
+          if (pendingAction === "approve") status = "active";
+          else if (pendingAction === "reject") status = "archived";
+          else if (pendingAction === "revise") status = "draft";
 
-          console.log("[DEBUG] Calling Convex update with id:", id, "status:", status);
-          toast.info(`Memproses ${confirmMsg}...`);
-          
           await updateSk({ 
             id: id as Id<"skDocuments">, 
             status: status 
           });
           
-          console.log("[DEBUG] Convex update successful");
           toast.success(`SK Berhasil di-${status}`);
-          // No need to re-fetch, Convex auto-updates!
+          setIsConfirmOpen(false)
+          setPendingAction(null)
       } catch (e: any) {
-          console.error("[ERROR] handleAction failed:", e);
-          const errorMessage = e?.message || "Error tidak diketahui";
-          toast.error(`Gagal memproses tindakan: ${errorMessage}`);
+          console.error("[ERROR] executeAction failed:", e);
+          toast.error(`Gagal memproses tindakan: ${e?.message || "Error tidak diketahui"}`);
+      } finally {
+          setIsProcessing(false)
       }
   }
 
@@ -267,6 +273,54 @@ export default function SkDetailPage() {
              </Card>
         </div>
       </div>
+ 
+      {/* Confirmation Dialog */}
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <div className={`flex items-center gap-3 mb-2 ${
+                      pendingAction === 'approve' ? 'text-green-600' : 
+                      pendingAction === 'reject' ? 'text-red-600' : 'text-amber-600'
+                  }`}>
+                      <div className={`p-2 rounded-full ${
+                          pendingAction === 'approve' ? 'bg-green-50' : 
+                          pendingAction === 'reject' ? 'bg-red-50' : 'bg-amber-50'
+                      }`}>
+                          {pendingAction === 'approve' ? <CheckCircle className="h-6 w-6" /> : 
+                           pendingAction === 'reject' ? <XCircle className="h-6 w-6" /> : <AlertTriangle className="h-6 w-6" />}
+                      </div>
+                      <DialogTitle className="text-xl font-bold">
+                          {pendingAction === 'approve' ? 'Setujui SK' : 
+                           pendingAction === 'reject' ? 'Tolak SK' : 'Ajukan Revisi'}
+                      </DialogTitle>
+                  </div>
+              </DialogHeader>
+              <div className="py-4">
+                  <p className="text-muted-foreground leading-relaxed">
+                      Apakah Anda yakin ingin {
+                          pendingAction === 'approve' ? 'menyetujui' : 
+                          pendingAction === 'reject' ? 'menolak' : 'merevisi'
+                      } dokumen SK ini? Tindakan ini akan mengubah status dokumen secara langsung.
+                  </p>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+                  <Button variant="ghost" onClick={() => setIsConfirmOpen(false)} disabled={isProcessing}>
+                      Batal
+                  </Button>
+                  <Button 
+                    onClick={executeAction} 
+                    disabled={isProcessing}
+                    className={
+                        pendingAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 
+                        pendingAction === 'reject' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'
+                    }
+                  >
+                      {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Ya, Lanjutkan
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   )
 }

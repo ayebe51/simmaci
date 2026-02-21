@@ -4,6 +4,7 @@ import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { toast } from "sonner";
 
 interface TeacherPhotoUploadProps {
   photoId?: Id<"_storage"> | string;
@@ -42,11 +43,11 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
 
     // Validate (Max 500KB, Image)
     if (file.size > 500 * 1024) {
-      alert("Ukuran foto maksimal 500KB");
+      toast.error("Ukuran foto maksimal 500KB");
       return;
     }
     if (!file.type.startsWith("image/")) {
-      alert("Harap upload file gambar (JPG/PNG)");
+      toast.error("Harap upload file gambar (JPG/PNG)");
       return;
     }
 
@@ -81,7 +82,7 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
       
     } catch (error: any) {
       console.error("Upload error:", error);
-      alert(`Gagal Upload Foto: ${error.message}`);
+      toast.error(`Gagal Upload Foto: ${error.message}`);
     } finally {
       setIsUploading(false);
       // Reset input

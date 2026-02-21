@@ -10,7 +10,8 @@ import { ArrowLeft, Loader2, Download } from 'lucide-react';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
 
-import { API_URL } from '@/lib/api';
+import { API_URL, api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function CompetitionDetailPage() {
   const { competitionId } = useParams();
@@ -115,7 +116,11 @@ export default function CompetitionDetailPage() {
                     }}
                 />
             </div>
-            <ResultInput competitionId={competitionId!} />
+            <ResultInput 
+                competitionId={competitionId!} 
+                participants={competition.participants || []}
+                results={competition.results || []}
+            />
         </TabsContent>
 
         <TabsContent value="certificates">
@@ -142,16 +147,16 @@ export default function CompetitionDetailPage() {
                                         body: formData,
                                     });
                                     if (res.ok) {
-                                        alert('Template berhasil diupload!');
+                                        toast.success('Template berhasil diupload!');
                                         // Refresh competition data
                                         const updated = await res.json();
                                         setCompetition(updated); 
                                     } else {
-                                        alert('Gagal upload template');
+                                        toast.error('Gagal upload template');
                                     }
                                 } catch (err) {
                                     console.error(err);
-                                    alert('Terjadi kesalahan saat upload');
+                                    toast.error('Terjadi kesalahan saat upload');
                                 } finally {
                                     setLoading(false);
                                 }

@@ -410,7 +410,7 @@ export function BulkSkSubmission() {
    
   const handleSubmit = async () => {
     if (candidates.length === 0) {
-        alert("Tidak ada data calon SK yang valid. Upload file Excel terlebih dahulu.")
+        toast.error("Tidak ada data calon SK yang valid. Upload file Excel terlebih dahulu.")
         return
     }
 
@@ -438,7 +438,7 @@ export function BulkSkSubmission() {
             log(`Upload berhasil. Storage ID: ${storageId}`);
         } catch (e: any) {
             log(`Gagal upload file: ${e.message}`);
-            alert("Gagal mengupload surat permohonan! " + e.message);
+            toast.error("Gagal mengupload surat permohonan! " + e.message);
             setIsProcessing(false);
             return;
         }
@@ -530,9 +530,11 @@ export function BulkSkSubmission() {
             // ERROR HANDLING: Check for partial failures
             if (bulkResult.errors && bulkResult.errors.length > 0) {
                  const sampleError = bulkResult.errors[0]
-                 const errorMsg = `Gagal menyimpan ${bulkResult.errors.length} data Guru. Contoh error: ${typeof sampleError === 'string' ? sampleError : JSON.stringify(sampleError)}`
-                 console.error(errorMsg)
-                 alert(errorMsg)
+                  const errorMsg = `Gagal menyimpan ${bulkResult.errors.length} data Guru.`
+                  console.error(errorMsg, bulkResult.errors)
+                  toast.error(errorMsg, {
+                      description: "Beberapa data gagal disimpan. Periksa detail di console atau pastikan file Excel anda benar."
+                  })
                  // If all failed, stop here
                  if (!bulkResult.ids || bulkResult.ids.length === 0) {
                      throw new Error("Semua data guru gagal disimpan. Cek format Excel anda.")

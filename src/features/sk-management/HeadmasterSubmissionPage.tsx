@@ -168,7 +168,9 @@ export default function HeadmasterSubmissionPage() {
             : err.message || "Gagal mengajukan"; // Standard Error or string
         
         if (errorMessage.includes("Google Drive") || errorMessage.includes("Upload")) {
-             alert(`DEBUG: Gagal Upload Headmaster.\nError: ${errorMessage}\n\nMohon fotokan ini ke admin.`);
+             toast.error(`Gagal Upload: ${errorMessage}`, {
+                 description: "Pastikan koneksi internet stabil atau hubungi admin jika masalah berlanjut."
+             });
         }
         
         // Handle Unauthorized specifically

@@ -4,7 +4,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, AlertTriangle, UserMinus } from 'lucide-react';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Participant {
   id: string;
@@ -21,6 +23,11 @@ export default function ParticipantList({ competitionId, participants: initialPa
   const [participants, setParticipants] = useState<Participant[]>(initialParticipants || []);
   const [loading, setLoading] = useState(false);
   const [newParticipant, setNewParticipant] = useState({ name: '', institution: '' });
+  
+  // Custom Dialog State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [participantToDelete, setParticipantToDelete] = useState<Participant | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setParticipants(initialParticipants || []);
@@ -28,7 +35,7 @@ export default function ParticipantList({ competitionId, participants: initialPa
 
   const handleAdd = async () => {
     if (!newParticipant.name || !newParticipant.institution) {
-        alert('Nama dan Asal Lembaga wajib diisi!');
+        toast.error('Nama dan Asal Lembaga wajib diisi!');
         return;
     }
     setLoading(true);
@@ -42,25 +49,39 @@ export default function ParticipantList({ competitionId, participants: initialPa
         const added = await res.json();
         setParticipants([...participants, added]);
         setNewParticipant({ name: '', institution: '' });
-        alert('Peserta berhasil ditambahkan');
+        toast.success(`Peserta "${added.name}" berhasil ditambahkan`);
       } else {
           const err = await res.text();
-          alert(`Gagal menambah peserta: ${err}`);
+          toast.error(`Gagal menambah peserta: ${err}`);
       }
     } catch (error) {
       console.error(error);
-      alert('Terjadi kesalahan koneksi');
+      toast.error('Terjadi kesalahan koneksi');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-      if(!confirm('Hapus peserta ini?')) return;
+  const handleDeleteClick = (p: Participant) => {
+      setParticipantToDelete(p);
+      setIsDeleteDialogOpen(true);
+  }
+
+  const confirmDelete = async () => {
+      if(!participantToDelete) return;
       try {
-          await fetch(`${API_URL}/events/participants/${id}`, { method: 'DELETE' });
-          setParticipants(participants.filter(p => p.id !== id));
-      } catch (e) { console.error(e); }
+          setIsDeleting(true);
+          await fetch(`${API_URL}/events/participants/${participantToDelete.id}`, { method: 'DELETE' });
+          setParticipants(participants.filter(p => p.id !== participantToDelete.id));
+          toast.success(`Peserta "${participantToDelete.name}" berhasil dihapus`);
+          setIsDeleteDialogOpen(false);
+          setParticipantToDelete(null);
+      } catch (e) { 
+          console.error(e);
+          toast.error("Gagal menghapus peserta");
+      } finally {
+          setIsDeleting(false);
+      }
   }
 
   return (
@@ -112,7 +133,7 @@ export default function ParticipantList({ competitionId, participants: initialPa
                     <TableCell>{p.name}</TableCell>
                     <TableCell>{p.institution}</TableCell>
                     <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(p)} className="text-red-500 hover:text-red-700">
                             <Trash2 size={14} />
                         </Button>
                     </TableCell>
@@ -122,6 +143,48 @@ export default function ParticipantList({ competitionId, participants: initialPa
             </TableBody>
           </Table>
         </div>
+
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                    <div className="flex items-center gap-3 text-red-600 mb-2">
+                        <div className="p-2 bg-red-50 rounded-full">
+                            <UserMinus className="h-6 w-6" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold">Hapus Peserta</DialogTitle>
+                    </div>
+                </DialogHeader>
+                <div className="py-2">
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                        Apakah Anda yakin ingin menghapus peserta:
+                    </p>
+                    <p className="font-bold text-lg mt-1 text-slate-800">
+                        {participantToDelete?.name}
+                    </p>
+                    <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                        <p className="text-xs text-red-800 font-bold flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4" /> PERINGATAN
+                        </p>
+                        <p className="text-[11px] text-red-700 mt-1 leading-normal">
+                            Data peserta dan riwayat nilainya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                        </p>
+                    </div>
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+                    <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+                        Batal
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={confirmDelete}
+                        disabled={isDeleting}
+                        className="bg-red-600 hover:bg-red-700 shadow-sm"
+                    >
+                        {isDeleting ? "Menghapus..." : "Ya, Hapus Peserta"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

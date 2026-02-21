@@ -838,7 +838,6 @@ export default function SchoolListPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-      </Dialog>
 
       {/* Bulk Generate Account Confirmation Modal */}
       <Dialog open={isBulkAccountConfirmOpen} onOpenChange={setIsBulkAccountConfirmOpen}>

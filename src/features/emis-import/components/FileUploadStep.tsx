@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { UploadCloud, FileSpreadsheet, Loader2 } from "lucide-react"
 import { useCallback, useState } from "react"
+import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import * as mammoth from "mammoth"
 
@@ -72,12 +73,12 @@ export default function FileUploadStep({ onFileAccepted, disabled }: FileUploadS
                     setIsProcessing(false)
                  }, 800)
             } else {
-                alert("File kosong atau format tidak valid")
+                toast.error("File kosong atau format tidak valid")
                 setIsProcessing(false)
             }
         } catch (error: any) {
             console.error(error)
-            alert(error.message || "Gagal membaca file")
+            toast.error(error.message || "Gagal membaca file")
             setIsProcessing(false)
         }
     }

@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit } from "lucide-react"
+import { Plus, Search, Trash2, Edit, AlertTriangle, XCircle, UserX } from "lucide-react"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -21,6 +21,7 @@ import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { useQuery, useMutation } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Doc, Id } from "../../../convex/_generated/dataModel"
+import { Loader2 } from "lucide-react"
 
 interface User {
   id: string
@@ -41,6 +42,11 @@ export default function UserListPage() {
   const convexUsers = useQuery(convexApi.auth.listUsers)
   const convexSchools = useQuery(convexApi.schools.list, {})
   const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
+  
+  // Delete Dialog State
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<{id: string, name: string} | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // Map Convex users to frontend format
   const users: User[] = (convexUsers || []).map((u) => ({
@@ -83,10 +89,25 @@ export default function UserListPage() {
       }
   }
 
-  const handleDelete = async (id?: string) => {
-    // TODO: Implement delete via Convex mutation
-    console.log("Deleting user", id)
-    toast.info("Fitur hapus user coming soon")
+  const handleDelete = (id: string, name: string) => {
+    setUserToDelete({ id, name })
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+      if (!userToDelete) return
+      try {
+          setIsDeleting(true)
+          // TODO: Implement actual delete mutation when available in Convex
+          console.log("Deleting user", userToDelete.id)
+          toast.info("Fitur hapus user sedang diintegrasikan ke backend")
+          setDeleteConfirmOpen(false)
+          setUserToDelete(null)
+      } catch (err: any) {
+          toast.error("Gagal menghapus user: " + err.message)
+      } finally {
+          setIsDeleting(false)
+      }
   }
 
   const openEdit = (user: User) => {
@@ -118,21 +139,20 @@ export default function UserListPage() {
       <SoftPageHeader
         title="Manajemen User"
         description="Kelola akses Operator Sekolah dan Admin"
-      >
-        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-          <DialogTrigger asChild>
-            <button
-              onClick={resetForm}
-              className="group cursor-pointer rounded-lg bg-pastel-purple p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:bg-pastel-lavender"
-            >
-              <div className="flex flex-col items-center gap-2 text-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pastel-lavender">
-                  <Plus className="h-5 w-5 text-gray-700" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Tambah User</span>
-              </div>
-            </button>
-          </DialogTrigger>
+        actions={[
+          {
+            label: "Tambah User",
+            onClick: () => {
+                resetForm();
+                setIsDialogOpen(true);
+            },
+            variant: "cream",
+            icon: <Plus className="h-5 w-5 text-gray-700" />
+          }
+        ]}
+      />
+
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{editingUser ? "Edit User" : "Tambah User Baru"}</DialogTitle>
@@ -195,7 +215,7 @@ export default function UserListPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </SoftPageHeader>
+
       
 
       <Card>
@@ -264,7 +284,7 @@ export default function UserListPage() {
                             </Button>
                             {/* Prevent deleting the last super admin or self? Simplified logic: just hide delete for super_admin for safety */}
                             {item.role !== 'super_admin' && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.name)}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -276,6 +296,48 @@ export default function UserListPage() {
             </div>
         </CardContent>
       </Card>
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+                <div className="p-2 bg-red-50 rounded-full">
+                    <UserX className="h-6 w-6" />
+                </div>
+                <DialogTitle className="text-xl font-bold">Hapus Akun Pengguna</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Apakah Anda yakin ingin menghapus akses untuk pengguna:
+            </p>
+            <p className="font-bold text-lg mt-1 text-slate-800">
+              {userToDelete?.name}
+            </p>
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                <p className="text-xs text-red-800 font-bold flex items-center gap-2">
+                    <XCircle className="h-4 w-4" /> BAHAYA
+                </p>
+                <p className="text-[11px] text-red-700 mt-1 leading-normal">
+                   Menghapus akun akan mencabut seluruh hak akses pengguna tersebut secara permanen. Akun tersebut tidak akan bisa login lagi.
+                </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)} disabled={isDeleting}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 shadow-sm gap-2"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Ya, Hapus Akun
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

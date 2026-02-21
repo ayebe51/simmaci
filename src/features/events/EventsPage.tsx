@@ -2,13 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, MapPin, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertTriangle, Trash2, Calendar, MapPin, Plus } from "lucide-react"
 
 export default function EventsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Custom Dialog State
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<{id: string, name: string} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -26,16 +32,25 @@ export default function EventsPage() {
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-      e.preventDefault(); // Prevent Link navigation
-      if (!confirm("Hapus event ini?")) return;
+  const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
+      e.preventDefault();
+      setEventToDelete({ id, name });
+      setIsDeleteDialogOpen(true);
+  };
 
+  const confirmDelete = async () => {
+      if (!eventToDelete) return;
       try {
-          await api.deleteEvent(id);
-          toast.success("Event dihapus");
+          setIsDeleting(true);
+          await api.deleteEvent(eventToDelete.id);
+          toast.success(`Event "${eventToDelete.name}" berhasil dihapus`);
+          setIsDeleteDialogOpen(false);
+          setEventToDelete(null);
           loadEvents();
       } catch (e) {
           toast.error("Gagal menghapus event");
+      } finally {
+          setIsDeleting(false);
       }
   };
 
@@ -90,7 +105,7 @@ export default function EventsPage() {
                     variant="destructive" 
                     size="icon" 
                     className="h-8 w-8 rounded-full shadow-md"
-                    onClick={(e) => handleDelete(e, event.id)}
+                    onClick={(e) => handleDelete(e, event.id, event.name)}
                   >
                       <Trash2 className="h-4 w-4" />
                   </Button>
@@ -99,6 +114,48 @@ export default function EventsPage() {
           </Link>
         ))}
       </div>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-red-600 mb-2">
+                <div className="p-2 bg-red-50 rounded-full">
+                    <Trash2 className="h-6 w-6" />
+                </div>
+                <DialogTitle className="text-xl font-bold">Hapus Event</DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Apakah Anda yakin ingin menghapus event:
+            </p>
+            <p className="font-bold text-lg mt-1 text-slate-800">
+              {eventToDelete?.name}
+            </p>
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
+                <p className="text-xs text-red-800 font-bold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" /> PERHATIAN
+                </p>
+                <p className="text-[11px] text-red-700 mt-1 leading-normal">
+                   Menghapus event akan menghapus seluruh data kompetisi dan peserta di dalamnya secara permanen.
+                </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+            <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
+              Batal
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 shadow-sm"
+            >
+              {isDeleting ? "Menghapus..." : "Ya, Hapus Event"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

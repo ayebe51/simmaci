@@ -23,8 +23,18 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
   const isStorageId = photoId && !photoId.startsWith("http");
   const storageUrl = useQuery(api.teachers.getPhotoUrl, isStorageId ? { storageId: photoId as Id<"_storage"> } : "skip");
   
-  // Final URL to display
-  const displayUrl = isStorageId ? storageUrl : photoId;
+  // Final URL to display (with drive normalization)
+  const displayUrl = useMemo(() => {
+    const rawUrl = isStorageId ? storageUrl : photoId;
+    if (rawUrl && typeof rawUrl === 'string' && rawUrl.includes("drive.google.com")) {
+        // Fix for broken Drive links: Convert to direct embed link
+        const match = rawUrl.match(/id=([a-zA-Z0-9_-]+)/) || rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://lh3.googleusercontent.com/d/${match[1]}`;
+        }
+    }
+    return rawUrl;
+  }, [isStorageId, storageUrl, photoId]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,19 +75,13 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
       }
       
       // 3. Callback to parent (Return URL or ID)
-      // We prefer storing the "thumbnailLink" or "webContentLink" directly?
-      // Or construct a clean public URL helper?
-      // For now, let's use the 'thumbnail' provided by Drive which is usually public-friendly
-      // OR use a standard proxy URL structure.
-      // Let's store the `webContentLink` but we might need to process it to be embeddable.
-      // ACTUALLY: `drive.ts` returns `downloadUrl` = `webContentLink`.
-      
-      onPhotoUploaded(result.downloadUrl as any); // Cast to any to bypass Id<"_storage"> strictness if parent allows
+      // We construct a direct embed link using the File ID
+      const embedUrl = `https://lh3.googleusercontent.com/d/${result.id}`;
+      onPhotoUploaded(embedUrl);
       
     } catch (error: any) {
       console.error("Upload error:", error);
-      alert(`DEBUG: Gagal Upload Foto.\nError: ${error.message}\n\nMohon fotokan ini ke admin.`);
-      // alert("Gagal mengupload foto: " + error.message);
+      alert(`Gagal Upload Foto: ${error.message}`);
     } finally {
       setIsUploading(false);
       // Reset input

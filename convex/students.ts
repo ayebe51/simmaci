@@ -9,6 +9,7 @@ export const listPaginated = query({
     paginationOpts: paginationOptsValidator,
     namaSekolah: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
+    status: v.optional(v.string()),
     search: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -30,6 +31,7 @@ export const listPaginated = query({
     // Determine Filter Targets
     const targetSchool = userUnit || (args.namaSekolah !== "all" ? args.namaSekolah : undefined);
     const targetKecamatan = args.kecamatan !== "all" ? args.kecamatan : undefined;
+    const targetStatus = args.status !== "all" ? args.status : undefined;
 
     // 1. SEARCH SCENARIO
     if (args.search) {
@@ -40,6 +42,10 @@ export const listPaginated = query({
             searchQ = searchQ.filter(q => q.eq(q.field("namaSekolah"), targetSchool));
         } else if (targetKecamatan) {
             searchQ = searchQ.filter(q => q.eq(q.field("kecamatan"), targetKecamatan));
+        }
+
+        if (targetStatus) {
+            searchQ = searchQ.filter(q => q.eq(q.field("status"), targetStatus));
         }
 
         return await searchQ.paginate(args.paginationOpts);
@@ -54,6 +60,8 @@ export const listPaginated = query({
         paginatedQuery = q.withIndex("by_school", q => q.eq("namaSekolah", targetSchool));
     } else if (targetKecamatan) {
         paginatedQuery = q.withIndex("by_kecamatan", q => q.eq("kecamatan", targetKecamatan));
+    } else if (targetStatus) {
+        paginatedQuery = q.withIndex("by_status", q => q.eq("status", targetStatus));
     } else {
         paginatedQuery = q.order("desc"); // Default sort (newest maybe? or just default)
     }
@@ -133,6 +141,7 @@ export const create = mutation({
     kelas: v.optional(v.string()),
     nomorTelepon: v.optional(v.string()),
     namaWali: v.optional(v.string()),
+    status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     try {
@@ -156,6 +165,7 @@ export const create = mutation({
       return await ctx.db.insert("students", {
         ...args,
         jenisKelamin: jk, // Use normalized value
+        status: args.status || "Aktif",
         createdAt: now,
         updatedAt: now,
       });
@@ -189,6 +199,7 @@ export const update = mutation({
     photoId: v.optional(v.string()),
     isVerified: v.optional(v.string()),
     qrCode: v.optional(v.string()),
+    status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -235,6 +246,7 @@ export const bulkCreate = mutation({
       kelas: v.optional(v.string()),
       nomorTelepon: v.optional(v.string()),
       namaWali: v.optional(v.string()),
+      status: v.optional(v.string()),
     })),
   },
   handler: async (ctx, args) => {
@@ -251,6 +263,7 @@ export const bulkCreate = mutation({
       if (!existing) {
         const id = await ctx.db.insert("students", {
           ...student,
+          status: student.status || "Aktif",
           createdAt: now,
           updatedAt: now,
         });

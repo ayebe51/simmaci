@@ -44,17 +44,19 @@ interface Student {
   namaWali?: string
   nomorIndukMaarif?: string
   photoId?: string
+  status?: string
 }
 
 export default function StudentListPage() {
   const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
   
   const createStudentMutation = useMutation(convexApi.students.create);
 
   // Manual Add Logic
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [formData, setFormData] = useState<Partial<Student>>({
-      nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
+      nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
       nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
   })
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
@@ -87,6 +89,7 @@ export default function StudentListPage() {
       {
           namaSekolah: userUnit || undefined,
           search: searchTerm || undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
       },
       { initialNumItems: 20 }
   );
@@ -110,7 +113,8 @@ export default function StudentListPage() {
     nomorTelepon: s.nomorTelepon,
     npsn: s.npsn,
     namaWali: s.namaWali,
-    photoId: s.photoId
+    photoId: s.photoId,
+    status: s.status || "Aktif"
   }))
 
   // Convex mutations
@@ -155,9 +159,9 @@ export default function StudentListPage() {
   const itemsPerPage = 20
 
   // Better Pattern: Reset page during render if filters change
-  const [prevFilters, setPrevFilters] = useState({ searchTerm, sortConfig })
-  if (prevFilters.searchTerm !== searchTerm || prevFilters.sortConfig !== sortConfig) {
-      setPrevFilters({ searchTerm, sortConfig })
+  const [prevFilters, setPrevFilters] = useState({ searchTerm, statusFilter, sortConfig })
+  if (prevFilters.searchTerm !== searchTerm || prevFilters.statusFilter !== statusFilter || prevFilters.sortConfig !== sortConfig) {
+      setPrevFilters({ searchTerm, statusFilter, sortConfig })
       setCurrentPage(1)
   }
 
@@ -233,6 +237,7 @@ export default function StudentListPage() {
         nomorTelepon: clean(formData.nomorTelepon),
         namaWali: clean(formData.namaWali),
         photoId: formData.photoId,
+        status: formData.status || "Aktif",
       };
 
       // Strip undefined keys
@@ -256,7 +261,7 @@ export default function StudentListPage() {
           
           setIsAddOpen(false)
           setFormData({ 
-              nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
+              nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
               nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: "", nik: "", namaAyah: "", namaIbu: "", npsn: ""
           })
       } catch (e: any) {
@@ -386,6 +391,17 @@ export default function StudentListPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="Aktif">Aktif</SelectItem>
+                    <SelectItem value="Lulus">Lulus</SelectItem>
+                    <SelectItem value="Keluar">Keluar</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
         </CardHeader>
         <CardContent>
@@ -417,6 +433,7 @@ export default function StudentListPage() {
                       <TableHead onClick={() => requestSort('npsn')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[100px]">
                           <div className="flex items-center">NPSN {getSortIcon('npsn')}</div>
                       </TableHead>
+                      <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead className="text-right w-[100px] sticky right-0 bg-background shadow-sm">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -579,6 +596,19 @@ export default function StudentListPage() {
                             <SelectContent>
                                 <SelectItem value="L">Laki-laki</SelectItem>
                                 <SelectItem value="P">Perempuan</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="status">Status Siswa</Label>
+                        <Select value={formData.status || "Aktif"} onValueChange={(val: string) => setFormData({...formData, status: val})}>
+                            <SelectTrigger id="status">
+                                <SelectValue placeholder="Pilih Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Aktif">Aktif</SelectItem>
+                                <SelectItem value="Lulus">Lulus</SelectItem>
+                                <SelectItem value="Keluar">Keluar</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

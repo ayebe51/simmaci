@@ -64,12 +64,14 @@ export default defineSchema({
     photoId: v.optional(v.any()),
     isVerified: v.optional(v.any()),
     qrCode: v.optional(v.any()),
+    status: v.optional(v.string()), // Aktif, Lulus, Keluar
     createdAt: v.any(),
     updatedAt: v.any(),
   })
     .index("by_nisn", ["nisn"])
     .index("by_school", ["namaSekolah"])
     .index("by_kecamatan", ["kecamatan"])
+    .index("by_status", ["status"])
     .searchIndex("search_students", {
       searchField: "nama",
       filterFields: ["namaSekolah", "kecamatan", "nisn"],

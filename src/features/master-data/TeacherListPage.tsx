@@ -239,7 +239,11 @@ export default function TeacherListPage() {
     if (!teacherToToggle) return
     const newStatus = !teacherToToggle.currentStatus
     try {
-      await updateTeacherMutation({ id: teacherToToggle.id as any, isActive: newStatus })
+      await updateTeacherMutation({ 
+        id: teacherToToggle.id as any, 
+        isActive: newStatus,
+        token: localStorage.getItem("token") || undefined
+      })
       toast.success(`Status Guru berhasil diubah!`)
       setToggleConfirmOpen(false)
       setTeacherToToggle(null)
@@ -320,10 +324,17 @@ export default function TeacherListPage() {
         }
         
         if (isEditMode && formData.id) {
-            await updateTeacherMutation({ id: formData.id as any, ...cleanPayload })
+            await updateTeacherMutation({ 
+                id: formData.id as any, 
+                ...cleanPayload,
+                token: localStorage.getItem("token") || undefined
+            })
             toast.success("Berhasil memperbarui data")
         } else {
-            await createTeacherMutation(cleanPayload)
+            await createTeacherMutation({
+                ...cleanPayload,
+                token: localStorage.getItem("token") || undefined
+            })
             toast.success("Berhasil menambah guru")
         }
         closeDialog()

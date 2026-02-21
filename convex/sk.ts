@@ -426,6 +426,8 @@ export const update = mutation({
     nama: v.optional(v.string()),
     jabatan: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
+    token: v.optional(v.string()),
+    schoolId: v.optional(v.any()), // Relax for legacy support
     tanggalPenetapan: v.optional(v.string()),
     status: v.optional(v.string()),
     fileUrl: v.optional(v.string()),

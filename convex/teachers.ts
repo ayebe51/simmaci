@@ -338,90 +338,86 @@ export const create = mutation({
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.any()),
     token: v.optional(v.string()), // Auth Token
-    schoolId: v.optional(v.id("schools")), // Optional direct set for Super Admin
+    schoolId: v.optional(v.any()), // Allow legacy/string during edit, will be sanitized
     suratPermohonanUrl: v.optional(v.string()), // New: Support Google Drive URL
   },
   handler: async (ctx, args) => {
     try {
-        console.log("Mutation teachers:create called with args:", args);
+        console.log("Mutation teachers:create START");
         
+        // 🔥 SANITIZE: Destructure ALL fields to ensure ONLY valid schema fields remain in cleanArgs
+        const { 
+            token, tanggallahir, tempatlahir,
+            schoolId: inputSchoolId, 
+            ...cleanArgs 
+        } = args;
+
         // RBAC CHECK
-        const user = await validateWriteAccess(ctx, args.unitKerja, undefined, args.token);
+        const user = await validateWriteAccess(ctx, cleanArgs.unitKerja, undefined, token);
         console.log("User validated:", user?.name, user?.role);
         
-        // For Operators, FORCE unitKerja to match their account (Double Safety)
-        const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
-        
-        // NEW: Force schoolId if user has it, and sanitize to undefined if empty
-        let finalSchoolId = user.role === 'operator' ? user.schoolId : (args as any).schoolId; 
+        // RESOLVE IDS & SCOPE
+        const finalUnit = user.role === 'operator' ? user.unit : cleanArgs.unitKerja;
+        let finalSchoolId = user.role === 'operator' ? user.schoolId : inputSchoolId; 
         if (finalSchoolId === "") finalSchoolId = undefined;
         
-        // ... (rest of the logic remains similar but simplified error handling)
-        
         const now = Date.now();
-        
-        // Check for duplicate NUPTK
+
+        // 1. DUPLICATE CHECK: Search by NUPTK
         let existing = await ctx.db
           .query("teachers")
-          .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
+          .withIndex("by_nuptk", (q) => q.eq("nuptk", cleanArgs.nuptk))
           .first();
 
-        // FALLBACK: If Not Found by NUPTK, Check by Name + Unit (Fuzzy Match)
-        // Only if NUPTK is likely invalid/placeholder or strictly to prevent double-entry of same name in same unit
-        if (!existing) {
-             // 1. Check if NUPTK is "dummy" (optional, but good practice). For now, always check name collision in unit.
+        // 2. FUZZY DUPLICATE CHECK: Search by Name + Unit
+        if (!existing && cleanArgs.nama && finalUnit) {
              const candidates = await ctx.db
                 .query("teachers")
                 .withIndex("by_unit", (q) => q.eq("unitKerja", finalUnit))
                 .collect();
              
-             // Fuzzy Name Match
-             existing = candidates.find(t => t.nama.trim().toLowerCase() === args.nama.trim().toLowerCase()) || null;
-             
-             if (existing) {
-                 console.log(`[Duplicate Check] Found by Name+Unit: ${existing.nama} (${finalUnit})`);
-             }
+             existing = candidates.find(t => 
+                t.nama.trim().toLowerCase() === cleanArgs.nama.trim().toLowerCase()
+             ) || null;
         }
-        
-        // Destructure token and legacy fields out of args so they're not written to DB
-                const { token, tanggallahir, tempatlahir, id: _id, ...cleanProps } = args;
+
+        // PREPARE FINAL PAYLOAD
+        const finalPayload: any = {
+            ...cleanArgs,
+            unitKerja: finalUnit,
+            schoolId: finalSchoolId,
+            isActive: cleanArgs.isActive ?? true,
+            updatedAt: now,
+        };
+
+        // Legacy Mapping
+        if (tanggallahir) finalPayload.tanggalLahir = tanggallahir;
+        if (tempatlahir) finalPayload.tempatLahir = tempatlahir;
 
         if (existing) {
-          console.log("Existing teacher found:", existing._id);
-          // RBAC CHECK FOR UPDATE
-          if (user.role === 'operator' && existing.unitKerja !== user.unit) {
-              throw new ConvexError("Forbidden: NUPTK terdaftar di sekolah lain.");
-          }
+            console.log(`[Upsert] Updating existing teacher: ${existing._id}`);
+            // RBAC CHECK FOR UPDATE (Double safety)
+            if (user.role === 'operator' && existing.unitKerja !== user.unit && existing.schoolId !== user.schoolId) {
+                throw new ConvexError("Forbidden: NUPTK terdaftar di sekolah lain dan Anda tidak memiliki akses.");
+            }
 
-          // UPSERT LOGIC
-          console.log(`Update Existing Teacher: ${args.nama} (${args.nuptk})`);
-          await ctx.db.patch(existing._id, {
-            ...cleanProps,
-            unitKerja: finalUnit,
-            updatedAt: now,
-            isSkGenerated: false, // RESET FLAG: Ensure teacher appears in Generator Queue
-          });
-          return existing._id;
+            await ctx.db.patch(existing._id, {
+                ...finalPayload,
+                isSkGenerated: false, // Ensure they reappear in queue if data changed
+            });
+            return existing._id;
         }
-        
-        const { token: _t, tanggallahir: _tl, tempatlahir: _tpl, ...cleanInsertProps } = args;
 
-        console.log("Inserting new teacher...");
-        const newId = await ctx.db.insert("teachers", {
-          ...cleanInsertProps,
-          unitKerja: finalUnit,
-          schoolId: finalSchoolId,
-          isActive: args.isActive ?? true,
-          isSkGenerated: false, // Explicitly set to false
-          createdAt: now,
-          updatedAt: now,
+        console.log("[Upsert] Inserting new teacher...");
+        const id = await ctx.db.insert("teachers", {
+            ...finalPayload,
+            createdAt: now,
         });
-        console.log("Insert success:", newId);
-        return newId;
+        return id;
     } catch (e: any) {
         if (e instanceof ConvexError) throw e;
         console.error("FAIL in teachers:create :", e);
-        throw new ConvexError(`Server Error: ${e.message}`);
+        throw new ConvexError(`Create/Update Failed: ${e.message}`);
     }
   },
 });
@@ -449,7 +445,7 @@ export const update = mutation({
     pdpkpnu: v.optional(v.string()),
     photoId: v.optional(v.any()),
     token: v.optional(v.string()),
-    schoolId: v.optional(v.id("schools")), // Optional update
+    schoolId: v.optional(v.any()), // Allow legacy/string during edit, will be sanitized
     suratPermohonanUrl: v.optional(v.string()), // New: Support Google Drive URL
     // Support Legacy/Lowercase fields from older frontends
     tanggallahir: v.optional(v.string()), 

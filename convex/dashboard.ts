@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { determineTeacherStatus } from "./utils";
 
@@ -30,6 +30,11 @@ export const getStats = query({
     const activeSk = skDocuments.filter(sk => sk.status === 'active').length;
     const draftSk = skDocuments.filter(sk => sk.status === 'draft').length;
     
+    const emisSync = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (q) => q.eq("key", "lastEmisSync"))
+      .first();
+
     return {
       totalTeachers: activeTeachers,
       totalStudents: activeStudents,
@@ -38,7 +43,43 @@ export const getStats = query({
       activeSk,
       draftSk,
       lastUpdated: Date.now(),
+      lastEmisSync: emisSync ? emisSync.value : null,
     };
+  },
+});
+
+// Record EMIS Synchronization event
+export const recordEmisSync = mutation({
+  args: {
+    schoolCount: v.number(),
+    failureCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const key = "lastEmisSync";
+    const now = Date.now();
+    const syncData = {
+      timestamp: now,
+      schoolCount: args.schoolCount,
+      failureCount: args.failureCount,
+    };
+
+    const existing = await ctx.db
+      .query("settings")
+      .withIndex("by_key", (q) => q.eq("key", key))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        value: JSON.stringify(syncData),
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("settings", {
+        key,
+        value: JSON.stringify(syncData),
+        updatedAt: now,
+      });
+    }
   },
 });
 
@@ -351,6 +392,11 @@ export const getSchoolStats = query({
       teacherTrend,
       status: statusData,
       certification: certData,
+      lastEmisSync: await ctx.db
+        .query("settings")
+        .withIndex("by_key", (q) => q.eq("key", "lastEmisSync"))
+        .first()
+        .then(res => res ? res.value : null),
       debug: { role: user.role, unit: user.unit }
     };
   }

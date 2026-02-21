@@ -26,6 +26,7 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
     
     // 🔥 CONVEX MUTATION for bulk import
     const bulkCreateMutation = useMutation(convexApi.students.bulkCreate)
+    const recordSyncMutation = useMutation(convexApi.dashboard.recordEmisSync)
 
   // Transform Data
   const transformedData = useMemo(() => {
@@ -85,6 +86,18 @@ export function PreviewStep({ data, mapping, onBack, onFinish }: PreviewStepProp
 
           // 🔥 CALL CONVEX MUTATION
           const result = await bulkCreateMutation({ students: validData })
+          
+          // 🔥 RECORD SYNC LOG
+          try {
+              const uniqueSchools = new Set(validData.map(s => s.namaSekolah).filter(Boolean)).size;
+              await recordSyncMutation({
+                  schoolCount: uniqueSchools > 0 ? uniqueSchools : 1, // Default to 1 if not specified
+                  failureCount: invalidRows.length
+              });
+          } catch (logErr) {
+              console.error("Failed to record sync log:", logErr);
+          }
+
           toast.success(`Berhasil menyimpan ${result.count} data siswa`)
           onFinish()
       } catch (err: any) {

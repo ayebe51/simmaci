@@ -359,13 +359,31 @@ export default function DashboardPage() {
                  <CardTitle>Status Import Data EMIS</CardTitle>
              </CardHeader>
              <CardContent>
-                 <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="h-5 w-5 text-green-500"/>
-                    <span className="text-sm font-medium">Terakhir sinkronisasi: 24 Des 2025, 08:00</span>
-                 </div>
-                 <div className="rounded-md bg-muted p-4">
-                     <p className="text-xs text-muted-foreground">Data sinkronisasi mencakup 140 Sekolah. 2 Sekolah gagal impor data.</p>
-                 </div>
+                 {convexStats?.lastEmisSync ? (() => {
+                     try {
+                         const syncData = JSON.parse(convexStats.lastEmisSync);
+                         const date = new Date(syncData.timestamp).toLocaleString('id-ID', {
+                             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                         });
+                         return (
+                             <>
+                                 <div className="flex items-center gap-2 mb-4">
+                                     <CheckCircle className="h-5 w-5 text-green-500"/>
+                                     <span className="text-sm font-medium">Terakhir sinkronisasi: {date}</span>
+                                 </div>
+                                 <div className="rounded-md bg-muted p-4">
+                                     <p className="text-xs text-muted-foreground">
+                                         Data sinkronisasi mencakup {syncData.schoolCount} Sekolah. {syncData.failureCount} baris gagal impor data.
+                                     </p>
+                                 </div>
+                             </>
+                         );
+                     } catch (e) {
+                         return <p className="text-sm text-muted-foreground">Data sinkronisasi tidak valid.</p>;
+                     }
+                 })() : (
+                     <p className="text-sm text-muted-foreground">Belum ada data sinkronisasi EMIS.</p>
+                 )}
              </CardContent>
           </Card>
       </div>

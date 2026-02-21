@@ -57,6 +57,7 @@ export default function StudentListPage() {
       nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
       nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
   })
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
   
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
@@ -319,7 +320,33 @@ export default function StudentListPage() {
       }
   }
 
-  // ... (existing code)
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      try {
+          setIsUploadingPhoto(true)
+          // 1. Get Upload URL from Convex
+          const postUrl = await generateUploadUrl()
+          
+          // 2. Upload to Storage
+          const result = await fetch(postUrl, {
+              method: "POST",
+              headers: { "Content-Type": file.type },
+              body: file,
+          })
+          const { storageId } = await result.json()
+
+          // 3. Update Form State
+          setFormData(prev => ({ ...prev, photoId: storageId }))
+          toast.success("Foto berhasil diunggah!")
+      } catch (err: any) {
+          console.error("Photo upload error:", err)
+          toast.error("Gagal unggah foto: " + err.message)
+      } finally {
+          setIsUploadingPhoto(false)
+      }
+  }
 
   return (
     <div className="space-y-6">

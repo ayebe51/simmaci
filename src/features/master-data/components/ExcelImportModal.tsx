@@ -3,6 +3,7 @@ import { Button } from "../../../components/ui/button"
 import { FileSpreadsheet } from "lucide-react"
 import FileUploadStep from "../../../features/emis-import/components/FileUploadStep"
 import { useState } from "react"
+import { toast } from "sonner"
 
 interface ExcelImportModalProps {
   title: string
@@ -52,10 +53,10 @@ export default function ExcelImportModal({
             if (onImportSuccess) {
               onImportSuccess()
             }
-            window.alert("Berhasil mengimpor data!")
+            toast.success("Berhasil mengimpor data!")
         } catch(error: unknown) {
             setIsUploading(false)
-            window.alert("Gagal import: " + (error as Error).message)
+            toast.error("Gagal import: " + (error as Error).message)
         }
     } else if (onImport) {
         onImport(data)
@@ -67,7 +68,7 @@ export default function ExcelImportModal({
         if (onImportSuccess) {
           onImportSuccess()
         }
-        window.alert(`Berhasil mengimpor ${data.length} data!`)
+        toast.success(`Berhasil mengimpor ${data.length} data!`)
     }
   }
 

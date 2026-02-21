@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle } from "lucide-react"
+import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate } from "react-router-dom"
 // import StatusBadge from "@/components/shared/StatusBadge" // Replaced with inline or improved badge
@@ -23,6 +23,9 @@ import { Loader2 } from "lucide-react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,6 +110,13 @@ export default function SkDashboardPage() {
   // Selection state for batch operations
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   
+  // Modal States
+  const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false)
+  const [isActionLoading, setIsActionLoading] = useState(false)
+  
   // Combine Data based on Active Tab
   const skData: SkSubmission[] = useMemo(() => {
     // A. If Tab is "Draft" (Perlu Diproses), show Teacher Queue
@@ -185,65 +195,77 @@ export default function SkDashboardPage() {
   }
 
   // Batch actions
-  const handleBatchApprove = async () => {
+  const handleBatchApprove = () => {
     if (selectedIds.size === 0) {
-      alert("Pilih minimal satu data untuk di-approve")
+      toast.error("Pilih minimal satu data untuk di-approve")
       return
     }
-    
-    if (!confirm(`Approve ${selectedIds.size} data yang dipilih? Data akan masuk ke Generator SK.`)) return
-    
+    setIsApproveConfirmOpen(true)
+  }
+
+  const executeBatchApprove = async () => {
     try {
+        setIsActionLoading(true)
         const ids = Array.from(selectedIds) as any[]
         
         if (statusFilter === "draft") {
-            // Approve Teachers -> Verify them
              await Promise.all(ids.map(id => verifyTeacherMutation({ id })))
-             // Ideally use bulkVerifyTeachers if available
         } else {
-            // Approve SKs -> Update status
              await batchUpdateStatusMutation({ ids, status: "approved" })
         }
 
-      setSelectedIds(new Set()) // Clear selection
-      alert(`✅ Berhasil meng-approve ${selectedIds.size} data!`)
+      toast.success(`Berhasil meng-approve ${selectedIds.size} data!`, {
+          icon: <CheckCircle className="h-4 w-4 text-green-600" />
+      })
+      setSelectedIds(new Set())
+      setIsApproveConfirmOpen(false)
     } catch (error) {
       console.error("Batch approve failed:", error)
-      alert("Gagal approve data. Silakan coba lagi.")
+      toast.error("Gagal approve data. Silakan coba lagi.")
+    } finally {
+        setIsActionLoading(false)
     }
   }
   
-  const handleBatchReject = async () => {
+  const handleBatchReject = () => {
     if (selectedIds.size === 0) {
-      alert("Pilih minimal satu SK untuk di-reject")
+      toast.error("Pilih minimal satu SK untuk di-reject")
       return
     }
-    
-    const reason = prompt("Alasan penolakan (Wajib diisi):")
-    if (!reason) return 
-    
-    if (!confirm(`Tolak ${selectedIds.size} pengajuan ini?`)) return
+    setRejectionReason("")
+    setIsRejectDialogOpen(true)
+  }
+
+  const executeBatchReject = async () => {
+    if (!rejectionReason.trim()) {
+        toast.error("Alasan penolakan wajib diisi")
+        return
+    }
     
     try {
+      setIsActionLoading(true)
       const ids = Array.from(selectedIds) as any[]
       
       if (statusFilter === "draft") {
-          // Reject Teachers
-          await Promise.all(ids.map(id => rejectTeacherMutation({ id, reason })))
+          await Promise.all(ids.map(id => rejectTeacherMutation({ id, reason: rejectionReason })))
       } else {
-          // Reject SK Documents
           await batchUpdateStatusMutation({ 
             ids, 
             status: "rejected",
-            rejectionReason: reason
+            rejectionReason: rejectionReason
           })
       }
 
+      toast.success(`Berhasil menolak ${selectedIds.size} data!`, {
+          icon: <XCircle className="h-4 w-4 text-red-600" />
+      })
       setSelectedIds(new Set()) 
-      alert(`✅ Berhasil menolak ${selectedIds.size} data!`)
+      setIsRejectDialogOpen(false)
     } catch (error) {
       console.error("Batch reject failed:", error)
-      alert("Gagal reject SK. Silakan coba lagi.")
+      toast.error("Gagal reject SK. Silakan coba lagi.")
+    } finally {
+        setIsActionLoading(false)
     }
   }
 
@@ -252,13 +274,12 @@ export default function SkDashboardPage() {
 
 
   const handleReset = async () => {
-    // Logic moved to AlertDialog Action
     try {
         const result: any = await cleanSk({})
-        alert(`Berhasil membersihkan ${result.draftsDeleted} data sampah (Draft).`)
-        window.location.reload() 
+        toast.success(`Berhasil membersihkan ${result.draftsDeleted} data sampah (Draft).`)
+        // window.location.reload() // Prefer letting Convex reactivity handle it
     } catch (e) {
-        alert("Gagal reset data: " + (e as any).message)
+        toast.error("Gagal reset data: " + (e as any).message)
     }
   }
 
@@ -526,6 +547,77 @@ export default function SkDashboardPage() {
           </Button>
         </div>
       )}
+
+      {/* --- AESTHETIC DIALOGS --- */}
+
+      {/* 1. Approve Confirmation */}
+      <Dialog open={isApproveConfirmOpen} onOpenChange={setIsApproveConfirmOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <div className="flex items-center gap-3 text-green-600 mb-2">
+                      <div className="p-2 bg-green-50 rounded-full">
+                          <CheckCircle className="h-6 w-6" />
+                      </div>
+                      <DialogTitle className="text-xl font-bold">Approve Pengajuan</DialogTitle>
+                  </div>
+              </DialogHeader>
+              <div className="py-4 text-center sm:text-left">
+                  <p className="text-muted-foreground leading-relaxed">
+                      Apakah Anda yakin ingin menyetujui <span className="font-bold text-foreground inline-flex items-center px-1.5 py-0.5 rounded bg-green-50 border border-green-100">{selectedIds.size} data</span> yang dipilih? 
+                      Data ini akan dipindahkan ke antrean penerbitan SK.
+                  </p>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="ghost" onClick={() => setIsApproveConfirmOpen(false)} disabled={isActionLoading}>
+                      Batal
+                  </Button>
+                  <Button onClick={executeBatchApprove} disabled={isActionLoading} className="bg-green-600 hover:bg-green-700 gap-2">
+                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-4 w-4" />}
+                      Ya, Approve
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      {/* 2. Reject Dialog with Reason */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <div className="flex items-center gap-3 text-red-600 mb-2">
+                      <div className="p-2 bg-red-50 rounded-full">
+                          <XCircle className="h-6 w-6" />
+                      </div>
+                      <DialogTitle className="text-xl font-bold">Tolak Pengajuan</DialogTitle>
+                  </div>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed border-b pb-3">
+                      Anda akan menolak <span className="font-bold text-foreground bg-red-50 px-1 rounded">{selectedIds.size} pengajuan</span>. Mohon beri alasan penolakan agar diketahui pengaju.
+                  </p>
+                  <div className="space-y-2">
+                      <Label htmlFor="reject-reason" className="text-xs uppercase tracking-wider text-slate-500 font-bold">Alasan Penolakan</Label>
+                      <Input 
+                        id="reject-reason" 
+                        placeholder="Contoh: Dokumen tidak lengkap, NIK salah..." 
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        className="border-slate-300 focus:ring-red-500"
+                        autoFocus
+                      />
+                  </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+                  <Button variant="ghost" onClick={() => setIsRejectDialogOpen(false)} disabled={isActionLoading}>
+                      Batal
+                  </Button>
+                  <Button variant="destructive" onClick={executeBatchReject} disabled={isActionLoading || !rejectionReason.trim()} className="gap-2">
+                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XSquare className="h-4 w-4" />}
+                      Ya, Tolak Sekarang
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

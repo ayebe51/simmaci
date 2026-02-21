@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Copy, Key } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Copy, Key, AlertTriangle, Loader2 } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -148,6 +148,8 @@ export default function SchoolListPage() {
   // New Dialog States
 
   const [generateAccountSchool, setGenerateAccountSchool] = useState<School | null>(null)
+  const [isBulkAccountConfirmOpen, setIsBulkAccountConfirmOpen] = useState(false)
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
 
   // Get unique kecamatan 
   const uniqueKecamatan = [
@@ -257,11 +259,13 @@ export default function SchoolListPage() {
 
   const bulkCreateAccounts = useMutation(convexApi.schools.bulkCreateSchoolAccounts)
 
-  const handleBulkGenerate = async () => {
-      if (!confirm("Fitur ini akan membuatkan akun untuk SEMUA sekolah yang belum punya akun.\n\nPassword default: 123456\n\nLanjutkan?")) return;
+  const handleBulkGenerate = () => {
+      setIsBulkAccountConfirmOpen(true)
+  }
 
-
+  const executeBulkGenerate = async () => {
       try {
+          setIsBulkActionLoading(true)
           const results: any = await bulkCreateAccounts();
           
           // Prepare Data for Excel
@@ -299,8 +303,11 @@ export default function SchoolListPage() {
           saveAs(blob, `Akun_Sekolah_Maarif_${new Date().toISOString().split('T')[0]}.xlsx`);
           
           toast.success(`Berhasil memproses ${results.length} akun sekolah!`);
+          setIsBulkAccountConfirmOpen(false)
       } catch (e) {
           toast.error("Gagal generate akun: " + (e as Error).message);
+      } finally {
+          setIsBulkActionLoading(false)
       }
   }
 
@@ -709,14 +716,13 @@ export default function SchoolListPage() {
             }).filter((s) => s.nsm && s.nama); // Only include valid entries
 
             if (schools.length === 0 && data.length > 0) {
-                const headers = Object.keys(data[0] as any).join(", ");
-                alert(`Gagal import! Tidak ada data valid ditemukan.\n\nSistem mencari kolom: NSM, Nama Madrasah.\n\nKolom yang ditemukan di file Excel: \n${headers}`);
+                toast.error(`Gagal import! Tidak ada data valid ditemukan.`);
                 return;
             }
 
             // Use Convex bulk create
             const result = await bulkCreateSchoolMutation({ schools });
-            alert(`Berhasil mengimpor ${result.count} dari ${schools.length} sekolah`)
+            toast.success(`Berhasil mengimpor ${result.count} dari ${schools.length} sekolah`)
           } catch (error) {
             toast.error("Gagal import: " + (error as Error).message)
           }
@@ -831,6 +837,38 @@ export default function SchoolListPage() {
                 <Button onClick={() => setCredDialog({open: false})}>Tutup</Button>
             </DialogFooter>
         </DialogContent>
+      </Dialog>
+      </Dialog>
+
+      {/* Bulk Generate Account Confirmation Modal */}
+      <Dialog open={isBulkAccountConfirmOpen} onOpenChange={setIsBulkAccountConfirmOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <div className="flex items-center gap-3 text-purple-600 mb-2">
+                      <div className="p-2 bg-purple-50 rounded-full">
+                          <AlertTriangle className="h-6 w-6" />
+                      </div>
+                      <DialogTitle className="text-xl font-bold">Generate Akun Massal</DialogTitle>
+                  </div>
+              </DialogHeader>
+              <div className="py-4 text-center sm:text-left">
+                  <p className="text-muted-foreground leading-relaxed text-sm">
+                      Fitur ini akan membuatkan akun login untuk <span className="font-bold text-foreground underline decoration-purple-300">SELURUH</span> sekolah yang belum memiliki akses. 
+                  </p>
+                  <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs leading-relaxed text-slate-600 text-left">
+                      <strong>Info:</strong> Password default akan disetel ke <code className="bg-slate-200 px-1 rounded font-mono">123456</code>. Laporan data akun (Excel) akan terunduh otomatis setelah proses selesai.
+                  </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+                  <Button variant="ghost" onClick={() => setIsBulkAccountConfirmOpen(false)} disabled={isBulkActionLoading}>
+                      Batal
+                  </Button>
+                  <Button onClick={executeBulkGenerate} disabled={isBulkActionLoading} className="bg-purple-600 hover:bg-purple-700 gap-2 shadow-sm text-white">
+                      {isBulkActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4 text-purple-100" />}
+                      Lanjutkan & Generate
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
       </Dialog>
     </div>
   )

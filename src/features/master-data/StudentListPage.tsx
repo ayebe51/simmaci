@@ -517,7 +517,7 @@ export default function StudentListPage() {
                   <TableBody>
                     {paginatedStudents.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={11} className="h-24 text-center">
+                            <TableCell colSpan={13} className="h-24 text-center">
                                 {isLoading || queryStatus === "LoadingMore" ? (
                                     <div className="flex items-center justify-center gap-2">
                                         <Loader2 className="h-4 w-4 animate-spin" /> Sedang memuat data...
@@ -527,7 +527,13 @@ export default function StudentListPage() {
                         </TableRow>
                     ) : (
                         paginatedStudents.map((item) => (
-                          <TableRow key={item.id}>
+                          <TableRow key={item.id} className={selectedIds.includes(item.id) ? "bg-blue-50/30" : ""}>
+                            <TableCell>
+                              <Checkbox 
+                                checked={selectedIds.includes(item.id)}
+                                onCheckedChange={() => toggleSelect(item.id)}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{item.nisn}</TableCell>
                             <TableCell>{item.nama}</TableCell>
                             <TableCell>{item.nik || "-"}</TableCell>
@@ -543,6 +549,15 @@ export default function StudentListPage() {
                             <TableCell>{item.namaIbu || "-"}</TableCell>
                             <TableCell>{item.sekolah}</TableCell>
                             <TableCell>{item.npsn || "-"}</TableCell>
+                            <TableCell>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${
+                                    item.status === "Aktif" ? "bg-green-100 text-green-800" : 
+                                    item.status === "Lulus" ? "bg-blue-100 text-blue-800" : 
+                                    "bg-slate-100 text-slate-800"
+                                }`}>
+                                    {item.status || "Aktif"}
+                                </span>
+                            </TableCell>
                             <TableCell className="text-right space-x-2 sticky right-0 bg-background shadow-sm">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                                     setFormData(item)
@@ -593,7 +608,7 @@ export default function StudentListPage() {
           setIsAddOpen(open)
           if (!open) {
               setFormData({ 
-                  nisn: "", nama: "", kelas: "", sekolah: "", jk: "L",
+                  nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
                   nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: ""
               })
           }

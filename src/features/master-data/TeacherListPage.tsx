@@ -49,6 +49,7 @@ interface Teacher {
   tmt?: string
   pendidikanTerakhir?: string
   photoId?: Id<"_storage"> | string
+  schoolId?: Id<"schools"> | string
 }
 
 export default function TeacherListPage() {
@@ -307,6 +308,16 @@ export default function TeacherListPage() {
         addIfPresent("tmt", formData.tmt);
         if (formData.isCertified !== undefined) cleanPayload.isCertified = formData.isCertified;
         if (formData.photoId) cleanPayload.photoId = formData.photoId; 
+
+        // 🔥 SANITIZE schoolId: Never send empty string to strict v.id()
+        if (formData.schoolId && String(formData.schoolId).trim() !== "") {
+            cleanPayload.schoolId = formData.schoolId;
+        } else if ((formData as any).satminkal || formData.unitKerja) {
+             // Try to find matching schoolId from schools list if not explicitly set
+             const unitText = (formData as any).satminkal || formData.unitKerja;
+             const matched = schools.find(s => s.nama?.trim().toLowerCase() === unitText.trim().toLowerCase());
+             if (matched) cleanPayload.schoolId = matched._id;
+        }
         
         if (isEditMode && formData.id) {
             await updateTeacherMutation({ id: formData.id as any, ...cleanPayload })
@@ -435,7 +446,7 @@ export default function TeacherListPage() {
                     {paginatedTeachers.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={8} className="h-24 text-center">
-                                {isLoading || queryStatus === "LoadingMore" ? (
+                                {isLoading || (queryStatus as string) === "LoadingMore" ? (
                                     <div className="flex items-center justify-center gap-2">
                                         <Loader2 className="h-4 w-4 animate-spin" /> Sedang memuat data...
                                     </div>

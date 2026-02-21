@@ -142,28 +142,30 @@ const generateBulkSkZip = async (
     // Updated to accept full data object for complex logic
      
     const getTemplateId = (data: Teacher) => {
-        const jenis = (data.jenisSk || data.status || "").toLowerCase()
-        const jabatan = (data.jabatan || "").toLowerCase()
-        // const status = (data.statusKepegawaian || "").toLowerCase() // not reliable if undefined
-        const nip = (data.nip || "").replace(/[^0-9]/g, "")
+        try {
+            const jenis = (data.jenisSk || data.status || "").toLowerCase()
+            const jabatan = (data.jabatan || "").toLowerCase()
+            const nip = (data.nip || "").replace(/[^0-9]/g, "")
 
-        if (jenis.includes("tetap yayasan") || jenis.includes("gty")) return "sk_template_gty"
-        if (jenis.includes("tidak tetap") || jenis.includes("gtt")) return "sk_template_gtt"
-        
-        // Complex Kamad Logic
-        if (jenis.includes("kepala") || jenis.includes("kamad")) {
-             if (jabatan.includes("plt") || jabatan.includes("pelaksana")) {
-                 return "sk_template_kamad_plt"
-             }
-             // PNS Check: Valid NIP usually means PNS. 
-             // Also check statusKepegawaian if available, but NIP > 10 digits is strong signal
-             const isPns = nip.length > 10 || (data.statusKepegawaian || "").includes("PNS") || (data.statusKepegawaian || "").includes("ASN")
-             
-             if (isPns) return "sk_template_kamad_pns"
-             return "sk_template_kamad_nonpns"
+            if (jenis.includes("tetap yayasan") || jenis.includes("gty")) return "sk_template_gty"
+            if (jenis.includes("tidak tetap") || jenis.includes("gtt")) return "sk_template_gtt"
+            
+            // Complex Kamad Logic
+            if (jenis.includes("kepala") || jenis.includes("kamad")) {
+                 if (jabatan.includes("plt") || jabatan.includes("pelaksana")) {
+                     return "sk_template_kamad_plt"
+                 }
+                 const isPns = nip.length > 10 || (data.statusKepegawaian || "").includes("PNS") || (data.statusKepegawaian || "").includes("ASN")
+                 
+                 if (isPns) return "sk_template_kamad_pns"
+                 return "sk_template_kamad_nonpns"
+            }
+            
+            return "sk_template_tendik" // Default to Tendik
+        } catch (e) {
+            console.error("Error determining template ID:", e);
+            return "sk_template_tendik";
         }
-        
-        return "sk_template_tendik" // Default to Tendik
     }
 
     let successCount = 0;
@@ -1132,7 +1134,14 @@ export default function SkGeneratorPage() {
            
            // Show Success Modal
            setSuccessCount(res.successCount)
+           
+           if (res.errorCount > 0) {
+               toast.warning(`Selesai dengan ${res.errorCount} kesalahan. Cek log konsol atau coba lagi untuk data yang gagal.`)
+           }
+           
            setShowSuccessModal(true)
+       } else if (res.errorCount > 0) {
+           toast.error(`Gagal membuat dokumen: ${res.errors[0]}`)
        }
        
        setIsGenerating(false)

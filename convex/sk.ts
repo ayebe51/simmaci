@@ -229,7 +229,15 @@ async function resolveSchoolId(ctx: any, unitKerja?: string) {
         
     if (school) return school._id;
 
-    // 2. Try match by NSM (if unitKerja is NSM)
+    // 2. Try fuzzy match (case-insensitive, trimmed)
+    const allSchools = await ctx.db.query("schools").collect();
+    const normalizedTarget = unitKerja.trim().toLowerCase();
+    const fuzzyMatch = allSchools.find((s: any) => 
+        s.nama?.trim().toLowerCase() === normalizedTarget
+    );
+    if (fuzzyMatch) return fuzzyMatch._id;
+
+    // 3. Try match by NSM (if unitKerja is NSM)
     if (/^\d+$/.test(unitKerja)) {
          const byNsm = await ctx.db
             .query("schools")
@@ -238,6 +246,7 @@ async function resolveSchoolId(ctx: any, unitKerja?: string) {
          if (byNsm) return byNsm._id;
     }
     
+    console.warn(`[resolveSchoolId] Failed to resolve school for: "${unitKerja}"`);
     return undefined;
 }
 

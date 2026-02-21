@@ -353,8 +353,10 @@ export const create = mutation({
         
         // For Operators, FORCE unitKerja to match their account (Double Safety)
         const finalUnit = user.role === 'operator' ? user.unit : args.unitKerja;
-        // NEW: Force schoolId if user has it
-        const finalSchoolId = user.role === 'operator' ? user.schoolId : (args as any).schoolId; 
+        
+        // NEW: Force schoolId if user has it, and sanitize to undefined if empty
+        let finalSchoolId = user.role === 'operator' ? user.schoolId : (args as any).schoolId; 
+        if (finalSchoolId === "") finalSchoolId = undefined;
         
         // ... (rest of the logic remains similar but simplified error handling)
         
@@ -467,6 +469,9 @@ export const update = mutation({
         const finalUpdates: any = { ...updates };
         if ((args as any).tanggallahir) finalUpdates.tanggalLahir = (args as any).tanggallahir;
         if ((args as any).tempatlahir) finalUpdates.tempatLahir = (args as any).tempatlahir;
+
+        // 🔥 SANITIZE: Never allow empty string for ID fields
+        if (finalUpdates.schoolId === "") delete finalUpdates.schoolId;
 
         console.log("1. Validating Write Access...");
         console.log("   - Unit:", finalUpdates.unitKerja);

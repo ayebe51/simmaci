@@ -471,6 +471,7 @@ export default function StudentListPage() {
                 >
                   Batal
                 </Button>
+              </div>
             )}
           </div>
           <CardHeader className="pb-3" />

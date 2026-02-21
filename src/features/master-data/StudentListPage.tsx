@@ -10,7 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Loader2, Camera } from "lucide-react"
+import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Loader2, Camera, CheckSquare, GraduationCap } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
@@ -60,6 +61,8 @@ export default function StudentListPage() {
       nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
   })
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
 
   
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
@@ -120,6 +123,7 @@ export default function StudentListPage() {
   // Convex mutations
   const deleteStudentMutation = useMutation(convexApi.students.remove)
   const bulkCreateStudentMutation = useMutation(convexApi.students.bulkCreate)
+  const bulkUpdateStatusMutation = useMutation(convexApi.students.bulkUpdateStatus)
 
   // Delete confirmation modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -199,6 +203,43 @@ export default function StudentListPage() {
           return <ArrowUpDown className="ml-2 h-4 w-4" />
       }
       return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+  }
+
+  const handleBulkGraduate = async () => {
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Yakin ingin meluluskan ${selectedIds.length} siswa terpilih?`)) {
+      return;
+    }
+
+    try {
+      setIsBulkActionLoading(true);
+      await bulkUpdateStatusMutation({
+        ids: selectedIds as any[],
+        status: "Lulus"
+      });
+      toast.success(`Berhasil meluluskan ${selectedIds.length} siswa!`);
+      setSelectedIds([]);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Gagal meluluskan siswa secara massal.");
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === paginatedStudents.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(paginatedStudents.map(s => s.id));
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
   }
   
   // ... (existing code)
@@ -382,15 +423,17 @@ export default function StudentListPage() {
       />
 
       <Card>
-        <CardHeader className="pb-3">
-             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari nama, NISN, atau sekolah..."
-                className="pl-9 max-w-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between px-4 py-3 border-b bg-slate-50/50">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 min-w-[300px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Cari nama, NISN, atau sekolah..."
+                  className="pl-9"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Status" />
@@ -403,12 +446,45 @@ export default function StudentListPage() {
                 </SelectContent>
               </Select>
             </div>
-        </CardHeader>
+
+            {selectedIds.length > 0 && (
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-top-1">
+                <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                  {selectedIds.length} Siswa Terpilih
+                </span>
+                <div className="h-4 w-px bg-blue-200 mx-1" />
+                <Button 
+                  variant="blue" 
+                  size="sm" 
+                  className="h-8 gap-2"
+                  onClick={handleBulkGraduate}
+                  disabled={isBulkActionLoading}
+                >
+                  {isBulkActionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GraduationCap className="h-3.5 w-3.5" />}
+                  Luluskan Terpilih
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                  onClick={() => setSelectedIds([])}
+                >
+                  Batal
+                </Button>
+            )}
+          </div>
+          <CardHeader className="pb-3" />
         <CardContent>
                 <div className="overflow-x-auto">
                 <Table className="min-w-[1200px]">
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox 
+                          checked={selectedIds.length > 0 && selectedIds.length === paginatedStudents.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead onClick={() => requestSort('nisn')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[120px]">
                           <div className="flex items-center">NISN {getSortIcon('nisn')}</div>
                       </TableHead>

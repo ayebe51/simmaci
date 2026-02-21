@@ -275,6 +275,24 @@ export const bulkCreate = mutation({
   },
 });
 
+// Bulk update student status
+export const bulkUpdateStatus = mutation({
+  args: {
+    ids: v.array(v.id("students")),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const id of args.ids) {
+      await ctx.db.patch(id, {
+        status: args.status,
+        updatedAt: now,
+      });
+    }
+    return args.ids.length;
+  },
+});
+
 // Get student count by filters
 export const count = query({
   args: {

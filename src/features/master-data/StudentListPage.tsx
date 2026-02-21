@@ -821,6 +821,41 @@ export default function StudentListPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Graduation Confirmation Modal */}
+      <Dialog open={isBulkConfirmOpen} onOpenChange={setIsBulkConfirmOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                  <div className="flex items-center gap-3 text-blue-600 mb-2">
+                      <div className="p-2 bg-blue-50 rounded-full">
+                          <AlertTriangle className="h-6 w-6" />
+                      </div>
+                      <DialogTitle className="text-xl font-bold">Luluskan Siswa</DialogTitle>
+                  </div>
+              </DialogHeader>
+              <div className="py-4">
+                  <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                          Apakah Anda yakin ingin meluluskan <span className="font-bold text-foreground inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100">{selectedIds.length} siswa</span> yang telah dipilih?
+                      </p>
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <p className="text-xs text-amber-800 leading-normal">
+                              <strong>Catatan:</strong> Status siswa akan dirubah menjadi <strong>"Lulus"</strong>. Pastikan data yang Anda pilih sudah benar sebelum melanjutkan.
+                          </p>
+                      </div>
+                  </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
+                  <Button variant="ghost" onClick={() => setIsBulkConfirmOpen(false)} disabled={isBulkActionLoading} className="text-slate-600">
+                      Batal
+                  </Button>
+                  <Button variant="blue" onClick={executeBulkGraduate} disabled={isBulkActionLoading} className="gap-2 shadow-sm">
+                      {isBulkActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GraduationCap className="h-4 w-4" />}
+                      Ya, Luluskan Sekarang
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
     </div>
   )
 }

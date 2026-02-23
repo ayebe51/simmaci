@@ -210,34 +210,53 @@ export const update = mutation({
         const { id, ...updates } = args;
 
         if (!id) {
-          throw new ConvexError("ID Siswa wajib disertakan");
+          throw new ConvexError("ID Siswa (id) wajib disertakan");
         }
         
         const existing = await ctx.db.get(id as any);
         if (!existing) {
-          throw new ConvexError("Data siswa tidak ditemukan");
+          throw new ConvexError(`Data siswa dengan ID ${id} tidak ditemukan`);
         }
         
-        // Normalize Jenis Kelamin (L/P)
-        if (updates.jenisKelamin) {
-            if (updates.jenisKelamin === "Laki-laki") updates.jenisKelamin = "L";
-            if (updates.jenisKelamin === "Perempuan") updates.jenisKelamin = "P";
+        // Define allowed fields for schema safety
+        const allowedFields = [
+          "nisn", "nik", "nama", "nomorIndukMaarif", "jenisKelamin", 
+          "tempatLahir", "tanggalLahir", "namaAyah", "namaIbu", "alamat", 
+          "kecamatan", "namaSekolah", "npsn", "kelas", "nomorTelepon", 
+          "namaWali", "photoId", "status", "isVerified", "qrCode"
+        ];
+
+        // 1. Build sanitized patch
+        const patch: any = { updatedAt: Date.now() };
+        
+        for (const field of allowedFields) {
+            if (updates[field] !== undefined) {
+                let val = updates[field];
+                
+                // Normalization Logic
+                if (field === 'jenisKelamin') {
+                    if (val === "Laki-laki") val = "L";
+                    if (val === "Perempuan") val = "P";
+                }
+                if (field === 'nisn' || field === 'nama') {
+                    if (val !== null && val !== undefined) val = String(val).trim();
+                }
+                if (field === 'status') {
+                    val = val || "Aktif";
+                }
+                
+                patch[field] = val;
+            }
         }
 
-        // Explicitly cast NISN and Nama to string if they exist
-        if (updates.nisn !== undefined) updates.nisn = String(updates.nisn);
-        if (updates.nama !== undefined) updates.nama = String(updates.nama);
-
-        await ctx.db.patch(existing._id, {
-          ...updates,
-          updatedAt: Date.now(),
-        });
+        console.log(`[Mutation] Patching student ${id}:`, JSON.stringify(patch));
+        await ctx.db.patch(existing._id, patch);
         
-        return id;
+        return existing._id;
     } catch (e: any) {
         if (e instanceof ConvexError) throw e;
-        console.error("Failed to update student:", e);
-        throw new ConvexError(e.message || "Gagal memperbarui data siswa");
+        console.error("CRITICAL FAIL in students:update :", e);
+        throw new ConvexError(e.message || "Gagal memperbarui data siswa. Terjadi kesalahan internal.");
     }
   },
 });

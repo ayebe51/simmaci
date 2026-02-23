@@ -125,9 +125,9 @@ export const getByNisn = query({
 // Create new student
 export const create = mutation({
   args: {
-    nisn: v.string(),
-    nik: v.optional(v.string()),
-    nama: v.string(),
+    nisn: v.any(),
+    nama: v.any(),
+    nik: v.optional(v.any()),
     nomorIndukMaarif: v.optional(v.any()),
     jenisKelamin: v.optional(v.any()),
     tempatLahir: v.optional(v.any()),
@@ -143,6 +143,8 @@ export const create = mutation({
     namaWali: v.optional(v.any()),
     photoId: v.optional(v.any()),
     status: v.optional(v.any()),
+    isVerified: v.optional(v.any()),
+    qrCode: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     try {
@@ -181,10 +183,10 @@ export const create = mutation({
 // Update student
 export const update = mutation({
   args: {
-    id: v.id("students"),
-    nisn: v.optional(v.string()),
-    nik: v.optional(v.string()),
-    nama: v.optional(v.string()),
+    id: v.any(),
+    nisn: v.optional(v.any()),
+    nik: v.optional(v.any()),
+    nama: v.optional(v.any()),
     npsn: v.optional(v.any()),
     nomorIndukMaarif: v.optional(v.any()),
     jenisKelamin: v.optional(v.any()),
@@ -207,7 +209,11 @@ export const update = mutation({
     try {
         const { id, ...updates } = args;
 
-        const existing = await ctx.db.get(id);
+        if (!id) {
+          throw new ConvexError("ID Siswa wajib disertakan");
+        }
+        
+        const existing = await ctx.db.get(id as any);
         if (!existing) {
           throw new ConvexError("Data siswa tidak ditemukan");
         }
@@ -218,7 +224,11 @@ export const update = mutation({
             if (updates.jenisKelamin === "Perempuan") updates.jenisKelamin = "P";
         }
 
-        await ctx.db.patch(id, {
+        // Explicitly cast NISN and Nama to string if they exist
+        if (updates.nisn !== undefined) updates.nisn = String(updates.nisn);
+        if (updates.nama !== undefined) updates.nama = String(updates.nama);
+
+        await ctx.db.patch(existing._id, {
           ...updates,
           updatedAt: Date.now(),
         });
@@ -244,23 +254,24 @@ export const remove = mutation({
 export const bulkCreate = mutation({
   args: {
     students: v.array(v.object({
-      nisn: v.string(),
-      nik: v.optional(v.string()),
-      nama: v.string(),
-      nomorIndukMaarif: v.optional(v.string()),
-      jenisKelamin: v.optional(v.string()),
-      tempatLahir: v.optional(v.string()),
-      tanggalLahir: v.optional(v.string()),
-      namaAyah: v.optional(v.string()),
-      namaIbu: v.optional(v.string()),
-      alamat: v.optional(v.string()),
-      kecamatan: v.optional(v.string()),
-      namaSekolah: v.optional(v.string()),
-      npsn: v.optional(v.string()),
-      kelas: v.optional(v.string()),
-      nomorTelepon: v.optional(v.string()),
-      namaWali: v.optional(v.string()),
-      status: v.optional(v.string()),
+      nisn: v.any(),
+      nama: v.any(),
+      nik: v.optional(v.any()),
+      nomorIndukMaarif: v.optional(v.any()),
+      jenisKelamin: v.optional(v.any()),
+      tempatLahir: v.optional(v.any()),
+      tanggalLahir: v.optional(v.any()),
+      namaAyah: v.optional(v.any()),
+      namaIbu: v.optional(v.any()),
+      alamat: v.optional(v.any()),
+      kecamatan: v.optional(v.any()),
+      namaSekolah: v.optional(v.any()),
+      npsn: v.optional(v.any()),
+      kelas: v.optional(v.any()),
+      nomorTelepon: v.optional(v.any()),
+      namaWali: v.optional(v.any()),
+      photoId: v.optional(v.any()),
+      status: v.optional(v.any()),
     })),
   },
   handler: async (ctx, args) => {
@@ -319,13 +330,16 @@ export const count = query({
     namaSekolah: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    let students = await ctx.db.query("students").collect();
-    
-    if (args.namaSekolah) {
-      students = students.filter(s => s.namaSekolah === args.namaSekolah);
+    if (args.namaSekolah && args.namaSekolah !== "all") {
+      const results = await ctx.db
+        .query("students")
+        .withIndex("by_school", (idx) => idx.eq("namaSekolah", args.namaSekolah!))
+        .collect();
+      return results.length;
     }
     
-    return students.length;
+    const results = await ctx.db.query("students").collect();
+    return results.length;
   },
 });
 

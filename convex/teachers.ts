@@ -377,9 +377,12 @@ export const create = mutation({
                 .collect();
              
              existing = candidates.find(t => 
-                t.nama.trim().toLowerCase() === cleanArgs.nama.trim().toLowerCase()
+                t.nama.trim().toUpperCase() === cleanArgs.nama.trim().toUpperCase()
              ) || null;
         }
+
+        // 🔥 NORMALIZE: Ensure Nama is ALWAYS UPPERCASE
+        if (cleanArgs.nama) cleanArgs.nama = cleanArgs.nama.trim().toUpperCase();
 
         // PREPARE FINAL PAYLOAD
         const finalPayload: any = {
@@ -480,8 +483,11 @@ export const update = mutation({
 
         // LEGACY MAPPING: Handle lowercase fields
                 const finalUpdates: any = { ...cleanUpdates };
-        if (tanggallahir) finalUpdates.tanggalLahir = tanggallahir;
+        if (tempatlahir) finalUpdates.tanggalLahir = tanggallahir;
         if (tempatlahir) finalUpdates.tempatLahir = tempatlahir;
+
+        // 🔥 NORMALIZE: Ensure Nama is ALWAYS UPPERCASE
+        if (finalUpdates.nama) finalUpdates.nama = finalUpdates.nama.trim().toUpperCase();
 
         // 🔥 SANITIZE: Never allow empty string for ID fields
         if (finalUpdates.schoolId === "") delete finalUpdates.schoolId;
@@ -636,7 +642,7 @@ export const bulkCreate = mutation({
              // 2. Prepare Clean Data
                           const cleanData: any = {
                  nuptk: rawNuptk,
-                 nama: rawNama,
+                 nama: rawNama.toUpperCase(), // 🔥 FORCE UPPERCASE
                  updatedAt: now,
                  isSkGenerated: false,
              };

@@ -252,3 +252,26 @@ export const syncTeachersWithSchools = internalMutation({
     return { updated, skipped, failedToMatch };
   },
 });
+
+/**
+ * Migration: capitalizeExistingTeacherNames
+ * Converts ALL existing teacher names to UPPERCASE.
+ */
+export const capitalizeExistingTeacherNames = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const teachers = await ctx.db.query("teachers").collect();
+    let updated = 0;
+
+    for (const t of teachers) {
+      const upperName = (t.nama || "").trim().toUpperCase();
+      if (t.nama !== upperName) {
+        await ctx.db.patch(t._id, { nama: upperName });
+        updated++;
+      }
+    }
+
+    console.log(`MIGRATION DONE: Capitalized ${updated} teacher names.`);
+    return { updated };
+  },
+});

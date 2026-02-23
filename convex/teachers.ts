@@ -385,10 +385,29 @@ export const create = mutation({
         const finalPayload: any = {
             ...cleanArgs,
             unitKerja: finalUnit,
-            schoolId: finalSchoolId,
+            schoolId: finalSchoolId as any,
             isActive: cleanArgs.isActive ?? true,
             updatedAt: now,
         };
+
+        // 🔥 AUTO-SYNC: If unitKerja is present but schoolId is missing, attempt to find schoolId
+        if (finalPayload.unitKerja && !finalPayload.schoolId) {
+            const school = await ctx.db
+                .query("schools")
+                .filter(q => q.eq(q.field("nama"), finalPayload.unitKerja))
+                .first();
+            if (school) {
+                finalPayload.schoolId = school._id;
+            }
+        }
+
+        // 🔥 AUTO-SYNC: Always inherit kecamatan from school if schoolId is present
+        if (finalPayload.schoolId) {
+            const school = await ctx.db.get(finalPayload.schoolId);
+            if (school && school.kecamatan) {
+                finalPayload.kecamatan = school.kecamatan;
+            }
+        }
 
         // Legacy Mapping
         if (tanggallahir) finalPayload.tanggalLahir = tanggallahir;
@@ -482,6 +501,30 @@ export const update = mutation({
         }
         
         console.log("3. Patching DB...");
+        
+        // 🔥 AUTO-SYNC: If unitKerja is changing but schoolId is missing, attempt to find schoolId
+        if (finalUpdates.unitKerja && !finalUpdates.schoolId) {
+            const school = await ctx.db
+                .query("schools")
+                .filter(q => q.eq(q.field("nama"), finalUpdates.unitKerja))
+                .first();
+            if (school) {
+                finalUpdates.schoolId = school._id;
+            }
+        }
+
+        // 🔥 AUTO-SYNC: Always inherit kecamatan from school if schoolId is present or provided
+        // Check either the update payload or the current teacher record
+        const currentTeacher = await ctx.db.get(id);
+        const resolvedSchoolId = finalUpdates.schoolId || currentTeacher?.schoolId;
+        
+        if (resolvedSchoolId) {
+            const school = await ctx.db.get(resolvedSchoolId);
+            if (school && school.kecamatan) {
+                finalUpdates.kecamatan = school.kecamatan;
+            }
+        }
+
         await ctx.db.patch(id, {
           ...finalUpdates,
           updatedAt: Date.now(),

@@ -234,8 +234,8 @@ export const update = mutation({
         const patch: any = { updatedAt: Date.now() };
         
         for (const field of allowedFields) {
-            if (updates[field] !== undefined) {
-                let val = updates[field];
+            if ((updates as any)[field] !== undefined) {
+                let val = (updates as any)[field];
                 
                 // Normalization Logic
                 if (field === 'jenisKelamin') {

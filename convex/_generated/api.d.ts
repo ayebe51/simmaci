@@ -18,6 +18,7 @@ import type * as auth_helpers from "../auth_helpers.js";
 import type * as clean_teachers from "../clean_teachers.js";
 import type * as cleanup from "../cleanup.js";
 import type * as dashboard from "../dashboard.js";
+import type * as debug from "../debug.js";
 import type * as debug_env from "../debug_env.js";
 import type * as debug_find_admin from "../debug_find_admin.js";
 import type * as debug_find_email from "../debug_find_email.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   clean_teachers: typeof clean_teachers;
   cleanup: typeof cleanup;
   dashboard: typeof dashboard;
+  debug: typeof debug;
   debug_env: typeof debug_env;
   debug_find_admin: typeof debug_find_admin;
   debug_find_email: typeof debug_find_email;

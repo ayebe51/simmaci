@@ -183,7 +183,7 @@ export const create = mutation({
 // Update student
 export const update = mutation({
   args: {
-    id: v.any(),
+    id: v.id("students"),
     nisn: v.optional(v.any()),
     nik: v.optional(v.any()),
     nama: v.optional(v.any()),
@@ -206,16 +206,20 @@ export const update = mutation({
     status: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
+    const logId = await ctx.db.insert("debug_logs", {
+        action: "students:update",
+        report: `START: ${args.id}`,
+        status: "processing",
+        createdAt: Date.now()
+    });
+
     try {
         const { id, ...updates } = args;
 
-        if (!id) {
-          throw new ConvexError("ID Siswa (id) wajib disertakan");
-        }
-        
-        const existing = await ctx.db.get(id as any);
+        const existing = await ctx.db.get(id);
         if (!existing) {
-          throw new ConvexError(`Data siswa dengan ID ${id} tidak ditemukan`);
+            await ctx.db.patch(logId, { status: "not_found", report: `Student ID ${id} not found` });
+            throw new ConvexError(`Data siswa dengan ID ${id} tidak ditemukan`);
         }
         
         // Define allowed fields for schema safety
@@ -252,13 +256,23 @@ export const update = mutation({
         console.log(`[Mutation] Patching student ${id}:`, JSON.stringify(patch));
         await ctx.db.patch(existing._id, patch);
         
+        await ctx.db.patch(logId, { status: "success", report: `Patched ${id}` });
         return existing._id;
     } catch (e: any) {
-        if (e instanceof ConvexError) throw e;
         console.error("CRITICAL FAIL in students:update :", e);
+        await ctx.db.patch(logId, { status: "error", report: String(e.message || e) });
+        if (e instanceof ConvexError) throw e;
         throw new ConvexError(e.message || "Gagal memperbarui data siswa. Terjadi kesalahan internal.");
     }
   },
+});
+
+// Debug Query to see logs
+export const getDebugLogs = query({
+    args: {},
+    handler: async (ctx) => {
+        return await ctx.db.query("debug_logs").order("desc").take(10);
+    }
 });
 
 // Delete student

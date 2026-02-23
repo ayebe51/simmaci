@@ -16,7 +16,7 @@ export default function EmisImportPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-         <h1 className="text-3xl font-bold tracking-tight">Import Data EMIS</h1>
+         <h1 className="text-3xl font-bold tracking-tight">Import Data</h1>
          <p className="text-muted-foreground">Upload file export EMIS (Excel/CSV) untuk memperbarui data Sekolah, Guru, dan Siswa.</p>
       </div>
 

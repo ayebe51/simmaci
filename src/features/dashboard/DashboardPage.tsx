@@ -356,7 +356,7 @@ export default function DashboardPage() {
 
            <Card className="col-span-1">
              <CardHeader>
-                 <CardTitle>Status Import Data EMIS</CardTitle>
+                 <CardTitle>Status Import Data</CardTitle>
              </CardHeader>
              <CardContent>
                  {convexStats?.lastEmisSync ? (() => {

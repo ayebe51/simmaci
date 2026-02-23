@@ -271,7 +271,7 @@ export default function DashboardOperator() {
       <div className="mt-8">
           <Card className="max-w-md">
              <CardHeader>
-                 <CardTitle className="text-lg">Status Import Data EMIS</CardTitle>
+                 <CardTitle className="text-lg">Status Import Data</CardTitle>
              </CardHeader>
              <CardContent>
                  {stats?.lastEmisSync ? (() => {

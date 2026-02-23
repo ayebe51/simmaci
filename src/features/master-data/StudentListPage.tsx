@@ -21,7 +21,7 @@ import { api } from "@/lib/api"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import ExcelImportModal from "./components/ExcelImportModal"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation, usePaginatedQuery } from "convex/react"
+import { useQuery, useMutation, usePaginatedQuery, useAction } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 import { downloadStudentTemplate, processStudentImport } from "./student-import-utils"
 
@@ -247,6 +247,7 @@ export default function StudentListPage() {
 
   const updateStudentMutation = useMutation(convexApi.students.update);
   const generateUploadUrl = useMutation(convexApi.students.generateUploadUrl);
+  const uploadToDrive = useAction(convexApi.drive.uploadFile);
   const getPhotoUrlQuery = convexApi.students.getPhotoUrl;
 
   const handleAdd = async () => {
@@ -371,21 +372,41 @@ export default function StudentListPage() {
       const file = e.target.files?.[0]
       if (!file) return
 
+      // Validate (Max 500KB, Image)
+      if (file.size > 500 * 1024) {
+          toast.error("Ukuran foto maksimal 500KB");
+          return;
+      }
+      if (!file.type.startsWith("image/")) {
+          toast.error("Harap upload file gambar (JPG/PNG)");
+          return;
+      }
+
       try {
           setIsUploadingPhoto(true)
-          // 1. Get Upload URL from Convex
-          const postUrl = await generateUploadUrl()
           
-          // 2. Upload to Storage
-          const result = await fetch(postUrl, {
-              method: "POST",
-              headers: { "Content-Type": file.type },
-              body: file,
-          })
-          const { storageId } = await result.json()
+          // 1. Convert to Base64
+          const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(file);
+              reader.onload = () => resolve((reader.result as string).split(',')[1]);
+              reader.onerror = reject;
+          });
 
-          // 3. Update Form State
-          setFormData(prev => ({ ...prev, photoId: storageId }))
+          // 2. Upload to Google Drive via Action
+          const result: any = await uploadToDrive({
+              fileData: base64,
+              fileName: `FOTO_SISWA_${formData.nisn || Date.now()}.jpg`,
+              mimeType: file.type
+          });
+
+          if (!result || !result.success) {
+              throw new Error(result?.error || "Upload response empty");
+          }
+
+          // 3. Update Form State with Embed URL
+          const embedUrl = `https://lh3.googleusercontent.com/d/${result.id}`;
+          setFormData(prev => ({ ...prev, photoId: embedUrl }))
           toast.success("Foto berhasil diunggah!")
       } catch (err: any) {
           console.error("Photo upload error:", err)
@@ -860,6 +881,18 @@ export default function StudentListPage() {
 
 function StudentPhotoPreview({ photoId }: { photoId: string }) {
     const url = useQuery(convexApi.students.getPhotoUrl, { photoId });
-    if (!url) return <div className="animate-pulse bg-slate-100 w-full h-full" />;
-    return <img src={url} alt="Siswa" className="w-full h-full object-cover" />;
+    
+    // Normalize Preview Link if it's a Drive Link but not yet an embed link
+    const displayUrl = useMemo(() => {
+        if (photoId && photoId.startsWith("http") && photoId.includes("drive.google.com")) {
+             const match = photoId.match(/id=([a-zA-Z0-9_-]+)/) || photoId.match(/\/d\/([a-zA-Z0-9_-]+)/);
+             if (match && match[1]) {
+                 return `https://lh3.googleusercontent.com/d/${match[1]}`;
+             }
+        }
+        return url || photoId;
+    }, [url, photoId]);
+
+    if (!displayUrl && !url) return <div className="animate-pulse bg-slate-100 w-full h-full" />;
+    return <img src={displayUrl || url || ""} alt="Siswa" className="w-full h-full object-cover" />;
 }

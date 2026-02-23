@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 
 import { paginationOptsValidator } from "convex/server";
 
@@ -154,7 +154,7 @@ export const create = mutation({
         .first();
       
       if (existing) {
-        throw new Error("NISN sudah terdaftar");
+        throw new ConvexError("NISN sudah terdaftar");
       }
 
       // Normalize Jenis Kelamin (L/P)
@@ -170,8 +170,9 @@ export const create = mutation({
         updatedAt: now,
       });
     } catch (e: any) {
+      if (e instanceof ConvexError) throw e;
       console.error("Failed to create student:", e);
-      throw new Error(e.message || "Gagal membuat data siswa");
+      throw new ConvexError(e.message || "Gagal membuat data siswa");
     }
   },
 });
@@ -202,19 +203,31 @@ export const update = mutation({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
+    try {
+        const { id, ...updates } = args;
 
-    const existing = await ctx.db.get(id);
-    if (!existing) {
-      throw new Error("Data siswa tidak ditemukan");
+        const existing = await ctx.db.get(id);
+        if (!existing) {
+          throw new ConvexError("Data siswa tidak ditemukan");
+        }
+        
+        // Normalize Jenis Kelamin (L/P)
+        if (updates.jenisKelamin) {
+            if (updates.jenisKelamin === "Laki-laki") updates.jenisKelamin = "L";
+            if (updates.jenisKelamin === "Perempuan") updates.jenisKelamin = "P";
+        }
+
+        await ctx.db.patch(id, {
+          ...updates,
+          updatedAt: Date.now(),
+        });
+        
+        return id;
+    } catch (e: any) {
+        if (e instanceof ConvexError) throw e;
+        console.error("Failed to update student:", e);
+        throw new ConvexError(e.message || "Gagal memperbarui data siswa");
     }
-    
-    await ctx.db.patch(id, {
-      ...updates,
-      updatedAt: Date.now(),
-    });
-    
-    return id;
   },
 });
 
@@ -261,8 +274,14 @@ export const bulkCreate = mutation({
         .first();
       
       if (!existing) {
+        // Normalize Jenis Kelamin (L/P)
+        let jk = student.jenisKelamin;
+        if (jk === "Laki-laki") jk = "L";
+        if (jk === "Perempuan") jk = "P";
+
         const id = await ctx.db.insert("students", {
           ...student,
+          jenisKelamin: jk,
           status: student.status || "Aktif",
           createdAt: now,
           updatedAt: now,
@@ -320,12 +339,15 @@ export const getPhotoUrl = query({
   handler: async (ctx, args) => {
     if (!args.photoId) return null;
     
+    const id = args.photoId;
+    
     // If it's already a full URL or Google Drive link, return it
-    if (args.photoId.startsWith("http")) return args.photoId;
+    if (id.startsWith("http")) return id;
     
     // If it's a Convex storage ID, get the URL
     try {
-        return await ctx.storage.getUrl(args.photoId);
+        // storage IDs are usually a specific format, but we can try v.id("_storage")
+        return await ctx.storage.getUrl(id as any);
     } catch (e) {
         return null;
     }

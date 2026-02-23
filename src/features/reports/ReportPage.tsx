@@ -16,7 +16,7 @@ export default function ReportPage() {
   const generatePreview = (data: any[], type: string, unit: string) => {
       if (type === "teachers_by_unit") {
           let filtered = data
-          if (unit !== "ALL") {
+          if (unit !== "all") {
               filtered = data.filter(t => t.unitKerja === unit)
           }
           setPreviewData(filtered)

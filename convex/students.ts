@@ -335,21 +335,24 @@ export const generateUploadUrl = mutation(async (ctx) => {
 
 // 🔥 GET NORMALIZED PHOTO URL
 export const getPhotoUrl = query({
-  args: { photoId: v.optional(v.string()) },
+  args: { photoId: v.any() }, // Use any to avoid crash on null/undefined from older frontend calls
   handler: async (ctx, args) => {
-    if (!args.photoId) return null;
-    
-    const id = args.photoId;
-    
-    // If it's already a full URL or Google Drive link, return it
-    if (id.startsWith("http")) return id;
-    
-    // If it's a Convex storage ID, get the URL
     try {
-        // storage IDs are usually a specific format, but we can try v.id("_storage")
+        if (!args.photoId || typeof args.photoId !== "string") return null;
+        
+        const id = args.photoId.trim();
+        if (!id) return null;
+        
+        // If it's already a full URL or Google Drive link, return it
+        if (id.startsWith("http")) return id;
+        
+        // If it looks like it's NOT a storage ID (e.g. too short or contains weird chars), skip
+        // Convex storage IDs are usually long strings. 
+        // We'll try to get it, and if it fails, we return null instead of crashing the query.
         return await ctx.storage.getUrl(id as any);
     } catch (e) {
-        return null;
+        // console.error("getPhotoUrl Error:", e);
+        return null; // Quietly return null on invalid ID formats
     }
   },
 });

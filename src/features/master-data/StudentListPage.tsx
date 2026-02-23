@@ -880,7 +880,11 @@ export default function StudentListPage() {
 }
 
 function StudentPhotoPreview({ photoId }: { photoId: string }) {
-    const url = useQuery(convexApi.students.getPhotoUrl, { photoId });
+    // If it's a URL, we don't need to ask the backend for one
+    const isUrl = photoId && (photoId.startsWith("http") || photoId.startsWith("https"));
+    
+    // 🔥 OPTIMIZATION: Skip query if already a URL
+    const url = useQuery(convexApi.students.getPhotoUrl, isUrl ? "skip" : { photoId });
     
     // Normalize Preview Link if it's a Drive Link but not yet an embed link
     const displayUrl = useMemo(() => {
@@ -890,8 +894,8 @@ function StudentPhotoPreview({ photoId }: { photoId: string }) {
                  return `https://lh3.googleusercontent.com/d/${match[1]}`;
              }
         }
-        return url || photoId;
-    }, [url, photoId]);
+        return isUrl ? photoId : url;
+    }, [url, photoId, isUrl]);
 
     if (!displayUrl && !url) return <div className="animate-pulse bg-slate-100 w-full h-full" />;
     return <img src={displayUrl || url || ""} alt="Siswa" className="w-full h-full object-cover" />;

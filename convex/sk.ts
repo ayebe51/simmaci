@@ -259,9 +259,25 @@ export const getRevisions = query({
               .filter((q) => q.neq(q.field("revisionStatus"), undefined))
               .collect();
               
-            return revisions
+            const sortedRevisions = revisions
               .sort((a, b) => b._creationTime - a._creationTime)
               .slice(0, 100);
+              
+            // Attach teacher data so the DOCX generator has all required fields
+            const revisionsWithTeacher = await Promise.all(
+                sortedRevisions.map(async (sk) => {
+                    let teacher = null;
+                    if (sk.teacherId) {
+                        teacher = await ctx.db.get(sk.teacherId as Id<"teachers">);
+                    }
+                    return {
+                        ...sk,
+                        teacher: teacher || null,
+                    };
+                })
+            );
+            
+            return revisionsWithTeacher;
         } catch (e: any) {
             throw new Error(`DEBUG_TRACE: ${e.message}`);
         }

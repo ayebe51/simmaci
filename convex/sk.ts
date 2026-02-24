@@ -120,7 +120,22 @@ export const list = query({
             filteredQ = filteredQ.filter(q => q.eq(q.field("schoolId"), targetSchoolId));
 
             if (args.status && args.status !== "all") {
-                 filteredQ = filteredQ.filter(q => q.eq(q.field("status"), args.status));
+                 // Handle potential case differences in older data
+                 if (args.status === "approved") {
+                     filteredQ = filteredQ.filter(q => q.or(
+                         q.eq(q.field("status"), "approved"), 
+                         q.eq(q.field("status"), "Approved"),
+                         q.eq(q.field("status"), "active"),
+                         q.eq(q.field("status"), "Active")
+                     ));
+                 } else if (args.status === "rejected") {
+                     filteredQ = filteredQ.filter(q => q.or(
+                         q.eq(q.field("status"), "rejected"), 
+                         q.eq(q.field("status"), "Rejected")
+                     ));
+                 } else {
+                     filteredQ = filteredQ.filter(q => q.eq(q.field("status"), args.status));
+                 }
             } 
             if (args.jenisSk && args.jenisSk !== "all") {
                  filteredQ = filteredQ.filter(q => q.eq(q.field("jenisSk"), args.jenisSk));
@@ -133,12 +148,33 @@ export const list = query({
         let globalQ = q;
 
         if (args.status && args.status !== "all") {
-            // Priority to status index if status is provided
-            globalQ = (globalQ as any).withIndex("by_status", (q: any) => q.eq("status", args.status!));
-            if (args.jenisSk && args.jenisSk !== "all") {
-                globalQ = globalQ.filter((q: any) => q.eq(q.field("jenisSk"), args.jenisSk));
+            // Note: withIndex is strict equality. We'll use filter for safer fuzzy matching if needed, 
+            // but for Global Admin we'll try filter as well to be consistent.
+            if (args.status === "approved" || args.status === "rejected") {
+                 if (args.status === "approved") {
+                     globalQ = globalQ.filter(q => q.or(
+                         q.eq(q.field("status"), "approved"), 
+                         q.eq(q.field("status"), "Approved"),
+                         q.eq(q.field("status"), "active"),
+                         q.eq(q.field("status"), "Active")
+                     ));
+                 } else {
+                     globalQ = globalQ.filter(q => q.or(
+                         q.eq(q.field("status"), "rejected"), 
+                         q.eq(q.field("status"), "Rejected")
+                     ));
+                 }
+                 if (args.jenisSk && args.jenisSk !== "all") {
+                    globalQ = globalQ.filter((q: any) => q.eq(q.field("jenisSk"), args.jenisSk));
+                 }
+                 return await globalQ.order("desc").paginate(args.paginationOpts);
+            } else {
+                 globalQ = (globalQ as any).withIndex("by_status", (q: any) => q.eq("status", args.status!));
+                 if (args.jenisSk && args.jenisSk !== "all") {
+                    globalQ = globalQ.filter((q: any) => q.eq(q.field("jenisSk"), args.jenisSk));
+                 }
+                 return await globalQ.order("desc").paginate(args.paginationOpts);
             }
-            return await globalQ.order("desc").paginate(args.paginationOpts);
         }
 
         if (args.jenisSk && args.jenisSk !== "all") {

@@ -547,7 +547,7 @@ export default function SkDashboardPage() {
                             )}
                             
                             {/* REVISION BUTTONS */}
-                            {item.status === "approved" && item.revisionStatus !== "pending" && JSON.parse(localStorage.getItem("user") || "{}")?.role === "operator" && (
+                            {["approved", "Approved", "active", "Active"].includes(item.status) && item.revisionStatus !== "pending" && JSON.parse(localStorage.getItem("user") || "{}")?.role === "operator" && (
                                 <Button variant="outline" size="sm" className="mr-1 border-orange-200 text-orange-600 hover:bg-orange-50" onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedSkForRevision(item);

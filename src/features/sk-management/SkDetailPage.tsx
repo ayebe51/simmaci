@@ -132,7 +132,7 @@ export default function SkDetailPage() {
             <div className="flex gap-2">
                  {isIssued && (
                     <Button variant="outline" onClick={() => handleAction("revise")}>
-                        <AlertTriangle className="mr-2 h-4 w-4 text-orange-500" /> Ajukan Revisi
+                        <AlertTriangle className="mr-2 h-4 w-4 text-orange-500" /> Kembalikan ke Draft
                     </Button>
                  )}
                  {sk.fileUrl ? (
@@ -291,7 +291,7 @@ export default function SkDetailPage() {
                       </div>
                       <DialogTitle className="text-xl font-bold">
                           {pendingAction === 'approve' ? 'Setujui SK' : 
-                           pendingAction === 'reject' ? 'Tolak SK' : 'Ajukan Revisi'}
+                           pendingAction === 'reject' ? 'Tolak SK' : 'Kembalikan ke Draft'}
                       </DialogTitle>
                   </div>
               </DialogHeader>
@@ -299,7 +299,7 @@ export default function SkDetailPage() {
                   <p className="text-muted-foreground leading-relaxed">
                       Apakah Anda yakin ingin {
                           pendingAction === 'approve' ? 'menyetujui' : 
-                          pendingAction === 'reject' ? 'menolak' : 'merevisi'
+                          pendingAction === 'reject' ? 'menolak' : 'mengembalikan ke draft'
                       } dokumen SK ini? Tindakan ini akan mengubah status dokumen secara langsung.
                   </p>
               </div>

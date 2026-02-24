@@ -147,6 +147,12 @@ export default defineSchema({
     fileUrl: v.optional(v.any()),
     suratPermohonanUrl: v.optional(v.any()), 
     qrCode: v.optional(v.any()),
+    
+    // REVISION FIELDS
+    revisionStatus: v.optional(v.string()), // "pending", "rejected" 
+    revisionReason: v.optional(v.string()), 
+    revisionData: v.optional(v.string()), // JSON string of proposed changes
+
     createdBy: v.optional(v.any()), 
     archivedAt: v.optional(v.any()), 
     archivedBy: v.optional(v.any()), 

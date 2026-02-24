@@ -49,6 +49,10 @@ interface SkSubmission {
   status: StatusType
   suratPermohonanUrl?: string
   isTeacher?: boolean
+  // Revision fields
+  revisionStatus?: string
+  revisionReason?: string
+  revisionData?: string
 }
 
 export default function SkDashboardPage() {
@@ -117,6 +121,15 @@ export default function SkDashboardPage() {
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false)
   const [isActionLoading, setIsActionLoading] = useState(false)
   
+  // Revision Modal States
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false)
+  const [selectedSkForRevision, setSelectedSkForRevision] = useState<SkSubmission | null>(null)
+  const [revisionProposedData, setRevisionProposedData] = useState({ nama: "", unitKerja: "", reason: "" })
+
+  const requestRevisionMutation = useMutation(convexApi.sk.requestRevision)
+  const approveRevisionMutation = useMutation(convexApi.sk.approveRevision)
+  const rejectRevisionMutation = useMutation(convexApi.sk.rejectRevision)
+  
   // Combine Data based on Active Tab
   const skData: SkSubmission[] = useMemo(() => {
     // A. If Tab is "Draft" (Perlu Diproses), show Teacher Queue
@@ -156,7 +169,10 @@ export default function SkDashboardPage() {
       }),
       status: item.status as StatusType,
       suratPermohonanUrl: item.fileUrl,
-      isTeacher: false
+      isTeacher: false,
+      revisionStatus: item.revisionStatus,
+      revisionReason: item.revisionReason,
+      revisionData: item.revisionData
     }))
   }, [skDocuments, teacherQueue, statusFilter, searchTerm])
 
@@ -273,6 +289,57 @@ export default function SkDashboardPage() {
 
 
 
+  const handleRequestRevisionSubmit = async () => {
+    if (!selectedSkForRevision || !revisionProposedData.reason.trim()) {
+        toast.error("Alasan revisi wajib diisi");
+        return;
+    }
+    try {
+        setIsActionLoading(true);
+        const proposedDataString = JSON.stringify({
+            nama: revisionProposedData.nama || undefined,
+            unitKerja: revisionProposedData.unitKerja || undefined,
+        });
+
+        await requestRevisionMutation({
+            skId: selectedSkForRevision.id as any,
+            reason: revisionProposedData.reason,
+            proposedData: proposedDataString,
+        });
+        toast.success("Permintaan revisi berhasil diajukan");
+        setIsRevisionModalOpen(false);
+    } catch (e: any) {
+        toast.error("Gagal mengajukan revisi: " + e.message);
+    } finally {
+        setIsActionLoading(false);
+    }
+  };
+
+  const handleApproveRevisionSubmit = async (skId: string) => {
+    try {
+        setIsActionLoading(true);
+        await approveRevisionMutation({ skId: skId as any });
+        toast.success("Revisi disetujui dan data diperbarui");
+    } catch (e: any) {
+        toast.error("Gagal menyetujui revisi: " + e.message);
+    } finally {
+        setIsActionLoading(false);
+    }
+  };
+
+  const handleRejectRevisionSubmit = async (skId: string) => {
+    try {
+        setIsActionLoading(true);
+        await rejectRevisionMutation({ skId: skId as any, reason: "Ditolak Admin" });
+        toast.success("Revisi ditolak");
+    } catch (e: any) {
+        toast.error("Gagal menolak revisi: " + e.message);
+    } finally {
+        setIsActionLoading(false);
+    }
+  };
+
+
   const handleReset = async () => {
     try {
         const result: any = await cleanSk({})
@@ -296,9 +363,14 @@ export default function SkDashboardPage() {
 
   // --- UI COMPONENTS ---
 
-  const renderStatusBadge = (status: string) => {
+  const renderStatusBadge = (status: string, revisionStatus?: string) => {
+      if (revisionStatus === 'pending') {
+          return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200">Menunggu Revisi</Badge>;
+      }
       switch(status) {
           case 'approved':
+          case 'Active':
+          case 'active':
           case 'Approved':
               return <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200">Disetujui</Badge>;
           case 'rejected':
@@ -374,6 +446,8 @@ export default function SkDashboardPage() {
               <TabsTrigger value="approved">Disetujui</TabsTrigger>
               <TabsTrigger value="rejected">Ditolak</TabsTrigger>
               <TabsTrigger value="all">Semua Data</TabsTrigger>
+              {/* Note: Revision requests are shown under Approved tab with orange badge for now, 
+                  or we can add a specific filter later. Admin sees "Menunggu Revisi" */}
             </TabsList>
           </Tabs>
 
@@ -460,7 +534,7 @@ export default function SkDashboardPage() {
                         <TableCell className="font-medium">{item.nama}</TableCell>
                         <TableCell>{item.nomorSurat}</TableCell>
                         <TableCell>
-                            {renderStatusBadge(item.status)} {/* IMPROVED BADGE */}
+                            {renderStatusBadge(item.status, item.revisionStatus)} {/* IMPROVED BADGE */}
                         </TableCell>
                         <TableCell className="text-right">
                             {item.suratPermohonanUrl && (
@@ -471,6 +545,25 @@ export default function SkDashboardPage() {
                                     <FileText className="w-4 h-4" />
                                 </Button>
                             )}
+                            
+                            {/* REVISION BUTTONS */}
+                            {item.status === "approved" && item.revisionStatus !== "pending" && JSON.parse(localStorage.getItem("user") || "{}")?.role === "operator" && (
+                                <Button variant="outline" size="sm" className="mr-1 border-orange-200 text-orange-600 hover:bg-orange-50" onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSkForRevision(item);
+                                    setRevisionProposedData({ nama: item.nama, unitKerja: item.unitKerja || "", reason: "" });
+                                    setIsRevisionModalOpen(true);
+                                }}>
+                                    Ajukan Revisi
+                                </Button>
+                            )}
+                            {item.revisionStatus === "pending" && ["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
+                                <div className="inline-flex gap-1 mr-1">
+                                    <Button variant="outline" size="sm" className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100" onClick={(e) => { e.stopPropagation(); handleApproveRevisionSubmit(item.id); }} disabled={isActionLoading}>ACC Revisi</Button>
+                                    <Button variant="outline" size="sm" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100" onClick={(e) => { e.stopPropagation(); handleRejectRevisionSubmit(item.id); }} disabled={isActionLoading}>Tolak</Button>
+                                </div>
+                            )}
+
                             <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/sk/${item.id}`)}>
                                 <FileText className="h-4 w-4 mr-2" />
                                 Detail
@@ -613,6 +706,52 @@ export default function SkDashboardPage() {
                   <Button variant="destructive" onClick={executeBatchReject} disabled={isActionLoading || !rejectionReason.trim()} className="gap-2">
                       {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <XSquare className="h-4 w-4" />}
                       Ya, Tolak Sekarang
+                  </Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      {/* 3. Request Revision Modal */}
+      <Dialog open={isRevisionModalOpen} onOpenChange={setIsRevisionModalOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                  <DialogTitle>Ajukan Revisi SK</DialogTitle>
+                  <DialogDescription>
+                      Isi bagian yang ingin diperbaiki untuk SK Nomor {selectedSkForRevision?.nomorSurat}
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-nama">Perbaikan Nama</Label>
+                      <Input 
+                          id="rev-nama" 
+                          value={revisionProposedData.nama} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, nama: e.target.value})}
+                      />
+                      <p className="text-xs text-muted-foreground">Biarkan jika tidak ada perubahan nama</p>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-unit">Perbaikan Unit Kerja</Label>
+                      <Input 
+                          id="rev-unit" 
+                          value={revisionProposedData.unitKerja} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, unitKerja: e.target.value})}
+                      />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-reason" className="text-red-500">Alasan Revisi (Wajib)*</Label>
+                      <Input 
+                          id="rev-reason" 
+                          placeholder="Misal: Gelar salah ketik, seharusnya S.Pd.I"
+                          value={revisionProposedData.reason} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, reason: e.target.value})}
+                      />
+                  </div>
+              </div>
+              <DialogFooter>
+                  <Button variant="ghost" onClick={() => setIsRevisionModalOpen(false)}>Batal</Button>
+                  <Button onClick={handleRequestRevisionSubmit} disabled={isActionLoading || !revisionProposedData.reason.trim()} className="bg-orange-600 hover:bg-orange-700 text-white">
+                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Kirim Pengajuan Revisi"}
                   </Button>
               </DialogFooter>
           </DialogContent>

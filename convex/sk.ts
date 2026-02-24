@@ -639,6 +639,125 @@ export const deleteAllTeachers = mutation({
   },
 });
 
+// ==========================================
+// SK REVISION WORKFLOW (POST-APPROVAL)
+// ==========================================
+
+export const requestRevision = mutation({
+  args: {
+    skId: v.id("skDocuments"),
+    reason: v.string(),
+    proposedData: v.optional(v.string()), // JSON string of the proposed changes
+  },
+  handler: async (ctx, args) => {
+    const sk = await ctx.db.get(args.skId);
+    if (!sk) throw new Error("SK Document not found");
+    
+    // Only allow revisions on approved/active SKs
+    if (sk.status !== "approved" && sk.status !== "active") {
+        throw new Error("Hanya SK yang sudah disetujui yang dapat direvisi.");
+    }
+
+    const identity = await ctx.auth.getUserIdentity();
+
+    await ctx.db.patch(args.skId, {
+        revisionStatus: "pending",
+        revisionReason: args.reason,
+        revisionData: args.proposedData || "{}",
+    });
+
+    // Log Activity
+    await ctx.db.insert("activity_logs", {
+        user: identity?.name || "Operator",
+        role: "operator",
+        action: "Request SK Revision",
+        details: `Requested revision for SK ${sk.nomorSk}: ${args.reason}`,
+        timestamp: Date.now(),
+    });
+
+    return true;
+  }
+});
+
+export const approveRevision = mutation({
+  args: {
+    skId: v.id("skDocuments"),
+  },
+  handler: async (ctx, args) => {
+    const sk = await ctx.db.get(args.skId);
+    if (!sk) throw new Error("SK Document not found");
+    if (sk.revisionStatus !== "pending") throw new Error("Tidak ada revisi yang tertunda untuk SK ini");
+
+    const identity = await ctx.auth.getUserIdentity();
+
+    // 1. Parse the proposed changes
+    let updates: any = {};
+    if (sk.revisionData) {
+        try {
+            updates = JSON.parse(sk.revisionData);
+        } catch (e) {
+            console.error("Failed to parse revision data for SK", sk._id);
+        }
+    }
+
+    // 2. Apply updates to the Teacher record if teacherId exists
+    if (sk.teacherId && Object.keys(updates).length > 0) {
+        // Filter out fields that shouldn't be patched directly if needed
+        await ctx.db.patch(sk.teacherId as Id<"teachers">, updates);
+    }
+    
+    // 3. Update the SK Document itself to reflect the new name/unitkerja if changed
+    const skUpdates: any = {
+        revisionStatus: "approved",
+    };
+    if (updates.nama) skUpdates.nama = updates.nama;
+    if (updates.unitKerja) skUpdates.unitKerja = updates.unitKerja;
+
+    await ctx.db.patch(args.skId, skUpdates);
+
+    // 4. Log Activity
+    await ctx.db.insert("activity_logs", {
+        user: identity?.name || "Admin",
+        role: "admin",
+        action: "Approve SK Revision",
+        details: `Approved revision for SK ${sk.nomorSk} and auto-patched teacher data.`,
+        timestamp: Date.now(),
+    });
+
+    return true;
+  }
+});
+
+export const rejectRevision = mutation({
+  args: {
+    skId: v.id("skDocuments"),
+    reason: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const sk = await ctx.db.get(args.skId);
+    if (!sk) throw new Error("SK Document not found");
+    if (sk.revisionStatus !== "pending") throw new Error("Tidak ada revisi yang tertunda untuk SK ini");
+
+    const identity = await ctx.auth.getUserIdentity();
+
+    // Just mark the revision as rejected, keep the SK as approved
+    await ctx.db.patch(args.skId, {
+        revisionStatus: "rejected",
+    });
+
+    // Log Activity
+    await ctx.db.insert("activity_logs", {
+        user: identity?.name || "Admin",
+        role: "admin",
+        action: "Reject SK Revision",
+        details: `Rejected revision for SK ${sk.nomorSk}. Reason: ${args.reason || "N/A"}`,
+        timestamp: Date.now(),
+    });
+
+    return true;
+  }
+});
+
 import { validateSession } from "./auth_helpers";
 
 // ... existing imports ...

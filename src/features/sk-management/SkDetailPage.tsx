@@ -7,12 +7,51 @@ import type { StatusType } from "@/components/shared/StatusBadge"
 import { useState } from "react"
 import { Separator } from "@/components/ui/separator"
 // 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
+import { useQuery, useMutation, useConvex } from "convex/react"
+import { api as convexApi, api } from "../../../convex/_generated/api"
 import { Id } from "../../../convex/_generated/dataModel"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Loader2 } from "lucide-react"
+import { Loader2, Download } from "lucide-react"
+
+// DOCX Generation Imports
+import Docxtemplater from "docxtemplater"
+import PizZip from "pizzip"
+import ImageModule from "docxtemplater-image-module-free"
+import { saveAs } from "file-saver"
+import QRCode from "qrcode"
+
+// Helper to base64 to array buffer
+function base64DataURLToArrayBuffer(dataURL: string) {
+  const stringBase64 = dataURL.replace(/^data:image\/[a-z]+;base64,/, "");
+  let binaryString;
+  if (typeof window !== "undefined") {
+    binaryString = window.atob(stringBase64);
+  } else {
+    binaryString = new Buffer(stringBase64, "base64").toString("binary");
+  }
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+// Helper: Add 1 year to Indonesian Date String
+const addOneYearIndonesian = (dateStr: string) => {
+    if (!dateStr || dateStr === "-") return "-"
+    try {
+        const parts = dateStr.split(" ")
+        if (parts.length < 3) return dateStr
+        const year = parseInt(parts[parts.length - 1])
+        if (isNaN(year)) return dateStr
+        parts[parts.length - 1] = (year + 1).toString()
+        return parts.join(" ")
+    } catch {
+        return dateStr
+    }
+}
 
 interface SkDetail {
   id: string
@@ -37,8 +76,9 @@ export default function SkDetailPage() {
     id ? { id: id as Id<"skDocuments"> } : "skip"
   )
   
-  // Mutations
+  // Mutations & Client
   const updateSk = useMutation(convexApi.sk.update)
+  const convex = useConvex()
   
   // ✅ CHECK ACTUAL USER ROLE from localStorage
   const [isAdmin] = useState(() => {
@@ -117,6 +157,107 @@ export default function SkDetailPage() {
       }
   }
 
+  // --- DOCX GENERATION FUNCTION ---
+  const handleDownloadDocx = async () => {
+       if (!skDoc || !sk) return;
+       setIsProcessing(true);
+       toast.info("Sedang menyiapkan file DOCX...");
+
+       try {
+           const teacherData = skDoc.teacher || {};
+           
+           // Determine Template ID
+           const jenis = (skDoc.jenisSk || skDoc.status || "").toLowerCase();
+           const jabatan = (teacherData.jabatan || "").toLowerCase();
+           const nip = (teacherData.nip || "").replace(/[^0-9]/g, "");
+           let templateId = "sk_template_tendik";
+           if (jenis.includes("tetap yayasan") || jenis.includes("gty")) templateId = "sk_template_gty";
+           else if (jenis.includes("tidak tetap") || jenis.includes("gtt")) templateId = "sk_template_gtt";
+           else if (jenis.includes("kepala") || jenis.includes("kamad")) {
+                const isPns = nip.length > 10 || (teacherData.statusKepegawaian || "").includes("PNS") || (teacherData.statusKepegawaian || "").includes("ASN");
+                if (jabatan.includes("plt") || jabatan.includes("pelaksana")) templateId = "sk_template_kamad_plt";
+                else if (isPns) templateId = "sk_template_kamad_pns";
+                else templateId = "sk_template_kamad_nonpns";
+           }
+
+           // Fetch Template (LocalStorage first, then Cloud)
+           let base64Template = localStorage.getItem(templateId + "_blob");
+           if (!base64Template) {
+               const result = await convex.query(api.settings_cloud.getContent, { key: templateId });
+               if (result && !result.startsWith("http")) {
+                    base64Template = result.includes(";base64,") ? result : "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," + result;
+               }
+           }
+
+           if (!base64Template) {
+               toast.error(`Template tidak ditemukan (ID: ${templateId}). Harap atur di menu Pengaturan terlebih dahulu.`);
+               setIsProcessing(false);
+               return;
+           }
+
+           const block = base64Template.split(";base64,");
+           const realData = block[1] ? block[1] : base64Template;
+           const content = atob(realData);
+
+           // Generate QR
+           const verificationUrl = `${window.location.origin}/verify/${skDoc._id}`;
+           const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
+
+           // Load Zip
+           const pzip = new PizZip(content);
+           const imageOpts = {
+               getImage: (tagValue: string) => base64DataURLToArrayBuffer(tagValue),
+               getSize: (img: unknown, tagValue: string, tagName: string) => [100, 100],
+           };
+           const imageModule = new ImageModule(imageOpts);
+
+           const doc = new Docxtemplater(pzip, {
+               paragraphLoop: true,
+               linebreaks: true,
+               modules: [imageModule],
+               nullGetter: () => ""
+           });
+
+           // Format Dates
+           const tmtPendidik = teacherData.tmtPendidik ? new Date(teacherData.tmtPendidik).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-";
+           const tanggalTetap = skDoc.createdAt ? new Date(skDoc.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-";
+           const tmtHabis = addOneYearIndonesian(tanggalTetap);
+           
+           const finalData = {
+                nomor_sk: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
+                nama: skDoc.nama || "-",
+                tempat_lahir: teacherData.tempatLahir || "-",
+                tanggal_lahir: teacherData.tanggalLahir ? new Date(teacherData.tanggalLahir).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+                nuptk: teacherData.nuptk || "-",
+                nip: teacherData.nip || "-",
+                unit_kerja: skDoc.unitKerja || "-",
+                tmt_pendidik: tmtPendidik,
+                jenis_sk: skDoc.jenisSk?.toUpperCase() || "-",
+                mengingat_tambahan: skDoc.jenisSk?.includes("GTY") ? "Kekurangan Guru" : "-",
+                pendidikan_terakhir: teacherData.pendidikanTerakhir || "-",
+                jurusan: teacherData.jurusan || "-",
+                tanggal_tetap: tanggalTetap,
+                tmt_habis: tmtHabis,
+                qrcode: qrDataUrl,
+           };
+
+           doc.render(finalData);
+
+           const out = doc.getZip().generate({
+               type: "blob",
+               mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+           });
+
+           saveAs(out, `SK_${finalData.nama.replace(/\s+/g, '_')}_${finalData.unit_kerja.replace(/\s+/g, '_')}.docx`);
+           toast.success("Berhasil mengunduh dokumen SK DOCX!");
+       } catch (error) {
+           console.error("Error DOCX:", error);
+           toast.error("Gagal men-generate template DOCX. Pastikan format template sudah benar.");
+       } finally {
+           setIsProcessing(false);
+       }
+  }
+
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Memuat data SK...</div>
   if (!sk) return <div className="p-8 text-center text-muted-foreground">Data SK tidak ditemukan.</div>
 
@@ -144,8 +285,13 @@ export default function SkDetailPage() {
                         <FileText className="mr-2 h-4 w-4" /> PDF Belum Tersedia
                      </Button>
                  )}
+                 {isIssued && (
+                    <Button variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100" onClick={handleDownloadDocx} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} Unduh SK (Word DOCX)
+                    </Button>
+                 )}
                  <Button variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" onClick={() => navigate(`/dashboard/sk/${id}/print`)}>
-                    <Printer className="mr-2 h-4 w-4" /> Cetak Validasi (Baru)
+                    <Printer className="mr-2 h-4 w-4" /> Cetak Web (HTML)
                  </Button>
             </div>
        </div>

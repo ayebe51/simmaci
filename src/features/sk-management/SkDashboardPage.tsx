@@ -124,7 +124,16 @@ export default function SkDashboardPage() {
   // Revision Modal States
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false)
   const [selectedSkForRevision, setSelectedSkForRevision] = useState<SkSubmission | null>(null)
-  const [revisionProposedData, setRevisionProposedData] = useState({ nama: "", unitKerja: "", tmtPendidik: "", reason: "" })
+  const [revisionProposedData, setRevisionProposedData] = useState({ 
+      nama: "", 
+      tempatLahir: "",
+      tanggalLahir: "",
+      nip: "",
+      pendidikanTerakhir: "",
+      unitKerja: "", 
+      tmtPendidik: "", 
+      reason: "" 
+  })
 
   const requestRevisionMutation = useMutation(convexApi.sk.requestRevision)
   const approveRevisionMutation = useMutation(convexApi.sk.approveRevision)
@@ -298,6 +307,10 @@ export default function SkDashboardPage() {
         setIsActionLoading(true);
         const proposedDataString = JSON.stringify({
             nama: revisionProposedData.nama || undefined,
+            tempatLahir: revisionProposedData.tempatLahir || undefined,
+            tanggalLahir: revisionProposedData.tanggalLahir || undefined,
+            nip: revisionProposedData.nip || undefined,
+            pendidikanTerakhir: revisionProposedData.pendidikanTerakhir || undefined,
             unitKerja: revisionProposedData.unitKerja || undefined,
             tmtPendidik: revisionProposedData.tmtPendidik || undefined,
         });
@@ -552,7 +565,16 @@ export default function SkDashboardPage() {
                                 <Button variant="outline" size="sm" className="mr-1 border-orange-200 text-orange-600 hover:bg-orange-50" onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedSkForRevision(item);
-                                    setRevisionProposedData({ nama: item.nama, unitKerja: item.unitKerja || "", tmtPendidik: "", reason: "" });
+                                    setRevisionProposedData({ 
+                                        nama: item.nama, 
+                                        tempatLahir: "",
+                                        tanggalLahir: "",
+                                        nip: "",
+                                        pendidikanTerakhir: "",
+                                        unitKerja: item.unitKerja || "", 
+                                        tmtPendidik: "", 
+                                        reason: "" 
+                                    });
                                     setIsRevisionModalOpen(true);
                                 }}>
                                     Ajukan Revisi
@@ -721,7 +743,7 @@ export default function SkDashboardPage() {
                       Isi bagian yang ingin diperbaiki untuk SK Nomor {selectedSkForRevision?.nomorSurat}
                   </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
                   <div className="space-y-2">
                       <Label htmlFor="rev-nama">Perbaikan Nama</Label>
                       <Input 
@@ -729,7 +751,42 @@ export default function SkDashboardPage() {
                           value={revisionProposedData.nama} 
                           onChange={(e) => setRevisionProposedData({...revisionProposedData, nama: e.target.value})}
                       />
-                      <p className="text-xs text-muted-foreground">Biarkan jika tidak ada perubahan nama</p>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-tempat">Perbaikan Tempat Lahir</Label>
+                      <Input 
+                          id="rev-tempat" 
+                          placeholder="Misal: Cilacap"
+                          value={revisionProposedData.tempatLahir} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, tempatLahir: e.target.value})}
+                      />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-tgllahir">Perbaikan Tanggal Lahir</Label>
+                      <Input 
+                          id="rev-tgllahir" 
+                          type="date"
+                          value={revisionProposedData.tanggalLahir} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, tanggalLahir: e.target.value})}
+                      />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-nip">Perbaikan NIY / NIP</Label>
+                      <Input 
+                          id="rev-nip" 
+                          placeholder="Masukkan NIY atau NIP"
+                          value={revisionProposedData.nip} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, nip: e.target.value})}
+                      />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-pendidikan">Perbaikan Pendidikan Terakhir</Label>
+                      <Input 
+                          id="rev-pendidikan" 
+                          placeholder="Misal: S1 Pendidikan Agama Islam"
+                          value={revisionProposedData.pendidikanTerakhir} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, pendidikanTerakhir: e.target.value})}
+                      />
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="rev-unit">Perbaikan Unit Kerja</Label>

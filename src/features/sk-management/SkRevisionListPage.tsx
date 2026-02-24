@@ -13,15 +13,42 @@ import { Search, FileEdit, CheckCircle, XCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useState, useMemo } from "react"
 import { useQuery, useMutation } from "convex/react"
-import { Loader2 } from "lucide-react"
-import { api as convexApi } from "../../../convex/_generated/api"
+import { Loader2, Download } from "lucide-react"
+import { api as convexApi, api } from "../../../convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import { useConvex } from "convex/react"
+
+// DOCX Generation Imports
+import Docxtemplater from "docxtemplater"
+import PizZip from "pizzip"
+import ImageModule from "docxtemplater-image-module-free"
+import { saveAs } from "file-saver"
+import QRCode from "qrcode"
+
+// Helper to base64 to array buffer
+function base64DataURLToArrayBuffer(dataURL: string) {
+  const stringBase64 = dataURL.replace(/^data:image\/[a-z]+;base64,/, "");
+  let binaryString;
+  if (typeof window !== "undefined") {
+    binaryString = window.atob(stringBase64);
+  } else {
+    // @ts-ignore
+    binaryString = new Buffer(stringBase64, "base64").toString("binary");
+  }
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
 
 export default function SkRevisionListPage() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState("")
   const [isActionLoading, setIsActionLoading] = useState(false)
+  const convex = useConvex(); // For fetching templates
   
   // Use the new getRevisions query
   const revisionsList = useQuery(convexApi.sk.getRevisions)
@@ -51,6 +78,126 @@ export default function SkRevisionListPage() {
         setIsActionLoading(false);
     }
   };
+
+  // --- DOCX GENERATION FUNCTION ---
+  const handleDownloadDocx = async (skDoc: any) => {
+       if (!skDoc) return;
+       setIsActionLoading(true);
+       toast.info("Sedang menyiapkan file DOCX...");
+
+       try {
+           const teacherData: any = skDoc.teacher || {};
+           
+           // Determine Template ID
+           const jenis = (skDoc.jenisSk || skDoc.status || "").toLowerCase();
+           const jabatan = (teacherData.jabatan || "").toLowerCase();
+           const nip = (teacherData.nip || "").replace(/[^0-9]/g, "");
+           let templateId = "sk_template_tendik";
+           if (jenis.includes("tetap yayasan") || jenis.includes("gty")) templateId = "sk_template_gty";
+           else if (jenis.includes("tidak tetap") || jenis.includes("gtt")) templateId = "sk_template_gtt";
+           else if (jenis.includes("kepala") || jenis.includes("kamad")) {
+                const isPns = nip.length > 10 || (teacherData.statusKepegawaian || "").includes("PNS") || (teacherData.statusKepegawaian || "").includes("ASN");
+                if (jabatan.includes("plt") || jabatan.includes("pelaksana")) templateId = "sk_template_kamad_plt";
+                else if (isPns) templateId = "sk_template_kamad_pns";
+                else templateId = "sk_template_kamad_nonpns";
+           }
+
+           // Fetch Template (LocalStorage first, then Cloud)
+           let base64Template = localStorage.getItem(templateId + "_blob");
+           if (!base64Template) {
+               const result = await convex.query(api.settings_cloud.getContent, { key: templateId });
+               if (result && !result.startsWith("http")) {
+                    base64Template = result.includes(";base64,") ? result : "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," + result;
+               }
+           }
+
+           if (!base64Template) {
+               toast.error(`Template tidak ditemukan (ID: ${templateId}). Harap atur di menu Pengaturan terlebih dahulu.`);
+               setIsActionLoading(false);
+               return;
+           }
+
+           const block = base64Template.split(";base64,");
+           const realData = block[1] ? block[1] : base64Template;
+           const content = atob(realData);
+
+           // Generate QR
+           const verificationUrl = `${window.location.origin}/verify/${skDoc._id}`;
+           const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
+
+           // Load Zip
+           const pzip = new PizZip(content);
+           const imageOpts = {
+               getImage: (tagValue: string) => base64DataURLToArrayBuffer(tagValue),
+               getSize: (img: unknown, tagValue: string, tagName: string) => [100, 100],
+           };
+           const imageModule = new ImageModule(imageOpts);
+
+           const doc = new Docxtemplater(pzip, {
+               paragraphLoop: true,
+               linebreaks: true,
+               modules: [imageModule],
+               nullGetter: () => ""
+           });
+
+           // Align variables exactly with SkGeneratorPage
+           const renderData: any = {
+               ...skDoc,
+               ...teacherData,
+               nomor_sk: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
+               Nomor_SK: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
+               nama: skDoc.nama || "-",
+               Nama: skDoc.nama || "-",
+               tempatLahir: teacherData.tempatLahir || "-",
+               tanggalLahir: teacherData.tanggalLahir ? new Date(teacherData.tanggalLahir).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+               nuptk: teacherData.nuptk || "-",
+               NUPTK: teacherData.nuptk || "-",
+               nip: teacherData.nip || "-",
+               NIP: teacherData.nip || "-",
+               unitKerja: skDoc.unitKerja || "-",
+               unit_kerja: skDoc.unitKerja || "-",
+               Unit_Kerja: skDoc.unitKerja || "-",
+               tmtPendidik: teacherData.tmtPendidik ? new Date(teacherData.tmtPendidik).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+               jenisSk: skDoc.jenisSk || "-",
+               jenis_sk: skDoc.jenisSk?.toUpperCase() || "-",
+               Jenis_SK: skDoc.jenisSk || "-",
+               mengingat_tambahan: skDoc.jenisSk?.includes("GTY") ? "Kekurangan Guru" : "-",
+               pendidikanTerakhir: teacherData.pendidikanTerakhir || "-",
+               jurusan: teacherData.jurusan || "-",
+               qrcode: qrDataUrl,
+           };
+
+           // Format CreatedAt / Tanggal SK (Indonesian)
+           const months = [
+               "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+               "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+           ];
+           const rawCreated = skDoc.createdAt || Date.now();
+           const d = new Date(rawCreated as string | number);
+           if (!isNaN(d.getTime())) {
+               renderData.tanggal_sk = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+               renderData.Tanggal_SK = renderData.tanggal_sk;
+           } else {
+               renderData.tanggal_sk = "-";
+               renderData.Tanggal_SK = "-";
+           }
+
+           doc.render(renderData);
+
+           const out = doc.getZip().generate({
+               type: "blob",
+               mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+           });
+
+           saveAs(out, `SK_${renderData.nama.replace(/\s+/g, '_')}_${renderData.unitKerja.replace(/\s+/g, '_')}.docx`);
+           toast.success("Berhasil mengunduh dokumen SK DOCX!");
+       } catch (error) {
+           console.error("Error DOCX:", error);
+           toast.error("Gagal men-generate template DOCX. Pastikan format template sudah benar.");
+       } finally {
+           setIsActionLoading(false);
+       }
+  }
 
   // Filter functionality
   const filteredData = useMemo(() => {
@@ -164,10 +311,18 @@ export default function SkRevisionListPage() {
                                     </Button>
                                 </div>
                             ) : (
-                                <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/sk/${item._id}`)}>
-                                    <FileEdit className="h-4 w-4 mr-2" />
-                                    Lihat Detail SK
-                                </Button>
+                                <div className="inline-flex flex-col gap-1 w-full max-w-[140px] ml-auto">
+                                    {item.revisionStatus === "approved" && (
+                                        <Button variant="outline" size="sm" className="bg-slate-50 hover:bg-slate-100 justify-start" onClick={() => handleDownloadDocx(item)} disabled={isActionLoading}>
+                                            <Download className="h-4 w-4 mr-2 text-blue-600" />
+                                            Cetak SK (Word)
+                                        </Button>
+                                    )}
+                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/sk/${item._id}`)} className="justify-start">
+                                        <FileEdit className="h-4 w-4 mr-2" />
+                                        Lihat Detail SK
+                                    </Button>
+                                </div>
                             )}
                         </TableCell>
                       </TableRow>

@@ -164,7 +164,7 @@ export default function SkDetailPage() {
        toast.info("Sedang menyiapkan file DOCX...");
 
        try {
-           const teacherData = skDoc.teacher || {};
+           const teacherData: any = skDoc.teacher || {};
            
            // Determine Template ID
            const jenis = (skDoc.jenisSk || skDoc.status || "").toLowerCase();
@@ -218,37 +218,56 @@ export default function SkDetailPage() {
                nullGetter: () => ""
            });
 
-           // Format Dates
-           const tmtPendidik = teacherData.tmtPendidik ? new Date(teacherData.tmtPendidik).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-";
-           const tanggalTetap = skDoc.createdAt ? new Date(skDoc.createdAt).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-";
-           const tmtHabis = addOneYearIndonesian(tanggalTetap);
-           
-           const finalData = {
-                nomor_sk: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
-                nama: skDoc.nama || "-",
-                tempat_lahir: teacherData.tempatLahir || "-",
-                tanggal_lahir: teacherData.tanggalLahir ? new Date(teacherData.tanggalLahir).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
-                nuptk: teacherData.nuptk || "-",
-                nip: teacherData.nip || "-",
-                unit_kerja: skDoc.unitKerja || "-",
-                tmt_pendidik: tmtPendidik,
-                jenis_sk: skDoc.jenisSk?.toUpperCase() || "-",
-                mengingat_tambahan: skDoc.jenisSk?.includes("GTY") ? "Kekurangan Guru" : "-",
-                pendidikan_terakhir: teacherData.pendidikanTerakhir || "-",
-                jurusan: teacherData.jurusan || "-",
-                tanggal_tetap: tanggalTetap,
-                tmt_habis: tmtHabis,
-                qrcode: qrDataUrl,
+           // Align variables exactly with SkGeneratorPage
+           const renderData: any = {
+               ...skDoc,
+               ...teacherData,
+               nomor_sk: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
+               Nomor_SK: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
+               nama: skDoc.nama || "-",
+               Nama: skDoc.nama || "-",
+               tempatLahir: teacherData.tempatLahir || "-",
+               tanggalLahir: teacherData.tanggalLahir ? new Date(teacherData.tanggalLahir).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+               nuptk: teacherData.nuptk || "-",
+               NUPTK: teacherData.nuptk || "-",
+               nip: teacherData.nip || "-",
+               NIP: teacherData.nip || "-",
+               unitKerja: skDoc.unitKerja || "-",
+               unit_kerja: skDoc.unitKerja || "-",
+               Unit_Kerja: skDoc.unitKerja || "-",
+               tmtPendidik: teacherData.tmtPendidik ? new Date(teacherData.tmtPendidik).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+               jenisSk: skDoc.jenisSk || "-",
+               jenis_sk: skDoc.jenisSk?.toUpperCase() || "-",
+               Jenis_SK: skDoc.jenisSk || "-",
+               mengingat_tambahan: skDoc.jenisSk?.includes("GTY") ? "Kekurangan Guru" : "-",
+               pendidikanTerakhir: teacherData.pendidikanTerakhir || "-",
+               jurusan: teacherData.jurusan || "-",
+               qrcode: qrDataUrl,
            };
 
-           doc.render(finalData);
+           // Format CreatedAt / Tanggal SK (Indonesian)
+           const months = [
+               "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+               "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+           ];
+           const rawCreated = skDoc.createdAt || Date.now();
+           const d = new Date(rawCreated as string | number);
+           if (!isNaN(d.getTime())) {
+               renderData.tanggal_sk = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+               renderData.Tanggal_SK = renderData.tanggal_sk;
+           } else {
+               renderData.tanggal_sk = "-";
+               renderData.Tanggal_SK = "-";
+           }
+
+           doc.render(renderData);
 
            const out = doc.getZip().generate({
                type: "blob",
                mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
            });
 
-           saveAs(out, `SK_${finalData.nama.replace(/\s+/g, '_')}_${finalData.unit_kerja.replace(/\s+/g, '_')}.docx`);
+           saveAs(out, `SK_${renderData.nama.replace(/\s+/g, '_')}_${renderData.unitKerja.replace(/\s+/g, '_')}.docx`);
            toast.success("Berhasil mengunduh dokumen SK DOCX!");
        } catch (error) {
            console.error("Error DOCX:", error);
@@ -290,9 +309,6 @@ export default function SkDetailPage() {
                         {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />} Unduh SK (Word DOCX)
                     </Button>
                  )}
-                 <Button variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100" onClick={() => navigate(`/dashboard/sk/${id}/print`)}>
-                    <Printer className="mr-2 h-4 w-4" /> Cetak Web (HTML)
-                 </Button>
             </div>
        </div>
 

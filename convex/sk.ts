@@ -748,7 +748,21 @@ export const getTeachersWithSk = query({
         });
     }
 
-    return teachers;
+    // Resolve Storage URLs for suratPermohonanUrl
+    const teachersWithUrls = await Promise.all(teachers.map(async (t) => {
+        let url = t.suratPermohonanUrl;
+        if (url && !url.startsWith("http")) {
+            try {
+                const resolved = await ctx.storage.getUrl(url);
+                if (resolved) url = resolved;
+            } catch (e) {
+                console.warn("Failed to resolve storage URL", e);
+            }
+        }
+        return { ...t, suratPermohonanUrl: url };
+    }));
+
+    return teachersWithUrls;
   },
 });
 

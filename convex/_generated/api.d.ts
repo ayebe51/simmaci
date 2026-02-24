@@ -22,6 +22,7 @@ import type * as debug_env from "../debug_env.js";
 import type * as debug_find_admin from "../debug_find_admin.js";
 import type * as debug_find_email from "../debug_find_email.js";
 import type * as debug_logs from "../debug_logs.js";
+import type * as debug_reports from "../debug_reports.js";
 import type * as debug_school_check from "../debug_school_check.js";
 import type * as debug_simple from "../debug_simple.js";
 import type * as debug_status from "../debug_status.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   debug_find_admin: typeof debug_find_admin;
   debug_find_email: typeof debug_find_email;
   debug_logs: typeof debug_logs;
+  debug_reports: typeof debug_reports;
   debug_school_check: typeof debug_school_check;
   debug_simple: typeof debug_simple;
   debug_status: typeof debug_status;

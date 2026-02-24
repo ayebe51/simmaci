@@ -137,7 +137,7 @@ export default function SkDashboardPage() {
             unitKerja: t.unitKerja, // Map Teacher Unit
             tanggalPengajuan: new Date(t.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
             status: "draft", // Visual status
-            suratPermohonanUrl: undefined, // Or check if we can add this to teacher schema later
+            suratPermohonanUrl: (t as any).suratPermohonanUrl, // Mapped from the backend
             isTeacher: true // Flag to identify this is a Teacher record, not SK
         }))
     }

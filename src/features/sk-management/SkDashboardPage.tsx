@@ -526,12 +526,7 @@ export default function SkDashboardPage() {
                                     Ajukan Revisi
                                 </Button>
                             )}
-                            {item.revisionStatus === "pending" && ["admin", "super_admin"].includes(JSON.parse(localStorage.getItem("user") || "{}")?.role) && (
-                                <div className="inline-flex gap-1 mr-1">
-                                    <Button variant="outline" size="sm" className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100" onClick={(e) => { e.stopPropagation(); handleApproveRevisionSubmit(item.id); }} disabled={isActionLoading}>ACC Revisi</Button>
-                                    <Button variant="outline" size="sm" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100" onClick={(e) => { e.stopPropagation(); handleRejectRevisionSubmit(item.id); }} disabled={isActionLoading}>Tolak</Button>
-                                </div>
-                            )}
+                            {/* Admin Approval/Reject buttons for revisions MOVED to SkRevisionListPage */}
 
                             <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/sk/${item.id}`)}>
                                 <FileText className="h-4 w-4 mr-2" />

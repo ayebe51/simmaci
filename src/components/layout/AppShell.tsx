@@ -18,7 +18,8 @@ import {
   ArrowRightLeft,
   ChevronDown,
   CreditCard,
-  Stethoscope
+  Stethoscope,
+  FileEdit
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -52,6 +53,7 @@ export default function AppShell({ children }: AppShellProps) {
       items: [
         { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
         { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
+        { label: "Revisi Data SK", href: "/dashboard/sk-revision", icon: FileEdit },
         { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
         { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
         { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },

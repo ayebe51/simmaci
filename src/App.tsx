@@ -26,6 +26,7 @@ import EventsPage from "./features/events/EventsPage"
 import CreateEventPage from "./features/events/CreateEventPage"
 import EventDetailPage from "./features/events/EventDetailPage"
 import CompetitionDetailPage from "./features/events/CompetitionDetailPage"
+import SkRevisionListPage from "./features/sk-management/SkRevisionListPage"
 import HeadmasterSubmissionPage from "./features/sk-management/HeadmasterSubmissionPage"
 import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
@@ -74,6 +75,7 @@ export default function App() {
                         <Route path="sk-saya" element={<MySkPage />} />
                         <Route path="sk/:id" element={<SkDetailPage />} />
                         <Route path="sk/:id/revision" element={<SkRevisionPage />} />
+                        <Route path="sk-revision" element={<SkRevisionListPage />} />
                         <Route path="generator" element={<SkGeneratorPage />} />
                         <Route path="audit" element={<DataAuditPage />} />
                         <Route path="settings" element={<SettingsPage />} />

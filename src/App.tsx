@@ -7,6 +7,7 @@ import SkDashboardPage from "./features/sk-management/SkDashboardPage"
 import SkSubmissionPage from "./features/sk-management/SkSubmissionPage"
 import MySkPage from "./features/sk-management/MySkPage"
 import SkDetailPage from "./features/sk-management/SkDetailPage"
+import SkRevisionPage from "./features/sk-management/SkRevisionPage"
 import SchoolListPage from "./features/master-data/SchoolListPage"
 import SchoolDetailPage from "./features/master-data/SchoolDetailPage"
 import TeacherListPage from "./features/master-data/TeacherListPage"
@@ -72,6 +73,7 @@ export default function App() {
                         <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
                         <Route path="sk-saya" element={<MySkPage />} />
                         <Route path="sk/:id" element={<SkDetailPage />} />
+                        <Route path="sk/:id/revision" element={<SkRevisionPage />} />
                         <Route path="generator" element={<SkGeneratorPage />} />
                         <Route path="audit" element={<DataAuditPage />} />
                         <Route path="settings" element={<SettingsPage />} />

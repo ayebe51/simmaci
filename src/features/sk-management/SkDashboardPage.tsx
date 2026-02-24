@@ -120,22 +120,8 @@ export default function SkDashboardPage() {
   const [rejectionReason, setRejectionReason] = useState("")
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false)
   const [isActionLoading, setIsActionLoading] = useState(false)
-  
-  // Revision Modal States
-  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false)
-  const [selectedSkForRevision, setSelectedSkForRevision] = useState<SkSubmission | null>(null)
-  const [revisionProposedData, setRevisionProposedData] = useState({ 
-      nama: "", 
-      tempatLahir: "",
-      tanggalLahir: "",
-      nip: "",
-      pendidikanTerakhir: "",
-      unitKerja: "", 
-      tmtPendidik: "", 
-      reason: "" 
-  })
 
-  const requestRevisionMutation = useMutation(convexApi.sk.requestRevision)
+  // Revision Mutations
   const approveRevisionMutation = useMutation(convexApi.sk.approveRevision)
   const rejectRevisionMutation = useMutation(convexApi.sk.rejectRevision)
   
@@ -298,36 +284,7 @@ export default function SkDashboardPage() {
 
 
 
-  const handleRequestRevisionSubmit = async () => {
-    if (!selectedSkForRevision || !revisionProposedData.reason.trim()) {
-        toast.error("Alasan revisi wajib diisi");
-        return;
-    }
-    try {
-        setIsActionLoading(true);
-        const proposedDataString = JSON.stringify({
-            nama: revisionProposedData.nama || undefined,
-            tempatLahir: revisionProposedData.tempatLahir || undefined,
-            tanggalLahir: revisionProposedData.tanggalLahir || undefined,
-            nip: revisionProposedData.nip || undefined,
-            pendidikanTerakhir: revisionProposedData.pendidikanTerakhir || undefined,
-            unitKerja: revisionProposedData.unitKerja || undefined,
-            tmtPendidik: revisionProposedData.tmtPendidik || undefined,
-        });
-
-        await requestRevisionMutation({
-            skId: selectedSkForRevision.id as any,
-            reason: revisionProposedData.reason,
-            proposedData: proposedDataString,
-        });
-        toast.success("Permintaan revisi berhasil diajukan");
-        setIsRevisionModalOpen(false);
-    } catch (e: any) {
-        toast.error("Gagal mengajukan revisi: " + e.message);
-    } finally {
-        setIsActionLoading(false);
-    }
-  };
+  // Request Revision Function has been moved to SkRevisionPage.tsx
 
   const handleApproveRevisionSubmit = async (skId: string) => {
     try {
@@ -564,18 +521,7 @@ export default function SkDashboardPage() {
                             {["approved", "Approved", "active", "Active"].includes(item.status) && item.revisionStatus !== "pending" && JSON.parse(localStorage.getItem("user") || "{}")?.role === "operator" && (
                                 <Button variant="outline" size="sm" className="mr-1 border-orange-200 text-orange-600 hover:bg-orange-50" onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedSkForRevision(item);
-                                    setRevisionProposedData({ 
-                                        nama: item.nama, 
-                                        tempatLahir: "",
-                                        tanggalLahir: "",
-                                        nip: "",
-                                        pendidikanTerakhir: "",
-                                        unitKerja: item.unitKerja || "", 
-                                        tmtPendidik: "", 
-                                        reason: "" 
-                                    });
-                                    setIsRevisionModalOpen(true);
+                                    navigate(`/dashboard/sk/${item.id}/revision`);
                                 }}>
                                     Ajukan Revisi
                                 </Button>
@@ -734,97 +680,7 @@ export default function SkDashboardPage() {
           </DialogContent>
       </Dialog>
 
-      {/* 3. Request Revision Modal */}
-      <Dialog open={isRevisionModalOpen} onOpenChange={setIsRevisionModalOpen}>
-          <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                  <DialogTitle>Ajukan Revisi SK</DialogTitle>
-                  <DialogDescription>
-                      Isi bagian yang ingin diperbaiki untuk SK Nomor {selectedSkForRevision?.nomorSurat}
-                  </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-nama">Perbaikan Nama</Label>
-                      <Input 
-                          id="rev-nama" 
-                          value={revisionProposedData.nama} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, nama: e.target.value})}
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-tempat">Perbaikan Tempat Lahir</Label>
-                      <Input 
-                          id="rev-tempat" 
-                          placeholder="Misal: Cilacap"
-                          value={revisionProposedData.tempatLahir} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, tempatLahir: e.target.value})}
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-tgllahir">Perbaikan Tanggal Lahir</Label>
-                      <Input 
-                          id="rev-tgllahir" 
-                          type="date"
-                          value={revisionProposedData.tanggalLahir} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, tanggalLahir: e.target.value})}
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-nip">Perbaikan NIY / NIP</Label>
-                      <Input 
-                          id="rev-nip" 
-                          placeholder="Masukkan NIY atau NIP"
-                          value={revisionProposedData.nip} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, nip: e.target.value})}
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-pendidikan">Perbaikan Pendidikan Terakhir</Label>
-                      <Input 
-                          id="rev-pendidikan" 
-                          placeholder="Misal: S1 Pendidikan Agama Islam"
-                          value={revisionProposedData.pendidikanTerakhir} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, pendidikanTerakhir: e.target.value})}
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-unit">Perbaikan Unit Kerja</Label>
-                      <Input 
-                          id="rev-unit" 
-                          value={revisionProposedData.unitKerja} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, unitKerja: e.target.value})}
-                      />
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-tmt">Perbaikan TMT (Tanggal Mulai Tugas)</Label>
-                      <Input 
-                          id="rev-tmt" 
-                          type="date"
-                          value={revisionProposedData.tmtPendidik} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, tmtPendidik: e.target.value})}
-                      />
-                      <p className="text-xs text-muted-foreground">Isi dengan format DD/MM/YYYY atau pilih dari kalender jika ada perubahan TMT.</p>
-                  </div>
-                  <div className="space-y-2">
-                      <Label htmlFor="rev-reason" className="text-red-500">Alasan Revisi (Wajib)*</Label>
-                      <Input 
-                          id="rev-reason" 
-                          placeholder="Misal: Gelar salah ketik, seharusnya S.Pd.I"
-                          value={revisionProposedData.reason} 
-                          onChange={(e) => setRevisionProposedData({...revisionProposedData, reason: e.target.value})}
-                      />
-                  </div>
-              </div>
-              <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsRevisionModalOpen(false)}>Batal</Button>
-                  <Button onClick={handleRequestRevisionSubmit} disabled={isActionLoading || !revisionProposedData.reason.trim()} className="bg-orange-600 hover:bg-orange-700 text-white">
-                      {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Kirim Pengajuan Revisi"}
-                  </Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
-
+      {/* 3. Request Revision Modal REMOVED - Using SkRevisionPage.tsx */}
     </div>
   )
 }

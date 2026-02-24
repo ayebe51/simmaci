@@ -738,11 +738,17 @@ export const approveRevision = mutation({
 
     // 2. Apply updates to the Teacher record if teacherId exists
     if (sk.teacherId && Object.keys(updates).length > 0) {
-        // Filter out fields that shouldn't be patched directly if needed
-        await ctx.db.patch(sk.teacherId as Id<"teachers">, updates);
+        const teacherPatch: any = { ...updates };
+        
+        // Handle schema naming mismatch: frontend sends tmtPendidik, but table is tmt
+        if (teacherPatch.tmtPendidik !== undefined) {
+            teacherPatch.tmt = teacherPatch.tmtPendidik;
+            delete teacherPatch.tmtPendidik;
+        }
+
+        // Filter out any other fields that shouldn't be patched or are missing from schema
+        await ctx.db.patch(sk.teacherId as Id<"teachers">, teacherPatch);
     }
-    
-    // 3. Update the SK Document itself to reflect the new name/unitkerja if changed
     const skUpdates: any = {
         revisionStatus: "approved",
     };

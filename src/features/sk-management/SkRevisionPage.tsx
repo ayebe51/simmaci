@@ -34,6 +34,21 @@ export default function SkRevisionPage() {
         reason: ""
     })
 
+    // Custom safe date parser
+    const parseDateSafe = (dateString: string | undefined | null) => {
+        if (!dateString) return ""
+        try {
+            // Check if it's already an ISO or valid parseable date
+            const d = new Date(dateString)
+            if (!isNaN(d.getTime())) {
+                return d.toISOString().split('T')[0]
+            }
+            return "" // If invalid (e.g. '05 Juni 1990'), just return empty so input="date" doesn't crash
+        } catch {
+            return ""
+        }
+    }
+
     // Pre-fill data when skDoc loads
     useEffect(() => {
         if (skDoc) {
@@ -41,12 +56,11 @@ export default function SkRevisionPage() {
             setFormData({
                 nama: skDoc.nama || "",
                 tempatLahir: teacher.tempatLahir || "",
-                // Parse date for HTML input type="date" which expects YYYY-MM-DD
-                tanggalLahir: teacher.tanggalLahir ? new Date(teacher.tanggalLahir).toISOString().split('T')[0] : "",
+                tanggalLahir: parseDateSafe(teacher.tanggalLahir),
                 nip: teacher.nip || "",
                 pendidikanTerakhir: teacher.pendidikanTerakhir || "",
                 unitKerja: skDoc.unitKerja || "",
-                tmtPendidik: teacher.tmtPendidik ? new Date(teacher.tmtPendidik).toISOString().split('T')[0] : "",
+                tmtPendidik: parseDateSafe(teacher.tmtPendidik),
                 reason: ""
             })
         }

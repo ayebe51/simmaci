@@ -248,6 +248,20 @@ export const getByNomor = query({
   },
 });
 
+// Get Revision History for Admins
+export const getRevisions = query({
+    handler: async (ctx) => {
+        // Find any SK document where revisionStatus is present (pending, approved, rejected)
+        const revisions = await ctx.db
+          .query("skDocuments")
+          .order("desc") // newest first (must be called before filter)
+          .filter((q) => q.neq(q.field("revisionStatus"), undefined))
+          .take(100);
+          
+        return revisions;
+    }
+});
+
 // Get SK by teacher ID
 export const getByTeacher = query({
   args: { teacherId: v.id("teachers") },

@@ -122,7 +122,7 @@ export const list = query({
             if (args.status && args.status !== "all") {
                  filteredQ = filteredQ.filter(q => q.eq(q.field("status"), args.status));
             } 
-            else if (args.jenisSk && args.jenisSk !== "all") {
+            if (args.jenisSk && args.jenisSk !== "all") {
                  filteredQ = filteredQ.filter(q => q.eq(q.field("jenisSk"), args.jenisSk));
             }
 
@@ -130,14 +130,20 @@ export const list = query({
         }
 
         // Case B: Global View (Super Admin only)
+        let globalQ = q;
+
         if (args.status && args.status !== "all") {
-            return await q.withIndex("by_status", q => q.eq("status", args.status!))
-                .order("desc").paginate(args.paginationOpts);
+            // Priority to status index if status is provided
+            globalQ = (globalQ as any).withIndex("by_status", (q: any) => q.eq("status", args.status!));
+            if (args.jenisSk && args.jenisSk !== "all") {
+                globalQ = globalQ.filter((q: any) => q.eq(q.field("jenisSk"), args.jenisSk));
+            }
+            return await globalQ.order("desc").paginate(args.paginationOpts);
         }
 
         if (args.jenisSk && args.jenisSk !== "all") {
-            return await q.withIndex("by_jenis", q => q.eq("jenisSk", args.jenisSk!))
-                .order("desc").paginate(args.paginationOpts);
+            globalQ = (globalQ as any).withIndex("by_jenis", (q: any) => q.eq("jenisSk", args.jenisSk!));
+            return await globalQ.order("desc").paginate(args.paginationOpts);
         }
         
         // Default: All recent

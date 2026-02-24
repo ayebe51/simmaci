@@ -78,7 +78,7 @@ export default function SkDashboardPage() {
   console.log("DEBUG: sk:list args:", queryArgs);
 
   // @ts-ignore
-  const listFunc = convexApi.sk_new?.list || convexApi.sk.list;
+  const listFunc = convexApi.sk.list;
 
   const {
       results: skDocuments,

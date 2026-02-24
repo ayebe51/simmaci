@@ -124,7 +124,7 @@ export default function SkDashboardPage() {
   // Revision Modal States
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false)
   const [selectedSkForRevision, setSelectedSkForRevision] = useState<SkSubmission | null>(null)
-  const [revisionProposedData, setRevisionProposedData] = useState({ nama: "", unitKerja: "", reason: "" })
+  const [revisionProposedData, setRevisionProposedData] = useState({ nama: "", unitKerja: "", tmtPendidik: "", reason: "" })
 
   const requestRevisionMutation = useMutation(convexApi.sk.requestRevision)
   const approveRevisionMutation = useMutation(convexApi.sk.approveRevision)
@@ -299,6 +299,7 @@ export default function SkDashboardPage() {
         const proposedDataString = JSON.stringify({
             nama: revisionProposedData.nama || undefined,
             unitKerja: revisionProposedData.unitKerja || undefined,
+            tmtPendidik: revisionProposedData.tmtPendidik || undefined,
         });
 
         await requestRevisionMutation({
@@ -551,7 +552,7 @@ export default function SkDashboardPage() {
                                 <Button variant="outline" size="sm" className="mr-1 border-orange-200 text-orange-600 hover:bg-orange-50" onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedSkForRevision(item);
-                                    setRevisionProposedData({ nama: item.nama, unitKerja: item.unitKerja || "", reason: "" });
+                                    setRevisionProposedData({ nama: item.nama, unitKerja: item.unitKerja || "", tmtPendidik: "", reason: "" });
                                     setIsRevisionModalOpen(true);
                                 }}>
                                     Ajukan Revisi
@@ -737,6 +738,16 @@ export default function SkDashboardPage() {
                           value={revisionProposedData.unitKerja} 
                           onChange={(e) => setRevisionProposedData({...revisionProposedData, unitKerja: e.target.value})}
                       />
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="rev-tmt">Perbaikan TMT (Tanggal Mulai Tugas)</Label>
+                      <Input 
+                          id="rev-tmt" 
+                          type="date"
+                          value={revisionProposedData.tmtPendidik} 
+                          onChange={(e) => setRevisionProposedData({...revisionProposedData, tmtPendidik: e.target.value})}
+                      />
+                      <p className="text-xs text-muted-foreground">Isi dengan format DD/MM/YYYY atau pilih dari kalender jika ada perubahan TMT.</p>
                   </div>
                   <div className="space-y-2">
                       <Label htmlFor="rev-reason" className="text-red-500">Alasan Revisi (Wajib)*</Label>

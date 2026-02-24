@@ -251,14 +251,20 @@ export const getByNomor = query({
 // Get Revision History for Admins
 export const getRevisions = query({
     handler: async (ctx) => {
-        // Find any SK document where revisionStatus is present (pending, approved, rejected)
-        const revisions = await ctx.db
-          .query("skDocuments")
-          .order("desc") // newest first (must be called before filter)
-          .filter((q) => q.neq(q.field("revisionStatus"), undefined))
-          .take(100);
-          
-        return revisions;
+        try {
+            // Find any SK document where revisionStatus is present (pending, approved, rejected)
+            // Convex does not allow .order() without .withIndex(), so we collect and sort manually
+            const revisions = await ctx.db
+              .query("skDocuments")
+              .filter((q) => q.neq(q.field("revisionStatus"), undefined))
+              .collect();
+              
+            return revisions
+              .sort((a, b) => b._creationTime - a._creationTime)
+              .slice(0, 100);
+        } catch (e: any) {
+            throw new Error(`DEBUG_TRACE: ${e.message}`);
+        }
     }
 });
 

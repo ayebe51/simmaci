@@ -55,7 +55,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
         { label: "Revisi Data SK", href: "/dashboard/sk-revision", icon: FileEdit },
         { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
-        { label: "Arsip Digital", href: "/dashboard/archive", icon: Archive },
+
         { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
         { label: "Digital KTA", href: "/dashboard/kta", icon: CreditCard },
         { label: "Kartu Pelajar", href: "/dashboard/student-card", icon: CreditCard },
@@ -117,7 +117,7 @@ export default function AppShell({ children }: AppShellProps) {
                  }
 
                  // 2. YAYASAN & SUPER ADMIN
-                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK", "Arsip Digital"].includes(item.label)) {
+                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK"].includes(item.label)) {
                      return ["super_admin", "admin_yayasan"].includes(userRole);
                  }
 

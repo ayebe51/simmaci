@@ -46,7 +46,8 @@ export function BulkSkSubmission() {
   
   // New State for Surat Permohonan
   const [suratPermohonanFile, setSuratPermohonanFile] = useState<File | null>(null)
-
+  const [nomorPermohonanUi, setNomorPermohonanUi] = useState("")
+  const [tanggalPermohonanUi, setTanggalPermohonanUi] = useState("")
   // MODAL STATES
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [validationData, setValidationData] = useState<{row: number, mapping: string, preview: any} | null>(null)
@@ -74,7 +75,9 @@ export function BulkSkSubmission() {
     "Sertifikasi": ["sertifikasi", "sertifikat", "status sertifikasi", "sudah sertifikasi", "ket sertifikasi"],
     "Status": ["status", "status kepegawaian", "status guru"],
     "PDPKPNU": ["pdpkpnu", "pkpnu", "diklat", "status pdpkpnu", "ket pdpkpnu", "keterangan pdpkpnu", "sertifikat pdpkpnu", "lulus pdpkpnu"],
-    "Kecamatan": ["kecamatan", "kec", "distrik", "wilayah"]
+    "Kecamatan": ["kecamatan", "kec", "distrik", "wilayah"],
+    "No Surat Permohonan": ["no surat permohonan", "nomor permohonan", "nomor surat pengantar", "no surat pengantar", "nomor pengantar"],
+    "Tanggal Permohonan": ["tanggal permohonan", "tgl permohonan", "tanggal surat permohonan", "tgl surat permohonan"]
   }
 
   // We need at least these to form a valid submission
@@ -85,6 +88,8 @@ export function BulkSkSubmission() {
       "Status": ["sertifikasi", "pernikahan", "kawin", "pdpkpnu", "sosial"], // "Status Sertifikasi" != "Status" (Kepegawaian)
       "Sertifikasi": [],
       "PDPKPNU": [],
+      "Nomor Induk Ma'arif": ["surat"],
+      "No Surat Permohonan": ["induk", "hp", "telepon"],
   }
 
   const handleDownloadTemplate = () => {
@@ -250,6 +255,10 @@ export function BulkSkSubmission() {
                 newObj["satminkal"] = rawVals["Unit Kerja"] // Duplicate for safety
                 newObj["kecamatan"] = rawVals["Kecamatan"]
                 newObj["pendidikanTerakhir"] = rawVals["Pendidikan Terakhir"]
+                
+                // Parse Request Letter Fields
+                newObj["nomorSuratPermohonan"] = rawVals["No Surat Permohonan"] || undefined
+                newObj["tanggalSuratPermohonan"] = rawVals["Tanggal Permohonan"] || undefined
                 
                 // Parse Dates using Robust Parser
                 const tmtDate = parseIndonesianDate(rawVals["Tanggal Mulai Tugas"])
@@ -481,7 +490,9 @@ export function BulkSkSubmission() {
                 tmt: c["tmt"] ? String(c["tmt"]) : "-",
                 
                 // New: Permohonan Link
-                suratPermohonanUrl: permohonanUrl || null
+                suratPermohonanUrl: permohonanUrl || null,
+                nomorSuratPermohonan: c["nomorSuratPermohonan"],
+                tanggalSuratPermohonan: c["tanggalSuratPermohonan"],
             }
         })
 
@@ -503,6 +514,8 @@ export function BulkSkSubmission() {
             pendidikanTerakhir: t.pendidikanTerakhir || undefined,
             tmt: t.tmt || undefined, // 🔥 CRITICAL: Need TMT for GTY/GTT calculation
             isCertified: t.isCertified || undefined,
+            nomorSuratPermohonan: t.nomorSuratPermohonan || undefined,
+            tanggalSuratPermohonan: t.tanggalSuratPermohonan || undefined,
         }))
 
         // --- DEBUG PAYLOAD INSPECTOR ---
@@ -523,6 +536,8 @@ export function BulkSkSubmission() {
                 teachers: convexTeachers,
                 isFullSync: isFullSync,
                 suratPermohonanUrl: permohonanUrl || undefined,
+                nomorSuratPermohonan: nomorPermohonanUi || undefined,
+                tanggalSuratPermohonan: tanggalPermohonanUi || undefined,
                 token: token
             })
             console.log("🔍 bulkCreate result:", bulkResult)
@@ -614,16 +629,38 @@ export function BulkSkSubmission() {
             </div>
             
             <div className="space-y-2 pt-2 border-t">
-                 <Label>2. Upload Surat Permohonan (PDF)</Label>
-                 <div className="flex items-center gap-4 rounded-md border p-4 bg-slate-50">
-                    <Upload className="h-6 w-6 text-blue-600" />
-                    <div className="flex-1">
-                        <Input 
-                            type="file" 
-                            accept=".pdf" 
-                            onChange={(e) => setSuratPermohonanFile(e.target.files?.[0] || null)} 
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">Opsional: Lampirkan surat permohonan resmi dr lembaga.</p>
+                 <Label>2. Upload & Detail Surat Permohonan</Label>
+                 <div className="flex flex-col gap-4 rounded-md border p-4 bg-slate-50">
+                    <div className="flex items-center gap-4">
+                        <Upload className="h-6 w-6 text-blue-600" />
+                        <div className="flex-1">
+                            <Input 
+                                type="file" 
+                                accept=".pdf" 
+                                onChange={(e) => setSuratPermohonanFile(e.target.files?.[0] || null)} 
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Opsional: Lampirkan surat permohonan resmi dr lembaga.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium text-slate-700">No. Surat Permohonan (Opsional)</Label>
+                            <Input 
+                                placeholder="Cth: 005/PC.L/A.II/06/2025" 
+                                value={nomorPermohonanUi}
+                                onChange={e => setNomorPermohonanUi(e.target.value)}
+                            />
+                            <p className="text-[10px] text-muted-foreground">Jika diisi, akan diterapkan ke semua data jika di file Excel kosong.</p>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-medium text-slate-700">Tgl. Surat Permohonan (Opsional) </Label>
+                            <Input 
+                                type="date"
+                                value={tanggalPermohonanUi}
+                                onChange={e => setTanggalPermohonanUi(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

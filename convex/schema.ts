@@ -26,6 +26,8 @@ export default defineSchema({
     pdpkpnu: v.optional(v.any()),
     photoId: v.optional(v.any()),
     suratPermohonanUrl: v.optional(v.any()), 
+    nomorSuratPermohonan: v.optional(v.any()),
+    tanggalSuratPermohonan: v.optional(v.any()),
     ktaNumber: v.optional(v.any()),
     createdAt: v.any(),
     updatedAt: v.any(),

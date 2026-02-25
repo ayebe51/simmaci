@@ -340,6 +340,8 @@ export const create = mutation({
     token: v.optional(v.string()), // Auth Token
     schoolId: v.optional(v.any()), // Allow legacy/string during edit, will be sanitized
     suratPermohonanUrl: v.optional(v.string()), // New: Support Google Drive URL
+    nomorSuratPermohonan: v.optional(v.string()), // New: Hybrid approach
+    tanggalSuratPermohonan: v.optional(v.string()), // New: Hybrid approach
   },
   handler: async (ctx, args) => {
     try {
@@ -469,6 +471,8 @@ export const update = mutation({
     token: v.optional(v.string()),
     schoolId: v.optional(v.any()), // Allow legacy/string during edit, will be sanitized
     suratPermohonanUrl: v.optional(v.string()), // New: Support Google Drive URL
+    nomorSuratPermohonan: v.optional(v.string()), // New: Hybrid approach
+    tanggalSuratPermohonan: v.optional(v.string()), // New: Hybrid approach
     // Support Legacy/Lowercase fields from older frontends
     tanggallahir: v.optional(v.string()), 
     tempatlahir: v.optional(v.string()), 
@@ -582,6 +586,8 @@ export const bulkCreate = mutation({
         teachers: v.array(v.any()), // We accept ANY structure and sanitize it inside
     isFullSync: v.optional(v.boolean()), // Enable Full Sync Mode
     suratPermohonanUrl: v.optional(v.string()), // Batch Request File
+    nomorSuratPermohonan: v.optional(v.string()), // Hybrid fallback
+    tanggalSuratPermohonan: v.optional(v.string()), // Hybrid fallback
     token: v.optional(v.string()), // Authentication Token
   },
   handler: async (ctx, args) => {
@@ -693,6 +699,12 @@ export const bulkCreate = mutation({
              else cleanData.isVerified = true; 
 
              if (args.suratPermohonanUrl) cleanData.suratPermohonanUrl = args.suratPermohonanUrl;
+
+             const finalNomorPermohonan = safeString(teacher.nomorSuratPermohonan) || args.nomorSuratPermohonan;
+             if (finalNomorPermohonan) cleanData.nomorSuratPermohonan = finalNomorPermohonan;
+
+             const finalTanggalPermohonan = safeString(teacher.tanggalSuratPermohonan) || args.tanggalSuratPermohonan;
+             if (finalTanggalPermohonan) cleanData.tanggalSuratPermohonan = finalTanggalPermohonan;
 
              cleanInputs.push(cleanData);
         }

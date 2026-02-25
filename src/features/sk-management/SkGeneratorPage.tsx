@@ -482,6 +482,24 @@ export default function SkGeneratorPage() {
   // New: Global Kecamatan Fallback
   const [defaultKecamatan, setDefaultKecamatan] = useState("") 
 
+  // Auto-fill Surat Permohonan fields based on selection
+  useEffect(() => {
+    if (selectedIds.size > 0 && teachersData.length > 0) {
+      // Find the first selected teacher with valid surat permohonan data
+      const selectedTeachers = teachersData.filter(t => selectedIds.has(t._id));
+      const teacherWithSurat = selectedTeachers.find(t => t.nomorSuratPermohonan || t.tanggalSuratPermohonan);
+
+      if (teacherWithSurat) {
+        if (teacherWithSurat.nomorSuratPermohonan && !nomorSuratMasuk) {
+            setNomorSuratMasuk(teacherWithSurat.nomorSuratPermohonan);
+        }
+        if (teacherWithSurat.tanggalSuratPermohonan && !tanggalSuratMasuk) {
+            setTanggalSuratMasuk(teacherWithSurat.tanggalSuratPermohonan);
+        }
+      }
+    }
+  }, [selectedIds, teachersData]);
+
     const handleReset = async () => {
         // TRIGGER MODAL INSTEAD OF NATIVE CONFIRM
         setShowResetConfirm(true)

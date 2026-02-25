@@ -218,30 +218,96 @@ export default function SkDetailPage() {
                nullGetter: () => ""
            });
 
-           // Align variables exactly with SkGeneratorPage
+           // Format Dates Helper
+           const formatIndoDate = (dateStr: string | undefined | null) => {
+                if (!dateStr) return "-";
+                try {
+                    const d = new Date(dateStr);
+                    if (!isNaN(d.getTime())) {
+                        return d.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' });
+                    }
+                } catch (e) {}
+                return dateStr;
+           };
+
+           const ttlDate = formatIndoDate(teacherData.tanggalLahir);
+           const ttlValid = teacherData.tempatLahir || teacherData.tanggalLahir;
+           const ttl = ttlValid ? `${teacherData.tempatLahir || ""}${teacherData.tempatLahir && teacherData.tanggalLahir ? ', ' : ''}${ttlDate !== "-" ? ttlDate : ""}` : "-";
+           const tmtFormatted = formatIndoDate(teacherData.tmtPendidik || teacherData.tmt);
+           const tanggalPenetapanFormatted = formatIndoDate(skDoc.tanggalPenetapan);
+
+           // Align variables exactly with SkGeneratorPage (Kitchen Sink)
            const renderData: any = {
                ...skDoc,
                ...teacherData,
-               nomor_sk: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
-               Nomor_SK: skDoc.nomorSk || "..../PC.L/A.II/...../2026",
+               
+               // NAMA
                nama: skDoc.nama || "-",
                Nama: skDoc.nama || "-",
+               NAMA: skDoc.nama?.toUpperCase() || "-",
+               NAMA_LENGKAP: skDoc.nama || "-",
+               NAMA_GURU: skDoc.nama || "-",
+
+               // NOMOR SK
+               nomor_sk: skDoc.nomorSk || "-",
+               Nomor_SK: skDoc.nomorSk || "-",
+               NOMOR_SURAT: skDoc.nomorSk || "-",
+               NOMOR: skDoc.nomorSk || "-",
+               nomor_induk: teacherData.nuptk || teacherData.nip || "-",
+               NOMOR_INDUK: teacherData.nuptk || teacherData.nip || "-",
+               "NOMOR INDUK MAARIF": teacherData.nuptk || teacherData.nip || "-",
+
+               // BIODATA
                tempatLahir: teacherData.tempatLahir || "-",
-               tanggalLahir: teacherData.tanggalLahir ? new Date(teacherData.tanggalLahir).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+               tanggalLahir: ttlDate,
+               tanggallahir: ttlDate,
+               ttl: ttl,
+               TTL: ttl,
+               "TEMPAT/TANGGAL LAHIR": ttl,
+               
+               // IDS
                nuptk: teacherData.nuptk || "-",
                NUPTK: teacherData.nuptk || "-",
-               nip: teacherData.nip || "-",
-               NIP: teacherData.nip || "-",
+               nip: teacherData.nip || teacherData.nuptk || "-",
+               NIP: teacherData.nip || teacherData.nuptk || "-",
+
+               // PEKERJAAN
                unitKerja: skDoc.unitKerja || "-",
                unit_kerja: skDoc.unitKerja || "-",
                Unit_Kerja: skDoc.unitKerja || "-",
-               tmtPendidik: teacherData.tmtPendidik ? new Date(teacherData.tmtPendidik).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }) : "-",
+               UNIT_KERJA: skDoc.unitKerja || "-",
+               "UNIT KERJA": skDoc.unitKerja || "-",
+               
+               jabatan: skDoc.jabatan || teacherData.jabatan || teacherData.mapel || "Guru",
+               JABATAN: skDoc.jabatan || teacherData.jabatan || teacherData.mapel || "Guru",
+               
+               pendidikanTerakhir: teacherData.pendidikanTerakhir || "-",
+               pendidikan: teacherData.pendidikanTerakhir || "-",
+               PENDIDIKAN: teacherData.pendidikanTerakhir || "-",
+               jurusan: teacherData.jurusan || "-",
+               pangkat: teacherData.pangkat || "-",
+               golongan: teacherData.golongan || "-",
+
+               // TMT
+               tmtPendidik: tmtFormatted,
+               tmt: tmtFormatted,
+               TMT: tmtFormatted,
+               TANGGAL_MULAI_TUGAS: tmtFormatted,
+               TGL_MULAI_TUGAS: tmtFormatted,
+
+               // JENIS SK
                jenisSk: skDoc.jenisSk || "-",
                jenis_sk: skDoc.jenisSk?.toUpperCase() || "-",
                Jenis_SK: skDoc.jenisSk || "-",
                mengingat_tambahan: skDoc.jenisSk?.includes("GTY") ? "Kekurangan Guru" : "-",
-               pendidikanTerakhir: teacherData.pendidikanTerakhir || "-",
-               jurusan: teacherData.jurusan || "-",
+               status: skDoc.status || teacherData.status || "-",
+               STATUS: skDoc.status || teacherData.status || "-",
+
+               // TANGGAL PENETAPAN
+               TANGGAL_PENETAPAN: tanggalPenetapanFormatted,
+               "TANGGAL LENGKAP": tanggalPenetapanFormatted,
+               
+               // QR
                qrcode: qrDataUrl,
            };
 
@@ -250,14 +316,22 @@ export default function SkDetailPage() {
                "Januari", "Februari", "Maret", "April", "Mei", "Juni",
                "Juli", "Agustus", "September", "Oktober", "November", "Desember"
            ];
-           const rawCreated = skDoc.createdAt || Date.now();
+           const rawCreated = skDoc.tanggalPenetapan || skDoc.createdAt || Date.now();
            const d = new Date(rawCreated as string | number);
            if (!isNaN(d.getTime())) {
                renderData.tanggal_sk = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
                renderData.Tanggal_SK = renderData.tanggal_sk;
+               renderData.TANGGAL = `${d.getDate()}`;
+               renderData.BULAN = `${d.getMonth() + 1}`;
+               renderData.TAHUN = `${d.getFullYear()}`;
+               renderData.NAMA_BULAN = months[d.getMonth()];
            } else {
                renderData.tanggal_sk = "-";
                renderData.Tanggal_SK = "-";
+               renderData.TANGGAL = "-";
+               renderData.BULAN = "-";
+               renderData.TAHUN = "-";
+               renderData.NAMA_BULAN = "-";
            }
 
            doc.render(renderData);

@@ -230,11 +230,30 @@ export default function SkDetailPage() {
                 return dateStr;
            };
 
+           const addOneYearIndonesian = (dateStr: string) => {
+               if (!dateStr || dateStr === "-") return "-";
+               try {
+                   const parts = dateStr.split(" ");
+                   if (parts.length < 3) return dateStr;
+                   const year = parseInt(parts[parts.length - 1]);
+                   if (isNaN(year)) return dateStr;
+                   parts[parts.length - 1] = (year + 1).toString();
+                   return parts.join(" ");
+               } catch {
+                   return dateStr;
+               }
+           };
+
            const ttlDate = formatIndoDate(teacherData.tanggalLahir);
            const ttlValid = teacherData.tempatLahir || teacherData.tanggalLahir;
            const ttl = ttlValid ? `${teacherData.tempatLahir || ""}${teacherData.tempatLahir && teacherData.tanggalLahir ? ', ' : ''}${ttlDate !== "-" ? ttlDate : ""}` : "-";
            const tmtFormatted = formatIndoDate(teacherData.tmtPendidik || teacherData.tmt);
            const tanggalPenetapanFormatted = formatIndoDate(skDoc.tanggalPenetapan);
+
+           // Extract pure 4-digit sequence from long nomorSk to prevent double numbering
+           const rawNomor = skDoc.nomorSk || "-";
+           const seqMatch = rawNomor.match(/^(\d{1,4})/);
+           const sequenceOnly = seqMatch ? seqMatch[1] : rawNomor;
 
            // Align variables exactly with SkGeneratorPage (Kitchen Sink)
            const renderData: any = {
@@ -249,13 +268,15 @@ export default function SkDetailPage() {
                NAMA_GURU: skDoc.nama || "-",
 
                // NOMOR SK
-               nomor_sk: skDoc.nomorSk || "-",
-               Nomor_SK: skDoc.nomorSk || "-",
-               NOMOR_SURAT: skDoc.nomorSk || "-",
-               NOMOR: skDoc.nomorSk || "-",
+               nomor_sk: rawNomor,
+               Nomor_SK: rawNomor,
+               NOMOR_SURAT: rawNomor,
+               NOMOR: sequenceOnly,
                nomor_induk: teacherData.nuptk || teacherData.nip || "-",
                NOMOR_INDUK: teacherData.nuptk || teacherData.nip || "-",
                "NOMOR INDUK MAARIF": teacherData.nuptk || teacherData.nip || "-",
+               "NOMOR INDUK MA'ARIF": teacherData.nuptk || teacherData.nip || "-",
+               "NOMOR INDUK MA’ARIF": teacherData.nuptk || teacherData.nip || "-",
 
                // BIODATA
                tempatLahir: teacherData.tempatLahir || "-",
@@ -264,6 +285,7 @@ export default function SkDetailPage() {
                ttl: ttl,
                TTL: ttl,
                "TEMPAT/TANGGAL LAHIR": ttl,
+               "TEMPAT, TANGGAL LAHIR": ttl,
                
                // IDS
                nuptk: teacherData.nuptk || "-",
@@ -277,6 +299,7 @@ export default function SkDetailPage() {
                Unit_Kerja: skDoc.unitKerja || "-",
                UNIT_KERJA: skDoc.unitKerja || "-",
                "UNIT KERJA": skDoc.unitKerja || "-",
+               KECAMATAN: teacherData.kecamatan || ".....",
                
                jabatan: skDoc.jabatan || teacherData.jabatan || teacherData.mapel || "Guru",
                JABATAN: skDoc.jabatan || teacherData.jabatan || teacherData.mapel || "Guru",
@@ -303,9 +326,15 @@ export default function SkDetailPage() {
                status: skDoc.status || teacherData.status || "-",
                STATUS: skDoc.status || teacherData.status || "-",
 
-               // TANGGAL PENETAPAN
-               TANGGAL_PENETAPAN: tanggalPenetapanFormatted,
+               // PERMOHONAN & TAHUN
+               "NOMOR SURAT PERMOHONAN": "-",
+               "TANGGAL SURAT PERMOHONAN": "-",
+               "TAHUN PELAJARAN": "-",
+               TAHUN_PELAJARAN: "-",
+               "TANGGAL_BERAKHIR": addOneYearIndonesian(tanggalPenetapanFormatted),
                "TANGGAL LENGKAP": tanggalPenetapanFormatted,
+               TANGGAL_PENETAPAN: tanggalPenetapanFormatted,
+               "TANGGAL PENETAPAN": tanggalPenetapanFormatted,
                
                // QR
                qrcode: qrDataUrl,

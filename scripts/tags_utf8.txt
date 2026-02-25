@@ -1,0 +1,13 @@
+﻿[dotenv@17.3.1] injecting env (4) from .env.local -- tip: ΓÜÖ∩╕Å  enable debug logging with { debug: true }
+Template sk_template_tendik not found
+
+--- Tags in sk_template_gty ---
+{ MERGEFIELD "NOMOR_SURAT_" NOMOR},\n{TANGGAL},\n{BULAN},\n{TAHUN},\n{UNIT KERJA},\n{NOMOR SURAT PERMOHONAN},\n{TANGGAL SURAT PERMOHONAN},\n{NAMA},\n{TEMPAT/TANGGAL LAHIR},\n{NOMOR INDUK MAARIF},\n{PENDIDIKAN},\n{TMT},\n{TANGGAL PENETAPAN},\n{TAHUN PELAJARAN},\n{TANGGAL_BERAKHIR},\n{TANGGAL LENGKAP},\n{28A0092B-C50C-407E-A947-70E740481C1C},\n{KECAMATAN},\n{%qrcode}
+Template sk_template_gtt not found
+
+--- Tags in sk_template_kamad_pns ---
+{28A0092B-C50C-407E-A947-70E740481C1C}
+
+--- Tags in sk_template_kamad_nonpns ---
+{NOMOR},\n{BULAN},\n{TAHUN},\n{UNIT KERJA},\n{KECAMATAN},\n{NOMOR SURAT PERMOHONAN},\n{TANGGAL SURAT PERMOHONAN},\n{NAMA},\n{TEMPAT, TANGGAL LAHIR},\n{NOMOR INDUK MAΓÇÖARIF},\n{PENDIDIKAN},\n{TMT},\n{TANGGAL PENETAPAN},\n{%qrcode}
+Template sk_template_kamad_plt not found

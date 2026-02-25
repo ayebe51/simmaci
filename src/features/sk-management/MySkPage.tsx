@@ -184,16 +184,17 @@ export default function MySkPage() {
             </div>
         </CardHeader>
         <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Nomor SK</TableHead>
-                        <TableHead>Nama Guru / PTK</TableHead>
-                        <TableHead>Jabatan</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Aksi</TableHead>
-                    </TableRow>
-                </TableHeader>
+            <div className="rounded-md border max-h-[500px] overflow-auto">
+                <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10 shadow-[0_1px_3px_0_rgb(0,0,0,0.1)]">
+                        <TableRow>
+                            <TableHead>Nomor SK</TableHead>
+                            <TableHead>Nama Guru / PTK</TableHead>
+                            <TableHead>Jabatan</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
                 <TableBody>
                     {skList.length === 0 ? (
                         <TableRow>
@@ -234,6 +235,7 @@ export default function MySkPage() {
                     )}
                 </TableBody>
             </Table>
+            </div>
 
             {/* Pagination / Load More */}
             <div className="flex justify-center py-4">
@@ -261,8 +263,9 @@ export default function MySkPage() {
              <CardDescription>Status pengajuan SK Kepala Madrasah.</CardDescription>
         </CardHeader>
         <CardContent>
+             <div className="rounded-md border max-h-[400px] overflow-auto">
              <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background z-10 shadow-[0_1px_3px_0_rgb(0,0,0,0.1)]">
                     <TableRow>
                         <TableHead>Nama Calon</TableHead>
                         <TableHead>Periode</TableHead>
@@ -305,6 +308,7 @@ export default function MySkPage() {
                     )}
                 </TableBody>
              </Table>
+             </div>
 
               {/* Pagination / Load More for Headmasters */}
             <div className="flex justify-center py-4">

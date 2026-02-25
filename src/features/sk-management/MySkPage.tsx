@@ -11,6 +11,7 @@ import { api as convexApi } from "../../../convex/_generated/api"
 // Import Service
 import { generateSingleSkDocx } from "@/services/SkGeneratorService"
 import { toast } from "sonner"
+import { toast } from "sonner"
 import { SimplePagination } from "@/components/ui/simple-pagination" // Check if this exists, otherwise use standard buttons
 
 interface SkDocument {
@@ -45,43 +46,43 @@ export default function MySkPage() {
   // Determine if user has admin privileges
   const isSuper = ["super_admin", "admin_yayasan", "admin"].includes(user?.role || "")
 
-  // 🔥 PAGINATED QUERY for SK
-  const { 
-      results: skResults, 
-      status: skStatus, 
-      loadMore: loadMoreSk, 
-      isLoading: isLoadingSk 
-  } = usePaginatedQuery(
+  // Client-side pagination state
+  const [currentSkPage, setCurrentSkPage] = useState(1);
+  const itemsPerSkPage = 10;
+  
+  const [currentHmPage, setCurrentHmPage] = useState(1);
+  const itemsPerHmPage = 10;
+
+  // 🔥 QUERY for SK (Fetching all active for this unit, then paginating client-side)
+  // This is safe assuming the total number of SKs per unit is manageable.
+  // For massive datasets, backend pagination with skip/take would be needed.
+  const rawSkData = useQuery(
       convexApi.sk.list, 
       {
         unitKerja: isSuper ? undefined : (user?.unitKerja || undefined),
         status: "active", // Only show active/approved SK
         userRole: user?.role,
         search: searchTerm || undefined // Pass search term to backend
-      }, 
-      { initialNumItems: 10 }
+      }
   )
+  const isSkLoading = rawSkData === undefined;
+  // If the API still returns a paginated structure { page: [] } when called with standard useQuery,
+  // we need to access .page, otherwise just the array.
+  const allSkResults = rawSkData ? (Array.isArray(rawSkData) ? rawSkData : (rawSkData as any).page || []) : [];
 
-  // 🔥 PAGINATED QUERY for Headmaster
-  const { 
-      results: hmResults, 
-      status: hmStatus, 
-      loadMore: loadMoreHm,
-      isLoading: isLoadingHm
-  } = usePaginatedQuery(
+  // 🔥 QUERY for Headmaster
+  const rawHmData = useQuery(
       convexApi.headmasters.list, 
       {
         schoolName: user?.unitKerja || undefined,
-        // Note: Headmaster search is not yet fully implemented on backend for 'schoolName' regex with pagination
-        // We rely on 'schoolName' exact match or pre-filtering if 'user.unitKerja' is set.
-        // If 'searchTerm' is generic, we can't easily search headmasters without a search index update there too.
-      }, 
-      { initialNumItems: 10 }
+      }
   )
+  const isHmLoading = rawHmData === undefined;
+  const allHmResults = rawHmData ? (Array.isArray(rawHmData) ? rawHmData : (rawHmData as any).page || []) : [];
 
   // Map Convex SK data to SkDocument interface
-  const skList: SkDocument[] = useMemo(() => {
-    return skResults.map((doc: any) => ({
+  const mappedSkList: SkDocument[] = useMemo(() => {
+    return allSkResults.map((doc: any) => ({
       id: doc._id,
       nomorSurat: doc.nomorSk,
       nama: doc.nama,
@@ -89,11 +90,15 @@ export default function MySkPage() {
       jenisSk: doc.jenisSk, 
       status: doc.status === "active" ? "Approved" : doc.status,
     }))
-  }, [skResults])
+  }, [allSkResults])
+
+  // Derive paginated list
+  const skTotalPages = Math.ceil(mappedSkList.length / itemsPerSkPage);
+  const skList = mappedSkList.slice((currentSkPage - 1) * itemsPerSkPage, currentSkPage * itemsPerSkPage);
 
   // Map Convex Headmaster data to HeadmasterApproval interface
-  const headmasterSkList: HeadmasterApproval[] = useMemo(() => {
-    return hmResults.map((hm: any) => ({
+  const mappedHeadmasterSkList: HeadmasterApproval[] = useMemo(() => {
+    return allHmResults.map((hm: any) => ({
       id: hm.id || hm._id, // Handle fallback
       periode: hm.periode,
       status: hm.status === "approved" ? "Approved" : hm.status,
@@ -101,7 +106,10 @@ export default function MySkPage() {
       teacher: hm.teacher ? { nama: hm.teacher.nama } : { nama: hm.teacherName },
       school: hm.school ? { nama: hm.school.nama } : { nama: hm.schoolName },
     }))
-  }, [hmResults])
+  }, [allHmResults])
+
+  const hmTotalPages = Math.ceil(mappedHeadmasterSkList.length / itemsPerHmPage);
+  const headmasterSkList = mappedHeadmasterSkList.slice((currentHmPage - 1) * itemsPerHmPage, currentHmPage * itemsPerHmPage);
 
 
   // Handle Download (Updated to Fetch from Database Base64)
@@ -196,10 +204,10 @@ export default function MySkPage() {
                         </TableRow>
                     </TableHeader>
                 <TableBody>
-                    {skList.length === 0 ? (
+                    {mappedSkList.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                {isLoadingSk ? "Memuat data..." : "Belum ada SK yang diterbitkan untuk unit ini."}
+                                {isSkLoading ? "Memuat data..." : "Belum ada SK yang diterbitkan untuk unit ini."}
                             </TableCell>
                         </TableRow>
                     ): (
@@ -237,22 +245,32 @@ export default function MySkPage() {
             </Table>
             </div>
 
-            {/* Pagination / Load More */}
-            <div className="flex justify-center py-4">
-                {skStatus === "CanLoadMore" && (
-                    <Button variant="outline" onClick={() => loadMoreSk(10)}>
-                        Muat Lebih Banyak
+            <div className="flex items-center justify-between py-4">
+                <span className="text-sm text-muted-foreground">
+                    Menampilkan {skList.length > 0 ? (currentSkPage - 1) * itemsPerSkPage + 1 : 0} - {Math.min(currentSkPage * itemsPerSkPage, mappedSkList.length)} dari {mappedSkList.length} data
+                </span>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={currentSkPage <= 1}
+                        onClick={() => setCurrentSkPage(p => Math.max(1, p - 1))}
+                    >
+                        Sebelumnya
                     </Button>
-                )}
-                {skStatus === "LoadingMore" && (
-                    <Button variant="outline" disabled>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat...
+                    <div className="text-sm font-medium mx-2 pr-2">
+                         Halaman {currentSkPage} dari {skTotalPages || 1}
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={currentSkPage >= skTotalPages}
+                        onClick={() => setCurrentSkPage(p => Math.min(skTotalPages, p + 1))}
+                    >
+                        Selanjutnya
                     </Button>
-                )}
+                </div>
             </div>
-             <p className="text-xs text-center text-muted-foreground">
-                  Menampilkan {skList.length} data
-             </p>
         </CardContent>
       </Card>
 
@@ -274,8 +292,8 @@ export default function MySkPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {headmasterSkList.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Tidak ada data.</TableCell></TableRow>
+                    {mappedHeadmasterSkList.length === 0 ? (
+                        <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{isHmLoading ? "Memuat data..." : "Tidak ada data."}</TableCell></TableRow>
                     ) : (
                         headmasterSkList.map((item) => (
                             <TableRow key={item.id}>
@@ -310,22 +328,32 @@ export default function MySkPage() {
              </Table>
              </div>
 
-              {/* Pagination / Load More for Headmasters */}
-            <div className="flex justify-center py-4">
-                {hmStatus === "CanLoadMore" && (
-                    <Button variant="outline" onClick={() => loadMoreHm(5)}>
-                         Muat Lebih Banyak
+            <div className="flex items-center justify-between py-4">
+                <span className="text-sm text-muted-foreground">
+                    Menampilkan {headmasterSkList.length > 0 ? (currentHmPage - 1) * itemsPerHmPage + 1 : 0} - {Math.min(currentHmPage * itemsPerHmPage, mappedHeadmasterSkList.length)} dari {mappedHeadmasterSkList.length} data
+                </span>
+                <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={currentHmPage <= 1}
+                        onClick={() => setCurrentHmPage(p => Math.max(1, p - 1))}
+                    >
+                        Sebelumnya
                     </Button>
-                )}
-                 {hmStatus === "LoadingMore" && (
-                    <Button variant="outline" disabled>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat...
+                    <div className="text-sm font-medium mx-2 pr-2">
+                         Halaman {currentHmPage} dari {hmTotalPages || 1}
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={currentHmPage >= hmTotalPages}
+                        onClick={() => setCurrentHmPage(p => Math.min(hmTotalPages, p + 1))}
+                    >
+                        Selanjutnya
                     </Button>
-                )}
+                </div>
             </div>
-             <p className="text-xs text-center text-muted-foreground">
-                  Menampilkan {headmasterSkList.length} data
-             </p>
         </CardContent>
       </Card>
     </div>

@@ -41,7 +41,10 @@ interface Teacher {
   isCertified: boolean
   isActive: boolean
   pdpkpnu: string
+  provinsi?: string
+  kabupaten?: string
   kecamatan?: string
+  kelurahan?: string
   birthPlace?: string
   birthDate?: string
   tempatLahir?: string
@@ -105,7 +108,10 @@ export default function TeacherListPage() {
         isCertified: t.isCertified || false,
         isActive: t.isActive !== false,
         pdpkpnu: t.pdpkpnu || "Belum",
+        provinsi: t.provinsi,
+        kabupaten: t.kabupaten,
         kecamatan: t.kecamatan,
+        kelurahan: t.kelurahan,
         birthPlace: t.tempatLahir,
         birthDate: t.tanggalLahir,
         tempatLahir: t.tempatLahir,
@@ -170,6 +176,15 @@ export default function TeacherListPage() {
   const [schoolSearch, setSchoolSearch] = useState("")
   const [openSchoolDropdown, setOpenSchoolDropdown] = useState(false)
 
+  // API Wilayah (Cilacap Only)
+  const [regionData, setRegionData] = useState<any>(null)
+  useEffect(() => {
+    fetch('/data/cilacap.json')
+      .then(res => res.json())
+      .then(data => setRegionData(data))
+      .catch(console.error)
+  }, [])
+
   const [userUnit] = useState<string | null>(() => {
     try {
         const u = localStorage.getItem("user")
@@ -185,7 +200,7 @@ export default function TeacherListPage() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState<Partial<Teacher>>({
-      nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: ""
+      nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: ""
   })
 
   // 📄 CLIENT-SIDE PAGINATION STATE
@@ -268,12 +283,17 @@ export default function TeacherListPage() {
   const openAdd = () => {
       setIsEditMode(false)
       const initialData: Partial<Teacher> = { 
-          nuptk: "", nama: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "" 
+          nuptk: "", nama: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: ""
       }
       if (userUnit) {
           initialData.unitKerja = userUnit;
           const matchedSchool = schools.find(s => s.nama?.trim().toLowerCase() === userUnit.trim().toLowerCase());
-          if (matchedSchool && matchedSchool.kecamatan) initialData.kecamatan = matchedSchool.kecamatan;
+          if (matchedSchool && matchedSchool.kecamatan) {
+              initialData.kecamatan = matchedSchool.kecamatan;
+              initialData.provinsi = matchedSchool.provinsi;
+              initialData.kabupaten = matchedSchool.kabupaten;
+              initialData.kelurahan = matchedSchool.kelurahan;
+          }
       }
       setFormData(initialData)
       setIsAddOpen(true)
@@ -304,9 +324,17 @@ export default function TeacherListPage() {
         if (!formData.kecamatan && (formData.unitKerja || formData.satminkal)) {
             const unit = formData.unitKerja || formData.satminkal;
             const matchedSchool = schools.find(s => s.nama?.trim().toLowerCase() === unit?.trim().toLowerCase());
-            if (matchedSchool && matchedSchool.kecamatan) cleanPayload.kecamatan = matchedSchool.kecamatan;
+            if (matchedSchool && matchedSchool.kecamatan) {
+                cleanPayload.kecamatan = matchedSchool.kecamatan;
+                if (matchedSchool.provinsi) cleanPayload.provinsi = matchedSchool.provinsi;
+                if (matchedSchool.kabupaten) cleanPayload.kabupaten = matchedSchool.kabupaten;
+                if (matchedSchool.kelurahan) cleanPayload.kelurahan = matchedSchool.kelurahan;
+            }
         } else {
              addIfPresent("kecamatan", formData.kecamatan);
+             addIfPresent("provinsi", formData.provinsi);
+             addIfPresent("kabupaten", formData.kabupaten);
+             addIfPresent("kelurahan", formData.kelurahan);
         }
         addIfPresent("tempatLahir", formData.tempatLahir || formData.birthPlace);
         addIfPresent("tanggalLahir", formData.tanggalLahir || formData.birthDate);
@@ -598,8 +626,43 @@ export default function TeacherListPage() {
                      </Select>
                  </div>
                  <div className="grid grid-cols-4 items-center gap-4">
+                     <Label className="text-right">Provinsi</Label>
+                     <Input className="col-span-3 bg-muted" value={formData.provinsi || ""} readOnly placeholder="Otomatis" />
+                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                     <Label className="text-right">Kab/Kota</Label>
+                     <Input className="col-span-3 bg-muted" value={formData.kabupaten || ""} readOnly placeholder="Otomatis" />
+                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
                      <Label className="text-right">Kecamatan</Label>
-                     <Input className="col-span-3" value={formData.kecamatan || ""} onChange={e => setFormData({...formData, kecamatan: e.target.value})} placeholder="Contoh: Cilacap Tengah" />
+                     <Select 
+                         value={formData.kecamatan} 
+                         onValueChange={(val) => {
+                             setFormData({...formData, kecamatan: val, kelurahan: "", provinsi: regionData?.provinsi || "Jawa Tengah", kabupaten: regionData?.kabupaten || "Cilacap"})
+                         }}
+                     >
+                         <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kecamatan" /></SelectTrigger>
+                         <SelectContent>
+                             {regionData?.kecamatan?.map((k: any) => (
+                                 <SelectItem key={k.nama} value={k.nama}>{k.nama}</SelectItem>
+                             ))}
+                         </SelectContent>
+                     </Select>
+                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                     <Label className="text-right">Kelurahan/Desa</Label>
+                     <Select 
+                         disabled={!formData.kecamatan}
+                         value={formData.kelurahan} 
+                         onValueChange={(val) => setFormData({...formData, kelurahan: val})}
+                     >
+                         <SelectTrigger className="col-span-3"><SelectValue placeholder="Pilih Kelurahan/Desa" /></SelectTrigger>
+                         <SelectContent>
+                             {regionData?.kecamatan?.find((k: any) => k.nama === formData.kecamatan)?.desa?.map((d: any) => (
+                                 <SelectItem key={d} value={d}>{d}</SelectItem>
+                             ))}
+                         </SelectContent>
+                     </Select>
                  </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                      <Label className="text-right">Status</Label>

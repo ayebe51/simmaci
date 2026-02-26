@@ -135,7 +135,10 @@ export const create = mutation({
     namaAyah: v.optional(v.any()),
     namaIbu: v.optional(v.any()),
     alamat: v.optional(v.any()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.any()),
+    kelurahan: v.optional(v.string()),
     namaSekolah: v.optional(v.any()),
     npsn: v.optional(v.any()),
     kelas: v.optional(v.any()),
@@ -195,7 +198,10 @@ export const update = mutation({
     namaAyah: v.optional(v.any()),
     namaIbu: v.optional(v.any()),
     alamat: v.optional(v.any()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.any()),
+    kelurahan: v.optional(v.string()),
     namaSekolah: v.optional(v.any()),
     kelas: v.optional(v.any()),
     nomorTelepon: v.optional(v.any()),
@@ -226,7 +232,7 @@ export const update = mutation({
         const allowedFields = [
           "nisn", "nik", "nama", "nomorIndukMaarif", "jenisKelamin", 
           "tempatLahir", "tanggalLahir", "namaAyah", "namaIbu", "alamat", 
-          "kecamatan", "namaSekolah", "npsn", "kelas", "nomorTelepon", 
+          "provinsi", "kabupaten", "kecamatan", "kelurahan", "namaSekolah", "npsn", "kelas", "nomorTelepon", 
           "namaWali", "photoId", "status", "isVerified", "qrCode"
         ];
 
@@ -297,7 +303,10 @@ export const bulkCreate = mutation({
       namaAyah: v.optional(v.any()),
       namaIbu: v.optional(v.any()),
       alamat: v.optional(v.any()),
+      provinsi: v.optional(v.string()),
+      kabupaten: v.optional(v.string()),
       kecamatan: v.optional(v.any()),
+      kelurahan: v.optional(v.string()),
       namaSekolah: v.optional(v.any()),
       npsn: v.optional(v.any()),
       kelas: v.optional(v.any()),

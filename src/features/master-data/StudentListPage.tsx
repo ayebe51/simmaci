@@ -39,7 +39,10 @@ interface Student {
   namaAyah?: string
   namaIbu?: string
   alamat?: string
+  provinsi?: string
+  kabupaten?: string
   kecamatan?: string
+  kelurahan?: string
   nomorTelepon?: string
   npsn?: string
   namaWali?: string
@@ -58,7 +61,7 @@ export default function StudentListPage() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [formData, setFormData] = useState<Partial<Student>>({
       nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
-      nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
+      nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
   })
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -67,6 +70,15 @@ export default function StudentListPage() {
 
   
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+
+  // API Wilayah (Cilacap Only)
+  const [regionData, setRegionData] = useState<any>(null)
+  useEffect(() => {
+    fetch('/data/cilacap.json')
+      .then(res => res.json())
+      .then(data => setRegionData(data))
+      .catch(console.error)
+  }, [])
 
   // PERMISSION: Filter by Unit Kerja for Operators
   const [userUnit] = useState<string | null>(() => {
@@ -113,7 +125,10 @@ export default function StudentListPage() {
     namaAyah: s.namaAyah,
     namaIbu: s.namaIbu,
     alamat: s.alamat,
+    provinsi: s.provinsi,
+    kabupaten: s.kabupaten,
     kecamatan: s.kecamatan,
+    kelurahan: s.kelurahan,
     nomorTelepon: s.nomorTelepon,
     npsn: s.npsn,
     namaWali: s.namaWali,
@@ -272,7 +287,10 @@ export default function StudentListPage() {
         namaAyah: clean(formData.namaAyah),
         namaIbu: clean(formData.namaIbu),
         alamat: clean(formData.alamat),
+        provinsi: clean(formData.provinsi),
+        kabupaten: clean(formData.kabupaten),
         kecamatan: clean(formData.kecamatan),
+        kelurahan: clean(formData.kelurahan),
         // Ensure namaSekolah is strictly string or undefined
         namaSekolah: clean(formData.sekolah) ?? (userUnit ? String(userUnit) : undefined),
         npsn: clean(formData.npsn),
@@ -305,7 +323,7 @@ export default function StudentListPage() {
           setIsAddOpen(false)
           setFormData({ 
               nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
-              nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: "", nik: "", namaAyah: "", namaIbu: "", npsn: ""
+              nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", nomorTelepon: "", namaWali: "", nik: "", namaAyah: "", namaIbu: "", npsn: ""
           })
       } catch (e: any) {
           console.error("Mutation Error:", e)
@@ -631,7 +649,7 @@ export default function StudentListPage() {
           if (!open) {
               setFormData({ 
                   nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
-                  nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", kecamatan: "", nomorTelepon: "", namaWali: ""
+                  nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", nomorTelepon: "", namaWali: ""
               })
           }
       }}>
@@ -756,14 +774,57 @@ export default function StudentListPage() {
 
                 {/* Additional Fields (Collapsed/Optional) */}
                  <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
-                     <div className="grid gap-2">
-                        <Label htmlFor="alamat">Alamat</Label>
-                        <Input id="alamat" value={formData.alamat || ""} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Alamat Lengkap" />
+                     <div className="grid gap-2 col-span-2 md:col-span-1">
+                        <Label>Provinsi</Label>
+                        <Input className="bg-muted" value={formData.provinsi || ""} readOnly placeholder="Otomatis" />
+                     </div>
+                     <div className="grid gap-2 col-span-2 md:col-span-1">
+                        <Label>Kabupaten/Kota</Label>
+                        <Input className="bg-muted" value={formData.kabupaten || ""} readOnly placeholder="Otomatis" />
+                     </div>
+                     <div className="grid gap-2 col-span-2 md:col-span-1">
+                        <Label>Kecamatan</Label>
+                        <Select 
+                            value={formData.kecamatan} 
+                            onValueChange={(val) => {
+                                setFormData({...formData, kecamatan: val, kelurahan: "", provinsi: regionData?.provinsi || "Jawa Tengah", kabupaten: regionData?.kabupaten || "Cilacap"})
+                            }}
+                        >
+                            <SelectTrigger><SelectValue placeholder="Pilih Kecamatan" /></SelectTrigger>
+                            <SelectContent>
+                                {regionData?.kecamatan?.map((k: any) => (
+                                    <SelectItem key={k.nama} value={k.nama}>{k.nama}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                     </div>
+                     <div className="grid gap-2 col-span-2 md:col-span-1">
+                        <Label>Kelurahan/Desa</Label>
+                        <Select 
+                            disabled={!formData.kecamatan}
+                            value={formData.kelurahan} 
+                            onValueChange={(val) => setFormData({...formData, kelurahan: val})}
+                        >
+                            <SelectTrigger><SelectValue placeholder="Pilih Kelurahan/Desa" /></SelectTrigger>
+                            <SelectContent>
+                                {regionData?.kecamatan?.find((k: any) => k.nama === formData.kecamatan)?.desa?.map((d: any) => (
+                                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                     </div>
+                     <div className="grid gap-2 col-span-2">
+                        <Label htmlFor="alamat">Alamat Lengkap (Jalan/RT/RW)</Label>
+                        <Input id="alamat" value={formData.alamat || ""} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Jl. Contoh No. 123 RT 01 RW 02" />
                     </div>
-                     <div className="grid gap-2">
+                     <div className="grid gap-2 col-span-2 md:col-span-1">
                         <Label htmlFor="nomor_telepon">No. Telepon</Label>
                         <Input id="nomor_telepon" value={formData.nomorTelepon || ""} onChange={e => setFormData({...formData, nomorTelepon: e.target.value})} />
-                    </div>
+                     </div>
+                     <div className="grid gap-2 col-span-2 md:col-span-1">
+                        <Label htmlFor="nama_wali">Nama Wali</Label>
+                        <Input id="nama_wali" value={formData.namaWali || ""} onChange={e => setFormData({...formData, namaWali: e.target.value})} />
+                     </div>
                 </div>
             </div>
             <DialogFooter>

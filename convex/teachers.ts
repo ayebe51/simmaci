@@ -328,7 +328,10 @@ export const create = mutation({
     pendidikanTerakhir: v.optional(v.string()),
     mapel: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
+    kelurahan: v.optional(v.string()),
     status: v.optional(v.string()),
     tmt: v.optional(v.string()),
     isCertified: v.optional(v.boolean()),
@@ -406,11 +409,14 @@ export const create = mutation({
             }
         }
 
-        // 🔥 AUTO-SYNC: Always inherit kecamatan from school if schoolId is present
+        // 🔥 AUTO-SYNC: Always inherit region from school if schoolId is present
         if (finalPayload.schoolId) {
             const school = await ctx.db.get(finalPayload.schoolId);
-            if (school && school.kecamatan) {
-                finalPayload.kecamatan = school.kecamatan;
+            if (school) {
+                if (school.provinsi) finalPayload.provinsi = school.provinsi;
+                if (school.kabupaten) finalPayload.kabupaten = school.kabupaten;
+                if (school.kecamatan) finalPayload.kecamatan = school.kecamatan;
+                if (school.kelurahan) finalPayload.kelurahan = school.kelurahan;
             }
         }
 
@@ -459,7 +465,10 @@ export const update = mutation({
     pendidikanTerakhir: v.optional(v.string()),
     mapel: v.optional(v.string()),
     unitKerja: v.optional(v.string()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
+    kelurahan: v.optional(v.string()),
     status: v.optional(v.string()),
     tmt: v.optional(v.string()),
     isCertified: v.optional(v.boolean()),
@@ -523,15 +532,18 @@ export const update = mutation({
             }
         }
 
-        // 🔥 AUTO-SYNC: Always inherit kecamatan from school if schoolId is present or provided
+        // 🔥 AUTO-SYNC: Always inherit region from school if schoolId is present or provided
         // Check either the update payload or the current teacher record
         const currentTeacher = await ctx.db.get(id);
         const resolvedSchoolId = finalUpdates.schoolId || currentTeacher?.schoolId;
         
         if (resolvedSchoolId) {
             const school = await ctx.db.get(resolvedSchoolId);
-            if (school && school.kecamatan) {
-                finalUpdates.kecamatan = school.kecamatan;
+            if (school) {
+                if (school.provinsi) finalUpdates.provinsi = school.provinsi;
+                if (school.kabupaten) finalUpdates.kabupaten = school.kabupaten;
+                if (school.kecamatan) finalUpdates.kecamatan = school.kecamatan;
+                if (school.kelurahan) finalUpdates.kelurahan = school.kelurahan;
             }
         }
 

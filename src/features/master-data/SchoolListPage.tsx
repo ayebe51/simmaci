@@ -412,8 +412,8 @@ export default function SchoolListPage() {
   return (
     <div className="space-y-6">
       <SoftPageHeader
-        title="Data Lembaga (Sekolah)"
-        description="Manajemen data satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
+        title="Profil Lembaga"
+        description="Manajemen profil satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={(() => {
           const user = userStr ? JSON.parse(userStr) : null;
           if (user?.role === "operator") return []; // Hide all buttons for operators

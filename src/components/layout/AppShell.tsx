@@ -43,7 +43,7 @@ export default function AppShell({ children }: AppShellProps) {
       title: "Master Data",
       items: [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { label: "Data Madrasah", href: "/dashboard/master/schools", icon: School },
+        { label: "Profil Lembaga", href: "/dashboard/master/schools", icon: School },
         { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
         { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
       ]

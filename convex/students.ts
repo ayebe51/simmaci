@@ -212,19 +212,11 @@ export const update = mutation({
     status: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    const logId = await ctx.db.insert("debug_logs", {
-        action: "students:update",
-        report: `START: ${args.id}`,
-        status: "processing",
-        createdAt: Date.now()
-    });
-
     try {
         const { id, ...updates } = args;
 
         const existing = await ctx.db.get(id);
         if (!existing) {
-            await ctx.db.patch(logId, { status: "not_found", report: `Student ID ${id} not found` });
             throw new ConvexError(`Data siswa dengan ID ${id} tidak ditemukan`);
         }
         
@@ -262,24 +254,15 @@ export const update = mutation({
         console.log(`[Mutation] Patching student ${id}:`, JSON.stringify(patch));
         await ctx.db.patch(existing._id, patch);
         
-        await ctx.db.patch(logId, { status: "success", report: `Patched ${id}` });
         return existing._id;
     } catch (e: any) {
         console.error("CRITICAL FAIL in students:update :", e);
-        await ctx.db.patch(logId, { status: "error", report: String(e.message || e) });
         if (e instanceof ConvexError) throw e;
         throw new ConvexError(e.message || "Gagal memperbarui data siswa. Terjadi kesalahan internal.");
     }
   },
 });
 
-// Debug Query to see logs
-export const getDebugLogs = query({
-    args: {},
-    handler: async (ctx) => {
-        return await ctx.db.query("debug_logs").order("desc").take(10);
-    }
-});
 
 // Delete student
 export const remove = mutation({

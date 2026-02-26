@@ -1,0 +1,102 @@
+{
+  "provinsi": "Jawa Tengah",
+  "kabupaten": "Cilacap",
+  "kecamatan": [
+    {
+      "nama": "Adipala",
+      "desa": ["Adipala", "Adiraja", "Adireja Kulon", "Adireja Wetan", "Bunton", "Doplang", "Glempangpasir", "Gombolharjo", "Kalikudi", "Karanganyar", "Karangbenda", "Karangsuruh", "Karangsari", "Pedasong", "Penggalang", "Wlahar"]
+    },
+    {
+      "nama": "Bantarsari",
+      "desa": ["Bantarsari", "Binangun", "Bulumaks", "Cikedondong", "Citembong", "Citembong Kulon", "Citembong Wetan", "Gadingreja", "Kamulyan", "Kedungwadas", "Kutasari", "Ngasem", "Rawajaya"]
+    },
+    {
+      "nama": "Binangun",
+      "desa": ["Alangamba", "Amadanom", "Binangun", "Bangkal", "Dondong", "Glempang", "Jati", "Jepara Kulon", "Jepara Wetan", "Karangnangka", "Karangputat", "Karangtawang", "Kemojing", "Kepudang", "Pagubugan", "Pagubugan Kulon", "Pasuruhan", "Pesawahan", "Sidaurip", "Widara Payung Kulon", "Widara Payung Wetan"]
+    },
+    {
+      "nama": "Cilacap Selatan",
+      "desa": ["Cilacap", "Sidakaya", "Tambakreja", "Tegalkamulyan", "Tegalreja"]
+    },
+    {
+      "nama": "Cilacap Tengah",
+      "desa": ["Donan", "Gunungsimping", "Kutawaru", "Lomanis", "Sidanegara"]
+    },
+    {
+      "nama": "Cilacap Utara",
+      "desa": ["Gumilir", "Karangtalun", "Kebonmanis", "Mertasinga", "Tritih Kulon"]
+    },
+    {
+      "nama": "Cimanggu",
+      "desa": ["Bantarpanjang", "Bantarmangu", "Cijati", "Cilempuyang", "Cimanggu", "Cisalak", "Karanganyar", "Karangreja", "Kutabima", "Mandala", "Marnabar", "Negarajati", "Panimbang", "Pesahangan", "Rejodadi"]
+    },
+    {
+      "nama": "Cipari",
+      "desa": ["Caruy", "Cipari", "Cisuru", "Karangreja", "Kutasari", "Mulyadadi", "Pegadingan", "Segaralangu", "Serang", "Sidasari"]
+    },
+    {
+      "nama": "Dayeuhluhur",
+      "desa": ["Bingkeng", "Bolang", "Cijeruk", "Cilumping", "Ciwalen", "Datar", "Dayeuhluhur", "Hanum", "Kutaagung", "Matenggeng", "Panulisan", "Panulisan Barat", "Panulisan Timur", "Peundeuy"]
+    },
+    {
+      "nama": "Gandrungmangu",
+      "desa": ["Bulusari", "Cisumur", "Gandrungmangu", "Gandrungmanis", "Gintungreja", "Karanganyar", "Karanggintung", "Kertajaya", "Layansari", "Muktisari", "Rungkang", "Sidaurip", "Sudagaran", "Wringinharjo"]
+    },
+    {
+      "nama": "Jeruklegi",
+      "desa": ["Brebegin", "Cilibang", "Citepus", "Jambe Madeg", "Jeruklegi Kulon", "Jeruklegi Wetan", "Karangkemiri", "Legok", "Mandala", "Prapagan", "Sawangan", "Tritih Lor"]
+    },
+    {
+      "nama": "Kampung Laut",
+      "desa": ["Klaces", "Panikel", "Ujung Alang", "Ujung Gagak"]
+    },
+    {
+      "nama": "Karangpucung",
+      "desa": ["Babakan", "Bengbulang", "Cidadap", "Ciporos", "Dermaji", "Gunungtelu", "Karangpucung", "Nagara Jati", "Pangawaren", "Pengadegan", "Sidamulya", "Sindangbarang", "Surusunda", "Tanggung Jati"]
+    },
+    {
+      "nama": "Kawunganten",
+      "desa": ["Bojong", "Bringkeng", "Grugu", "Kalijeruk", "Kawunganten", "Kawunganten Lor", "Mentasan", "Sarwadadi", "Sidaurip", "Ujungmanik"]
+    },
+    {
+      "nama": "Kedungreja",
+      "desa": ["Adisana", "Besuki", "Bogabangun", "Bojongsari", "Bumireja", "Jatisari", "Kedungreja", "Ciklapa", "Pingit", "Panjiwulung", "Tambaksari"]
+    },
+    {
+      "nama": "Kesugihan",
+      "desa": ["Bulusari", "Ciwalen", "Dondong", "Jangrana", "Kalibening", "Karangjengkol", "Keleng", "Kesugihan", "Kesugihan Kidul", "Kuripan", "Kuripan Kidul", "Mengkanti", "Pesanggrahan", "Planer", "Slarang"]
+    },
+    {
+      "nama": "Kroya",
+      "desa": ["Ayamalas", "Bajing", "Bajing Kulon", "Buntu", "Gentarsari", "Karangmangu", "Karangturi", "Kedawung", "Kroya", "Mujur", "Mujur Lor", "Pekuncen", "Pesumapen", "Pucung Kidul", "Pucung Lor", "Sikampuh"]
+    },
+    {
+      "nama": "Majenang",
+      "desa": ["Bener", "Boja", "Cibeunying", "Cilopadang", "Jenang", "Mulyadadi", "Mulyasari", "Padangjaya", "Pahonjean", "Pengadegan", "Sadabumi", "Sadahayu", "Salebu", "Sepatnunggal", "Ujungbarang"]
+    },
+    {
+      "nama": "Maos",
+      "desa": ["Glempang", "Kalijaran", "Karangkemiri", "Karangrana", "Karangreja", "Klapagada", "Maos Kidul", "Maos Lor", "Mergawati", "Panisihan", "Murtirejo", "Pesanggrahan"]
+    },
+    {
+      "nama": "Nusawungu",
+      "desa": ["Banjareja", "Banjarsari", "Bodo", "Danasri", "Danasri Kidul", "Danasri Lor", "Demangsari", "Glempang", "Jatilawang", "Karangpakis", "Karangputat", "Karangsemi", "Klapagading", "Kedungbenda", "Klumpit", "Nusawungu", "Purwodadi", "Sikanco", "Sikampuh", "Widarapayung Wetan"]
+    },
+    {
+      "nama": "Patimuan",
+      "desa": ["Bulupayung", "Cimrutu", "Cinyawang", "Patimuan", "Purwodadi", "Sidamukti", "Rawaapu"]
+    },
+    {
+      "nama": "Sampang",
+      "desa": ["Brani", "Canding", "Karangjati", "Karangtengah", "Ketanggung", "Nusajati", "Pabendengan", "Paketingan", "Puguh", "Sampang"]
+    },
+    {
+      "nama": "Sidareja",
+      "desa": ["Gunungreja", "Karanggedang", "Kunci", "Margasan", "Penanggapan", "Sidamulya", "Sidareja", "Sudagaran", "Tinggarjaya"]
+    },
+    {
+      "nama": "Wanareja",
+      "desa": ["Bantar", "Bantarpanjang", "Cilongkrang", "Dayeuhluhur", "Jambu", "Limbangan", "Madura", "Majingklak", "Malabar", "Palugon", "Pengadegan", "Purwasari", "Sidakaya", "Tambaksari", "Wanareja"]
+    }
+  ]
+}

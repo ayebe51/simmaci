@@ -33,11 +33,20 @@ interface School {
   npsn: string
   nama: string
   alamat: string
+  provinsi?: string
+  kabupaten?: string
   kecamatan: string
+  kelurahan?: string
   kepala: string
   noHpKepala?: string
   statusJamiyyah?: string // Afiliasi
   akreditasi?: string
+}
+
+type RegionData = {
+  provinsi: string;
+  kabupaten: string;
+  kecamatan: { nama: string; desa: string[] }[];
 }
 
 export default function SchoolListPage() {
@@ -72,7 +81,10 @@ export default function SchoolListPage() {
     npsn: s.npsn || "",
     nama: s.nama || "",
     alamat: s.alamat || "",
+    provinsi: s.provinsi || "Jawa Tengah",
+    kabupaten: s.kabupaten || "Cilacap",
     kecamatan: s.kecamatan || "",
+    kelurahan: s.kelurahan || "",
     kepala: s.kepalaMadrasah || "",
     noHpKepala: s.telepon || "",
     statusJamiyyah: s.statusJamiyyah || "",
@@ -136,8 +148,19 @@ export default function SchoolListPage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [formData, setFormData] = useState<Partial<School>>({
-      nsm: "", nama: "", npsn: "", alamat: "", kecamatan: "",
-      kepala: "", noHpKepala: "", statusJamiyyah: "", akreditasi: ""
+      nsm: "", nama: "", npsn: "", alamat: "", kecamatan: "", kelurahan: "",
+      kepala: "", noHpKepala: "", statusJamiyyah: "", akreditasi: "",
+      provinsi: "Jawa Tengah", kabupaten: "Cilacap"
+  })
+
+  // Region Data for Dropdowns
+  const [regionData, setRegionData] = useState<RegionData | null>(null)
+  
+  useState(() => {
+     fetch('/data/cilacap.json')
+       .then(res => res.json())
+       .then(data => setRegionData(data))
+       .catch(err => console.error("Failed to load region data:", err))
   })
 
   // Delete confirmation modal state
@@ -175,7 +198,10 @@ export default function SchoolListPage() {
              nsm: formData.nsm,
              npsn: formData.npsn,
              alamat: formData.alamat,
+             provinsi: "Jawa Tengah", // Hardcoded per plan
+             kabupaten: "Cilacap", // Hardcoded per plan
              kecamatan: formData.kecamatan,
+             kelurahan: formData.kelurahan,
              kepalaMadrasah: formData.kepala,
              statusJamiyyah: formData.statusJamiyyah,
            })
@@ -187,7 +213,10 @@ export default function SchoolListPage() {
              nama: formData.nama || "",
              npsn: formData.npsn,
              alamat: formData.alamat,
+             provinsi: "Jawa Tengah", // Hardcoded per plan
+             kabupaten: "Cilacap", // Hardcoded per plan
              kecamatan: formData.kecamatan,
+             kelurahan: formData.kelurahan,
              kepalaMadrasah: formData.kepala,
              akreditasi: formData.akreditasi,
              statusJamiyyah: formData.statusJamiyyah,
@@ -245,7 +274,7 @@ export default function SchoolListPage() {
 
   const openAdd = () => {
       setIsEditMode(false)
-      setFormData({ nsm: "", npsn: "", nama: "", alamat: "", kecamatan: "", kepala: "", noHpKepala: "", statusJamiyyah: "" })
+      setFormData({ nsm: "", npsn: "", nama: "", alamat: "", kecamatan: "", kelurahan: "", kepala: "", noHpKepala: "", statusJamiyyah: "", provinsi: "Jawa Tengah", kabupaten: "Cilacap" })
       setIsAddOpen(true)
   }
 
@@ -585,12 +614,42 @@ export default function SchoolListPage() {
                     <Input id="nama" className="col-span-3" value={formData.nama} onChange={e => setFormData({...formData, nama: e.target.value})} />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="alamat" className="text-right">Alamat</Label>
-                    <Input id="alamat" className="col-span-3" value={formData.alamat} onChange={e => setFormData({...formData, alamat: e.target.value})} />
+                    <Label htmlFor="alamat" className="text-right">Alamat Jalan</Label>
+                    <Input id="alamat" className="col-span-3" value={formData.alamat} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Jl. Raya No. 123" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="kecamatan" className="text-right">Kecamatan</Label>
-                    <Input id="kecamatan" className="col-span-3" value={formData.kecamatan} onChange={e => setFormData({...formData, kecamatan: e.target.value})} />
+                    <Label className="text-right">Kecamatan</Label>
+                    <div className="col-span-3">
+                        <Select value={formData.kecamatan || ""} onValueChange={(val) => setFormData({...formData, kecamatan: val, kelurahan: ""})}>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Pilih Kecamatan" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {regionData?.kecamatan.map(k => (
+                                 <SelectItem key={k.nama} value={k.nama}>{k.nama}</SelectItem>
+                             ))}
+                           </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Desa/Kelurahan</Label>
+                    <div className="col-span-3">
+                        <Select 
+                           value={formData.kelurahan || ""} 
+                           onValueChange={(val) => setFormData({...formData, kelurahan: val})}
+                           disabled={!formData.kecamatan}
+                        >
+                           <SelectTrigger>
+                             <SelectValue placeholder={formData.kecamatan ? "Pilih Desa/Kelurahan" : "Pilih Kecamatan Dulu"} />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {regionData?.kecamatan.find(k => k.nama === formData.kecamatan)?.desa.map(d => (
+                                 <SelectItem key={d} value={d}>{d}</SelectItem>
+                             ))}
+                           </SelectContent>
+                        </Select>
+                    </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="kepala" className="text-right">Kepala Sekolah</Label>

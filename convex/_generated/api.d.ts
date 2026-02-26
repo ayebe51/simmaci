@@ -46,6 +46,7 @@ import type * as http from "../http.js";
 import type * as importData from "../importData.js";
 import type * as logs from "../logs.js";
 import type * as maintenance from "../maintenance.js";
+import type * as migrateAddresses from "../migrateAddresses.js";
 import type * as migrations from "../migrations.js";
 import type * as mutations from "../mutations.js";
 import type * as my_diagnosis from "../my_diagnosis.js";
@@ -113,6 +114,7 @@ declare const fullApi: ApiFromModules<{
   importData: typeof importData;
   logs: typeof logs;
   maintenance: typeof maintenance;
+  migrateAddresses: typeof migrateAddresses;
   migrations: typeof migrations;
   mutations: typeof mutations;
   my_diagnosis: typeof my_diagnosis;

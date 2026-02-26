@@ -144,7 +144,10 @@ export const create = mutation({
     nama: v.string(),
     npsn: v.optional(v.string()),
     alamat: v.optional(v.string()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
+    kelurahan: v.optional(v.string()),
     telepon: v.optional(v.string()),
     email: v.optional(v.string()),
     kepalaMadrasah: v.optional(v.string()),
@@ -181,7 +184,10 @@ export const update = mutation({
     nama: v.optional(v.string()),
     npsn: v.optional(v.string()),
     alamat: v.optional(v.string()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
+    kelurahan: v.optional(v.string()),
     telepon: v.optional(v.string()),
     kepalaMadrasah: v.optional(v.string()),
     akreditasi: v.optional(v.string()),
@@ -423,7 +429,10 @@ export const updateSelf = mutation({
   args: {
     token: v.string(), // Secure token
     alamat: v.optional(v.string()),
+    provinsi: v.optional(v.string()),
+    kabupaten: v.optional(v.string()),
     kecamatan: v.optional(v.string()),
+    kelurahan: v.optional(v.string()),
     telepon: v.optional(v.string()),
     // email: v.optional(v.string()), // Conflict with arg? No, school email field vs user email arg.
     // actually args.email is the identifying email.
@@ -477,7 +486,10 @@ export const updateSelf = mutation({
     };
     
     if (args.alamat !== undefined) updates.alamat = args.alamat;
+    if (args.provinsi !== undefined) updates.provinsi = args.provinsi;
+    if (args.kabupaten !== undefined) updates.kabupaten = args.kabupaten;
     if (args.kecamatan !== undefined) updates.kecamatan = args.kecamatan;
+    if (args.kelurahan !== undefined) updates.kelurahan = args.kelurahan;
     if (args.telepon !== undefined) updates.telepon = args.telepon;
     if (args.schoolEmail !== undefined) updates.email = args.schoolEmail;
     if (args.kepalaMadrasah !== undefined) updates.kepalaMadrasah = args.kepalaMadrasah;

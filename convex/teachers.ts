@@ -409,21 +409,6 @@ export const create = mutation({
             }
         }
 
-        // 🔥 AUTO-SYNC: Always inherit region from school if schoolId is present
-        if (finalPayload.schoolId) {
-            const validSchoolId = ctx.db.normalizeId("schools", finalPayload.schoolId);
-            if (validSchoolId) {
-                const school = await ctx.db.get(validSchoolId);
-                if (school) {
-                    if (school.provinsi) finalPayload.provinsi = school.provinsi;
-                    if (school.kabupaten) finalPayload.kabupaten = school.kabupaten;
-                    if (school.kecamatan) finalPayload.kecamatan = school.kecamatan;
-                    if (school.kelurahan) finalPayload.kelurahan = school.kelurahan;
-                }
-            } else {
-                console.warn("Invalid schoolId format during create:", finalPayload.schoolId);
-            }
-        }
 
         // Legacy Mapping
         if (tanggallahir) finalPayload.tanggalLahir = tanggallahir;
@@ -537,25 +522,6 @@ export const update = mutation({
             }
         }
 
-        // 🔥 AUTO-SYNC: Always inherit region from school if schoolId is present or provided
-        // Check either the update payload or the current teacher record
-        const currentTeacher = await ctx.db.get(id);
-        const resolvedSchoolId = finalUpdates.schoolId || currentTeacher?.schoolId;
-        
-        if (resolvedSchoolId) {
-            const validSchoolId = ctx.db.normalizeId("schools", resolvedSchoolId);
-            if (validSchoolId) {
-                const school = await ctx.db.get(validSchoolId);
-                if (school) {
-                    if (school.provinsi) finalUpdates.provinsi = school.provinsi;
-                    if (school.kabupaten) finalUpdates.kabupaten = school.kabupaten;
-                    if (school.kecamatan) finalUpdates.kecamatan = school.kecamatan;
-                    if (school.kelurahan) finalUpdates.kelurahan = school.kelurahan;
-                }
-            } else {
-                console.warn("Invalid schoolId format during update:", resolvedSchoolId);
-            }
-        }
 
         await ctx.db.patch(id, {
           ...finalUpdates,

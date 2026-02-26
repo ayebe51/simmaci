@@ -305,4 +305,25 @@ export default defineSchema({
     createdAt: v.any(),
   })
     .index("by_created", ["createdAt"]),
+
+  // NUPTK Submissions (Pengajuan Rekomendasi NUPTK)
+  nuptk_submissions: defineTable({
+    teacherId: v.id("teachers"),
+    schoolId: v.id("schools"),
+    status: v.string(), // "Pending", "Approved", "Rejected"
+    dokumenKtpId: v.optional(v.id("_storage")),
+    dokumenIjazahId: v.optional(v.id("_storage")),
+    dokumenPengangkatanId: v.optional(v.id("_storage")),
+    dokumenPenugasanId: v.optional(v.id("_storage")),
+    nomorSuratRekomendasi: v.optional(v.string()),
+    tanggalSuratRekomendasi: v.optional(v.string()),
+    submittedAt: v.number(),
+    approvedAt: v.optional(v.number()),
+    approverId: v.optional(v.any()),
+    rejectionReason: v.optional(v.string()),
+  })
+    .index("by_schoolId", ["schoolId"])
+    .index("by_teacherId", ["teacherId"])
+    .index("by_status", ["status"])
+    .index("by_submittedAt", ["submittedAt"]),
 });

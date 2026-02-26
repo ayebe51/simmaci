@@ -51,6 +51,7 @@ import type * as migrations from "../migrations.js";
 import type * as mutations from "../mutations.js";
 import type * as my_diagnosis from "../my_diagnosis.js";
 import type * as notifications from "../notifications.js";
+import type * as nuptk from "../nuptk.js";
 import type * as ping from "../ping.js";
 import type * as reports from "../reports.js";
 import type * as repro_issue from "../repro_issue.js";
@@ -119,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   mutations: typeof mutations;
   my_diagnosis: typeof my_diagnosis;
   notifications: typeof notifications;
+  nuptk: typeof nuptk;
   ping: typeof ping;
   reports: typeof reports;
   repro_issue: typeof repro_issue;

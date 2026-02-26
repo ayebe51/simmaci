@@ -67,6 +67,8 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
         { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
         { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
+        { label: "Pengajuan NUPTK", href: "/dashboard/sdm/nuptk/pengajuan", icon: FileText },
+        { label: "Persetujuan NUPTK", href: "/dashboard/sdm/nuptk/persetujuan", icon: Gavel },
         { label: "Laporan Guru", href: "/dashboard/reports", icon: FileBarChart },
       ]
     },
@@ -117,8 +119,8 @@ export default function AppShell({ children }: AppShellProps) {
                  }
 
                  // 2. YAYASAN & SUPER ADMIN
-                 if (["Approval Yayasan", "Monitoring Kepala", "Laporan Guru", "Laporan SK"].includes(item.label)) {
-                     return ["super_admin", "admin_yayasan"].includes(userRole);
+                 if (["Approval Yayasan", "Monitoring Kepala", "Persetujuan NUPTK", "Laporan Guru", "Laporan SK"].includes(item.label)) {
+                     return ["super_admin", "admin_yayasan", "admin"].includes(userRole);
                  }
 
                  // 3. OPERATOR (DEFAULT)

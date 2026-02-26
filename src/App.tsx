@@ -36,6 +36,8 @@ import SchoolProfilePage from "./features/schools/SchoolProfilePage"
 import ChangePasswordPage from "./features/auth/ChangePasswordPage"
 import DataAuditPage from '@/features/master-data/DataAuditPage';
 import StudentCardPage from "./features/kta/StudentCardPage"
+import { PengajuanNuptkPage } from "./features/sdm/PengajuanNuptkPage"
+import { PersetujuanNuptkPage } from "./features/sdm/PersetujuanNuptkPage"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
@@ -95,7 +97,8 @@ export default function App() {
                         <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
                         <Route path="sk/:id/print" element={<SkPrintPage />} />
                         <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
-                        <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
+                        <Route path="sdm/nuptk/pengajuan" element={<PengajuanNuptkPage />} />
+                        <Route path="sdm/nuptk/persetujuan" element={<PersetujuanNuptkPage />} />
 
                         <Route path="mutations" element={<MutationPage />} />
                       </Routes>

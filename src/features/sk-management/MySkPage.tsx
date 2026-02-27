@@ -56,19 +56,23 @@ export default function MySkPage() {
   // 🔥 QUERY for SK (Fetching all active for this unit, then paginating client-side)
   // This is safe assuming the total number of SKs per unit is manageable.
   // For massive datasets, backend pagination with skip/take would be needed.
-  const rawSkData = useQuery(
+  // 🔥 QUERY for SK (Using usePaginatedQuery as required by the backend schema)
+  const {
+      results: rawSkData,
+      status: skQueryStatus,
+      loadMore: loadMoreSk
+  } = usePaginatedQuery(
       convexApi.sk.list, 
       {
         unitKerja: isSuper ? undefined : (user?.unitKerja || undefined),
         status: "active", // Only show active/approved SK
         userRole: user?.role,
         search: searchTerm || undefined // Pass search term to backend
-      }
+      },
+      { initialNumItems: 100 } // Load a decent chunk initially
   )
-  const isSkLoading = rawSkData === undefined;
-  // If the API still returns a paginated structure { page: [] } when called with standard useQuery,
-  // we need to access .page, otherwise just the array.
-  const allSkResults = rawSkData ? (Array.isArray(rawSkData) ? rawSkData : (rawSkData as any).page || []) : [];
+  const isSkLoading = skQueryStatus === "LoadingFirstPage";
+  const allSkResults = rawSkData || [];
 
   // 🔥 QUERY for Headmaster
   const rawHmData = useQuery(

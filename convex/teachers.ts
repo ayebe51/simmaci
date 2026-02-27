@@ -320,6 +320,7 @@ async function validateWriteAccess(ctx: MutationCtx, targetUnit: string | undefi
 export const create = mutation({
   args: {
     nuptk: v.string(),
+    nomorIndukMaarif: v.optional(v.string()),
     nama: v.string(),
     nip: v.optional(v.string()),
     jenisKelamin: v.optional(v.string()),
@@ -447,6 +448,7 @@ export const update = mutation({
   args: {
     id: v.id("teachers"),
     nuptk: v.optional(v.string()),
+    nomorIndukMaarif: v.optional(v.string()),
     nama: v.optional(v.string()),
     nip: v.optional(v.string()),
     jenisKelamin: v.optional(v.string()),
@@ -678,6 +680,10 @@ export const bulkCreate = mutation({
              mapField(teacher.tanggalLahir || teacher.birthDate, 'tanggalLahir');
              mapField(teacher.nip || teacher.NIP, 'nip');
              mapField(teacher.jenisKelamin || teacher.jk, 'jenisKelamin');
+             
+             // New: NIM Support
+             const rawNim = safeString(teacher.nomorIndukMaarif || teacher.NIM);
+             if (rawNim) cleanData.nomorIndukMaarif = rawNim;
              
              const isCertified = safeBool(teacher.isCertified || teacher.sertifikasi);
              if (isCertified !== undefined) cleanData.isCertified = isCertified;
@@ -980,17 +986,17 @@ export const generateNextNim = query({
     // We fetch 50 to skip over any non-numeric or weird formatted IDs (e.g. "GTY-01")
     const teachers = await ctx.db
       .query("teachers")
-      .withIndex("by_nuptk")
+      .withIndex("by_nim")
       .order("desc")
       .take(50);
 
     let maxNim = 0;
     
     for (const t of teachers) {
-        if (!t.nuptk) continue;
+        if (!t.nomorIndukMaarif) continue;
         
         // Remove whitespace
-        const val = t.nuptk.trim();
+        const val = String(t.nomorIndukMaarif).trim();
         
         // Check if strictly numeric
         if (/^\d+$/.test(val)) {

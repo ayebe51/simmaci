@@ -5,6 +5,7 @@ export default defineSchema({
   // Teachers table
   teachers: defineTable({
     nuptk: v.any(),
+    nomorIndukMaarif: v.optional(v.any()),
     nama: v.any(),
     nip: v.optional(v.any()),
     jenisKelamin: v.optional(v.any()),
@@ -36,6 +37,7 @@ export default defineSchema({
     updatedAt: v.any(),
   })
     .index("by_nuptk", ["nuptk"])
+    .index("by_nim", ["nomorIndukMaarif"])
     .index("by_unit", ["unitKerja"])
     .index("by_kecamatan", ["kecamatan"])
     .index("by_active", ["isActive"])

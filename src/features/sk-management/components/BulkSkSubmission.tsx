@@ -68,7 +68,8 @@ export function BulkSkSubmission() {
     "Tempat Lahir": ["tempat lahir", "tmp lahir"],
     "Tanggal Lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
     "Tempat/Tanggal Lahir": ["tempat/tanggal lahir", "ttl", "tempat tanggal lahir"],
-    "Nomor Induk Ma'arif": ["nomor induk ma'arif", "niy", "nip", "nomor induk", "n.i.y", "nuptk", "pegid"],
+    "NUPTK": ["nuptk"],
+    "Nomor Induk Ma'arif": ["nomor induk ma'arif", "niy", "nip", "nomor induk", "n.i.y", "pegid"],
     "Pendidikan Terakhir": ["pendidikan terakhir", "pendidikan", "ijazah terakhir"],
     "Unit Kerja": ["unit kerja", "satminkal", "tempat tugas", "lembaga", "nama madrasah", "sekolah"],
     "Tanggal Mulai Tugas": ["tanggal mulai tugas", "tmt", "mulai tugas", "tgl masuk", "tmt guru"],
@@ -97,6 +98,7 @@ export function BulkSkSubmission() {
     const headers = [
       "Nama", 
       "Tempat/Tanggal Lahir", 
+      "NUPTK",
       "Nomor Induk Ma'arif", 
       "Pendidikan Terakhir", 
       "Unit Kerja", 
@@ -111,6 +113,7 @@ export function BulkSkSubmission() {
     const sampleRow = [
       "Ahmad Contoh, S.Pd",
       "Cilacap, 12-05-1990",
+      "1234567890123456",
       "123456789",
       "S1 Pendidikan Agama Islam",
       "MI Ma'arif 01 Cilacap",
@@ -250,7 +253,8 @@ export function BulkSkSubmission() {
 
                 // Parse Fields
                 newObj["nama"] = rawVals["Nama"]
-                newObj["nuptk"] = rawVals["Nomor Induk Ma'arif"]
+                newObj["nuptk"] = rawVals["NUPTK"]
+                newObj["nomorIndukMaarif"] = rawVals["Nomor Induk Ma'arif"]
                 newObj["unitKerja"] = rawVals["Unit Kerja"]
                 newObj["satminkal"] = rawVals["Unit Kerja"] // Duplicate for safety
                 newObj["kecamatan"] = rawVals["Kecamatan"]
@@ -475,6 +479,7 @@ export function BulkSkSubmission() {
 
             return {
                 nuptk: c["nuptk"] ? String(c["nuptk"]) : `TMP-${Date.now()}-${i}`, 
+                nomorIndukMaarif: c["nomorIndukMaarif"] ? String(c["nomorIndukMaarif"]) : undefined, 
                 nama: c["nama"] ? String(c["nama"]) : "Tanpa Nama",
                 status: calculatedStatus, 
                 satminkal: c["unitKerja"] ? String(c["unitKerja"]) : "Lainnya",
@@ -502,6 +507,7 @@ export function BulkSkSubmission() {
         // Map to Convex schema format (using undefined for optional fields)
         const convexTeachers = teachersToUpsert.map(t => ({
             nuptk: t.nuptk,
+            nomorIndukMaarif: t.nomorIndukMaarif,
             nama: t.nama,
             status: t.status || undefined,
             unitKerja: t.satminkal || undefined,

@@ -31,9 +31,10 @@ import BroadcastModal from "./components/BroadcastModal"
 
 interface Teacher {
   id: string
-  nuptk: string
+  nuptk?: string
+  nomorIndukMaarif?: string
   nama: string
-  status: string
+  status?: string
   mapel: string
   satminkal: string
   unitKerja?: string
@@ -63,7 +64,7 @@ export default function TeacherListPage() {
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
   
   // KTA Modal State
-  const [isKtaModalOpen, setIsKtaModalOpen] = useState(false)
+  const [isKtaModalOpen, setIsKtaModal] = useState(false)
   const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
   
   // 🔐 AUTO-FILTER for operators
@@ -98,7 +99,8 @@ export default function TeacherListPage() {
   const teachers: Teacher[] = useMemo(() => {
      return teacherResults.map((t: any) => ({
         id: t._id,
-        nuptk: t.nuptk || "",
+        nuptk: t.nuptk,
+        nomorIndukMaarif: t.nomorIndukMaarif,
         nama: t.nama || "",
         status: t.status || "",
         mapel: t.mapel || "",
@@ -200,7 +202,7 @@ export default function TeacherListPage() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState<Partial<Teacher>>({
-      nama: "", nuptk: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: ""
+      nama: "", nuptk: "", nomorIndukMaarif: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: ""
   })
 
   // 📄 CLIENT-SIDE PAGINATION STATE
@@ -271,7 +273,7 @@ export default function TeacherListPage() {
   
   const openKta = (teacher: Teacher) => {
       setSelectedTeacherForKta(teacher)
-      setIsKtaModalOpen(true)
+      setIsKtaModal(true)
   }
   
   const openEdit = (teacher: Teacher) => {
@@ -283,7 +285,7 @@ export default function TeacherListPage() {
   const openAdd = () => {
       setIsEditMode(false)
       const initialData: Partial<Teacher> = { 
-          nuptk: "", nama: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: ""
+          nuptk: "", nama: "", nomorIndukMaarif: "", status: "GTY", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: ""
       }
       if (userUnit) {
           initialData.unitKerja = userUnit;
@@ -302,14 +304,15 @@ export default function TeacherListPage() {
   const closeDialog = () => {
       setIsAddOpen(false)
       setIsEditMode(false)
-      setFormData({ nuptk: "", nama: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "" })
+      setFormData({ nuptk: "", nama: "", nomorIndukMaarif: "", status: "", satminkal: "", mapel: "", phoneNumber: "", birthPlace: "", birthDate: "", pendidikanTerakhir: "" })
   }
 
   const handleSave = async () => {
       if(!formData.nama) { toast.error("Nama wajib diisi!"); return }
       try {
         const cleanPayload: any = {
-            nuptk: String(formData.nuptk || `TMP-${Date.now()}`),
+            nuptk: String(formData.nuptk || ""),
+            nomorIndukMaarif: String(formData.nomorIndukMaarif || ""),
             nama: String(formData.nama || "").trim(),
         };
         const addIfPresent = (key: string, val: any) => {
@@ -503,7 +506,10 @@ export default function TeacherListPage() {
                                     onCheckedChange={() => toggleSelection(item.id)}
                                 />
                             </TableCell>
-                            <TableCell className="font-medium">{item.nuptk}</TableCell>
+                            <TableCell>
+                                <div className="font-medium">{item.nuptk || "-"}</div>
+                                {item.nomorIndukMaarif && <div className="text-xs text-muted-foreground font-mono mt-1">{item.nomorIndukMaarif}</div>}
+                            </TableCell>
                             <TableCell>
                                 <div className="flex flex-col">
                                     <span className="font-medium">{item.nama}</span>
@@ -592,30 +598,39 @@ export default function TeacherListPage() {
                      <Label className="text-right">Nama</Label>
                      <Input className="col-span-3" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} />
                  </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                     <Label className="text-right">NUPTK/NIM</Label>
-                     <div className="col-span-3 flex gap-2">
-                         <Input 
-                             value={formData.nuptk || ""} 
-                             onChange={e => setFormData({...formData, nuptk: e.target.value})} 
-                             placeholder="NUPTK 16 digit / NIM"
-                             className="flex-1"
-                         />
-                          <Button
-                             type="button" variant="outline" size="icon"
-                             onClick={async () => {
-                                 try {
-                                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                     // @ts-ignore
-                                     const nextNim = await convex.query(convexApi.teachers.generateNextNim);
-                                     if (nextNim) setFormData({...formData, nuptk: nextNim});
-                                 } catch (e) { toast.error("Gagal generate.") }
-                             }}
-                          >
-                             <Wand2 className="h-4 w-4 text-purple-600" />
-                          </Button>
-                     </div>
-                 </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right">NUPTK</Label>
+                      <Input 
+                          className="col-span-3"
+                          value={formData.nuptk || ""} 
+                          onChange={e => setFormData({...formData, nuptk: e.target.value})} 
+                          placeholder="Nomor NUPTK"
+                      />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <Label className="text-right">N.I.M</Label>
+                      <div className="col-span-3 flex gap-2">
+                          <Input 
+                              value={formData.nomorIndukMaarif || ""} 
+                              onChange={e => setFormData({...formData, nomorIndukMaarif: e.target.value})} 
+                              placeholder="Nomor Induk Ma'arif"
+                              className="flex-1"
+                          />
+                           <Button
+                              type="button" variant="outline" size="icon"
+                              onClick={async () => {
+                                  try {
+                                      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                      // @ts-ignore
+                                      const nextNim = await convex.query(convexApi.teachers.generateNextNim);
+                                      if (nextNim) setFormData({...formData, nomorIndukMaarif: nextNim});
+                                  } catch (e) { toast.error("Gagal generate.") }
+                              }}
+                           >
+                              <Wand2 className="h-4 w-4 text-purple-600" />
+                           </Button>
+                      </div>
+                  </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                      <Label className="text-right">Pendidikan</Label>
                      <Select value={formData.pendidikanTerakhir} onValueChange={(val) => setFormData({...formData, pendidikanTerakhir: val})}>

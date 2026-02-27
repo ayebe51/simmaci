@@ -20,8 +20,12 @@ export function PengajuanNuptkPage() {
     const teachers = useQuery(api.teachers.listAll, isOperator ? { schoolId: user.schoolId } : {}) || []
     const submissions = useQuery(api.nuptk.listRequests, isOperator ? { schoolId: user.schoolId } : {}) || []
     
-    // Filter teachers who don't have NUPTK OR their NUPTK is just a temporary ID
-    const eligibleTeachers = teachers.filter(t => !t.nuptk || String(t.nuptk).startsWith("TMP-"))
+    // Filter teachers who don't have NUPTK OR their NUPTK is just a temporary ID, dummy "-/0", or strictly blank whitespace
+    const eligibleTeachers = teachers.filter(t => {
+        if (!t.nuptk) return true;
+        const strVal = String(t.nuptk).trim();
+        return strVal === "" || strVal === "-" || strVal === "0" || strVal.toLowerCase() === "belum ada" || strVal.startsWith("TMP-");
+    });
     
     // Check if teacher already has pending/approved request
     const isTeacherSubmitted = (teacherId: string) => {

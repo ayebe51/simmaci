@@ -194,44 +194,56 @@ export default function SkSubmissionPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-4xl mx-auto space-y-8 relative">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-[-5%] left-[-5%] w-[30%] h-[30%] bg-emerald-100/40 rounded-full blur-[80px] pointer-events-none -z-10" />
+      <div className="absolute right-[-10%] top-[20%] w-[40%] h-[40%] bg-blue-50/40 rounded-full blur-[100px] pointer-events-none -z-10" />
+
       <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate("/dashboard/sk")} className="pl-0">
+          <Button variant="ghost" onClick={() => navigate("/dashboard/sk")} className="pl-0 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
             <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
           </Button>
           <div className="text-right">
-              <h1 className="text-2xl font-bold">Penerbitan SK</h1>
-             <div className="text-[10px] text-muted-foreground">
-                Role Detected: {isSuperAdmin ? <span className="text-green-600 font-bold">SUPER_ADMIN</span> : <span className="text-red-500 font-bold">USER_BIASA</span>}
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Penerbitan SK</h1>
+             <div className="text-xs mt-1 text-slate-500 font-medium">
+                Sistem Layanan Mandiri
              </div>
           </div>
       </div>
 
       <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="single">Input Satuan</TabsTrigger>
-          <TabsTrigger value="collective">Pengajuan Kolektif (Excel)</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-slate-100/60 p-1.5 rounded-2xl shadow-inner mb-6">
+          <TabsTrigger value="single" className="data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:font-bold data-[state=active]:shadow-md rounded-xl py-2.5 transition-all duration-300">Input Satuan</TabsTrigger>
+          <TabsTrigger value="collective" className="data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:font-bold data-[state=active]:shadow-md rounded-xl py-2.5 transition-all duration-300">Pengajuan Kolektif (Excel)</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="single">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ajuan SK Baru</CardTitle>
-              <CardDescription>
-                 Isi formulir di bawah ini untuk mengajukan penerbitan Surat Keputusan baru.
+        <TabsContent value="single" className="mt-0">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-xl overflow-hidden relative z-10 w-full mb-6 max-w-none rounded-2xl">
+            {/* Subtle card glow */}
+            <div className="absolute top-0 right-[-10%] w-[60%] h-[60%] bg-gradient-to-br from-emerald-100/50 to-emerald-50/10 blur-3xl pointer-events-none" />
+            
+            <CardHeader className="pb-6 border-b border-slate-100/60 bg-white/40 pt-8 px-8">
+              <CardTitle className="text-2xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-100 rounded-xl text-emerald-600 shadow-inner">
+                      <FileText className="w-6 h-6"/>
+                  </div>
+                  Ajuan SK Baru
+              </CardTitle>
+              <CardDescription className="text-slate-500 font-medium text-sm mt-2 ml-14">
+                 Mohon isi formulir di bawah ini dengan lengkap dan benar untuk memproses Surat Keputusan.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <CardContent className="px-8 pt-8 pb-10">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10 relative z-10">
                 
                 {/* SECTION 1: SK DETAILS */}
-                <div className="space-y-4 border-b pb-4">
-                  <h3 className="font-semibold text-lg">Jenis SK</h3>
-                  <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-6">
+                  <h3 className="font-bold text-lg text-emerald-800 flex items-center gap-2 border-b border-emerald-100 pb-2">Informasi Permohonan</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
                       <div className="grid gap-2">
-                        <Label htmlFor="jenisSk">Jenis SK</Label>
+                        <Label htmlFor="jenisSk" className="text-slate-700 font-semibold">Jenis SK</Label>
                         <Select onValueChange={(val) => form.setValue("jenisSk", val)} defaultValue={form.getValues("jenisSk")}>
-                          <SelectTrigger>
+                          <SelectTrigger className="bg-white/60 border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-400 h-11 transition-all rounded-xl">
                             <SelectValue placeholder="Pilih Jenis SK" />
                           </SelectTrigger>
                           <SelectContent>
@@ -246,61 +258,48 @@ export default function SkSubmissionPage() {
                         )}
                       </div>
         
-                       <div className="grid gap-2">
-                        <Label>Jenis Pengajuan</Label>
+                      <div className="grid gap-2">
+                        <Label className="text-slate-700 font-semibold mb-1">Jenis Pengajuan</Label>
                         <div className="flex gap-4">
-                            <label className="flex items-center gap-2 rounded-md border p-3 hover:bg-slate-50 cursor-pointer">
-                                <input type="radio" value="new" {...form.register("jenisPengajuan")} className="accent-primary" />
-                                <span className="text-sm font-medium">Baru</span>
+                            <label className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/50 p-3 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-all has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-500 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500">
+                                <input type="radio" value="new" {...form.register("jenisPengajuan")} className="accent-emerald-600 w-4 h-4" />
+                                <span className="text-sm font-semibold text-slate-700">Baru</span>
                             </label>
-                            <label className="flex items-center gap-2 rounded-md border p-3 hover:bg-slate-50 cursor-pointer">
-                                <input type="radio" value="renew" {...form.register("jenisPengajuan")} className="accent-primary" />
-                                <span className="text-sm font-medium">Perpanjangan</span>
+                            <label className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/50 p-3 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-all has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-500 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500">
+                                <input type="radio" value="renew" {...form.register("jenisPengajuan")} className="accent-emerald-600 w-4 h-4" />
+                                <span className="text-sm font-semibold text-slate-700">Perpanjangan</span>
                             </label>
                         </div>
                       </div>
                   </div>
                 </div>
 
-                {/* SECTION 2: PERSONAL DATA */}
-                <div className="space-y-4 border-b pb-4">
-                     <h3 className="font-semibold text-lg">Data Diri</h3>
-                     <div className="grid gap-4 md:grid-cols-2">
-                         <div className="grid gap-2">
-                            <Label htmlFor="nama">Nama Lengkap</Label>
-                            <Input id="nama" placeholder="Nama sesuai KTP" {...form.register("nama")} />
-                            {form.formState.errors.nama && (
-                               <p className="text-sm text-red-500">{form.formState.errors.nama.message}</p>
-                             )}
-                         </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="niy">Nomor Induk Ma'arif (NIP/NIY)</Label>
-                            <Input id="niy" placeholder="Cth: 198001..." {...form.register("niy")} />
-                         </div>
-                    </div>
-                    
-                    <div className="grid gap-4 md:grid-cols-2">
-                         <div className="grid gap-2">
-                            <Label htmlFor="tempatLahir">Tempat Lahir</Label>
-                            <Input id="tempatLahir" placeholder="Kota Kelahiran" {...form.register("tempatLahir")} />
-                             {form.formState.errors.tempatLahir && (
-                               <p className="text-sm text-red-500">{form.formState.errors.tempatLahir.message}</p>
-                             )}
-                         </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="tanggalLahir">Tanggal Lahir</Label>
-                            <Input id="tanggalLahir" type="date" {...form.register("tanggalLahir")} />
-                             {form.formState.errors.tanggalLahir && (
-                               <p className="text-sm text-red-500">{form.formState.errors.tanggalLahir.message}</p>
-                             )}
-                         </div>
-                    </div>
-                    
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div className="grid gap-2">
-                            <Label htmlFor="pendidikanTerakhir">Pendidikan Terakhir</Label>
-                            <Select onValueChange={(val) => form.setValue("pendidikanTerakhir", val)}>
-                              <SelectTrigger>
+                {/* SECTION 2: DATA DIRI */}
+                <div className="space-y-6">
+                  <h3 className="font-bold text-lg text-emerald-800 flex items-center gap-2 border-b border-emerald-100 pb-2">Informasi Pribadi</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
+                       <div className="grid gap-2">
+                          <Label htmlFor="nama" className="text-slate-700 font-semibold">Nama Lengkap & Gelar</Label>
+                          <Input id="nama" placeholder="Cth: Ahmad Subagyo, S.Pd" {...form.register("nama")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                          {form.formState.errors.nama && <p className="text-sm text-red-500">{form.formState.errors.nama.message}</p>}
+                       </div>
+                       <div className="grid gap-2">
+                          <Label htmlFor="niy" className="text-slate-700 font-semibold">Nomor Induk Ma'arif (NIP/NIY)</Label>
+                          <Input id="niy" placeholder="Cth: 198001.." {...form.register("niy")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                          <p className="text-[10px] text-slate-500 ml-1">Kosongi jika belum punya / baru diajukan bersamaan</p>
+                       </div>
+                       <div className="grid gap-2">
+                          <Label htmlFor="tempatLahir" className="text-slate-700 font-semibold">Tempat Lahir</Label>
+                          <Input id="tempatLahir" placeholder="Kota Kelahiran" {...form.register("tempatLahir")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                       </div>
+                       <div className="grid gap-2">
+                          <Label htmlFor="tanggalLahir" className="text-slate-700 font-semibold">Tanggal Lahir</Label>
+                          <Input id="tanggalLahir" type="date" {...form.register("tanggalLahir")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                       </div>
+                       <div className="grid gap-2 md:col-span-2">
+                          <Label htmlFor="pendidikanTerakhir" className="text-slate-700 font-semibold">Pendidikan Terakhir</Label>
+                          <Select onValueChange={(val) => form.setValue("pendidikanTerakhir", val)} defaultValue={form.getValues("pendidikanTerakhir")}>
+                              <SelectTrigger className="bg-white/60 border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-400 h-11 transition-all rounded-xl">
                                 <SelectValue placeholder="Pilih Pendidikan" />
                               </SelectTrigger>
                               <SelectContent>
@@ -314,48 +313,31 @@ export default function SkSubmissionPage() {
                             {form.formState.errors.pendidikanTerakhir && (
                                <p className="text-sm text-red-500">{form.formState.errors.pendidikanTerakhir.message}</p>
                              )}
-                         </div>
-                    </div>
+                       </div>
+                  </div>
                 </div>
-
-                {/* SECTION 3: EMPLOYMENT DATA */}
-                <div className="space-y-4 border-b pb-4">
-                    <h3 className="font-semibold text-lg">Data Kepegawaian</h3>
-                    <div className="grid gap-4 md:grid-cols-2">
-                         <div className="grid gap-2">
-                            <Label htmlFor="jabatan">Jabatan</Label>
-                            <Input id="jabatan" placeholder="Cth: Kepala Sekolah, Guru Mapel..." {...form.register("jabatan")} />
-                            {form.formState.errors.jabatan && (
-                               <p className="text-sm text-red-500">{form.formState.errors.jabatan.message}</p>
-                             )}
-                         </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="unitKerja">Unit Kerja / Madrasah</Label>
-                            <Input 
-                                id="unitKerja" 
-                                placeholder="Nama Lembaga" 
-                                {...form.register("unitKerja")} 
-                                readOnly={isOperator}
-                                className={isOperator ? "bg-slate-100 text-muted-foreground" : ""}
-                            />
-                            {form.formState.errors.unitKerja && (
-                               <p className="text-sm text-red-500">{form.formState.errors.unitKerja.message}</p>
-                             )}
-                         </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                         <div className="grid gap-2">
-                            <Label htmlFor="tmt">Tanggal Mulai Tugas (TMT)</Label>
-                            <Input id="tmt" type="date" {...form.register("tmt")} />
-                             {form.formState.errors.tmt && (
-                               <p className="text-sm text-red-500">{form.formState.errors.tmt.message}</p>
-                             )}
-                         </div>
-                         <div className="grid gap-2">
-                            <Label htmlFor="statusKepegawaian">Status Kepegawaian</Label>
-                             <Select onValueChange={(val) => form.setValue("statusKepegawaian", val)}>
-                              <SelectTrigger>
+                
+                {/* SECTION 3: DATA KEPEGAWAIAN */}
+                <div className="space-y-6">
+                  <h3 className="font-bold text-lg text-emerald-800 flex items-center gap-2 border-b border-emerald-100 pb-2">Informasi Kepegawaian</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
+                      <div className="grid gap-2">
+                          <Label htmlFor="jabatan" className="text-slate-700 font-semibold">Jabatan</Label>
+                          <Input id="jabatan" placeholder="Cth: Kepala Sekolah, Guru Mapel..." {...form.register("jabatan")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                      </div>
+                      <div className="grid gap-2">
+                          <Label htmlFor="unitKerja" className="text-slate-700 font-semibold">Unit Kerja / Madrasah</Label>
+                          <Input id="unitKerja" disabled={!isSuperAdmin} placeholder="Nama Lembaga" {...form.register("unitKerja")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl disabled:bg-slate-100 disabled:opacity-80" />
+                          {!isSuperAdmin && <p className="text-[10px] text-slate-500 ml-1">Terisi otomatis sesuai profil lembaga Anda.</p>}
+                      </div>
+                      <div className="grid gap-2">
+                          <Label htmlFor="tmt" className="text-slate-700 font-semibold">Tanggal Mulai Tugas (TMT)</Label>
+                          <Input id="tmt" type="date" {...form.register("tmt")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                      </div>
+                      <div className="grid gap-2">
+                          <Label htmlFor="statusKepegawaian" className="text-slate-700 font-semibold">Status Kepegawaian (Opsional)</Label>
+                          <Select onValueChange={(val) => form.setValue("statusKepegawaian", val)} defaultValue={form.getValues("statusKepegawaian")}>
+                              <SelectTrigger className="bg-white/60 border-slate-200 focus:ring-emerald-500/30 focus:border-emerald-400 h-11 transition-all rounded-xl">
                                 <SelectValue placeholder="Pilih Status (Opsional)" />
                               </SelectTrigger>
                               <SelectContent>
@@ -363,73 +345,82 @@ export default function SkSubmissionPage() {
                                 <SelectItem value="GTT">Guru Tidak Tetap (GTT)</SelectItem>
                                 <SelectItem value="Tendik">Tenaga Kependidikan</SelectItem>
                               </SelectContent>
-                            </Select>
-                         </div>
-                    </div>
-
-                     <div className="grid gap-4 md:grid-cols-2">
-                         <div className="grid gap-2">
-                            <Label>Sertifikasi</Label>
-                            <div className="flex items-center space-x-2 border p-3 rounded-md">
-                                <input 
-                                    type="checkbox" 
-                                    id="isCertified" 
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    {...form.register("isCertified")}
-                                />
-                                <Label htmlFor="isCertified" className="cursor-pointer">Sudah Sertifikasi?</Label>
-                            </div>
-                         </div>
-                         <div className="grid gap-2">
-                            <Label htmlFor="pdpkpnu">PDPKPNU (Jika Ada)</Label>
-                            <Input id="pdpkpnu" placeholder="Angkatan / Tahun" {...form.register("pdpkpnu")} />
-                         </div>
-                    </div>
+                          </Select>
+                          <p className="text-[10px] text-slate-500 ml-1">Jika dikosongkan, akan otomatis disesuaikan dengan Jenis SK.</p>
+                      </div>
+                  </div>
                 </div>
-    
-                 <div className="grid gap-2">
-                    <Label htmlFor="dokumen">Upload Surat Permohonan / Rekomendasi (PDF)</Label>
-                    <div 
-                        className="rounded-md border border-dashed p-6 text-center hover:bg-slate-50 cursor-pointer flex flex-col items-center justify-center gap-2" 
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        {isUploading ? (
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        ) : selectedFile ? (
-                            <div className="flex items-center gap-2 text-green-600 font-medium">
-                                <FileText className="h-8 w-8" />
-                                <span>{selectedFile.name}</span>
+                
+                {/* SECTION 4: KELENGKAPAN TAMBAHAN */}
+                <div className="space-y-6">
+                   <h3 className="font-bold text-lg text-emerald-800 flex items-center gap-2 border-b border-emerald-100 pb-2">Kelengkapan Administrasi</h3>
+                   <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid gap-2">
+                            <Label className="text-slate-700 font-semibold mb-1">Status Sertifikasi</Label>
+                            <div className="flex gap-4">
+                                <label className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/50 p-3 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-all has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-500 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500">
+                                    <input type="radio" value="true" {...form.register("isCertified")} className="accent-emerald-600 w-4 h-4" />
+                                    <span className="text-sm font-semibold text-slate-700">Sudah</span>
+                                </label>
+                                <label className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/50 p-3 hover:bg-emerald-50 hover:border-emerald-200 cursor-pointer transition-all has-[:checked]:bg-emerald-50 has-[:checked]:border-emerald-500 has-[:checked]:ring-1 has-[:checked]:ring-emerald-500">
+                                    <input type="radio" value="false" {...form.register("isCertified")} className="accent-emerald-600 w-4 h-4" />
+                                    <span className="text-sm font-semibold text-slate-700">Belum</span>
+                                </label>
                             </div>
-                        ) : (
-                            <>
-                                <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
-                                <p className="text-sm text-muted-foreground">Klik untuk upload surat permohonan</p>
-                            </>
-                        )}
-                        <Input 
-                            type="file" 
-                            className="hidden" 
-                            id="dokumen" 
-                            accept=".pdf, .jpg, .jpeg, .png" 
-                            ref={fileInputRef} 
-                            onChange={handleFileChange} 
-                        />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="pdpkpnu" className="text-slate-700 font-semibold">Tahun Lulus PDPKPNU / PMKNU</Label>
+                            <Input id="pdpkpnu" placeholder="Cth: 2023 (Isi 'Belum' jika tidak ada)" {...form.register("pdpkpnu")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 h-11 transition-all rounded-xl" />
+                        </div>
+                   </div>
+                </div>
+                {/* SECTION 5: KELENGKAPAN TAMBAHAN LAINNYA */}
+                 <div className="grid gap-6 md:grid-cols-2 pt-2">
+                     <div className="space-y-4">
+                        <Label htmlFor="dokumen" className="text-slate-700 font-semibold">Upload Dokumen Tambahan (Opsional)</Label>
+                        <div 
+                            className="rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/30 p-6 text-center hover:bg-emerald-50/60 hover:border-emerald-400 transition-all cursor-pointer flex flex-col items-center justify-center gap-3 shadow-inner" 
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            {isUploading ? (
+                                <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                            ) : selectedFile ? (
+                                <div className="flex flex-col items-center gap-2 text-emerald-700 font-medium">
+                                    <FileText className="h-8 w-8" />
+                                    <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="p-3 bg-emerald-100 rounded-full text-emerald-600">
+                                        <Upload className="mx-auto h-6 w-6" />
+                                    </div>
+                                    <p className="text-sm font-medium text-emerald-900 mt-2">Klik untuk upload file pendukung</p>
+                                    <p className="text-xs text-emerald-600/80">Maksimal 500KB (PDF/JPG/PNG)</p>
+                                </>
+                            )}
+                            <Input 
+                                type="file" 
+                                className="hidden" 
+                                id="dokumen" 
+                                accept=".pdf, .jpg, .jpeg, .png" 
+                                ref={fileInputRef} 
+                                onChange={handleFileChange} 
+                            />
+                        </div>
+                     </div>
+        
+                    <div className="space-y-4 flex flex-col">
+                        <Label htmlFor="keterangan" className="text-slate-700 font-semibold">Keterangan Tambahan</Label>
+                        <Textarea id="keterangan" placeholder="Catatan khusus untuk verifikator SK..." {...form.register("keterangan")} className="bg-white/60 border-slate-200 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-400 flex-1 transition-all rounded-xl resize-none min-h-[140px]" />
                     </div>
-                     <p className="text-[10px] text-muted-foreground">Maksimal 500KB. Format: PDF atau JPG/PNG.</p>
                  </div>
-    
-                <div className="grid gap-2">
-                    <Label htmlFor="keterangan">Keterangan Tambahan</Label>
-                    <Textarea id="keterangan" placeholder="Catatan khusus untuk admin..." {...form.register("keterangan")} />
-                </div>
 
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => navigate("/dashboard/sk")}>Batal</Button>
-                    <Button type="submit" disabled={isSubmitting || isUploading}>
-                       {isSubmitting || isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Menyimpan...</> : <><Save className="mr-2 h-4 w-4" /> Simpan Pengajuan</>}
+                <div className="flex justify-end gap-4 pt-8 border-t border-emerald-100/50 mt-8">
+                    <Button type="button" variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl px-6 h-12 font-medium" onClick={() => navigate("/dashboard/sk")}>Batalkan</Button>
+                    <Button type="submit" disabled={isSubmitting || isUploading} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-emerald-600/20 hover-lift rounded-xl px-8 h-12 font-semibold transition-all">
+                       {isSubmitting || isUploading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Menyimpan...</> : <><Save className="mr-2 h-5 w-5 -ml-1" /> Simpan Pengajuan</>}
                     </Button>
                 </div>
-    
               </form>
             </CardContent>
           </Card>

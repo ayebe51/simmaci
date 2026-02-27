@@ -590,29 +590,30 @@ export function BulkSkSubmission() {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Pengajuan Kolektif</CardTitle>
-        <CardDescription>
+    <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 w-full max-w-none">
+      <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
+      <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+        <CardTitle className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">Pengajuan Kolektif</CardTitle>
+        <CardDescription className="text-slate-500">
           Upload file Excel berisi daftar nama guru/siswa untuk diajukan SK-nya secara bersamaan.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-6">
         
         {/* Template Download Section */}
         <div 
-          className="flex items-center gap-4 p-4 border rounded-lg bg-green-50 hover:bg-green-100 transition-colors cursor-pointer group mb-6"
+          className="flex items-center gap-4 p-4 border rounded-xl bg-emerald-50/50 hover:bg-emerald-100/50 border-emerald-100 transition-all cursor-pointer group mb-6 shadow-sm"
           onClick={handleDownloadTemplate}
         >
-            <div className="p-2 bg-green-200 rounded-md group-hover:bg-green-300 transition-colors">
-              <FileSpreadsheet className="h-6 w-6 text-green-800" />
+            <div className="p-3 bg-emerald-100/80 rounded-lg group-hover:bg-emerald-200/80 transition-colors">
+              <FileSpreadsheet className="h-6 w-6 text-emerald-700" />
             </div>
             <div>
-               <h4 className="font-semibold text-sm text-green-900">Download Template Guru</h4>
-               <p className="text-xs text-green-700">Format .xlsx standar sistem</p>
+               <h4 className="font-semibold text-emerald-900">Download Template Guru</h4>
+               <p className="text-xs text-emerald-700/80">Format .xlsx standar sistem</p>
             </div>
             <div className="ml-auto">
-                <Button variant="outline" size="sm" className="bg-white hover:bg-green-50 border-green-200 text-green-800">
+                <Button variant="outline" size="sm" className="bg-white hover:bg-emerald-50 border-emerald-200 text-emerald-800 shadow-sm hover-lift">
                   Download
                 </Button>
             </div>
@@ -809,7 +810,7 @@ export function BulkSkSubmission() {
              <Button 
                 onClick={handleSubmit} 
                 disabled={isProcessing}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover-lift"
             >
                 {isProcessing ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengirim...</>

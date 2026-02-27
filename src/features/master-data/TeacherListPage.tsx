@@ -64,7 +64,7 @@ export default function TeacherListPage() {
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
   
   // KTA Modal State
-  const [isKtaModalOpen, setIsKtaModal] = useState(false)
+  const [isKtaModalOpen, setIsKtaModalOpen] = useState(false)
   const [selectedTeacherForKta, setSelectedTeacherForKta] = useState<Teacher | null>(null)
   
   // 🔐 AUTO-FILTER for operators
@@ -273,7 +273,7 @@ export default function TeacherListPage() {
   
   const openKta = (teacher: Teacher) => {
       setSelectedTeacherForKta(teacher)
-      setIsKtaModal(true)
+      setIsKtaModalOpen(true)
   }
   
   const openEdit = (teacher: Teacher) => {
@@ -774,9 +774,51 @@ export default function TeacherListPage() {
              // ... Template logic ...
              const XLSX = await import('xlsx');
              // Simplified for brevity in rewrite, assume standard template
+             const headers = [
+               "NUPTK",
+               "Nomor Induk Ma'arif",
+               "Nama", 
+               "NIP",
+               "Jenis Kelamin",
+               "Tempat Lahir",
+               "Tanggal Lahir",
+               "Pendidikan Terakhir", 
+               "Unit Kerja", 
+               "Kecamatan",
+               "Status", 
+               "TMT", 
+               "No HP",
+               "Email",
+               "Sertifikasi", 
+               "PDPKPNU"
+             ];
+             const sampleRow = [
+               "1234567890123456",
+               "123456789",
+               "Ahmad Contoh, S.Pd",
+               "-",
+               "L",
+               "Cilacap",
+               "12 Februari 1990",
+               "S1",
+               "MI Ma'arif 01 Cilacap",
+               "Cilacap Selatan",
+               "GTY",
+               "17 Juli 2015",
+               "08123456789",
+               "ahmad@contoh.com",
+               "Ya",
+               "Sudah"
+             ];
              const wb = XLSX.utils.book_new();
-             const ws = XLSX.utils.json_to_sheet([{ "Nama": "Contoh", "NUPTK": "1234567890123456", "Unit Kerja": "MI Contoh", "TMT": "2020-01-01" }]);
-             XLSX.utils.book_append_sheet(wb, ws, "Template");
+             const ws = XLSX.utils.aoa_to_sheet([headers, sampleRow]);
+             
+             // Auto-width columns roughly
+             ws["!cols"] = headers.map(() => ({ wch: 20 }));
+             ws["!cols"][2] = { wch: 30 }; // Nama wider
+             ws["!cols"][8] = { wch: 30 }; // Unit Kerja wider
+             
+             XLSX.utils.book_append_sheet(wb, ws, "Template Guru");
              XLSX.writeFile(wb, "Template_Import.xlsx");
         }}
         title="Import Data Guru"
@@ -790,14 +832,43 @@ export default function TeacherListPage() {
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const json = XLSX.utils.sheet_to_json(ws) as any[];
                 
-                // MAPPING Logic (Simplified)
-                const payload = json.map((r: any) => ({
-                    nama: r.Nama || r.nama,
-                    nuptk: String(r.NUPTK || r.nuptk || Date.now()),
-                    unitKerja: r['Unit Kerja'] || r.unitKerja,
-                    status: r.Status || "GTT",
-                    // ... other fields mapping ...
-                })).filter(r => r.nama);
+                // MAPPING Logic
+                const payload = json.map((r: any) => {
+                    const tmtDateStr = r.TMT || r.tmt || "";
+                    let parsedTmt = String(tmtDateStr);
+                    if (typeof tmtDateStr === 'number') {
+                        // Excel serial date to string
+                        const date = new Date(Math.round((tmtDateStr - 25569) * 86400 * 1000));
+                        parsedTmt = date.toISOString().split('T')[0];
+                    }
+                    
+                    // Format TTL (Tempat, Tanggal Lahir)
+                    const tempatLahir = r['Tempat Lahir'] || "";
+                    let tanggalLahir = r['Tanggal Lahir'] || "";
+                    if (typeof tanggalLahir === 'number') {
+                         const date = new Date(Math.round((tanggalLahir - 25569) * 86400 * 1000));
+                         tanggalLahir = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    }
+                    const ttl = tempatLahir && tanggalLahir ? `${tempatLahir}, ${tanggalLahir}` : (tempatLahir || String(tanggalLahir));
+                    
+                    return {
+                        nama: r.Nama || r.nama,
+                        nuptk: r.NUPTK ? String(r.NUPTK) : undefined,
+                        nomorIndukMaarif: r["Nomor Induk Ma'arif"] ? String(r["Nomor Induk Ma'arif"]) : undefined,
+                        nip: r.NIP ? String(r.NIP) : undefined,
+                        jenisKelamin: r['Jenis Kelamin'] === 'L' ? 'Laki-Laki' : (r['Jenis Kelamin'] === 'P' ? 'Perempuan' : undefined),
+                        ttl: ttl,
+                        pendidikanTerakhir: r['Pendidikan Terakhir'],
+                        unitKerja: r['Unit Kerja'] || r.unitKerja,
+                        kecamatan: r.Kecamatan,
+                        status: r.Status || "GTT",
+                        tmt: parsedTmt,
+                        phoneNumber: r['No HP'] ? String(r['No HP']) : undefined,
+                        // Email mapping is omitted as backend schema doesn't have it explicitly mapped yet
+                        isCertified: r.Sertifikasi ? (String(r.Sertifikasi).toLowerCase().includes('ya') ? true : false) : undefined,
+                        pdpkpnu: r.PDPKPNU || "Belum"
+                    }
+                }).filter(r => r.nama);
 
                 if (payload.length === 0) { toast.error("Data kosong"); return; }
                 

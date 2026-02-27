@@ -75,14 +75,18 @@ export default function MySkPage() {
   const allSkResults = rawSkData || [];
 
   // 🔥 QUERY for Headmaster
-  const rawHmData = useQuery(
+  const {
+      results: rawHmData,
+      status: hmQueryStatus,
+  } = usePaginatedQuery(
       convexApi.headmasters.list, 
       {
         schoolName: user?.unitKerja || undefined,
-      }
+      },
+      { initialNumItems: 100 }
   )
-  const isHmLoading = rawHmData === undefined;
-  const allHmResults = rawHmData ? (Array.isArray(rawHmData) ? rawHmData : (rawHmData as any).page || []) : [];
+  const isHmLoading = hmQueryStatus === "LoadingFirstPage";
+  const allHmResults = rawHmData || [];
 
   // Map Convex SK data to SkDocument interface
   const mappedSkList: SkDocument[] = useMemo(() => {

@@ -628,12 +628,12 @@ export const bulkCreate = mutation({
              const rawNuptk = safeString(teacher.nuptk || teacher.NUPTK);
              const rawNama = safeString(teacher.nama || teacher.NAMA || teacher.Name);
 
-             if (!rawNuptk || !rawNama) {
-                 errors.push(`Missing NUPTK or Name for row: ${JSON.stringify(teacher).substring(0, 50)}...`);
+             if (!rawNama) {
+                 errors.push(`Missing Name for row: ${JSON.stringify(teacher).substring(0, 50)}...`);
                  continue;
              }
              
-             processedNuptks.add(rawNuptk);
+             if (rawNuptk) processedNuptks.add(rawNuptk);
 
              // 2. Prepare Clean Data
                           const cleanData: any = {
@@ -894,7 +894,7 @@ export const importTeachers = mutation({
         const nuptk = String(t.nuptk || t.NUPTK || "").trim();
         const nama = String(t.nama || t.NAMA || t.Name || "").trim();
 
-        if (!nuptk || !nama) continue; // Skip invalid rows
+        if (!nama) continue; // Skip invalid rows (must have at least Nama)
 
         // Map Fields (Prioritize New Names, Fallback to Old/Excel Names)
         let unit = t.unitKerja || t.satminkal || t.SATMINKAL || t['Unit Kerja'] || t.sekolah || "";
@@ -937,10 +937,13 @@ export const importTeachers = mutation({
         }
 
         // 2. Check Existing
-        const existing = await ctx.db
-          .query("teachers")
-          .withIndex("by_nuptk", q => q.eq("nuptk", nuptk))
-          .first();
+        let existing = null;
+        if (nuptk) {
+            existing = await ctx.db
+              .query("teachers")
+              .withIndex("by_nuptk", q => q.eq("nuptk", nuptk))
+              .first();
+        }
 
         if (existing) {
           // RBAC CHECK

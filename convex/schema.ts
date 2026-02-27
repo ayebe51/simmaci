@@ -313,10 +313,10 @@ export default defineSchema({
     teacherId: v.id("teachers"),
     schoolId: v.id("schools"),
     status: v.string(), // "Pending", "Approved", "Rejected"
-    dokumenKtpId: v.optional(v.id("_storage")),
-    dokumenIjazahId: v.optional(v.id("_storage")),
-    dokumenPengangkatanId: v.optional(v.id("_storage")),
-    dokumenPenugasanId: v.optional(v.id("_storage")),
+    dokumenKtpId: v.optional(v.string()), // Changed to support Google Drive URL or legacy storage ID
+    dokumenIjazahId: v.optional(v.string()), // Changed to support Google Drive URL or legacy storage ID
+    dokumenPengangkatanId: v.optional(v.string()), // Changed to support Google Drive URL or legacy storage ID
+    dokumenPenugasanId: v.optional(v.string()), // Changed to support Google Drive URL or legacy storage ID
     nomorSuratRekomendasi: v.optional(v.string()),
     tanggalSuratRekomendasi: v.optional(v.string()),
     submittedAt: v.number(),

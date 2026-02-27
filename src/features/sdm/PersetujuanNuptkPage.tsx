@@ -210,7 +210,7 @@ export function PersetujuanNuptkPage() {
     )
 }
 
-function FileLink({ label, storageId }: { label: string, storageId?: Id<"_storage"> }) {
+function FileLink({ label, storageId }: { label: string, storageId?: string }) {
     const url = useQuery(api.nuptk.getDocumentUrl, { storageId }) || null
     
     return (

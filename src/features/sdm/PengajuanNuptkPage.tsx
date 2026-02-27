@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,7 @@ export function PengajuanNuptkPage() {
         penugasan?: string
     }>({})
 
-    const generateUploadUrl = useMutation(api.nuptk.generateUploadUrl)
+    const uploadToDrive = useAction((api as any).drive.uploadFile)
     const submitRequest = useMutation(api.nuptk.submitRequest)
     const removeRequest = useMutation(api.nuptk.removeRequest)
 
@@ -66,18 +66,36 @@ export function PengajuanNuptkPage() {
 
         const loadingId = toast.loading(`Mengunggah file ${type}...`)
         try {
-            const uploadUrl = await generateUploadUrl()
-            const result = await fetch(uploadUrl, {
-                method: "POST",
-                headers: { "Content-Type": file.type },
-                body: file,
-            })
-            const { storageId } = await result.json()
-            setFiles(prev => ({ ...prev, [type]: storageId }))
+            // 1. Convert to Base64
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                reader.onerror = reject;
+            });
+
+            // 2. Determine Extension
+            const ext = file.type.includes('pdf') ? 'pdf' : (file.type.includes('png') ? 'png' : 'jpg');
+
+            // 3. Upload to Google Drive
+            const result: any = await uploadToDrive({
+                fileData: base64,
+                fileName: `REQ_NUPTK_${type.toUpperCase()}_${Date.now()}.${ext}`,
+                mimeType: file.type
+            });
+
+            if (!result || result.success === false) {
+                throw new Error(result?.error || "Gagal menghubungi Google Drive");
+            }
+            
+            // 4. Construct direct embed link
+            const driveUrl = `https://lh3.googleusercontent.com/d/${result.id}`;
+
+            setFiles(prev => ({ ...prev, [type]: driveUrl }))
             toast.success(`Berhasil mengunggah ${type}`, { id: loadingId })
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
-            toast.error(`Gagal mengunggah ${type}`, { id: loadingId })
+            toast.error(`Gagal mengunggah ${type}: ${error.message}`, { id: loadingId })
         }
     }
 

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, MutationCtx } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 // --- RBAC HELPER ---
 async function validateAccess(ctx: MutationCtx | any, requireAdmin: boolean = false) {
@@ -21,13 +22,20 @@ async function validateAccess(ctx: MutationCtx | any, requireAdmin: boolean = fa
     return user;
 }
 
-// 🔥 Helper for fetching storage URLs
+// 🔥 Helper for fetching storage URLs (Supports both Legacy Convex Storage IDs and New Google Drive URLs)
 export const getDocumentUrl = query({
-    args: { storageId: v.optional(v.id("_storage")) },
+    args: { storageId: v.optional(v.string()) },
     handler: async (ctx, args) => {
         if (!args.storageId) return null;
+        
+        // If it's already a full URL (like Google Drive), return it directly
+        if (args.storageId.startsWith("http")) {
+            return args.storageId;
+        }
+
+        // Otherwise, assume it's a legacy Convex Storage ID
         try {
-            return await ctx.storage.getUrl(args.storageId);
+            return await ctx.storage.getUrl(args.storageId as Id<"_storage">);
         } catch (e) {
             return null;
         }
@@ -44,10 +52,10 @@ export const submitRequest = mutation({
     args: {
         teacherId: v.id("teachers"),
         schoolId: v.id("schools"),
-        dokumenKtpId: v.optional(v.id("_storage")),
-        dokumenIjazahId: v.optional(v.id("_storage")),
-        dokumenPengangkatanId: v.optional(v.id("_storage")),
-        dokumenPenugasanId: v.optional(v.id("_storage")),
+        dokumenKtpId: v.optional(v.string()),
+        dokumenIjazahId: v.optional(v.string()),
+        dokumenPengangkatanId: v.optional(v.string()),
+        dokumenPenugasanId: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const user = await validateAccess(ctx, false);

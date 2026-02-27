@@ -9,9 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, AlertTriangle, XCircle, UserX } from "lucide-react"
+import { Plus, Search, Trash2, Edit, AlertTriangle, XCircle, UserX, Download } from "lucide-react"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import * as XLSX from "xlsx"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -134,12 +135,51 @@ export default function UserListPage() {
     }
   }
 
+  const handleExportExcel = () => {
+    if (filtered.length === 0) {
+      toast.error("Tidak ada data untuk diekspor");
+      return;
+    }
+
+    const exportData = filtered.map((u, index) => ({
+      "No": index + 1,
+      "Nama Lengkap / Instansi": u.name,
+      "Username / Email": u.email,
+      "Role": u.role === "super_admin" ? "Super Admin" : (u.role === "admin" ? "Admin Wilayah" : "Operator Sekolah"),
+      "Unit Kerja (Akses)": u.unitKerja || "-",
+      "Status": u.status === "active" ? "Aktif" : "Non-Aktif"
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data User");
+
+    // Auto-size columns slightly
+    const colWidths = [
+      { wch: 5 }, // No
+      { wch: 30 }, // Nama
+      { wch: 30 }, // Username
+      { wch: 15 }, // Role
+      { wch: 30 }, // Unit Kerja
+      { wch: 10 }, // Status
+    ];
+    worksheet['!cols'] = colWidths;
+
+    XLSX.writeFile(workbook, `Data_User_SIMMACI_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+
   return (
     <div className="space-y-6">
       <SoftPageHeader
         title="Manajemen User"
         description="Kelola akses Operator Sekolah dan Admin"
         actions={[
+          {
+            label: "Export Excel",
+            onClick: handleExportExcel,
+            variant: "outline",
+            icon: <Download className="h-4 w-4 mr-2" />
+          },
           {
             label: "Tambah User",
             onClick: () => {

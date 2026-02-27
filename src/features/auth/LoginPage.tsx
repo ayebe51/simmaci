@@ -101,9 +101,6 @@ export default function LoginPage() {
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? "Masuk..." : "Masuk"}
             </Button>
-            <div className="text-center text-sm">
-                Belum punya akun? <Link to="/register" className="text-primary hover:underline">Daftar disini</Link>
-            </div>
           </CardFooter>
         </form>
         <div className="px-8 pb-8 text-center text-xs text-muted-foreground">

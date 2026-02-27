@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import LoginPage from "./features/auth/LoginPage"
-import RegisterPage from "./features/auth/RegisterPage"
 import AppShell from "./components/layout/AppShell"
 import DashboardPage from "./features/dashboard/DashboardPage"
 import SkDashboardPage from "./features/sk-management/SkDashboardPage"
@@ -51,7 +50,6 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify/:id" element={<PublicVerificationPage />} />
           <Route path="/verify/teacher/:id" element={<PublicVerificationPage isTeacher />} />
           <Route path="/verify/student/:id" element={<PublicVerificationPage isStudent />} />

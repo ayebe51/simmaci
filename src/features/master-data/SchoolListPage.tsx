@@ -453,44 +453,45 @@ export default function SchoolListPage() {
         })()}
       />
 
-      <Card>
-        <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row gap-2">
+      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+        <div className="absolute top-0 right-0 w-[50%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
                 <Input
                   placeholder="Cari nama sekolah..."
-                  className="pl-9"
+                  className="pl-10 border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               
               <Select value={filterKecamatan} onValueChange={setFilterKecamatan}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[220px] bg-white/60 border-slate-200 shadow-sm rounded-xl focus:ring-emerald-500">
                   <SelectValue placeholder="Semua Kecamatan" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl border-emerald-100 shadow-lg">
                   <SelectItem value="all">Semua Kecamatan</SelectItem>
                   {uniqueKecamatan.map(k => (
-                    <SelectItem key={k} value={k}>{k}</SelectItem>
+                    <SelectItem key={k} value={k} className="focus:bg-emerald-50 focus:text-emerald-700">{k}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
         </CardHeader>
-        <CardContent>
-            <div className="rounded-md border">
+        <CardContent className="p-0">
+            <div className="border-0">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>NSM</TableHead>
-                      <TableHead>Nama Sekolah</TableHead>
-                      <TableHead>Kecamatan</TableHead>
-                      <TableHead>Kepala Sekolah</TableHead>
-                      <TableHead>No. HP Kepala</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
+                  <TableHeader className="bg-emerald-600/5">
+                    <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">NSM</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Nama Sekolah</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Kecamatan</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Kepala Sekolah</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">No. HP</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Status</TableHead>
+                      <TableHead className="text-right font-bold text-emerald-800 tracking-wide">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -568,14 +569,15 @@ export default function SchoolListPage() {
             </div>
             
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between space-x-2 py-4">
-                <div className="text-sm text-muted-foreground">
-                    Halaman {currentPage} dari {totalPages || 1}
+            <div className="flex items-center justify-between space-x-2 p-4 border-t border-slate-100/50 bg-white/40">
+                <div className="text-sm font-medium text-slate-500">
+                    Halaman <span className="font-bold text-slate-700">{currentPage}</span> dari <span className="font-bold text-slate-700">{totalPages || 1}</span>
                 </div>
                 <div className="space-x-2">
                     <Button
                         variant="outline"
                         size="sm"
+                        className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
                     >
@@ -584,6 +586,7 @@ export default function SchoolListPage() {
                     <Button
                         variant="outline"
                         size="sm"
+                        className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages || totalPages === 0}
                     >

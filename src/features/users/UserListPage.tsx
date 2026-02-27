@@ -258,34 +258,35 @@ export default function UserListPage() {
 
       
 
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+        <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
              <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
               <Input
                 placeholder="Cari user (nama / username)..."
-                className="pl-9 max-w-sm"
+                className="pl-10 max-w-sm border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
         </CardHeader>
-        <CardContent>
-            <div className="rounded-md border">
+        <CardContent className="p-0">
+            <div className="border-0">
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>Username / Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Assign Sekolah</TableHead>
-                      <TableHead className="text-right">Aksi</TableHead>
+                  <TableHeader className="bg-emerald-600/5">
+                    <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                      <TableHead className="font-bold text-emerald-800 tracking-wide pl-4">Nama</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Username / Email</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Role</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Assign Sekolah</TableHead>
+                      <TableHead className="text-right font-bold text-emerald-800 tracking-wide pr-6">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filtered.map((item) => (
-                        <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableRow key={item.id} className="hover:bg-slate-50/50">
+                        <TableCell className="font-medium pl-4">{item.name}</TableCell>
                         <TableCell>{item.email}</TableCell>
                         <TableCell>{getRoleBadge(item.role)}</TableCell>
                         <TableCell>
@@ -304,7 +305,7 @@ export default function UserListPage() {
                                 }
                               }}
                             >
-                              <SelectTrigger className="w-[200px]">
+                              <SelectTrigger className="w-[200px] bg-white/60 border-slate-200 shadow-sm rounded-lg focus:ring-emerald-500">
                                 <SelectValue placeholder="Pilih Sekolah..." />
                               </SelectTrigger>
                               <SelectContent>
@@ -318,11 +319,10 @@ export default function UserListPage() {
                             <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-right space-x-2 pr-6">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
                                 <Edit className="h-4 w-4" />
                             </Button>
-                            {/* Prevent deleting the last super admin or self? Simplified logic: just hide delete for super_admin for safety */}
                             {item.role !== 'super_admin' && (
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.name)}>
                                     <Trash2 className="h-4 w-4" />

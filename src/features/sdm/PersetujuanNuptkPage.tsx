@@ -82,26 +82,27 @@ export function PersetujuanNuptkPage() {
                 description="Verifikasi dokumen dan berikan keputusan atas pengajuan NUPTK dari lembaga."
             />
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg">Antrean Pengajuan</CardTitle>
+            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 flex flex-col h-full">
+                <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
+                <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-100/50 bg-white/40">
+                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Antrean Pengajuan</CardTitle>
                     <div className="flex gap-2">
-                        <Button variant={statusFilter === "Pending" ? "default" : "outline"} onClick={() => setStatusFilter("Pending")} size="sm">Pending</Button>
-                        <Button variant={statusFilter === "Approved" ? "default" : "outline"} onClick={() => setStatusFilter("Approved")} size="sm" className={statusFilter === "Approved" ? "bg-green-600 hover:bg-green-700" : ""}>Disetujui</Button>
+                        <Button variant={statusFilter === "Pending" ? "default" : "outline"} onClick={() => setStatusFilter("Pending")} size="sm" className={statusFilter === "Pending" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Pending</Button>
+                        <Button variant={statusFilter === "Approved" ? "default" : "outline"} onClick={() => setStatusFilter("Approved")} size="sm" className={statusFilter === "Approved" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Disetujui</Button>
                         <Button variant={statusFilter === "Rejected" ? "default" : "outline"} onClick={() => setStatusFilter("Rejected")} size="sm" className={statusFilter === "Rejected" ? "bg-red-600 hover:bg-red-700" : ""}>Ditolak</Button>
-                        <Button variant={statusFilter === "All" ? "default" : "outline"} onClick={() => setStatusFilter("All")} size="sm">Semua</Button>
+                        <Button variant={statusFilter === "All" ? "default" : "outline"} onClick={() => setStatusFilter("All")} size="sm" className={statusFilter === "All" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Semua</Button>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     <div className="rounded-md border h-[550px] overflow-auto">
                         <Table>
-                            <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                                <TableRow>
-                                    <TableHead>Nama Guru</TableHead>
-                                    <TableHead>Lembaga Induk</TableHead>
-                                    <TableHead>Tanggal Pengajuan</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Aksi</TableHead>
+                            <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                                <TableRow className="border-emerald-100/50">
+                                    <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
+                                    <TableHead className="font-semibold text-emerald-800">Lembaga Induk</TableHead>
+                                    <TableHead className="font-semibold text-emerald-800">Tanggal Pengajuan</TableHead>
+                                    <TableHead className="font-semibold text-emerald-800">Status</TableHead>
+                                    <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

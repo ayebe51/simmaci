@@ -1316,11 +1316,15 @@ export default function SkGeneratorPage() {
         </Card>
 
         {/* GUIDANCE BOX */}
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-md mb-4">
-            <div className="flex justify-between items-start">
+        <div className="bg-emerald-50/80 border border-emerald-200/60 p-5 rounded-2xl mb-6 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/50 rounded-full blur-3xl" />
+            <div className="flex justify-between items-start relative z-10">
                 <div>
-                     <h3 className="font-bold text-blue-800 mb-1">Panduan Template Word</h3>
-                     <p className="text-sm text-blue-700 mb-2">
+                     <h3 className="font-bold text-emerald-800 mb-1 flex items-center gap-2">
+                         <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                         Panduan Template Word
+                     </h3>
+                     <p className="text-sm text-emerald-700/80 mb-3">
                         Agar data terisi otomatis, anda <strong>WAJIB</strong> menggunakan tanda kurung <code>{"{ }"}</code> di file Word.
                         <br/><span className="text-xs opacity-75">Klik kode dibawah untuk copy:</span>
                     </p>
@@ -1338,11 +1342,11 @@ export default function SkGeneratorPage() {
                 </div>
             </div>
             
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-2 mb-4 relative z-10">
                 {["{NAMA}", "{NIP}", "{TTL}", "{PENDIDIKAN}", "{TMT}", "{JABATAN}", "{UNIT_KERJA}", "{KECAMATAN}", "{NOMOR_SURAT}", "{NOMOR}", "{TANGGAL_PENETAPAN}", "{TANGGAL_HABIS_BERLAKU}", "{NOMOR_SURAT_MASUK}", "{TANGGAL_SURAT_MASUK}", "{TAHUN_AJARAN}"].map(tag => (
                     <span key={tag} 
                         onClick={() => {navigator.clipboard.writeText(tag); toast.success(`Copied: ${tag}`)}}
-                          className="bg-white px-2 py-1 rounded border text-xs font-mono font-bold select-all cursor-pointer hover:bg-slate-100 shadow-sm transition-colors text-blue-800" 
+                          className="bg-white/80 px-2.5 py-1 rounded-lg border border-emerald-100/50 text-xs font-mono font-bold select-all cursor-pointer hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-200 shadow-sm transition-all text-emerald-700" 
                           title="Klik untuk copy">
                         {tag}
                     </span>
@@ -1364,13 +1368,15 @@ export default function SkGeneratorPage() {
         </div>
 
             {/* Step 2: Select Data (Now Main Step) */}
-            <Card>
-                <CardHeader className="pb-3 card-header-compact">
+            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+                <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+                <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-2">
-                            <CardTitle className="text-base">Pilih Data Penerima SK ({selectedIds.size} dipilih)</CardTitle>
-                             <Button variant="ghost" size="icon" title="Refresh Data">
-                                <Search className="h-4 w-4" /> {/* Reusing search icon as refresh temporarily or import RefreshCw */}
+                             <div className="bg-emerald-100 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">2</div>
+                            <CardTitle className="text-base font-bold text-slate-800 tracking-tight">Pilih Data Penerima SK ({selectedIds.size} dipilih)</CardTitle>
+                             <Button variant="ghost" size="icon" title="Refresh Data" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50">
+                                <Search className="h-4 w-4" />
                             </Button>
                         </div>
                          <div className="relative">
@@ -1390,10 +1396,11 @@ export default function SkGeneratorPage() {
                 <CardContent>
                     <div className="rounded-md border max-h-[500px] overflow-auto">
                         <Table>
-                            <TableHeader className="bg-slate-50 sticky top-0 z-10">
-                                <TableRow>
-                                    <TableHead className="w-[50px]">
+                            <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 backdrop-blur-sm">
+                                <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                                    <TableHead className="w-[50px] pl-4">
                                         <Checkbox 
+                                            className="border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
                                             checked={
                                                 currentData.length > 0 && 
                                                 currentData.every(t => selectedIds.has(t._id))
@@ -1401,12 +1408,12 @@ export default function SkGeneratorPage() {
                                             onCheckedChange={(c) => handleSelectAllForPage(!!c)}
                                         />
                                     </TableHead>
-                                    <TableHead>Nama Lengkap</TableHead>
-                                    <TableHead>Pendidikan</TableHead>
-                                    <TableHead>NIP/NIY</TableHead>
-                                    <TableHead>Jabatan</TableHead>
-                                    <TableHead>Unit Kerja</TableHead>
-                                    <TableHead>Status</TableHead>
+                                    <TableHead className="font-bold text-emerald-800 tracking-wide">Nama Lengkap</TableHead>
+                                    <TableHead className="font-bold text-emerald-800 tracking-wide">Pendidikan</TableHead>
+                                    <TableHead className="font-bold text-emerald-800 tracking-wide">NIP/NIY</TableHead>
+                                    <TableHead className="font-bold text-emerald-800 tracking-wide">Jabatan</TableHead>
+                                    <TableHead className="font-bold text-emerald-800 tracking-wide">Unit Kerja</TableHead>
+                                    <TableHead className="font-bold text-emerald-800 tracking-wide">Status</TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -1426,9 +1433,10 @@ export default function SkGeneratorPage() {
                                     </TableRow>
                                 ) : (
                                     currentData.map((t) => (
-                                        <TableRow key={t._id} data-state={selectedIds.has(t._id) ? "selected" : ""}  >
-                                            <TableCell>
+                                        <TableRow key={t._id} data-state={selectedIds.has(t._id) ? "selected" : ""} className="hover:bg-slate-50/50">
+                                            <TableCell className="pl-4">
                                                 <Checkbox 
+                                                    className="border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
                                                     checked={selectedIds.has(t._id)}
                                                     onCheckedChange={(c) => handleSelectOne(t._id, !!c)}
                                                 />

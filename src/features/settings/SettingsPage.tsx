@@ -285,10 +285,11 @@ export default function SettingsPage() {
                     Memuat data cloud...
                 </div>
             ) : (
-                <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5"/> Template Generator SK</CardTitle>
-                    <CardDescription>Upload file Word (.docx) untuk masing-masing jenis SK.</CardDescription>
+                <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+                <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+                <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><FileText className="h-5 w-5 text-emerald-600"/> Template Generator SK</CardTitle>
+                    <CardDescription className="text-slate-500">Upload file Word (.docx) untuk masing-masing jenis SK.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
@@ -522,10 +523,11 @@ export default function SettingsPage() {
         {/* Signer Tab (Admin & Yayasan) */}
         {(isAdmin || userRole === "admin_yayasan") && (
         <TabsContent value="signer">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><FileSignature className="h-5 w-5"/> Pejabat Penandatangan</CardTitle>
-                    <CardDescription>Konfigurasi nama Ketua dan Sekretaris yang akan muncul di SK.</CardDescription>
+            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+                <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+                <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><FileSignature className="h-5 w-5 text-emerald-600"/> Pejabat Penandatangan</CardTitle>
+                    <CardDescription className="text-slate-500">Konfigurasi nama Ketua dan Sekretaris yang akan muncul di SK.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="space-y-3 p-4 border rounded-md bg-slate-50">
@@ -564,10 +566,11 @@ export default function SettingsPage() {
 
         {/* Profil Tab */}
         <TabsContent value="profil">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Building className="h-5 w-5"/> {isAdmin ? "Profil Yayasan / Cabang" : "Profil Lembaga Anda"}</CardTitle>
-                    <CardDescription>Informasi ini digunakan dalam Kop Surat dan Data Lembaga.</CardDescription>
+            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+                <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+                <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><Building className="h-5 w-5 text-emerald-600"/> {isAdmin ? "Profil Yayasan / Cabang" : "Profil Lembaga Anda"}</CardTitle>
+                    <CardDescription className="text-slate-500">Informasi ini digunakan dalam Kop Surat dan Data Lembaga.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid gap-2">
@@ -589,10 +592,11 @@ export default function SettingsPage() {
 
 
         <TabsContent value="security">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5"/> Ganti Password</CardTitle>
-                    <CardDescription>Amankan akun Anda dengan mengganti password secara berkala.</CardDescription>
+            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+                <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+                <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><Lock className="h-5 w-5 text-emerald-600"/> Ganti Password</CardTitle>
+                    <CardDescription className="text-slate-500">Amankan akun Anda dengan mengganti password secara berkala.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">

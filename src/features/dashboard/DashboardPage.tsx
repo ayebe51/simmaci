@@ -71,24 +71,24 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* HEADER SECTION */}
-      <div className="flex flex-col gap-2">
-         <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 relative z-10">
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Overview</h1>
-              <p className="text-slate-500 mt-1">
-                  Selamat datang, <span className="font-semibold text-slate-900">{user?.name || "Admin"}</span>.
-                  <span className="ml-2 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border">
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Dashboard Overview</h1>
+              <p className="text-slate-500 mt-1.5 flex items-center gap-2">
+                  Selamat datang, <span className="font-bold text-slate-700">{user?.name || "Admin"}</span>
+                  <span className="text-[10px] font-bold tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200 uppercase">
                     {user?.role === 'super_admin' ? 'Super Admin' : 'Operator'}
                   </span>
               </p>
            </div>
            {convexStats && (
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full shadow-sm">
-               <span className="relative flex h-2.5 w-2.5">
+             <div className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-emerald-100 rounded-2xl shadow-sm">
+               <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                 </span>
-               <span className="text-xs font-bold text-emerald-700">SYSTEM LIVE</span>
+               <span className="text-xs font-bold tracking-widest text-emerald-700">SYSTEM LIVE</span>
              </div>
            )}
          </div>
@@ -98,49 +98,50 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         
         {/* 1. TOTAL SEKOLAH */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardContent className="p-6">
+        <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-emerald-600 to-teal-800 text-white overflow-hidden relative">
+          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[120%] bg-white/10 blur-2xl rounded-full pointer-events-none mix-blend-overlay" />
+          <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between space-x-4">
                 <div className="flex flex-col space-y-1">
-                    <span className="text-sm font-medium text-slate-500">Total Sekolah</span>
-                    <span className="text-3xl font-extrabold text-slate-900">{totalSchools}</span>
+                    <span className="text-emerald-100 font-medium text-sm">Total Sekolah</span>
+                    <span className="text-4xl font-extrabold tracking-tight">{totalSchools}</span>
                 </div>
-                <div className="p-3 bg-blue-50 rounded-full">
-                    <School className="h-6 w-6 text-blue-600" />
+                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/20">
+                    <School className="h-7 w-7 text-white" />
                 </div>
             </div>
-            <div className="mt-4 flex items-center text-xs">
-                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">Terverifikasi</span>
-                <span className="text-slate-400 ml-auto">Semester Genap</span>
+            <div className="mt-5 flex items-center text-xs">
+                <span className="bg-emerald-800/50 text-emerald-50 px-2.5 py-1 rounded-md font-semibold border border-emerald-500/30">Terverifikasi</span>
+                <span className="text-emerald-200/80 ml-auto font-medium">Semester Genap</span>
             </div>
           </CardContent>
         </Card>
 
         {/* 2. TOTAL GURU (With Sparkline) */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
+        <Card className="border-slate-100/50 shadow-md hover-lift glass overflow-hidden relative">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between space-x-4">
-                <div className="flex flex-col space-y-1 z-10">
-                    <span className="text-sm font-medium text-slate-500">Total Guru/PTK</span>
-                    <span className="text-3xl font-extrabold text-slate-900">{totalTeachers}</span>
+            <div className="flex items-center justify-between space-x-4 relative z-10">
+                <div className="flex flex-col space-y-1">
+                    <span className="text-sm font-semibold text-slate-500">Total Guru/PTK</span>
+                    <span className="text-4xl font-extrabold text-slate-800 tracking-tight">{totalTeachers}</span>
                 </div>
-                <div className="p-3 bg-emerald-50 rounded-full z-10">
-                    <Users className="h-6 w-6 text-emerald-600" />
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100/50 shadow-sm">
+                    <Users className="h-7 w-7 text-emerald-600" />
                 </div>
             </div>
             
-            <div className="mt-4 flex items-end justify-between">
+            <div className="mt-5 flex items-end justify-between relative z-10">
                 <div className="flex items-center space-x-2 text-xs">
                    {teacherGrowth > 0 ? (
-                       <span className="flex items-center text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">
-                           <Users className="h-3 w-3 mr-1" /> {teacherGrowthLabel}
+                       <span className="flex items-center text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-md font-bold border border-emerald-200">
+                           <Users className="h-3 w-3 mr-1.5" /> {teacherGrowthLabel}
                        </span>
                    ) : (
-                       <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md text-xs">Data Stabil</span>
+                       <span className="text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-200">Data Stabil</span>
                    )}
                 </div>
                 {/* Sparkline placed absolutely or normally */}
-                <div className="absolute right-0 bottom-0 opacity-20 transform translate-y-2 scale-110">
+                <div className="absolute right-[-10%] bottom-[-10%] opacity-30 transform translate-y-2 scale-110 pointer-events-none">
                    <Sparkline data={analyticsStats?.teacherTrend || []} color="#059669" />
                 </div>
             </div>
@@ -148,54 +149,55 @@ export default function DashboardPage() {
         </Card>
 
         {/* 3. TOTAL SISWA (Empty State Handling) */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
+        <Card className="border-slate-100/50 shadow-md hover-lift glass relative overflow-hidden">
           <CardContent className="p-6">
-             <div className="flex items-center justify-between space-x-4">
+             <div className="flex items-center justify-between space-x-4 relative z-10">
                 <div className="flex flex-col space-y-1">
-                    <span className="text-sm font-medium text-slate-500">Total Siswa</span>
+                    <span className="text-sm font-semibold text-slate-500">Total Siswa</span>
                     {stats.studentCount > 0 ? (
-                        <span className="text-3xl font-extrabold text-slate-900">{stats.studentCount}</span>
+                        <span className="text-4xl font-extrabold text-slate-800 tracking-tight">{stats.studentCount}</span>
                     ) : (
-                        <span className="text-xl font-bold text-slate-400">--</span>
+                        <span className="text-3xl font-extrabold text-slate-300">--</span>
                     )}
                 </div>
-                <div className="p-3 bg-orange-50 rounded-full">
-                    <Users className="h-6 w-6 text-orange-600" />
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100/50 shadow-sm">
+                    <Users className="h-7 w-7 text-amber-500" />
                 </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-5 relative z-10">
                  {stats.studentCount === 0 ? (
                      <button 
                          onClick={() => navigate("/dashboard/master/students?action=import")}
-                         className="text-xs bg-orange-100 text-orange-700 font-semibold px-3 py-1.5 rounded-md hover:bg-orange-200 transition-colors w-full border border-orange-200"
+                         className="text-xs bg-gradient-to-r from-amber-400 to-amber-500 text-white font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md hover:from-amber-500 hover:to-orange-500 transition-all w-full border border-amber-300"
                      >
                          + Import Data Siswa
                      </button>
                  ) : (
-                     <span className="text-xs text-slate-400">Data SIBOS Pintar</span>
+                     <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-md">Data SIBOS Pintar</span>
                  )}
             </div>
           </CardContent>
         </Card>
 
         {/* 4. TOTAL SK (With Sparkline) */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden relative">
+        <Card className="border-0 shadow-lg hover-lift bg-gradient-to-br from-slate-800 to-slate-950 text-white overflow-hidden relative">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between space-x-4">
-                <div className="flex flex-col space-y-1 z-10">
-                    <span className="text-sm font-medium text-slate-500">Total SK Terbit</span>
-                    <span className="text-3xl font-extrabold text-slate-900">{skStats?.total || 0}</span>
+            <div className="absolute bottom-[-30%] left-[-20%] w-[80%] h-[150%] bg-emerald-500/20 blur-3xl rounded-full pointer-events-none mix-blend-overlay" />
+            <div className="flex items-center justify-between space-x-4 relative z-10">
+                <div className="flex flex-col space-y-1">
+                    <span className="text-sm font-medium text-slate-300">Total SK Terbit</span>
+                    <span className="text-4xl font-extrabold tracking-tight">{skStats?.total || 0}</span>
                 </div>
-                <div className="p-3 bg-purple-50 rounded-full z-10">
-                    <FileText className="h-6 w-6 text-purple-600" />
+                <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-sm">
+                    <FileText className="h-7 w-7 text-emerald-400" />
                 </div>
             </div>
-            <div className="mt-4 flex justify-between items-end">
-                <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-medium">
+            <div className="mt-5 flex justify-between items-end relative z-10">
+                <span className="text-xs text-emerald-100 bg-emerald-500/30 border border-emerald-400/30 px-2.5 py-1 rounded-md font-semibold tracking-wide">
                     {skStats?.approved || 0} Selesai
                 </span>
-                <div className="opacity-80 -mr-2">
-                     <Sparkline data={skTrend || []} color="#9333ea" />
+                <div className="opacity-40 -mr-4 absolute right-[-10%] bottom-[-30%] scale-125 pointer-events-none">
+                     <Sparkline data={skTrend || []} color="#34d399" />
                 </div>
             </div>
           </CardContent>

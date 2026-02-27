@@ -85,21 +85,28 @@ export default function AppShell({ children }: AppShellProps) {
   ]
 
   return (
-    <div className="flex h-screen w-full bg-gray-50/50">
+    <div className="flex h-screen w-full bg-[#f8fafc]/50 relative overflow-hidden">
+      {/* Subtle Background Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
+
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-20 flex flex-col border-r bg-background transition-all duration-300 ease-in-out md:static",
-          sidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white/80 backdrop-blur-xl border-r border-slate-200/60 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out md:static",
+          sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
         )}
       >
         {/* Sidebar Header */}
-        <div className="flex h-16 items-center border-b px-6">
-          <Link to="/dashboard" className="flex items-center gap-2 font-bold text-lg">
-            <img src="/logo-icon.png" alt="Logo" className="h-8 w-8 object-contain" />
-            <span className={cn("truncate", !sidebarOpen && "hidden")}>
-              SIMMACI
-            </span>
+        <div className="flex h-20 items-center border-b border-slate-100 px-6 bg-gradient-to-r from-emerald-600/5 to-transparent">
+          <Link to="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-slate-800">
+            <div className="p-1.5 bg-white rounded-xl shadow-sm border border-emerald-100">
+                <img src="/logo-icon.png" alt="Logo" className="h-8 w-8 object-contain" />
+            </div>
+            <div className={cn("flex flex-col justify-center", !sidebarOpen && "hidden")}>
+              <span className="leading-none text-emerald-800 font-extrabold pb-1">SIMMACI</span>
+              <span className="text-[10px] leading-none text-emerald-600/70 font-medium tracking-wide">MA'ARIF NU CILACAP</span>
+            </div>
           </Link>
         </div>
 
@@ -154,10 +161,10 @@ export default function AppShell({ children }: AppShellProps) {
                           key={index}
                           to={item.href}
                           className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary",
+                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
                             isActive
-                              ? "bg-muted text-primary"
-                              : "text-muted-foreground hover:bg-muted/50"
+                              ? "bg-emerald-50 text-emerald-700 font-semibold shadow-sm ring-1 ring-emerald-500/20"
+                              : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900"
                           )}
                         >
                           <item.icon className="h-4 w-4" />
@@ -207,10 +214,10 @@ export default function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Main Content Wrapper */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full max-w-full">
         {/* Header */}
-        <header className="flex h-16 items-center gap-4 border-b bg-background px-6 shadow-sm">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex">
+        <header className="flex h-20 items-center gap-4 px-6 glass sticky top-0 z-30">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex hover:bg-emerald-50 hover:text-emerald-700">
              <Menu className="h-5 w-5"/>
              <span className="sr-only">Toggle Sidebar</span>
           </Button>

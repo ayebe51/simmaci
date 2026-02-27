@@ -138,9 +138,10 @@ export function PengajuanNuptkPage() {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Daftar Guru Tanpa NUPTK</CardTitle>
+                <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 flex flex-col h-full">
+                    <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
+                    <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Daftar Guru Tanpa NUPTK</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="relative mb-4">
@@ -154,10 +155,10 @@ export function PengajuanNuptkPage() {
                         </div>
                         <div className="rounded-md border h-[400px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                                    <TableRow>
-                                        <TableHead>Nama Guru</TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
+                                <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                                    <TableRow className="border-emerald-100/50">
+                                        <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
+                                        <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -176,7 +177,7 @@ export function PengajuanNuptkPage() {
                                                     {submitted ? (
                                                         <Badge variant="outline" className="bg-amber-50 text-amber-700">Sudah Diajukan</Badge>
                                                     ) : (
-                                                        <Button size="sm" onClick={() => {
+                                                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover-lift" onClick={() => {
                                                             setSelectedTeacher(teacher)
                                                             setFiles({})
                                                             setIsModalOpen(true)
@@ -194,18 +195,19 @@ export function PengajuanNuptkPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Riwayat Pengajuan</CardTitle>
+                <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 flex flex-col h-full">
+                    <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
+                    <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Riwayat Pengajuan</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border h-[460px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                                    <TableRow>
-                                        <TableHead>Nama Guru</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
+                                <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                                    <TableRow className="border-emerald-100/50">
+                                        <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
+                                        <TableHead className="font-semibold text-emerald-800">Status</TableHead>
+                                        <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -291,7 +293,7 @@ export function PengajuanNuptkPage() {
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                        <Button onClick={handleSubmit} disabled={isSubmitting || Object.keys(files).length < 4} className="bg-[#008f39]">
+                        <Button onClick={handleSubmit} disabled={isSubmitting || Object.keys(files).length < 4} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover-lift">
                             {isSubmitting ? "Mengirim..." : (
                                 <><Send className="mr-2 h-4 w-4"/> Kirim Pengajuan</>
                             )}
@@ -305,11 +307,11 @@ export function PengajuanNuptkPage() {
 
 function UploadBox({ label, id, hasFile, onChange, description }: { label: string, id: string, hasFile: boolean, onChange: any, description?: string }) {
     return (
-        <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-colors ${hasFile ? 'border-green-500 bg-green-50' : 'border-slate-300 hover:border-slate-400 bg-slate-50'}`}>
+        <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-colors ${hasFile ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-300 hover:border-emerald-400 bg-slate-50/50'}`}>
             {hasFile ? (
                 <>
-                    <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                    <span className="font-medium text-green-700 text-sm">Berhasil Diunggah</span>
+                    <CheckCircle className="h-8 w-8 text-emerald-500 mb-2" />
+                    <span className="font-medium text-emerald-700 text-sm">Berhasil Diunggah</span>
                 </>
             ) : (
                 <>

@@ -10,9 +10,6 @@ import { useQuery, usePaginatedQuery, useConvex } from "convex/react"
 import { api as convexApi } from "../../../convex/_generated/api"
 // Import Service
 import { generateSingleSkDocx } from "@/services/SkGeneratorService"
-import { toast } from "sonner"
-import { toast } from "sonner"
-import { SimplePagination } from "@/components/ui/simple-pagination" // Check if this exists, otherwise use standard buttons
 
 interface SkDocument {
   id: string
@@ -181,34 +178,35 @@ export default function MySkPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-            <div className="flex items-center justify-between">
+      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 mb-6">
+        <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <CardTitle>Daftar SK Digital</CardTitle>
-                    <CardDescription>SK yang telah diterbitkan dan ditandatangani secara digital.</CardDescription>
+                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Daftar SK Digital</CardTitle>
+                    <CardDescription className="text-slate-500">SK yang telah diterbitkan dan ditandatangani secara digital.</CardDescription>
                 </div>
-                <div className="relative w-72">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
                     <Input 
                         placeholder="Cari nama atau nomor SK..." 
-                        className="pl-8"
+                        className="pl-10 border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
             </div>
         </CardHeader>
-        <CardContent>
-            <div className="rounded-md border max-h-[500px] overflow-auto">
+        <CardContent className="p-0">
+            <div className="border-0 max-h-[500px] overflow-auto">
                 <Table>
-                    <TableHeader className="sticky top-0 bg-background z-10 shadow-[0_1px_3px_0_rgb(0,0,0,0.1)]">
-                        <TableRow>
-                            <TableHead>Nomor SK</TableHead>
-                            <TableHead>Nama Guru / PTK</TableHead>
-                            <TableHead>Jabatan</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Aksi</TableHead>
+                    <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 backdrop-blur-sm">
+                        <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                            <TableHead className="font-bold text-emerald-800 tracking-wide pl-6">Nomor SK</TableHead>
+                            <TableHead className="font-bold text-emerald-800 tracking-wide">Nama Guru / PTK</TableHead>
+                            <TableHead className="font-bold text-emerald-800 tracking-wide">Jabatan</TableHead>
+                            <TableHead className="font-bold text-emerald-800 tracking-wide">Status</TableHead>
+                            <TableHead className="text-right font-bold text-emerald-800 tracking-wide pr-6">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                 <TableBody>
@@ -220,10 +218,10 @@ export default function MySkPage() {
                         </TableRow>
                     ): (
                         skList.map((sk, i) => (
-                            <TableRow key={i}>
-                                <TableCell className="font-medium">
+                            <TableRow key={i} className="hover:bg-slate-50/50">
+                                <TableCell className="font-medium pl-6">
                                     <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-blue-500" />
+                                        <FileText className="h-4 w-4 text-emerald-500" />
                                         {sk.nomorSurat || <span className="text-muted-foreground italic">Pending</span>}
                                     </div>
                                 </TableCell>
@@ -238,9 +236,9 @@ export default function MySkPage() {
                                         {sk.status}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right pr-6">
                                     {sk.status === 'Approved' && (
-                                        <Button size="sm" variant="outline" onClick={() => handleDownload(sk)}>
+                                        <Button size="sm" variant="outline" onClick={() => handleDownload(sk)} className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200">
                                             <FileText className="mr-2 h-3 w-3" />
                                             Unduh Word
                                         </Button>
@@ -253,7 +251,7 @@ export default function MySkPage() {
             </Table>
             </div>
 
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between p-4 border-t border-slate-100/50 bg-white/40">
                 <span className="text-sm text-muted-foreground">
                     Menampilkan {skList.length > 0 ? (currentSkPage - 1) * itemsPerSkPage + 1 : 0} - {Math.min(currentSkPage * itemsPerSkPage, mappedSkList.length)} dari {mappedSkList.length} data
                 </span>
@@ -262,17 +260,19 @@ export default function MySkPage() {
                         variant="outline" 
                         size="sm"
                         disabled={currentSkPage <= 1}
+                         className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                         onClick={() => setCurrentSkPage(p => Math.max(1, p - 1))}
                     >
                         Sebelumnya
                     </Button>
-                    <div className="text-sm font-medium mx-2 pr-2">
+                    <div className="text-sm font-medium mx-2 pr-2 text-slate-700">
                          Halaman {currentSkPage} dari {skTotalPages || 1}
                     </div>
                     <Button 
                         variant="outline" 
                         size="sm"
                         disabled={currentSkPage >= skTotalPages}
+                         className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                         onClick={() => setCurrentSkPage(p => Math.min(skTotalPages, p + 1))}
                     >
                         Selanjutnya
@@ -283,20 +283,21 @@ export default function MySkPage() {
       </Card>
 
       {/* --- SECTION FOR HEADMASTER SK --- */}
-      <Card>
-        <CardHeader>
-             <CardTitle>Riwayat Pengangkatan Kepala Madrasah</CardTitle>
-             <CardDescription>Status pengajuan SK Kepala Madrasah.</CardDescription>
+      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
+        <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
+        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+             <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Riwayat Pengangkatan Kepala Madrasah</CardTitle>
+             <CardDescription className="text-slate-500">Status pengajuan SK Kepala Madrasah.</CardDescription>
         </CardHeader>
-        <CardContent>
-             <div className="rounded-md border max-h-[400px] overflow-auto">
+        <CardContent className="p-0">
+             <div className="border-0 max-h-[400px] overflow-auto">
              <Table>
-                <TableHeader className="sticky top-0 bg-background z-10 shadow-[0_1px_3px_0_rgb(0,0,0,0.1)]">
-                    <TableRow>
-                        <TableHead>Nama Calon</TableHead>
-                        <TableHead>Periode</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>SK Final</TableHead>
+                <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 backdrop-blur-sm">
+                    <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                        <TableHead className="font-bold text-emerald-800 tracking-wide pl-6">Nama Calon</TableHead>
+                        <TableHead className="font-bold text-emerald-800 tracking-wide">Periode</TableHead>
+                        <TableHead className="font-bold text-emerald-800 tracking-wide">Status</TableHead>
+                        <TableHead className="font-bold text-emerald-800 tracking-wide pr-6">SK Final</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -304,8 +305,8 @@ export default function MySkPage() {
                         <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">{isHmLoading ? "Memuat data..." : "Tidak ada data."}</TableCell></TableRow>
                     ) : (
                         headmasterSkList.map((item) => (
-                            <TableRow key={item.id}>
-                                <TableCell>
+                            <TableRow key={item.id} className="hover:bg-slate-50/50">
+                                <TableCell className="pl-6">
                                     {item.teacher?.nama}
                                     <div className="text-xs text-muted-foreground">{item.school?.nama}</div>
                                 </TableCell>
@@ -318,9 +319,9 @@ export default function MySkPage() {
                                         {item.status}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="pr-6">
                                     {item.skUrl ? (
-                                        <Button size="sm" variant="outline" className="text-blue-600" onClick={() => window.open(item.skUrl, '_blank')}>
+                                        <Button size="sm" variant="outline" className="text-emerald-700 rounded-lg shadow-sm hover:bg-emerald-50 hover:border-emerald-200" onClick={() => window.open(item.skUrl, '_blank')}>
                                             <Download className="w-4 h-4 mr-1" /> Unduh SK
                                         </Button>
                                     ) : item.status === 'Approved' ? (
@@ -336,7 +337,7 @@ export default function MySkPage() {
              </Table>
              </div>
 
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between p-4 border-t border-slate-100/50 bg-white/40">
                 <span className="text-sm text-muted-foreground">
                     Menampilkan {headmasterSkList.length > 0 ? (currentHmPage - 1) * itemsPerHmPage + 1 : 0} - {Math.min(currentHmPage * itemsPerHmPage, mappedHeadmasterSkList.length)} dari {mappedHeadmasterSkList.length} data
                 </span>
@@ -345,17 +346,19 @@ export default function MySkPage() {
                         variant="outline" 
                         size="sm"
                         disabled={currentHmPage <= 1}
+                        className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                         onClick={() => setCurrentHmPage(p => Math.max(1, p - 1))}
                     >
                         Sebelumnya
                     </Button>
-                    <div className="text-sm font-medium mx-2 pr-2">
+                    <div className="text-sm font-medium mx-2 pr-2 text-slate-700">
                          Halaman {currentHmPage} dari {hmTotalPages || 1}
                     </div>
                     <Button 
                         variant="outline" 
                         size="sm"
                         disabled={currentHmPage >= hmTotalPages}
+                         className="rounded-lg shadow-sm hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
                         onClick={() => setCurrentHmPage(p => Math.min(hmTotalPages, p + 1))}
                     >
                         Selanjutnya

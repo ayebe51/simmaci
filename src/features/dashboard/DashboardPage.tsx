@@ -29,8 +29,9 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
-  // DEBUG: Switching to a confirmed working file (dashboard.ts) to bypass "Server Error"
-  const logs = useQuery(api.dashboard.getRecentLogsDebug)
+  // EMERGENCY BYPASS: Disabling logs query to restore dashboard access while investigating "Server Error"
+  // const logs = useQuery(api.dashboard.getRecentLogsDebug)
+  const logs = [] as any[]
   const logsStatus = "Exhausted"
   const loadMoreLogs = () => {}
   const [logFilter, setLogFilter] = useState<"all" | "sk">("all")

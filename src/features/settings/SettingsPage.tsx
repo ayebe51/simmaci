@@ -156,8 +156,9 @@ export default function SettingsPage() {
             const user = JSON.parse(userStr)
             setUserRole(user.role || "operator")
             
-            // If NOT Super Admin, redirect to Profil/Security
-            if (user.role !== "super_admin") {
+            // If NOT Priveleged, redirect to Profil/Security
+            const privilegedRoles = ["super_admin", "admin_yayasan", "admin"];
+            if (!privilegedRoles.includes(user.role)) {
                 setActiveTab("profil")
             }
         }
@@ -244,7 +245,7 @@ export default function SettingsPage() {
         <div>
             <h1 className="text-2xl font-bold tracking-tight">Pengaturan Sistem</h1>
             <p className="text-muted-foreground">
-                {isAdmin ? "Konfigurasi profil lembaga, template SK, dan pejabat penandatangan." : "Kelola profil lembaga dan keamanan akun anda."}
+                {(isAdmin || userRole === "admin_yayasan" || userRole === "admin") ? "Konfigurasi profil lembaga, template SK, dan pejabat penandatangan." : "Kelola profil lembaga dan keamanan akun anda."}
             </p>
         </div>
         {/* Header Save Button */}

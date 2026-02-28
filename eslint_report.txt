@@ -1,0 +1,133 @@
+[0m[0m
+[0m[4mD:\SIMMACI\convex\_generated\api.js[24m[0m
+[0m  [2m1:1[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported)[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\_generated\dataModel.d.ts[24m[0m
+[0m  [2m1:1[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported)[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\_generated\server.d.ts[24m[0m
+[0m  [2m1:1[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported)[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\_generated\server.js[24m[0m
+[0m  [2m1:1[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported)[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\approvalHistory.ts[24m[0m
+[0m    [2m1:1[22m   [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors                                                        [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m83:9[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m86:14[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m92:11[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m94:11[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m96:11[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m133:9[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m135:14[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\archives.ts[24m[0m
+[0m  [2m1:1[22m  [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\debug_tables.ts[24m[0m
+[0m  [2m10:9[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\debug_visibility.ts[24m[0m
+[0m  [2m32:9[22m  [31merror[39m  'teachers' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\diagnose_regression.ts[24m[0m
+[0m  [2m17:10[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m33:10[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m35:10[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\fix_data.ts[24m[0m
+[0m  [2m58:9[22m  [31merror[39m  'teachers' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\fix_school_names.ts[24m[0m
+[0m  [2m59:13[22m  [31merror[39m  'updates' is never reassigned. Use 'const' instead  [2mprefer-const[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\headmasters.ts[24m[0m
+[0m    [2m1:1[22m   [31merror[39m    Do not use "@ts-nocheck" because it alters compilation errors                                                        [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m21:5[22m   [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')[0m
+[0m   [2m44:10[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')[0m
+[0m   [2m50:10[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')[0m
+[0m   [2m66:9[22m   [31merror[39m    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m69:17[22m  [31merror[39m    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m75:9[22m   [31merror[39m    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m77:9[22m   [31merror[39m    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m   [2m80:17[22m  [31merror[39m    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m406:11[22m  [31merror[39m    'q' is never reassigned. Use 'const' instead                                                                         [2mprefer-const[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\mutations.ts[24m[0m
+[0m   [2m1:1[22m   [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors                                                        [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m27:5[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m30:9[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m78:9[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m80:14[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m85:9[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m87:14[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\my_diagnosis.ts[24m[0m
+[0m  [2m2:1[22m  [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\reports.ts[24m[0m
+[0m    [2m1:1[22m   [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m223:11[22m  [31merror[39m  'raw' is never reassigned. Use 'const' instead                 [2mprefer-const[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\reproduce_bulk.ts[24m[0m
+[0m  [2m36:9[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\schools.ts[24m[0m
+[0m    [2m1:1[22m   [31merror[39m    Do not use "@ts-nocheck" because it alters compilation errors                                          [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m329:12[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\sk.ts[24m[0m
+[0m  [2m1:1[22m  [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\students.ts[24m[0m
+[0m  [2m56:5[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-explicit-any')[0m
+[0m[0m
+[0m[4mD:\SIMMACI\convex\teachers.ts[24m[0m
+[0m  [2m1:1[22m  [31merror[39m  Do not use "@ts-nocheck" because it alters compilation errors  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\components\ui\badge.tsx[24m[0m
+[0m  [2m35:17[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\components\ui\button.tsx[24m[0m
+[0m  [2m55:18[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\components\ui\command.tsx[24m[0m
+[0m  [2m27:11[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-object-type[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\features\master-data\StudentListPage.tsx[24m[0m
+[0m  [2m198:11[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\features\reports\ReportPage.tsx[24m[0m
+[0m  [2m45:9[22m  [31merror[39m  Error: Calling setState synchronously within an effect can trigger cascading renders[0m
+[0m[0m
+[0mEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:[0m
+[0m* Update external systems with the latest state from React.[0m
+[0m* Subscribe for updates from some external system, calling setState in a callback function when external state changes.[0m
+[0m[0m
+[0mCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).[0m
+[0m[0m
+[0mD:\SIMMACI\src\features\reports\ReportPage.tsx:45:9[0m
+[0m  43 |         // Extract unique Units[0m
+[0m  44 |         const uniqueUnits = Array.from(new Set(teachers.map((t: any) => t.unitKerja))).sort() as string[][0m
+[0m> 45 |         setUnits(uniqueUnits)[0m
+[0m     |         ^^^^^^^^ Avoid calling setState() directly within an effect[0m
+[0m  46 |         [0m
+[0m  47 |         generatePreview(teachers, reportType, selectedUnit)[0m
+[0m  48 |     }  [2mreact-hooks/set-state-in-effect[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\features\schools\SchoolProfilePage.tsx[24m[0m
+[0m  [2m60:5[22m  [33mwarning[39m  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars')[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\features\sk-management\SkDashboardPage.tsx[24m[0m
+[0m  [2m84:3[22m  [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\features\sk-management\SkDetailPage.tsx[24m[0m
+[0m  [2m283:21[22m  [31merror[39m  Empty block statement  [2mno-empty[22m[0m
+[0m[0m
+[0m[4mD:\SIMMACI\src\features\sk-management\SkRevisionListPage.tsx[24m[0m
+[0m   [2m42:5[22m   [31merror[39m  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  [2m@typescript-eslint/ban-ts-comment[22m[0m
+[0m  [2m182:21[22m  [31merror[39m  Empty block statement                                                                                                [2mno-empty[22m[0m
+[0m[0m
+[0m[31m[1m✖ 56 problems (43 errors, 13 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[31m[1m  5 errors and 11 warnings potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

@@ -9,7 +9,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo-icon.png', 'logo-maarif.png', 'logo-full.jpg'],
+      workbox: {
+        maximumFileSizeToCacheInBytes: 10000000 // 10MB limit for large vendor chunks (pdfkit, xlsx)
+      },
+      includeAssets: ['logo-icon.png', 'logo-full.jpg'],
       manifest: {
         name: 'SIM Maarif NU Cilacap',
         short_name: 'SIMMACI',

@@ -212,7 +212,7 @@ export default function SkSubmissionPage() {
       </div>
 
       <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-slate-100/60 p-1.5 rounded-2xl shadow-inner mb-6">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 bg-slate-100/60 p-1.5 rounded-2xl shadow-inner mb-6 h-auto gap-2 sm:gap-0">
           <TabsTrigger value="single" className="data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:font-bold data-[state=active]:shadow-md rounded-xl py-2.5 transition-all duration-300">Input Satuan</TabsTrigger>
           <TabsTrigger value="collective" className="data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:font-bold data-[state=active]:shadow-md rounded-xl py-2.5 transition-all duration-300">Pengajuan Kolektif (Excel)</TabsTrigger>
         </TabsList>

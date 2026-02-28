@@ -401,3 +401,18 @@ export const getSchoolStats = query({
     };
   }
 });
+
+// DEBUG: Bypass query for activity logs
+export const getRecentLogsDebug = query({
+  args: {},
+  handler: async (ctx) => {
+    return [
+      { 
+        action: "Dashboard Bypass", 
+        details: "Testing from dashboard.ts module", 
+        timestamp: Date.now() 
+      }
+    ];
+  },
+});
+

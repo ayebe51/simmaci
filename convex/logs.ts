@@ -20,11 +20,11 @@ export const log = mutation({
 
 // Get paginated logs for Dashboard
 export const listPaginated = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { paginationOpts: v.any() },
   handler: async (ctx, args) => {
+    // Use default _creationTime for sorting to avoid index issues with legacy data
     return await ctx.db
       .query("activity_logs")
-      .withIndex("by_timestamp")
       .order("desc")
       .paginate(args.paginationOpts);
   },

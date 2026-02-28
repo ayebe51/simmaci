@@ -410,7 +410,7 @@ export default function SkGeneratorPage() {
         if (u) {
             const user = JSON.parse(u)
             setCurrentUser(user)
-            setIsSuperAdmin(user.role === "super_admin")
+            setIsSuperAdmin(["super_admin", "admin_yayasan", "admin"].includes(user.role))
         }
   }, [])
 

@@ -17,14 +17,14 @@ export const log = mutation({
   },
 });
 
-// Get recent logs for Dashboard
-export const getRecentLogs = query({
-  args: { limit: v.optional(v.number()) },
+// Get paginated logs for Dashboard
+export const listPaginated = query({
+  args: { paginationOpts: v.any() },
   handler: async (ctx, args) => {
-    const limit = args.limit || 10;
-    return await ctx.db.query("activity_logs")
+    return await ctx.db
+      .query("activity_logs")
       .withIndex("by_timestamp")
       .order("desc")
-      .take(limit);
+      .paginate(args.paginationOpts);
   },
 });

@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "convex/react"
+import { useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { DashboardCharts } from "./components/DashboardCharts"
@@ -29,7 +29,11 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
-  const logs = useQuery(api.logs.getRecentLogs, {}) // New Activity Logs
+  const { results: logs, status: logsStatus, loadMore: loadMoreLogs } = usePaginatedQuery(
+    api.logs.listPaginated,
+    {},
+    { initialNumItems: 10 }
+  )
   const [logFilter, setLogFilter] = useState<"all" | "sk">("all")
   
   // Filter logs for SK submissions
@@ -409,6 +413,26 @@ export default function DashboardPage() {
                           </div>
                       )}
                   </div>
+
+                  {/* Pagination Control */}
+                  {logs && logs.length > 0 && logsStatus !== "Exhausted" && (
+                      <div className="pt-4 border-t border-slate-100 flex justify-center">
+                          <button 
+                              onClick={() => loadMoreLogs(10)}
+                              disabled={logsStatus === "LoadingMore"}
+                              className="text-[11px] font-bold text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-widest flex items-center gap-2 py-2"
+                          >
+                              {logsStatus === "LoadingMore" ? (
+                                  <>
+                                      <Loader2 className="h-3 w-3 animate-spin"/>
+                                      Loading...
+                                  </>
+                              ) : (
+                                  <>Muat Lebih Banyak +</>
+                              )}
+                          </button>
+                      </div>
+                  )}
              </CardContent>
           </Card>
 

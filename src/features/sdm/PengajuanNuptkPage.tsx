@@ -138,9 +138,10 @@ export function PengajuanNuptkPage() {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 flex flex-col h-full">
-                    <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
-                    <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
+                    <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+                    <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+                    <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
                         <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Daftar Guru Tanpa NUPTK</CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -155,8 +156,8 @@ export function PengajuanNuptkPage() {
                         </div>
                         <div className="rounded-md border h-[400px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                                    <TableRow className="border-emerald-100/50">
+                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                                    <TableRow className="border-b border-emerald-100/60">
                                         <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
                                         <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
                                     </TableRow>
@@ -195,16 +196,17 @@ export function PengajuanNuptkPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 flex flex-col h-full">
-                    <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
-                    <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+                <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
+                    <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+                    <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+                    <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
                         <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Riwayat Pengajuan</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="rounded-md border h-[460px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                                    <TableRow className="border-emerald-100/50">
+                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                                    <TableRow className="border-b border-emerald-100/60">
                                         <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
                                         <TableHead className="font-semibold text-emerald-800">Status</TableHead>
                                         <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>

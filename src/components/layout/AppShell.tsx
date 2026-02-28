@@ -85,15 +85,16 @@ export default function AppShell({ children }: AppShellProps) {
   ]
 
   return (
-    <div className="flex h-screen w-full bg-[#f8fafc]/50 relative overflow-hidden">
+    <div className="flex h-screen w-full bg-slate-50 relative overflow-hidden">
       {/* Subtle Background Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-400/20 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-amber-400/10 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white/80 backdrop-blur-xl border-r border-slate-200/60 shadow-[4px_0_24px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out md:static",
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white/70 backdrop-blur-2xl border-r border-white/60 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static",
           sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
         )}
       >
@@ -163,7 +164,7 @@ export default function AppShell({ children }: AppShellProps) {
                           className={cn(
                             "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
                             isActive
-                              ? "bg-emerald-50 text-emerald-700 font-semibold shadow-sm ring-1 ring-emerald-500/20"
+                              ? "bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-800 font-bold shadow-sm border border-emerald-200/60 ring-1 ring-emerald-500/10"
                               : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900"
                           )}
                         >
@@ -216,7 +217,7 @@ export default function AppShell({ children }: AppShellProps) {
       {/* Main Content Wrapper */}
       <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full max-w-full">
         {/* Header */}
-        <header className="flex h-20 items-center gap-4 px-6 glass sticky top-0 z-30">
+        <header className="flex h-20 items-center gap-4 px-6 bg-white/40 backdrop-blur-md border-b border-white/50 sticky top-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex hover:bg-emerald-50 hover:text-emerald-700">
              <Menu className="h-5 w-5"/>
              <span className="sr-only">Toggle Sidebar</span>

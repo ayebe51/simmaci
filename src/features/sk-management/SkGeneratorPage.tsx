@@ -1368,9 +1368,10 @@ export default function SkGeneratorPage() {
         </div>
 
             {/* Step 2: Select Data (Now Main Step) */}
-            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
-                <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
-                <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
+                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+                <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-2">
                              <div className="bg-emerald-100 text-emerald-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm">2</div>
@@ -1396,11 +1397,11 @@ export default function SkGeneratorPage() {
                 <CardContent>
                     <div className="rounded-md border max-h-[500px] overflow-auto">
                         <Table>
-                            <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 backdrop-blur-sm">
-                                <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                            <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                                <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
                                     <TableHead className="w-[50px] pl-4">
                                         <Checkbox 
-                                            className="border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                                            className="border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-none shadow-[0_0_10px_rgba(52,211,153,0.3)]"
                                             checked={
                                                 currentData.length > 0 && 
                                                 currentData.every(t => selectedIds.has(t._id))
@@ -1436,7 +1437,7 @@ export default function SkGeneratorPage() {
                                         <TableRow key={t._id} data-state={selectedIds.has(t._id) ? "selected" : ""} className="hover:bg-slate-50/50">
                                             <TableCell className="pl-4">
                                                 <Checkbox 
-                                                    className="border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                                                    className="border-emerald-300 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-none shadow-[0_0_10px_rgba(52,211,153,0.3)] transition-all hover:border-emerald-500"
                                                     checked={selectedIds.has(t._id)}
                                                     onCheckedChange={(c) => handleSelectOne(t._id, !!c)}
                                                 />

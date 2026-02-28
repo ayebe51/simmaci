@@ -82,9 +82,10 @@ export function PersetujuanNuptkPage() {
                 description="Verifikasi dokumen dan berikan keputusan atas pengajuan NUPTK dari lembaga."
             />
 
-            <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 flex flex-col h-full">
-                <div className="absolute top-0 right-[-10%] w-[60%] h-[50%] bg-emerald-50/40 blur-3xl pointer-events-none" />
-                <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-slate-100/50 bg-white/40">
+            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
+                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+                <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/60 bg-white/40">
                     <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Antrean Pengajuan</CardTitle>
                     <div className="flex gap-2">
                         <Button variant={statusFilter === "Pending" ? "default" : "outline"} onClick={() => setStatusFilter("Pending")} size="sm" className={statusFilter === "Pending" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Pending</Button>
@@ -96,8 +97,8 @@ export function PersetujuanNuptkPage() {
                 <CardContent className="pt-6">
                     <div className="rounded-md border h-[550px] overflow-auto">
                         <Table>
-                            <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                                <TableRow className="border-emerald-100/50">
+                            <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
+                                <TableRow className="border-b border-emerald-100/60">
                                     <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
                                     <TableHead className="font-semibold text-emerald-800">Lembaga Induk</TableHead>
                                     <TableHead className="font-semibold text-emerald-800">Tanggal Pengajuan</TableHead>

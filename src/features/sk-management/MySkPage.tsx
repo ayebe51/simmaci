@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -178,9 +179,10 @@ export default function MySkPage() {
         </p>
       </div>
 
-      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10 mb-6">
-        <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
-        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 mb-6 rounded-2xl">
+        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Daftar SK Digital</CardTitle>
@@ -200,8 +202,8 @@ export default function MySkPage() {
         <CardContent className="p-0">
             <div className="border-0 max-h-[500px] overflow-auto">
                 <Table>
-                    <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 backdrop-blur-sm">
-                        <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                    <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                        <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
                             <TableHead className="font-bold text-emerald-800 tracking-wide pl-6">Nomor SK</TableHead>
                             <TableHead className="font-bold text-emerald-800 tracking-wide">Nama Guru / PTK</TableHead>
                             <TableHead className="font-bold text-emerald-800 tracking-wide">Jabatan</TableHead>
@@ -251,7 +253,7 @@ export default function MySkPage() {
             </Table>
             </div>
 
-            <div className="flex items-center justify-between p-4 border-t border-slate-100/50 bg-white/40">
+            <div className="flex items-center justify-between p-4 border-t border-slate-100/50 bg-white/40 rounded-b-2xl">
                 <span className="text-sm text-muted-foreground">
                     Menampilkan {skList.length > 0 ? (currentSkPage - 1) * itemsPerSkPage + 1 : 0} - {Math.min(currentSkPage * itemsPerSkPage, mappedSkList.length)} dari {mappedSkList.length} data
                 </span>
@@ -283,17 +285,18 @@ export default function MySkPage() {
       </Card>
 
       {/* --- SECTION FOR HEADMASTER SK --- */}
-      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
-        <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
-        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
+        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
              <CardTitle className="text-lg font-bold text-slate-800 tracking-tight">Riwayat Pengangkatan Kepala Madrasah</CardTitle>
              <CardDescription className="text-slate-500">Status pengajuan SK Kepala Madrasah.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
              <div className="border-0 max-h-[400px] overflow-auto">
              <Table>
-                <TableHeader className="bg-emerald-600/5 sticky top-0 z-10 backdrop-blur-sm">
-                    <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
                         <TableHead className="font-bold text-emerald-800 tracking-wide pl-6">Nama Calon</TableHead>
                         <TableHead className="font-bold text-emerald-800 tracking-wide">Periode</TableHead>
                         <TableHead className="font-bold text-emerald-800 tracking-wide">Status</TableHead>
@@ -337,7 +340,7 @@ export default function MySkPage() {
              </Table>
              </div>
 
-            <div className="flex items-center justify-between p-4 border-t border-slate-100/50 bg-white/40">
+            <div className="flex items-center justify-between p-4 border-t border-slate-100/50 bg-white/40 rounded-b-2xl">
                 <span className="text-sm text-muted-foreground">
                     Menampilkan {headmasterSkList.length > 0 ? (currentHmPage - 1) * itemsPerHmPage + 1 : 0} - {Math.min(currentHmPage * itemsPerHmPage, mappedHeadmasterSkList.length)} dari {mappedHeadmasterSkList.length} data
                 </span>

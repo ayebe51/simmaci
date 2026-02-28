@@ -258,9 +258,10 @@ export default function UserListPage() {
 
       
 
-      <Card className="border-0 shadow-lg glass overflow-hidden relative z-10">
-        <div className="absolute top-0 right-[-10%] w-[60%] h-[100%] bg-emerald-50/30 blur-3xl pointer-events-none" />
-        <CardHeader className="pb-4 border-b border-slate-100/50 bg-white/40">
+      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
+        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
              <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
               <Input
@@ -274,8 +275,8 @@ export default function UserListPage() {
         <CardContent className="p-0">
             <div className="border-0">
                 <Table>
-                  <TableHeader className="bg-emerald-600/5">
-                    <TableRow className="border-emerald-100/50 hover:bg-transparent">
+                  <TableHeader className="bg-emerald-50/80 backdrop-blur-sm">
+                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
                       <TableHead className="font-bold text-emerald-800 tracking-wide pl-4">Nama</TableHead>
                       <TableHead className="font-bold text-emerald-800 tracking-wide">Username / Email</TableHead>
                       <TableHead className="font-bold text-emerald-800 tracking-wide">Role</TableHead>

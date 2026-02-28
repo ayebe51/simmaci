@@ -58,13 +58,13 @@ export const listPaginated = query({
         let searchQ = ctx.db.query("students")
             .withSearchIndex("search_students", q => q.search("nama", args.search!));
 
-        if (targetSchool) {
+        if (targetSchool !== undefined) {
             searchQ = searchQ.filter(q => q.eq(q.field("namaSekolah"), targetSchool));
-        } else if (targetKecamatan) {
+        } else if (targetKecamatan !== undefined) {
             searchQ = searchQ.filter(q => q.eq(q.field("kecamatan"), targetKecamatan));
         }
 
-        if (targetStatus) {
+        if (targetStatus !== undefined) {
             searchQ = searchQ.filter(q => q.eq(q.field("status"), targetStatus));
         }
 
@@ -83,7 +83,7 @@ export const listPaginated = query({
     } else if (targetStatus) {
         paginatedQuery = q.withIndex("by_status", q => q.eq("status", targetStatus));
     } else {
-        paginatedQuery = q.order("desc"); // Default sort (newest maybe? or just default)
+        paginatedQuery = q.order("desc"); // Keep just in case this wasn't the issue, wait, no let's remove it to test
     }
 
     return await paginatedQuery.paginate(args.paginationOpts);

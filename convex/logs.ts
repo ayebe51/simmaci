@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { paginationOptsValidator } from "convex/server";
 
 // Log an activity (To be called by other mutations)
 export const log = mutation({
@@ -19,21 +18,16 @@ export const log = mutation({
   },
 });
 
-// Get paginated logs for Dashboard - REMOVED FOR DEBUG
-// export const listPaginated ...
-
-// Simple debug query to test table access
+// Simple debug query - HARDCODED
 export const debugTest = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("activity_logs").order("desc").take(5);
-  },
-});
-
-// Simple debug query to test table access
-export const debugTest = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("activity_logs").order("desc").take(5);
+    return [
+      { 
+        action: "Hardcoded Test", 
+        details: "If you see this, DB query was the problem", 
+        timestamp: Date.now() 
+      }
+    ];
   },
 });

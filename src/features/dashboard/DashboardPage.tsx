@@ -30,6 +30,13 @@ export default function DashboardPage() {
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
   const logs = useQuery(api.logs.getRecentLogs, {}) // New Activity Logs
+  const [logFilter, setLogFilter] = useState<"all" | "sk">("all")
+  
+  // Filter logs for SK submissions
+  const filteredLogs = logs?.filter(log => {
+    if (logFilter === "all") return true;
+    return ["Submit SK", "Request SK Revision", "Approve SK Revision", "Reject SK Revision"].includes(log.action);
+  });
   
   // 📊 SK MONITORING QUERIES
   const operatorSchool = user?.role === "operator" ? user?.unitKerja : undefined
@@ -349,22 +356,42 @@ export default function DashboardPage() {
        {/* 📋 ACTIVITY & STATUS SECTION - Moved to bottom */}
        <div className="grid gap-6 md:grid-cols-2 mt-8">
           <Card className="col-span-1 shadow-sm border-slate-200/60 bg-white/60 backdrop-blur-xl rounded-2xl">
-             <CardHeader className="border-b border-slate-100/60 pb-4">
-                 <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
-                     <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-                     Aktivitas Terkini
-                 </CardTitle>
+             <CardHeader className="border-b border-slate-100/60 pb-3">
+                  <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                          <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                          Riwayat Aktivitas
+                      </CardTitle>
+                      <div className="flex bg-slate-100 p-1 rounded-lg">
+                          <button 
+                              onClick={() => setLogFilter("all")}
+                              className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${logFilter === "all" ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+                          >
+                              SEMUA
+                          </button>
+                          <button 
+                              onClick={() => setLogFilter("sk")}
+                              className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${logFilter === "sk" ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500'}`}
+                          >
+                              PENGAJUAN SK
+                          </button>
+                      </div>
+                  </div>
              </CardHeader>
              <CardContent className="pt-4">
-                 <div className="space-y-4">
-                     {logs ? (
-                         logs.length > 0 ? (
-                            logs.map((log, i) => (
+                  <div className="space-y-4">
+                      {filteredLogs ? (
+                          filteredLogs.length > 0 ? (
+                             filteredLogs.map((log, i) => (
                                 <div key={i} className="flex items-start gap-4 border-b border-slate-100/60 pb-3 last:border-0 last:pb-0 hover:bg-slate-50/50 p-2 rounded-lg transition-colors">
                                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shadow-[0_0_8px_rgba(16,185,129,0.5)]"/>
                                    <div className="flex-1 space-y-1">
-                                       <p className="text-sm font-semibold text-slate-800 leading-tight">{log.action}</p>
-                                       <p className="text-xs text-slate-500 leading-relaxed">{log.details}</p>
+                                       <p className="text-sm font-semibold text-slate-800 leading-tight">
+                                           {logFilter === "sk" ? (log.details.split(" - ")[0]) : log.action}
+                                       </p>
+                                       <p className="text-xs text-slate-500 leading-relaxed">
+                                           {logFilter === "sk" ? (log.details.split(" - ")[1] || log.details) : log.details}
+                                       </p>
                                    </div>
                                    <div className="text-[9px] font-bold text-slate-500 bg-slate-100/80 px-2 py-1 rounded-md text-center leading-tight">
                                      <div>{new Date(log.timestamp).toLocaleDateString('id-ID', {day: '2-digit', month: 'short'})}</div>
@@ -372,16 +399,16 @@ export default function DashboardPage() {
                                    </div>
                                 </div>
                             ))
-                         ) : (
-                             <p className="text-sm text-muted-foreground text-center py-6">Belum ada aktivitas hari ini.</p>
-                         )
-                     ) : (
-                         <div className="flex justify-center items-center py-6 gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
-                              <p className="text-sm text-slate-400">Memuat riwayat...</p>
-                         </div>
-                     )}
-                 </div>
+                          ) : (
+                              <p className="text-sm text-muted-foreground text-center py-6">Belum ada aktivitas hari ini.</p>
+                          )
+                      ) : (
+                          <div className="flex justify-center items-center py-6 gap-2">
+                               <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                               <p className="text-sm text-slate-400">Memuat riwayat...</p>
+                          </div>
+                      )}
+                  </div>
              </CardContent>
           </Card>
 
@@ -435,7 +462,7 @@ export default function DashboardPage() {
                  )}
              </CardContent>
           </Card>
-      </div>
+       </div>
     </div>
   )
 }

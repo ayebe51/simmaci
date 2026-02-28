@@ -440,6 +440,16 @@ export const create = mutation({
         createdAt: now,
         updatedAt: now,
       });
+
+      // Log Activity (Enriched for Super Admin feed)
+      await ctx.db.insert("activity_logs", {
+          user: user?.name || args.createdBy || "Operator",
+          role: user?.role || "operator",
+          action: "Submit SK",
+          details: `${args.unitKerja || "Unknown School"} - Pengajuan SK Baru: ${args.nomorSk}`,
+          timestamp: now,
+      });
+
       return newId;
     } catch (e: any) {
       console.error("SK Create Error Details:", {
@@ -818,7 +828,7 @@ export const requestRevision = mutation({
         user: identity?.name || "Operator",
         role: "operator",
         action: "Request SK Revision",
-        details: `Requested revision for SK ${sk.nomorSk}: ${args.reason}`,
+        details: `${sk.unitKerja || "Unknown School"} - Revisi SK ${sk.nomorSk}: ${args.reason}`,
         timestamp: Date.now(),
     });
 
@@ -873,7 +883,7 @@ export const approveRevision = mutation({
         user: identity?.name || "Admin",
         role: "admin",
         action: "Approve SK Revision",
-        details: `Approved revision for SK ${sk.nomorSk} and auto-patched teacher data.`,
+        details: `${sk.unitKerja || "Unknown School"} - Persetujuan Revisi SK ${sk.nomorSk}`,
         timestamp: Date.now(),
     });
 
@@ -903,7 +913,7 @@ export const rejectRevision = mutation({
         user: identity?.name || "Admin",
         role: "admin",
         action: "Reject SK Revision",
-        details: `Rejected revision for SK ${sk.nomorSk}. Reason: ${args.reason || "N/A"}`,
+        details: `${sk.unitKerja || "Unknown School"} - Penolakan Revisi SK ${sk.nomorSk}`,
         timestamp: Date.now(),
     });
 

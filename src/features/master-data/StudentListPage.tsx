@@ -106,6 +106,7 @@ export default function StudentListPage() {
           namaSekolah: userUnit || undefined,
           search: searchTerm || undefined,
           status: statusFilter !== "all" ? statusFilter : undefined,
+          token: localStorage.getItem("token") || undefined,
       },
       { initialNumItems: 20 }
   );

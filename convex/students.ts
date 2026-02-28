@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 
 import { paginationOptsValidator } from "convex/server";
+import { validateSession } from "./auth_helpers";
 
 // 🔥 PAGINATED LIST
 export const listPaginated = query({
@@ -11,24 +12,43 @@ export const listPaginated = query({
     kecamatan: v.optional(v.string()),
     status: v.optional(v.string()),
     search: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    let userUnit = "";
-    
-    // RBAC: Check User Role
-    if (identity && identity.email) {
-       const user = await ctx.db
-         .query("users")
-         .withIndex("by_email", (q) => q.eq("email", identity.email!))
-         .first();
+    // AUTHENTICATION
+    let user: any = null;
+    if (args.token) {
+        user = await validateSession(ctx, args.token);
+    } else {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity?.email) {
+            user = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", identity.email!)).first();
+        }
+    }
 
-       if (user && user.role === "operator" && user.unit) {
-           userUnit = user.unit;
-       }
+    if (!user) {
+        return { page: [], isDone: true, continueCursor: "" }; // Unauthenticated
+    }
+
+    const role = (user.role || "").toLowerCase();
+    const superRoles = ["super_admin", "admin_yayasan", "admin"];
+    const isSuper = superRoles.some(r => role.includes(r));
+    let userUnit = "";
+
+    if (!isSuper) {
+        if (user.role === "operator") {
+            if (user.unit) {
+                userUnit = user.unit;
+            } else {
+                return { page: [], isDone: true, continueCursor: "" }; // Operator without unit sees nothing
+            }
+        } else {
+            return { page: [], isDone: true, continueCursor: "" }; // Other roles
+        }
     }
 
     // Determine Filter Targets
+    // If Operator, FORCE targetSchool to be their unit. They cannot override it.
     const targetSchool = userUnit || (args.namaSekolah !== "all" ? args.namaSekolah : undefined);
     const targetKecamatan = args.kecamatan !== "all" ? args.kecamatan : undefined;
     const targetStatus = args.status !== "all" ? args.status : undefined;
@@ -70,32 +90,47 @@ export const listPaginated = query({
   },
 });
 
-// Get all students with optional filters
 export const list = query({
   args: {
     namaSekolah: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // AUTHENTICATION
+    let user: any = null;
+    if (args.token) {
+        user = await validateSession(ctx, args.token);
+    } else {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity?.email) {
+            user = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", identity.email!)).first();
+        }
+    }
+
+    if (!user) return [];
+
     let students = await ctx.db.query("students").collect();
     
-    // RBAC: Check if user is an Operator
-    const identity = await ctx.auth.getUserIdentity();
-    if (identity && identity.email) {
-       const email = identity.email;
-       const user = await ctx.db
-         .query("users")
-         .withIndex("by_email", (q) => q.eq("email", email))
-         .first();
-
-       if (user && user.role === "operator" && user.unit) {
-           // Strict filter for operators
-           const userUnit = user.unit;
-           students = students.filter(s => s.namaSekolah === userUnit);
-       }
+    // RBAC FILTERING
+    const role = (user.role || "").toLowerCase();
+    const superRoles = ["super_admin", "admin_yayasan", "admin"];
+    const isSuper = superRoles.some(r => role.includes(r));
+    
+    if (!isSuper) {
+        if (user.role === "operator") {
+            if (user.unit) {
+                // Strict filter for operators
+                students = students.filter(s => s.namaSekolah === user.unit);
+            } else {
+                return []; // Operator without unit sees nothing
+            }
+        } else {
+            return []; // Other non-admins see nothing
+        }
     }
 
     // Apply filters
-    if (args.namaSekolah && args.namaSekolah !== "all") {
+    if (isSuper && args.namaSekolah && args.namaSekolah !== "all") {
       students = students.filter(s => s.namaSekolah === args.namaSekolah);
     }
     

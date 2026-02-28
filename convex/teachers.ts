@@ -50,15 +50,27 @@ export const list = query({
         let targetSchoolId = args.schoolId;
         let targetUnit = args.unitKerja;
 
-        if (user && user.role === "operator") {
-            // Operator Restriction
-            if (user.schoolId) {
-                targetSchoolId = user.schoolId;
-                targetUnit = undefined; // Force ID usage
-            } else if (user.unit) {
-                targetUnit = user.unit;
+        if (!user) {
+            return { page: [], isDone: true, continueCursor: "" }; // Unauthenticated users see nothing
+        }
+
+        const role = (user.role || "").toLowerCase();
+        const superRoles = ["super_admin", "admin_yayasan", "admin"];
+        const isSuper = superRoles.some(r => role.includes(r));
+
+        if (!isSuper) {
+            if (user.role === "operator") {
+                // Operator Restriction
+                if (user.schoolId) {
+                    targetSchoolId = user.schoolId;
+                    targetUnit = undefined; // Force ID usage
+                } else if (user.unit) {
+                    targetUnit = user.unit;
+                } else {
+                    return { page: [], isDone: true, continueCursor: "" }; // Operator without unit sees nothing
+                }
             } else {
-                return { page: [], isDone: true, continueCursor: "" };
+                 return { page: [], isDone: true, continueCursor: "" }; // Other non-admin roles see nothing
             }
         }
     
@@ -176,14 +188,24 @@ export const listAll = query({
 
         let q = ctx.db.query("teachers");
 
+        if (!user) return [];
+
         // RBAC filtering
-        if (user && user.role === "operator") {
-             if (user.schoolId) {
-                 q = q.withIndex("by_schoolId", q => q.eq("schoolId", user.schoolId));
-             } else if (user.unit) {
-                 q = q.withIndex("by_unit", q => q.eq("unitKerja", user.unit));
+        const role = (user.role || "").toLowerCase();
+        const superRoles = ["super_admin", "admin_yayasan", "admin"];
+        const isSuper = superRoles.some(r => role.includes(r));
+
+        if (!isSuper) {
+             if (user.role === "operator") {
+                  if (user.schoolId) {
+                      q = q.withIndex("by_schoolId", q => q.eq("schoolId", user.schoolId));
+                  } else if (user.unit) {
+                      q = q.withIndex("by_unit", q => q.eq("unitKerja", user.unit));
+                  } else {
+                      return []; // Operator without unit sees nothing
+                  }
              } else {
-                 return [];
+                  return []; // Other roles
              }
         } else {
              // Admin filters

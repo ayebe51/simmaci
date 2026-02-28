@@ -17,8 +17,13 @@ export function PengajuanNuptkPage() {
     const isOperator = user?.role === "operator"
     const schoolId = isOperator ? user.schoolId : undefined
 
-    const teachers = useQuery(api.teachers.listAll, isOperator ? { schoolId: user.schoolId } : {}) || []
-    const submissions = useQuery(api.nuptk.listRequests, isOperator ? { schoolId: user.schoolId } : {}) || []
+    const teachers = useQuery(api.teachers.listAll, { 
+        token: localStorage.getItem("token") || "",
+        schoolId: isOperator ? (user.schoolId as any) : undefined 
+    }) || []
+    const submissions = useQuery(api.nuptk.listRequests, { 
+        schoolId: isOperator ? (user.schoolId as any) : undefined 
+    }) || []
     
     // Filter teachers who don't have NUPTK OR their NUPTK is just a temporary ID, dummy "-/0", or strictly blank whitespace
     const eligibleTeachers = teachers.filter(t => {

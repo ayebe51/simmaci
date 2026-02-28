@@ -12,7 +12,7 @@ export default function KtaGeneratorPage() {
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
 
   // Fetch teachers for search (Use listAll for legacy behavior)
-  const teachers = useQuery(api.teachers.listAll, {}) || [];
+  const teachers = useQuery(api.teachers.listAll, { token: localStorage.getItem("token") || "" }) || [];
 
   const filteredTeachers = search 
     ? teachers.filter((t: any) => 

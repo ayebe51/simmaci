@@ -11,7 +11,7 @@ export default function StudentCardPage() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
   // Fetch all students (simplified for generator)
-  const students = useQuery(api.students.list, {}) || [];
+  const students = useQuery(api.students.list, { token: localStorage.getItem("token") || "" }) || [];
 
   const filteredStudents = search 
     ? students.filter((s: any) => 

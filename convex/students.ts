@@ -82,8 +82,6 @@ export const listPaginated = query({
         paginatedQuery = q.withIndex("by_kecamatan", q => q.eq("kecamatan", targetKecamatan));
     } else if (targetStatus) {
         paginatedQuery = q.withIndex("by_status", q => q.eq("status", targetStatus));
-    } else {
-        paginatedQuery = q.order("desc"); // Keep just in case this wasn't the issue, wait, no let's remove it to test
     }
 
     return await paginatedQuery.paginate(args.paginationOpts);

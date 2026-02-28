@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 
 // Log an activity (To be called by other mutations)
 export const log = mutation({
@@ -19,7 +20,7 @@ export const log = mutation({
 
 // Get paginated logs for Dashboard
 export const listPaginated = query({
-  args: { paginationOpts: v.any() },
+  args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("activity_logs")

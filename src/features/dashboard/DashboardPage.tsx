@@ -391,10 +391,10 @@ export default function DashboardPage() {
                                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shadow-[0_0_8px_rgba(16,185,129,0.5)]"/>
                                    <div className="flex-1 space-y-1">
                                        <p className="text-sm font-semibold text-slate-800 leading-tight">
-                                           {logFilter === "sk" ? (log.details.split(" - ")[0]) : log.action}
+                                           {logFilter === "sk" ? (log.details?.split(" - ")[0] || "Aktivitas") : (log.action || "Aktivitas")}
                                        </p>
                                        <p className="text-xs text-slate-500 leading-relaxed">
-                                           {logFilter === "sk" ? (log.details.split(" - ")[1] || log.details) : log.details}
+                                           {logFilter === "sk" ? (log.details?.split(" - ")[1] || log.details || "-") : (log.details || "-")}
                                        </p>
                                    </div>
                                    <div className="text-[9px] font-bold text-slate-500 bg-slate-100/80 px-2 py-1 rounded-md text-center leading-tight">

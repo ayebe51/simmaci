@@ -366,8 +366,9 @@ export default function DashboardPage() {
                                        <p className="text-sm font-semibold text-slate-800 leading-tight">{log.action}</p>
                                        <p className="text-xs text-slate-500 leading-relaxed">{log.details}</p>
                                    </div>
-                                   <div className="text-[10px] font-medium text-slate-400 bg-slate-100/80 px-2 py-0.5 rounded-md">
-                                     {new Date(log.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
+                                   <div className="text-[9px] font-bold text-slate-500 bg-slate-100/80 px-2 py-1 rounded-md text-center leading-tight">
+                                     <div>{new Date(log.timestamp).toLocaleDateString('id-ID', {day: '2-digit', month: 'short'})}</div>
+                                     <div>{new Date(log.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</div>
                                    </div>
                                 </div>
                             ))

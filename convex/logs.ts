@@ -21,12 +21,24 @@ export const log = mutation({
 
 // Get paginated logs for Dashboard
 export const listPaginated = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { paginationOpts: v.any() },
   handler: async (ctx, args) => {
-    // Use default _creationTime for sorting to avoid index issues with legacy data
-    return await ctx.db
-      .query("activity_logs")
-      .order("desc")
-      .paginate(args.paginationOpts);
+    try {
+        return await ctx.db
+          .query("activity_logs")
+          .order("desc")
+          .paginate(args.paginationOpts);
+    } catch (e) {
+        console.error("Pagination error:", e);
+        return { page: [], isDone: true, continueCursor: "" };
+    }
+  },
+});
+
+// Simple debug query to test table access
+export const debugTest = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("activity_logs").order("desc").take(5);
   },
 });

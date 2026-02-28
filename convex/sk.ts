@@ -144,7 +144,17 @@ export const list = query({
             return await filteredQ.order("desc").paginate(args.paginationOpts);
         }
 
-        // Case B: Global View (Super Admin only)
+        // -------------------------------------------------------------
+        // SECURITY ENFORCEMENT: 
+        // If not Super Admin and targetSchoolId is missing or falsy, 
+        // the Operator MUST NOT proceed to global level Queries.
+        // -------------------------------------------------------------
+        if (!isSuper && !targetSchoolId) {
+             console.error("SECURITY HALT: Non-Admin blocked from Global View");
+             return { page: [], isDone: true, continueCursor: "" };
+        }
+
+        // Case B: Global View (Super Admin only OR Admin-level Filtered)
         let globalQ = q;
 
         if (args.status && args.status !== "all") {
@@ -248,24 +258,57 @@ export const getByNomor = query({
   },
 });
 
-// Get Revision History for Admins
+// Get Revision History for Admins and Operators (Scoped)
 export const getRevisions = query({
-    handler: async (ctx) => {
+    args: {
+      token: v.optional(v.string())
+    },
+    handler: async (ctx, args) => {
         try {
+            // AUTHENTICATION
+            let user = null;
+            if (args.token) user = await validateSession(ctx, args.token);
+            if (!user) {
+                const identity = await ctx.auth.getUserIdentity();
+                if (identity?.email) {
+                     user = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", identity.email!)).first();
+                }
+            }
+            if (!user) return [];
+
             // Find any SK document where revisionStatus is present (pending, approved, rejected)
-            // Convex does not allow .order() without .withIndex(), so we collect and sort manually
-            const revisions = await ctx.db
+            let revisionsQuery = ctx.db
               .query("skDocuments")
-              .filter((q) => q.neq(q.field("revisionStatus"), undefined))
-              .collect();
+              .filter((q) => q.neq(q.field("revisionStatus"), undefined));
+              
+            // RBAC FILTERING
+            const role = (user.role || "").toLowerCase();
+            const superRoles = ["super_admin", "admin_yayasan", "admin"];
+            const isSuper = superRoles.some(r => role.includes(r));
+            
+            if (!isSuper) {
+                 if (user.role === "operator") {
+                      if (user.schoolId) {
+                           revisionsQuery = revisionsQuery.filter((q) => q.eq(q.field("schoolId"), user.schoolId));
+                      } else if (user.unit) {
+                           revisionsQuery = revisionsQuery.filter((q) => q.eq(q.field("unitKerja"), user.unit));
+                      } else {
+                           return []; // Operator without unit assignment sees nothing
+                      }
+                 } else {
+                      return []; // Other roles don't see revisions
+                 }
+            }
+
+            const revisions = await revisionsQuery.collect();
               
             const sortedRevisions = revisions
-              .sort((a, b) => b._creationTime - a._creationTime)
+              .sort((a, b: any) => b._creationTime - a._creationTime)
               .slice(0, 100);
               
             // Attach teacher data so the DOCX generator has all required fields
             const revisionsWithTeacher = await Promise.all(
-                sortedRevisions.map(async (sk) => {
+                sortedRevisions.map(async (sk: any) => {
                     let teacher = null;
                     if (sk.teacherId) {
                         teacher = await ctx.db.get(sk.teacherId as Id<"teachers">);
@@ -669,15 +712,47 @@ export const batchUpdateStatus = mutation({
   },
 });
 
-// Get SK count by status
+// Get SK count by status (Scoped)
 export const countByStatus = query({
   args: {
     status: v.optional(v.string()),
     jenisSk: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // AUTHENTICATION
+    let user = null;
+    if (args.token) user = await validateSession(ctx, args.token);
+    if (!user) {
+        const identity = await ctx.auth.getUserIdentity();
+        if (identity?.email) {
+             user = await ctx.db.query("users").withIndex("by_email", (q) => q.eq("email", identity.email!)).first();
+        }
+    }
+    
     let docs = await ctx.db.query("skDocuments").collect();
     
+    // RBAC FILTERING
+    if (user) {
+        const role = (user.role || "").toLowerCase();
+        const superRoles = ["super_admin", "admin_yayasan", "admin"];
+        const isSuper = superRoles.some(r => role.includes(r));
+        
+        if (!isSuper) {
+            if (user.role === "operator") {
+                if (user.schoolId) {
+                    docs = docs.filter(sk => sk.schoolId === user.schoolId);
+                } else if (user.unit) {
+                    docs = docs.filter(sk => sk.unitKerja === user.unit);
+                } else {
+                    return 0; // Operator without unit sees 0
+                }
+            } else {
+                return 0; // Other non-admins see 0
+            }
+        }
+    }
+
     if (args.status) {
       docs = docs.filter(sk => sk.status === args.status);
     }
@@ -911,11 +986,16 @@ export const getTeachersWithSk = query({
                      return idMatch || unitMatch;
                  });
                  console.log(`Filtered by Operator SchoolID/Unit (${user.schoolId} / ${user.unit}): ${teachers.length}`);
+                 
+                 // CRITICAL FIX: If filter yields 0 but we know they are operator, DO NOT fallthrough
+                 if (teachers.length === 0) return [];
              } else if (user.unit) {
                  teachers = teachers.filter(t => 
                     t.unitKerja && t.unitKerja.trim().toLowerCase() === user.unit!.trim().toLowerCase()
                  );
                  console.log(`Filtered by Operator Unit (${user.unit}): ${teachers.length}`);
+                 
+                 if (teachers.length === 0) return [];
              } else {
                  console.log("Operator has no SchoolID or Unit");
                  return [];

@@ -78,6 +78,7 @@ export default function SkDashboardPage() {
       search: searchTerm || undefined, // Pass search to backend
       userRole: user?.role || undefined, // Ensure null becomes undefined
       userUnit: user?.unitKerja || undefined, // Ensure null becomes undefined
+      token: localStorage.getItem("auth_token") || undefined, // Pass Token for Strict Auth
   };
   console.log("DEBUG: sk:list args:", queryArgs);
 
@@ -101,6 +102,7 @@ export default function SkDashboardPage() {
     isVerified: false,
     userRole: user?.role,
     userUnit: user?.unitKerja,
+    token: localStorage.getItem("auth_token") || undefined,
   })
 
   // Mutations

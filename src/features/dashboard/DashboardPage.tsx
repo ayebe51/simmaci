@@ -29,11 +29,10 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
-  const { results: logs, status: logsStatus, loadMore: loadMoreLogs } = usePaginatedQuery(
-    api.logs.listPaginated,
-    {},
-    { initialNumItems: 10 }
-  )
+  // DEBUG: Switching to non-paginated search to isolate "Server Error"
+  const logs = useQuery(api.logs.debugTest)
+  const logsStatus = "Exhausted"
+  const loadMoreLogs = () => {}
   const [logFilter, setLogFilter] = useState<"all" | "sk">("all")
   
   // Filter logs for SK submissions

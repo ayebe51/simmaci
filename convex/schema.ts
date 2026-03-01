@@ -235,9 +235,9 @@ export default defineSchema({
     role: v.any(),
     action: v.any(),
     details: v.any(),
-    timestamp: v.any(),
-  })
-    .index("by_timestamp", ["timestamp"]),
+    timestamp: v.optional(v.number()),
+  }),
+
 
   // Approval history for audit trail
   approvalHistory: defineTable({

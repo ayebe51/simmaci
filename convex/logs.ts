@@ -19,30 +19,61 @@ export const log = mutation({
   },
 });
 
-// Get paginated logs for Dashboard
+/**
+ * PERMANENT SOLUTION: Robust Paginated Activity Logs
+ * - Uses default _creationTime for sorting (No index required)
+ * - Returns serializable data only
+ * - Optimized for Dashboard Performance
+ */
 export const listPaginated = query({
-  args: { paginationOpts: v.any() },
+  args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     try {
-        return await ctx.db
-          .query("activity_logs")
-          .order("desc") // Uses _creationTime
-          .paginate(args.paginationOpts);
-    } catch (e) {
-        console.error("Pagination error:", e);
-        return { page: [], isDone: true, continueCursor: "" };
+      const results = await ctx.db
+        .query("activity_logs")
+        .order("desc") // Implicitly uses _creationTime
+        .paginate(args.paginationOpts);
+
+      // Map to ensure clean data for frontend
+      return {
+        ...results,
+        page: results.page.map(l => ({
+          _id: l._id,
+          _creationTime: l._creationTime,
+          user: String(l.user || "Unknown"),
+          role: String(l.role || "User"),
+          action: String(l.action || "Aktivitas"),
+          details: String(l.details || "-"),
+          timestamp: Number(l.timestamp || l._creationTime),
+        }))
+      };
+    } catch (error) {
+      console.error("Critical error in logs:listPaginated:", error);
+      return { page: [], isDone: true, continueCursor: "" };
     }
   },
 });
 
-// Simple non-paginated version (Fallback)
-export const getTop = query({
-  args: {},
-  handler: async (ctx) => {
+// Simple legacy fetch for small widgets
+export const getRecent = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
     try {
-      return await ctx.db.query("activity_logs").order("desc").take(15).collect();
-    } catch (error) {
-      console.error("Error in getTop:", error);
+      const logs = await ctx.db
+        .query("activity_logs")
+        .order("desc")
+        .take(args.limit || 10);
+      
+      return logs.map(l => ({
+        _id: l._id,
+        _creationTime: l._creationTime,
+        user: String(l.user || "Unknown"),
+        role: String(l.role || "User"),
+        action: String(l.action || "Aktivitas"),
+        details: String(l.details || "-"),
+        timestamp: Number(l.timestamp || l._creationTime),
+      }));
+    } catch (e) {
       return [];
     }
   },

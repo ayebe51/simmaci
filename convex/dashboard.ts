@@ -402,31 +402,3 @@ export const getSchoolStats = query({
   }
 });
 
-// DEBUG: Ultra-safe bypass query for activity logs
-export const getRecentLogsSafe = query({
-  args: {},
-  handler: async (ctx) => {
-    try {
-      const logs = await ctx.db.query("activity_logs").take(10).collect();
-      if (logs.length === 0) {
-        return [{ action: "Sistem", details: "Belum ada aktivitas tercatat.", timestamp: Date.now() }];
-      }
-      // Return only essential fields to ensure serializability
-      return logs.map(l => ({
-        action: String(l.action || "Aktivitas"),
-        details: String(l.details || "-"),
-        timestamp: Number(l.timestamp || (l as any)._creationTime),
-        user: String(l.user || "User"),
-        _id: String(l._id)
-      }));
-    } catch (e) {
-      return [{ action: "Error", details: "Gagal membaca database aktivitas.", timestamp: Date.now() }];
-    }
-  },
-});// STATIC TEST: Does this even work? 
-export const getStaticTest = query({
-  args: {},
-  handler: async (ctx) => {
-    return [{ action: "Static", details: "Test Work", timestamp: Date.now() }];
-  },
-});

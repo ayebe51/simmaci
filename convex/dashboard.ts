@@ -423,6 +423,10 @@ export const getRecentLogsSafe = query({
       return [{ action: "Error", details: "Gagal membaca database aktivitas.", timestamp: Date.now() }];
     }
   },
+});// STATIC TEST: Does this even work? 
+export const getStaticTest = query({
+  args: {},
+  handler: async (ctx) => {
+    return [{ action: "Static", details: "Test Work", timestamp: Date.now() }];
+  },
 });
-
-

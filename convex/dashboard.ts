@@ -401,25 +401,33 @@ export const getSchoolStats = query({
     };
   }
 });
+// PERMANENT SOLUTION: Robust Activity Logs without pagination (Direct Query)
+export const getRecentLogs = query({
+  args: {},
+  handler: async (ctx) => {
+    try {
+      const logs = await ctx.db
+        .query("activity_logs")
+        .order("desc") // Uses _creationTime
+        .take(20);
 
-// DIAGNOSTIC SOLUTION: Moving listPaginated here because logs.ts is failing
-export const listPaginated = query({
-  args: { paginationOpts: v.any() },
-  handler: async (ctx, args) => {
-    return {
-      page: [
-        { 
-          _id: "diagnostic_final", 
-          _creationTime: Date.now(),
-          action: "Bypass Mode", 
-          details: "Running from dashboard.ts to fix Server Error", 
-          timestamp: Date.now(),
-          user: "System",
-          role: "admin"
-        }
-      ],
-      isDone: true,
-      continueCursor: "none",
-    };
+      if (logs.length === 0) {
+        return [{ action: "Sistem", details: "Belum ada aktivitas tercatat.", timestamp: Date.now() }];
+      }
+
+      // Map to ensure clean data for frontend
+      return logs.map(l => ({
+        _id: l._id,
+        _creationTime: l._creationTime,
+        user: String(l.user || "Unknown"),
+        role: String(l.role || "User"),
+        action: String(l.action || "Aktivitas"),
+        details: String(l.details || "-"),
+        timestamp: Number(l.timestamp || l._creationTime),
+      }));
+    } catch (error) {
+      console.error("Critical error in dashboard:getRecentLogs:", error);
+      return [{ action: "Error", details: "Database sedang sibuk.", timestamp: Date.now() }];
+    }
   },
 });

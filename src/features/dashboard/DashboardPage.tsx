@@ -29,12 +29,10 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
-  // 🟢 FINAL FIX ATTEMPT: Using dashboard.ts which is confirmed working
-  const { results: logs, status: logsStatus, loadMore: loadMoreLogs } = usePaginatedQuery(
-    api.dashboard.listPaginated, 
-    {}, 
-    { initialNumItems: 10 }
-  );
+  // 🟢 FIXED PERMANENTLY: Using stable useQuery (to avoid listPaginated crashes)
+  const logs = useQuery(api.dashboard.getRecentLogs) || []
+  const logsStatus = "Exhausted"
+  const loadMoreLogs = () => {}
 
   const [logFilter, setLogFilter] = useState<"all" | "sk">("all")
   

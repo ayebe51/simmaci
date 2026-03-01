@@ -65,7 +65,7 @@ export const getStats = query({
     }
 
     return {
-      totalTeachers: activeTeachers,
+      totalTeachers: 99999, // 🧪 FORCE DEBUG TEST
       totalStudents: activeStudents,
       totalSchools: activeSchools,
       totalSk: skDocuments.length,

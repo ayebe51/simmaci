@@ -1,7 +1,6 @@
 // @ts-nocheck
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { paginationOptsValidator } from "convex/server";
 
 // Log an activity (To be called by other mutations)
 export const log = mutation({
@@ -12,6 +11,7 @@ export const log = mutation({
     details: v.string(),
   },
   handler: async (ctx, args) => {
+    // Mutation still enabled for testing write access
     await ctx.db.insert("activity_logs", {
         ...args,
         timestamp: Date.now(),
@@ -20,61 +20,43 @@ export const log = mutation({
 });
 
 /**
- * PERMANENT SOLUTION: Robust Paginated Activity Logs
- * - Uses default _creationTime for sorting (No index required)
- * - Returns serializable data only
- * - Optimized for Dashboard Performance
+ * DIAGNOSTIC: Hardcoded paginated response
+ * - If this works, the issue is data-related or paginate() related
+ * - If this fails, the issue is structural/path related
  */
 export const listPaginated = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { paginationOpts: v.any() },
   handler: async (ctx, args) => {
-    try {
-      const results = await ctx.db
-        .query("activity_logs")
-        .order("desc") // Implicitly uses _creationTime
-        .paginate(args.paginationOpts);
-
-      // Map to ensure clean data for frontend
-      return {
-        ...results,
-        page: results.page.map(l => ({
-          _id: l._id,
-          _creationTime: l._creationTime,
-          user: String(l.user || "Unknown"),
-          role: String(l.role || "User"),
-          action: String(l.action || "Aktivitas"),
-          details: String(l.details || "-"),
-          timestamp: Number(l.timestamp || l._creationTime),
-        }))
-      };
-    } catch (error) {
-      console.error("Critical error in logs:listPaginated:", error);
-      return { page: [], isDone: true, continueCursor: "" };
-    }
+    return {
+      page: [
+        { 
+          _id: "diagnostic_1", 
+          _creationTime: Date.now(),
+          action: "Diagnostic Mode", 
+          details: "Hardcoded data to bypass Server Error", 
+          timestamp: Date.now(),
+          user: "System",
+          role: "admin"
+        }
+      ],
+      isDone: true,
+      continueCursor: "none",
+    };
   },
 });
 
-// Simple legacy fetch for small widgets
+// Simple legacy fetch
 export const getRecent = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    try {
-      const logs = await ctx.db
-        .query("activity_logs")
-        .order("desc")
-        .take(args.limit || 10);
-      
-      return logs.map(l => ({
-        _id: l._id,
-        _creationTime: l._creationTime,
-        user: String(l.user || "Unknown"),
-        role: String(l.role || "User"),
-        action: String(l.action || "Aktivitas"),
-        details: String(l.details || "-"),
-        timestamp: Number(l.timestamp || l._creationTime),
-      }));
-    } catch (e) {
-      return [];
-    }
+    return [
+        { 
+          _id: "diagnostic_2", 
+          _creationTime: Date.now(),
+          action: "Diagnostic Simple", 
+          details: "Hardcoded", 
+          timestamp: Date.now() 
+        }
+    ];
   },
 });

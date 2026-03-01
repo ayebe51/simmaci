@@ -35,11 +35,22 @@ export const getStats = query({
       .withIndex("by_key", (q) => q.eq("key", "lastEmisSync"))
       .first();
 
+    // 🧪 GUARANTEED TEST LOG
+    const testLog = {
+        _id: "test-stable-" + Date.now(),
+        _creationTime: Date.now(),
+        user: "System",
+        role: "admin",
+        action: "Status",
+        details: "Sistem Stabil & Terhubung (Update " + new Date().toLocaleTimeString() + ")",
+        timestamp: Date.now(),
+    };
+
     // 🟢 CONSOLIDATED LOGS: Fetching here to avoid separate query failures
-    let recentLogs = [];
+    let recentLogs = [testLog];
     try {
       const logs = await ctx.db.query("activity_logs").order("desc").take(15);
-      recentLogs = logs.map(l => ({
+      const mappedLogs = logs.map(l => ({
         _id: String(l._id),
         _creationTime: l._creationTime,
         user: String(l.user || "Unknown"),
@@ -48,20 +59,9 @@ export const getStats = query({
         details: String(l.details || "-"),
         timestamp: Number(l.timestamp || l._creationTime),
       }));
-
-      // 🧪 TEST: Add a guaranteed entry to verify display
-      recentLogs.unshift({
-        _id: "test-stable",
-        _creationTime: Date.now(),
-        user: "System",
-        role: "admin",
-        action: "Status",
-        details: "Sistem Stabil & Terhubung",
-        timestamp: Date.now(),
-      });
+      recentLogs = [...recentLogs, ...mappedLogs];
     } catch (e) {
       console.error("Error fetching logs in getStats:", e);
-      recentLogs = [{ action: "Sistem", details: "Riwayat sedang disinkronisasi.", timestamp: Date.now() }];
     }
 
     return {
@@ -427,6 +427,18 @@ export const getSchoolStats = query({
         .withIndex("by_key", (q) => q.eq("key", "lastEmisSync"))
         .first()
         .then(res => res ? res.value : null),
+      recentLogs: await ctx.db.query("activity_logs")
+        .order("desc")
+        .take(10)
+        .then(res => res.map(l => ({
+            _id: String(l._id),
+            _creationTime: l._creationTime,
+            user: String(l.user || "Unknown"),
+            role: String(l.role || "User"),
+            action: String(l.action || "Aktivitas"),
+            details: String(l.details || "-"),
+            timestamp: Number(l.timestamp || l._creationTime),
+        }))),
       debug: { role: user.role, unit: user.unit }
     };
   }

@@ -364,7 +364,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                       <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
                           <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-                          Riwayat Aktivitas
+                          Riwayat Aktivitas (DEBUG: Jalur Baru)
                       </CardTitle>
                       <div className="flex bg-slate-100 p-1 rounded-lg">
                           <button 

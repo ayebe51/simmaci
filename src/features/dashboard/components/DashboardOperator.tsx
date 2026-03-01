@@ -267,41 +267,74 @@ export default function DashboardOperator() {
         </div>
       </div>
 
-      {/* SYNC STATUS */}
-      <div className="mt-8">
-          <Card className="max-w-md">
-             <CardHeader>
-                 <CardTitle className="text-lg">Status Import Data</CardTitle>
-             </CardHeader>
-             <CardContent>
-                 {stats?.lastEmisSync ? (() => {
-                     try {
-                         const syncData = JSON.parse(stats.lastEmisSync);
-                         const date = new Date(syncData.timestamp).toLocaleString('id-ID', {
-                             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                         });
-                         return (
-                             <>
-                                 <div className="flex items-center gap-2 mb-4">
-                                     <CheckCircle className="h-5 w-5 text-green-500"/>
-                                     <span className="text-sm font-medium">Terakhir sinkronisasi: {date}</span>
-                                 </div>
-                                 <div className="rounded-md bg-muted p-4">
-                                     <p className="text-xs text-muted-foreground">
-                                         Data sinkronisasi mencakup {syncData.schoolCount} Sekolah. {syncData.failureCount} baris gagal impor data.
-                                     </p>
-                                 </div>
-                             </>
-                         );
-                     } catch (e) {
-                         return <p className="text-sm text-muted-foreground">Data sinkronisasi tidak valid.</p>;
-                     }
-                 })() : (
-                     <p className="text-sm text-muted-foreground">Belum ada data sinkronisasi EMIS.</p>
-                 )}
-             </CardContent>
-          </Card>
-      </div>
+
+        {/* 📋 ACTIVITY HISTORY SECTION (Added for consistency) */}
+        <div className="grid gap-6 md:grid-cols-2 mt-8">
+            <Card className="col-span-1 shadow-sm border-slate-200">
+                <CardHeader className="border-b border-slate-100 pb-3">
+                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                        Riwayat Aktivitas (Sekolah)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <div className="space-y-4">
+                        {stats.recentLogs && stats.recentLogs.length > 0 ? (
+                            stats.recentLogs.map((log: any, i: number) => (
+                                <div key={i} className="flex items-start gap-4 border-b border-slate-100 pb-3 last:border-0 last:pb-0 hover:bg-slate-50 transition-colors p-1">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shadow-sm"/>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-slate-800">{log.action}</p>
+                                        <p className="text-xs text-slate-500">{log.details}</p>
+                                    </div>
+                                    <div className="text-[9px] font-bold text-slate-400">
+                                        {new Date(log.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-slate-400 text-center py-6">Belum ada aktivitas baru.</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="col-span-1 shadow-sm border-slate-200">
+                <CardHeader className="border-b border-slate-100 pb-3">
+                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
+                        Status Import Data
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    {stats?.lastEmisSync ? (() => {
+                        try {
+                            const syncData = JSON.parse(stats.lastEmisSync);
+                            const date = new Date(syncData.timestamp).toLocaleString('id-ID', {
+                                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                            });
+                            return (
+                                <>
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <CheckCircle className="h-5 w-5 text-green-500"/>
+                                        <span className="text-sm font-medium">Terakhir sinkronisasi: {date}</span>
+                                    </div>
+                                    <div className="rounded-md bg-muted p-4">
+                                        <p className="text-xs text-muted-foreground">
+                                            Data sinkronisasi mencakup {syncData.schoolCount} Sekolah. {syncData.failureCount} baris gagal impor data.
+                                        </p>
+                                    </div>
+                                </>
+                            );
+                        } catch (e) {
+                            return <p className="text-sm text-muted-foreground">Data sinkronisasi tidak valid.</p>;
+                        }
+                    })() : (
+                        <p className="text-sm text-slate-400 text-center py-6">Belum ada data sinkronisasi EMIS.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     </div>
   )
 }

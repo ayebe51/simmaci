@@ -29,8 +29,8 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
-  // DIAGNOSTIC 3: Testing with an established, old query (getRecentActivities)
-  const logs = useQuery(api.dashboard.getRecentActivities)
+  // DIAGNOSTIC 4: Testing with ultra-safe fetching from confirmed module
+  const logs = useQuery(api.dashboard.getRecentLogsSafe)
   const logsStatus = "Exhausted"
   const loadMoreLogs = () => {}
   const [logFilter, setLogFilter] = useState<"all" | "sk">("all")

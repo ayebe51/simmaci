@@ -29,9 +29,9 @@ export default function DashboardPage() {
   // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
   const convexStats = useQuery(api.dashboard.getStats)
   const analyticsStats = useQuery(api.analytics.getDashboardStats) // New Peta Mutu Data
-  // 🟢 REAL-TIME PAGINATED LOGS (Permanent Solution)
+  // 🟢 FINAL FIX ATTEMPT: Using dashboard.ts which is confirmed working
   const { results: logs, status: logsStatus, loadMore: loadMoreLogs } = usePaginatedQuery(
-    api.logs.listPaginated, 
+    api.dashboard.listPaginated, 
     {}, 
     { initialNumItems: 10 }
   );

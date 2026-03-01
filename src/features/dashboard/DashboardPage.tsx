@@ -92,7 +92,7 @@ export default function DashboardPage() {
                   <div className="p-2 bg-emerald-100/50 rounded-xl shadow-inner border border-emerald-200/50">
                       <LayoutDashboard className="w-7 h-7 text-emerald-600" />
                   </div>
-                  Dashboard Force-Sync
+                  Dashboard Overview
               </h1>
               <p className="text-slate-500 mt-2 flex items-center gap-2">
                   Selamat datang kembali, <span className="font-bold text-emerald-800">{user?.name || "Admin"}</span>
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                       <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
                           <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-                          Riwayat Aktivitas (DEBUG: Jalur Baru)
+                          Riwayat Aktivitas
                       </CardTitle>
                       <div className="flex bg-slate-100 p-1 rounded-lg">
                           <button 

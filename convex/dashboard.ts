@@ -35,22 +35,11 @@ export const getStats = query({
       .withIndex("by_key", (q) => q.eq("key", "lastEmisSync"))
       .first();
 
-    // 🧪 GUARANTEED TEST LOG
-    const testLog = {
-        _id: "test-stable-" + Date.now(),
-        _creationTime: Date.now(),
-        user: "System",
-        role: "admin",
-        action: "Status",
-        details: "Sistem Stabil & Terhubung (Update " + new Date().toLocaleTimeString() + ")",
-        timestamp: Date.now(),
-    };
-
     // 🟢 CONSOLIDATED LOGS: Fetching here to avoid separate query failures
-    let recentLogs = [testLog];
+    let recentLogs = [];
     try {
       const logs = await ctx.db.query("activity_logs").order("desc").take(15);
-      const mappedLogs = logs.map(l => ({
+      recentLogs = logs.map(l => ({
         _id: String(l._id),
         _creationTime: l._creationTime,
         user: String(l.user || "Unknown"),
@@ -59,13 +48,12 @@ export const getStats = query({
         details: String(l.details || "-"),
         timestamp: Number(l.timestamp || l._creationTime),
       }));
-      recentLogs = [...recentLogs, ...mappedLogs];
     } catch (e) {
       console.error("Error fetching logs in getStats:", e);
     }
 
     return {
-      totalTeachers: 99999, // 🧪 FORCE DEBUG TEST
+      totalTeachers: activeTeachers,
       totalStudents: activeStudents,
       totalSchools: activeSchools,
       totalSk: skDocuments.length,

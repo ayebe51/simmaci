@@ -44,7 +44,6 @@ import type * as headmaster from "../headmaster.js";
 import type * as headmasters from "../headmasters.js";
 import type * as http from "../http.js";
 import type * as importData from "../importData.js";
-import type * as logs from "../logs.js";
 import type * as maintenance from "../maintenance.js";
 import type * as migrateAddresses from "../migrateAddresses.js";
 import type * as migrations from "../migrations.js";
@@ -113,7 +112,6 @@ declare const fullApi: ApiFromModules<{
   headmasters: typeof headmasters;
   http: typeof http;
   importData: typeof importData;
-  logs: typeof logs;
   maintenance: typeof maintenance;
   migrateAddresses: typeof migrateAddresses;
   migrations: typeof migrations;

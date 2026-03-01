@@ -48,6 +48,17 @@ export const getStats = query({
         details: String(l.details || "-"),
         timestamp: Number(l.timestamp || l._creationTime),
       }));
+
+      // 🧪 TEST: Add a guaranteed entry to verify display
+      recentLogs.unshift({
+        _id: "test-stable",
+        _creationTime: Date.now(),
+        user: "System",
+        role: "admin",
+        action: "Status",
+        details: "Sistem Stabil & Terhubung",
+        timestamp: Date.now(),
+      });
     } catch (e) {
       console.error("Error fetching logs in getStats:", e);
       recentLogs = [{ action: "Sistem", details: "Riwayat sedang disinkronisasi.", timestamp: Date.now() }];

@@ -35,6 +35,24 @@ export const getStats = query({
       .withIndex("by_key", (q) => q.eq("key", "lastEmisSync"))
       .first();
 
+    // 🟢 CONSOLIDATED LOGS: Fetching here to avoid separate query failures
+    let recentLogs = [];
+    try {
+      const logs = await ctx.db.query("activity_logs").order("desc").take(15);
+      recentLogs = logs.map(l => ({
+        _id: String(l._id),
+        _creationTime: l._creationTime,
+        user: String(l.user || "Unknown"),
+        role: String(l.role || "User"),
+        action: String(l.action || "Aktivitas"),
+        details: String(l.details || "-"),
+        timestamp: Number(l.timestamp || l._creationTime),
+      }));
+    } catch (e) {
+      console.error("Error fetching logs in getStats:", e);
+      recentLogs = [{ action: "Sistem", details: "Riwayat sedang disinkronisasi.", timestamp: Date.now() }];
+    }
+
     return {
       totalTeachers: activeTeachers,
       totalStudents: activeStudents,
@@ -44,6 +62,7 @@ export const getStats = query({
       draftSk,
       lastUpdated: Date.now(),
       lastEmisSync: emisSync ? emisSync.value : null,
+      recentLogs, // Delivered together with statistics
     };
   },
 });
@@ -401,33 +420,5 @@ export const getSchoolStats = query({
     };
   }
 });
-// PERMANENT SOLUTION: Robust Activity Logs without pagination (Direct Query)
-export const getRecentLogs = query({
-  args: {},
-  handler: async (ctx) => {
-    try {
-      const logs = await ctx.db
-        .query("activity_logs")
-        .order("desc") // Uses _creationTime
-        .take(20);
 
-      if (logs.length === 0) {
-        return [{ action: "Sistem", details: "Belum ada aktivitas tercatat.", timestamp: Date.now() }];
-      }
-
-      // Map to ensure clean data for frontend
-      return logs.map(l => ({
-        _id: l._id,
-        _creationTime: l._creationTime,
-        user: String(l.user || "Unknown"),
-        role: String(l.role || "User"),
-        action: String(l.action || "Aktivitas"),
-        details: String(l.details || "-"),
-        timestamp: Number(l.timestamp || l._creationTime),
-      }));
-    } catch (error) {
-      console.error("Critical error in dashboard:getRecentLogs:", error);
-      return [{ action: "Error", details: "Database sedang sibuk.", timestamp: Date.now() }];
-    }
-  },
-});
+// PERMANENT FIX: Redundant query removed. Logs are now consolidated in getStats.

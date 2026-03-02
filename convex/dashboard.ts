@@ -36,7 +36,7 @@ export const getStats = query({
       .first();
 
     // 🟢 CONSOLIDATED LOGS: Fetching here to avoid separate query failures
-    let recentLogs = [];
+    let recentLogs: any[] = [];
     try {
       const logs = await ctx.db.query("activity_logs").order("desc").take(15);
       recentLogs = logs.map(l => ({

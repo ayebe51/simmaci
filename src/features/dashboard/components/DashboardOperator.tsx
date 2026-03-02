@@ -216,7 +216,7 @@ export default function DashboardOperator() {
                 <CardHeader><CardTitle>Trend Pengajuan SK (6 Bulan)</CardTitle></CardHeader>
                 <CardContent>
                   <div className="h-[250px] w-full">
-                     <ResponsiveContainer width="100%" height="100%">
+                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                          <AreaChart data={skTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                              <defs>
                                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -279,7 +279,7 @@ export default function DashboardOperator() {
                 </CardHeader>
                 <CardContent className="pt-4">
                     <div className="space-y-4">
-                        {stats.recentLogs && stats.recentLogs.length > 0 ? (
+                        {stats?.recentLogs && stats.recentLogs.length > 0 ? (
                             stats.recentLogs.map((log: any, i: number) => (
                                 <div key={i} className="flex items-start gap-4 border-b border-slate-100 pb-3 last:border-0 last:pb-0 hover:bg-slate-50 transition-colors p-1">
                                     <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shadow-sm"/>

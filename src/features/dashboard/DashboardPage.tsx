@@ -312,7 +312,7 @@ export default function DashboardPage() {
                </CardHeader>
                <CardContent>
                  <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <AreaChart
                             data={skTrend}
                             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
@@ -481,7 +481,7 @@ export default function DashboardPage() {
                          <div className="inline-flex items-center justify-center p-4 bg-slate-100 rounded-full mb-3">
                             <Archive className="h-6 w-6 text-slate-400" />
                          </div>
-                         <p className="text-sm font-medium text-slate-500">Belum ada riwayat sinkronisasi EMIS.</p>
+                         <p className="text-sm font-medium text-slate-500">Belum ada riwayat sinkronisasi.</p>
                      </div>
                  )}
              </CardContent>
@@ -495,7 +495,7 @@ const Sparkline = ({ data, color }: { data: any[], color: string }) => {
   if (!data || data.length === 0) return null
   return (
     <div className="h-[40px] w-[80px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={data}>
                 <Line 
                     type="monotone" 
@@ -510,3 +510,4 @@ const Sparkline = ({ data, color }: { data: any[], color: string }) => {
     </div>
   )
 }
+

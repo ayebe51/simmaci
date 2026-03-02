@@ -76,7 +76,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 <CardContent className="pl-2">
                 <div className="h-[300px] w-full">
                     {unitData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart data={unitData} layout="vertical" margin={{ left: 40, right: 20 }}>
                                 <XAxis type="number" hide />
                                 <YAxis 
@@ -112,7 +112,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 <div className="h-[300px] relative">
                     {statusData.length > 0 ? (
                         <>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
                                         data={statusData}
@@ -165,7 +165,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 <div className="h-[300px] relative">
                     {certData.length > 0 ? (
                         <>
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
                                         data={certData}
@@ -223,7 +223,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 <CardContent className="pl-2">
                 <div className="h-[300px]">
                     {kecData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart data={kecData} layout="vertical" margin={{ left: 0, right: 30 }}>
                                 <XAxis type="number" hide />
                                 <YAxis 

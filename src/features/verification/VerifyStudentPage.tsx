@@ -68,7 +68,7 @@ export default function VerifyStudentPage() {
                        <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">NISN / NIS</p>
                        <p className="font-mono text-sm font-medium text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded inline-block">{student.nisn || "-"}</p>
                    </div>
-                   {student.nik && student.nik !== "-" && (
+                   {student.nik && student.nik !== "-" && typeof student.nik === "string" && (
                      <div>
                          <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">NIK</p>
                          <p className="font-mono text-sm font-medium text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded inline-block">***{student.nik.slice(-4)}</p>

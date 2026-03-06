@@ -93,6 +93,27 @@ export default function StudentCard({ student }: StudentCardProps) {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
+              backdrop-filter: none !important;
+              -webkit-backdrop-filter: none !important;
+            }
+            .print-color-white {
+              color: white !important;
+              -webkit-text-fill-color: white !important;
+            }
+            .print-color-yellow {
+              color: #fde047 !important;
+              -webkit-text-fill-color: #fde047 !important;
+            }
+            .print-color-emerald {
+              color: #a7f3d0 !important;
+              -webkit-text-fill-color: #a7f3d0 !important;
+            }
+            .print-color-blue {
+              color: #93c5fd !important;
+              -webkit-text-fill-color: #93c5fd !important;
+            }
+            .print-border-blue {
+              border-color: #3b82f6 !important;
             }
             @page {
               margin: 0;
@@ -125,18 +146,18 @@ export default function StudentCard({ student }: StudentCardProps) {
             )}
 
             {/* Header always shown */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-900/80 to-slate-900/80 backdrop-blur-md border-b border-blue-400/20 flex items-center px-4 justify-between z-10 print:bg-blue-900/80">
+            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-900/80 to-slate-900/80 backdrop-blur-md border-b border-blue-400/20 flex items-center px-4 justify-between z-10 print:bg-blue-900/100">
                 <div className="flex items-center gap-3">
                     <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-14 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     <div className="flex flex-col">
-                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print:-webkit-text-fill-color">KARTU TANDA PELAJAR</h1>
-                        <h2 className="text-[8px] font-semibold text-blue-300 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
+                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print-color-yellow">KARTU TANDA PELAJAR</h1>
+                        <h2 className="text-[8px] font-semibold text-blue-300 uppercase tracking-widest leading-none print-color-blue">LP Ma'arif NU Kab. Cilacap</h2>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="text-right">
-                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">NISN / ID Siswa</span>
-                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100">{student.nisn || "---"}</span>
+                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5 print-color-yellow">NISN / ID Siswa</span>
+                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100 print-color-white">{student.nisn || "---"}</span>
                     </div>
                 </div>
             </div>
@@ -144,29 +165,29 @@ export default function StudentCard({ student }: StudentCardProps) {
             {/* Common Elements (Drawn over template too) */}
             <div className={`relative z-10 flex gap-5 w-full h-full box-border ${templateFront ? 'pt-16 pb-6 px-5' : 'pt-20 pb-6 px-5'}`}>
                 {/* PHOTO */}
-                <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.15)] overflow-hidden flex-shrink-0 relative">
+                <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.15)] overflow-hidden flex-shrink-0 relative print-border-blue">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 pointer-events-none"></div>
                     {displayUrl ? (
                         <img src={displayUrl} className="w-full h-full object-cover" alt="Profile" crossOrigin="anonymous" />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px] bg-slate-800">No Photo</div>
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px] bg-slate-800 print-color-white">No Photo</div>
                     )}
                 </div>
 
                 {/* INFO */}
                 <div className="flex-1 flex flex-col justify-start pt-1 space-y-3">
                     <div className="border-b border-blue-900/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print:-webkit-text-fill-color">Nama Lengkap</label>
-                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm print:-webkit-text-fill-color">{student.nama}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print-color-yellow">Nama Lengkap</label>
+                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm print-color-white">{student.nama}</p>
                     </div>
                     <div className="border-b border-blue-900/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print:-webkit-text-fill-color">Asal Madrasah / Sekolah</label>
-                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide print:-webkit-text-fill-color">{student.namaSekolah}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print-color-yellow">Asal Madrasah / Sekolah</label>
+                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide print-color-blue">{student.namaSekolah}</p>
                     </div>
                     {student.nik && student.nik !== "-" && (
                         <div>
-                            <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">NIK</label>
-                            <p className="font-mono text-[10px] text-slate-300 tracking-wider inline-block bg-slate-900/80 px-2 py-0.5 rounded border border-blue-900">{student.nik}</p>
+                            <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print-color-yellow">NIK</label>
+                            <p className="font-mono text-[10px] text-slate-300 tracking-wider inline-block bg-slate-900/80 px-2 py-0.5 rounded border border-blue-900 print-border-blue print-color-white">{student.nik}</p>
                         </div>
                     )}
                 </div>

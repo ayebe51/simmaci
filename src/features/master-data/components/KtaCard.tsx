@@ -94,6 +94,23 @@ export default function KtaCard({ teacher }: KtaCardProps) {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               color-adjust: exact !important;
+              backdrop-filter: none !important;
+              -webkit-backdrop-filter: none !important;
+            }
+            .print-color-white {
+              color: white !important;
+              -webkit-text-fill-color: white !important;
+            }
+            .print-color-yellow {
+              color: #fde047 !important;
+              -webkit-text-fill-color: #fde047 !important;
+            }
+            .print-color-emerald {
+              color: #a7f3d0 !important;
+              -webkit-text-fill-color: #a7f3d0 !important;
+            }
+            .print-border-yellow {
+              border-color: #facc15 !important;
             }
             @page {
               margin: 0;
@@ -127,18 +144,18 @@ export default function KtaCard({ teacher }: KtaCardProps) {
             )}
 
             {/* Header / Info overlay always shown even with template */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md border-b border-yellow-500/20 flex items-center px-4 justify-between z-10 print:bg-slate-900/80">
+            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md border-b border-yellow-500/20 flex items-center px-4 justify-between z-10 print:bg-slate-900/100">
                 <div className="flex items-center gap-3">
                     <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
                     <div className="flex flex-col">
-                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print:-webkit-text-fill-color">KARTU TANDA ANGGOTA</h1>
-                        <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
+                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print-color-yellow">KARTU TANDA ANGGOTA</h1>
+                        <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none print-color-emerald">LP Ma'arif NU Kab. Cilacap</h2>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="text-right">
-                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">ID Anggota</span>
-                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100">{teacher.nuptk || "---"}</span>
+                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5 print-color-yellow">ID Anggota</span>
+                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100 print-color-white">{teacher.nuptk || "---"}</span>
                     </div>
                 </div>
             </div>
@@ -146,32 +163,32 @@ export default function KtaCard({ teacher }: KtaCardProps) {
             {/* Common Elements (Drawn over template too) */}
             <div className={`relative z-10 flex gap-5 w-full h-full box-border ${templateFront ? 'pt-16 pb-6 px-5' : 'pt-20 pb-6 px-5'}`}>
                 {/* PHOTO */}
-                <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-yellow-500/40 shadow-[0_0_15px_rgba(250,204,21,0.15)] overflow-hidden flex-shrink-0 relative">
+                <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-yellow-500/40 shadow-[0_0_15px_rgba(250,204,21,0.15)] overflow-hidden flex-shrink-0 relative print-border-yellow">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 pointer-events-none"></div>
                     {displayUrl ? (
                         <img src={displayUrl} className="w-full h-full object-cover" alt="Profile" crossOrigin="anonymous" />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px] bg-slate-800">No Photo</div>
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px] bg-slate-800 print-color-white">No Photo</div>
                     )}
                 </div>
 
                 {/* INFO */}
                 <div className="flex-1 flex flex-col justify-start pt-1 gap-2.5">
                     <div className="border-b border-slate-700/50 pb-1.5 flex justify-between">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest mt-0.5">NUPTK / PEGID</label>
-                        <p className="font-mono font-bold text-[10px] text-yellow-100 uppercase tracking-widest">{teacher.nuptk || "-"}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest mt-0.5 print-color-yellow">NUPTK / PEGID</label>
+                        <p className="font-mono font-bold text-[10px] text-yellow-100 uppercase tracking-widest print-color-white">{teacher.nuptk || "-"}</p>
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5 flex justify-between">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest mt-0.5">NIM (No Induk Ma'arif)</label>
-                        <p className="font-mono font-bold text-[10px] text-emerald-200 tracking-wider">{(teacher as any).nomorIndukMaarif || "-"}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest mt-0.5 print-color-yellow">NIM (No Induk Ma'arif)</label>
+                        <p className="font-mono font-bold text-[10px] text-emerald-200 tracking-wider print-color-emerald">{(teacher as any).nomorIndukMaarif || "-"}</p>
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5 pt-1">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5 print:-webkit-text-fill-color">Nama Lengkap</label>
-                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm print:-webkit-text-fill-color">{teacher.nama}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5 print-color-yellow">Nama Lengkap</label>
+                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm print-color-white">{teacher.nama}</p>
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5 print:-webkit-text-fill-color">Unit Kerja / Madrasah</label>
-                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase print:-webkit-text-fill-color">{teacher.unitKerja}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5 print-color-yellow">Unit Kerja / Madrasah</label>
+                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase print-color-white">{teacher.unitKerja}</p>
                     </div>
                 </div>
             </div>

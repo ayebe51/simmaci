@@ -243,7 +243,7 @@ export default function StudentCard({ student }: StudentCardProps) {
                                 {/* Stempel */}
                                 <img src="/stempel-maarif.png" alt="Stempel" className="absolute -left-6 top-1 h-12 w-12 object-contain opacity-90 sepia-[.3] hue-rotate-[180deg] saturate-[2]" />
                                 {/* Tanda Tangan */}
-                                <img src="/ttd-ketua.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 brightness-0 invert" />
+                                <img src="/ttd-ketua-putih.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 mix-blend-screen" />
                             </div>
                             <p className="text-[10px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 border-b border-yellow-500/30 pb-1 mb-1 px-4 tracking-wide relative z-20">Ali Sodiqin, S.Ag., M.Pd.I.</p>
                             <p className="text-[6.5px] uppercase tracking-[0.15em] text-blue-300 font-semibold relative z-20">Ketua PC LP Ma'arif NU</p>

@@ -238,10 +238,15 @@ export default function StudentCard({ student }: StudentCardProps) {
                     {/* Signature Area */}
                     <div className="text-center pr-2">
                         <p className="text-[7.5px] text-slate-400 mb-6 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                        <div className="flex flex-col items-center pt-2">
-                            {/* Stylized Signature Image could go here */}
-                            <p className="text-[10px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 border-b border-yellow-500/30 pb-1 mb-1 px-4 tracking-wide">Ali Sodiqin, S.Ag., M.Pd.I.</p>
-                            <p className="text-[6.5px] uppercase tracking-[0.15em] text-blue-300 font-semibold">Ketua PC LP Ma'arif NU</p>
+                        <div className="flex flex-col items-center pt-2 relative">
+                            <div className="relative flex justify-center items-center h-10 w-24 mx-auto mb-1">
+                                {/* Stempel */}
+                                <img src="/stempel-maarif.png" alt="Stempel" className="absolute -left-6 top-1 h-12 w-12 object-contain opacity-90 sepia-[.3] hue-rotate-[180deg] saturate-[2]" />
+                                {/* Tanda Tangan */}
+                                <img src="/ttd-ketua.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 brightness-0 invert" />
+                            </div>
+                            <p className="text-[10px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 border-b border-yellow-500/30 pb-1 mb-1 px-4 tracking-wide relative z-20">Ali Sodiqin, S.Ag., M.Pd.I.</p>
+                            <p className="text-[6.5px] uppercase tracking-[0.15em] text-blue-300 font-semibold relative z-20">Ketua PC LP Ma'arif NU</p>
                         </div>
                     </div>
                 </div>

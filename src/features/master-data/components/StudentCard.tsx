@@ -63,21 +63,24 @@ export default function StudentCard({ student }: StudentCardProps) {
       <style>
         {`
           @media print {
-            body * {
-               visibility: hidden;
-            }
-            #student-print-area, #student-print-area * {
-               visibility: visible;
+            body, html {
+               margin: 0 !important;
+               padding: 0 !important;
             }
             #student-print-area {
-               position: absolute;
-               left: 0;
-               top: 0;
-               width: 100%;
-               display: flex;
-               flex-direction: column;
-               align-items: center;
-               gap: 20px;
+               position: absolute !important;
+               left: 0 !important;
+               top: 0 !important;
+               width: 100% !important;
+               background: white !important;
+               z-index: 99999 !important;
+               display: flex !important;
+               flex-direction: column !important;
+               align-items: center !important;
+               justify-content: flex-start !important;
+               padding-top: 20px !important;
+               gap: 20px !important;
+               min-height: 100vh !important;
             }
             .no-print {
                display: none !important;

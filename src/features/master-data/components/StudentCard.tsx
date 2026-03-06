@@ -237,11 +237,11 @@ export default function StudentCard({ student }: StudentCardProps) {
 
                     {/* Signature Area */}
                     <div className="text-center pr-2">
-                        <p className="text-[7.5px] text-slate-400 mb-6 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                        <div className="flex flex-col items-center pt-2 relative">
-                            <div className="relative flex justify-center items-center h-10 w-24 mx-auto mb-1">
+                        <p className="text-[7.5px] text-slate-400 mb-1 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                        <div className="flex flex-col items-center pt-0 relative">
+                            <div className="relative flex justify-center items-center h-10 w-24 mx-auto mb-2 mt-1">
                                 {/* Stempel */}
-                                <img src="/stempel-maarif-putih.png" alt="Stempel" className="absolute -left-6 top-1 h-12 w-12 object-contain mix-blend-screen opacity-90" />
+                                <img src="/stempel-maarif-putih.png" alt="Stempel" className="absolute -left-8 -top-5 h-20 w-20 object-contain mix-blend-screen opacity-90" />
                                 {/* Tanda Tangan */}
                                 <img src="/ttd-ketua-putih.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 mix-blend-screen" />
                             </div>

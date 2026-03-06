@@ -144,7 +144,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
             </div>
 
             {/* Common Elements (Drawn over template too) */}
-            <div className={`absolute ${templateFront ? 'top-12' : 'top-20'} left-5 right-5 bottom-5 flex gap-5 z-10`}>
+            <div className={`relative z-10 flex gap-5 w-full h-full box-border ${templateFront ? 'pt-16 pb-6 px-5' : 'pt-20 pb-6 px-5'}`}>
                 {/* PHOTO */}
                 <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-yellow-500/40 shadow-[0_0_15px_rgba(250,204,21,0.15)] overflow-hidden flex-shrink-0 relative">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 pointer-events-none"></div>
@@ -166,12 +166,12 @@ export default function KtaCard({ teacher }: KtaCardProps) {
                         <p className="font-mono font-bold text-[10px] text-emerald-200 tracking-wider">{(teacher as any).nomorIndukMaarif || "-"}</p>
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5 pt-1">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5">Nama Lengkap</label>
-                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm print:text-black print:[-webkit-text-fill-color:black]">{teacher.nama}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5 print:-webkit-text-fill-color">Nama Lengkap</label>
+                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm print:-webkit-text-fill-color">{teacher.nama}</p>
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5">Unit Kerja / Madrasah</label>
-                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase print:text-black print:[-webkit-text-fill-color:black]">{teacher.unitKerja}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5 print:-webkit-text-fill-color">Unit Kerja / Madrasah</label>
+                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase print:-webkit-text-fill-color">{teacher.unitKerja}</p>
                     </div>
                 </div>
             </div>

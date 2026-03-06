@@ -142,7 +142,7 @@ export default function StudentCard({ student }: StudentCardProps) {
             </div>
 
             {/* Common Elements (Drawn over template too) */}
-            <div className={`absolute ${templateFront ? 'top-12' : 'top-20'} left-5 right-5 bottom-5 flex gap-5 z-10`}>
+            <div className={`relative z-10 flex gap-5 w-full h-full box-border ${templateFront ? 'pt-16 pb-6 px-5' : 'pt-20 pb-6 px-5'}`}>
                 {/* PHOTO */}
                 <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.15)] overflow-hidden flex-shrink-0 relative">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 pointer-events-none"></div>
@@ -156,12 +156,12 @@ export default function StudentCard({ student }: StudentCardProps) {
                 {/* INFO */}
                 <div className="flex-1 flex flex-col justify-start pt-1 space-y-3">
                     <div className="border-b border-blue-900/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm print:text-black print:[-webkit-text-fill-color:black]">{student.nama}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print:-webkit-text-fill-color">Nama Lengkap</label>
+                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm print:-webkit-text-fill-color">{student.nama}</p>
                     </div>
                     <div className="border-b border-blue-900/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">Asal Madrasah / Sekolah</label>
-                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide print:text-black print:[-webkit-text-fill-color:black]">{student.namaSekolah}</p>
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print:-webkit-text-fill-color">Asal Madrasah / Sekolah</label>
+                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide print:-webkit-text-fill-color">{student.namaSekolah}</p>
                     </div>
                     {student.nik && student.nik !== "-" && (
                         <div>

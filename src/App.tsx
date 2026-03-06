@@ -43,6 +43,15 @@ import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 
+// Attendance Module
+import QrScannerPage from "./features/attendance/QrScannerPage"
+import TeacherAttendancePage from "./features/attendance/TeacherAttendancePage"
+import StudentAttendancePage from "./features/attendance/StudentAttendancePage"
+import SubjectsPage from "./features/attendance/SubjectsPage"
+import ClassesPage from "./features/attendance/ClassesPage"
+import LessonSchedulePage from "./features/attendance/LessonSchedulePage"
+import AttendanceSettingsPage from "./features/attendance/AttendanceSettingsPage"
+
 // Create a client
 const queryClient = new QueryClient()
 
@@ -101,6 +110,15 @@ export default function App() {
                         <Route path="sdm/nuptk/persetujuan" element={<PersetujuanNuptkPage />} />
 
                         <Route path="mutations" element={<MutationPage />} />
+
+                        {/* Attendance Module */}
+                        <Route path="attendance/scanner" element={<QrScannerPage />} />
+                        <Route path="attendance/teachers" element={<TeacherAttendancePage />} />
+                        <Route path="attendance/students" element={<StudentAttendancePage />} />
+                        <Route path="attendance/subjects" element={<SubjectsPage />} />
+                        <Route path="attendance/classes" element={<ClassesPage />} />
+                        <Route path="attendance/schedule" element={<LessonSchedulePage />} />
+                        <Route path="attendance/settings" element={<AttendanceSettingsPage />} />
                       </Routes>
                     </GlobalErrorBoundary>
                   </AppShell>

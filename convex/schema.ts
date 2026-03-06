@@ -328,4 +328,91 @@ export default defineSchema({
     .index("by_teacherId", ["teacherId"])
     .index("by_status", ["status"])
     .index("by_submittedAt", ["submittedAt"]),
+
+  // ============ ATTENDANCE SYSTEM ============
+
+  // Mata Pelajaran
+  subjects: defineTable({
+    nama: v.string(),
+    kode: v.optional(v.string()),
+    schoolId: v.id("schools"),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_school", ["schoolId"])
+    .index("by_school_active", ["schoolId", "isActive"]),
+
+  // Kelas / Rombongan Belajar
+  classes: defineTable({
+    nama: v.string(),
+    tingkat: v.string(),
+    tahunAjaran: v.string(),
+    waliKelasId: v.optional(v.id("teachers")),
+    schoolId: v.id("schools"),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_school", ["schoolId"])
+    .index("by_school_active", ["schoolId", "isActive"]),
+
+  // Jadwal Jam Pelajaran
+  lessonSchedule: defineTable({
+    jamKe: v.number(),
+    jamMulai: v.string(),
+    jamSelesai: v.string(),
+    schoolId: v.id("schools"),
+    createdAt: v.number(),
+  })
+    .index("by_school", ["schoolId"]),
+
+  // Absensi Guru
+  teacherAttendance: defineTable({
+    teacherId: v.id("teachers"),
+    schoolId: v.id("schools"),
+    tanggal: v.string(),
+    jamMasuk: v.optional(v.string()),
+    jamPulang: v.optional(v.string()),
+    status: v.string(),
+    keterangan: v.optional(v.string()),
+    scannedBy: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_school_date", ["schoolId", "tanggal"])
+    .index("by_teacher_date", ["teacherId", "tanggal"])
+    .index("by_teacher", ["teacherId"]),
+
+  // Absensi Siswa (per kelas, per mapel)
+  studentAttendance: defineTable({
+    studentId: v.string(),
+    schoolId: v.id("schools"),
+    classId: v.id("classes"),
+    subjectId: v.id("subjects"),
+    tanggal: v.string(),
+    jamKe: v.optional(v.number()),
+    status: v.string(),
+    keterangan: v.optional(v.string()),
+    recordedByTeacherId: v.optional(v.id("teachers")),
+    scannedBy: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_school_date", ["schoolId", "tanggal"])
+    .index("by_class_date", ["classId", "tanggal"])
+    .index("by_student_date", ["studentId", "tanggal"])
+    .index("by_class_subject_date", ["classId", "subjectId", "tanggal"]),
+
+  // Pengaturan Absensi Per Sekolah
+  attendanceSettings: defineTable({
+    schoolId: v.id("schools"),
+    absensiGuruAktif: v.boolean(),
+    absensiSiswaAktif: v.boolean(),
+    scannerPin: v.optional(v.string()),
+    qrScanAktif: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_school", ["schoolId"]),
 });

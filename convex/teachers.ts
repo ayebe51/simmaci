@@ -1066,3 +1066,14 @@ export const getByNuptkPublic = query({
     };
   },
 });
+
+// Get teachers by school (for attendance scanner)
+export const getBySchool = query({
+  args: { schoolId: v.id("schools") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("teachers")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+  },
+});

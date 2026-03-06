@@ -19,7 +19,12 @@ import {
   ChevronDown,
   CreditCard,
   Stethoscope,
-  FileEdit
+  FileEdit,
+  ScanLine,
+  GraduationCap,
+  BookOpen,
+  ClipboardList,
+  UserCheck,
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -59,6 +64,18 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
         { label: "Digital KTA", href: "/dashboard/kta", icon: CreditCard },
         { label: "Kartu Pelajar", href: "/dashboard/student-card", icon: CreditCard },
+      ]
+    },
+    {
+      title: "Absensi",
+      items: [
+        { label: "Scanner QR", href: "/dashboard/attendance/scanner", icon: ScanLine },
+        { label: "Absensi Guru", href: "/dashboard/attendance/teachers", icon: UserCheck },
+        { label: "Absensi Siswa", href: "/dashboard/attendance/students", icon: GraduationCap },
+        { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
+        { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
+        { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
+        { label: "Pengaturan Absensi", href: "/dashboard/attendance/settings", icon: Settings },
       ]
     },
     {

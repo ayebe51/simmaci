@@ -241,7 +241,7 @@ export default function StudentCard({ student }: StudentCardProps) {
                         <div className="flex flex-col items-center pt-2 relative">
                             <div className="relative flex justify-center items-center h-10 w-24 mx-auto mb-1">
                                 {/* Stempel */}
-                                <img src="/stempel-maarif.png" alt="Stempel" className="absolute -left-6 top-1 h-12 w-12 object-contain opacity-90 sepia-[.3] hue-rotate-[180deg] saturate-[2]" />
+                                <img src="/stempel-maarif-putih.png" alt="Stempel" className="absolute -left-6 top-1 h-12 w-12 object-contain mix-blend-screen opacity-90" />
                                 {/* Tanda Tangan */}
                                 <img src="/ttd-ketua-putih.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 mix-blend-screen" />
                             </div>

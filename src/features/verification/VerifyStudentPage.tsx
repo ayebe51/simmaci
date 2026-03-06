@@ -82,7 +82,7 @@ export default function VerifyStudentPage() {
             </div>
 
             <div className="mt-8 pt-4 border-t border-slate-200 flex flex-col items-center text-center">
-                <img src="/logo-maarif-hijau.png" alt="Logo NU" className="h-10 w-auto mb-2" />
+                <img src="/logo-maarif-hijau.png" alt="Logo NU" className="h-12 w-auto mb-2" />
                 <p className="text-[10px] text-slate-400 font-medium">SIMMACI - Sistem Informasi Manajemen Ma'arif<br/>Pimpinan Cabang LP Ma'arif NU Kab. Cilacap</p>
                 <p className="text-[10px] text-slate-500 mt-2 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
             </div>

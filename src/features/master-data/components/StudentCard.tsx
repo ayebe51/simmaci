@@ -227,13 +227,13 @@ export default function StudentCard({ student }: StudentCardProps) {
                 </div>
 
                 <div className="flex justify-between items-end pb-1">
-                    {/* QR/Barcode (Attendance focus) */}
-                    <div className="bg-white/10 p-1.5 rounded-lg border border-white/20 shadow-md flex flex-col items-center backdrop-blur-sm">
-                       <div className="bg-white p-1 rounded-md">
-                           <QRCodeSVG value={student.nisn || ""} size={60} level="M" />
-                       </div>
-                       <span className="text-[5px] mt-1.5 text-yellow-400 font-mono tracking-[0.15em] font-semibold">NISN: {student.nisn}</span>
-                    </div>
+                   {/* QR/Barcode (Attendance focus) */}
+                   <div className="bg-white/10 p-1.5 rounded-lg border border-white/20 shadow-md flex flex-col items-center backdrop-blur-sm">
+                      <div className="bg-white p-1 rounded-md">
+                          <QRCodeSVG value={verifyUrl} size={60} level="M" />
+                      </div>
+                      <span className="text-[5px] mt-1.5 text-yellow-400 font-mono tracking-[0.15em] font-semibold">NISN: {student.nisn}</span>
+                   </div>
 
                     {/* Signature Area */}
                     <div className="text-center pr-2">

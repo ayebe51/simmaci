@@ -77,9 +77,9 @@ export default function VerifyTeacherPage() {
                </div>
                <div>
                    <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">Asal Madrasah/Sekolah</p>
-                   <p className="font-semibold text-slate-700">{teacher.unitKerja}</p>
+                   <p className="font-semibold text-slate-700">{teacher.unitKerja || "-"}</p>
                </div>
-               {teacher.statusPegawai && (
+               {teacher.statusPegawai && typeof teacher.statusPegawai === "string" && (
                    <div>
                        <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">Status Pegawai</p>
                        <p className="text-sm font-medium text-slate-700">{teacher.statusPegawai}</p>

@@ -10,6 +10,7 @@ interface KtaCardProps {
   teacher: {
     nama: string;
     nuptk: string;
+    nomorIndukMaarif?: string;
     unitKerja?: string;
     photoId?: Id<"_storage"> | string;
     nip?: string;
@@ -154,21 +155,23 @@ export default function KtaCard({ teacher }: KtaCardProps) {
                 </div>
 
                 {/* INFO */}
-                <div className="flex-1 flex flex-col justify-start pt-1 space-y-3">
-                    <div className="border-b border-slate-700/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm">{teacher.nama}</p>
+                <div className="flex-1 flex flex-col justify-start pt-1 gap-2.5">
+                    <div className="border-b border-slate-700/50 pb-1.5 flex justify-between">
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest mt-0.5">NUPTK / PEGID</label>
+                        <p className="font-mono font-bold text-[10px] text-yellow-100 uppercase tracking-widest">{teacher.nuptk || "-"}</p>
                     </div>
-                    <div className="border-b border-slate-700/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">Unit Kerja / Madrasah</label>
-                        <p className="font-semibold text-[11px] text-emerald-200 line-clamp-2 tracking-wide">{teacher.unitKerja}</p>
+                    <div className="border-b border-slate-700/50 pb-1.5 flex justify-between">
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest mt-0.5">NIM (No Induk Ma'arif)</label>
+                        <p className="font-mono font-bold text-[10px] text-emerald-200 tracking-wider">{(teacher as any).nomorIndukMaarif || "-"}</p>
                     </div>
-                    {teacher.nip && teacher.nip !== "-" && (
-                        <div>
-                            <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">NIP / PEGID</label>
-                            <p className="font-mono text-[10px] text-slate-300 tracking-wider inline-block bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">{teacher.nip}</p>
-                        </div>
-                    )}
+                    <div className="border-b border-slate-700/50 pb-1.5 pt-1">
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5">Nama Lengkap</label>
+                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm">{teacher.nama}</p>
+                    </div>
+                    <div className="border-b border-slate-700/50 pb-1.5">
+                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5">Unit Kerja / Madrasah</label>
+                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase">{teacher.unitKerja}</p>
+                    </div>
                 </div>
             </div>
 

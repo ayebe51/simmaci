@@ -154,11 +154,11 @@ export default function StudentCard({ student }: StudentCardProps) {
                 <div className="flex-1 flex flex-col justify-start pt-1 space-y-3">
                     <div className="border-b border-blue-900/50 pb-2">
                         <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm">{student.nama}</p>
+                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm print:text-black print:[-webkit-text-fill-color:black]">{student.nama}</p>
                     </div>
                     <div className="border-b border-blue-900/50 pb-2">
                         <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1">Asal Madrasah / Sekolah</label>
-                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide">{student.namaSekolah}</p>
+                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide print:text-black print:[-webkit-text-fill-color:black]">{student.namaSekolah}</p>
                     </div>
                     {student.nik && student.nik !== "-" && (
                         <div>

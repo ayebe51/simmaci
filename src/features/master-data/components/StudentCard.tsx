@@ -65,7 +65,6 @@ export default function StudentCard({ student }: StudentCardProps) {
           @media print {
             body * {
                visibility: hidden;
-               background: none !important;
             }
             #student-print-area, #student-print-area * {
                visibility: visible;
@@ -79,14 +78,18 @@ export default function StudentCard({ student }: StudentCardProps) {
                flex-direction: column;
                align-items: center;
                gap: 20px;
-               background: white !important;
             }
             .no-print {
                display: none !important;
             }
+            /* Ensure colors print correctly */
             * {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            @page {
+              margin: 0;
             }
           }
         `}
@@ -120,7 +123,7 @@ export default function StudentCard({ student }: StudentCardProps) {
                 {/* Header */}
                 <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-900/80 to-slate-900/80 backdrop-blur-md border-b border-blue-400/20 flex items-center px-4 justify-between z-10">
                     <div className="flex items-center gap-3">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Logo_Nahdlatul_Ulama.png" alt="NU" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                        <img src="/logo-icon.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                         <div className="flex flex-col">
                             <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5">KARTU TANDA PELAJAR</h1>
                             <h2 className="text-[8px] font-semibold text-blue-300 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
@@ -131,7 +134,7 @@ export default function StudentCard({ student }: StudentCardProps) {
                             <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">NISN / ID Siswa</span>
                             <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30">{student.nisn || "---"}</span>
                         </div>
-                        <img src="/logo-maarif.png" alt="Ma'arif" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                        {/* Right side element (logo removed since local one is sufficient) */}
                     </div>
                 </div>
                 </>

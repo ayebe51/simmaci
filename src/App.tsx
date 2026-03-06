@@ -29,6 +29,8 @@ import SkRevisionListPage from "./features/sk-management/SkRevisionListPage"
 import HeadmasterSubmissionPage from "./features/sk-management/HeadmasterSubmissionPage"
 import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
+import VerifyTeacherPage from "./features/verification/VerifyTeacherPage"
+import VerifyStudentPage from "./features/verification/VerifyStudentPage"
 
 import MutationPage from "./features/mutations/MutationPage"
 import SchoolProfilePage from "./features/schools/SchoolProfilePage"
@@ -51,8 +53,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/verify/:id" element={<PublicVerificationPage />} />
-          <Route path="/verify/teacher/:id" element={<PublicVerificationPage isTeacher />} />
-          <Route path="/verify/student/:id" element={<PublicVerificationPage isStudent />} />
+          <Route path="/verify/teacher/:nuptk" element={<VerifyTeacherPage />} />
+          <Route path="/verify/student/:nisn" element={<VerifyStudentPage />} />
           
           {/* Protected Routes Wrapper */}
           <Route

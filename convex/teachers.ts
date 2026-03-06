@@ -1044,3 +1044,25 @@ export const generateNextNim = query({
     }
   },
 });
+// ?? PUBLIC VERIFICATION FOR KTA (Unauthenticated)
+export const getByNuptkPublic = query({
+  args: { nuptk: v.string() },
+  handler: async (ctx, args) => {
+    // Note: No authentication required for basic public validation
+    const teacher = await ctx.db
+      .query("teachers")
+      .withIndex("by_nuptk", (q) => q.eq("nuptk", args.nuptk))
+      .first();
+
+    if (!teacher) return null;
+
+    return {
+      nama: teacher.nama,
+      nuptk: teacher.nuptk,
+      nomorIndukMaarif: teacher.nomorIndukMaarif,
+      unitKerja: teacher.unitKerja,
+      statusPegawai: teacher.statusPegawai,
+      isActive: teacher.isActive
+    };
+  },
+});

@@ -465,3 +465,23 @@ export const verifyByNisn = query({
         };
     }
 });
+// ?? PUBLIC VERIFICATION FOR STUDENT CARD (Unauthenticated / NISN)
+export const getByNisnPublic = query({
+  args: { nisn: v.string() },
+  handler: async (ctx, args) => {
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_nisn", (q) => q.eq("nisn", args.nisn))
+      .first();
+
+    if (!student) return null;
+
+    return {
+      nama: student.nama,
+      nisn: student.nisn,
+      nik: student.nik,
+      namaSekolah: student.namaSekolah,
+      status: student.status
+    };
+  },
+});

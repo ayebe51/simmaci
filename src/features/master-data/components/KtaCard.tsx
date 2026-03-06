@@ -149,7 +149,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
                     <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
                     <div className="flex flex-col">
                         <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print-color-yellow">KARTU TANDA ANGGOTA</h1>
-                        <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none print-color-emerald">LP Ma'arif NU Kab. Cilacap</h2>
+                        <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none print-color-emerald">LP MA'ARIF NU CILACAP</h2>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -224,7 +224,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
                        <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></div> Kartu ini adalah identitas resmi VIP Anggota LP Ma'arif NU Cilacap.</li>
                        <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></div> Wajib dibawa saat mengikuti program/kegiatan resmi organisasi.</li>
                        <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></div> Dilarang menyalahgunakan kartu ini untuk tindakan melanggar hukum.</li>
-                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></div> Jika menemukan kartu ini, harap kembalikan ke kantor PC LP Ma'arif NU Kab. Cilacap.</li>
+                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></div> Jika menemukan kartu ini, harap kembalikan ke kantor LP Ma'arif NU Cilacap.</li>
                    </ul>
                 </div>
 
@@ -248,7 +248,7 @@ export default function KtaCard({ teacher }: KtaCardProps) {
                                 <img src="/ttd-ketua-putih.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 mix-blend-screen" />
                             </div>
                             <p className="text-[10px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 border-b border-yellow-500/30 pb-1 mb-1 px-4 tracking-wide relative z-20">Ali Sodiqin, S.Ag., M.Pd.I.</p>
-                            <p className="text-[6.5px] uppercase tracking-[0.15em] text-emerald-400 font-semibold relative z-20">Ketua PC LP Ma'arif NU</p>
+                            <p className="text-[6.5px] uppercase tracking-[0.14em] text-emerald-400 font-semibold relative z-20">Ketua LP Ma'arif NU Cilacap</p>
                         </div>
                     </div>
                 </div>

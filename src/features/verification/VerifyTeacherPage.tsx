@@ -87,29 +87,10 @@ export default function VerifyTeacherPage() {
                )}
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-200">
-                <div className="flex justify-between items-end">
-                    <div className="flex flex-col items-center">
-                        <img src="/logo-maarif-hijau.png" alt="Logo NU" className="h-12 w-auto mb-2" />
-                        <p className="text-[9px] text-slate-500 font-medium text-center leading-tight">SIMMACI<br/>Sistem Informasi Manajemen Ma'arif<br/>PC LP Ma'arif NU Kab. Cilacap</p>
-                    </div>
-                    
-                    <div className="text-center relative">
-                        <p className="text-[10px] text-slate-500 mb-2 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                        
-                        <div className="relative flex justify-center items-center h-16 w-32 mx-auto">
-                            {/* Stempel (Behind Signature, Offset Left) */}
-                            <img src="/stempel-maarif.png" alt="Stempel" className="absolute -left-4 top-1 h-14 w-14 object-contain opacity-90 mix-blend-multiply" />
-                            {/* Tanda Tangan (In Front) */}
-                            <img src="/ttd-ketua.png" alt="Tanda Tangan" className="absolute top-0 h-16 w-auto object-contain z-10" />
-                        </div>
-                        
-                        <div className="mt-1">
-                            <p className="text-xs font-bold text-slate-800 border-b border-slate-300 pb-0.5 mb-0.5 inline-block px-2">Ali Sodiqin, S.Ag., M.Pd.I.</p>
-                            <p className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">Ketua PC LP Ma'arif NU</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="mt-8 pt-4 border-t border-slate-200 flex flex-col items-center text-center">
+                <img src="/logo-maarif-hijau.png" alt="Logo NU" className="h-10 w-auto mb-2" />
+                <p className="text-[10px] text-slate-400 font-medium">SIMMACI - Sistem Informasi Manajemen Ma'arif<br/>Pimpinan Cabang LP Ma'arif NU Kab. Cilacap</p>
+                <p className="text-[10px] text-slate-500 mt-2 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
             </div>
         </CardContent>
       </Card>

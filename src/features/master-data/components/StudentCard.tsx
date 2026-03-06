@@ -82,6 +82,9 @@ export default function StudentCard({ student }: StudentCardProps) {
             .no-print {
                display: none !important;
             }
+            .print\\:-webkit-text-fill-color {
+               -webkit-text-fill-color: initial !important; 
+            }
             /* Ensure colors print correctly */
             * {
               -webkit-print-color-adjust: exact !important;
@@ -118,27 +121,22 @@ export default function StudentCard({ student }: StudentCardProps) {
               </>
             )}
 
-            {!templateFront && (
-                <>
-                {/* Header */}
-                <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-900/80 to-slate-900/80 backdrop-blur-md border-b border-blue-400/20 flex items-center px-4 justify-between z-10">
-                    <div className="flex items-center gap-3">
-                        <img src="/logo-icon.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                        <div className="flex flex-col">
-                            <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5">KARTU TANDA PELAJAR</h1>
-                            <h2 className="text-[8px] font-semibold text-blue-300 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="text-right">
-                            <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">NISN / ID Siswa</span>
-                            <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30">{student.nisn || "---"}</span>
-                        </div>
-                        {/* Right side element (logo removed since local one is sufficient) */}
+            {/* Header always shown */}
+            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-900/80 to-slate-900/80 backdrop-blur-md border-b border-blue-400/20 flex items-center px-4 justify-between z-10 print:bg-blue-900/80">
+                <div className="flex items-center gap-3">
+                    <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-14 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <div className="flex flex-col">
+                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print:-webkit-text-fill-color">KARTU TANDA PELAJAR</h1>
+                        <h2 className="text-[8px] font-semibold text-blue-300 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
                     </div>
                 </div>
-                </>
-            )}
+                <div className="flex items-center gap-3">
+                    <div className="text-right">
+                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">NISN / ID Siswa</span>
+                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100">{student.nisn || "---"}</span>
+                    </div>
+                </div>
+            </div>
 
             {/* Common Elements (Drawn over template too) */}
             <div className={`absolute ${templateFront ? 'top-12' : 'top-20'} left-5 right-5 bottom-5 flex gap-5 z-10`}>
@@ -171,12 +169,10 @@ export default function StudentCard({ student }: StudentCardProps) {
                 </div>
             </div>
 
-            {/* Footer Strip if no template */}
-            {!templateFront && (
-                <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center z-20">
-                    <span className="text-[7px] text-yellow-950 font-extrabold uppercase tracking-[0.2em]">Belajar • Berjuang • Bertaqwa</span>
-                </div>
-            )}
+            {/* Footer Strip always shown */}
+            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center z-20 print:bg-yellow-500">
+                <span className="text-[7px] text-yellow-950 font-extrabold uppercase tracking-[0.2em] print:text-black">Belajar • Berjuang • Bertaqwa</span>
+            </div>
           </div>
 
           <div 

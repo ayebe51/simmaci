@@ -83,6 +83,9 @@ export default function KtaCard({ teacher }: KtaCardProps) {
             .no-print {
                display: none !important;
             }
+            .print\\:-webkit-text-fill-color {
+               -webkit-text-fill-color: initial !important; 
+            }
             /* Ensure colors print correctly */
             * {
               -webkit-print-color-adjust: exact !important;
@@ -120,27 +123,22 @@ export default function KtaCard({ teacher }: KtaCardProps) {
               </>
             )}
 
-            {!templateFront && (
-                <>
-                {/* Header */}
-                <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md border-b border-yellow-500/20 flex items-center px-4 justify-between z-10">
-                    <div className="flex items-center gap-3">
-                        <img src="/logo-icon.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                        <div className="flex flex-col">
-                            <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5">KARTU TANDA ANGGOTA</h1>
-                            <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="text-right">
-                            <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">ID Anggota</span>
-                            <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30">{teacher.nuptk || "---"}</span>
-                        </div>
-                        {/* Right side element (logo removed since local one is sufficient) */}
+            {/* Header / Info overlay always shown even with template */}
+            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md border-b border-yellow-500/20 flex items-center px-4 justify-between z-10 print:bg-slate-900/80">
+                <div className="flex items-center gap-3">
+                    <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                    <div className="flex flex-col">
+                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print:-webkit-text-fill-color">KARTU TANDA ANGGOTA</h1>
+                        <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none">LP Ma'arif NU Kab. Cilacap</h2>
                     </div>
                 </div>
-                </>
-            )}
+                <div className="flex items-center gap-3">
+                    <div className="text-right">
+                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5">ID Anggota</span>
+                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100">{teacher.nuptk || "---"}</span>
+                    </div>
+                </div>
+            </div>
 
             {/* Common Elements (Drawn over template too) */}
             <div className={`absolute ${templateFront ? 'top-12' : 'top-20'} left-5 right-5 bottom-5 flex gap-5 z-10`}>
@@ -166,21 +164,19 @@ export default function KtaCard({ teacher }: KtaCardProps) {
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5 pt-1">
                         <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5">Nama Lengkap</label>
-                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm">{teacher.nama}</p>
+                        <p className="font-bold text-[11px] text-slate-100 uppercase line-clamp-2 tracking-wide text-shadow-sm print:text-black print:[-webkit-text-fill-color:black]">{teacher.nama}</p>
                     </div>
                     <div className="border-b border-slate-700/50 pb-1.5">
                         <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-0.5">Unit Kerja / Madrasah</label>
-                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase">{teacher.unitKerja}</p>
+                        <p className="font-semibold text-[10px] text-slate-300 line-clamp-2 tracking-wide uppercase print:text-black print:[-webkit-text-fill-color:black]">{teacher.unitKerja}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Footer Strip if no template */}
-            {!templateFront && (
-                <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center z-20">
-                    <span className="text-[7px] text-yellow-950 font-extrabold uppercase tracking-[0.2em]">Bermutu Dalam Ilmu • Bermartabat Dalam Sikap</span>
-                </div>
-            )}
+            {/* Footer Strip always shown */}
+            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center z-20 print:bg-yellow-500">
+                <span className="text-[7px] text-yellow-950 font-extrabold uppercase tracking-[0.2em] print:text-black">Bermutu Dalam Ilmu • Bermartabat Dalam Sikap</span>
+            </div>
           </div>
 
           {/* BACK SIDE */}

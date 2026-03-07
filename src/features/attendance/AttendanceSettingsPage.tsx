@@ -9,9 +9,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff } from "lucide-react";
 
-
 export default function AttendanceSettingsPage() {
-  const userStr = localStorage.getItem('user');
+  const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : null;
   const schoolId = user?.schoolId as Id<"schools"> | undefined;
   const settings = useQuery(api.attendanceSettings.get, schoolId ? { schoolId } : "skip");
@@ -137,8 +136,10 @@ export default function AttendanceSettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-xs text-slate-500">PIN ini digunakan guru untuk masuk ke halaman scanner absensi. PIN di-generate otomatis dan unik per sekolah.</p>
-            
+            <p className="text-xs text-slate-500">
+              PIN ini digunakan guru untuk masuk ke halaman scanner absensi. PIN di-generate otomatis dan unik per sekolah.
+            </p>
+
             {settings?.scannerPin ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -152,7 +153,13 @@ export default function AttendanceSettingsPage() {
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={regenerating} className="w-full text-amber-700 border-amber-200 hover:bg-amber-50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                  className="w-full text-amber-700 border-amber-200 hover:bg-amber-50"
+                >
                   <RefreshCw className={`mr-2 h-3.5 w-3.5 ${regenerating ? "animate-spin" : ""}`} />
                   {regenerating ? "Generating..." : "Generate PIN Baru"}
                 </Button>

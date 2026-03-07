@@ -71,18 +71,16 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Kartu Pelajar", href: "/dashboard/student-card", icon: CreditCard },
       ]
     },
-    {
+    // Absensi group: only for Operators (Superadmin doesn't need it)
+    ...(!isSuperAdmin ? [{
       title: "Absensi",
       items: [
-        // Mata Pelajaran, Kelas, Jadwal only for Operator (not Superadmin)
-        ...(!isSuperAdmin ? [
-          { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
-          { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
-          { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
-        ] : []),
+        { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
+        { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
+        { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
         { label: "Pengaturan Absensi", href: "/dashboard/attendance/settings", icon: Settings },
       ]
-    },
+    }] : []),
     {
       title: "Manajemen SDM",
       items: [

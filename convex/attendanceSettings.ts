@@ -1,6 +1,30 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// Helper: generate a random 6-digit PIN
+function createRandomPin(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+// Helper: check if PIN is already used by another school
+async function isPinUnique(ctx: any, pin: string, excludeSchoolId?: any): Promise<boolean> {
+  const allSettings = await ctx.db.query("attendanceSettings").collect();
+  return !allSettings.some(
+    (s: any) => s.scannerPin === pin && (!excludeSchoolId || s.schoolId !== excludeSchoolId)
+  );
+}
+
+// Helper: generate a guaranteed-unique PIN
+async function generateUniquePin(ctx: any, excludeSchoolId?: any): Promise<string> {
+  let pin = createRandomPin();
+  let attempts = 0;
+  while (!(await isPinUnique(ctx, pin, excludeSchoolId)) && attempts < 100) {
+    pin = createRandomPin();
+    attempts++;
+  }
+  return pin;
+}
+
 // Get attendance settings for a school
 export const get = query({
   args: { schoolId: v.id("schools") },
@@ -12,7 +36,7 @@ export const get = query({
   },
 });
 
-// Save/update attendance settings
+// Save/update attendance settings — auto-generates PIN if not set
 export const save = mutation({
   args: {
     schoolId: v.id("schools"),
@@ -27,27 +51,56 @@ export const save = mutation({
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
       .first();
 
+    // Auto-generate PIN if not provided or empty
+    let pin = args.scannerPin;
+    if (!pin || pin.trim() === "") {
+      pin = await generateUniquePin(ctx, args.schoolId);
+    }
+
     const now = Date.now();
     if (existing) {
       await ctx.db.patch(existing._id, {
         absensiGuruAktif: args.absensiGuruAktif,
         absensiSiswaAktif: args.absensiSiswaAktif,
-        scannerPin: args.scannerPin,
+        scannerPin: pin,
         qrScanAktif: args.qrScanAktif,
         updatedAt: now,
       });
-      return existing._id;
+      return { id: existing._id, pin };
     } else {
-      return await ctx.db.insert("attendanceSettings", {
+      const id = await ctx.db.insert("attendanceSettings", {
         schoolId: args.schoolId,
         absensiGuruAktif: args.absensiGuruAktif,
         absensiSiswaAktif: args.absensiSiswaAktif,
-        scannerPin: args.scannerPin,
+        scannerPin: pin,
         qrScanAktif: args.qrScanAktif,
         createdAt: now,
         updatedAt: now,
       });
+      return { id, pin };
     }
+  },
+});
+
+// Generate a new unique PIN for a school (regenerate)
+export const regeneratePin = mutation({
+  args: { schoolId: v.id("schools") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("attendanceSettings")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .first();
+
+    const newPin = await generateUniquePin(ctx, args.schoolId);
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        scannerPin: newPin,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { pin: newPin };
   },
 });
 

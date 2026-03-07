@@ -4,32 +4,32 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Settings, Shield, QrCode, UserCheck, GraduationCap, Save } from "lucide-react";
+import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff } from "lucide-react";
 
 
 export default function AttendanceSettingsPage() {
   const userStr = localStorage.getItem('user');
-const user = userStr ? JSON.parse(userStr) : null;
+  const user = userStr ? JSON.parse(userStr) : null;
   const schoolId = user?.schoolId as Id<"schools"> | undefined;
   const settings = useQuery(api.attendanceSettings.get, schoolId ? { schoolId } : "skip");
   const saveMutation = useMutation(api.attendanceSettings.save);
+  const regeneratePinMutation = useMutation(api.attendanceSettings.regeneratePin);
 
   const [absensiGuruAktif, setAbsensiGuruAktif] = useState(false);
   const [absensiSiswaAktif, setAbsensiSiswaAktif] = useState(false);
   const [qrScanAktif, setQrScanAktif] = useState(false);
-  const [scannerPin, setScannerPin] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [showPin, setShowPin] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   // Load settings when data arrives
   if (settings && !loaded) {
     setAbsensiGuruAktif(settings.absensiGuruAktif);
     setAbsensiSiswaAktif(settings.absensiSiswaAktif);
     setQrScanAktif(settings.qrScanAktif);
-    setScannerPin(settings.scannerPin || "");
     setLoaded(true);
   }
 
@@ -39,16 +39,40 @@ const user = userStr ? JSON.parse(userStr) : null;
       return;
     }
     try {
-      await saveMutation({
+      const result = await saveMutation({
         schoolId,
         absensiGuruAktif,
         absensiSiswaAktif,
-        scannerPin: scannerPin || undefined,
+        scannerPin: settings?.scannerPin || undefined,
         qrScanAktif,
       });
-      toast.success("Pengaturan absensi berhasil disimpan!");
+      if (result.pin && !settings?.scannerPin) {
+        toast.success(`Pengaturan disimpan! PIN baru: ${result.pin}`);
+      } else {
+        toast.success("Pengaturan absensi berhasil disimpan!");
+      }
     } catch (err) {
       toast.error("Gagal menyimpan pengaturan");
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!schoolId) return;
+    setRegenerating(true);
+    try {
+      const result = await regeneratePinMutation({ schoolId });
+      toast.success(`PIN baru: ${result.pin}`);
+      setShowPin(true);
+    } catch (err) {
+      toast.error("Gagal generate PIN baru");
+    }
+    setRegenerating(false);
+  };
+
+  const handleCopyPin = () => {
+    if (settings?.scannerPin) {
+      navigator.clipboard.writeText(settings.scannerPin);
+      toast.success("PIN berhasil disalin!");
     }
   };
 
@@ -112,16 +136,33 @@ const user = userStr ? JSON.parse(userStr) : null;
               PIN Scanner
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-xs text-slate-500">PIN ini digunakan guru untuk mengakses halaman scanner</p>
-            <Input
-              type="text"
-              value={scannerPin}
-              onChange={(e) => setScannerPin(e.target.value)}
-              placeholder="Masukkan PIN (misal: 1234)"
-              className="font-mono tracking-wider"
-              maxLength={6}
-            />
+          <CardContent className="space-y-3">
+            <p className="text-xs text-slate-500">PIN ini digunakan guru untuk masuk ke halaman scanner absensi. PIN di-generate otomatis dan unik per sekolah.</p>
+            
+            {settings?.scannerPin ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 font-mono text-2xl tracking-[0.3em] text-center font-bold text-slate-800">
+                    {showPin ? settings.scannerPin : "••••••"}
+                  </div>
+                  <Button variant="outline" size="icon" onClick={() => setShowPin(!showPin)} title={showPin ? "Sembunyikan" : "Tampilkan"}>
+                    {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={handleCopyPin} title="Salin PIN">
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={regenerating} className="w-full text-amber-700 border-amber-200 hover:bg-amber-50">
+                  <RefreshCw className={`mr-2 h-3.5 w-3.5 ${regenerating ? "animate-spin" : ""}`} />
+                  {regenerating ? "Generating..." : "Generate PIN Baru"}
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                <p className="text-sm text-amber-700 font-medium">PIN belum dibuat</p>
+                <p className="text-xs text-amber-600 mt-1">Klik "Simpan Pengaturan" untuk auto-generate PIN</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

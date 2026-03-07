@@ -485,3 +485,63 @@ export const getByNisnPublic = query({
     };
   },
 });
+
+// Get distinct kelas values for a school (auto-sync for attendance)
+export const getDistinctKelas = query({
+  args: { schoolId: v.id("schools") },
+  handler: async (ctx, args) => {
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) return [];
+
+    const students = await ctx.db
+      .query("students")
+      .filter((q) => q.eq(q.field("namaSekolah"), school.nama))
+      .collect();
+
+    // Extract unique kelas values
+    const kelasSet = new Set();
+    const kelasList = [];
+    for (const s of students) {
+      const kelas = s.kelas;
+      if (kelas && !kelasSet.has(kelas)) {
+        kelasSet.add(kelas);
+        kelasList.push({
+          kelas: String(kelas),
+          count: 0,
+        });
+      }
+    }
+
+    // Count students per class
+    for (const item of kelasList) {
+      item.count = students.filter((s) => String(s.kelas) === item.kelas).length;
+    }
+
+    // Sort naturally
+    kelasList.sort((a, b) => a.kelas.localeCompare(b.kelas, undefined, { numeric: true }));
+    return kelasList;
+  },
+});
+
+// Get students by kelas and school (for attendance validation)
+export const getByKelas = query({
+  args: { schoolId: v.id("schools"), kelas: v.string() },
+  handler: async (ctx, args) => {
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) return [];
+
+    const students = await ctx.db
+      .query("students")
+      .filter((q) => q.eq(q.field("namaSekolah"), school.nama))
+      .collect();
+
+    return students
+      .filter((s) => String(s.kelas) === args.kelas)
+      .map((s) => ({
+        _id: s._id,
+        nisn: s.nisn,
+        nama: s.nama,
+        kelas: s.kelas,
+      }));
+  },
+});

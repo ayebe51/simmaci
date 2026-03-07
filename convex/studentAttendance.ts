@@ -12,8 +12,28 @@ export const recordScan = mutation({
     jamKe: v.optional(v.number()),
     recordedByTeacherId: v.optional(v.id("teachers")),
     scannedBy: v.optional(v.string()),
+    kelasNama: v.optional(v.string()), // for class validation
   },
   handler: async (ctx, args) => {
+    // Validate student belongs to the selected class (if kelasNama provided)
+    if (args.kelasNama) {
+      const student = await ctx.db
+        .query("students")
+        .withIndex("by_nisn", (q) => q.eq("nisn", args.studentId))
+        .first();
+
+      if (!student) {
+        return { success: false, message: "Siswa tidak ditemukan" };
+      }
+
+      if (String(student.kelas) !== args.kelasNama) {
+        return {
+          success: false,
+          message: `Siswa ${student.nama} terdaftar di kelas ${student.kelas}, bukan kelas ${args.kelasNama}`,
+        };
+      }
+    }
+
     // Anti-duplikasi: check if student already has record for this subject today
     const existing = await ctx.db
       .query("studentAttendance")

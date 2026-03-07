@@ -78,3 +78,56 @@ export const remove = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+// Get wali kelas assignment for a school
+export const getWaliKelas = query({
+  args: { schoolId: v.id("schools") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("classes")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+  },
+});
+
+// Set wali kelas for a class name (upsert)
+export const setWaliKelas = mutation({
+  args: {
+    schoolId: v.id("schools"),
+    nama: v.string(),
+    tingkat: v.string(),
+    waliKelasId: v.optional(v.id("teachers")),
+    tahunAjaran: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find existing class by name and school
+    const existing = await ctx.db
+      .query("classes")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    const match = existing.find((c) => c.nama === args.nama);
+    const now = Date.now();
+
+    if (match) {
+      await ctx.db.patch(match._id, {
+        waliKelasId: args.waliKelasId,
+        tingkat: args.tingkat,
+        tahunAjaran: args.tahunAjaran,
+        updatedAt: now,
+      });
+      return match._id;
+    } else {
+      return await ctx.db.insert("classes", {
+        nama: args.nama,
+        tingkat: args.tingkat,
+        tahunAjaran: args.tahunAjaran,
+        waliKelasId: args.waliKelasId,
+        schoolId: args.schoolId,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  },
+});

@@ -1,0 +1,47 @@
+﻿npx : - Deploying to ht
+tps://successful-bison-
+83.convex.cloud...
+At line:1 char:1
++ npx convex deploy --y
+es 2>&1 | Out-File -Fil
+ePath "d:\SIMMACI\conve
+x- ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (- Deploying t   
+ o ...convex.cloud.    
+..:String) [], Rem    o
+teException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+[36mA minor update is 
+available for Convex[3
+9m [2m(1.31.7 ΓåÆ 1.32
+.0)[22m
+[2mChangelog:[22m [4
+mhttps://github.com/get
+-convex/convex-js/blob/
+main/CHANGELOG.md#chang
+elog[24m
+[32mΓ£ö[39m No indexe
+s are deleted by this p
+ush
+Uploading functions to 
+Convex...
+Generating TypeScript b
+indings...
+Running TypeScript...
+Pushing code to your Co
+nvex deployment...
+Schema validation compl
+ete.
+Finalizing push...
+Γ£ö Deployed Convex fun
+ctions to https://succe
+ssful-bison-83.convex.c
+loud

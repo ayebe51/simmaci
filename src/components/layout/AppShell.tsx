@@ -69,9 +69,6 @@ export default function AppShell({ children }: AppShellProps) {
     {
       title: "Absensi",
       items: [
-        { label: "Scanner QR", href: "/dashboard/attendance/scanner", icon: ScanLine },
-        { label: "Absensi Guru", href: "/dashboard/attendance/teachers", icon: UserCheck },
-        { label: "Absensi Siswa", href: "/dashboard/attendance/students", icon: GraduationCap },
         { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
         { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
         { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },

@@ -42,6 +42,11 @@ export default function AppShell({ children }: AppShellProps) {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
+  // Get user role for conditional menu visibility
+  const userStr = localStorage.getItem("user");
+  const userRole = userStr ? JSON.parse(userStr)?.role : null;
+  const isSuperAdmin = userRole === "super_admin";
+
   // Navigation Groups
   const navGroups = [
     {
@@ -69,9 +74,12 @@ export default function AppShell({ children }: AppShellProps) {
     {
       title: "Absensi",
       items: [
-        { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
-        { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
-        { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
+        // Mata Pelajaran, Kelas, Jadwal only for Operator (not Superadmin)
+        ...(!isSuperAdmin ? [
+          { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
+          { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
+          { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
+        ] : []),
         { label: "Pengaturan Absensi", href: "/dashboard/attendance/settings", icon: Settings },
       ]
     },

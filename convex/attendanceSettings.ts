@@ -77,3 +77,30 @@ export const verifyPin = query({
     };
   },
 });
+
+// Login by PIN only - auto detect school
+export const loginByPin = query({
+  args: { pin: v.string() },
+  handler: async (ctx, args) => {
+    const allSettings = await ctx.db.query("attendanceSettings").collect();
+    const match = allSettings.find((s) => s.scannerPin === args.pin);
+
+    if (!match) {
+      return { valid: false, message: "PIN tidak ditemukan" };
+    }
+
+    const school = await ctx.db.get(match.schoolId);
+    if (!school) {
+      return { valid: false, message: "Sekolah tidak ditemukan" };
+    }
+
+    return {
+      valid: true,
+      schoolId: match.schoolId,
+      schoolName: school.nama,
+      absensiGuruAktif: match.absensiGuruAktif,
+      absensiSiswaAktif: match.absensiSiswaAktif,
+      qrScanAktif: match.qrScanAktif,
+    };
+  },
+});

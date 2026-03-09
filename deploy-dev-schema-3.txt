@@ -1,0 +1,217 @@
+﻿npx : Γ£ö Provisioned 
+a prod deployment and 
+saved its:
+At line:1 char:1
++ npx convex dev --onc
+e 2>&1 | Out-File -Fil
+ePath "d:\SIMMACI\depl
+oy-de ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Γ£ö Provis   
+ ioned... and save    
+d its::String) []    ,
+ RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+    name as CONVEX_DEP
+LOYMENT
+    Client URL as null
+ to .env.local
+
+Write your Convex func
+tions in convex\
+Give us feedback at ht
+tps://convex.dev/commu
+nity or support@convex
+.dev
+View the Convex dashbo
+ard at https://dashboa
+rd.convex.dev/d/succes
+sful-bison-83
+
+- Preparing Convex fun
+ctions...
+
+[36mA minor update is
+ available for Convex
+[39m [2m(1.31.7 ΓåÆ 1
+.32.0)[22m
+[2mChangelog:[22m [
+4mhttps://github.com/g
+et-convex/convex-js/bl
+ob/main/CHANGELOG.md#c
+hangelog[24m
+[31mΓ£û[39m TypeScri
+pt typecheck via `tsc`
+ failed.
+To ignore failing type
+check, use `--typechec
+k=disable`.
+- Collecting TypeScrip
+t errors
+
+[96mconvex/attendance
+Settings.ts[0m:[93m6
+8[0m:[93m9[0m - [9
+1merror[0m[90m TS235
+3: [0mObject literal 
+may only specify known
+ properties, and 'gowa
+Url' does not exist in
+ type 'PatchValue<{ _i
+d: Id<"attendanceSetti
+ngs">; _creationTime: 
+number; scannerPin?: s
+tring | undefined; sch
+oolId: Id<"schools">; 
+createdAt: number; upd
+atedAt: number; absens
+iGuruAktif: boolean; a
+bsensiSiswaAktif: bool
+ean; qrScanAktif: bool
+ean; }>'.
+
+[7m68[0m         gow
+aUrl: args.gowaUrl || 
+undefined,
+[7m  [0m [91m      
+  ~~~~~~~[0m
+[96mconvex/attendance
+Settings.ts[0m:[93m7
+9[0m:[93m9[0m - [9
+1merror[0m[90m TS235
+3: [0mObject literal 
+may only specify known
+ properties, and 'gowa
+Url' does not exist in
+ type '{ scannerPin?: 
+string | undefined; sc
+hoolId: Id<"schools">;
+ createdAt: number; up
+datedAt: number; absen
+siGuruAktif: boolean; 
+absensiSiswaAktif: boo
+lean; qrScanAktif: boo
+lean; }'.
+
+[7m79[0m         gow
+aUrl: args.gowaUrl || 
+undefined,
+[7m  [0m [91m      
+  ~~~~~~~[0m
+
+[96mconvex/attendance
+Settings.ts[0m:[93m1
+33[0m:[93m25[0m - 
+[91merror[0m[90m TS2
+339: [0mProperty 'gow
+aUrl' does not exist o
+n type '{ _id: Id<"att
+endanceSettings">; _cr
+eationTime: number; sc
+annerPin?: string | un
+defined; schoolId: Id<
+"schools">; createdAt:
+ number; updatedAt: nu
+mber; absensiGuruAktif
+: boolean; absensiSisw
+aAktif: boolean; qrSca
+nAktif: boolean; }'.
+
+[7m133[0m       gowa
+Url: settings.gowaUrl 
+|| undefined,
+[7m   [0m [91m     
+                   ~~~
+~~~~[0m
+
+[96mconvex/attendance
+Settings.ts[0m:[93m1
+61[0m:[93m22[0m - 
+[91merror[0m[90m TS2
+339: [0mProperty 'gow
+aUrl' does not exist o
+n type '{ _id: Id<"att
+endanceSettings">; _cr
+eationTime: number; sc
+annerPin?: string | un
+defined; schoolId: Id<
+"schools">; createdAt:
+ number; updatedAt: nu
+mber; absensiGuruAktif
+: boolean; absensiSisw
+aAktif: boolean; qrSca
+nAktif: boolean; }'.
+
+[7m161[0m       gowa
+Url: match.gowaUrl || 
+undefined,
+[7m   [0m [91m     
+                ~~~~~~
+~[0m
+
+[96mconvex/studentAtt
+endance.ts[0m:[93m13
+1[0m:[93m30[0m - [
+91merror[0m[90m TS23
+39: [0mProperty 'gowa
+Url' does not exist on
+ type '{ _id: Id<"atte
+ndanceSettings">; _cre
+ationTime: number; sca
+nnerPin?: string | und
+efined; schoolId: Id<"
+schools">; createdAt: 
+number; updatedAt: num
+ber; absensiGuruAktif:
+ boolean; absensiSiswa
+Aktif: boolean; qrScan
+Aktif: boolean; }'.
+
+[7m131[0m     if (se
+ttings && settings.gow
+aUrl) {
+[7m   [0m [91m     
+                      
+  ~~~~~~~[0m
+
+[96mconvex/studentAtt
+endance.ts[0m:[93m16
+2[0m:[93m33[0m - [
+91merror[0m[90m TS23
+39: [0mProperty 'gowa
+Url' does not exist on
+ type '{ _id: Id<"atte
+ndanceSettings">; _cre
+ationTime: number; sca
+nnerPin?: string | und
+efined; schoolId: Id<"
+schools">; createdAt: 
+number; updatedAt: num
+ber; absensiGuruAktif:
+ boolean; absensiSiswa
+Aktif: boolean; qrScan
+Aktif: boolean; }'.
+
+[7m162[0m           
+    gowaUrl: settings.
+gowaUrl,
+[7m   [0m [91m     
+                      
+     ~~~~~~~[0m
+
+Found 6 errors in 2 fi
+les.
+
+Errors  Files
+     4  convex/attenda
+nceSettings.ts[90m:68
+[0m
+     2  convex/student
+Attendance.ts[90m:131
+[0m

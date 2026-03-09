@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff } from "lucide-react";
+import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare } from "lucide-react";
 
 export default function AttendanceSettingsPage() {
   const userStr = localStorage.getItem("user");
@@ -20,6 +21,7 @@ export default function AttendanceSettingsPage() {
   const [absensiGuruAktif, setAbsensiGuruAktif] = useState(false);
   const [absensiSiswaAktif, setAbsensiSiswaAktif] = useState(false);
   const [qrScanAktif, setQrScanAktif] = useState(false);
+  const [gowaUrl, setGowaUrl] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -29,6 +31,7 @@ export default function AttendanceSettingsPage() {
     setAbsensiGuruAktif(settings.absensiGuruAktif);
     setAbsensiSiswaAktif(settings.absensiSiswaAktif);
     setQrScanAktif(settings.qrScanAktif);
+    setGowaUrl(settings.gowaUrl || "");
     setLoaded(true);
   }
 
@@ -44,6 +47,7 @@ export default function AttendanceSettingsPage() {
         absensiSiswaAktif,
         scannerPin: settings?.scannerPin || undefined,
         qrScanAktif,
+        gowaUrl,
       });
       if (result.pin && !settings?.scannerPin) {
         toast.success(`Pengaturan disimpan! PIN baru: ${result.pin}`);
@@ -170,6 +174,26 @@ export default function AttendanceSettingsPage() {
                 <p className="text-xs text-amber-600 mt-1">Klik "Simpan Pengaturan" untuk auto-generate PIN</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-green-200/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-green-600" />
+              Notifikasi WhatsApp (GoWA)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-slate-500">
+              URL server GoWA (diisi dengan link Cloudflare Tunnel). Kosongkan jika tidak mau kirim notif WA.
+            </p>
+            <Input
+              placeholder="https://gowa.contoh.com"
+              value={gowaUrl}
+              onChange={(e) => setGowaUrl(e.target.value)}
+              className="font-mono text-sm"
+            />
           </CardContent>
         </Card>
       </div>

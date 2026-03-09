@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { School, Users, UserCheck, Save, RefreshCw } from "lucide-react";
+import { useEffect } from "react";
 
 export default function ClassesPage() {
   const userStr = localStorage.getItem("user");
@@ -21,6 +22,11 @@ export default function ClassesPage() {
   // Teachers list for dropdown
   const teachers = useQuery(api.teachers.getBySchool, schoolId ? { schoolId } : "skip");
   const setWaliKelasMutation = useMutation(api.classes.setWaliKelas);
+  const syncClassesMutation = useMutation(api.classes.autoSyncFromStudents);
+
+  useEffect(() => {
+    if (schoolId) syncClassesMutation({ schoolId }).catch(console.error);
+  }, [schoolId, syncClassesMutation]);
 
   const [editingKelas, setEditingKelas] = useState<string | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState("");

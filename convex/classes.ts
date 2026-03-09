@@ -131,3 +131,51 @@ export const setWaliKelas = mutation({
     }
   },
 });
+
+// Auto-sync classes from students table
+export const autoSyncFromStudents = mutation({
+  args: { schoolId: v.id("schools") },
+  handler: async (ctx, args) => {
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) return;
+
+    // Get all students for this school
+    const students = await ctx.db
+      .query("students")
+      .filter((q) => q.eq(q.field("namaSekolah"), school.nama))
+      .collect();
+
+    // Extract unique class names
+    const classNames = new Set<string>();
+    for (const s of students) {
+      if (s.kelas) classNames.add(String(s.kelas));
+    }
+
+    // Get existing classes
+    const existingClasses = await ctx.db
+      .query("classes")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .collect();
+
+    let addedCount = 0;
+    const now = Date.now();
+
+    // Insert any missing classes
+    for (const className of classNames) {
+      if (!existingClasses.some((c) => c.nama === className)) {
+        await ctx.db.insert("classes", {
+          nama: className,
+          tingkat: className.replace(/[^0-9IVX]/gi, "") || className,
+          tahunAjaran: `${new Date().getFullYear()}/${new Date().getFullYear() + 1}`,
+          schoolId: args.schoolId,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+        addedCount++;
+      }
+    }
+
+    return { success: true, added: addedCount };
+  },
+});

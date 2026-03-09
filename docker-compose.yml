@@ -1,0 +1,12 @@
+version: "3"
+services:
+  gowa:
+    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
+    container_name: gowa_whatsapp
+    ports:
+      - "3000:3000"
+    environment:
+      - APP_PORT=3000
+    volumes:
+      - ./gowa_data:/app/data
+    restart: unless-stopped

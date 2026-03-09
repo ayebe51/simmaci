@@ -1,0 +1,51 @@
+﻿npx : Γ£ö Provisioned 
+a prod deployment and 
+saved its:
+At line:1 char:1
++ npx convex dev --onc
+e 2>&1 | Out-File -Fil
+ePath "d:\SIMMACI\depl
+oy-de ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Γ£ö Provis   
+ ioned... and save    
+d its::String) []    ,
+ RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+    name as CONVEX_DEP
+LOYMENT
+    Client URL as null
+ to .env.local
+
+Write your Convex func
+tions in convex\
+Give us feedback at ht
+tps://convex.dev/commu
+nity or support@convex
+.dev
+View the Convex dashbo
+ard at https://dashboa
+rd.convex.dev/d/succes
+sful-bison-83
+
+- Preparing Convex fun
+ctions...
+
+[36mA minor update is
+ available for Convex
+[39m [2m(1.31.7 ΓåÆ 1
+.32.0)[22m
+[2mChangelog:[22m [
+4mhttps://github.com/g
+et-convex/convex-js/bl
+ob/main/CHANGELOG.md#c
+hangelog[24m
+[32mΓ£ö[39m 11:35:09
+ Convex functions read
+y! (7.4s)

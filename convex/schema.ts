@@ -411,6 +411,7 @@ export default defineSchema({
     absensiSiswaAktif: v.boolean(),
     scannerPin: v.optional(v.string()),
     qrScanAktif: v.boolean(),
+    gowaUrl: v.optional(v.string()), // URL for GoWA WhatsApp Gateway
     createdAt: v.number(),
     updatedAt: v.number(),
   })

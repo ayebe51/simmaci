@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 
 // Record a single student's attendance (from QR scan)
 export const recordScan = mutation({
@@ -119,6 +120,52 @@ export const recordBulk = mutation({
         createdAt: now,
         updatedAt: now,
       });
+    }
+
+    // After inserting records, trigger WhatsApp notifications if applicable
+    const settings = await ctx.db
+      .query("attendanceSettings")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .first();
+
+    if (settings && settings.gowaUrl) {
+      // Get class info for the message
+      const classInfo = await ctx.db.get(args.classId);
+      const className = classInfo?.nama || "Kelas Tidak Diketahui";
+      const tanggalFormat = new Date(args.tanggal).toLocaleDateString("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+
+      for (const record of args.records) {
+        if (record.status === "Alpha" || record.status === "Sakit" || record.status === "Izin") {
+          // Fetch student to get phone number and name
+          const student = await ctx.db
+            .query("students")
+            .withIndex("by_nisn", (q) => q.eq("nisn", record.studentId))
+            .first();
+
+          if (student && student.nomorTelepon) {
+            let message = "";
+            if (record.status === "Alpha") {
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami informasikan bahwa putra/putri Bapak/Ibu tidak hadir di kelas hari ini (${tanggalFormat}) *tanpa keterangan (Alpha)*.\n\nMohon konfirmasi ke pihak sekolah. Terima kasih. 🙏`;
+            } else if (record.status === "Sakit") {
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami menginformasikan bahwa ananda tercatat *Sakit* hari ini (${tanggalFormat}). Semoga lekas sembuh! 🙏`;
+            } else if (record.status === "Izin") {
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami menginformasikan bahwa ananda tercatat *Izin* hari ini (${tanggalFormat}). Terima kasih atas konfirmasinya. 🙏`;
+            }
+
+            // Schedule the WhatsApp action asynchronously so it doesn't block the mutation
+            await ctx.scheduler.runAfter(0, api.sendWhatsApp.sendMessage, {
+              gowaUrl: settings.gowaUrl,
+              phone: student.nomorTelepon,
+              message: message,
+            });
+          }
+        }
+      }
     }
 
     return { success: true, count: args.records.length };

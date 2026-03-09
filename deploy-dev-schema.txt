@@ -1,0 +1,60 @@
+﻿npx : Γ£ö Provisioned a prod deployment and saved its:
+At line:1 char:1
++ npx convex dev --once 2>&1 | Out-File -FilePath "d:\SIMMACI\deploy-de ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo              : NotSpeci    fied: (Γ£ö Provis    ioned... and save  
+  d its::String) []    , RemoteException
+    + FullyQualifiedE    rrorId : NativeCo    mmandError
+ 
+    name as CONVEX_DEPLOYMENT
+    Client URL as null
+ to .env.local
+
+Write your Convex functions in convex\
+Give us feedback at https://convex.dev/community or support@convex.dev
+View the Convex dashboard at https://dashboard.convex.dev/d/successful-bison-83
+
+- Preparing Convex functions...
+
+[36mA minor update is available for Convex[39m [2m(1.31.7 ΓåÆ 1.32.0)[22m
+[2mChangelog:[22m [4mhttps://github.com/get-convex/convex-js/blob/main/CHANGELOG.md
+#changelog[24m
+[31mΓ£û[39m TypeScript typecheck via `tsc` failed.
+To ignore failing typecheck, use `--typecheck=disable`.
+- Collecting TypeScript errors
+
+[96mconvex/attendanceSettings.ts[0m:[93m68[0m:[93m9[0m - [91merror[0m[90m TS2
+353: [0mObject literal may only specify known properties, and 'gowaUrl' does not exis
+t in type 'PatchValue<{ _id: Id<"attendanceSettings">; _creationTime: number; scannerP
+in?: string | undefined; schoolId: Id<"schools">; createdAt: number; updatedAt: number
+; absensiGuruAktif: boolean; absensiSiswaAktif: boolean; qrScanAktif: boolean; }>'.
+
+[7m68[0m         gowaUrl: args.gowaUrl,
+[7m  [0m [91m        ~~~~~~~[0m
+[96mconvex/attendanceSettings.ts[0m:[93m79[0m:[93m9[0m - [91merror[0m[90m TS2
+353: [0mObject literal may only specify known properties, and 'gowaUrl' does not exis
+t in type '{ scannerPin?: string | undefined; schoolId: Id<"schools">; createdAt: numb
+er; updatedAt: number; absensiGuruAktif: boolean; absensiSiswaAktif: boolean; qrScanAk
+tif: boolean; }'.
+
+[7m79[0m         gowaUrl: args.gowaUrl,
+[7m  [0m [91m        ~~~~~~~[0m
+
+[96mconvex/attendanceSettings.ts[0m:[93m133[0m:[93m25[0m - [91merror[0m[90m T
+S2339: [0mProperty 'gowaUrl' does not exist on type '{ _id: Id<"attendanceSettings">;
+ _creationTime: number; scannerPin?: string | undefined; schoolId: Id<"schools">; crea
+tedAt: number; updatedAt: number; absensiGuruAktif: boolean; absensiSiswaAktif: boolea
+n; qrScanAktif: boolean; }'.
+
+[7m133[0m       gowaUrl: settings.gowaUrl,
+[7m   [0m [91m                        ~~~~~~~[0m
+[96mconvex/attendanceSettings.ts[0m:[93m161[0m:[93m22[0m - [91merror[0m[90m T
+S2339: [0mProperty 'gowaUrl' does not exist on type '{ _id: Id<"attendanceSettings">;
+ _creationTime: number; scannerPin?: string | undefined; schoolId: Id<"schools">; crea
+tedAt: number; updatedAt: number; absensiGuruAktif: boolean; absensiSiswaAktif: boolea
+n; qrScanAktif: boolean; }'.
+
+[7m161[0m       gowaUrl: match.gowaUrl,
+[7m   [0m [91m                     ~~~~~~~[0m
+
+Found 4 errors in the same file, starting at: convex/attendanceSettings.ts[90m:68[0m

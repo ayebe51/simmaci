@@ -59,6 +59,7 @@ import type * as reports from "../reports.js";
 import type * as repro_issue from "../repro_issue.js";
 import type * as reproduce_bulk from "../reproduce_bulk.js";
 import type * as schools from "../schools.js";
+import type * as sendWhatsApp from "../sendWhatsApp.js";
 import type * as settings from "../settings.js";
 import type * as settings_cloud from "../settings_cloud.js";
 import type * as simple_debug from "../simple_debug.js";
@@ -133,6 +134,7 @@ declare const fullApi: ApiFromModules<{
   repro_issue: typeof repro_issue;
   reproduce_bulk: typeof reproduce_bulk;
   schools: typeof schools;
+  sendWhatsApp: typeof sendWhatsApp;
   settings: typeof settings;
   settings_cloud: typeof settings_cloud;
   simple_debug: typeof simple_debug;

@@ -44,6 +44,7 @@ export const save = mutation({
     absensiSiswaAktif: v.boolean(),
     scannerPin: v.optional(v.string()),
     qrScanAktif: v.boolean(),
+    gowaUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -64,6 +65,7 @@ export const save = mutation({
         absensiSiswaAktif: args.absensiSiswaAktif,
         scannerPin: pin,
         qrScanAktif: args.qrScanAktif,
+        gowaUrl: args.gowaUrl || undefined,
         updatedAt: now,
       });
       return { id: existing._id, pin };
@@ -74,6 +76,7 @@ export const save = mutation({
         absensiSiswaAktif: args.absensiSiswaAktif,
         scannerPin: pin,
         qrScanAktif: args.qrScanAktif,
+        gowaUrl: args.gowaUrl || undefined,
         createdAt: now,
         updatedAt: now,
       });
@@ -127,6 +130,7 @@ export const verifyPin = query({
       absensiGuruAktif: settings.absensiGuruAktif,
       absensiSiswaAktif: settings.absensiSiswaAktif,
       qrScanAktif: settings.qrScanAktif,
+      gowaUrl: settings.gowaUrl || undefined,
     };
   },
 });
@@ -154,6 +158,7 @@ export const loginByPin = query({
       absensiGuruAktif: match.absensiGuruAktif,
       absensiSiswaAktif: match.absensiSiswaAktif,
       qrScanAktif: match.qrScanAktif,
+      gowaUrl: match.gowaUrl || undefined,
     };
   },
 });

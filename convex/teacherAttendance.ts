@@ -83,9 +83,13 @@ export const smartScan = mutation({
     scannedBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const today = new Date().toISOString().split("T")[0];
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false });
+    // 1. Get correct date and time in Asia/Jakarta
+    // Use Intl.DateTimeFormat to reliably get the local date
+    const dtfDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const today = dtfDate.format(new Date()); 
+
+    const dtfTime = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false });
+    const timeStr = dtfTime.format(new Date()).replace('.', ':');
 
     const existing = await ctx.db
       .query("teacherAttendance")

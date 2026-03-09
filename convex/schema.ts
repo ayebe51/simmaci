@@ -412,6 +412,7 @@ export default defineSchema({
     scannerPin: v.optional(v.string()),
     qrScanAktif: v.boolean(),
     gowaUrl: v.optional(v.string()), // URL for GoWA WhatsApp Gateway
+    gowaDeviceId: v.optional(v.string()), // Multi-tenant WhatsApp Device ID
     createdAt: v.number(),
     updatedAt: v.number(),
   })

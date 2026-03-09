@@ -22,6 +22,7 @@ export default function AttendanceSettingsPage() {
   const [absensiSiswaAktif, setAbsensiSiswaAktif] = useState(false);
   const [qrScanAktif, setQrScanAktif] = useState(false);
   const [gowaUrl, setGowaUrl] = useState("");
+  const [gowaDeviceId, setGowaDeviceId] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -32,6 +33,7 @@ export default function AttendanceSettingsPage() {
     setAbsensiSiswaAktif(settings.absensiSiswaAktif);
     setQrScanAktif(settings.qrScanAktif);
     setGowaUrl(settings.gowaUrl || "");
+    setGowaDeviceId(settings.gowaDeviceId || "");
     setLoaded(true);
   }
 
@@ -48,6 +50,7 @@ export default function AttendanceSettingsPage() {
         scannerPin: settings?.scannerPin || undefined,
         qrScanAktif,
         gowaUrl,
+        gowaDeviceId,
       });
       if (result.pin && !settings?.scannerPin) {
         toast.success(`Pengaturan disimpan! PIN baru: ${result.pin}`);
@@ -184,16 +187,32 @@ export default function AttendanceSettingsPage() {
               Notifikasi WhatsApp (GoWA)
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-slate-500">
-              URL server GoWA (diisi dengan link Cloudflare Tunnel). Kosongkan jika tidak mau kirim notif WA.
-            </p>
-            <Input
-              placeholder="https://gowa.contoh.com"
-              value={gowaUrl}
-              onChange={(e) => setGowaUrl(e.target.value)}
-              className="font-mono text-sm"
-            />
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm text-slate-600">URL Server GoWA</Label>
+              <p className="text-xs text-slate-500">
+                Alamat Localtunnel Yayasan Pusat. Kosongkan jika tidak mau kirim WA.
+              </p>
+              <Input
+                placeholder="https://simmaci-gowa-pusat.loca.lt"
+                value={gowaUrl}
+                onChange={(e) => setGowaUrl(e.target.value)}
+                className="font-mono text-sm"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm text-slate-600">Device ID Madrasah (Opsional)</Label>
+              <p className="text-xs text-slate-500">
+                Kode unik madrasah untuk Multi-Device (misal: "mialfalah"). Biarkan kosong jika Yayasan hanya menggunakan 1 nomor WA tunggal.
+              </p>
+              <Input
+                placeholder="mialfalah"
+                value={gowaDeviceId}
+                onChange={(e) => setGowaDeviceId(e.target.value)}
+                className="font-mono text-sm"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

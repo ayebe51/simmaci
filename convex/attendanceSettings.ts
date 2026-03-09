@@ -45,6 +45,7 @@ export const save = mutation({
     scannerPin: v.optional(v.string()),
     qrScanAktif: v.boolean(),
     gowaUrl: v.optional(v.string()),
+    gowaDeviceId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -66,6 +67,7 @@ export const save = mutation({
         scannerPin: pin,
         qrScanAktif: args.qrScanAktif,
         gowaUrl: args.gowaUrl || undefined,
+        gowaDeviceId: args.gowaDeviceId || undefined,
         updatedAt: now,
       });
       return { id: existing._id, pin };
@@ -77,6 +79,7 @@ export const save = mutation({
         scannerPin: pin,
         qrScanAktif: args.qrScanAktif,
         gowaUrl: args.gowaUrl || undefined,
+        gowaDeviceId: args.gowaDeviceId || undefined,
         createdAt: now,
         updatedAt: now,
       });

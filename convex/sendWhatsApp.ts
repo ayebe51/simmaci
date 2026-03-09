@@ -6,6 +6,7 @@ export const sendMessage = action({
     gowaUrl: v.string(), // e.g. "https://gowa-tunnel.trycloudflare.com"
     phone: v.string(),   // e.g. "08123456789"
     message: v.string(), // Message body
+    deviceId: v.optional(v.string()), // Target GoWA Device ID
   },
   handler: async (ctx, args) => {
     try {
@@ -21,12 +22,19 @@ export const sendMessage = action({
       // Ensure URL doesn't have trailing slash
       const baseUrl = args.gowaUrl.replace(/\/$/, "");
       const sendUrl = `${baseUrl}/send/message`;
+      
+      const reqHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      // If a device ID is provided for multi-tenant setups
+      if (args.deviceId) {
+        reqHeaders["X-Device-ID"] = args.deviceId;
+      }
 
       const response = await fetch(sendUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: reqHeaders,
         body: JSON.stringify({
           phone: jid,
           message: args.message,

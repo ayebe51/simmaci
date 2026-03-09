@@ -161,6 +161,7 @@ export const recordBulk = mutation({
             // Schedule the WhatsApp action asynchronously so it doesn't block the mutation
             await ctx.scheduler.runAfter(0, api.sendWhatsApp.sendMessage, {
               gowaUrl: settings.gowaUrl,
+              deviceId: settings.gowaDeviceId || undefined,
               phone: student.nomorTelepon,
               message: message,
             });

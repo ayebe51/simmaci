@@ -148,13 +148,14 @@ export const recordBulk = mutation({
             .first();
 
           if (student && student.nomorTelepon) {
+            const schoolName = student.namaSekolah;
             let message = "";
             if (record.status === "Alpha") {
-              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami informasikan bahwa putra/putri Bapak/Ibu tidak hadir di kelas hari ini (${tanggalFormat}) *tanpa keterangan (Alpha)*.\n\nMohon konfirmasi ke pihak sekolah. Terima kasih. 🙏`;
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa putra/putri Bapak/Ibu tidak hadir di kelas hari ini (${tanggalFormat}) *tanpa keterangan (Alpha)*.\n\nMohon konfirmasi ke pihak sekolah. Terima kasih. 🙏`;
             } else if (record.status === "Sakit") {
-              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami menginformasikan bahwa ananda tercatat *Sakit* hari ini (${tanggalFormat}). Semoga lekas sembuh! 🙏`;
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa ananda tercatat *Sakit* hari ini (${tanggalFormat}). Semoga lekas sembuh! 🙏`;
             } else if (record.status === "Izin") {
-              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami menginformasikan bahwa ananda tercatat *Izin* hari ini (${tanggalFormat}). Terima kasih atas konfirmasinya. 🙏`;
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa ananda tercatat *Izin* hari ini (${tanggalFormat}). Terima kasih atas konfirmasinya. 🙏`;
             }
 
             // Schedule the WhatsApp action asynchronously so it doesn't block the mutation

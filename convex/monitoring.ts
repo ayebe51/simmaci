@@ -27,7 +27,7 @@ export const checkWaStatus = action({
 
       // If we got any response, the server is "up" enough to reach
       return { 
-        online: response.status === 200 || response.status === 404 || response.status === 405, 
+        online: true, 
         status: response.status 
       };
     } catch (error) {

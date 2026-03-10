@@ -47,6 +47,7 @@ import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 import QrScannerPage from "./features/attendance/QrScannerPage"
 import TeacherAttendancePage from "./features/attendance/TeacherAttendancePage"
 import StudentAttendancePage from "./features/attendance/StudentAttendancePage"
+import StudentAttendanceReportPage from "./features/attendance/StudentAttendanceReportPage"
 import SubjectsPage from "./features/attendance/SubjectsPage"
 import ClassesPage from "./features/attendance/ClassesPage"
 import LessonSchedulePage from "./features/attendance/LessonSchedulePage"
@@ -115,6 +116,7 @@ export default function App() {
                         <Route path="attendance/scanner" element={<QrScannerPage />} />
                         <Route path="attendance/teachers" element={<TeacherAttendancePage />} />
                         <Route path="attendance/students" element={<StudentAttendancePage />} />
+                        <Route path="attendance/report" element={<StudentAttendanceReportPage />} />
                         <Route path="attendance/subjects" element={<SubjectsPage />} />
                         <Route path="attendance/classes" element={<ClassesPage />} />
                         <Route path="attendance/schedule" element={<LessonSchedulePage />} />

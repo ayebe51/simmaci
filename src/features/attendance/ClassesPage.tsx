@@ -123,50 +123,61 @@ export default function ClassesPage() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {isEditing ? (
-                      <>
-                        <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
-                          <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Pilih Wali Kelas" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {teachers?.map((t: any) => (
-                              <SelectItem key={t._id} value={t._id}>{t.nama}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveWaliKelas(item.kelas)}
-                          disabled={saving}
-                          className="bg-emerald-600 hover:bg-emerald-700"
-                        >
-                          <Save className="h-3.5 w-3.5 mr-1" />
-                          Simpan
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => { setEditingKelas(null); setSelectedTeacher(""); }}
-                        >
-                          Batal
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingKelas(item.kelas);
-                          setSelectedTeacher(waliKelas?.waliKelasId || "");
-                        }}
-                      >
-                        <UserCheck className="h-3.5 w-3.5 mr-1" />
-                        {waliKelas?.waliKelasId ? "Ubah Wali" : "Set Wali Kelas"}
-                      </Button>
-                    )}
-                  </div>
+                    <div className="flex items-center gap-2">
+                      {isEditing ? (
+                        <>
+                          <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Pilih Wali Kelas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {teachers?.map((t: any) => (
+                                <SelectItem key={t._id} value={t._id}>{t.nama}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveWaliKelas(item.kelas)}
+                            disabled={saving}
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                          >
+                            <Save className="h-3.5 w-3.5 mr-1" />
+                            Simpan
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setEditingKelas(null); setSelectedTeacher(""); }}
+                          >
+                            Batal
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                            onClick={() => navigate(`/dashboard/attendance/report?className=${encodeURIComponent(item.kelas)}`)}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            Laporan
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingKelas(item.kelas);
+                              setSelectedTeacher(waliKelas?.waliKelasId || "");
+                            }}
+                          >
+                            <UserCheck className="h-3.5 w-3.5 mr-1" />
+                            {waliKelas?.waliKelasId ? "Ubah Wali" : "Set Wali Kelas"}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                 </div>
               );
             })}

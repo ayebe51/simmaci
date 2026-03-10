@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 
   // Sparkline Component
   const Sparkline = ({ data, color }: { data: any[], color: string }) => {
@@ -13,12 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
       </div>
     )
   }
-import { School, Users, FileText, CheckCircle, Clock, AlertOctagon } from "lucide-react"
+import { School, Users, FileText, CheckCircle, Clock, AlertOctagon, BarChart3 } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "../../../../convex/_generated/api"
 import { useNavigate } from "react-router-dom"
 import { DashboardCharts } from "./DashboardCharts"
-import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
+import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts'
 
 export default function DashboardOperator() {
   const navigate = useNavigate()
@@ -211,6 +212,90 @@ export default function DashboardOperator() {
                         </ResponsiveContainer>
                     ) : (
                         <div className="flex items-center justify-center h-full text-xs text-slate-300 italic">Memuat data trend...</div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+
+        {/* 📋 PROACTIVE ANALYTICS - NEW */}
+        <div className="grid gap-6 md:grid-cols-2">
+            {/* Top Absent Students */}
+            <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <AlertOctagon className="w-4 h-4 text-red-500" /> Top 5 Siswa Sering Tidak Hadir (Bulan Ini)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <div className="space-y-3">
+                        {(stats as any).attendance?.topAbsent?.length > 0 ? (
+                            (stats as any).attendance.topAbsent.map((s: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs">
+                                            {i + 1}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800">{s.name}</p>
+                                            <div className="flex gap-2 mt-0.5">
+                                                {Object.entries(s.types).map(([type, count]) => (
+                                                    <span key={type} className="text-[9px] uppercase font-bold text-slate-400">
+                                                        {type}: {count as number}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <Badge variant="outline" className="text-red-600 border-red-100 bg-red-50">
+                                            {s.count} Hari
+                                        </Badge>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-slate-400 text-sm py-4 italic">Belum ada data ketidakhadiran bulan ini.</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Subject Performance */}
+            <Card className="border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-50">
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-emerald-500" /> Performa Kehadiran Mapel (Terendah)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 h-[220px]">
+                    {(stats as any).attendance?.subjectStats?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={(stats as any).attendance.subjectStats} layout="vertical" margin={{ left: 10, right: 30, top: 0, bottom: 0 }}>
+                                <XAxis type="number" hide domain={[0, 100]} />
+                                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <Tooltip 
+                                    cursor={{ fill: 'transparent' }}
+                                    content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white p-2 border border-slate-100 shadow-lg rounded-lg text-xs">
+                                                    <p className="font-bold text-slate-800">{payload[0].payload.name}</p>
+                                                    <p className="text-emerald-600">{payload[0].value}% Hadir</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Bar dataKey="percentage" radius={[0, 4, 4, 0]} barSize={12}>
+                                    {(stats as any).attendance.subjectStats.map((entry: any, index: number) => (
+                                        <Cell key={`cell-${index}`} fill={entry.percentage < 70 ? '#ef4444' : '#10b981'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <p className="text-center text-slate-400 text-sm py-4 italic">Memuat data performa mapel...</p>
                     )}
                 </CardContent>
             </Card>

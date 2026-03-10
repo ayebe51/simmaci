@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { determineTeacherStatus } from "./utils";
+import { Id, Doc } from "./_generated/dataModel";
 
 // Get real-time dashboard statistics
 export const getStats = query({
@@ -430,9 +431,19 @@ export const getSchoolStats = query({
       debug: { role: user.role, unit: user.unit },
       attendance: await (async () => {
         const today = new Date().toISOString().split('T')[0];
-        const schoolId = user.schoolId;
         
-        if (!schoolId) return null;
+        // Fetch schoolId if not directly on user
+        let sId = user.schoolId;
+        if (!sId && user.unit) {
+            const school = await ctx.db
+                .query("schools")
+                .withIndex("by_nama", (q) => q.eq("nama", user.unit!))
+                .first();
+            sId = school?._id;
+        }
+
+        if (!sId) return null;
+        const schoolId = sId;
 
         // Today's stats
         const todayLogs = await ctx.db
@@ -441,39 +452,99 @@ export const getSchoolStats = query({
           .collect();
         
         const studentsPresent = new Set();
-        todayLogs.forEach(log => {
+        todayLogs.forEach((log: any) => {
           Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
             if (entry.status === "Hadir") studentsPresent.add(sid);
           });
         });
 
-        // 7-day trend
-        const trend = [];
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          const dateStr = d.toISOString().split('T')[0];
-          const label = d.toLocaleDateString('id-ID', { weekday: 'short' });
-          
-          const dayLogs = await ctx.db
-            .query("studentAttendanceLogs")
-            .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId).eq("tanggal", dateStr))
-            .collect();
-          
-          const presentCount = new Set();
-          dayLogs.forEach(log => {
-            Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
-              if (entry.status === "Hadir") presentCount.add(sid);
-            });
-          });
+        // 7-day trend (Parallelized)
+        const trendPromises = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const label = d.toLocaleDateString('id-ID', { weekday: 'short' });
+            
+            return ctx.db
+                .query("studentAttendanceLogs")
+                .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId).eq("tanggal", dateStr))
+                .collect()
+                .then(logs => {
+                    const presentCount = new Set();
+                    logs.forEach((log: any) => {
+                        Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
+                            if (entry.status === "Hadir") presentCount.add(sid);
+                        });
+                    });
+                    return { date: label, count: presentCount.size };
+                });
+        });
 
-          trend.push({ date: label, count: presentCount.size });
-        }
+        const trend = await Promise.all(trendPromises);
+
+        // Proactive Analytics
+        const [topAbsent, subjectStats] = await Promise.all([
+          // Top Absent Students
+          (async () => {
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            const logs = await ctx.db
+              .query("studentAttendanceLogs")
+              .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId).gt("tanggal", firstDayOfMonth))
+              .collect();
+            
+            const absentMap: Record<string, { name: string; count: number; types: Record<string, number> }> = {};
+            logs.forEach((log: any) => {
+               Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
+                  if (entry.status !== "Hadir") {
+                     if (!absentMap[sid]) absentMap[sid] = { name: entry.name || sid, count: 0, types: {} };
+                     absentMap[sid].count++;
+                     absentMap[sid].types[entry.status] = (absentMap[sid].types[entry.status] || 0) + 1;
+                  }
+               });
+            });
+
+            return Object.values(absentMap)
+               .sort((a, b) => b.count - a.count)
+               .slice(0, 5);
+          })(),
+          // Subject Performance
+          (async () => {
+             const allLogs = await ctx.db
+               .query("studentAttendanceLogs")
+               .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId))
+               .order("desc")
+               .take(100)
+               .collect();
+
+             const subjectMap: Record<string, { name: string; present: number; total: number }> = {};
+             allLogs.forEach((log: any) => {
+                const sId = String(log.subjectId);
+                if (!subjectMap[sId]) subjectMap[sId] = { name: "Loading...", present: 0, total: 0 };
+                
+                Object.values(log.logs || {}).forEach((entry: any) => {
+                   subjectMap[sId].total++;
+                   if (entry.status === "Hadir") subjectMap[sId].present++;
+                });
+             });
+
+             const results = await Promise.all(Object.entries(subjectMap).map(async ([id, stats]) => {
+                const sub = await ctx.db.get(id as Id<"subjects">);
+                return {
+                   name: (sub as Doc<"subjects">)?.nama || "Unknown",
+                   percentage: stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0
+                };
+             }));
+
+             return results.sort((a, b) => a.percentage - b.percentage).slice(0, 5);
+          })()
+        ]);
 
         return {
           todayPercentage: students > 0 ? Math.round((studentsPresent.size / students) * 100) : 0,
           todayCount: studentsPresent.size,
-          trend
+          trend,
+          topAbsent,
+          subjectStats
         };
       })()
     };

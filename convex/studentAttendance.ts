@@ -82,30 +82,35 @@ export const recordScan = mutation({
     }
 
     // 4. Trigger WhatsApp notification for Arrival (Feature 1)
-    const settings = await ctx.db
-      .query("attendanceSettings")
-      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
-      .first();
+    // ONLY if recording a NEW scan (or status changed to Hadir)
+    const isNewHadir = !existingLog || !existingLog.logs?.[args.studentId] || existingLog.logs[args.studentId].status !== "Hadir";
 
-    if (settings && settings.gowaUrl) {
-      const student = await ctx.db
-        .query("students")
-        .withIndex("by_nisn", (q) => q.eq("nisn", args.studentId))
+    if (isNewHadir) {
+      const settings = await ctx.db
+        .query("attendanceSettings")
+        .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
         .first();
 
-      if (student && student.nomorTelepon) {
-        const classInfo = await ctx.db.get(args.classId);
-        const className = classInfo?.nama || "Kelas";
-        const schoolName = student.namaSekolah || "Madrasah";
-        
-        const message = `Alhamdulillah, ananda *${student.nama}* (${className}) telah sampai di *${schoolName}* pada pukul *${currentTime}*. 🙏`;
+      if (settings && settings.gowaUrl) {
+        const student = await ctx.db
+          .query("students")
+          .withIndex("by_nisn", (q) => q.eq("nisn", args.studentId))
+          .first();
 
-        await ctx.scheduler.runAfter(0, api.sendWhatsApp.sendMessage, {
-          gowaUrl: settings.gowaUrl,
-          deviceId: settings.gowaDeviceId || undefined,
-          phone: student.nomorTelepon,
-          message: message,
-        });
+        if (student && student.nomorTelepon) {
+          const classInfo = await ctx.db.get(args.classId);
+          const className = classInfo?.nama || "Kelas";
+          const schoolName = student.namaSekolah || "Madrasah";
+          
+          const message = `Alhamdulillah, ananda *${student.nama}* (${className}) telah sampai di *${schoolName}* pada pukul *${currentTime}*. 🙏`;
+
+          await ctx.scheduler.runAfter(0, api.sendWhatsApp.sendMessage, {
+            gowaUrl: settings.gowaUrl,
+            deviceId: settings.gowaDeviceId || undefined,
+            phone: student.nomorTelepon,
+            message: message,
+          });
+        }
       }
     }
 

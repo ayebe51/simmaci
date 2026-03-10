@@ -65,53 +65,18 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
   return (
     <div className="space-y-6 mt-6">
         
-        {/* ROW 1: Status & Unit Kerja */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Unit Kerja - Horizontal Bar */}
-            {unitData.length > 0 && (
-                <Card className="col-span-4">
-                    <CardHeader>
-                    <CardTitle>Distribusi Guru per Unit Kerja</CardTitle>
-                    <CardDescription>5 Lembaga dengan jumlah guru terbanyak.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                            <BarChart data={unitData} layout="vertical" margin={{ left: 40, right: 20 }}>
-                                <XAxis type="number" hide />
-                                <YAxis 
-                                    dataKey="name" 
-                                    type="category" 
-                                    width={150} 
-                                    tick={{fontSize: 11, fill: '#64748b'}} 
-                                    axisLine={false} 
-                                    tickLine={false}
-                                />
-                                <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                                <Bar 
-                                    dataKey="jumlah" 
-                                    fill="#60a5fa" 
-                                    radius={[0, 4, 4, 0]} 
-                                    barSize={24}
-                                    background={{ fill: '#f1f5f9', radius: 4 }} 
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    </CardContent>
-                </Card>
-            )}
-            
-            {/* Status Kepegawaian - Donut */}
-            {statusData.length > 0 && (
-                <Card className={unitData.length > 0 ? "col-span-3" : "col-span-7"}>
-                    <CardHeader>
-                    <CardTitle>Status Kepegawaian</CardTitle>
-                    <CardDescription>Proporsi SDM berdasarkan status.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <div className="h-[300px] relative">
-                        <>
+        {/* ROW 1: Donut Charts (Side-by-side) */}
+        {(statusData.length > 0 || certData.length > 0) && (
+            <div className="grid gap-4 md:grid-cols-2">
+                {/* Status Kepegawaian */}
+                {statusData.length > 0 && (
+                    <Card className="shadow-sm border-slate-200">
+                        <CardHeader>
+                        <CardTitle>Status Kepegawaian</CardTitle>
+                        <CardDescription>Proporsi SDM berdasarkan status.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="h-[300px] relative">
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
@@ -141,30 +106,24 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
-                            {/* Center Label */}
                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
                                 <span className="text-3xl font-bold text-slate-700">{totalStatus}</span>
                                 <span className="block text-xs text-muted-foreground uppercase tracking-wider">TOTAL</span>
                             </div>
-                        </>
-                    </div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
+                        </div>
+                        </CardContent>
+                    </Card>
+                )}
 
-        {/* ROW 2: Certification & Kecamatan */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-             {/* Status Sertifikasi - Donut */}
-             {certData.length > 0 && (
-                <Card className={kecData.length > 0 ? "col-span-3" : "col-span-7"}>
-                    <CardHeader>
-                    <CardTitle>Status Sertifikasi</CardTitle>
-                    <CardDescription>Guru yang sudah vs belum sertifikasi.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <div className="h-[300px] relative">
-                        <>
+                {/* Status Sertifikasi */}
+                {certData.length > 0 && (
+                    <Card className="shadow-sm border-slate-200">
+                        <CardHeader>
+                        <CardTitle>Status Sertifikasi</CardTitle>
+                        <CardDescription>Guru yang sudah vs belum sertifikasi.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <div className="h-[300px] relative">
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
@@ -197,59 +156,91 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
-                            {/* Center Label */}
                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] text-center pointer-events-none">
                                 <span className="text-3xl font-bold text-slate-700">{totalCert}</span>
                                 <span className="block text-xs text-muted-foreground uppercase tracking-wider">GURU</span>
                             </div>
-                        </>
-                    </div>
-                    {/* Insight Text */}
-                    {uncertifiedPercent > 50 && (
-                        <div className="text-center mt-[-10px] pb-4 px-4 text-xs text-amber-600 font-medium bg-amber-50 rounded-md py-2 mx-8">
-                            ⚠️ Perhatian: {uncertifiedPercent}% guru belum tersertifikasi.
                         </div>
-                    )}
-                    </CardContent>
-                </Card>
-             )}
+                        {uncertifiedPercent > 50 && (
+                            <div className="text-center mt-[-10px] pb-4 px-4 text-xs text-amber-600 font-medium bg-amber-50 rounded-md py-2 mx-8">
+                                ⚠️ Perhatian: {uncertifiedPercent}% guru belum tersertifikasi.
+                            </div>
+                        )}
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        )}
 
-            {/* Kecamatan - Horizontal Bar */}
-            {kecData.length > 0 && (
-                <Card className="col-span-4">
-                    <CardHeader>
-                    <CardTitle>Sebaran per Kecamatan</CardTitle>
-                    <CardDescription>Konsentrasi guru di setiap wilayah.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                            <BarChart data={kecData} layout="vertical" margin={{ left: 0, right: 30 }}>
-                                <XAxis type="number" hide />
-                                <YAxis 
-                                    dataKey="name" 
-                                    type="category" 
-                                    width={100} 
-                                    tick={{fontSize: 11, fill: '#64748b'}} 
-                                    axisLine={false} 
-                                    tickLine={false}
-                                />
-                                <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
-                                <Bar 
-                                    dataKey="jumlah" 
-                                    fill="#facc15" 
-                                    radius={[0, 4, 4, 0]} 
-                                    barSize={20}
-                                    background={{ fill: '#fefce8', radius: 4 }}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
+        {/* ROW 2: Unit Kerja (Full Width) */}
+        {unitData.length > 0 && (
+            <Card className="shadow-sm border-slate-200">
+                <CardHeader>
+                <CardTitle>Distribusi Guru per Unit Kerja</CardTitle>
+                <CardDescription>5 Lembaga dengan jumlah guru terbanyak.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2">
+                <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <BarChart data={unitData} layout="vertical" margin={{ left: 40, right: 40 }}>
+                            <XAxis type="number" hide />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                width={200} 
+                                tick={{fontSize: 11, fill: '#64748b'}} 
+                                axisLine={false} 
+                                tickLine={false}
+                            />
+                            <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
+                            <Bar 
+                                dataKey="jumlah" 
+                                fill="#60a5fa" 
+                                radius={[0, 4, 4, 0]} 
+                                barSize={24}
+                                background={{ fill: '#f1f5f9', radius: 4 }} 
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                </CardContent>
+            </Card>
+        )}
 
+        {/* ROW 3: Kecamatan (Full Width) */}
+        {kecData.length > 0 && (
+            <Card className="shadow-sm border-slate-200">
+                <CardHeader>
+                <CardTitle>Sebaran per Kecamatan</CardTitle>
+                <CardDescription>Konsentrasi guru di setiap wilayah.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2">
+                <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <BarChart data={kecData} layout="vertical" margin={{ left: 20, right: 40 }}>
+                            <XAxis type="number" hide />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                width={120} 
+                                tick={{fontSize: 11, fill: '#64748b'}} 
+                                axisLine={false} 
+                                tickLine={false}
+                            />
+                            <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
+                            <Bar 
+                                dataKey="jumlah" 
+                                fill="#facc15" 
+                                radius={[0, 4, 4, 0]} 
+                                barSize={20}
+                                background={{ fill: '#fefce8', radius: 4 }}
+                            />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                </CardContent>
+            </Card>
+        )}
     </div>
   )
 }

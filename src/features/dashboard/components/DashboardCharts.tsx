@@ -68,14 +68,14 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         {/* ROW 1: Status & Unit Kerja */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             {/* Unit Kerja - Horizontal Bar */}
-            <Card className="col-span-4">
-                <CardHeader>
-                <CardTitle>Distribusi Guru per Unit Kerja</CardTitle>
-                <CardDescription>5 Lembaga dengan jumlah guru terbanyak.</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                <div className="h-[300px] w-full">
-                    {unitData.length > 0 ? (
+            {unitData.length > 0 && (
+                <Card className="col-span-4">
+                    <CardHeader>
+                    <CardTitle>Distribusi Guru per Unit Kerja</CardTitle>
+                    <CardDescription>5 Lembaga dengan jumlah guru terbanyak.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                    <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart data={unitData} layout="vertical" margin={{ left: 40, right: 20 }}>
                                 <XAxis type="number" hide />
@@ -97,20 +97,20 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                 />
                             </BarChart>
                         </ResponsiveContainer>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground">No Data</div>}
-                </div>
-                </CardContent>
-            </Card>
+                    </div>
+                    </CardContent>
+                </Card>
+            )}
             
             {/* Status Kepegawaian - Donut */}
-            <Card className="col-span-3">
-                <CardHeader>
-                <CardTitle>Status Kepegawaian</CardTitle>
-                <CardDescription>Proporsi SDM berdasarkan status.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                <div className="h-[300px] relative">
-                    {statusData.length > 0 ? (
+            {statusData.length > 0 && (
+                <Card className={unitData.length > 0 ? "col-span-3" : "col-span-7"}>
+                    <CardHeader>
+                    <CardTitle>Status Kepegawaian</CardTitle>
+                    <CardDescription>Proporsi SDM berdasarkan status.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <div className="h-[300px] relative">
                         <>
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
@@ -147,23 +147,23 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                 <span className="block text-xs text-muted-foreground uppercase tracking-wider">TOTAL</span>
                             </div>
                         </>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground">No Data</div>}
-                </div>
-                </CardContent>
-            </Card>
+                    </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
 
         {/* ROW 2: Certification & Kecamatan */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
              {/* Status Sertifikasi - Donut */}
-             <Card className="col-span-3">
-                <CardHeader>
-                <CardTitle>Status Sertifikasi</CardTitle>
-                <CardDescription>Guru yang sudah vs belum sertifikasi.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                <div className="h-[300px] relative">
-                    {certData.length > 0 ? (
+             {certData.length > 0 && (
+                <Card className={kecData.length > 0 ? "col-span-3" : "col-span-7"}>
+                    <CardHeader>
+                    <CardTitle>Status Sertifikasi</CardTitle>
+                    <CardDescription>Guru yang sudah vs belum sertifikasi.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <div className="h-[300px] relative">
                         <>
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
@@ -203,26 +203,26 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                 <span className="block text-xs text-muted-foreground uppercase tracking-wider">GURU</span>
                             </div>
                         </>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground">No Data</div>}
-                </div>
-                {/* Insight Text */}
-                {uncertifiedPercent > 50 && (
-                    <div className="text-center mt-[-10px] pb-4 px-4 text-xs text-amber-600 font-medium bg-amber-50 rounded-md py-2 mx-8">
-                        ⚠️ Perhatian: {uncertifiedPercent}% guru belum tersertifikasi.
                     </div>
-                )}
-                </CardContent>
-            </Card>
+                    {/* Insight Text */}
+                    {uncertifiedPercent > 50 && (
+                        <div className="text-center mt-[-10px] pb-4 px-4 text-xs text-amber-600 font-medium bg-amber-50 rounded-md py-2 mx-8">
+                            ⚠️ Perhatian: {uncertifiedPercent}% guru belum tersertifikasi.
+                        </div>
+                    )}
+                    </CardContent>
+                </Card>
+             )}
 
             {/* Kecamatan - Horizontal Bar */}
-            <Card className="col-span-4">
-                <CardHeader>
-                <CardTitle>Sebaran per Kecamatan</CardTitle>
-                <CardDescription>Konsentrasi guru di setiap wilayah.</CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                <div className="h-[300px]">
-                    {kecData.length > 0 ? (
+            {kecData.length > 0 && (
+                <Card className="col-span-4">
+                    <CardHeader>
+                    <CardTitle>Sebaran per Kecamatan</CardTitle>
+                    <CardDescription>Konsentrasi guru di setiap wilayah.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                    <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <BarChart data={kecData} layout="vertical" margin={{ left: 0, right: 30 }}>
                                 <XAxis type="number" hide />
@@ -244,10 +244,10 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                                 />
                             </BarChart>
                         </ResponsiveContainer>
-                    ) : <div className="flex items-center justify-center h-full text-muted-foreground">No Data</div>}
-                </div>
-                </CardContent>
-            </Card>
+                    </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
 
     </div>

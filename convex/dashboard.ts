@@ -503,7 +503,26 @@ export const getSchoolStats = query({
                });
             });
 
-            return Object.values(absentMap)
+            // Fetch student names for resolution
+            const studentNisns = Object.keys(absentMap);
+            const resolvedNames: Record<string, string> = {};
+            
+            // Collect all students for this school to build a name map
+            const allSchoolStudents = await ctx.db
+              .query("students")
+              .withIndex("by_school", (q) => q.eq("namaSekolah", schoolName))
+              .collect();
+            
+            allSchoolStudents.forEach(s => {
+              if (s.nisn) resolvedNames[String(s.nisn)] = s.nama;
+              resolvedNames[s._id] = s.nama;
+            });
+
+            return Object.entries(absentMap)
+               .map(([sid, stats]) => ({
+                 ...stats,
+                 name: resolvedNames[sid] || sid
+               }))
                .sort((a, b) => b.count - a.count)
                .slice(0, 5);
           })(),

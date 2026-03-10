@@ -377,10 +377,12 @@ export const getMonthlyClassReport = query({
             .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
             .collect();
 
-        const students = allStudents.filter(s => 
-            String(s.kelas) === String(classInfo.nama) && 
-            (s as any).status !== "Lulus"
-        );
+        // Robust matching for class names
+        const classTarget = String(classInfo.nama).trim().toLowerCase();
+        const students = allStudents.filter(s => {
+            const sKelas = String(s.kelas || "").trim().toLowerCase();
+            return sKelas === classTarget && (s as any).status !== "Lulus";
+        });
 
         // Map NISN to student _id for lookup from logs
         const nisnToId: Record<string, string> = {};

@@ -356,3 +356,51 @@ export const listBySchoolDate = query({
   },
 });
 
+// Get detailed monthly report for a class and subject (Matrix format)
+export const getMonthlyClassReport = query({
+  args: {
+    classId: v.id("classes"),
+    subjectId: v.id("subjects"),
+    bulan: v.string(), // "2026-03"
+  },
+  handler: async (ctx, args) => {
+    // 1. Get all students in this class
+    const classInfo = await ctx.db.get(args.classId);
+    if (!classInfo) return { error: "Kelas tidak ditemukan" };
+
+    const students = await ctx.db
+      .query("students")
+      .withIndex("by_schoolId", (q) => q.eq("schoolId", classInfo.schoolId))
+      .collect()
+      .then(res => res.filter(s => s.kelas === classInfo.nama && (s as any).isActive !== false));
+
+    // 2. Fetch all logs for this class/subject in this month
+    const allLogs = await ctx.db
+      .query("studentAttendanceLogs")
+      .withIndex("by_class_subject_date", (q) =>
+        q.eq("classId", args.classId).eq("subjectId", args.subjectId)
+      )
+      .collect();
+
+    const monthlyLogs = allLogs.filter(l => l.tanggal.startsWith(args.bulan));
+
+    // 3. Build a map of [studentId][date] = status
+    const attendanceMap: Record<string, Record<string, string>> = {};
+    monthlyLogs.forEach(log => {
+      Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
+        if (!attendanceMap[sid]) attendanceMap[sid] = {};
+        attendanceMap[sid][log.tanggal] = entry.status;
+      });
+    });
+
+    return {
+      students: students.map(s => ({
+        id: s._id,
+        nisn: s.nisn,
+        nama: s.nama,
+      })),
+      attendance: attendanceMap,
+      className: classInfo.nama,
+    };
+  },
+});

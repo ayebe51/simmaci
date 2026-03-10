@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { School, Users, UserCheck, Save, RefreshCw } from "lucide-react";
+import { School, Users, UserCheck, Save, RefreshCw, FileText } from "lucide-react";
 import { useEffect } from "react";
 
 export default function ClassesPage() {

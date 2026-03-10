@@ -364,45 +364,69 @@ export const getMonthlyClassReport = query({
     bulan: v.string(), // "2026-03"
   },
   handler: async (ctx, args) => {
-    // 1. Get all students in this class
-    const classInfo = await ctx.db.get(args.classId);
-    if (!classInfo) return { error: "Kelas tidak ditemukan" };
+    try {
+        // 1. Get all students in this class
+        const classInfo = await ctx.db.get(args.classId);
+        if (!classInfo) return { error: "Kelas tidak ditemukan" };
 
-    const school = await ctx.db.get(classInfo.schoolId);
-    if (!school) return { error: "Sekolah tidak ditemukan" };
+        const school = await ctx.db.get(classInfo.schoolId);
+        if (!school) return { error: "Sekolah tidak ditemukan" };
 
-    const students = await ctx.db
-      .query("students")
-      .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
-      .collect()
-      .then(res => res.filter(s => s.kelas === classInfo.nama && (s as any).status !== "Lulus"));
+        const allStudents = await ctx.db
+            .query("students")
+            .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
+            .collect();
 
-    // 2. Fetch all logs for this class/subject
-    const monthlyLogs = await ctx.db
-      .query("studentAttendanceLogs")
-      .withIndex("by_class_subject_date", (q) => 
-        q.eq("classId", args.classId).eq("subjectId", args.subjectId)
-      )
-      .collect()
-      .then(logs => logs.filter(l => l.tanggal.startsWith(args.bulan)));
+        const students = allStudents.filter(s => 
+            String(s.kelas) === String(classInfo.nama) && 
+            (s as any).status !== "Lulus"
+        );
 
-    // 3. Build a map of [studentId][date] = status
-    const attendanceMap: Record<string, Record<string, string>> = {};
-    monthlyLogs.forEach(log => {
-      Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
-        if (!attendanceMap[sid]) attendanceMap[sid] = {};
-        attendanceMap[sid][log.tanggal] = entry.status;
-      });
-    });
+        // Map NISN to student _id for lookup from logs
+        const nisnToId: Record<string, string> = {};
+        students.forEach(s => {
+            if (s.nisn) nisnToId[String(s.nisn)] = s._id;
+        });
 
-    return {
-      students: students.map(s => ({
-        id: s._id,
-        nisn: s.nisn,
-        nama: s.nama,
-      })),
-      attendance: attendanceMap,
-      className: classInfo.nama,
-    };
+        // 2. Fetch all logs for this class/subject in this month
+        const monthlyLogs = await ctx.db
+            .query("studentAttendanceLogs")
+            .withIndex("by_class_subject_date", (q) => 
+                q.eq("classId", args.classId).eq("subjectId", args.subjectId)
+            )
+            .collect()
+            .then(logs => logs.filter(l => l.tanggal.startsWith(args.bulan)));
+
+        // 3. Build a map of [studentId][date] = status
+        // We use the student's _id as the key in the map
+        const attendanceMap: Record<string, Record<string, string>> = {};
+        
+        monthlyLogs.forEach(log => {
+            if (!log.logs || typeof log.logs !== 'object') return;
+            
+            Object.entries(log.logs).forEach(([sid, entry]: [string, any]) => {
+                // Determine the correct student target (NISN or _id)
+                const studentId = nisnToId[sid] || sid;
+                
+                if (!attendanceMap[studentId]) attendanceMap[studentId] = {};
+                if (entry && typeof entry === 'object' && entry.status) {
+                    attendanceMap[studentId][log.tanggal] = entry.status;
+                }
+            });
+        });
+
+        return {
+            students: students.map(s => ({
+                id: s._id,
+                nisn: s.nisn,
+                nama: s.nama,
+            })),
+            attendance: attendanceMap,
+            className: classInfo.nama,
+        };
+    } catch (e: any) {
+        console.error("Error in getMonthlyClassReport:", e);
+        return { error: `Internal Server Error: ${e.message || 'Unknown'}` };
+    }
   },
 });

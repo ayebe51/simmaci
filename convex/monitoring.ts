@@ -14,25 +14,29 @@ export const checkWaStatus = action({
       }
       
       // Ping the base URL
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-
-      const response = await fetch(url, { 
+      // Try to fetch with a timeout and common headers
+      const response = await fetch(url, {
         method: "GET",
-        signal: controller.signal,
-        headers: { "User-Agent": "Convex-Health-Check" }
+        headers: {
+          "User-Agent": "Convex-Health-Check/1.0",
+        },
+        signal: AbortSignal.timeout(7000), // Slightly longer timeout
       });
-      
-      clearTimeout(timeoutId);
 
-      // If we got any response, the server is "up" enough to reach
+      // If we got ANY response (200, 404, 405, 403), it means the server is REACHABLE
+      // Especially if user says messages are sending, even a 404 on the root "/" 
+      // means the tunnel and server are active.
       return { 
         online: true, 
-        status: response.status 
+        status: response.status,
+        statusText: response.statusText
       };
-    } catch (error) {
-      console.log("Health check failed:", error);
-      return { online: false, error: "Connection failed" };
+    } catch (error: any) {
+      console.error("WA Health Check Detail:", error);
+      return { 
+        online: false, 
+        error: error.message || "Connection Failed" 
+      };
     }
   },
 });

@@ -7,36 +7,50 @@ export const checkWaStatus = action({
   },
   handler: async (ctx, args) => {
     try {
-      // Clean URL: ensure it starts with http and doesn't have double slashes
-      let url = args.gowaUrl;
+      // Clean URL: ensure it starts with http
+      let url = args.gowaUrl.trim();
       if (!url.startsWith("http")) {
         url = `https://${url}`;
       }
-      
-      // Ping the base URL
-      // Try to fetch with a timeout and common headers
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "User-Agent": "Convex-Health-Check/1.0",
-        },
-        signal: AbortSignal.timeout(7000), // Slightly longer timeout
-      });
+      // Remove trailing slash
+      url = url.replace(/\/+$/, "");
 
-      // If we got ANY response (200, 404, 405, 403), it means the server is REACHABLE
-      // Especially if user says messages are sending, even a 404 on the root "/" 
-      // means the tunnel and server are active.
-      return { 
-        online: true, 
-        status: response.status,
-        statusText: response.statusText
-      };
-    } catch (error: any) {
-      console.error("WA Health Check Detail:", error);
+      const tryEndpoints = [url, `${url}/send/message`];
+      let lastError = null;
+
+      for (const target of tryEndpoints) {
+        try {
+          // Use HEAD first if possible, then GET
+          const response = await fetch(target, {
+            method: "HEAD",
+            headers: { "User-Agent": "Convex-Health-Check/1.0" },
+            signal: AbortSignal.timeout(4000),
+          }).catch(() => fetch(target, {
+             method: "GET",
+             headers: { "User-Agent": "Convex-Health-Check/1.0" },
+             signal: AbortSignal.timeout(4000),
+          }));
+
+          // If we got ANY response, even 404/405, it's alive!
+          if (response) {
+            return { 
+              online: true, 
+              status: response.status,
+              endpoint: target
+            };
+          }
+        } catch (e: any) {
+          lastError = e;
+          continue;
+        }
+      }
+
       return { 
         online: false, 
-        error: error.message || "Connection Failed" 
+        error: lastError?.message || "All endpoints unreachable" 
       };
+    } catch (error: any) {
+      return { online: false, error: error.message };
     }
   },
 });

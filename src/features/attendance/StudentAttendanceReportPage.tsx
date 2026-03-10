@@ -81,7 +81,7 @@ export default function StudentAttendanceReportPage() {
         Nama: s.nama,
       };
       daysInMonth.forEach(d => {
-        row[d.day] = reportData.attendance[s.nisn]?.[d.fullDate] ? statusShort[reportData.attendance[s.nisn][d.fullDate]] : "-";
+        row[d.day] = reportData.attendance[s.id]?.[d.fullDate] ? statusShort[reportData.attendance[s.id][d.fullDate]] : "-";
       });
       return row;
     });
@@ -204,7 +204,7 @@ export default function StudentAttendanceReportPage() {
                             <p className="text-[10px] text-slate-400 font-mono mt-0.5">{s.nisn}</p>
                         </TableCell>
                         {daysInMonth.map(d => {
-                          const status = reportData.attendance[s.nisn]?.[d.fullDate];
+                          const status = reportData.attendance[s.id]?.[d.fullDate];
                           if (status === "Hadir") hCount++;
                           else if (status === "Sakit") sCount++;
                           else if (status === "Izin") iCount++;

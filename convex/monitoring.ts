@@ -15,41 +15,33 @@ export const checkWaStatus = action({
       // Remove trailing slash
       url = url.replace(/\/+$/, "");
 
-      const tryEndpoints = [url, `${url}/send/message`];
-      let lastError = null;
-
-      for (const target of tryEndpoints) {
-        try {
-          // Use HEAD first if possible, then GET
-          const response = await fetch(target, {
-            method: "HEAD",
-            headers: { "User-Agent": "Convex-Health-Check/1.0" },
-            signal: AbortSignal.timeout(4000),
-          }).catch(() => fetch(target, {
-             method: "GET",
-             headers: { "User-Agent": "Convex-Health-Check/1.0" },
-             signal: AbortSignal.timeout(4000),
-          }));
-
-          // If we got ANY response, even 404/405, it's alive!
-          if (response) {
-            return { 
-              online: true, 
-              status: response.status,
-              endpoint: target
-            };
-          }
-        } catch (e: any) {
-          lastError = e;
-          continue;
-        }
+      const functionalTarget = `${url}/send/message`;
+      
+      // Try functional endpoint with POST (most reliable if they can send messages)
+      try {
+        const response = await fetch(functionalTarget, {
+          method: "POST",
+          headers: { 
+            "User-Agent": "Convex-Health-Check/1.0",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ping: true }),
+          signal: AbortSignal.timeout(12000), // Significant timeout for Cloudflare tunnels
+        });
+        
+        // If we got ANY response, it's alive
+        return { online: true, status: response.status, method: "POST" };
+      } catch (postError) {
+        // Fallback to simple HEAD on root if POST fails
+        const rootResponse = await fetch(url, {
+          method: "HEAD",
+          headers: { "User-Agent": "Convex-Health-Check/1.0" },
+          signal: AbortSignal.timeout(5000),
+        });
+        return { online: true, status: rootResponse.status, method: "HEAD" };
       }
-
-      return { 
-        online: false, 
-        error: lastError?.message || "All endpoints unreachable" 
-      };
     } catch (error: any) {
+      console.error("WA Health Check Final Failed:", error);
       return { online: false, error: error.message };
     }
   },

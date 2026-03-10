@@ -80,6 +80,7 @@ export default defineSchema({
   })
     .index("by_nisn", ["nisn"])
     .index("by_school", ["namaSekolah"])
+    .index("by_npsn", ["npsn"])
     .index("by_kecamatan", ["kecamatan"])
     .index("by_status", ["status"])
     .searchIndex("search_students", {
@@ -107,6 +108,7 @@ export default defineSchema({
   })
     .index("by_nsm", ["nsm"])
     .index("by_nama", ["nama"])
+    .index("by_npsn", ["npsn"])
     .index("by_kecamatan", ["kecamatan"])
     .searchIndex("search_schools", {
       searchField: "nama",

@@ -504,14 +504,29 @@ export const getSchoolStats = query({
             });
 
             // Fetch student names for resolution
-            const studentNisns = Object.keys(absentMap);
             const resolvedNames: Record<string, string> = {};
             
+            // Try to find the school record to get NPSN for better matching
+            const schoolRecord = await ctx.db
+                .query("schools")
+                .withIndex("by_nama", (q) => q.eq("nama", schoolName))
+                .first();
+
             // Collect all students for this school to build a name map
-            const allSchoolStudents = await ctx.db
-              .query("students")
-              .withIndex("by_school", (q) => q.eq("namaSekolah", schoolName))
-              .collect();
+            let allSchoolStudents: any[] = [];
+            if (schoolRecord?.npsn) {
+                allSchoolStudents = await ctx.db
+                    .query("students")
+                    .withIndex("by_npsn", (q) => q.eq("npsn", schoolRecord.npsn))
+                    .collect();
+            }
+            
+            if (allSchoolStudents.length === 0) {
+                allSchoolStudents = await ctx.db
+                    .query("students")
+                    .withIndex("by_school", (q) => q.eq("namaSekolah", schoolName))
+                    .collect();
+            }
             
             allSchoolStudents.forEach(s => {
               if (s.nisn) resolvedNames[String(s.nisn)] = s.nama;

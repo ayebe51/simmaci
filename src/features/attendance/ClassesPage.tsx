@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -11,6 +12,7 @@ import { School, Users, UserCheck, Save, RefreshCw, FileText } from "lucide-reac
 import { useEffect } from "react";
 
 export default function ClassesPage() {
+  const navigate = useNavigate();
   const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : null;
   const schoolId = user?.schoolId as Id<"schools"> | undefined;

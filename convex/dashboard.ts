@@ -427,7 +427,55 @@ export const getSchoolStats = query({
             details: String(l.details || "-"),
             timestamp: Number(l.timestamp || l._creationTime),
         }))),
-      debug: { role: user.role, unit: user.unit }
+      debug: { role: user.role, unit: user.unit },
+      attendance: await (async () => {
+        const today = new Date().toISOString().split('T')[0];
+        const schoolId = user.schoolId;
+        
+        if (!schoolId) return null;
+
+        // Today's stats
+        const todayLogs = await ctx.db
+          .query("studentAttendanceLogs")
+          .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId).eq("tanggal", today))
+          .collect();
+        
+        const studentsPresent = new Set();
+        todayLogs.forEach(log => {
+          Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
+            if (entry.status === "Hadir") studentsPresent.add(sid);
+          });
+        });
+
+        // 7-day trend
+        const trend = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split('T')[0];
+          const label = d.toLocaleDateString('id-ID', { weekday: 'short' });
+          
+          const dayLogs = await ctx.db
+            .query("studentAttendanceLogs")
+            .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId).eq("tanggal", dateStr))
+            .collect();
+          
+          const presentCount = new Set();
+          dayLogs.forEach(log => {
+            Object.entries(log.logs || {}).forEach(([sid, entry]: [string, any]) => {
+              if (entry.status === "Hadir") presentCount.add(sid);
+            });
+          });
+
+          trend.push({ date: label, count: presentCount.size });
+        }
+
+        return {
+          todayPercentage: students > 0 ? Math.round((studentsPresent.size / students) * 100) : 0,
+          todayCount: studentsPresent.size,
+          trend
+        };
+      })()
     };
   }
 });

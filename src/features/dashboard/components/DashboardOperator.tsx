@@ -152,6 +152,70 @@ export default function DashboardOperator() {
           </Card>
         </div>
 
+        {/* 📊 ATTENDANCE SECTION - NEW */}
+        <div className="grid gap-6 md:grid-cols-3">
+            {/* Today's Attendance % */}
+            <Card className="md:col-span-1 border-none shadow-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white overflow-hidden relative rounded-2xl">
+                <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[120%] bg-white/20 blur-3xl rounded-full pointer-events-none mix-blend-overlay" />
+                <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full min-h-[160px]">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-emerald-50/80 text-sm font-medium">Kehadiran Hari Ini</p>
+                            <h3 className="text-5xl font-black mt-1 tracking-tighter">{(stats as any).attendance?.todayPercentage || 0}%</h3>
+                        </div>
+                        <div className="p-2.5 bg-white/20 backdrop-blur-md rounded-xl">
+                            <CheckCircle className="w-6 h-6" />
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between">
+                        <span className="text-xs bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-white/20">
+                            {(stats as any).attendance?.todayCount || 0} Siswa Hadir
+                        </span>
+                        <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Attendance Trend Chart */}
+            <Card className="md:col-span-2 border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm md:text-base font-bold flex items-center gap-2">
+                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+                        Trend Kehadiran (7 Hari Terakhir)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 h-[100px] w-full mt-2">
+                    {(stats as any).attendance?.trend ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={(stats as any).attendance.trend} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorAttend" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <Tooltip 
+                                    contentStyle={{ fontSize: '10px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    cursor={{ stroke: '#10b981', strokeWidth: 1 }}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="count" 
+                                    stroke="#10b981" 
+                                    strokeWidth={3}
+                                    fillOpacity={1} 
+                                    fill="url(#colorAttend)" 
+                                />
+                                <XAxis dataKey="date" hide />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-xs text-slate-300 italic">Memuat data trend...</div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+
         {/* CHARTS SECTION */}
         <DashboardCharts data={{
             status: stats.status || [],

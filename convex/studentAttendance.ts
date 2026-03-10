@@ -392,7 +392,7 @@ export const getMonthlyClassReport = query({
         const classTarget = String(classInfo.nama).trim().toLowerCase();
         const students = allStudents.filter(s => {
             const sKelas = String(s.kelas || "").trim().toLowerCase();
-            return sKelas === classTarget && (s as any).status !== "Lulus";
+            return sKelas === classTarget;
         });
 
         // Map NISN to student _id for lookup from logs
@@ -401,29 +401,37 @@ export const getMonthlyClassReport = query({
             if (s.nisn) nisnToId[String(s.nisn)] = s._id;
         });
 
-        // 2. Fetch all logs for this class/subject in this month
+        // Map student _id to an object with their info and an empty attendance record
+        const studentAttendanceMap: Record<string, Record<string, string>> = {};
+        students.forEach(s => {
+            studentAttendanceMap[s._id] = {};
+        });
+
+        const [tahun, bulan] = args.bulan.split('-').map(Number);
+        const startDate = `${tahun}-${String(bulan).padStart(2, '0')}-01`;
+        const endDate = `${tahun}-${String(bulan).padStart(2, '0')}-31`; // Max days in month, will be filtered by actual logs
+
+        // Map logs to student/day
         const monthlyLogs = await ctx.db
             .query("studentAttendanceLogs")
             .withIndex("by_class_subject_date", (q) => 
-                q.eq("classId", args.classId).eq("subjectId", args.subjectId)
+                q.eq("classId", args.classId)
+                 .eq("subjectId", args.subjectId)
+                 .gte("tanggal", startDate)
+                 .lte("tanggal", endDate)
             )
-            .collect()
-            .then(logs => logs.filter(l => l.tanggal.startsWith(args.bulan)));
+            .collect();
 
-        // 3. Build a map of [studentId][date] = status
-        // We use the student's _id as the key in the map
-        const attendanceMap: Record<string, Record<string, string>> = {};
-        
         monthlyLogs.forEach(log => {
+            const dateStr = log.tanggal; // Match frontend expectation
             if (!log.logs || typeof log.logs !== 'object') return;
-            
             Object.entries(log.logs).forEach(([sid, entry]: [string, any]) => {
                 // Determine the correct student target (NISN or _id)
                 const studentId = nisnToId[sid] || sid;
-                
-                if (!attendanceMap[studentId]) attendanceMap[studentId] = {};
-                if (entry && typeof entry === 'object' && entry.status) {
-                    attendanceMap[studentId][log.tanggal] = entry.status;
+                if (studentAttendanceMap[studentId]) {
+                    if (entry && typeof entry === 'object' && entry.status) {
+                        studentAttendanceMap[studentId][dateStr] = entry.status;
+                    }
                 }
             });
         });
@@ -434,7 +442,7 @@ export const getMonthlyClassReport = query({
                 nisn: s.nisn,
                 nama: s.nama,
             })),
-            attendance: attendanceMap,
+            attendance: studentAttendanceMap,
             className: classInfo.nama,
         };
     } catch (e: any) {

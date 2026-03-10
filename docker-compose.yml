@@ -1,4 +1,3 @@
-version: "3"
 services:
   gowa:
     image: aldinokemal2104/go-whatsapp-web-multidevice:latest
@@ -9,4 +8,12 @@ services:
       - APP_PORT=3000
     volumes:
       - ./gowa_data:/app/data
+    restart: unless-stopped
+
+  localtunnel:
+    image: node:18-alpine
+    container_name: gowa_localtunnel
+    command: sh -c "npx -y localtunnel --port 3000 --local-host gowa_whatsapp --subdomain simmaci-pusat-wa"
+    depends_on:
+      - gowa
     restart: unless-stopped

@@ -404,6 +404,20 @@ export default defineSchema({
     .index("by_student_date", ["studentId", "tanggal"])
     .index("by_class_subject_date", ["classId", "subjectId", "tanggal"]),
 
+  // Log Absensi Agregat (Hemat Baris)
+  studentAttendanceLogs: defineTable({
+    schoolId: v.id("schools"),
+    classId: v.id("classes"),
+    subjectId: v.id("subjects"),
+    tanggal: v.string(),
+    jamKe: v.optional(v.number()),
+    // logs: Map studentId -> { status, jam, scannedBy, recordedBy, keterangan, updatedAt }
+    logs: v.any(), 
+    updatedAt: v.number(),
+  })
+    .index("by_school_date", ["schoolId", "tanggal"])
+    .index("by_class_subject_date", ["classId", "subjectId", "tanggal"]),
+
   // Pengaturan Absensi Per Sekolah
   attendanceSettings: defineTable({
     schoolId: v.id("schools"),

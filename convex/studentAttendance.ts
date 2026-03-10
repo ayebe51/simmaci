@@ -16,7 +16,7 @@ export const recordScan = mutation({
     kelasNama: v.optional(v.string()), // for class validation
   },
   handler: async (ctx, args) => {
-    // Validate student belongs to the selected class (if kelasNama provided)
+    // 1. Validate student belongs to the selected class (if kelasNama provided)
     if (args.kelasNama) {
       const student = await ctx.db
         .query("students")
@@ -35,38 +35,81 @@ export const recordScan = mutation({
       }
     }
 
-    // Anti-duplikasi: check if student already has record for this subject today
-    const existing = await ctx.db
-      .query("studentAttendance")
+    // 2. Fetch or Create Log for this session
+    const existingLog = await ctx.db
+      .query("studentAttendanceLogs")
       .withIndex("by_class_subject_date", (q) =>
         q
           .eq("classId", args.classId)
           .eq("subjectId", args.subjectId)
           .eq("tanggal", args.tanggal)
       )
-      .collect();
+      .first();
 
-    const duplicate = existing.find((r) => r.studentId === args.studentId);
-    if (duplicate) {
+    const now = Date.now();
+    const currentTime = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const logs = existingLog ? { ...(existingLog.logs || {}) } : {};
+
+    // 3. Update specific student entry in logs object
+    const studentEntry = logs[args.studentId];
+    if (studentEntry && studentEntry.status === "Hadir") {
       return { success: false, message: "Sudah tercatat hadir untuk mapel ini hari ini" };
     }
 
-    const now = Date.now();
-    const id = await ctx.db.insert("studentAttendance", {
-      studentId: args.studentId,
-      schoolId: args.schoolId,
-      classId: args.classId,
-      subjectId: args.subjectId,
-      tanggal: args.tanggal,
-      jamKe: args.jamKe,
+    logs[args.studentId] = {
       status: "Hadir",
-      recordedByTeacherId: args.recordedByTeacherId,
+      jam: currentTime,
       scannedBy: args.scannedBy,
-      createdAt: now,
+      recordedByTeacherId: args.recordedByTeacherId,
       updatedAt: now,
-    });
+    };
 
-    return { success: true, message: "Hadir", id };
+    if (existingLog) {
+      await ctx.db.patch(existingLog._id, {
+        logs,
+        updatedAt: now,
+      });
+    } else {
+      await ctx.db.insert("studentAttendanceLogs", {
+        schoolId: args.schoolId,
+        classId: args.classId,
+        subjectId: args.subjectId,
+        tanggal: args.tanggal,
+        jamKe: args.jamKe,
+        logs,
+        updatedAt: now,
+      });
+    }
+
+    // 4. Trigger WhatsApp notification for Arrival (Feature 1)
+    const settings = await ctx.db
+      .query("attendanceSettings")
+      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
+      .first();
+
+    if (settings && settings.gowaUrl) {
+      const student = await ctx.db
+        .query("students")
+        .withIndex("by_nisn", (q) => q.eq("nisn", args.studentId))
+        .first();
+
+      if (student && student.nomorTelepon) {
+        const classInfo = await ctx.db.get(args.classId);
+        const className = classInfo?.nama || "Kelas";
+        const schoolName = student.namaSekolah || "Madrasah";
+        
+        const message = `Alhamdulillah, ananda *${student.nama}* (${className}) telah sampai di *${schoolName}* pada pukul *${currentTime}*. 🙏`;
+
+        await ctx.scheduler.runAfter(0, api.sendWhatsApp.sendMessage, {
+          gowaUrl: settings.gowaUrl,
+          deviceId: settings.gowaDeviceId || undefined,
+          phone: student.nomorTelepon,
+          message: message,
+        });
+      }
+    }
+
+    return { success: true, message: "Hadir" };
   },
 });
 
@@ -90,46 +133,55 @@ export const recordBulk = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    // Delete existing records for this session to allow re-submit
-    const existing = await ctx.db
-      .query("studentAttendance")
+    // 1. Get or Create Log
+    const existingLog = await ctx.db
+      .query("studentAttendanceLogs")
       .withIndex("by_class_subject_date", (q) =>
         q
           .eq("classId", args.classId)
           .eq("subjectId", args.subjectId)
           .eq("tanggal", args.tanggal)
       )
-      .collect();
+      .first();
 
-    for (const record of existing) {
-      await ctx.db.delete(record._id);
+    const logs = existingLog ? { ...(existingLog.logs || {}) } : {};
+    const currentTime = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+
+    // 2. Perform Batch Update to the logs object
+    for (const record of args.records) {
+      // Preserve original scan time if updating an existing record to same status
+      const existingEntry = logs[record.studentId];
+      
+      logs[record.studentId] = {
+        status: record.status,
+        keterangan: record.keterangan || "",
+        jam: existingEntry?.jam || currentTime,
+        recordedByTeacherId: args.recordedByTeacherId,
+        updatedAt: now,
+      };
     }
 
-    // Insert new records
-    for (const record of args.records) {
-      await ctx.db.insert("studentAttendance", {
-        studentId: record.studentId,
+    if (existingLog) {
+      await ctx.db.patch(existingLog._id, { logs, updatedAt: now });
+    } else {
+      await ctx.db.insert("studentAttendanceLogs", {
         schoolId: args.schoolId,
         classId: args.classId,
         subjectId: args.subjectId,
         tanggal: args.tanggal,
         jamKe: args.jamKe,
-        status: record.status,
-        keterangan: record.keterangan,
-        recordedByTeacherId: args.recordedByTeacherId,
-        createdAt: now,
+        logs,
         updatedAt: now,
       });
     }
 
-    // After inserting records, trigger WhatsApp notifications if applicable
+    // 3. Trigger WhatsApp notifications
     const settings = await ctx.db
       .query("attendanceSettings")
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
       .first();
 
     if (settings && settings.gowaUrl) {
-      // Get class info for the message
       const classInfo = await ctx.db.get(args.classId);
       const className = classInfo?.nama || "Kelas Tidak Diketahui";
       const tanggalFormat = new Date(args.tanggal).toLocaleDateString("id-ID", {
@@ -140,8 +192,7 @@ export const recordBulk = mutation({
       });
 
       for (const record of args.records) {
-        if (record.status === "Alpha" || record.status === "Sakit" || record.status === "Izin") {
-          // Fetch student to get phone number and name
+        if (["Alpha", "Sakit", "Izin"].includes(record.status)) {
           const student = await ctx.db
             .query("students")
             .withIndex("by_nisn", (q) => q.eq("nisn", record.studentId))
@@ -158,7 +209,6 @@ export const recordBulk = mutation({
               message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa ananda tercatat *Izin* hari ini (${tanggalFormat}). Terima kasih atas konfirmasinya. 🙏`;
             }
 
-            // Schedule the WhatsApp action asynchronously so it doesn't block the mutation
             await ctx.scheduler.runAfter(0, api.sendWhatsApp.sendMessage, {
               gowaUrl: settings.gowaUrl,
               deviceId: settings.gowaDeviceId || undefined,
@@ -174,6 +224,26 @@ export const recordBulk = mutation({
   },
 });
 
+// Helper to flatten logs back to old format
+function flattenLog(logRecord: any) {
+  if (!logRecord || !logRecord.logs) return [];
+  return Object.entries(logRecord.logs).map(([studentId, entry]: [string, any]) => ({
+    studentId,
+    schoolId: logRecord.schoolId,
+    classId: logRecord.classId,
+    subjectId: logRecord.subjectId,
+    tanggal: logRecord.tanggal,
+    jamKe: logRecord.jamKe,
+    status: entry.status,
+    keterangan: entry.keterangan,
+    jam: entry.jam,
+    scannedBy: entry.scannedBy,
+    recordedByTeacherId: entry.recordedByTeacherId,
+    createdAt: logRecord._creationTime,
+    updatedAt: entry.updatedAt,
+  }));
+}
+
 // List attendance by class, subject, and date
 export const listByClassSubjectDate = query({
   args: {
@@ -182,15 +252,16 @@ export const listByClassSubjectDate = query({
     tanggal: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("studentAttendance")
+    const res = await ctx.db
+      .query("studentAttendanceLogs")
       .withIndex("by_class_subject_date", (q) =>
         q
           .eq("classId", args.classId)
           .eq("subjectId", args.subjectId)
           .eq("tanggal", args.tanggal)
       )
-      .collect();
+      .first();
+    return flattenLog(res);
   },
 });
 
@@ -201,16 +272,19 @@ export const listByClassDate = query({
     tanggal: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("studentAttendance")
-      .withIndex("by_class_date", (q) =>
-        q.eq("classId", args.classId).eq("tanggal", args.tanggal)
-      )
+    const logs = await ctx.db
+      .query("studentAttendanceLogs")
+      .filter(q => q.and(
+        q.eq(q.field("classId"), args.classId),
+        q.eq(q.field("tanggal"), args.tanggal)
+      ))
       .collect();
+    
+    return logs.flatMap(l => flattenLog(l));
   },
 });
 
-// Monthly recap by class and subject
+// Monthly recap by class and subject (Optimized)
 export const rekapBulanan = query({
   args: {
     classId: v.id("classes"),
@@ -218,14 +292,17 @@ export const rekapBulanan = query({
     bulan: v.string(), // "2026-03"
   },
   handler: async (ctx, args) => {
-    const allRecords = await ctx.db
-      .query("studentAttendance")
+    const allLogs = await ctx.db
+      .query("studentAttendanceLogs")
       .withIndex("by_class_subject_date", (q) =>
         q.eq("classId", args.classId).eq("subjectId", args.subjectId)
       )
       .collect();
 
-    return allRecords.filter((r) => r.tanggal.startsWith(args.bulan));
+    // Filter by month and flatten
+    return allLogs
+      .filter((r) => r.tanggal.startsWith(args.bulan))
+      .flatMap(l => flattenLog(l));
   },
 });
 
@@ -236,12 +313,24 @@ export const rekapSiswa = query({
     bulan: v.string(),
   },
   handler: async (ctx, args) => {
-    const allRecords = await ctx.db
-      .query("studentAttendance")
-      .withIndex("by_student_date", (q) => q.eq("studentId", args.studentId))
-      .collect();
-
-    return allRecords.filter((r) => r.tanggal.startsWith(args.bulan));
+    // This is the most expensive query now, but manageable
+    const allLogs = await ctx.db.query("studentAttendanceLogs").collect();
+    
+    return allLogs
+      .filter(l => l.tanggal.startsWith(args.bulan) && l.logs[args.studentId])
+      .map(l => {
+        const entry = l.logs[args.studentId];
+        return {
+          studentId: args.studentId,
+          schoolId: l.schoolId,
+          classId: l.classId,
+          subjectId: l.subjectId,
+          tanggal: l.tanggal,
+          status: entry.status,
+          keterangan: entry.keterangan || "",
+          updatedAt: entry.updatedAt
+        };
+      });
   },
 });
 
@@ -252,11 +341,13 @@ export const listBySchoolDate = query({
     tanggal: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("studentAttendance")
+    const logs = await ctx.db
+      .query("studentAttendanceLogs")
       .withIndex("by_school_date", (q) =>
         q.eq("schoolId", args.schoolId).eq("tanggal", args.tanggal)
       )
       .collect();
+    return logs.flatMap(l => flattenLog(l));
   },
 });
+

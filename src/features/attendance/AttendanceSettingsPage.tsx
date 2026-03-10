@@ -8,7 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare } from "lucide-react";
+import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare, Activity } from "lucide-react";
+import { useAction } from "convex/react";
+import { useEffect, useCallback } from "react";
 
 export default function AttendanceSettingsPage() {
   const userStr = localStorage.getItem("user");
@@ -81,6 +83,29 @@ export default function AttendanceSettingsPage() {
       toast.success("PIN berhasil disalin!");
     }
   };
+
+    const [waStatus, setWaStatus] = useState<"idle" | "checking" | "online" | "offline">("idle");
+    const checkWaStatusAction = useAction(api.monitoring.checkWaStatus);
+  
+    const checkConnection = useCallback(async () => {
+      if (!gowaUrl) {
+        toast.error("Masukkan URL GoWA terlebih dahulu");
+        return;
+      }
+      setWaStatus("checking");
+      try {
+        const result = await checkWaStatusAction({ gowaUrl });
+        setWaStatus(result.online ? "online" : "offline");
+        if (result.online) {
+          toast.success("Koneksi Server WA Berhasil! 🟢");
+        } else {
+          toast.error("Server WA Tidak Merespon 🔴");
+        }
+      } catch (err) {
+        setWaStatus("offline");
+        toast.error("Gagal menghubungi server WA");
+      }
+    }, [gowaUrl, checkWaStatusAction]);
 
   return (
     <div className="space-y-6">
@@ -182,14 +207,32 @@ export default function AttendanceSettingsPage() {
 
         <Card className="border-green-200/50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-green-600" />
-              Notifikasi WhatsApp (GoWA)
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-green-600" />
+                Notifikasi WhatsApp (GoWA)
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${waStatus === "online" ? "bg-green-500" : waStatus === "offline" ? "bg-red-500" : "bg-slate-300"}`} />
+                <span className="text-[10px] uppercase font-bold text-slate-400">
+                  {waStatus === "online" ? "Online" : waStatus === "offline" ? "Offline" : ""}
+                </span>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-sm text-slate-600">URL Server GoWA</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-slate-600">URL Server GoWA</Label>
+                <button 
+                  onClick={checkConnection}
+                  disabled={waStatus === "checking"}
+                  className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase"
+                >
+                  {waStatus === "checking" ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : <Activity className="h-2.5 w-2.5" />}
+                  Cek Koneksi
+                </button>
+              </div>
               <p className="text-xs text-slate-500">
                 Alamat Localtunnel Yayasan Pusat. Kosongkan jika tidak mau kirim WA.
               </p>

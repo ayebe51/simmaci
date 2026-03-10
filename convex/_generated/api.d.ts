@@ -50,6 +50,7 @@ import type * as importData from "../importData.js";
 import type * as lessonSchedule from "../lessonSchedule.js";
 import type * as maintenance from "../maintenance.js";
 import type * as migrateAddresses from "../migrateAddresses.js";
+import type * as migrate_attendance from "../migrate_attendance.js";
 import type * as migrations from "../migrations.js";
 import type * as mutations from "../mutations.js";
 import type * as my_diagnosis from "../my_diagnosis.js";
@@ -127,6 +128,7 @@ declare const fullApi: ApiFromModules<{
   lessonSchedule: typeof lessonSchedule;
   maintenance: typeof maintenance;
   migrateAddresses: typeof migrateAddresses;
+  migrate_attendance: typeof migrate_attendance;
   migrations: typeof migrations;
   mutations: typeof mutations;
   my_diagnosis: typeof my_diagnosis;

@@ -12,22 +12,15 @@ echo.
 
 cd /d "d:\SIMMACI"
 
-echo [1/2] Menyalakan Docker Container (GoWA)...
+echo [1/1] Menyalakan Mesin Docker (GoWA dan Localtunnel)...
 docker-compose up -d
 echo.
 
-echo [2/2] Membuka Terowongan ke Internet (Localtunnel)...
-echo.
 echo ========================================================
-echo   PENTING: JANGAN TUTUP JENDELA HITAM INI!
-echo   Selama PC Yayasan ini menyala, notifikasi dari SEMUA
-echo   Cabang Madrasah akan terkirim.
-echo.
-echo   Silakan Copy URL di bawah ini ke seluruh pengaturan
-echo   Madrasah di halaman admin SIMMACI:
-echo   https://simmaci-gowa-pusat.loca.lt
+echo   SERVER SUDAH MENYALA DI LATAR BELAKANG!
+echo   Notifikasi WhatsApp Yayasan Pusat sekarang aktif.
+echo   Anda bisa menutup jendela hijau ini.
 echo ========================================================
 echo.
 
-npx -y localtunnel --port 3000 --subdomain simmaci-gowa-pusat
 pause

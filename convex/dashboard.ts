@@ -513,8 +513,7 @@ export const getSchoolStats = query({
                .query("studentAttendanceLogs")
                .withIndex("by_school_date", (q) => q.eq("schoolId", schoolId))
                .order("desc")
-               .take(100)
-               .collect();
+               .take(100);
 
              const subjectMap: Record<string, { name: string; present: number; total: number }> = {};
              allLogs.forEach((log: any) => {

@@ -372,10 +372,21 @@ export const getMonthlyClassReport = query({
         const school = await ctx.db.get(classInfo.schoolId);
         if (!school) return { error: "Sekolah tidak ditemukan" };
 
-        const allStudents = await ctx.db
-            .query("students")
-            .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
-            .collect();
+        // SMART STUDENT LOOKUP
+        let allStudents: any[] = [];
+        if (school.npsn) {
+            allStudents = await ctx.db
+                .query("students")
+                .withIndex("by_npsn", (q) => q.eq("npsn", school.npsn))
+                .collect();
+        }
+        
+        if (allStudents.length === 0) {
+            allStudents = await ctx.db
+                .query("students")
+                .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
+                .collect();
+        }
 
         // Robust matching for class names
         const classTarget = String(classInfo.nama).trim().toLowerCase();

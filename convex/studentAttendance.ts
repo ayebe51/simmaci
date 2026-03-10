@@ -374,15 +374,16 @@ export const getMonthlyClassReport = query({
       .collect()
       .then(res => res.filter(s => s.kelas === classInfo.nama && (s as any).isActive !== false));
 
-    // 2. Fetch all logs for this class/subject in this month
+    // 2. Fetch all logs for this class in this month
     const allLogs = await ctx.db
       .query("studentAttendanceLogs")
-      .withIndex("by_class_subject_date", (q) =>
-        q.eq("classId", args.classId).eq("subjectId", args.subjectId)
-      )
+      .withIndex("by_classId", (q) => q.eq("classId", args.classId))
       .collect();
 
-    const monthlyLogs = allLogs.filter(l => l.tanggal.startsWith(args.bulan));
+    const monthlyLogs = allLogs.filter(l => 
+        l.tanggal.startsWith(args.bulan) && 
+        l.subjectId === args.subjectId
+    );
 
     // 3. Build a map of [studentId][date] = status
     const attendanceMap: Record<string, Record<string, string>> = {};

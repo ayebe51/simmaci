@@ -51,7 +51,14 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
   const verifyUrl = `${baseUrl}/verify/${isTeacher ? 'teacher' : 'student'}/${idValue || "unknown"}`;
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    const fileName = `KTA_${type.toUpperCase()}_${data.nama.replace(/\s+/g, '_')}`;
+    document.title = fileName;
     window.print();
+    // Restore title after a short delay to ensure print dialog picks it up
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   const cardStyle = {

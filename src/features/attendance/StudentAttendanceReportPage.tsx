@@ -161,6 +161,11 @@ export default function StudentAttendanceReportPage() {
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-500 mb-2" />
               <p className="text-sm text-slate-500">Memproses data laporan...</p>
             </div>
+          ) : (reportData as any)?.error ? (
+            <div className="py-20 text-center text-red-500">
+              <p className="font-bold">Error!</p>
+              <p className="text-sm">{(reportData as any).error}</p>
+            </div>
           ) : (
             <div className="overflow-x-auto relative min-h-[400px]">
               {/* PRINT HEADER */}

@@ -368,11 +368,14 @@ export const getMonthlyClassReport = query({
     const classInfo = await ctx.db.get(args.classId);
     if (!classInfo) return { error: "Kelas tidak ditemukan" };
 
+    const school = await ctx.db.get(classInfo.schoolId);
+    if (!school) return { error: "Sekolah tidak ditemukan" };
+
     const students = await ctx.db
       .query("students")
-      .withIndex("by_schoolId", (q) => q.eq("schoolId", classInfo.schoolId))
+      .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
       .collect()
-      .then(res => res.filter(s => s.kelas === classInfo.nama && (s as any).isActive !== false));
+      .then(res => res.filter(s => s.kelas === classInfo.nama && (s as any).status !== "Lulus"));
 
     // 2. Fetch all logs for this class/subject
     const monthlyLogs = await ctx.db

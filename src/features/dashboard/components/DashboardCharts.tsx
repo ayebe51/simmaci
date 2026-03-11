@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Label } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { useEffect, useState } from "react"
 
 const PASTEL_COLORS = ['#60a5fa', '#34d399', '#ffb74d', '#f472b6', '#a78bfa', '#818cf8']
@@ -172,123 +172,95 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
             </div>
         )}
 
-        {/* ROW 2: Statistik Jenjang Madrasah (Full Width Premium) */}
-        {unitData.length > 0 && (
-            <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
-                <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-indigo-100/50 to-transparent blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
-                <CardHeader className="border-b border-slate-100/60 pb-4 relative z-10">
-                    <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
-                        <div className="w-1.5 h-5 bg-indigo-500 rounded-full"></div>
-                        Statistik Jenjang Pendidikan
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 font-medium ml-3.5">
-                        Sebaran jumlah guru berdasarkan tingkat madrasah.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6 relative z-10">
-                <div className="h-[320px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={unitData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorJenjang" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.9}/>
-                                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0.6}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                            <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fontSize: 12, fill: '#475569', fontWeight: 600}} 
-                                dy={10}
-                            />
-                            <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fontSize: 11, fill: '#94a3b8'}} 
-                            />
-                            <Tooltip 
-                                cursor={{fill: '#f8fafc', opacity: 0.5}} 
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                itemStyle={{ color: '#475569', fontWeight: 600 }}
-                                formatter={(value: any) => [`${value} Guru`, 'Jumlah']}
-                            />
-                            <Bar 
-                                dataKey="jumlah" 
-                                fill="url(#colorJenjang)" 
-                                radius={[6, 6, 0, 0]} 
-                                barSize={40}
-                            >
-                                {unitData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} className="hover:opacity-80 transition-opacity duration-300" />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+        {/* ROW 2: Custom Layout based on User Screenshot */}
+        <div className="grid gap-6 lg:grid-cols-2 mt-8">
+            {/* Left Column: Sebaran Wilayah / Kecamatan */}
+            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2rem] overflow-hidden relative">
+                {/* Decorative background circle */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50/50 rounded-full translate-x-1/3 -translate-y-1/3 blur-2xl pointer-events-none" />
+                <CardContent className="p-8 relative z-10 h-full flex flex-col">
+                    <p className="text-xs font-bold tracking-widest text-emerald-600 uppercase mb-2">Regional Insights</p>
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">Sebaran Wilayah</h2>
+                    <p className="text-sm text-slate-500 mb-8 mt-1">Konsentrasi penempatan guru tertinggi per wilayah</p>
+                    
+                    <div className="space-y-6 flex-1">
+                        {kecData.slice(0, 4).map((kec, index) => {
+                            const maxWidth = Math.max(...kecData.map(d => d.jumlah), 1);
+                            const percent = Math.min((kec.jumlah / maxWidth) * 100, 100);
+                            return (
+                                <div key={index} className="space-y-2">
+                                    <div className="flex justify-between items-center text-sm font-bold text-slate-700">
+                                        <span>{kec.name}</span>
+                                        <span className="text-emerald-700">{kec.jumlah} Guru</span>
+                                    </div>
+                                    <div className="h-3 w-full bg-slate-100/80 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-1000 ease-out" 
+                                            style={{ width: `${percent}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </CardContent>
             </Card>
-        )}
 
-        {/* ROW 3: Kecamatan (Full Width Premium) */}
-        {kecData.length > 0 && (
-            <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
-                <div className="absolute top-0 left-0 w-[40%] h-[60%] bg-gradient-to-br from-amber-100/50 to-transparent blur-3xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
-                <CardHeader className="border-b border-slate-100/60 pb-4 relative z-10">
-                    <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
-                        <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
-                        Sebaran Guru per Kecamatan
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 font-medium ml-3.5">
-                        Konsentrasi penempatan guru di setiap wilayah.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6 relative z-10">
-                <div className="h-[320px] w-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={kecData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorKecamatan" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
-                                    <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.6}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
-                            <XAxis 
-                                dataKey="name" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fontSize: 12, fill: '#475569', fontWeight: 600}} 
-                                dy={10}
-                            />
-                            <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fontSize: 11, fill: '#94a3b8'}} 
-                            />
-                            <Tooltip 
-                                cursor={{fill: '#f8fafc', opacity: 0.5}} 
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }}
-                                itemStyle={{ color: '#475569', fontWeight: 600 }}
-                                formatter={(value: any) => [`${value} Guru`, 'Jumlah']}
-                            />
-                            <Bar 
-                                dataKey="jumlah" 
-                                fill="url(#colorKecamatan)" 
-                                radius={[6, 6, 0, 0]} 
-                                barSize={40}
-                            >
-                                {kecData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} className="hover:opacity-80 transition-opacity duration-300" />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+            {/* Right Column: Distribusi Jenjang */}
+            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white rounded-[2rem] overflow-hidden relative">
+                <CardContent className="p-8 relative z-10 h-full flex flex-col">
+                    <p className="text-xs font-bold tracking-widest text-blue-500 uppercase mb-2">Education Levels</p>
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">Distribusi Jenjang</h2>
+                    <p className="text-sm text-slate-500 mb-8 mt-1">Komposisi guru PCNU berdasarkan tingkatan</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 flex-1">
+                        {unitData.slice(0, 4).map((jenjang, index) => {
+                            const totalJenjang = unitData.reduce((acc, curr) => acc + curr.jumlah, 0);
+                            const percent = totalJenjang > 0 ? Math.round((jenjang.jumlah / totalJenjang) * 100) : 0;
+                            
+                            // Determine color schema based on name
+                            let bgClass = "bg-slate-50 border-slate-100/60";
+                            let textClass = "text-slate-600";
+                            let dotClass = "bg-slate-400";
+                            
+                            if (jenjang.name.includes("MI") || jenjang.name.includes("SD")) {
+                                bgClass = "bg-[#f2fdf5] border-emerald-100/60";
+                                textClass = "text-[#059669]";
+                                dotClass = "bg-[#10b981]";
+                            } else if (jenjang.name.includes("MTs") || jenjang.name.includes("SMP")) {
+                                bgClass = "bg-[#f0f9ff] border-blue-100/60";
+                                textClass = "text-[#3b82f6]";
+                                dotClass = "bg-[#3b82f6]";
+                            } else if (jenjang.name.includes("MA") || jenjang.name.includes("SMA")) {
+                                bgClass = "bg-[#fffbeb] border-amber-100/60";
+                                textClass = "text-[#f59e0b]";
+                                dotClass = "bg-[#f59e0b]";
+                            } else if (jenjang.name.includes("SMK") || jenjang.name.includes("TK")) {
+                                bgClass = "bg-[#faf5ff] border-purple-100/60";
+                                textClass = "text-[#a855f7]";
+                                dotClass = "bg-[#a855f7]";
+                            } else if (jenjang.name.includes("RA")) {
+                                bgClass = "bg-[#fff1f2] border-rose-100/60";
+                                textClass = "text-[#f43f5e]";
+                                dotClass = "bg-[#f43f5e]";
+                            }
+
+                            return (
+                                <div key={index} className={`rounded-[1.5rem] border ${bgClass} p-5 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300 shadow-sm`}>
+                                    <div className="flex items-center gap-2 font-bold text-slate-700 mb-4">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${dotClass} shadow-sm`} />
+                                        {jenjang.name}
+                                    </div>
+                                    <div className={`text-4xl lg:text-5xl font-black tracking-tighter ${textClass}`}>
+                                        {percent}%
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </CardContent>
             </Card>
-        )}
+        </div>
     </div>
   )
 }

@@ -424,19 +424,19 @@ export default function TeacherListPage() {
       <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
         <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-        <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
+        <CardHeader className="pb-5 border-b border-white/60 bg-white/40 px-6 pt-6">
            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div className="flex-1 w-full relative">
+                <div className="flex-1 w-full relative sm:max-w-md">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
                     <Input
                         placeholder="Cari NUPTK, Nama, atau Mapel..."
-                        className="pl-10 w-full max-w-sm border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
+                        className="pl-10 w-full border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                     {!effectiveUnitKerja && (
                         <Select value={filterKecamatan} onValueChange={setFilterKecamatan}>
                             <SelectTrigger className="w-full sm:w-[160px] bg-white/60 border-slate-200 shadow-sm rounded-xl focus:ring-emerald-500">
@@ -452,21 +452,21 @@ export default function TeacherListPage() {
                     )}
                     
                    <Select value={filterCertified} onValueChange={setFilterCertified}>
-                       <SelectTrigger className="w-full sm:w-[150px] bg-white/60 border-slate-200 shadow-sm rounded-xl focus:ring-emerald-500">
+                       <SelectTrigger className="w-full sm:w-[160px] bg-white/60 border-slate-200 shadow-sm rounded-xl focus:ring-emerald-500">
                            <SelectValue placeholder="Sertifikasi" />
                        </SelectTrigger>
                        <SelectContent className="rounded-xl border-emerald-100 shadow-lg">
                            <SelectItem value="all">Semua Status</SelectItem>
-                           <SelectItem value="true" className="focus:bg-emerald-50">Sertifikasi</SelectItem>
-                           <SelectItem value="false" className="focus:bg-emerald-50">Belum Sertifikasi</SelectItem>
+                           <SelectItem value="true" className="focus:bg-emerald-50 text-emerald-700">Sertifikasi</SelectItem>
+                           <SelectItem value="false" className="focus:bg-emerald-50 text-emerald-700">Belum Sertifikasi</SelectItem>
                        </SelectContent>
                    </Select>
                 </div>
                 <Tabs value={activeFilter} onValueChange={setActiveFilter}>
-                   <TabsList className="grid w-full grid-cols-3 max-w-md bg-white/60 border border-slate-200 rounded-xl p-1 shadow-sm">
-                       <TabsTrigger value="active" className="rounded-lg data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">Aktif</TabsTrigger>
-                       <TabsTrigger value="inactive" className="rounded-lg data-[state=active]:bg-amber-50 data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">Non-Aktif</TabsTrigger>
-                       <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800 data-[state=active]:shadow-sm">Semua</TabsTrigger>
+                   <TabsList className="grid w-full grid-cols-3 max-w-sm bg-white/60 border border-slate-200 rounded-xl p-1 shadow-sm ml-auto">
+                       <TabsTrigger value="active" className="rounded-lg data-[state=active]:bg-emerald-50/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm">Aktif</TabsTrigger>
+                       <TabsTrigger value="inactive" className="rounded-lg data-[state=active]:bg-amber-50/80 data-[state=active]:text-amber-700 data-[state=active]:shadow-sm">Non-Aktif</TabsTrigger>
+                       <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-800 data-[state=active]:shadow-sm">Semua</TabsTrigger>
                    </TabsList>
                 </Tabs>
            </div>

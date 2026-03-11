@@ -155,7 +155,9 @@ export default function SkReportPageSimple() {
 
   // 5. Render
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
+    <div className="min-h-screen bg-slate-50/30 pb-20 relative">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-400/5 blur-[120px] pointer-events-none rounded-full" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-400/5 blur-[120px] pointer-events-none rounded-full" />
       
       {/* --- PRINT STYLE STYLE BLOCK --- */}
       <style>{`
@@ -193,18 +195,16 @@ export default function SkReportPageSimple() {
       <div className="container mx-auto p-4 space-y-6">
         
         {/* FILTERS (Screen Only) */}
-        <Card className="no-print">
-          <CardHeader className="pb-3 border-b bg-slate-50">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Filter className="w-4 h-4" /> Filter Data
-              </CardTitle>
-              {(startDate || endDate || selectedStatus !== 'all' || (selectedSchool !== 'all' && !isOperator)) && (
-                <Button variant="ghost" size="sm" onClick={resetFilters} className="text-red-500 h-8">
-                  <X className="w-3 h-3 mr-1" /> Reset
-                </Button>
-              )}
-            </div>
+        <Card className="no-print border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-visible">
+          <CardHeader className="pb-4 border-b border-white/60 bg-white/40 rounded-t-2xl px-6 pt-6 flex flex-row items-center justify-between">
+            <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Filter className="w-4 h-4 text-emerald-600" /> Filter Laporan
+            </CardTitle>
+            {(startDate || endDate || selectedStatus !== 'all' || (selectedSchool !== 'all' && !isOperator)) && (
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 px-3 rounded-xl transition-colors">
+                <X className="w-3 h-3 mr-1" /> Reset
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-1">
@@ -358,9 +358,9 @@ export default function SkReportPageSimple() {
           <>
             {/* STATS CHARTS (Screen Only) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print mb-6">
-               <Card>
-                 <CardHeader>
-                    <CardTitle className="text-sm font-bold uppercase text-slate-500">Status Dokumen</CardTitle>
+               <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden">
+                 <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">Status Dokumen</CardTitle>
                  </CardHeader>
                  <CardContent className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -392,9 +392,9 @@ export default function SkReportPageSimple() {
                  </CardContent>
                </Card>
 
-               <Card>
-                 <CardHeader>
-                    <CardTitle className="text-sm font-bold uppercase text-slate-500">Jenis SK</CardTitle>
+               <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden">
+                 <CardHeader className="pb-2">
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-500">Jenis SK</CardTitle>
                  </CardHeader>
                  <CardContent className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -427,28 +427,31 @@ export default function SkReportPageSimple() {
 
             {/* KEY STATS ROW */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 no-print mb-6">
-               <Card>
-                 <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-slate-800">{reportData.summary.total}</span>
-                    <span className="text-xs text-slate-500 uppercase font-bold mt-1">Total Dokumen</span>
+               <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden hover:-translate-y-1 transition-transform">
+                 <CardContent className="p-5 flex flex-col items-center justify-center">
+                    <span className="text-4xl font-black text-slate-800 tracking-tighter">{reportData.summary.total}</span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-2">Total Dokumen</span>
                  </CardContent>
                </Card>
-               <Card className="bg-green-50/50 border-green-100">
-                 <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-green-600">{reportData.summary.approved}</span>
-                    <span className="text-xs text-green-600 uppercase font-bold mt-1">Disetujui</span>
+               <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-emerald-50/80 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden text-emerald-900 hover:-translate-y-1 transition-transform">
+                 <CardContent className="p-5 flex flex-col items-center justify-center relative">
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none" />
+                    <span className="text-4xl font-black tracking-tighter relative z-10 text-emerald-700">{reportData.summary.approved}</span>
+                    <span className="text-[10px] uppercase tracking-widest font-bold mt-2 relative z-10 text-emerald-600">Disetujui</span>
                  </CardContent>
                </Card>
-               <Card className="bg-amber-50/50 border-amber-100">
-                 <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-amber-600">{reportData.summary.pending}</span>
-                    <span className="text-xs text-amber-600 uppercase font-bold mt-1">Pending</span>
+               <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-amber-50/80 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden text-amber-900 hover:-translate-y-1 transition-transform">
+                 <CardContent className="p-5 flex flex-col items-center justify-center relative">
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-400/20 rounded-full blur-2xl pointer-events-none" />
+                    <span className="text-4xl font-black tracking-tighter relative z-10 text-amber-600">{reportData.summary.pending}</span>
+                    <span className="text-[10px] uppercase tracking-widest font-bold mt-2 relative z-10 text-amber-600">Pending</span>
                  </CardContent>
                </Card>
-               <Card className="bg-red-50/50 border-red-100">
-                 <CardContent className="p-4 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-bold text-red-600">{reportData.summary.rejected}</span>
-                    <span className="text-xs text-red-600 uppercase font-bold mt-1">Ditolak</span>
+               <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-red-50/80 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden text-red-900 hover:-translate-y-1 transition-transform">
+                 <CardContent className="p-5 flex flex-col items-center justify-center relative">
+                    <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-400/20 rounded-full blur-2xl pointer-events-none" />
+                    <span className="text-4xl font-black tracking-tighter relative z-10 text-red-600">{reportData.summary.rejected}</span>
+                    <span className="text-[10px] uppercase tracking-widest font-bold mt-2 relative z-10 text-red-600">Ditolak</span>
                  </CardContent>
                </Card>
             </div>
@@ -466,13 +469,13 @@ export default function SkReportPageSimple() {
             </div>
 
             {/* MAIN TABLE (Screen & Print) */}
-            <Card className="card-print overflow-hidden">
+            <Card className="card-print border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b">
+                  <thead className="bg-emerald-50/80 backdrop-blur-sm text-emerald-800 font-semibold border-b border-emerald-100/60">
                     <tr>
-                      <th className="p-3 w-12 text-center">No</th>
-                      <th className="p-3">Nomor SK</th>
+                      <th className="p-4 w-12 text-center tracking-wide">No</th>
+                      <th className="p-4 tracking-wide">Nomor SK</th>
                       <th className="p-3">Nama Guru / Tendik</th>
                       <th className="p-3">Jenis SK</th>
                       <th className="p-3">Unit Kerja</th>

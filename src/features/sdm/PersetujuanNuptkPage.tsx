@@ -85,25 +85,25 @@ export function PersetujuanNuptkPage() {
             <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
                 <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
                 <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/60 bg-white/40">
+                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between pb-5 border-b border-white/60 bg-white/40 px-6 pt-6 gap-4">
                     <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Antrean Pengajuan</CardTitle>
-                    <div className="flex gap-2">
-                        <Button variant={statusFilter === "Pending" ? "default" : "outline"} onClick={() => setStatusFilter("Pending")} size="sm" className={statusFilter === "Pending" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Pending</Button>
-                        <Button variant={statusFilter === "Approved" ? "default" : "outline"} onClick={() => setStatusFilter("Approved")} size="sm" className={statusFilter === "Approved" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Disetujui</Button>
-                        <Button variant={statusFilter === "Rejected" ? "default" : "outline"} onClick={() => setStatusFilter("Rejected")} size="sm" className={statusFilter === "Rejected" ? "bg-red-600 hover:bg-red-700" : ""}>Ditolak</Button>
-                        <Button variant={statusFilter === "All" ? "default" : "outline"} onClick={() => setStatusFilter("All")} size="sm" className={statusFilter === "All" ? "bg-emerald-600 hover:bg-emerald-700" : ""}>Semua</Button>
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                        <Button variant={statusFilter === "Pending" ? "default" : "outline"} onClick={() => setStatusFilter("Pending")} size="sm" className={statusFilter === "Pending" ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm" : "bg-white/60 hover:bg-emerald-50 text-slate-600"}>Pending</Button>
+                        <Button variant={statusFilter === "Approved" ? "default" : "outline"} onClick={() => setStatusFilter("Approved")} size="sm" className={statusFilter === "Approved" ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm" : "bg-white/60 hover:bg-emerald-50 text-slate-600"}>Disetujui</Button>
+                        <Button variant={statusFilter === "Rejected" ? "default" : "outline"} onClick={() => setStatusFilter("Rejected")} size="sm" className={statusFilter === "Rejected" ? "bg-red-600 hover:bg-red-700 shadow-sm" : "bg-white/60 hover:bg-red-50 text-slate-600"}>Ditolak</Button>
+                        <Button variant={statusFilter === "All" ? "default" : "outline"} onClick={() => setStatusFilter("All")} size="sm" className={statusFilter === "All" ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm" : "bg-white/60 hover:bg-emerald-50 text-slate-600"}>Semua</Button>
                     </div>
                 </CardHeader>
-                <CardContent className="pt-6">
-                    <div className="rounded-md border h-[550px] overflow-auto">
+                <CardContent className="p-0">
+                    <div className="border-0 h-[550px] overflow-auto">
                         <Table>
-                            <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                                <TableRow className="border-b border-emerald-100/60">
-                                    <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
-                                    <TableHead className="font-semibold text-emerald-800">Lembaga Induk</TableHead>
-                                    <TableHead className="font-semibold text-emerald-800">Tanggal Pengajuan</TableHead>
-                                    <TableHead className="font-semibold text-emerald-800">Status</TableHead>
-                                    <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
+                            <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                                <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
+                                    <TableHead className="font-semibold text-emerald-800 tracking-wide pl-6">Nama Guru</TableHead>
+                                    <TableHead className="font-semibold text-emerald-800 tracking-wide">Lembaga Induk</TableHead>
+                                    <TableHead className="font-semibold text-emerald-800 tracking-wide">Tanggal Pengajuan</TableHead>
+                                    <TableHead className="font-semibold text-emerald-800 tracking-wide">Status</TableHead>
+                                    <TableHead className="text-right font-semibold text-emerald-800 tracking-wide pr-6">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -114,8 +114,8 @@ export function PersetujuanNuptkPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredSubmissions.map(sub => (
-                                    <TableRow key={sub._id}>
-                                        <TableCell className="font-medium">{sub.teacherName}</TableCell>
+                                    <TableRow key={sub._id} className="hover:bg-slate-50/50">
+                                        <TableCell className="font-medium pl-6">{sub.teacherName}</TableCell>
                                         <TableCell>{sub.schoolName}</TableCell>
                                         <TableCell>{new Date(sub.submittedAt).toLocaleDateString("id-ID", { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
                                         <TableCell>
@@ -123,23 +123,23 @@ export function PersetujuanNuptkPage() {
                                             {sub.status === "Approved" && <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1"/> Disetujui</Badge>}
                                             {sub.status === "Rejected" && <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1"/> Ditolak</Badge>}
                                         </TableCell>
-                                        <TableCell className="text-right flex justify-end gap-2">
+                                        <TableCell className="text-right flex justify-end gap-2 pr-6">
                                             <Button variant="outline" size="sm" onClick={() => {
                                                 setSelectedSub(sub)
                                                 setIsDetailsOpen(true)
-                                            }}>
+                                            }} className="hover:bg-slate-100 bg-white">
                                                 <Eye className="w-4 h-4 mr-1" /> Berkas
                                             </Button>
                                             
                                             {sub.status === "Pending" && (
                                                 <>
-                                                    <Button variant="outline" size="sm" className="text-green-600 border-green-200 hover:bg-green-50" onClick={() => {
+                                                    <Button variant="outline" size="sm" className="text-green-600 border-green-200 bg-white hover:bg-green-50" onClick={() => {
                                                         setSelectedSub(sub)
                                                         setIsApproveOpen(true)
                                                     }}>
                                                         Setujui
                                                     </Button>
-                                                    <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => {
+                                                    <Button variant="outline" size="sm" className="text-red-700 border-red-200 bg-white hover:bg-red-50" onClick={() => {
                                                         setSelectedSub(sub)
                                                         setRejectionReason("")
                                                         setIsRejectOpen(true)

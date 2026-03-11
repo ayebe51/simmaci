@@ -71,48 +71,49 @@ export default function DataAuditPage() {
 
       {/* SUMMARY CARDS */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl hover:-translate-y-1 transition-transform">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-slate-500">Duplikasi NUPTK</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-red-600">{summary.dupes}</div>
+                <div className="text-3xl font-black text-red-600">{summary.dupes}</div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl hover:-translate-y-1 transition-transform">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-slate-500">Data Lahir Kosong</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-orange-600">{summary.missing}</div>
+                <div className="text-3xl font-black text-orange-600">{summary.missing}</div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl hover:-translate-y-1 transition-transform">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-slate-500">TMT Masa Depan</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-amber-600">{summary.future}</div>
+                <div className="text-3xl font-black text-amber-600">{summary.future}</div>
             </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl hover:-translate-y-1 transition-transform">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-slate-500">Umur Tidak Wajar</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold text-slate-600">{summary.age}</div>
+                <div className="text-3xl font-black text-slate-600">{summary.age}</div>
             </CardContent>
         </Card>
       </div>
 
       {/* ISSUE LIST */}
-      <Card className="border-red-100 bg-red-50/10">
-        <CardHeader>
-            <CardTitle className="text-red-700 flex items-center">
-                <AlertCircle className="mr-2 h-5 w-5" />
+      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
+        <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[60%] bg-red-400/5 blur-[80px] pointer-events-none rounded-full" />
+        <CardHeader className="border-b border-white/60 bg-white/40 pb-4">
+            <CardTitle className="text-red-700 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
                 Daftar Temuan
             </CardTitle>
-            <CardDescription>Segera perbaiki data berikut agar laporan valid.</CardDescription>
+            <CardDescription className="text-slate-500">Segera perbaiki data berikut agar laporan valid.</CardDescription>
         </CardHeader>
         <CardContent>
             {issues === undefined ? (
@@ -125,24 +126,24 @@ export default function DataAuditPage() {
                 </div>
             ) : (
                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[50px]">Tipe</TableHead>
-                            <TableHead>Masalah</TableHead>
-                            <TableHead>Nama Guru (Jika Ada)</TableHead>
-                            <TableHead>Sekolah</TableHead>
-                            <TableHead className="text-right">Tingkat</TableHead>
+                    <TableHeader className="bg-white/40">
+                        <TableRow className="border-white/60">
+                            <TableHead className="w-[50px] font-bold text-slate-600">Tipe</TableHead>
+                            <TableHead className="font-bold text-slate-600">Masalah</TableHead>
+                            <TableHead className="font-bold text-slate-600">Nama Guru (Jika Ada)</TableHead>
+                            <TableHead className="font-bold text-slate-600">Sekolah</TableHead>
+                            <TableHead className="text-right font-bold text-slate-600">Tingkat</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {issues.map((issue, i) => (
-                            <TableRow key={i}>
+                            <TableRow key={i} className="border-white/50 hover:bg-white/60 transition-colors">
                                 <TableCell>{getIcon(issue.type)}</TableCell>
                                 <TableCell className="font-medium text-slate-700">{issue.message}</TableCell>
-                                <TableCell>{issue.name || "-"}</TableCell>
+                                <TableCell className="font-semibold text-slate-800">{issue.name || "-"}</TableCell>
                                 <TableCell className="text-xs text-slate-500">{issue.school || "-"}</TableCell>
                                 <TableCell className="text-right">
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase font-bold tracking-wide ${getSeverityColor(issue.severity)}`}>
+                                    <span className={`text-[10px] px-2.5 py-1 rounded-full border uppercase font-bold tracking-wide shadow-sm bg-opacity-80 backdrop-blur-sm ${getSeverityColor(issue.severity)}`}>
                                         {issue.severity}
                                     </span>
                                 </TableCell>

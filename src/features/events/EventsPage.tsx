@@ -69,42 +69,48 @@ export default function EventsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event) => (
           <Link to={`/dashboard/events/${event.id}`} key={event.id} className="block group">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full relative">
-              <CardHeader>
+            <Card className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 cursor-pointer h-full relative border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden rounded-2xl z-10 hover:-translate-y-1">
+              <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[50px] pointer-events-none rounded-full" />
+              <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-indigo-400/10 blur-[50px] pointer-events-none rounded-full" />
+              <CardHeader className="relative z-10 pb-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-xs font-semibold px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-1 bg-blue-100/50 text-blue-800 rounded-full backdrop-blur-sm">
                       {event.category}
                     </span>
-                    <CardTitle className="mt-2 text-lg">{event.name}</CardTitle>
+                    <CardTitle className="mt-3 text-lg font-bold text-slate-800">{event.name}</CardTitle>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    event.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  <span className={`text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full backdrop-blur-sm shadow-sm ${
+                    event.status === 'OPEN' ? 'bg-emerald-100/80 text-emerald-800 border border-emerald-200/50' : 'bg-slate-100/80 text-slate-700 border border-slate-200/50'
                   }`}>
                     {event.status}
                   </span>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={14} />
-                    <span>{new Date(event.date).toLocaleDateString()}</span>
+              <CardContent className="relative z-10 pt-2">
+                <div className="space-y-2.5 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg w-fit pr-3">
+                    <div className="bg-blue-100/50 p-1 rounded-md">
+                        <Calendar size={14} className="text-blue-600" />
+                    </div>
+                    <span className="font-medium text-xs">{new Date(event.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin size={14} />
-                    <span>{event.location}</span>
+                  <div className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg w-fit pr-3">
+                    <div className="bg-amber-100/50 p-1 rounded-md">
+                        <MapPin size={14} className="text-amber-600" />
+                    </div>
+                    <span className="font-medium text-xs truncate max-w-[200px]">{event.location}</span>
                   </div>
-                  <p className="line-clamp-2 mt-2">{event.description}</p>
+                  <p className="line-clamp-2 mt-3 text-xs leading-relaxed text-slate-500 bg-white/30 p-3 rounded-xl border border-white/50">{event.description}</p>
                 </div>
               </CardContent>
 
               {/* Delete Button - Visible on Hover */}
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20">
                   <Button 
                     variant="destructive" 
                     size="icon" 
-                    className="h-8 w-8 rounded-full shadow-md"
+                    className="h-8 w-8 rounded-full shadow-lg hover:bg-red-700 hover:scale-110 active:scale-95 transition-all"
                     onClick={(e) => handleDelete(e, event.id, event.name)}
                   >
                       <Trash2 className="h-4 w-4" />

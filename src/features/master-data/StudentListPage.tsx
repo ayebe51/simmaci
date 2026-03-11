@@ -463,23 +463,26 @@ export default function StudentListPage() {
         ]}
       />
 
-      <Card>
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between px-4 py-3 border-b bg-slate-50/50">
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 min-w-[300px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
+        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-purple-400/10 blur-[100px] pointer-events-none rounded-full" />
+          
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between px-6 py-5 border-b border-white/60 bg-white/40">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="relative flex-1 sm:w-[350px]">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-blue-600/60" />
                 <Input
                   placeholder="Cari nama, NISN, atau sekolah..."
-                  className="pl-9"
+                  className="pl-10 border-slate-200 bg-white/60 focus-visible:ring-blue-500 shadow-sm rounded-xl transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[160px] bg-white/60 border-slate-200 shadow-sm rounded-xl focus:ring-blue-500">
                     <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl border-blue-100 shadow-lg">
                     <SelectItem value="all">Semua Status</SelectItem>
                     <SelectItem value="Aktif">Aktif</SelectItem>
                     <SelectItem value="Lulus">Lulus</SelectItem>
@@ -489,25 +492,25 @@ export default function StudentListPage() {
             </div>
 
             {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg animate-in fade-in slide-in-from-top-1">
-                <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+              <div className="flex items-center gap-2 bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 px-4 py-2 rounded-xl animate-in fade-in slide-in-from-top-1 shadow-sm">
+                <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">
                   {selectedIds.length} Siswa Terpilih
                 </span>
                 <div className="h-4 w-px bg-blue-200 mx-1" />
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="h-8 gap-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                  className="h-8 gap-2 bg-white/60 text-blue-700 border-blue-200 hover:bg-white"
                   onClick={handleBulkGraduate}
                   disabled={isBulkActionLoading}
                 >
                   {isBulkActionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GraduationCap className="h-3.5 w-3.5" />}
-                  Luluskan Terpilih
+                  Luluskan
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                  className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50"
                   onClick={() => setSelectedIds([])}
                 >
                   Batal
@@ -515,12 +518,12 @@ export default function StudentListPage() {
               </div>
             )}
           </div>
-          <CardHeader className="pb-3" />
-        <CardContent>
-                <div className="overflow-x-auto">
+          
+        <CardContent className="p-0">
+                <div className="overflow-x-auto border-0">
                 <Table className="min-w-[1200px]">
-                  <TableHeader>
-                    <TableRow>
+                  <TableHeader className="bg-blue-50/80 backdrop-blur-sm">
+                    <TableRow className="border-b border-blue-100/60 hover:bg-transparent">
                       <TableHead className="w-[50px]">
                         <Checkbox 
                           checked={selectedIds.length > 0 && selectedIds.length === paginatedStudents.length}

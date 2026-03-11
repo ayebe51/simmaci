@@ -313,9 +313,9 @@ export default function DashboardPage() {
 
            {/* SK Trend Chart */}
            {skTrend && skTrend.length > 0 && (
-             <Card className="mt-4">
+             <Card className="mt-4 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl">
                <CardHeader>
-                 <CardTitle>Trend Pengajuan SK (6 Bulan Terakhir)</CardTitle>
+                 <CardTitle className="text-slate-800 font-bold">Trend Pengajuan SK (6 Bulan Terakhir)</CardTitle>
                </CardHeader>
                <CardContent>
                  <div className="h-[300px] w-full">

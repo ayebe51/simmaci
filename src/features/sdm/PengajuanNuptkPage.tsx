@@ -149,22 +149,22 @@ export function PengajuanNuptkPage() {
                     <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
                         <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Daftar Guru Tanpa NUPTK</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-4">
                         <div className="relative mb-4">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
                             <Input
                                 placeholder="Cari nama guru..."
-                                className="pl-9"
+                                className="pl-10 border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="rounded-md border h-[400px] overflow-auto">
+                        <div className="rounded-md border-0 h-[400px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                                    <TableRow className="border-b border-emerald-100/60">
-                                        <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
-                                        <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
+                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
+                                        <TableHead className="font-semibold text-emerald-800 tracking-wide">Nama Guru</TableHead>
+                                        <TableHead className="text-right font-semibold text-emerald-800 tracking-wide">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -177,7 +177,7 @@ export function PengajuanNuptkPage() {
                                     ) : displayedTeachers.map(teacher => {
                                         const submitted = isTeacherSubmitted(teacher._id as string)
                                         return (
-                                            <TableRow key={teacher._id}>
+                                            <TableRow key={teacher._id} className="hover:bg-slate-50/50">
                                                 <TableCell className="font-medium">{teacher.nama}</TableCell>
                                                 <TableCell className="text-right">
                                                     {submitted ? (
@@ -207,14 +207,14 @@ export function PengajuanNuptkPage() {
                     <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
                         <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Riwayat Pengajuan</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="rounded-md border h-[460px] overflow-auto">
+                    <CardContent className="pt-4">
+                        <div className="rounded-md border-0 h-[460px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 shadow-sm backdrop-blur-sm">
-                                    <TableRow className="border-b border-emerald-100/60">
-                                        <TableHead className="font-semibold text-emerald-800">Nama Guru</TableHead>
-                                        <TableHead className="font-semibold text-emerald-800">Status</TableHead>
-                                        <TableHead className="text-right font-semibold text-emerald-800">Aksi</TableHead>
+                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
+                                        <TableHead className="font-semibold text-emerald-800 tracking-wide">Nama Guru</TableHead>
+                                        <TableHead className="font-semibold text-emerald-800 tracking-wide">Status</TableHead>
+                                        <TableHead className="text-right font-semibold text-emerald-800 tracking-wide">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>

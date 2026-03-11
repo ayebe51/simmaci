@@ -221,28 +221,37 @@ export default function EventDetailPage() {
                   )}
                   {event.competitions?.map((comp: any) => (
                       <Link to={`/dashboard/competitions/${comp.id}`} key={comp.id}>
-                        <Card className="hover:border-blue-500 transition-colors cursor-pointer">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-lg flex justify-between">
+                        <Card className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 cursor-pointer border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden rounded-2xl relative z-10 hover:-translate-y-1">
+                            <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[50px] pointer-events-none rounded-full" />
+                            <CardHeader className="pb-2 relative z-10">
+                                <CardTitle className="text-lg flex justify-between font-bold text-slate-800">
                                     {comp.name}
-                                    <ChevronRight size={16} className="text-gray-400" />
+                                    <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="flex gap-2 text-xs text-gray-500 mb-4">
-                                    <span className="px-2 py-1 bg-gray-100 rounded">{comp.category}</span>
-                                    <span className="px-2 py-1 bg-gray-100 rounded">{comp.type}</span>
+                            <CardContent className="relative z-10 pt-2">
+                                <div className="flex gap-2 text-[10px] font-bold tracking-wider uppercase mb-4">
+                                    <span className="px-2 py-1 bg-blue-100/50 text-blue-800 rounded-full backdrop-blur-sm">{comp.category}</span>
+                                    <span className="px-2 py-1 bg-slate-100/80 text-slate-600 rounded-full backdrop-blur-sm">{comp.type}</span>
                                 </div>
-                                <div className="space-y-1 text-sm text-gray-600">
-                                    <p className="flex items-center gap-2">
-                                        <Calendar size={12} /> 
+                                <div className="space-y-2.5 text-sm text-slate-600">
+                                    <p className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg w-fit pr-3">
+                                        <div className="bg-blue-100/50 p-1 rounded-md">
+                                            <Calendar size={14} className="text-blue-600" />
+                                        </div> 
+                                        <span className="font-medium text-xs">
                                         {comp.date && !isNaN(new Date(comp.date).getTime())
                                             ? new Date(comp.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) 
                                             : 'Jadwal belum diatur'}
+                                        </span>
                                     </p>
-                                    <p className="flex items-center gap-2">
-                                        <MapPin size={12} />
+                                    <p className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg w-fit pr-3">
+                                        <div className="bg-amber-100/50 p-1 rounded-md">
+                                            <MapPin size={14} className="text-amber-600" />
+                                        </div>
+                                        <span className="font-medium text-xs truncate max-w-[200px]">
                                         {comp.location || 'Lokasi belum diatur'}
+                                        </span>
                                     </p>
                                 </div>
                             </CardContent>
@@ -288,47 +297,50 @@ function MedalTally({ eventId }: { eventId: string }) {
 
     useEffect(() => {
         // fetchTally should be a useCallback or defined here
-        // eslint-disable-next-line
         fetchTally();
     }, [eventId]);
 
     if (loading) return <div className="py-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2" /> Memuat data medali...</div>;
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle>Klasemen Perolehan Medali</CardTitle>
-                <Button variant="outline" size="sm" onClick={fetchTally}>
+        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/60 bg-white/40">
+                <CardTitle className="text-lg font-bold text-slate-800">Klasemen Perolehan Medali</CardTitle>
+                <Button variant="outline" size="sm" onClick={fetchTally} className="bg-white/50 hover:bg-white/80 rounded-xl transition-all shadow-sm">
                     🔄 Refresh
                 </Button>
             </CardHeader>
-            <CardContent>
-                <div className="rounded-md border">
+            <CardContent className="pt-4">
+                <div className="rounded-2xl border-0 shadow-[0_4px_15px_rgb(0,0,0,0.02)] overflow-hidden bg-white/40">
                     <table className="w-full text-sm">
-                        <thead className="bg-gray-50 border-b">
+                        <thead className="bg-slate-100/50 border-b border-white/60 backdrop-blur-sm tracking-wide">
                             <tr>
-                                <th className="h-12 px-4 text-left font-medium text-gray-500">Peringkat</th>
-                                <th className="h-12 px-4 text-left font-medium text-gray-500">Lembaga / Sekolah</th>
-                                <th className="h-12 px-4 text-center font-medium text-yellow-600">Emas</th>
-                                <th className="h-12 px-4 text-center font-medium text-gray-600">Perak</th>
-                                <th className="h-12 px-4 text-center font-medium text-orange-600">Perunggu</th>
-                                <th className="h-12 px-4 text-center font-medium text-gray-900">Total</th>
+                                <th className="h-12 px-4 text-left font-bold text-slate-500">Peringkat</th>
+                                <th className="h-12 px-4 text-left font-bold text-slate-500">Lembaga / Sekolah</th>
+                                <th className="h-12 px-4 text-center font-bold text-amber-600">Emas</th>
+                                <th className="h-12 px-4 text-center font-bold text-slate-600">Perak</th>
+                                <th className="h-12 px-4 text-center font-bold text-orange-600">Perunggu</th>
+                                <th className="h-12 px-4 text-center font-bold text-emerald-700">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             {tally.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="h-24 text-center text-gray-500">Belum ada data perolehan medali.</td>
+                                    <td colSpan={6} className="h-24 text-center text-slate-500 font-medium italic">Belum ada data perolehan medali.</td>
                                 </tr>
                             ) : (
                                 tally.map((item, index) => (
-                                    <tr key={index} className="border-b last:border-0 hover:bg-gray-50">
-                                        <td className="p-4 font-medium">{index + 1}</td>
-                                        <td className="p-4">{item.institution}</td>
-                                        <td className="p-4 text-center font-bold text-yellow-600">{item.gold}</td>
-                                        <td className="p-4 text-center font-bold text-gray-600">{item.silver}</td>
-                                        <td className="p-4 text-center font-bold text-orange-600">{item.bronze}</td>
-                                        <td className="p-4 text-center font-bold">{item.total}</td>
+                                    <tr key={index} className="border-b border-white/50 hover:bg-white/60 transition-colors last:border-0">
+                                        <td className="p-4 font-bold text-slate-700">
+                                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200/50 text-xs">
+                                                {index + 1}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 font-semibold text-slate-800">{item.institution}</td>
+                                        <td className="p-4 text-center font-black text-amber-500 bg-amber-50/30">{item.gold}</td>
+                                        <td className="p-4 text-center font-black text-slate-500 bg-slate-50/30">{item.silver}</td>
+                                        <td className="p-4 text-center font-black text-orange-500 bg-orange-50/30">{item.bronze}</td>
+                                        <td className="p-4 text-center font-black text-emerald-600 bg-emerald-50/30">{item.total}</td>
                                     </tr>
                                 ))
                             )}

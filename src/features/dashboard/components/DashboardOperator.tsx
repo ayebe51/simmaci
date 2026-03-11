@@ -159,8 +159,16 @@ export default function DashboardOperator() {
           </Card>
         </div>
 
+        {/* CHARTS SECTION */}
+        <DashboardCharts data={{
+            status: stats.status || [],
+            certification: stats.certification || [],
+            units: [], // Not relevant for single school
+            kecamatan: [] // Not relevant for single school
+        }} />
+
         {/* 📊 ATTENDANCE SECTION - NEW */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 mt-6">
             {/* Today's Attendance % */}
             <Card className="md:col-span-1 border-none shadow-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white overflow-hidden relative rounded-2xl">
                 <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[120%] bg-white/20 blur-3xl rounded-full pointer-events-none mix-blend-overlay" />
@@ -224,7 +232,7 @@ export default function DashboardOperator() {
         </div>
 
         {/* 📋 PROACTIVE ANALYTICS - NEW */}
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 mt-6">
             {/* Top Absent Students */}
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="pb-3 border-b border-slate-50">
@@ -306,14 +314,6 @@ export default function DashboardOperator() {
                 </CardContent>
             </Card>
         </div>
-
-        {/* CHARTS SECTION */}
-        <DashboardCharts data={{
-            status: stats.status || [],
-            certification: stats.certification || [],
-            units: [], // Not relevant for single school
-            kecamatan: [] // Not relevant for single school
-        }} />
 
         {/* SK MONITORING SECTION (Semantic Borders) */}
         <div className="mt-8 space-y-4">

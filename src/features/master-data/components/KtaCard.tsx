@@ -79,6 +79,12 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
           @media print {
             body, html { margin: 0 !important; padding: 0 !important; }
             #kta-print-area {
+               position: absolute !important;
+               left: 0 !important;
+               top: 0 !important;
+               width: 100% !important;
+               background: white !important;
+               z-index: 99999 !important;
                display: flex !important;
                flex-direction: column !important;
                align-items: center !important;
@@ -86,14 +92,20 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                padding: 20px 0 !important;
             }
             .no-print { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            * { 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+              backdrop-filter: none !important;
+              -webkit-backdrop-filter: none !important;
+              filter: none !important;
+            }
             .print-color-white { color: white !important; -webkit-text-fill-color: white !important; }
             .print-color-yellow { color: #fde047 !important; -webkit-text-fill-color: #fde047 !important; }
             .print-color-emerald { color: #a7f3d0 !important; -webkit-text-fill-color: #a7f3d0 !important; }
             .print-color-blue { color: #93c5fd !important; -webkit-text-fill-color: #93c5fd !important; }
             .print-border-yellow { border-color: #facc15 !important; }
             .print-border-blue { border-color: #3b82f6 !important; }
-            @page { margin: 10mm; }
+            @page { margin: 0; }
           }
         `}
       </style>

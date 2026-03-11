@@ -61,73 +61,76 @@ export default function DashboardOperator() {
       ) : (
         <>
         {/* OVERVIEW CARDS */}
-        {/* OVERVIEW CARDS */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           
           {/* 1. TOTAL GURU (With Sparkline) */}
-          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
-            <CardContent className="p-6">
+          <Card className="border-0 shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-emerald-600 to-teal-800 text-white overflow-hidden relative rounded-2xl md:col-span-1 lg:col-span-1">
+            <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[120%] bg-white/20 blur-3xl rounded-full pointer-events-none mix-blend-overlay" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[60%] bg-emerald-400/30 blur-2xl rounded-full pointer-events-none mix-blend-overlay" />
+            <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between space-x-4">
-                  <div className="flex flex-col space-y-1 z-10">
-                      <span className="text-sm font-medium text-slate-500">Total Guru</span>
-                      <span className="text-3xl font-extrabold text-slate-900">{stats.teachers}</span>
+                  <div className="flex flex-col space-y-1">
+                      <span className="text-emerald-50/80 font-medium text-sm tracking-wide">Total Guru</span>
+                      <span className="text-4xl font-extrabold tracking-tight drop-shadow-md">{stats.teachers}</span>
                   </div>
-                  <div className="p-3 bg-emerald-50 rounded-full z-10">
-                      <Users className="h-6 w-6 text-emerald-600" />
+                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/20 shadow-inner">
+                      <Users className="h-7 w-7 text-white drop-shadow-sm" />
                   </div>
               </div>
-              <div className="mt-4 flex items-end justify-between">
+              <div className="mt-6 flex items-end justify-between">
                   <div className="flex items-center space-x-2 text-xs">
                      {teacherGrowth > 0 ? (
-                         <span className="flex items-center text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">
+                         <span className="bg-emerald-900/40 text-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-400/30 backdrop-blur-sm shadow-sm font-semibold tracking-wide">
                              {teacherGrowthLabel}
                          </span>
                      ) : (
-                         <span className="text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md text-xs">Stabil</span>
+                         <span className="bg-emerald-900/40 text-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-400/30 backdrop-blur-sm shadow-sm font-semibold tracking-wide text-xs">Stabil</span>
                      )}
                   </div>
-                  <div className="absolute right-0 bottom-0 opacity-20 transform translate-y-2 scale-110">
-                     <Sparkline data={stats?.teacherTrend || []} color="#059669" />
+                  <div className="absolute right-[-5%] bottom-[5%] opacity-40 transform translate-y-2 scale-110 pointer-events-none w-20">
+                     <Sparkline data={stats?.teacherTrend || []} color="#a7f3d0" />
                   </div>
               </div>
             </CardContent>
           </Card>
           
           {/* 2. TOTAL SISWA */}
-          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
-            <CardContent className="p-6">
-               <div className="flex items-center justify-between space-x-4">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl">
+            <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-blue-100/50 to-transparent blur-2xl pointer-events-none" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+               <div className="flex items-center justify-between space-x-4 relative z-10">
                   <div className="flex flex-col space-y-1">
-                      <span className="text-sm font-medium text-slate-500">Total Siswa</span>
-                      <span className="text-3xl font-extrabold text-slate-900">{stats.students}</span>
+                      <span className="text-sm font-semibold text-slate-500 tracking-wide">Total Siswa</span>
+                      <span className="text-4xl font-extrabold text-blue-900 tracking-tight">{stats.students}</span>
                   </div>
-                  <div className="p-3 bg-blue-50 rounded-full">
-                      <School className="h-6 w-6 text-blue-600" />
+                  <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl border border-blue-200/50 shadow-sm">
+                      <School className="h-7 w-7 text-blue-600" />
                   </div>
               </div>
-              <div className="mt-4 flex items-center text-xs">
-                  <span className="text-slate-400">Terdaftar di Simpatika</span>
+              <div className="mt-6 flex items-center text-xs relative z-10">
+                  <span className="text-blue-700 bg-blue-50 border border-blue-200/80 shadow-sm px-3 py-1.5 rounded-lg font-semibold inline-flex">Terdaftar Aktif</span>
               </div>
             </CardContent>
           </Card>
 
           {/* 3. SK TERBIT (With Sparkline) */}
-          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden relative">
-            <CardContent className="p-6">
-               <div className="flex items-center justify-between space-x-4">
-                  <div className="flex flex-col space-y-1 z-10">
-                      <span className="text-sm font-medium text-slate-500">SK Terbit</span>
-                      <span className="text-3xl font-extrabold text-slate-900">{stats.skApproved}</span>
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl overflow-hidden relative rounded-2xl">
+            <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-purple-100/50 to-transparent blur-2xl pointer-events-none" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+               <div className="flex items-center justify-between space-x-4 relative z-10">
+                  <div className="flex flex-col space-y-1">
+                      <span className="text-sm font-semibold text-slate-500 tracking-wide">SK Terbit</span>
+                      <span className="text-4xl font-extrabold text-purple-900 tracking-tight">{stats.skApproved}</span>
                   </div>
-                  <div className="p-3 bg-purple-50 rounded-full z-10">
-                      <CheckCircle className="h-6 w-6 text-purple-600" />
+                  <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl border border-purple-200/50 shadow-sm">
+                      <CheckCircle className="h-7 w-7 text-purple-600" />
                   </div>
                </div>
-               <div className="mt-4 flex justify-between items-end">
-                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md font-medium">
+               <div className="mt-6 flex justify-between items-end relative z-10">
+                  <span className="flex items-center text-purple-700 bg-purple-100/80 px-3 py-1.5 rounded-lg font-bold border border-purple-200/80 shadow-sm text-xs">
                       Selesai Diproses
                   </span>
-                  <div className="opacity-80 -mr-2">
+                  <div className="absolute right-[-10%] bottom-[-10%] opacity-40 transform translate-y-2 scale-110 pointer-events-none w-20">
                        <Sparkline data={skTrend || []} color="#9333ea" />
                   </div>
                </div>
@@ -135,19 +138,22 @@ export default function DashboardOperator() {
           </Card>
 
           {/* 4. DRAFT SK */}
-          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200">
-            <CardContent className="p-6">
-               <div className="flex items-center justify-between space-x-4">
+          <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl">
+            <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-amber-100/50 to-transparent blur-2xl pointer-events-none" />
+            <CardContent className="p-6 flex flex-col justify-between h-full">
+               <div className="flex items-center justify-between space-x-4 relative z-10">
                   <div className="flex flex-col space-y-1">
-                      <span className="text-sm font-medium text-slate-500">Draft SK</span>
-                      <span className="text-3xl font-extrabold text-slate-900">{stats.skDrafts}</span>
+                      <span className="text-sm font-semibold text-slate-500 tracking-wide">Draft SK</span>
+                      <span className="text-4xl font-extrabold text-amber-900 tracking-tight">{stats.skDrafts}</span>
                   </div>
-                  <div className="p-3 bg-yellow-50 rounded-full">
-                      <Clock className="h-6 w-6 text-yellow-600" />
+                  <div className="p-3 bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-2xl border border-amber-200/50 shadow-sm">
+                      <Clock className="h-7 w-7 text-amber-600" />
                   </div>
                </div>
-               <div className="mt-4 flex items-center text-xs">
-                   <span className="text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-md font-medium">Menunggu Pengajuan</span>
+               <div className="mt-6 flex items-center text-xs relative z-10">
+                   <span className="text-amber-700 bg-amber-100/80 border border-amber-200/80 shadow-sm px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" /> Menunggu Pengajuan
+                   </span>
                </div>
             </CardContent>
           </Card>
@@ -388,102 +394,36 @@ export default function DashboardOperator() {
       )}
 
       {/* QUICK ACTIONS */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-3">Akses Cepat</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-8 mb-6">
+        <h3 className="text-xl font-bold tracking-tight text-slate-800 mb-4 flex items-center gap-2">
+            <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
+            Akses Cepat
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-                { label: "Data Guru", description: "Kelola data pengajar", icon: Users, path: "/dashboard/master/teachers", color: "bg-blue-100 text-blue-600", border: "hover:border-blue-200" },
-                { label: "Data Siswa", description: "Database siswa aktif", icon: School, path: "/dashboard/master/students", color: "bg-orange-100 text-orange-600", border: "hover:border-orange-200" },
-                { label: "Ajukan SK Kolektif", description: "Buat pengajuan baru", icon: FileText, path: "/dashboard/sk/submission", color: "bg-green-100 text-green-600", border: "hover:border-green-200" },
-                { label: "Profil Sekolah", description: "Update informasi lembaga", icon: School, path: "/dashboard/school/profile", color: "bg-purple-100 text-purple-600", border: "hover:border-purple-200" },
+                { label: "Data Guru", description: "Kelola data pengajar", icon: Users, path: "/dashboard/master/teachers", color: "bg-blue-100/80 text-blue-600 border-blue-200/50", gradient: "from-blue-50/50 to-white" },
+                { label: "Data Siswa", description: "Database siswa aktif", icon: School, path: "/dashboard/master/students", color: "bg-orange-100/80 text-orange-600 border-orange-200/50", gradient: "from-orange-50/50 to-white" },
+                { label: "Ajukan SK Kolektif", description: "Buat pengajuan baru", icon: FileText, path: "/dashboard/sk/new", color: "bg-emerald-100/80 text-emerald-600 border-emerald-200/50", gradient: "from-emerald-50/50 to-white" },
+                { label: "Profil Sekolah", description: "Update informasi lembaga", icon: School, path: "/dashboard/school/profile", color: "bg-purple-100/80 text-purple-600 border-purple-200/50", gradient: "from-purple-50/50 to-white" },
             ].map((action, i) => (
                 <Card 
                     key={i} 
-                    className={`cursor-pointer transition-all duration-200 hover:shadow-md border border-slate-200 group ${action.border}`} 
+                    className={`cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-0 shadow-sm bg-gradient-to-br ${action.gradient} backdrop-blur-xl rounded-2xl overflow-hidden group`} 
                     onClick={() => navigate(action.path)}
                 >
-                    <CardContent className="p-4 flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${action.color} group-hover:scale-105 transition-transform`}>
-                            <action.icon className="h-6 w-6" />
+                    <CardContent className="p-5 flex items-center gap-4">
+                        <div className={`p-3.5 rounded-2xl shadow-inner border transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${action.color}`}>
+                            <action.icon className="h-6 w-6 drop-shadow-sm" />
                         </div>
                         <div>
-                            <h4 className="font-semibold text-slate-800 text-sm">{action.label}</h4>
-                            <p className="text-xs text-slate-500 mt-0.5">{action.description}</p>
+                            <h4 className="font-bold text-slate-800 text-sm tracking-wide">{action.label}</h4>
+                            <p className="text-xs font-medium text-slate-500 mt-1">{action.description}</p>
                         </div>
                     </CardContent>
                 </Card>
             ))}
         </div>
       </div>
-
-
-        {/* 📋 ACTIVITY HISTORY SECTION (Added for consistency) */}
-        <div className="grid gap-6 md:grid-cols-2 mt-8">
-            <Card className="col-span-1 shadow-sm border-slate-200">
-                <CardHeader className="border-b border-slate-100 pb-3">
-                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
-                        Riwayat Aktivitas (Sekolah)
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    <div className="space-y-4">
-                        {stats?.recentLogs && stats.recentLogs.length > 0 ? (
-                            stats.recentLogs.map((log: any, i: number) => (
-                                <div key={i} className="flex items-start gap-4 border-b border-slate-100 pb-3 last:border-0 last:pb-0 hover:bg-slate-50 transition-colors p-1">
-                                    <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 mt-1.5 shadow-sm"/>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-slate-800">{log.action}</p>
-                                        <p className="text-xs text-slate-500">{log.details}</p>
-                                    </div>
-                                    <div className="text-[9px] font-bold text-slate-400">
-                                        {new Date(log.timestamp).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-slate-400 text-center py-6">Belum ada aktivitas baru.</p>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card className="col-span-1 shadow-sm border-slate-200">
-                <CardHeader className="border-b border-slate-100 pb-3">
-                    <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
-                        Status Import Data
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                    {stats?.lastEmisSync ? (() => {
-                        try {
-                            const syncData = JSON.parse(stats.lastEmisSync);
-                            const date = new Date(syncData.timestamp).toLocaleString('id-ID', {
-                                day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                            });
-                            return (
-                                <>
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <CheckCircle className="h-5 w-5 text-green-500"/>
-                                        <span className="text-sm font-medium">Terakhir sinkronisasi: {date}</span>
-                                    </div>
-                                    <div className="rounded-md bg-muted p-4">
-                                        <p className="text-xs text-muted-foreground">
-                                            Data sinkronisasi mencakup {syncData.schoolCount} Sekolah. {syncData.failureCount} baris gagal impor data.
-                                        </p>
-                                    </div>
-                                </>
-                            );
-                        } catch (e) {
-                            return <p className="text-sm text-muted-foreground">Data sinkronisasi tidak valid.</p>;
-                        }
-                    })() : (
-                        <p className="text-sm text-slate-400 text-center py-6">Belum ada data sinkronisasi EMIS.</p>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
     </div>
   )
 }

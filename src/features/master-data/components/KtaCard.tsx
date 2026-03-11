@@ -78,18 +78,20 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
         {`
           @media print {
             body, html { margin: 0 !important; padding: 0 !important; }
-            #kta-print-area {
-               position: absolute !important;
-               left: 0 !important;
-               top: 0 !important;
-               width: 100% !important;
-               background: white !important;
-               z-index: 99999 !important;
+            .kta-print-container {
                display: flex !important;
                flex-direction: column !important;
                align-items: center !important;
                gap: 30px !important;
                padding: 20px 0 !important;
+               background: white !important;
+            }
+            #kta-print-area {
+               position: absolute !important;
+               left: 0 !important;
+               top: 0 !important;
+               width: 100% !important;
+               z-index: 99999 !important;
             }
             .no-print { display: none !important; }
             * { 
@@ -111,7 +113,10 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
       </style>
 
       {/* PRINT CONTAINER */}
-      <div id="kta-print-area" className={`flex flex-col ${isBatch ? "mb-12" : "md:flex-row gap-6"} items-center justify-center`}>
+      <div 
+        id={isBatch ? undefined : "kta-print-area"} 
+        className={`kta-print-container flex flex-col ${isBatch ? "mb-12" : "md:flex-row gap-6"} items-center justify-center`}
+      >
           
           {/* FRONT SIDE */}
           <div 

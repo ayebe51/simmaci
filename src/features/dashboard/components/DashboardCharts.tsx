@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Label } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Label } from "recharts"
 import { useEffect, useState } from "react"
 
 const PASTEL_COLORS = ['#60a5fa', '#34d399', '#ffb74d', '#f472b6', '#a78bfa', '#818cf8']
@@ -172,34 +172,58 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
             </div>
         )}
 
-        {/* ROW 2: Unit Kerja (Full Width) */}
+        {/* ROW 2: Statistik Jenjang Madrasah (Full Width Premium) */}
         {unitData.length > 0 && (
-            <Card className="shadow-sm border-slate-200">
-                <CardHeader>
-                <CardTitle>Distribusi Guru per Unit Kerja</CardTitle>
-                <CardDescription>5 Lembaga dengan jumlah guru terbanyak.</CardDescription>
+            <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
+                <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-indigo-100/50 to-transparent blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+                <CardHeader className="border-b border-slate-100/60 pb-4 relative z-10">
+                    <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-indigo-500 rounded-full"></div>
+                        Statistik Jenjang Pendidikan
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 font-medium ml-3.5">
+                        Sebaran jumlah guru berdasarkan tingkat madrasah.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="pl-2">
-                <div className="h-[300px] w-full">
+                <CardContent className="pt-6 relative z-10">
+                <div className="h-[320px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={unitData} layout="vertical" margin={{ left: 40, right: 40 }}>
-                            <XAxis type="number" hide />
-                            <YAxis 
+                        <BarChart data={unitData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorJenjang" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.9}/>
+                                    <stop offset="95%" stopColor="#818cf8" stopOpacity={0.6}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                            <XAxis 
                                 dataKey="name" 
-                                type="category" 
-                                width={200} 
-                                tick={{fontSize: 11, fill: '#64748b'}} 
                                 axisLine={false} 
-                                tickLine={false}
+                                tickLine={false} 
+                                tick={{fontSize: 12, fill: '#475569', fontWeight: 600}} 
+                                dy={10}
                             />
-                            <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 11, fill: '#94a3b8'}} 
+                            />
+                            <Tooltip 
+                                cursor={{fill: '#f8fafc', opacity: 0.5}} 
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                                itemStyle={{ color: '#475569', fontWeight: 600 }}
+                                formatter={(value: any) => [`${value} Guru`, 'Jumlah']}
+                            />
                             <Bar 
                                 dataKey="jumlah" 
-                                fill="#60a5fa" 
-                                radius={[0, 4, 4, 0]} 
-                                barSize={24}
-                                background={{ fill: '#f1f5f9', radius: 4 }} 
-                            />
+                                fill="url(#colorJenjang)" 
+                                radius={[6, 6, 0, 0]} 
+                                barSize={40}
+                            >
+                                {unitData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} className="hover:opacity-80 transition-opacity duration-300" />
+                                ))}
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -207,34 +231,58 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
             </Card>
         )}
 
-        {/* ROW 3: Kecamatan (Full Width) */}
+        {/* ROW 3: Kecamatan (Full Width Premium) */}
         {kecData.length > 0 && (
-            <Card className="shadow-sm border-slate-200">
-                <CardHeader>
-                <CardTitle>Sebaran per Kecamatan</CardTitle>
-                <CardDescription>Konsentrasi guru di setiap wilayah.</CardDescription>
+            <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.04)] border-0 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
+                <div className="absolute top-0 left-0 w-[40%] h-[60%] bg-gradient-to-br from-amber-100/50 to-transparent blur-3xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+                <CardHeader className="border-b border-slate-100/60 pb-4 relative z-10">
+                    <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
+                        Sebaran Guru per Kecamatan
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 font-medium ml-3.5">
+                        Konsentrasi penempatan guru di setiap wilayah.
+                    </CardDescription>
                 </CardHeader>
-                <CardContent className="pl-2">
-                <div className="h-[300px]">
+                <CardContent className="pt-6 relative z-10">
+                <div className="h-[320px] w-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={kecData} layout="vertical" margin={{ left: 20, right: 40 }}>
-                            <XAxis type="number" hide />
-                            <YAxis 
+                        <BarChart data={kecData} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorKecamatan" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
+                                    <stop offset="95%" stopColor="#fbbf24" stopOpacity={0.6}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                            <XAxis 
                                 dataKey="name" 
-                                type="category" 
-                                width={120} 
-                                tick={{fontSize: 11, fill: '#64748b'}} 
                                 axisLine={false} 
-                                tickLine={false}
+                                tickLine={false} 
+                                tick={{fontSize: 12, fill: '#475569', fontWeight: 600}} 
+                                dy={10}
                             />
-                            <Tooltip cursor={{fill: 'transparent'}} content={<CustomTooltip />} />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 11, fill: '#94a3b8'}} 
+                            />
+                            <Tooltip 
+                                cursor={{fill: '#f8fafc', opacity: 0.5}} 
+                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                                itemStyle={{ color: '#475569', fontWeight: 600 }}
+                                formatter={(value: any) => [`${value} Guru`, 'Jumlah']}
+                            />
                             <Bar 
                                 dataKey="jumlah" 
-                                fill="#facc15" 
-                                radius={[0, 4, 4, 0]} 
-                                barSize={20}
-                                background={{ fill: '#fefce8', radius: 4 }}
-                            />
+                                fill="url(#colorKecamatan)" 
+                                radius={[6, 6, 0, 0]} 
+                                barSize={40}
+                            >
+                                {kecData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} className="hover:opacity-80 transition-opacity duration-300" />
+                                ))}
+                            </Bar>
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

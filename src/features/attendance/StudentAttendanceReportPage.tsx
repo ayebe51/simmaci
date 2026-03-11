@@ -133,20 +133,45 @@ export default function StudentAttendanceReportPage() {
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page { size: landscape; margin: 1cm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+          @page { size: landscape; margin: 0.5cm; }
+          body { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            background: white !important;
+            font-family: "Times New Roman", Times, serif;
+          }
           .print\\:hidden { display: none !important; }
-          .shadow-xl { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
-          .border-slate-200 { border-color: #e2e8f0 !important; }
-          table { font-size: 8px !important; width: 100% !important; border-collapse: collapse !important; }
-          th, td { padding: 4px 2px !important; border: 1px solid #e2e8f0 !important; }
-          .bg-slate-50 { background-color: #f8fafc !important; }
-          .bg-emerald-50 { background-color: #ecfdf5 !important; }
+          .shadow-xl { box-shadow: none !important; border: none !important; }
+          .border-slate-200 { border: none !important; }
+          .p-0 { padding: 0 !important; }
+          
+          table { 
+            font-size: 9px !important; 
+            width: 100% !important; 
+            border-collapse: collapse !important; 
+            border: 1.5px solid black !important;
+          }
+          th, td { 
+            padding: 4px 2px !important; 
+            border: 1px solid black !important; 
+            color: black !important;
+          }
+          th { background-color: #f1f5f9 !important; font-weight: bold !important; }
+          
+          .bg-slate-50 { background-color: transparent !important; }
+          .bg-emerald-50 { background-color: #f0fdf4 !important; }
           .bg-yellow-50 { background-color: #fefce8 !important; }
           .bg-blue-50 { background-color: #eff6ff !important; }
           .bg-red-50 { background-color: #fef2f2 !important; }
+          
           .sticky { position: static !important; }
-          h1, h2 { color: black !important; }
+          h1, h2, h3 { color: black !important; margin: 0 !important; }
+          
+          .kop-surat {
+            border-bottom: 3px double black;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+          }
         }
       `}} />
 
@@ -206,16 +231,23 @@ export default function StudentAttendanceReportPage() {
             </div>
           ) : (
             <div className="overflow-x-auto relative min-h-[400px]">
-              {/* PRINT HEADER */}
-              <div className="hidden print:block text-center mb-8 border-b-2 border-black pb-4 pt-4">
-                <h2 className="text-2xl font-bold uppercase">Rekapitulasi Absensi Siswa</h2>
-                <p className="text-sm">Lembaga Pendidikan Ma'arif NU Cilacap</p>
-                <div className="grid grid-cols-2 text-left mt-6 max-w-md mx-auto text-sm">
-                   <p><span className="font-bold">Unit Kerja:</span> {user?.unitKerja}</p>
-                   <p><span className="font-bold">Kelas:</span> {reportData.className}</p>
-                   <p><span className="font-bold">Bulan:</span> {new Date(bulan).toLocaleDateString('id-ID', {month:'long', year:'numeric'})}</p>
-                </div>
-              </div>
+               {/* PRINT HEADER (Kop Surat) */}
+               <div className="hidden print:block text-center kop-surat">
+                 <h2 className="text-xl font-bold uppercase leading-tight">Lembaga Pendidikan Ma'arif NU Cilacap</h2>
+                 <h3 className="text-lg font-bold uppercase leading-tight">{user?.unitKerja || "Unit Kerja"}</h3>
+                 <p className="text-xs italic mt-1">Sistem Informasi Manajemen Madrasah Cilacap (SIMMACI)</p>
+                 
+                 <div className="flex justify-between items-end mt-6 text-left text-xs">
+                    <div className="space-y-1">
+                       <p><span className="font-bold">Mata Pelajaran:</span> {subjects?.find(s => s._id === selectedSubjectId)?.nama}</p>
+                       <p><span className="font-bold">Kelas:</span> {reportData.className}</p>
+                    </div>
+                    <div className="text-right space-y-1">
+                       <p className="text-sm font-bold underline capitalize">Rekapitulasi Absensi Siswa</p>
+                       <p><span className="font-bold">Periode:</span> {new Date(bulan).toLocaleDateString('id-ID', {month:'long', year:'numeric'})}</p>
+                    </div>
+                 </div>
+               </div>
 
               <Table className="border-collapse">
                 <TableHeader>
@@ -273,14 +305,33 @@ export default function StudentAttendanceReportPage() {
                 </TableBody>
               </Table>
 
-              {/* LEGEND (Print only) */}
-              <div className="hidden print:flex flex-wrap gap-4 mt-8 text-xs border-t pt-4 px-4">
-                  <p><strong>Keterangan:</strong></p>
-                  <p>H: Hadir</p>
-                  <p>S: Sakit</p>
-                  <p>I: Izin</p>
-                  <p>A: Alpa (Tanpa Keterangan)</p>
-              </div>
+               {/* LEGEND & SIGNATURE (Print only) */}
+               <div className="hidden print:block mt-8 text-xs">
+                  <div className="flex justify-between">
+                      <div className="space-y-1 border p-2 rounded max-w-xs">
+                          <p className="font-bold border-b pb-1 mb-1">Keterangan:</p>
+                          <div className="grid grid-cols-2 gap-x-4">
+                              <p>H: Hadir</p>
+                              <p>S: Sakit</p>
+                              <p>I: Izin</p>
+                              <p>A: Alpa</p>
+                          </div>
+                      </div>
+                      
+                      <div className="flex gap-20">
+                          <div className="text-center w-40">
+                              <p>Mengetahui,</p>
+                              <p className="mb-16">Kepala Madrasah</p>
+                              <p className="font-bold underline">( ............................ )</p>
+                          </div>
+                          <div className="text-center w-40">
+                              <p>Cilacap, {new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p>
+                              <p className="mb-16">Guru Mata Pelajaran</p>
+                              <p className="font-bold underline">( {user?.nama || "............................"} )</p>
+                          </div>
+                      </div>
+                  </div>
+               </div>
             </div>
           )}
         </CardContent>

@@ -67,19 +67,21 @@ export default function StudentCard({ student }: StudentCardProps) {
                margin: 0 !important;
                padding: 0 !important;
             }
-            #student-print-area {
-               position: absolute !important;
-               left: 0 !important;
-               top: 0 !important;
-               width: 100% !important;
-               background: white !important;
-               z-index: 99999 !important;
+            .student-print-container {
                display: flex !important;
                flex-direction: column !important;
                align-items: center !important;
                justify-content: flex-start !important;
                padding-top: 20px !important;
                gap: 20px !important;
+               background: white !important;
+            }
+            #student-print-area {
+               position: absolute !important;
+               left: 0 !important;
+               top: 0 !important;
+               width: 100% !important;
+               z-index: 99999 !important;
                min-height: 100vh !important;
             }
             .no-print {
@@ -124,7 +126,7 @@ export default function StudentCard({ student }: StudentCardProps) {
       </style>
 
       {/* PRINT CONTAINER */}
-      <div id="student-print-area" className="flex flex-col md:flex-row gap-6 items-center justify-center">
+      <div id="student-print-area" className="student-print-container flex flex-col md:flex-row gap-6 items-center justify-center">
           
           <div 
             style={{

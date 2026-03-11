@@ -47,7 +47,11 @@ export const recordScan = mutation({
       .first();
 
     const now = Date.now();
-    const currentTime = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const currentTime = new Date().toLocaleTimeString("id-ID", { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta"
+    });
     const logs = existingLog ? { ...(existingLog.logs || {}) } : {};
 
     // 3. Update specific student entry in logs object
@@ -150,7 +154,11 @@ export const recordBulk = mutation({
       .first();
 
     const logs = existingLog ? { ...(existingLog.logs || {}) } : {};
-    const currentTime = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const currentTime = new Date().toLocaleTimeString("id-ID", { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta"
+    });
 
     // 2. Perform Batch Update to the logs object
     for (const record of args.records) {
@@ -197,17 +205,17 @@ export const recordBulk = mutation({
       });
 
       for (const record of args.records) {
-        if (["Alpha", "Sakit", "Izin"].includes(record.status)) {
+        if (["Alpa", "Sakit", "Izin"].includes(record.status)) {
           const student = await ctx.db
             .query("students")
             .withIndex("by_nisn", (q) => q.eq("nisn", record.studentId))
             .first();
-
+          
           if (student && student.nomorTelepon) {
             const schoolName = student.namaSekolah;
             let message = "";
-            if (record.status === "Alpha") {
-              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa putra/putri Bapak/Ibu tidak hadir di kelas hari ini (${tanggalFormat}) *tanpa keterangan (Alpha)*.\n\nMohon konfirmasi ke pihak sekolah. Terima kasih. 🙏`;
+            if (record.status === "Alpa") {
+              message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa putra/putri Bapak/Ibu tidak hadir di kelas hari ini (${tanggalFormat}) *tanpa keterangan (Alpa)*.\n\nMohon konfirmasi ke pihak sekolah. Terima kasih. 🙏`;
             } else if (record.status === "Sakit") {
               message = `Assalamu'alaikum Bapak/Ibu Wali dari *${student.nama}* (${className}).\n\nKami dari pihak *${schoolName}* menginformasikan bahwa ananda tercatat *Sakit* hari ini (${tanggalFormat}). Semoga lekas sembuh! 🙏`;
             } else if (record.status === "Izin") {

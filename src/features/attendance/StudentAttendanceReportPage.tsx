@@ -134,22 +134,42 @@ export default function StudentAttendanceReportPage() {
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { size: landscape; margin: 0.5cm; }
+          
+          /* Hide all global wrapper elements */
+          aside, header, footer, .print\\:hidden, 
+          div[class*="bg-emerald-400"], div[class*="bg-blue-400"], div[class*="bg-amber-400"] { 
+            display: none !important; 
+          }
+          
           body { 
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
             background: white !important;
             font-family: "Times New Roman", Times, serif;
+            overflow: visible !important;
+            height: auto !important;
           }
-          .print\\:hidden { display: none !important; }
-          .shadow-xl { box-shadow: none !important; border: none !important; }
+          
+          /* Reset main content container */
+          main, .flex-1, .h-screen { 
+            display: block !important; 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            overflow: visible !important;
+            height: auto !important;
+            max-width: none !important;
+          }
+
+          .shadow-xl, .shadow-sm, .shadow { box-shadow: none !important; border: none !important; }
           .border-slate-200 { border: none !important; }
-          .p-0 { padding: 0 !important; }
+          .p-0, .p-6 { padding: 0 !important; }
           
           table { 
             font-size: 9px !important; 
             width: 100% !important; 
             border-collapse: collapse !important; 
             border: 1.5px solid black !important;
+            margin-top: 10px !important;
           }
           th, td { 
             padding: 4px 2px !important; 

@@ -304,7 +304,7 @@ export default function StudentAttendanceReportPage() {
                         <TableCell className="text-center border sticky left-0 bg-white z-10">{idx + 1}</TableCell>
                         <TableCell className="border font-medium sticky left-[50px] bg-white z-10 truncate max-w-[250px]">
                             {student.nama}
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">{student.nisn}</p>
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5 print:hidden">{student.nisn}</p>
                         </TableCell>
                         {daysInMonth.map(d => {
                           const status = reportData.attendance[student.id]?.[d.fullDate];

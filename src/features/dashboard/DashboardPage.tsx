@@ -34,12 +34,15 @@ export default function DashboardPage() {
   const logsStatus = convexStats ? "Exhausted" : "LoadingFirstPage"
   const loadMoreLogs = () => {}
 
-  const [logFilter, setLogFilter] = useState<"all" | "sk">("all")
+  const [logFilter, setLogFilter] = useState<"all" | "sk" | "emis" | "school">("all")
   
-  // Filter logs for SK submissions
+  // Filter logs based on selection
   const filteredLogs = logs?.filter(log => {
     if (logFilter === "all") return true;
-    return ["Submit SK", "Request SK Revision", "Approve SK Revision", "Reject SK Revision"].includes(log.action);
+    if (logFilter === "sk") return ["Submit SK", "Request SK Revision", "Approve SK Revision", "Reject SK Revision"].includes(log.action);
+    if (logFilter === "emis") return ["Import EMIS", "Sync EMIS", "sync_emis"].includes(log.action);
+    if (logFilter === "school") return ["Create School", "Update School", "Add Unit", "Update Unit Kerja"].includes(log.action);
+    return true;
   });
   
   // 📊 SK MONITORING QUERIES
@@ -246,57 +249,61 @@ export default function DashboardPage() {
 
            <div className="grid gap-5 md:grid-cols-4">
              {/* Total Applied */}
-             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50/50 to-white backdrop-blur-sm relative overflow-hidden rounded-2xl">
-               <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-               <CardContent className="p-5 flex items-center justify-between">
+             <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
+               <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-blue-100/50 to-transparent blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+               <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+               <CardContent className="p-5 flex items-center justify-between relative z-10">
                  <div>
-                    <p className="text-sm text-slate-500 font-medium tracking-wide">Total Pengajuan</p>
-                    <p className="text-3xl font-extrabold text-slate-800 mt-1">{skStats.total}</p>
+                    <p className="text-sm text-slate-500 font-semibold tracking-wide">Total Pengajuan</p>
+                    <p className="text-3xl font-black text-slate-800 mt-1 tracking-tight">{skStats.total}</p>
                  </div>
-                 <div className="bg-blue-100/80 p-3 rounded-2xl shadow-inner border border-blue-200/50">
-                    <FileText className="h-6 w-6 text-blue-600 drop-shadow-sm" />
+                 <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-3 rounded-2xl shadow-sm border border-blue-200/50">
+                    <FileText className="h-6 w-6 text-blue-600" />
                  </div>
                </CardContent>
              </Card>
 
              {/* Pending */}
-             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-amber-50/50 to-white backdrop-blur-sm relative overflow-hidden rounded-2xl">
-               <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-               <CardContent className="p-5 flex items-center justify-between">
+             <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
+               <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-amber-100/50 to-transparent blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+               <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+               <CardContent className="p-5 flex items-center justify-between relative z-10">
                  <div>
-                    <p className="text-sm text-amber-700/70 font-medium tracking-wide">Menunggu Review</p>
-                    <p className="text-3xl font-extrabold text-amber-600 mt-1">{skStats.pending}</p>
+                    <p className="text-sm text-slate-500 font-semibold tracking-wide">Menunggu Review</p>
+                    <p className="text-3xl font-black text-amber-600 mt-1 tracking-tight">{skStats.pending}</p>
                  </div>
-                 <div className="bg-amber-100/80 p-3 rounded-2xl shadow-inner border border-amber-200/50">
-                    <Clock className="h-6 w-6 text-amber-600 drop-shadow-sm" />
+                 <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-3 rounded-2xl shadow-sm border border-amber-200/50">
+                    <Clock className="h-6 w-6 text-amber-600" />
                  </div>
                </CardContent>
              </Card>
 
              {/* Approved */}
-             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50/50 to-white backdrop-blur-sm relative overflow-hidden rounded-2xl">
-               <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-               <CardContent className="p-5 flex items-center justify-between">
+             <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
+               <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-emerald-100/50 to-transparent blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+               <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+               <CardContent className="p-5 flex items-center justify-between relative z-10">
                  <div>
-                    <p className="text-sm text-emerald-700/70 font-medium tracking-wide">Disetujui</p>
-                    <p className="text-3xl font-extrabold text-emerald-600 mt-1">{skStats.approved}</p>
+                    <p className="text-sm text-slate-500 font-semibold tracking-wide">Disetujui</p>
+                    <p className="text-3xl font-black text-emerald-600 mt-1 tracking-tight">{skStats.approved}</p>
                  </div>
-                 <div className="bg-emerald-100/80 p-3 rounded-2xl shadow-inner border border-emerald-200/50">
-                    <CheckCircle className="h-6 w-6 text-emerald-600 drop-shadow-sm" />
+                 <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-3 rounded-2xl shadow-sm border border-emerald-200/50">
+                    <CheckCircle className="h-6 w-6 text-emerald-600" />
                  </div>
                </CardContent>
              </Card>
 
              {/* Rejected */}
-             <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-red-50/50 to-white backdrop-blur-sm relative overflow-hidden rounded-2xl">
-               <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
-               <CardContent className="p-5 flex items-center justify-between">
+             <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl group">
+               <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-rose-100/50 to-transparent blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-700" />
+               <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500"></div>
+               <CardContent className="p-5 flex items-center justify-between relative z-10">
                  <div>
-                    <p className="text-sm text-rose-700/70 font-medium tracking-wide">Perlu Perbaikan</p>
-                    <p className="text-3xl font-extrabold text-rose-600 mt-1">{skStats.rejected}</p>
+                    <p className="text-sm text-slate-500 font-semibold tracking-wide">Perlu Perbaikan</p>
+                    <p className="text-3xl font-black text-rose-600 mt-1 tracking-tight">{skStats.rejected}</p>
                  </div>
-                 <div className="bg-rose-100/80 p-3 rounded-2xl shadow-inner border border-rose-200/50">
-                    <AlertOctagon className="h-6 w-6 text-rose-600 drop-shadow-sm" />
+                 <div className="bg-gradient-to-br from-rose-50 to-rose-100/50 p-3 rounded-2xl shadow-sm border border-rose-200/50">
+                    <AlertOctagon className="h-6 w-6 text-rose-600" />
                  </div>
                </CardContent>
              </Card>
@@ -359,25 +366,32 @@ export default function DashboardPage() {
 
        {/* 📋 ACTIVITY & STATUS SECTION - Moved to bottom */}
        <div className="grid gap-6 md:grid-cols-2 mt-8">
-          <Card className="col-span-1 shadow-sm border-slate-200/60 bg-white/60 backdrop-blur-xl rounded-2xl">
-             <CardHeader className="border-b border-slate-100/60 pb-3">
+          <Card className="col-span-1 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl">
+             <div className="absolute top-0 left-0 w-[50%] h-[50%] bg-gradient-to-br from-blue-100/50 to-transparent blur-2xl pointer-events-none" />
+             <CardHeader className="border-b border-slate-100/60 pb-3 relative z-10">
                   <div className="flex items-center justify-between">
                       <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
                           <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
                           Riwayat Aktivitas
                       </CardTitle>
-                      <div className="flex bg-slate-100 p-1 rounded-lg">
+                      <div className="flex bg-slate-100/80 backdrop-blur-sm p-1 rounded-xl shadow-inner border border-slate-200/50 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
                           <button 
                               onClick={() => setLogFilter("all")}
-                              className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${logFilter === "all" ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${logFilter === "all" ? 'bg-white shadow-sm text-blue-600 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
                           >
                               SEMUA
                           </button>
                           <button 
                               onClick={() => setLogFilter("sk")}
-                              className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${logFilter === "sk" ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-500'}`}
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${logFilter === "sk" ? 'bg-white shadow-sm text-emerald-600 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
                           >
-                              PENGAJUAN SK
+                              SK
+                          </button>
+                          <button 
+                              onClick={() => setLogFilter("emis")}
+                              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${logFilter === "emis" ? 'bg-white shadow-sm text-amber-600 border border-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}
+                          >
+                              EMIS
                           </button>
                       </div>
                   </div>
@@ -436,11 +450,12 @@ export default function DashboardPage() {
              </CardContent>
           </Card>
 
-           <Card className="col-span-1 shadow-sm border-slate-200/60 bg-white/60 backdrop-blur-xl rounded-2xl">
-             <CardHeader className="border-b border-slate-100/60 pb-4">
+           <Card className="col-span-1 border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl">
+             <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-gradient-to-br from-amber-100/50 to-transparent blur-2xl pointer-events-none" />
+             <CardHeader className="border-b border-slate-100/60 pb-4 relative z-10">
                  <CardTitle className="text-lg font-bold tracking-tight text-slate-800 flex items-center gap-2">
                      <div className="w-1.5 h-5 bg-amber-500 rounded-full"></div>
-                     Status Import Data
+                     Status Import Data EMIS
                  </CardTitle>
              </CardHeader>
              <CardContent className="pt-4">

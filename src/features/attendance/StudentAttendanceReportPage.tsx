@@ -76,6 +76,10 @@ export default function StudentAttendanceReportPage() {
   const handleExportExcel = () => {
     if (!reportData) return;
 
+    // Build headers explicitly to ensure "No", "NISN", "Nama" are on the left
+    const dayHeaders = daysInMonth.map(d => String(d.day));
+    const allHeaders = ["No", "NISN", "Nama", ...dayHeaders, "H", "S", "I", "A"];
+
     const data = reportData.students.map((student, idx) => {
       const row: any = {
         No: idx + 1,
@@ -85,11 +89,14 @@ export default function StudentAttendanceReportPage() {
       let hCount = 0, sCount = 0, iCount = 0, aCount = 0;
       daysInMonth.forEach(d => {
         const stat = reportData.attendance[student.id]?.[d.fullDate];
-        row[d.day] = stat ? statusShort[stat] : "-";
-        if (stat === "Hadir") hCount++;
-        else if (stat === "Sakit") sCount++;
-        else if (stat === "Izin") iCount++;
-        else if (stat === "Alpa" || stat === "Alpha") aCount++;
+        const statusStr = String(stat || "").toLowerCase();
+        
+        row[String(d.day)] = stat ? statusShort[stat] || statusShort[stat.charAt(0).toUpperCase() + stat.slice(1).toLowerCase()] : "-";
+        
+        if (statusStr === "hadir") hCount++;
+        else if (statusStr === "sakit") sCount++;
+        else if (statusStr === "izin") iCount++;
+        else if (statusStr === "alpa" || statusStr === "alpha") aCount++;
       });
       row["H"] = hCount;
       row["S"] = sCount;
@@ -98,7 +105,7 @@ export default function StudentAttendanceReportPage() {
       return row;
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(data, { header: allHeaders });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Rekap Absensi");
     
@@ -241,15 +248,17 @@ export default function StudentAttendanceReportPage() {
                         </TableCell>
                         {daysInMonth.map(d => {
                           const status = reportData.attendance[student.id]?.[d.fullDate];
-                          if (status === "Hadir") hCount++;
-                          else if (status === "Sakit") sCount++;
-                          else if (status === "Izin") iCount++;
-                          else if (status === "Alpa" || status === "Alpha") aCount++;
+                          const statusStr = String(status || "").toLowerCase();
+                          
+                          if (statusStr === "hadir") hCount++;
+                          else if (statusStr === "sakit") sCount++;
+                          else if (statusStr === "izin") iCount++;
+                          else if (statusStr === "alpa" || statusStr === "alpha") aCount++;
 
                           return (
                             <TableCell key={d.day} className={`text-center p-0 border text-[11px] h-10 ${status ? "" : "bg-slate-50/30"}`}>
-                              <span className={status ? statusColors[status] : ""}>
-                                {status ? statusShort[status] : "-"}
+                              <span className={status ? statusColors[status] || statusColors[status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()] : ""}>
+                                {status ? statusShort[status] || statusShort[status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()] : "-"}
                               </span>
                             </TableCell>
                           );

@@ -17,6 +17,7 @@ const statusColors: Record<string, string> = {
   Sakit: "text-yellow-600 font-bold",
   Izin: "text-blue-600 font-bold",
   Alpa: "text-red-600 font-bold",
+  Alpha: "text-red-600 font-bold",
 };
 
 const statusShort: Record<string, string> = {
@@ -24,6 +25,7 @@ const statusShort: Record<string, string> = {
   Sakit: "S",
   Izin: "I",
   Alpa: "A",
+  Alpha: "A", // Backend transition support
 };
 
 export default function StudentAttendanceReportPage() {
@@ -74,15 +76,25 @@ export default function StudentAttendanceReportPage() {
   const handleExportExcel = () => {
     if (!reportData) return;
 
-    const data = reportData.students.map((s, idx) => {
+    const data = reportData.students.map((student, idx) => {
       const row: any = {
         No: idx + 1,
-        NISN: s.nisn,
-        Nama: s.nama,
+        NISN: student.nisn,
+        Nama: student.nama,
       };
+      let hCount = 0, sCount = 0, iCount = 0, aCount = 0;
       daysInMonth.forEach(d => {
-        row[d.day] = reportData.attendance[s.id]?.[d.fullDate] ? statusShort[reportData.attendance[s.id][d.fullDate]] : "-";
+        const stat = reportData.attendance[student.id]?.[d.fullDate];
+        row[d.day] = stat ? statusShort[stat] : "-";
+        if (stat === "Hadir") hCount++;
+        else if (stat === "Sakit") sCount++;
+        else if (stat === "Izin") iCount++;
+        else if (stat === "Alpa" || stat === "Alpha") aCount++;
       });
+      row["H"] = hCount;
+      row["S"] = sCount;
+      row["I"] = iCount;
+      row["A"] = aCount;
       return row;
     });
 
@@ -112,6 +124,25 @@ export default function StudentAttendanceReportPage() {
         </div>
       </div>
 
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { size: landscape; margin: 1cm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+          .print\\:hidden { display: none !important; }
+          .shadow-xl { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+          .border-slate-200 { border-color: #e2e8f0 !important; }
+          table { font-size: 8px !important; width: 100% !important; border-collapse: collapse !important; }
+          th, td { padding: 4px 2px !important; border: 1px solid #e2e8f0 !important; }
+          .bg-slate-50 { background-color: #f8fafc !important; }
+          .bg-emerald-50 { background-color: #ecfdf5 !important; }
+          .bg-yellow-50 { background-color: #fefce8 !important; }
+          .bg-blue-50 { background-color: #eff6ff !important; }
+          .bg-red-50 { background-color: #fef2f2 !important; }
+          .sticky { position: static !important; }
+          h1, h2 { color: black !important; }
+        }
+      `}} />
+
       {/* Filters */}
       <Card className="print:hidden border-slate-200 shadow-sm">
         <CardHeader className="pb-3 text-slate-800">
@@ -136,9 +167,9 @@ export default function StudentAttendanceReportPage() {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase">Mata Pelajaran</label>
             <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-              <SelectTrigger><SelectValue placeholder="Pilih Mapel" /></SelectTrigger>
+              <SelectTrigger title="Pilih Mapel"><SelectValue placeholder="Pilih Mapel" /></SelectTrigger>
               <SelectContent>
-                {subjects?.map(s => <SelectItem key={s._id} value={s._id}>{s.nama}</SelectItem>)}
+                {subjects?.map(subj => <SelectItem key={subj._id} value={subj._id}>{subj.nama}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -199,21 +230,21 @@ export default function StudentAttendanceReportPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reportData.students.map((s, idx) => {
+                  {reportData.students.map((student, idx) => {
                     let hCount = 0, sCount = 0, iCount = 0, aCount = 0;
                     return (
-                      <TableRow key={s.id} className="hover:bg-slate-50 transition-colors">
+                      <TableRow key={student.id} className="hover:bg-slate-50 transition-colors">
                         <TableCell className="text-center border sticky left-0 bg-white z-10">{idx + 1}</TableCell>
                         <TableCell className="border font-medium sticky left-[50px] bg-white z-10 truncate max-w-[250px]">
-                            {s.nama}
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">{s.nisn}</p>
+                            {student.nama}
+                            <p className="text-[10px] text-slate-400 font-mono mt-0.5">{student.nisn}</p>
                         </TableCell>
                         {daysInMonth.map(d => {
-                          const status = reportData.attendance[s.id]?.[d.fullDate];
+                          const status = reportData.attendance[student.id]?.[d.fullDate];
                           if (status === "Hadir") hCount++;
                           else if (status === "Sakit") sCount++;
                           else if (status === "Izin") iCount++;
-                          else if (status === "Alpa") aCount++;
+                          else if (status === "Alpa" || status === "Alpha") aCount++;
 
                           return (
                             <TableCell key={d.day} className={`text-center p-0 border text-[11px] h-10 ${status ? "" : "bg-slate-50/30"}`}>

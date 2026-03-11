@@ -95,6 +95,7 @@ export default function StudentCard({ student }: StudentCardProps) {
               color-adjust: exact !important;
               backdrop-filter: none !important;
               -webkit-backdrop-filter: none !important;
+              filter: none !important;
             }
             .print-color-white {
               color: white !important;

@@ -77,15 +77,29 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
       <style>
         {`
           @media print {
+            /* Force all parent containers to allow overflow */
+            body, html, #root, main, .container, .grid, .md\\:col-span-3 { 
+              height: auto !important; 
+              overflow: visible !important; 
+              display: block !important; 
+              position: static !important;
+            }
+            
             body, html { margin: 0 !important; padding: 0 !important; }
+            
+            .no-print { display: none !important; }
+            
             .kta-print-container {
                display: flex !important;
                flex-direction: column !important;
                align-items: center !important;
-               gap: 30px !important;
-               padding: 20px 0 !important;
+               gap: 40px !important;
+               padding: 30px 0 !important;
                background: white !important;
+               page-break-after: always !important;
+               break-after: page !important;
             }
+            
             #kta-print-area {
                position: absolute !important;
                left: 0 !important;
@@ -93,7 +107,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                width: 100% !important;
                z-index: 99999 !important;
             }
-            .no-print { display: none !important; }
+            
             * { 
               -webkit-print-color-adjust: exact !important; 
               print-color-adjust: exact !important; 
@@ -101,13 +115,14 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
               -webkit-backdrop-filter: none !important;
               filter: none !important;
             }
+            
             .print-color-white { color: white !important; -webkit-text-fill-color: white !important; }
             .print-color-yellow { color: #fde047 !important; -webkit-text-fill-color: #fde047 !important; }
             .print-color-emerald { color: #a7f3d0 !important; -webkit-text-fill-color: #a7f3d0 !important; }
             .print-color-blue { color: #93c5fd !important; -webkit-text-fill-color: #93c5fd !important; }
             .print-border-yellow { border-color: #facc15 !important; }
             .print-border-blue { border-color: #3b82f6 !important; }
-            @page { margin: 0; }
+            @page { margin: 10mm; }
           }
         `}
       </style>

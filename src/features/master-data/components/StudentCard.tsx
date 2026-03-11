@@ -63,6 +63,14 @@ export default function StudentCard({ student }: StudentCardProps) {
       <style>
         {`
           @media print {
+            /* Force all parent containers to allow overflow */
+            body, html, #root, main, .container, .grid, .md\\:col-span-3 { 
+              height: auto !important; 
+              overflow: visible !important; 
+              display: block !important; 
+              position: static !important;
+            }
+
             body, html {
                margin: 0 !important;
                padding: 0 !important;
@@ -75,6 +83,8 @@ export default function StudentCard({ student }: StudentCardProps) {
                padding-top: 20px !important;
                gap: 20px !important;
                background: white !important;
+               page-break-after: always !important;
+               break-after: page !important;
             }
             #student-print-area {
                position: absolute !important;
@@ -119,7 +129,7 @@ export default function StudentCard({ student }: StudentCardProps) {
               border-color: #3b82f6 !important;
             }
             @page {
-              margin: 0;
+              margin: 10mm;
             }
           }
         `}

@@ -20,7 +20,14 @@ export const getDashboardStats = query({
         // "Lainnya" removed per user request
     };
     const certCounts: Record<string, number> = { "Sudah Sertifikasi": 0, "Belum Sertifikasi": 0 };
-    const unitCounts: Record<string, number> = {};
+    const jenjangCounts: Record<string, number> = {
+        "RA": 0,
+        "MI": 0,
+        "MTs": 0,
+        "MA": 0,
+        "SMK": 0,
+        "Lainnya": 0
+    };
     const kecamatanCounts: Record<string, number> = {};
 
     // 2. Iterate and Aggregate
@@ -49,9 +56,14 @@ export const getDashboardStats = query({
           }
       }
 
-      // C. Unit Kerja (School)
+      // C. Jenjang Pendidikan (School Level)
       const unit = normalize(t.unitKerja);
-      unitCounts[unit] = (unitCounts[unit] || 0) + 1;
+      if (unit.startsWith("RA ") || unit.startsWith("TK ")) jenjangCounts["RA"]++;
+      else if (unit.startsWith("MI ") || unit.startsWith("SD ")) jenjangCounts["MI"]++;
+      else if (unit.startsWith("MTs ") || unit.startsWith("SMP ")) jenjangCounts["MTs"]++;
+      else if (unit.startsWith("MA ") || unit.startsWith("SMA ")) jenjangCounts["MA"]++;
+      else if (unit.startsWith("SMK ")) jenjangCounts["SMK"]++;
+      else jenjangCounts["Lainnya"]++;
 
       // D. Kecamatan
       const kec = normalize(t.kecamatan);
@@ -69,11 +81,10 @@ export const getDashboardStats = query({
     const certData = Object.entries(certCounts)
       .map(([name, value]) => ({ name, value }));
 
-    // Unit Data (Top 5)
-    const unitData = Object.entries(unitCounts)
+    // Jenjang Data
+    const jenjangData = Object.entries(jenjangCounts)
       .map(([name, jumlah]) => ({ name, jumlah }))
-      .sort((a, b) => b.jumlah - a.jumlah)
-      .slice(0, 5);
+      .sort((a, b) => b.jumlah - a.jumlah);
 
     const kecamatanData = Object.entries(kecamatanCounts)
       .map(([name, jumlah]) => ({ name, jumlah }))
@@ -101,7 +112,7 @@ export const getDashboardStats = query({
 
     return {
       status: statusData,
-      units: unitData,
+      units: jenjangData, // Keeping the key as 'units' to avoid breaking frontend blindly, handling frontend update next
       certification: certData,
       kecamatan: kecamatanData,
       teacherTrend: last6Months.map(({ label, count }) => ({ month: label, count })),

@@ -165,18 +165,26 @@ export default function StudentAttendanceReportPage() {
           .p-0, .p-6 { padding: 0 !important; }
           
           table { 
-            font-size: 9px !important; 
+            font-size: 8px !important; 
             width: 100% !important; 
             border-collapse: collapse !important; 
-            border: 1.5px solid black !important;
+            border: 1px solid black !important;
             margin-top: 10px !important;
+            table-layout: auto !important;
           }
           th, td { 
-            padding: 4px 2px !important; 
-            border: 1px solid black !important; 
+            padding: 1px !important; 
+            border: 0.5pt solid black !important; 
             color: black !important;
+            line-height: 1 !important;
           }
           th { background-color: #f1f5f9 !important; font-weight: bold !important; }
+          
+          /* Force small widths for columns to avoid cutoff */
+          .w-\\[50px\\] { width: 30px !important; min-width: 30px !important; }
+          .w-\\[250px\\] { width: 140px !important; min-width: 140px !important; word-break: break-all !important; }
+          .min-w-\\[32px\\] { width: 18px !important; min-width: 18px !important; }
+          .w-\\[60px\\] { width: 22px !important; min-width: 22px !important; }
           
           .bg-slate-50 { background-color: transparent !important; }
           .bg-emerald-50 { background-color: #f0fdf4 !important; }

@@ -250,7 +250,7 @@ export default function SettingsPage() {
         </div>
         {/* Header Save Button */}
         {(isAdmin || userRole === "admin_yayasan") && (
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving} className="rounded-xl shadow-lg bg-emerald-600 hover:bg-emerald-700 transition-all hover:scale-105 active:scale-95 text-white">
                 {isSaving ? "Menyimpan..." : <><Save className="mr-2 h-4 w-4" /> Simpan Perubahan</>}
             </Button>
         )}
@@ -260,16 +260,16 @@ export default function SettingsPage() {
         <TabsList className="flex flex-wrap h-auto w-full justify-start gap-2 bg-transparent p-0 mb-6">
            {/* Template Tab (Privileged) */}
            {(isAdmin || userRole === "admin_yayasan") && (
-               <TabsTrigger value="template" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Template SK</TabsTrigger>
+               <TabsTrigger value="template" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Template SK</TabsTrigger>
            )}
            {/* Signer Tab (Privileged) */}
            {(isAdmin || userRole === "admin_yayasan") && (
-               <TabsTrigger value="signer" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Penandatangan</TabsTrigger>
+               <TabsTrigger value="signer" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Penandatangan</TabsTrigger>
            )}
-           <TabsTrigger value="profil" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Profil Lembaga</TabsTrigger>
-           <TabsTrigger value="security" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">Keamanan Akun</TabsTrigger>
+           <TabsTrigger value="profil" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Profil Lembaga</TabsTrigger>
+           <TabsTrigger value="security" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Keamanan Akun</TabsTrigger>
            {isAdmin && (
-               <TabsTrigger value="system" className="data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm bg-slate-100/50 border border-transparent data-[state=active]:border-border">System</TabsTrigger>
+               <TabsTrigger value="system" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Sistem</TabsTrigger>
            )}
         </TabsList>
 

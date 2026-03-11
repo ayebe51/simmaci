@@ -1,6 +1,14 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// List all classes globally (for Super Admin or full data needs)
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("classes").collect();
+  },
+});
+
 // List classes by school
 export const list = query({
   args: { schoolId: v.id("schools") },

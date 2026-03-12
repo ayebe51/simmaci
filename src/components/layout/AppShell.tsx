@@ -141,9 +141,9 @@ export default function AppShell({ children }: AppShellProps) {
               const userRole = user?.role || ""
 
               const visibleItems = group.items.filter(item => {
-                  // 1. ADMIN & SUPER ADMIN (Settings)
+                  // 1. ADMIN & OPERATOR (Settings access)
                   if (item.label === "Pengaturan") {
-                      return ["super_admin", "admin_yayasan", "admin"].includes(userRole);
+                      return ["super_admin", "admin_yayasan", "admin", "operator"].includes(userRole);
                   }
 
                   // 2. YAYASAN & SUPER ADMIN EXCLUSIVE

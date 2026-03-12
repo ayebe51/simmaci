@@ -14,10 +14,17 @@ export const paginatedList = query({
   },
   handler: async (ctx, args) => {
     const { paginationOpts, searchTerm, kecamatan } = args;
+    // Get all operators to check accounts
+    const operators = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "operator"))
+      .collect();
 
+    const operatorUnits = new Set(operators.map(u => u.unit));
+
+    let results;
     if (searchTerm) {
-      // Use search index
-      return await ctx.db
+      results = await ctx.db
         .query("schools")
         .withSearchIndex("search_schools", (q) => {
           let query = q.search("nama", searchTerm);
@@ -28,20 +35,27 @@ export const paginatedList = query({
         })
         .paginate(paginationOpts);
     } else {
-      // Regular query with optional filter
       if (kecamatan && kecamatan !== "all") {
-        return await ctx.db
+        results = await ctx.db
           .query("schools")
           .withIndex("by_kecamatan", (q) => q.eq("kecamatan", kecamatan))
           .paginate(paginationOpts);
       } else {
-        // Default sort by natural order (creation time)
-        return await ctx.db
+        results = await ctx.db
           .query("schools")
           .order("desc")
           .paginate(paginationOpts);
       }
     }
+
+    // Add hasAccount flag
+    return {
+      ...results,
+      page: results.page.map(s => ({
+        ...s,
+        hasAccount: operatorUnits.has(s.nama)
+      }))
+    };
   },
 });
 
@@ -52,10 +66,17 @@ export const list = query({
     token: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-
     try {
         let schools = await ctx.db.query("schools").collect();
         
+        // Get all operators to check accounts
+        const operators = await ctx.db
+          .query("users")
+          .withIndex("by_role", (q) => q.eq("role", "operator"))
+          .collect();
+
+        const operatorUnits = new Set(operators.map(u => u.unit));
+
         // RBAC: Check if user is an Operator via Token
         let user = null;
         if (args.token) {
@@ -73,7 +94,10 @@ export const list = query({
           schools = schools.filter(s => s.kecamatan === args.kecamatan);
         }
         
-        return schools;
+        return schools.map(s => ({
+          ...s,
+          hasAccount: operatorUnits.has(s.nama)
+        }));
     } catch (error) {
         console.error("Error in schools:list", error);
         return [];

@@ -77,34 +77,19 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
       <style>
         {`
           @media print {
-            /* Force all possible parent layouts to collapse and flow naturally */
-            body, html, #root, main, .container, [role="main"], 
-            .grid, .flex, .container > div, .md\\:col-span-3, .md\\:col-span-4 { 
-              height: auto !important; 
-              overflow: visible !important; 
-              display: block !important; 
-              position: static !important;
-              max-height: none !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              width: 100% !important;
-            }
-            
-            body, html { background: white !important; }
             .no-print { display: none !important; }
             
             .kta-print-container {
                display: block !important;
                width: 100% !important;
-               margin: 0 !important;
-               padding: 0 !important;
+               margin: 0 auto !important;
+               padding: 20px 0 !important;
                background: white !important;
                page-break-after: always !important;
                break-after: page !important;
                position: relative !important;
             }
             
-            /* Isolated absolute center for single-card mode */
             #kta-print-area {
                position: absolute !important;
                left: 0 !important;
@@ -116,6 +101,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                align-items: center !important;
                justify-content: center !important;
                z-index: 99999 !important;
+               background: white !important;
             }
             
             * { 
@@ -126,7 +112,10 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
               filter: none !important;
             }
             
-            @page { margin: 10mm; }
+            @page { 
+              margin: 0; 
+              size: auto;
+            }
           }
         `}
       </style>

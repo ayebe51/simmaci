@@ -22,7 +22,7 @@ export default function StudentCardPage() {
         s.nisn?.includes(search) ||
         s.nik?.includes(search)
       )
-    : students.slice(0, 10); // Show top 10 by default if no search
+    : students; // Show all students
 
   const handlePrintAll = () => {
     window.print();

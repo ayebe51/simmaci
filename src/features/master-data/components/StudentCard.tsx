@@ -15,9 +15,10 @@ interface StudentCardProps {
     photoId?: Id<"_storage"> | string;
     kelas?: string;
   };
+  isBatch?: boolean;
 }
 
-export default function StudentCard({ student }: StudentCardProps) {
+export default function StudentCard({ student, isBatch }: StudentCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   
   // Load student-specific templates
@@ -63,80 +64,66 @@ export default function StudentCard({ student }: StudentCardProps) {
       <style>
         {`
           @media print {
-            /* Force all parent containers to allow overflow */
-            body, html, #root, main, .container, .grid, .md\\:col-span-3 { 
-              height: auto !important; 
-              overflow: visible !important; 
-              display: block !important; 
+            /* Force natural flow for all parent containers */
+            html, body, #root, main, .md\\:col-span-3, .md\\:col-span-4 {
+              height: auto !important;
+              min-height: 0 !important;
+              overflow: visible !important;
+              display: block !important;
               position: static !important;
+              margin: 0 !important;
+              padding: 0 !important;
             }
 
-            body, html {
-               margin: 0 !important;
-               padding: 0 !important;
-            }
+            .no-print { display: none !important; }
+            
             .student-print-container {
-               display: flex !important;
-               flex-direction: column !important;
-               align-items: center !important;
-               justify-content: flex-start !important;
-               padding-top: 20px !important;
-               gap: 20px !important;
+               display: block !important;
+               width: 100% !important;
+               margin: 0 auto !important;
+               padding: 20px 0 !important;
                background: white !important;
                page-break-after: always !important;
                break-after: page !important;
+               position: relative !important;
             }
+            
+            /* Isolated absolute center for single-card mode */
             #student-print-area {
                position: absolute !important;
                left: 0 !important;
                top: 0 !important;
                width: 100% !important;
+               height: 100vh !important;
+               display: flex !important;
+               flex-direction: column !important;
+               align-items: center !important;
+               justify-content: center !important;
                z-index: 99999 !important;
-               min-height: 100vh !important;
+               background: white !important;
             }
-            .no-print {
-               display: none !important;
-            }
-            .print\\:-webkit-text-fill-color {
-               -webkit-text-fill-color: initial !important; 
-            }
-            /* Ensure colors print correctly */
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
+            
+            * { 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
               backdrop-filter: none !important;
               -webkit-backdrop-filter: none !important;
               filter: none !important;
             }
-            .print-color-white {
-              color: white !important;
-              -webkit-text-fill-color: white !important;
-            }
-            .print-color-yellow {
-              color: #fde047 !important;
-              -webkit-text-fill-color: #fde047 !important;
-            }
-            .print-color-emerald {
-              color: #a7f3d0 !important;
-              -webkit-text-fill-color: #a7f3d0 !important;
-            }
-            .print-color-blue {
-              color: #93c5fd !important;
-              -webkit-text-fill-color: #93c5fd !important;
-            }
-            .print-border-blue {
-              border-color: #3b82f6 !important;
-            }
-            @page {
-              margin: 10mm;
+            
+            @page { 
+              margin: 5mm; 
+              size: auto;
             }
           }
         `}
       </style>
 
       {/* PRINT CONTAINER */}
-      <div id="student-print-area" className="student-print-container flex flex-col md:flex-row gap-6 items-center justify-center">
+      <div 
+        id={isBatch ? undefined : "student-print-area"} 
+        className={`student-print-container flex flex-col ${isBatch ? "mb-12" : "md:flex-row gap-6"} items-center justify-center`}
+      >
           
           <div 
             style={{
@@ -144,9 +131,9 @@ export default function StudentCard({ student }: StudentCardProps) {
                 backgroundImage: templateFront ? `url(${templateFront})` : "linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)", // Premium Navy
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
             }}
-            className="border border-blue-400/20 relative overflow-hidden"
+            className={`border border-blue-400/20 relative overflow-hidden print:shadow-none ${isBatch ? "print:border-slate-800" : ""}`}
           >
             {/* Holographic / Light Accent overlays */}
             {!templateFront && (
@@ -220,7 +207,7 @@ export default function StudentCard({ student }: StudentCardProps) {
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 color: "white",
-                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
             }}
             className="border border-blue-500/20 relative"
           >

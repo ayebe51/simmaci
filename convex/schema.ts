@@ -75,6 +75,7 @@ export default defineSchema({
     isVerified: v.optional(v.any()),
     qrCode: v.optional(v.any()),
     status: v.optional(v.string()), // Aktif, Lulus, Keluar
+    lastTransitionAt: v.optional(v.number()), // Marker for batch processing
     createdAt: v.any(),
     updatedAt: v.any(),
   })

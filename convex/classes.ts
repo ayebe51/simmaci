@@ -18,26 +18,17 @@ export const listBySchool = query({
             return [];
         }
         
-        // Use a more generic query if it's not a clear ID string
-        // but we'll try the index first
-        return await ctx.db
-          .query("classes")
-          .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId as any))
-          .collect();
+        // Hyper-safe: collect all and filter manually to bypass any index issues
+        const all = await ctx.db.query("classes").collect();
+        return all.filter(c => String(c.schoolId) === String(args.schoolId));
     } catch (error) {
         console.error("Error in classes:listBySchool", error);
-        // Fallback to manual filter if index fails for some reason
-        try {
-            const all = await ctx.db.query("classes").collect();
-            return all.filter(c => c.schoolId === args.schoolId);
-        } catch (e) {
-            return [];
-        }
+        return [];
     }
   },
 });
 
-// Alias for compatibility (if needed, but we'll update the frontend)
+// Alias for compatibility
 export const list = listBySchool;
 
 // List active classes by school

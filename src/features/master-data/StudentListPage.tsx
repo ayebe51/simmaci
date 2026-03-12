@@ -156,8 +156,8 @@ export default function StudentListPage() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
   // Fetch count of students for transition
-  const transitionStudentCount = useQuery(convexApi.students.countStudentsForTransition, 
-    currentSchool ? { schoolId: currentSchool._id } : "skip"
+  const transitionStudentCount = useQuery(convexApi.students.countActiveBySchool, 
+    currentSchool?.nama ? { namaSekolah: currentSchool.nama } : "skip"
   );
 
   const loadStudents = async () => {

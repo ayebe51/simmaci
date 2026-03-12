@@ -155,9 +155,9 @@ export default function StudentListPage() {
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
-  // Fetch count of students for transition
+  // Fetch count of students for transition - ONLY when modal is open to avoid blocking page load
   const transitionStudentCount = useQuery(convexApi.students.countActiveBySchool, 
-    currentSchool?.nama ? { namaSekolah: currentSchool.nama } : "skip"
+    (isTransitionModalOpen && currentSchool?.nama) ? { namaSekolah: currentSchool.nama } : "skip"
   );
 
   const loadStudents = async () => {

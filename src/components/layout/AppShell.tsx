@@ -105,11 +105,11 @@ export default function AppShell({ children }: AppShellProps) {
   ]
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 relative overflow-hidden">
+    <div className="flex h-screen w-full bg-slate-50 relative overflow-hidden print:block print:h-auto print:overflow-visible">
       {/* Subtle Background Glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-400/20 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-amber-400/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-400/20 rounded-full blur-[140px] pointer-events-none print:hidden" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[140px] pointer-events-none print:hidden" />
+      <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-amber-400/10 rounded-full blur-[140px] pointer-events-none print:hidden" />
 
       {/* Sidebar */}
       <aside

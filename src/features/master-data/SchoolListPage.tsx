@@ -491,8 +491,7 @@ export default function SchoolListPage() {
                       <TableHead className="font-bold text-emerald-800 tracking-wide">Kecamatan</TableHead>
                       <TableHead className="font-bold text-emerald-800 tracking-wide">Kepala Sekolah</TableHead>
                       <TableHead className="font-bold text-emerald-800 tracking-wide">No. HP</TableHead>
-                      <TableHead className="font-bold text-emerald-800 tracking-wide">Akun</TableHead>
-                      <TableHead className="font-bold text-emerald-800 tracking-wide">Afiliasi</TableHead>
+                      <TableHead className="font-bold text-emerald-800 tracking-wide">Status</TableHead>
                       <TableHead className="text-right font-bold text-emerald-800 tracking-wide">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -517,21 +516,6 @@ export default function SchoolListPage() {
                             <TableCell>{item.kepala}</TableCell>
                             <TableCell>
                                 <span className="text-sm">{item.noHpKepala || '-'}</span>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                    {(item as any).hasAccount ? (
-                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-semibold border border-emerald-200 shadow-sm">
-                                            <KeyRound className="h-3 w-3" />
-                                            Aktif
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-600 rounded-lg text-xs font-semibold border border-amber-200/50 shadow-sm">
-                                            <AlertTriangle className="h-3 w-3" />
-                                            Belum Ada
-                                        </div>
-                                    )}
-                                </div>
                             </TableCell>
                             <TableCell>{item.statusJamiyyah}</TableCell>
                             <TableCell className="text-right space-x-2">

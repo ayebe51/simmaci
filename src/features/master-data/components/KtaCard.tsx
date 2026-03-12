@@ -77,6 +77,17 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
       <style>
         {`
           @media print {
+            /* Force natural flow for all parent containers */
+            html, body, #root, main, .md\\:col-span-3, .md\\:col-span-4 {
+              height: auto !important;
+              min-height: 0 !important;
+              overflow: visible !important;
+              display: block !important;
+              position: static !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+
             .no-print { display: none !important; }
             
             .kta-print-container {
@@ -90,6 +101,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                position: relative !important;
             }
             
+            /* Isolated absolute center for single-card mode */
             #kta-print-area {
                position: absolute !important;
                left: 0 !important;
@@ -113,7 +125,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
             }
             
             @page { 
-              margin: 0; 
+              margin: 5mm; 
               size: auto;
             }
           }
@@ -135,9 +147,11 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                   : "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
+                transform: isBatch ? "scale(1.1)" : "none", // Scale up slightly for print visibility
+                transformOrigin: "center"
             }}
-            className={`border ${isTeacher ? "border-yellow-500/20" : "border-blue-400/20"} relative overflow-hidden print:shadow-none`}
+            className={`border ${isTeacher ? "border-yellow-500/20" : "border-blue-400/20"} relative overflow-hidden print:shadow-none print:border-slate-800`}
           >
             {!templateFront && (
               <>

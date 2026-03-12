@@ -14,12 +14,10 @@ export const list = query({
   args: { schoolId: v.optional(v.any()) },
   handler: async (ctx, args) => {
     try {
-        if (!args.schoolId || args.schoolId === "all" || typeof args.schoolId !== "string") {
+        if (!args.schoolId || args.schoolId === "all") {
             return [];
         }
         
-        // Safety check for valid ID format if it's a string
-        // If it's not a valid ID for 'schools', the query might fail, so we catch it.
         return await ctx.db
           .query("classes")
           .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId as any))
@@ -33,12 +31,13 @@ export const list = query({
 
 // List active classes by school
 export const listActive = query({
-  args: { schoolId: v.id("schools") },
+  args: { schoolId: v.optional(v.id("schools")) },
   handler: async (ctx, args) => {
+    if (!args.schoolId) return [];
     return await ctx.db
       .query("classes")
       .withIndex("by_school_active", (q) =>
-        q.eq("schoolId", args.schoolId).eq("isActive", true)
+        q.eq("schoolId", args.schoolId!).eq("isActive", true)
       )
       .collect();
   },

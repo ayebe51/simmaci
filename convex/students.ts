@@ -546,11 +546,12 @@ export const getByKelas = query({
   },
 });
 
-// 🔥 BATCH PROMOTION & GRADUATION
+// 🔥 BATCH PROMOTION & GRADUATION (Updated with Chunking & Safety)
 export const batchTransition = mutation({
   args: {
     schoolId: v.id("schools"),
     token: v.string(),
+    transitionTimestamp: v.optional(v.number()), // Shared timestamp from frontend
   },
   handler: async (ctx, args) => {
     // 1. AUTHENTICATION
@@ -561,16 +562,24 @@ export const batchTransition = mutation({
     const school = await ctx.db.get(args.schoolId);
     if (!school) throw new Error("School not found");
 
-    // 3. GET ACTIVE STUDENTS
+    // 3. GET ACTIVE STUDENTS (Limited to 200 per batch for safe write limits)
+    const BATCH_SIZE = 200;
     const students = await ctx.db
       .query("students")
       .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
       .filter((q) => q.eq(q.field("status"), "Aktif"))
-      .collect();
+      .take(BATCH_SIZE);
 
-    const now = Date.now();
+    if (students.length === 0) {
+      return { processed: 0, promoted: 0, graduated: 0, skipped: 0, isDone: true };
+    }
+
+    console.log(`[BatchTransition] Processing chunk of ${students.length} students for ${school.nama}`);
+
+    const now = args.transitionTimestamp || Date.now();
     let promoted = 0;
     let graduated = 0;
+    let skipped = 0;
 
     const romanMap: Record<string, number> = {
       I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6,
@@ -578,72 +587,114 @@ export const batchTransition = mutation({
     };
 
     const toRoman = (num: number): string => {
-      return Object.keys(romanMap).find(key => romanMap[key] === num) || String(num);
+      const entry = Object.entries(romanMap).find(([_, val]) => val === num);
+      return entry ? entry[0] : String(num);
     };
 
     // 4. TRANSITION LOGIC
     for (const student of students) {
-      const currentKelas = String(student.kelas || "").trim();
-      if (!currentKelas) continue;
+      try {
+        const currentKelas = String(student.kelas || "").trim();
+        if (!currentKelas) {
+          await ctx.db.patch(student._id, { 
+            lastTransitionAt: now,
+            updatedAt: now 
+          });
+          skipped++;
+          continue;
+        }
 
-      // Match Grade (Arabic or Roman at the start)
-      const gradeMatch = currentKelas.match(/^([0-9]+|[IVXLC]+)/i);
-      if (!gradeMatch) continue;
+        const gradeMatch = currentKelas.match(/^([0-9]+|[IVXLC]+)/i);
+        if (!gradeMatch) {
+          await ctx.db.patch(student._id, { 
+            lastTransitionAt: now,
+            updatedAt: now 
+          });
+          skipped++;
+          continue;
+        }
 
-      const gradeStr = gradeMatch[1].toUpperCase();
-      let gradeNum = 0;
+        const gradeStr = gradeMatch[1].toUpperCase();
+        let gradeNum = 0;
+        if (romanMap[gradeStr]) {
+          gradeNum = romanMap[gradeStr];
+        } else {
+          gradeNum = parseInt(gradeStr, 10);
+        }
 
-      if (romanMap[gradeStr]) {
-        gradeNum = romanMap[gradeStr];
-      } else {
-        gradeNum = parseInt(gradeStr, 10);
-      }
+        if (isNaN(gradeNum) || gradeNum === 0) {
+          await ctx.db.patch(student._id, { 
+            lastTransitionAt: now,
+            updatedAt: now 
+          });
+          skipped++;
+          continue;
+        }
 
-      if (isNaN(gradeNum) || gradeNum === 0) continue;
+        const sNama = school.nama.toUpperCase();
+        const isMI = sNama.includes("MI ") || sNama.includes(" MI") || sNama.includes("SD ");
+        const isMTs = sNama.includes("MTS") || sNama.includes("SMP ");
+        const isMA = sNama.includes("MA ") || sNama.includes(" MA") || sNama.includes("SMA ") || sNama.includes("SMK");
 
-      // School Type Detection
-      const sNama = school.nama.toUpperCase();
-      const isMI = sNama.includes("MI ") || sNama.includes(" MI") || sNama.includes("SD ");
-      const isMTs = sNama.includes("MTS") || sNama.includes("SMP ");
-      const isMA = sNama.includes("MA ") || sNama.includes(" MA") || sNama.includes("SMA ") || sNama.includes("SMK");
+        const isGraduating =
+          (isMI && gradeNum >= 6) ||
+          (isMTs && gradeNum >= 9) ||
+          (isMA && gradeNum >= 12);
 
-      // Graduation Thresholds
-      const isGraduating =
-        (isMI && gradeNum >= 6) ||
-        (isMTs && gradeNum >= 9) ||
-        (isMA && gradeNum >= 12);
+        if (isGraduating) {
+          await ctx.db.patch(student._id, {
+            status: "Lulus",
+            lastTransitionAt: now,
+            updatedAt: now,
+          });
+          graduated++;
+        } else {
+          const newGradeNum = gradeNum + 1;
+          const newGradeStr = romanMap[gradeStr] ? toRoman(newGradeNum) : String(newGradeNum);
+          const newKelas = currentKelas.replace(gradeMatch[1], newGradeStr);
 
-      if (isGraduating) {
-        await ctx.db.patch(student._id, {
-          status: "Lulus",
-          updatedAt: now,
-        });
-        graduated++;
-      } else {
-        // Promotion Logic
-        const newGradeNum = gradeNum + 1;
-        const newGradeStr = romanMap[gradeStr] ? toRoman(newGradeNum) : String(newGradeNum);
-        
-        // Replace ONLY the first occurrence (the grade level)
-        const newKelas = currentKelas.replace(gradeMatch[1], newGradeStr);
-
-        await ctx.db.patch(student._id, {
-          kelas: newKelas,
-          updatedAt: now,
-        });
-        promoted++;
+          await ctx.db.patch(student._id, {
+            kelas: newKelas,
+            lastTransitionAt: now,
+            updatedAt: now,
+          });
+          promoted++;
+        }
+      } catch (err) {
+        console.error(`[BatchTransition] Error processing student ${student._id}:`, err);
+        throw err;
       }
     }
 
-    // LOG ACTIVITY
-    await ctx.db.insert("activity_logs", {
-      user: (user as any).name,
-      role: (user as any).role,
-      action: "batch_transition",
-      details: `Proses kenaikan kelas di ${school.nama}: ${promoted} naik, ${graduated} lulus.`,
-      timestamp: now,
-    });
+    // Check if more students exist (that haven't been processed in this 'now' window)
+    // To be safer, we check for students WITHOUT the current timestamp marker
+    const moreStudents = await ctx.db
+      .query("students")
+      .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
+      .filter((q) => q.and(
+          q.eq(q.field("status"), "Aktif"),
+          q.neq(q.field("lastTransitionAt"), now)
+      ))
+      .first();
 
-    return { promoted, graduated };
+    const isDone = !moreStudents;
+
+    if (isDone) {
+      await ctx.db.insert("activity_logs", {
+        user: (user as any).name || "Admin",
+        role: (user as any).role || "Operator",
+        action: "batch_transition",
+        details: `Selesai proses kenaikan kelas di ${school.nama}.`,
+        timestamp: now,
+      });
+    }
+
+    return { 
+      processed: students.length, 
+      promoted, 
+      graduated, 
+      skipped, 
+      isDone 
+    };
   },
 });

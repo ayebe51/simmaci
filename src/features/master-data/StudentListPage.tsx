@@ -155,6 +155,11 @@ export default function StudentListPage() {
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
 
+  // Fetch count of students for transition
+  const transitionStudentCount = useQuery(convexApi.students.countStudentsForTransition, 
+    currentSchool ? { schoolId: currentSchool._id } : "skip"
+  );
+
   const loadStudents = async () => {
     // No longer needed - Convex auto-updates!
     // Kept for compatibility
@@ -450,13 +455,37 @@ export default function StudentListPage() {
 
     try {
         setIsTransitionLoading(true);
-        const result = await batchTransitionMutation({
-            schoolId: currentSchool._id,
-            token: localStorage.getItem("token") || ""
-        });
-        toast.success(`Berhasil! ${result.promoted} naik kelas, ${result.graduated} lulus.`);
+        let isDone = false;
+        let totalPromoted = 0;
+        let totalGraduated = 0;
+        let totalProcessed = 0;
+
+        const token = localStorage.getItem("token") || "";
+        const transitionTimestamp = Date.now();
+
+        while (!isDone) {
+            const result = await batchTransitionMutation({
+                schoolId: currentSchool._id,
+                token,
+                transitionTimestamp
+            });
+            
+            totalPromoted += result.promoted;
+            totalGraduated += result.graduated;
+            totalProcessed += result.processed;
+            isDone = result.isDone;
+
+            if (!isDone) {
+                // Optional: small delay to not hammer the server? 
+                // But Convex mutations are fast and this is a user-triggered batch.
+                console.log(`[Transition] Processed ${totalProcessed} students...`);
+            }
+        }
+
+        toast.success(`Selesai! ${totalPromoted} naik kelas, ${totalGraduated} lulus.`);
         setIsTransitionModalOpen(false);
     } catch (e: any) {
+        console.error("[Transition Error]", e);
         toast.error("Gagal memproses kenaikan kelas: " + e.message);
     } finally {
         setIsTransitionLoading(false);
@@ -1011,7 +1040,14 @@ export default function StudentListPage() {
                 </div>
                 
                 <p className="text-sm text-slate-600">
-                    Apakah Anda yakin ingin memproses data siswa di <strong>{currentSchool?.nama || 'Sekolah'}</strong>? Tindakan ini tidak dapat dibatalkan secara otomatis.
+                    {transitionStudentCount !== undefined ? (
+                        <>Ditemukan <strong>{transitionStudentCount}</strong> siswa aktif di <strong>{currentSchool?.nama || 'Sekolah'}</strong>.</>
+                    ) : (
+                        <>Menghitung jumlah siswa...</>
+                    )}
+                </p>
+                <p className="text-xs text-slate-400 italic">
+                    Tindakan ini akan memproses semua siswa di atas dalam beberapa tahap untuk memastikan data aman.
                 </p>
             </div>
             <DialogFooter>

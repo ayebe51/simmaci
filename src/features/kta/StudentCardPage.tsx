@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, CreditCard, Printer, School, Layers } from "lucide-react";
+import { Search, CreditCard, Printer, School, Layers, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -26,8 +26,10 @@ export default function StudentCardPage() {
   
   // Data Fetching
   const schools = useQuery(api.schools.list, { token }) || [];
-  const classesForSchool = useQuery(api.classes.list, { 
-    schoolId: selectedSchoolId !== "all" ? (selectedSchoolId as Id<"schools">) : undefined 
+  
+  // UPDATED: Use the new renamed query for cache busting and stability
+  const classesForSchool = useQuery(api.classes.listBySchool, { 
+    schoolId: selectedSchoolId !== "all" ? selectedSchoolId : undefined 
   } as any) || [];
 
   const students = useQuery(api.students.list, { token }) || [];

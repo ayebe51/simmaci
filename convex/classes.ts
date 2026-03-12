@@ -9,8 +9,8 @@ export const listAll = query({
   },
 });
 
-// List classes by school
-export const list = query({
+// List classes by school - RENAMED to bust any potential cache/ghosting
+export const listBySchool = query({
   args: { schoolId: v.optional(v.any()) },
   handler: async (ctx, args) => {
     try {
@@ -18,16 +18,27 @@ export const list = query({
             return [];
         }
         
+        // Use a more generic query if it's not a clear ID string
+        // but we'll try the index first
         return await ctx.db
           .query("classes")
           .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId as any))
           .collect();
     } catch (error) {
-        console.error("Error in classes:list", error);
-        return [];
+        console.error("Error in classes:listBySchool", error);
+        // Fallback to manual filter if index fails for some reason
+        try {
+            const all = await ctx.db.query("classes").collect();
+            return all.filter(c => c.schoolId === args.schoolId);
+        } catch (e) {
+            return [];
+        }
     }
   },
 });
+
+// Alias for compatibility (if needed, but we'll update the frontend)
+export const list = listBySchool;
 
 // List active classes by school
 export const listActive = query({

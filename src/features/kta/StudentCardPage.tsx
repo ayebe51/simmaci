@@ -64,8 +64,6 @@ export default function StudentCardPage() {
 
   // Limit display students for the interactive list to keep it fast
   const displayStudents = useMemo(() => {
-      // In batch mode, we might want to show everything, but the preview has its own logic
-      // This list is for the LEFT sidebar
       if (isBatchMode) return filteredStudents;
       if (search || selectedClass !== "all" || selectedSchoolId !== "all") return filteredStudents;
       return filteredStudents.slice(0, 20);

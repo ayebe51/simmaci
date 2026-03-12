@@ -114,7 +114,7 @@ export default function AppShell({ children }: AppShellProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white/70 backdrop-blur-2xl border-r border-white/60 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static",
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white/70 backdrop-blur-2xl border-r border-white/60 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static print:hidden",
           sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
         )}
       >
@@ -235,9 +235,9 @@ export default function AppShell({ children }: AppShellProps) {
       </aside>
 
       {/* Main Content Wrapper */}
-      <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full max-w-full">
+      <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full max-w-full print:block print:overflow-visible print:h-auto">
         {/* Header */}
-        <header className="flex h-20 items-center gap-4 px-6 bg-white/40 backdrop-blur-md border-b border-white/50 sticky top-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
+        <header className="flex h-20 items-center gap-4 px-6 bg-white/40 backdrop-blur-md border-b border-white/50 sticky top-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.02)] print:hidden">
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex hover:bg-emerald-50 hover:text-emerald-700">
              <Menu className="h-5 w-5"/>
              <span className="sr-only">Toggle Sidebar</span>
@@ -264,7 +264,7 @@ export default function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Main Content View with Scroll */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible print:block print:h-auto">
            {children}
         </main>
         <Toaster richColors position="top-right" />

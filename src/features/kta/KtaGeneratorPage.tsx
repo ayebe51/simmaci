@@ -97,14 +97,14 @@ export default function KtaGeneratorPage() {
         {/* MAIN DISPLAY AREA */}
         <div className="md:col-span-3">
           {isBatchMode ? (
-            <div className="bg-white p-6 rounded-3xl shadow-xl border space-y-8 min-h-[600px] print:p-0 print:border-none print:shadow-none">
+            <div className="bg-white p-6 rounded-3xl shadow-xl border space-y-8 min-h-[600px] print:p-0 print:border-none print:shadow-none print:block print:w-full print:space-y-0">
                <div className="flex items-center justify-between border-b pb-4 print:hidden">
                   <h3 className="font-bold text-lg">Pratinjau Batch KTA Guru</h3>
                   <p className="text-xs text-slate-400 font-medium">Menampilkan {filteredTeachers.length} kartu</p>
                </div>
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 justify-items-center print:block print:w-full print:space-y-0">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 justify-items-center print:block print:w-full print:m-0 print:p-0">
                  {filteredTeachers.map((person: any) => (
-                   <div key={person._id} className="print:block print:w-full">
+                   <div key={person._id} className="print:block print:w-full print:m-0 print:p-0 print:page-break-after-always">
                      <KtaCard 
                         data={person} 
                         type="teacher" 

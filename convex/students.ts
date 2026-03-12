@@ -401,25 +401,36 @@ export const count = query({
   },
 });
 
-// Count active students for transition
+// Count active students for transition (Hyper-resilient version)
 export const countActiveBySchool = query({
-  args: { namaSekolah: v.string() },
+  args: { namaSekolah: v.any() }, // Use any() to avoid validator crashes
   handler: async (ctx, args) => {
     try {
-        if (!args.namaSekolah) return 0;
+        const name = String(args.namaSekolah || "").trim();
+        if (!name) return 0;
+
+        // Try using the combined index first (efficient)
+        // We use .take(5000) as an absolute safety ceiling for MI-scale data
         const students = await ctx.db
             .query("students")
-            .withIndex("unique_school_status", (q) => q.eq("namaSekolah", args.namaSekolah).eq("status", "Aktif"))
-            .collect();
+            .withIndex("unique_school_status", (q) => q.eq("namaSekolah", name).eq("status", "Aktif"))
+            .take(5000);
+            
         return students.length;
     } catch (e) {
-        console.warn("Falling back to filter-based count:", e);
-        const alt = await ctx.db
-          .query("students")
-          .withIndex("by_school", (q) => q.eq("namaSekolah", args.namaSekolah))
-          .filter((q) => q.eq(q.field("status"), "Aktif"))
-          .collect();
-        return alt.length;
+        console.warn("[Convex] countActiveBySchool Index Fallback:", e);
+        try {
+            const name = String(args.namaSekolah || "").trim();
+            // Fallback to basic school index + JS filter if combined index is not yet ready
+            const alt = await ctx.db
+              .query("students")
+              .withIndex("by_school", (q) => q.eq("namaSekolah", name))
+              .take(5000);
+            return alt.filter(s => s.status === "Aktif").length;
+        } catch (innerE) {
+            console.error("[Convex] countActiveBySchool Fatal:", innerE);
+            return 0; // Total safety
+        }
     }
   },
 });

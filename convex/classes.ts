@@ -11,8 +11,9 @@ export const listAll = query({
 
 // List classes by school
 export const list = query({
-  args: { schoolId: v.id("schools") },
+  args: { schoolId: v.optional(v.id("schools")) },
   handler: async (ctx, args) => {
+    if (!args.schoolId) return [];
     return await ctx.db
       .query("classes")
       .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))

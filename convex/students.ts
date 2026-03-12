@@ -402,21 +402,19 @@ export const count = query({
 });
 
 // Count active students for transition
-export const countStudentsForTransition = query({
-  args: { schoolId: v.id("schools") },
+export const countActiveBySchool = query({
+  args: { namaSekolah: v.string() },
   handler: async (ctx, args) => {
     try {
-        const school = await ctx.db.get(args.schoolId);
-        if (!school) return 0;
         const students = await ctx.db
           .query("students")
-          .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
+          .withIndex("by_school", (q) => q.eq("namaSekolah", args.namaSekolah))
           .filter((q) => q.eq(q.field("status"), "Aktif"))
           .collect();
         return students.length;
     } catch (e) {
-        console.error("Error in countStudentsForTransition:", e);
-        return 0; // Fallback to 0 to avoid breaking UI
+        console.error("Error in countActiveBySchool:", e);
+        return 0;
     }
   },
 });

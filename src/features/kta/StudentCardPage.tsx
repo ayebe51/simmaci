@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useRef, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, CreditCard } from "lucide-react";
+import { Search, CreditCard, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import StudentCard from "../master-data/components/StudentCard";
 
 export default function StudentCardPage() {
   const [search, setSearch] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [isBatchMode, setIsBatchMode] = useState(false);
 
   // Fetch all students (simplified for generator)

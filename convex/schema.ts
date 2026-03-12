@@ -84,6 +84,7 @@ export default defineSchema({
     .index("by_npsn", ["npsn"])
     .index("by_kecamatan", ["kecamatan"])
     .index("by_status", ["status"])
+    .index("unique_school_status", ["namaSekolah", "status"]) // Optimizer
     .searchIndex("search_students", {
       searchField: "nama",
       filterFields: ["namaSekolah", "kecamatan", "nisn"],

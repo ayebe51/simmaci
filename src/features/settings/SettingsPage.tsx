@@ -156,10 +156,10 @@ export default function SettingsPage() {
             const user = JSON.parse(userStr)
             setUserRole(user.role || "operator")
             
-            // If NOT Priveleged, redirect to Profil/Security
+            // If NOT Privileged, default to Security tab for fast password access
             const privilegedRoles = ["super_admin", "admin_yayasan", "admin"];
             if (!privilegedRoles.includes(user.role)) {
-                setActiveTab("profil")
+                setActiveTab("security")
             }
         }
     } catch (e) {
@@ -266,8 +266,8 @@ export default function SettingsPage() {
            {(isAdmin || userRole === "admin_yayasan") && (
                <TabsTrigger value="signer" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Penandatangan</TabsTrigger>
            )}
-           <TabsTrigger value="profil" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Profil Lembaga</TabsTrigger>
            <TabsTrigger value="security" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Keamanan Akun</TabsTrigger>
+           <TabsTrigger value="profil" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Profil Lembaga</TabsTrigger>
            {isAdmin && (
                <TabsTrigger value="system" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Sistem</TabsTrigger>
            )}

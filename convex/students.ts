@@ -406,15 +406,20 @@ export const countActiveBySchool = query({
   args: { namaSekolah: v.string() },
   handler: async (ctx, args) => {
     try {
+        if (!args.namaSekolah) return 0;
         const students = await ctx.db
+            .query("students")
+            .withIndex("unique_school_status", (q) => q.eq("namaSekolah", args.namaSekolah).eq("status", "Aktif"))
+            .collect();
+        return students.length;
+    } catch (e) {
+        console.warn("Falling back to filter-based count:", e);
+        const alt = await ctx.db
           .query("students")
           .withIndex("by_school", (q) => q.eq("namaSekolah", args.namaSekolah))
           .filter((q) => q.eq(q.field("status"), "Aktif"))
           .collect();
-        return students.length;
-    } catch (e) {
-        console.error("Error in countActiveBySchool:", e);
-        return 0;
+        return alt.length;
     }
   },
 });

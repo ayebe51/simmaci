@@ -147,9 +147,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                   : "linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
-                transform: isBatch ? "scale(1.1)" : "none", // Scale up slightly for print visibility
-                transformOrigin: "center"
+                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
             }}
             className={`border ${isTeacher ? "border-yellow-500/20" : "border-blue-400/20"} relative overflow-hidden print:shadow-none print:border-slate-800`}
           >

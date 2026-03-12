@@ -7,7 +7,7 @@ interface ActionButton {
   label: string
   onClick: () => void
   icon?: React.ReactNode
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "mint" | "cream" | "purple" | "blue"
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "mint" | "cream" | "purple" | "blue" | "orange"
 }
 
 interface SoftPageHeaderProps {

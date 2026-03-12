@@ -11,13 +11,23 @@ export const listAll = query({
 
 // List classes by school
 export const list = query({
-  args: { schoolId: v.optional(v.id("schools")) },
+  args: { schoolId: v.optional(v.any()) },
   handler: async (ctx, args) => {
-    if (!args.schoolId) return [];
-    return await ctx.db
-      .query("classes")
-      .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId))
-      .collect();
+    try {
+        if (!args.schoolId || args.schoolId === "all" || typeof args.schoolId !== "string") {
+            return [];
+        }
+        
+        // Safety check for valid ID format if it's a string
+        // If it's not a valid ID for 'schools', the query might fail, so we catch it.
+        return await ctx.db
+          .query("classes")
+          .withIndex("by_school", (q) => q.eq("schoolId", args.schoolId as any))
+          .collect();
+    } catch (error) {
+        console.error("Error in classes:list", error);
+        return [];
+    }
   },
 });
 

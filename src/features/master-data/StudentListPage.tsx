@@ -70,6 +70,12 @@ export default function StudentListPage() {
 
   
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isTransitionModalOpen, setIsTransitionModalOpen] = useState(false)
+  const [isTransitionLoading, setIsTransitionLoading] = useState(false)
+  
+  const currentSchool = useQuery(convexApi.schools.getMyself, { 
+    token: localStorage.getItem("token") || "" 
+  });
 
   // API Wilayah (Cilacap Only)
   const [regionData, setRegionData] = useState<any>(null)
@@ -262,6 +268,7 @@ export default function StudentListPage() {
   // ... (existing code)
 
   const updateStudentMutation = useMutation(convexApi.students.update);
+  const batchTransitionMutation = useMutation(convexApi.students.batchTransition);
   const generateUploadUrl = useMutation(convexApi.students.generateUploadUrl);
   const uploadToDrive = useAction(convexApi.drive.uploadFile);
   const getPhotoUrlQuery = convexApi.students.getPhotoUrl;
@@ -435,6 +442,37 @@ export default function StudentListPage() {
       }
   }
 
+  const handleBatchTransition = async () => {
+    if (!currentSchool) {
+        toast.error("Data sekolah tidak ditemukan.");
+        return;
+    }
+
+    try {
+        setIsTransitionLoading(true);
+        const result = await batchTransitionMutation({
+            schoolId: currentSchool._id,
+            token: localStorage.getItem("token") || ""
+        });
+        toast.success(`Berhasil! ${result.promoted} naik kelas, ${result.graduated} lulus.`);
+        setIsTransitionModalOpen(false);
+    } catch (e: any) {
+        toast.error("Gagal memproses kenaikan kelas: " + e.message);
+    } finally {
+        setIsTransitionLoading(false);
+    }
+  }
+
+  const isSuperAdmin = useMemo(() => {
+    try {
+        const u = localStorage.getItem("user")
+        if (u) {
+            return JSON.parse(u).role === "super_admin"
+        }
+    } catch(e) {}
+    return false
+  }, [])
+
   return (
     <div className="space-y-6">
       <SoftPageHeader
@@ -459,6 +497,12 @@ export default function StudentListPage() {
             onClick: () => setIsImportModalOpen(true),
             variant: 'blue',
             icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
+          },
+          {
+            label: 'Naik Kelas / Lulus',
+            onClick: () => setIsTransitionModalOpen(true),
+            variant: 'orange',
+            icon: <GraduationCap className="h-5 w-5 text-gray-700" />
           }
         ]}
       />
@@ -939,6 +983,51 @@ export default function StudentListPage() {
                   </Button>
               </DialogFooter>
           </DialogContent>
+      </Dialog>
+      
+      {/* Batch Transition (Promotion/Graduation) Modal */}
+      <Dialog open={isTransitionModalOpen} onOpenChange={setIsTransitionModalOpen}>
+        <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-6 w-6 text-orange-600" />
+                    Kenaikan Kelas & Kelulusan
+                </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-orange-800 font-bold text-sm">
+                        <AlertTriangle className="h-4 w-4" />
+                        PERHATIAN
+                    </div>
+                    <p className="text-xs text-orange-700 leading-relaxed">
+                        Fitur ini digunakan pada akhir tahun ajaran untuk memproses siswa secara kolektif:
+                    </p>
+                    <ul className="text-xs text-orange-700 list-disc pl-4 space-y-1">
+                        <li>Siswa kelas akhir (6/9/12) akan otomatis berstatus <strong>Lulus</strong>.</li>
+                        <li>Siswa lainnya akan naik 1 tingkat (contoh: 7A → 8A).</li>
+                        <li>Hanya memproses siswa dengan status <strong>Aktif</strong>.</li>
+                    </ul>
+                </div>
+                
+                <p className="text-sm text-slate-600">
+                    Apakah Anda yakin ingin memproses data siswa di <strong>{currentSchool?.nama || 'Sekolah'}</strong>? Tindakan ini tidak dapat dibatalkan secara otomatis.
+                </p>
+            </div>
+            <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsTransitionModalOpen(false)} disabled={isTransitionLoading}>
+                    Batal
+                </Button>
+                <Button 
+                    className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
+                    onClick={handleBatchTransition}
+                    disabled={isTransitionLoading}
+                >
+                    {isTransitionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-4 w-4" />}
+                    Proses Sekarang
+                </Button>
+            </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   )

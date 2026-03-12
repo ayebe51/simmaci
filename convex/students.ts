@@ -545,3 +545,105 @@ export const getByKelas = query({
       }));
   },
 });
+
+// 🔥 BATCH PROMOTION & GRADUATION
+export const batchTransition = mutation({
+  args: {
+    schoolId: v.id("schools"),
+    token: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // 1. AUTHENTICATION
+    const user = await validateSession(ctx, args.token);
+    if (!user) throw new Error("Unauthorized");
+
+    // 2. SCHOOL CHECK
+    const school = await ctx.db.get(args.schoolId);
+    if (!school) throw new Error("School not found");
+
+    // 3. GET ACTIVE STUDENTS
+    const students = await ctx.db
+      .query("students")
+      .withIndex("by_school", (q) => q.eq("namaSekolah", school.nama))
+      .filter((q) => q.eq(q.field("status"), "Aktif"))
+      .collect();
+
+    const now = Date.now();
+    let promoted = 0;
+    let graduated = 0;
+
+    const romanMap: Record<string, number> = {
+      I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6,
+      VII: 7, VIII: 8, IX: 9, X: 10, XI: 11, XII: 12
+    };
+
+    const toRoman = (num: number): string => {
+      return Object.keys(romanMap).find(key => romanMap[key] === num) || String(num);
+    };
+
+    // 4. TRANSITION LOGIC
+    for (const student of students) {
+      const currentKelas = String(student.kelas || "").trim();
+      if (!currentKelas) continue;
+
+      // Match Grade (Arabic or Roman at the start)
+      const gradeMatch = currentKelas.match(/^([0-9]+|[IVXLC]+)/i);
+      if (!gradeMatch) continue;
+
+      const gradeStr = gradeMatch[1].toUpperCase();
+      let gradeNum = 0;
+
+      if (romanMap[gradeStr]) {
+        gradeNum = romanMap[gradeStr];
+      } else {
+        gradeNum = parseInt(gradeStr, 10);
+      }
+
+      if (isNaN(gradeNum) || gradeNum === 0) continue;
+
+      // School Type Detection
+      const sNama = school.nama.toUpperCase();
+      const isMI = sNama.includes("MI ") || sNama.includes(" MI") || sNama.includes("SD ");
+      const isMTs = sNama.includes("MTS") || sNama.includes("SMP ");
+      const isMA = sNama.includes("MA ") || sNama.includes(" MA") || sNama.includes("SMA ") || sNama.includes("SMK");
+
+      // Graduation Thresholds
+      const isGraduating =
+        (isMI && gradeNum >= 6) ||
+        (isMTs && gradeNum >= 9) ||
+        (isMA && gradeNum >= 12);
+
+      if (isGraduating) {
+        await ctx.db.patch(student._id, {
+          status: "Lulus",
+          updatedAt: now,
+        });
+        graduated++;
+      } else {
+        // Promotion Logic
+        const newGradeNum = gradeNum + 1;
+        const newGradeStr = romanMap[gradeStr] ? toRoman(newGradeNum) : String(newGradeNum);
+        
+        // Replace ONLY the first occurrence (the grade level)
+        const newKelas = currentKelas.replace(gradeMatch[1], newGradeStr);
+
+        await ctx.db.patch(student._id, {
+          kelas: newKelas,
+          updatedAt: now,
+        });
+        promoted++;
+      }
+    }
+
+    // LOG ACTIVITY
+    await ctx.db.insert("activity_logs", {
+      user: (user as any).name,
+      role: (user as any).role,
+      action: "batch_transition",
+      details: `Proses kenaikan kelas di ${school.nama}: ${promoted} naik, ${graduated} lulus.`,
+      timestamp: now,
+    });
+
+    return { promoted, graduated };
+  },
+});

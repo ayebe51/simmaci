@@ -17,6 +17,12 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Soft Pastel Variants
+        mint: "bg-[#D5F0E3] text-[#155D44] hover:bg-[#C2E8D5] shadow-sm",
+        cream: "bg-[#F5EFE6] text-[#5D4037] hover:bg-[#EAE0D5] shadow-sm",
+        blue: "bg-[#D4E9F7] text-[#1C4E80] hover:bg-[#C2DEF2] shadow-sm",
+        purple: "bg-[#E6D9F2] text-[#4A148C] hover:bg-[#D8C7EB] shadow-sm",
+        orange: "bg-[#FFE5D9] text-[#E65100] hover:bg-[#FFD7C2] shadow-sm",
       },
       size: {
         default: "h-10 px-4 py-2",

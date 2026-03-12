@@ -48,12 +48,16 @@ export const paginatedList = query({
       }
     }
 
-    // Add hasAccount flag
+    // Add robust hasAccount flag
     return {
       ...results,
       page: results.page.map(s => ({
         ...s,
-        hasAccount: operatorUnits.has(s.nama)
+        hasAccount: operators.some(u => 
+            u.schoolId === s._id || 
+            (u.unit && u.unit === s.nama) || 
+            (s.nsm && u.email.startsWith(s.nsm))
+        )
       }))
     };
   },
@@ -96,7 +100,11 @@ export const list = query({
         
         return schools.map(s => ({
           ...s,
-          hasAccount: operatorUnits.has(s.nama)
+          hasAccount: operators.some(u => 
+              u.schoolId === s._id || 
+              (u.unit && u.unit === s.nama) || 
+              (s.nsm && u.email.startsWith(s.nsm))
+          )
         }));
     } catch (error) {
         console.error("Error in schools:list", error);
@@ -313,6 +321,7 @@ export const createSchoolAccount = mutation({
         passwordHash: hashPassword(password),
         role: "operator",
         unit: school.nama,
+        schoolId: school._id, // LINK TO SCHOOL ID
         isActive: true,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -420,6 +429,7 @@ export const bulkCreateSchoolAccounts = mutation({
           passwordHash: hashPassword(password),
           role: "operator",
           unit: school.nama,
+          schoolId: school._id, // LINK TO SCHOOL ID
           isActive: true,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -430,6 +440,7 @@ export const bulkCreateSchoolAccounts = mutation({
            await ctx.db.patch(existing._id, {
                role: "operator",
                unit: school.nama,
+               schoolId: school._id, // ENSURE LINK IS SET
            });
            status = "Updated";
       }

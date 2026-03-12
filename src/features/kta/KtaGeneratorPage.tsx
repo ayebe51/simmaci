@@ -102,9 +102,9 @@ export default function KtaGeneratorPage() {
                   <h3 className="font-bold text-lg">Pratinjau Batch KTA Guru</h3>
                   <p className="text-xs text-slate-400 font-medium">Menampilkan {filteredTeachers.length} kartu</p>
                </div>
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 justify-items-center print:grid-cols-1 print:gap-12">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 justify-items-center print:block print:w-full print:space-y-0">
                  {filteredTeachers.map((person: any) => (
-                   <div key={person._id} className="print:break-after-page">
+                   <div key={person._id} className="print:block print:w-full">
                      <KtaCard 
                         data={person} 
                         type="teacher" 

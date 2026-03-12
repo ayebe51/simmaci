@@ -27,10 +27,11 @@ export default function StudentCardPage() {
   // Data Fetching
   const schools = useQuery(api.schools.list, { token }) || [];
   
-  // UPDATED: Use the new renamed query for cache busting and stability
-  const classesForSchool = useQuery(api.classes.listBySchool, { 
-    schoolId: selectedSchoolId !== "all" ? selectedSchoolId : undefined 
-  } as any) || [];
+  // UPDATED: Use "skip" to avoid unnecessary/potentially crashing calls when no school is selected
+  const classesForSchool = useQuery(
+    api.classes.listBySchool, 
+    selectedSchoolId !== "all" ? { schoolId: selectedSchoolId } : "skip"
+  ) || [];
 
   const students = useQuery(api.students.list, { token }) || [];
 

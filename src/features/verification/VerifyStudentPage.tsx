@@ -1,41 +1,48 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { useQuery } from "@tanstack/react-query";
+import { verificationApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowLeft, Loader2, GraduationCap } from "lucide-react";
 
 export default function VerifyStudentPage() {
   const { nisn } = useParams<{ nisn: string }>();
   
-  // Assuming a public endpoint for verifying students exists
-  const student = useQuery(api.students.getByNisnPublic, { nisn: nisn || "" });
+  // 🔥 REST API QUERY
+  const { data: verificationResponse, isLoading, error } = useQuery({
+    queryKey: ['verify', 'student', nisn],
+    queryFn: () => nisn ? verificationApi.verifyByNisn(nisn) : null,
+    enabled: !!nisn
+  });
 
-  if (student === undefined) {
+  const student = verificationResponse?.data;
+  const isSuccess = verificationResponse?.success;
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="animate-pulse flex flex-col items-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-500 font-medium">Memverifikasi Data Siswa...</p>
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center">
+            <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Memvalidasi NISN...</p>
         </div>
       </div>
     );
   }
 
-  if (student === null) {
+  if (!isSuccess || !student) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-red-200 shadow-lg">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mb-4">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-0 shadow-2xl rounded-[2rem] overflow-hidden">
+          <CardHeader className="text-center pb-2 pt-10">
+            <div className="mx-auto bg-red-50 w-20 h-20 rounded-3xl flex items-center justify-center mb-6">
               <XCircle className="w-10 h-10 text-red-600" />
             </div>
-            <CardTitle className="text-2xl text-red-700">Tidak Ditemukan</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Data Siswa dengan NISN/ID <strong>{nisn}</strong> tidak terdaftar dalam sistem LP Ma'arif NU Kab. Cilacap.
+            <CardTitle className="text-2xl font-black text-slate-800">DATA TIDAK DITEMUKAN</CardTitle>
+            <CardDescription className="text-sm px-8 pt-2 leading-relaxed">
+              Peserta didik dengan NISN <strong>{nisn}</strong> tidak terdaftar dalam database resmi PC LP Ma'arif NU Cilacap.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex justify-center">
-             <Link to="/" className="text-sm text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <CardContent className="p-8 flex justify-center border-t border-slate-50 mt-4">
+             <Link to="/" className="text-xs font-black text-slate-400 hover:text-slate-800 flex items-center gap-2 uppercase tracking-widest transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
              </Link>
           </CardContent>
@@ -45,46 +52,61 @@ export default function VerifyStudentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-12">
-      <Card className="max-w-md w-full border-blue-200 shadow-xl overflow-hidden relative">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 py-12">
+      <Card className="max-w-md w-full border-0 shadow-2xl rounded-[2.5rem] overflow-hidden relative">
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-        <CardHeader className="text-center pt-8 pb-4 bg-white">
-          <div className="mx-auto bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-sm ring-2 ring-blue-100">
-            <CheckCircle2 className="w-12 h-12 text-blue-600" />
+        <CardHeader className="text-center pt-12 pb-6 bg-white">
+          <div className="mx-auto bg-blue-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mb-6 shadow-sm ring-4 ring-blue-50/50">
+            <GraduationCap className="w-12 h-12 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl text-slate-800 tracking-tight">Siswa Resmi Valid</CardTitle>
-          <CardDescription className="text-sm mt-1 text-blue-600 font-medium bg-blue-50 inline-block px-3 py-1 rounded-full">
-            Siswa Tersinkronisasi LP Ma'arif NU Cilacap
-          </CardDescription>
+          <CardTitle className="text-2xl font-black text-slate-800 tracking-tight uppercase">SISWA RESMI VALID</CardTitle>
+          <div className="mt-2 text-[10px] font-black tracking-[0.2em] text-blue-600 bg-blue-50 inline-block px-5 py-2 rounded-full uppercase">
+            PESERTA DIDIK AKTIF TERDAFTAR
+          </div>
         </CardHeader>
-        <CardContent className="bg-slate-50/50 p-6">
-            <div className="space-y-4">
-               <div>
-                   <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">Nama Lengkap Siswa</p>
-                   <p className="text-lg font-bold text-slate-800">{student.nama}</p>
+        <CardContent className="bg-white p-8 space-y-6 pt-2">
+            <div className="space-y-6">
+               <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Nama Lengkap Peserta Didik</p>
+                    <p className="text-lg font-black text-slate-800 leading-tight">{student.nama}</p>
+                  </div>
                </div>
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-2 gap-6">
                    <div>
-                       <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">NISN / NIS</p>
-                       <p className="font-mono text-sm font-medium text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded inline-block">{student.nisn || "-"}</p>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 leading-none">NISN / ID SISWA</p>
+                       <p className="font-mono text-sm font-bold text-slate-700 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl inline-block">{student.nisn || "-"}</p>
                    </div>
-                   {student.nik && student.nik !== "-" && typeof student.nik === "string" && (
-                     <div>
-                         <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">NIK</p>
-                         <p className="font-mono text-sm font-medium text-slate-700 bg-white border border-slate-200 px-2 py-1 rounded inline-block">***{student.nik.slice(-4)}</p>
-                     </div>
-                   )}
+                   <div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 leading-none">NIK SISTEM</p>
+                       <p className="font-mono text-sm font-bold text-slate-700 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl inline-block">
+                           {student.nik ? `***${student.nik.slice(-4)}` : "-"}
+                       </p>
+                   </div>
                </div>
                <div>
-                   <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider mb-1">Asal Lembaga Pendidikan</p>
-                   <p className="font-semibold text-slate-700">{student.namaSekolah}</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 leading-none">Instansi Pendidikan</p>
+                   <p className="font-bold text-slate-700 text-base">{student.school?.nama || student.nama_sekolah || "-"}</p>
                </div>
+               {student.kelas && (
+                   <div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 leading-none">Rombongan Belajar</p>
+                       <p className="text-sm font-bold text-slate-800 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl inline-block">KELAS {student.kelas}</p>
+                   </div>
+               )}
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-200 flex flex-col items-center text-center">
-                <img src="/logo-maarif-hijau.png" alt="Logo NU" className="h-12 w-auto mb-2" />
-                <p className="text-[10px] text-slate-400 font-medium">SIMMACI - Sistem Informasi Manajemen Ma'arif<br/>Pimpinan Cabang LP Ma'arif NU Kab. Cilacap</p>
-                <p className="text-[10px] text-slate-500 mt-2 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+            <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center text-center">
+                <img src="/logo-maarif-hijau.png" alt="Logo" className="h-14 w-auto mb-4 grayscale opacity-30" />
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  SIMMACI CLOUD VERIFICATION<br/>PC LP MA'ARIF NU CILACAP
+                </p>
+                <p className="text-[9px] text-slate-300 mt-4 font-mono">
+                  TIMESTAMP: {new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </p>
             </div>
         </CardContent>
       </Card>

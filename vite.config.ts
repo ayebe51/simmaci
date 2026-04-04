@@ -10,45 +10,31 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        maximumFileSizeToCacheInBytes: 10000000 // 10MB limit for large vendor chunks (pdfkit, xlsx)
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
       },
-      includeAssets: ['logo-icon.png', 'logo-full.jpg'],
-      manifest: {
-        name: 'SIM Maarif NU Cilacap',
-        short_name: 'SIMMACI',
-        description: 'Sistem Informasi Manajemen Data Pendidikan & Generator SK Digital',
-        theme_color: '#059669',
-        background_color: '#ffffff',
-        display: 'standalone',
-        icons: [
-          {
-            src: '/logo-icon.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/logo-icon.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      }
-    })
+    }),
   ],
   resolve: {
     alias: {
-      '@': path.resolve('./src'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       onwarn(warning, warn) {
         // Suppress warnings
         if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return;
         warn(warning);
-      }
-    }
-  }
+      },
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+          'vendor-charts': ['recharts'],
+          'vendor-motion': ['framer-motion'],
+        },
+      },
+    },
+  },
 });

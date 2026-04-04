@@ -1,0 +1,334 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Teacher\StoreTeacherRequest;
+use App\Http\Requests\Teacher\UpdateTeacherRequest;
+use App\Models\ActivityLog;
+use App\Models\School;
+use App\Models\Teacher;
+use App\Services\TeacherService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class TeacherController extends Controller
+{
+    public function __construct(private TeacherService $teacherService) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $query = Teacher::with('school');
+
+        if ($request->search) {
+            $query->where('nama', 'ilike', "%{$request->search}%");
+        }
+        if ($request->kecamatan) {
+            $query->where('kecamatan', $request->kecamatan);
+        }
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+        if ($request->has('is_verified')) {
+            $query->where('is_verified', $request->boolean('is_verified'));
+        }
+
+        $teachers = $query->orderByDesc('updated_at')
+            ->paginate($request->integer('per_page', 25));
+
+        // Sanitize output to prevent UTF-8 errors
+        $teachers->getCollection()->transform(function ($teacher) {
+            foreach ($teacher->getAttributes() as $key => $value) {
+                if (is_string($value)) {
+                    $teacher->$key = htmlspecialchars_decode(htmlspecialchars($value, ENT_SUBSTITUTE, 'UTF-8'));
+                }
+            }
+            return $teacher;
+        });
+
+        return response()->json($teachers);
+    }
+
+    public function show(Teacher $teacher): JsonResponse
+    {
+        $this->authorize('view', $teacher);
+        return $this->successResponse($teacher->load('school', 'skDocuments'));
+    }
+
+    public function store(StoreTeacherRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        // Auto-resolve school_id from unit_kerja if not provided
+        if (! isset($data['school_id']) && isset($data['unit_kerja'])) {
+            $school = School::where('nama', $data['unit_kerja'])->first();
+            $data['school_id'] = $school?->id;
+        }
+
+        $teacher = $this->teacherService->createTeacher($data);
+
+        ActivityLog::log(
+            description: "Menambahkan guru: {$teacher->nama}",
+            event: 'create_teacher',
+            logName: 'master',
+            subject: $teacher,
+            causer: $request->user(),
+            schoolId: $teacher->school_id
+        );
+
+        return $this->successResponse($teacher, 'Guru berhasil ditambahkan.', 201);
+    }
+
+    public function update(UpdateTeacherRequest $request, Teacher $teacher): JsonResponse
+    {
+        $this->authorize('update', $teacher);
+        $data = $request->validated();
+
+        $this->teacherService->updateTeacher($teacher, $data);
+
+        return $this->successResponse($teacher->fresh(), 'Guru berhasil diperbarui.');
+    }
+
+    public function destroy(Teacher $teacher): JsonResponse
+    {
+        $this->authorize('delete', $teacher);
+        $teacher->delete();
+        return $this->successResponse(null, 'Guru berhasil dihapus.');
+    }
+
+    /**
+     * POST /api/teachers/import — Bulk import from JSON array
+     */
+    public function import(Request $request): JsonResponse
+    {
+        \Illuminate\Support\Facades\Storage::put('public/php_debug_dump.json', json_encode($request->all(), JSON_PRETTY_PRINT));
+        $request->validate(['teachers' => 'required|array']);
+
+        $created = 0;
+        $errors = [];
+
+        $allowedFields = [
+            'nuptk', 'nama', 'nip', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
+            'pendidikan_terakhir', 'mapel', 'unit_kerja', 'school_id', 'status',
+            'phone_number', 'email', 'is_active', 'is_verified',
+            'is_certified', 'tmt', 'pdpkpnu', 'kecamatan'
+        ];
+
+        foreach ($request->teachers as $index => $row) {
+            try {
+                // Normalize keys: trim, lowercase, replace non-alphanumeric with underscore
+                $normalizedRow = [];
+                foreach ($row as $key => $value) {
+                    $cleanKey = preg_replace('/[^a-z0-9]/', '_', trim(strtolower($key)));
+                    $cleanKey = preg_replace('/_+/', '_', $cleanKey);
+                    $cleanKey = trim($cleanKey, '_');
+                    $normalizedRow[$cleanKey] = $value;
+                }
+
+                // Parse NUPTK
+                $nuptk = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'nuptk') || str_contains($k, 'n_u_p_t_k') || str_contains($k, 'pegawai')) {
+                        $nuptk = $v;
+                        break;
+                    }
+                }
+                $nuptk = $nuptk ? trim((string)$nuptk) : null;
+                $normalizedRow['nuptk'] = $nuptk;
+
+                // Parse N.I.M (NIP/Nomor Induk Maarif)
+                $nip = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'induk') || str_contains($k, 'nim') || str_contains($k, 'n_i_m') || str_contains($k, 'nip')) {
+                        $nip = $v;
+                        break;
+                    }
+                }
+                $normalizedRow['nip'] = $nip ? trim((string)$nip) : null;
+
+                $schoolId = $normalizedRow['school_id'] ?? null;
+                if (!$schoolId && isset($normalizedRow['unit_kerja'])) {
+                    $school = School::where('nama', $normalizedRow['unit_kerja'])->first();
+                    $schoolId = $school?->id;
+                }
+
+                // Parse Sertifikasi
+                $sertifikasi = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'sertif') || str_contains($k, 'certified')) {
+                        $sertifikasi = $v;
+                        break;
+                    }
+                }
+                if ($sertifikasi !== null) {
+                    $val = strtolower(trim((string)$sertifikasi));
+                    $normalizedRow['is_certified'] = in_array($val, ['sudah', 'ya', '1', 'true', 'yes', 'v']);
+                } else {
+                    $normalizedRow['is_certified'] = false;
+                }
+
+                // Parse Tanggal Lahir (Mencegah Error 500 PostgreSQL dari Excel Serial Date)
+                $tglLahirRaw = $normalizedRow['tanggal_lahir'] ?? $normalizedRow['tgl_lahir'] ?? null;
+                if ($tglLahirRaw !== null && (string)$tglLahirRaw !== '') {
+                    $tglStr = trim((string)$tglLahirRaw);
+                    if (is_numeric($tglStr)) {
+                        try {
+                            $normalizedRow['tanggal_lahir'] = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tglStr)->format('Y-m-d');
+                        } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
+                    } else {
+                        // Jika string, coba diparse biasa, atau biarkan null
+                        try {
+                            $normalizedRow['tanggal_lahir'] = \Carbon\Carbon::parse($tglStr)->format('Y-m-d');
+                        } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
+                    }
+                } else {
+                    $normalizedRow['tanggal_lahir'] = null;
+                }
+
+                // Parse PDPKPNU
+                $pdpkpnuRaw = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'pdpkpnu') || str_contains($k, 'p_d_p_k_p_n_u')) {
+                        $pdpkpnuRaw = $v;
+                        break;
+                    }
+                }
+                if ($pdpkpnuRaw !== null) {
+                    $val2 = strtolower(trim((string)$pdpkpnuRaw));
+                    $normalizedRow['pdpkpnu'] = in_array($val2, ['sudah', 'ya', '1', 'true', 'yes', 'v']) ? 'Sudah' : 'Belum';
+                }
+
+                // Parse TMT Date (Excel Serial OR String)
+                $tmtRaw = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'tmt') || str_contains($k, 'mulai_tugas') || str_contains($k, 'tanggal_tugas') || str_contains($k, 'penugasan')) {
+                        $tmtRaw = $v;
+                        break;
+                    }
+                }
+                $tmtDate = null;
+                if ($tmtRaw !== null && (string)$tmtRaw !== '') {
+                    $tmtStr = trim((string)$tmtRaw);
+                    if (is_numeric($tmtStr)) {
+                        $tmtDate = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tmtStr);
+                    } else {
+                        // Terjemahkan nama bulan Indonesia ke Inggris untuk Carbon
+                        $indoMonths = [
+                            'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
+                            'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
+                            'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
+                            'november' => 'november', 'desember' => 'december',
+                            // Singkatan
+                            'jan' => 'jan', 'feb' => 'feb', 'mar' => 'mar', 'apr' => 'apr',
+                            'jun' => 'jun', 'jul' => 'jul', 'agu' => 'aug', 'sep' => 'sep', 'okt' => 'oct',
+                            'nov' => 'nov', 'des' => 'dec'
+                        ];
+                        $translatedTmt = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tmtStr);
+
+                        // Coba beberapa format tanggal populer di Indonesia / Excel
+                        $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd F Y', 'd M Y', 'd-M-Y', 'd/M/Y'];
+                        foreach ($formats as $format) {
+                            try {
+                                $tmtDate = \Carbon\Carbon::createFromFormat($format, $translatedTmt);
+                                if ($tmtDate !== false) break;
+                            } catch (\Exception $e) { $tmtDate = null; }
+                        }
+                        // Fallback terakhir jika semua format gagal
+                        if (!$tmtDate) {
+                            try { $tmtDate = \Carbon\Carbon::parse($translatedTmt); } catch (\Exception $e) { $tmtDate = null; }
+                        }
+                    }
+                    if ($tmtDate) {
+                        $normalizedRow['tmt'] = $tmtDate->format('Y-m-d');
+                    }
+                }
+
+                // Kalkulasi Status berdasarkan Pendidikan Terakhir, TMT Lama Pengabdian, dan Sertifikasi
+                $pendidikan = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'pendidikan') || str_contains($k, 'ijazah') || str_contains($k, 'jenjang')) {
+                        $pendidikan = $v;
+                        break;
+                    }
+                }
+
+                if ($pendidikan !== null) {
+                    $normalizedRow['pendidikan_terakhir'] = $pendidikan;
+                    $pendidikanTinggi = ['S1', 'S2', 'S3', 'D4', 'S1/D4', 'STRATA'];
+                    $isSarjana = false;
+                    foreach ($pendidikanTinggi as $pt) {
+                        if (stripos((string)$pendidikan, $pt) !== false) {
+                            $isSarjana = true;
+                            break;
+                        }
+                    }
+
+                    if (!$isSarjana) {
+                        $normalizedRow['status'] = 'Tendik';
+                    } else if ($tmtDate) {
+                        // Jika sarjana -> Cek TMT >= 2 Tahun
+                        $diffYears = $tmtDate->diffInYears(\Carbon\Carbon::now());
+                        $normalizedRow['status'] = ($diffYears >= 2) ? 'GTY' : 'GTT';
+                    } else {
+                        // Jika sarjana tapi TMT kosong, pastikan Status tidak boleh "Honorer"
+                        $currentStatus = $normalizedRow['status'] ?? null;
+                        if (!$currentStatus || strtolower((string)$currentStatus) === 'honorer') {
+                            $normalizedRow['status'] = 'GTY'; // Fallback default
+                        }
+                    }
+                }
+
+                // Filter row to only include allowed fields
+                $dataToSave = [];
+                foreach ($allowedFields as $field) {
+                    if (isset($normalizedRow[$field])) {
+                        $dataToSave[$field] = $normalizedRow[$field];
+                    }
+                }
+
+                // Explicitly bind parsed pendidikan because the 'Pendidikan Terakhir' raw key might not match the allowedField name 'pendidikan_terakhir' precisely in earlier steps
+                if (isset($normalizedRow['pendidikan_terakhir']) && $normalizedRow['pendidikan_terakhir'] !== null) {
+                    $dataToSave['pendidikan_terakhir'] = $normalizedRow['pendidikan_terakhir'];
+                }
+
+                // Fallback for nama
+                if (empty($dataToSave['nama'])) {
+                    $dataToSave['nama'] = $normalizedRow['nama_guru'] 
+                        ?? $normalizedRow['nama_lengkap'] 
+                        ?? $normalizedRow['nama_asli'] 
+                        ?? $normalizedRow['guru']
+                        ?? null;
+                }
+
+                if (empty($dataToSave['nama'])) {
+                    // Skip if empty row
+                    if (empty(array_filter($normalizedRow))) continue;
+                    $dataToSave['nama'] = "Guru Baru (Tanpa Nama)";
+                }
+
+                $savePayload = array_merge(array_filter($dataToSave, fn($v) => !is_null($v)), ['school_id' => $schoolId]);
+                if ($nuptk) {
+                    Teacher::updateOrCreate(['nuptk' => $nuptk], $savePayload);
+                } else {
+                    Teacher::updateOrCreate(
+                        ['nama' => $dataToSave['nama'], 'school_id' => $schoolId],
+                        $savePayload
+                    );
+                }
+                $created++;
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'row' => $index + 1,
+                    'nuptk' => (string)($row['nuptk'] ?? $row['NUPTK'] ?? 'empty'), 
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        return response()->json([
+            'created' => $created, 
+            'errors' => $errors,
+            'summary' => "Berhasil: $created, Gagal: " . count($errors)
+        ]);
+    }
+}

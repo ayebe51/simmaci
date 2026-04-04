@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { UserCheck, Calendar, Clock, Download, ChevronLeft, ChevronRight } from "lucide-react";
-
+import { Clock, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { teacherApi, attendanceApi } from "@/lib/api";
 
 const statusColors: Record<string, string> = {
   Hadir: "bg-emerald-100 text-emerald-700",
@@ -22,27 +20,43 @@ const statusColors: Record<string, string> = {
 };
 
 export default function TeacherAttendancePage() {
-  const userStr = localStorage.getItem('user');
-const user = userStr ? JSON.parse(userStr) : null;
-  const schoolId = user?.schoolId as Id<"schools"> | undefined;
-
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const teachers = useQuery(api.teachers.getBySchool, schoolId ? { schoolId } : "skip");
-  const attendance = useQuery(api.teacherAttendance.listByDate, schoolId ? { schoolId, tanggal: selectedDate } : "skip");
-  const recordManual = useMutation(api.teacherAttendance.recordManual);
+  // 🔥 REST API QUERIES
+  const { data: teachersData, isLoading: isLoadingTeachers } = useQuery({
+    queryKey: ['teachers', 'all'],
+    queryFn: () => teacherApi.list({ per_page: 100 })
+  });
+  
+  const { data: attendanceData, isLoading: isLoadingAttendance } = useQuery({
+    queryKey: ['attendance', 'teacher', selectedDate],
+    queryFn: () => attendanceApi.teacherIndex({ tanggal: selectedDate })
+  });
 
-  const getAttendance = (teacherId: string) => {
-    return attendance?.find((a: any) => a.teacherId === teacherId);
+  const recordMutation = useMutation({
+    queryFn: (data: any) => attendanceApi.teacherStore(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance', 'teacher', selectedDate] });
+      toast.success("Status absensi diperbarui");
+    }
+  });
+
+  const teachers = teachersData?.data || [];
+  const attendance = attendanceData || [];
+
+  const getAttendance = (teacherId: number) => {
+    return attendance.find((a: any) => a.teacher_id === teacherId);
   };
 
-  const handleStatusChange = async (teacherId: string, status: string) => {
-    if (!schoolId) return;
-    try {
-      const jamMasuk = status === "Hadir" ? new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) : undefined;
-      await recordManual({ teacherId: teacherId as Id<"teachers">, schoolId, tanggal: selectedDate, status, jamMasuk });
-      toast.success("Status absensi diperbarui");
-    } catch { toast.error("Gagal memperbarui"); }
+  const handleStatusChange = async (teacherId: number, status: string) => {
+    const jamMasuk = status === "Hadir" ? new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) : undefined;
+    recordMutation.mutate({
+      teacher_id: teacherId,
+      tanggal: selectedDate,
+      status,
+      jam_masuk: jamMasuk
+    });
   };
 
   const navigateDate = (days: number) => {
@@ -52,107 +66,97 @@ const user = userStr ? JSON.parse(userStr) : null;
   };
 
   const summary = {
-    hadir: attendance?.filter((a: any) => a.status === "Hadir").length || 0,
-    sakit: attendance?.filter((a: any) => a.status === "Sakit").length || 0,
-    izin: attendance?.filter((a: any) => a.status === "Izin").length || 0,
-    alpa: (teachers?.length || 0) - (attendance?.length || 0),
+    hadir: attendance.filter((a: any) => a.status === "Hadir").length,
+    sakit: attendance.filter((a: any) => a.status === "Sakit").length,
+    izin: attendance.filter((a: any) => a.status === "Izin").length,
+    alpa: Math.max(0, teachers.length - attendance.length),
   };
+
+  const isLoading = isLoadingTeachers || isLoadingAttendance;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Absensi Guru</h1>
-          <p className="text-slate-500 text-sm mt-1">Input dan rekap kehadiran guru harian</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Absensi Guru</h1>
+        <p className="text-slate-500 text-sm mt-1">Input dan rekap kehadiran guru harian</p>
       </div>
 
-      {/* Date Navigation */}
       <div className="flex items-center gap-3">
         <Button variant="outline" size="icon" onClick={() => navigateDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
         <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-44" />
         <Button variant="outline" size="icon" onClick={() => navigateDate(1)}><ChevronRight className="h-4 w-4" /></Button>
-        <span className="text-sm text-slate-500">
+        <span className="text-sm text-slate-500 font-medium">
           {new Date(selectedDate).toLocaleDateString("id-ID", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </span>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-emerald-200">
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-2xl font-bold text-emerald-600">{summary.hadir}</p>
-            <p className="text-xs text-slate-500">Hadir</p>
-          </CardContent>
-        </Card>
-        <Card className="border-yellow-200">
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-2xl font-bold text-yellow-600">{summary.sakit}</p>
-            <p className="text-xs text-slate-500">Sakit</p>
-          </CardContent>
-        </Card>
-        <Card className="border-blue-200">
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-2xl font-bold text-blue-600">{summary.izin}</p>
-            <p className="text-xs text-slate-500">Izin</p>
-          </CardContent>
-        </Card>
-        <Card className="border-red-200">
-          <CardContent className="pt-4 pb-3 text-center">
-            <p className="text-2xl font-bold text-red-600">{summary.alpa}</p>
-            <p className="text-xs text-slate-500">Belum Absen</p>
-          </CardContent>
-        </Card>
+        {[
+          { label: "Hadir", val: summary.hadir, color: "emerald" },
+          { label: "Sakit", val: summary.sakit, color: "yellow" },
+          { label: "Izin", val: summary.izin, color: "blue" },
+          { label: "Belum Absen", val: summary.alpa, color: "red" },
+        ].map((s) => (
+          <Card key={s.label} className={`border-${s.color}-200`}>
+            <CardContent className="pt-4 pb-3 text-center">
+              <p className={`text-2xl font-bold text-${s.color}-600`}>{s.val}</p>
+              <p className="text-xs text-slate-500">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Attendance Table */}
-      <Card>
-        <CardContent className="pt-4">
+      <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-slate-50">
               <TableRow>
-                <TableHead className="w-10">No</TableHead>
+                <TableHead className="w-12 text-center">No</TableHead>
                 <TableHead>Nama Guru</TableHead>
-                <TableHead>NUPTK</TableHead>
-                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-center">Status Kehadiran</TableHead>
                 <TableHead className="text-center">Jam Masuk</TableHead>
                 <TableHead className="text-center">Jam Pulang</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teachers?.map((teacher: any, i: number) => {
-                const att = getAttendance(teacher._id);
-                return (
-                  <TableRow key={teacher._id}>
-                    <TableCell className="text-slate-400">{i + 1}</TableCell>
-                    <TableCell className="font-medium">{teacher.nama}</TableCell>
-                    <TableCell className="font-mono text-xs text-slate-500">{teacher.nuptk}</TableCell>
-                    <TableCell className="text-center">
-                      <Select value={att?.status || ""} onValueChange={(v) => handleStatusChange(teacher._id, v)}>
-                        <SelectTrigger className="h-8 w-28 mx-auto">
-                          <SelectValue placeholder="—" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {["Hadir", "Sakit", "Izin", "Alpa", "Dinas Luar", "Cuti"].map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {att?.jamMasuk ? <Badge className={statusColors["Hadir"]}><Clock className="h-3 w-3 mr-1" />{att.jamMasuk}</Badge> : <span className="text-slate-300">-</span>}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {att?.jamPulang ? <Badge className={statusColors["Hadir"]}><Clock className="h-3 w-3 mr-1" />{att.jamPulang}</Badge> : <span className="text-slate-300">-</span>}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {isLoading ? (
+                <TableRow><TableCell colSpan={5} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-emerald-500" /></TableCell></TableRow>
+              ) : teachers.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="h-32 text-center text-slate-400">Tidak ada data guru.</TableCell></TableRow>
+              ) : (
+                teachers.map((teacher: any, i: number) => {
+                  const att = getAttendance(teacher.id);
+                  return (
+                    <TableRow key={teacher.id}>
+                      <TableCell className="text-center text-slate-400 text-xs">{i + 1}</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-slate-800">{teacher.nama}</div>
+                        <div className="text-[10px] text-slate-500 font-mono uppercase">{teacher.nuptk || "No NUPTK"}</div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Select value={att?.status || ""} onValueChange={(v) => handleStatusChange(teacher.id, v)}>
+                          <SelectTrigger className="h-8 w-32 mx-auto rounded-lg">
+                            <SelectValue placeholder="Pilih Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Hadir", "Sakit", "Izin", "Alpa", "Dinas Luar", "Cuti"].map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {att?.jam_masuk ? <Badge className={`${statusColors["Hadir"]} rounded-md border-0`}><Clock className="h-3 w-3 mr-1" />{att.jam_masuk}</Badge> : <span className="text-slate-300">-</span>}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {att?.jam_pulang ? <Badge className={`${statusColors["Hadir"]} rounded-md border-0`}><Clock className="h-3 w-3 mr-1" />{att.jam_pulang}</Badge> : <span className="text-slate-300">-</span>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
-          {(!teachers || teachers.length === 0) && (
-            <p className="text-center text-slate-400 py-8">Tidak ada data guru untuk sekolah ini.</p>
-          )}
         </CardContent>
       </Card>
     </div>

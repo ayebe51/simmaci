@@ -1,0 +1,51 @@
+
+  Dropping all tables  188.23ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table  26.69ms DONE
+
+   INFO  Running migrations.  
+
+  0000_01_01_000000_create_schools_table  94.21ms DONE
+  0001_01_01_000000_create_users_table  118.48ms DONE
+  0001_01_01_000001_create_cache_table  70.83ms DONE
+  0001_01_01_000002_create_jobs_table  62.46ms DONE
+  2024_01_02_000001_create_teachers_table  86.07ms DONE
+  2024_01_02_000002_create_students_table  88.95ms DONE
+  2024_01_02_000003_create_sk_documents_table  93.54ms DONE
+  2024_01_02_000004_create_support_tables  140.06ms DONE
+  2024_01_02_000005_create_additional_tables  180.97ms DONE
+  2024_01_02_000006_create_attendance_tables  404.93ms DONE
+  2026_03_13_042011_create_events_table  24.26ms DONE
+
+
+   INFO  Seeding database.  
+
+  Database\Seeders\SchoolSeeder  RUNNING  
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42703]: Undefined column: 7 ERROR:  column "jenjang" of relation "schools" does not exist
+LINE 1: ... into "schools" ("nsm", "npsn", "nama", "alamat", "jenjang",...
+                                                             ^ (Connection: pgsql, Host: 127.0.0.1, Port: 5433, Database: sim_maarif, SQL: insert into "schools" ("nsm", "npsn", "nama", "alamat", "jenjang", "status", "kecamatan", "kabupaten", "provinsi", "created_at", "updated_at") values (121233010001, 20363301, MA Maarif NU 1 Cilacap, Jl. Rayat No. 1, Cilacap, MA, Swasta, Cilacap Tengah, Cilacap, Jawa Tengah, 2026-03-13 05:06:05, 2026-03-13 05:06:05))
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:838
+    834???             $exceptionType = $this->isUniqueConstraintError($e)
+    835???                 ? UniqueConstraintViolationException::class
+    836???                 : QueryException::class;
+    837??? 
+  ??? 838???             throw new $exceptionType(
+    839???                 $this->getNameWithReadWriteType(),
+    840???                 $query,
+    841???                 $this->prepareBindings($bindings),
+    842???                 $e,
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:584
+      PDOException::("SQLSTATE[42703]: Undefined column: 7 ERROR:  column "jenjang" of relation "schools" does not exist
+LINE 1: ... into "schools" ("nsm", "npsn", "nama", "alamat", "jenjang",...
+                                                             ^")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:584
+      PDOStatement::execute()
+

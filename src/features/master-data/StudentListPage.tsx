@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
@@ -10,497 +9,114 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, ArrowUpDown, ArrowUp, ArrowDown, Download, FileSpreadsheet, Loader2, Camera, CheckSquare, GraduationCap, AlertTriangle, XCircle } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useState, useEffect, useMemo } from "react"
-import { useSearchParams } from "react-router-dom"
+import { Plus, Search, Trash2, Edit, Download, FileSpreadsheet, Loader2, GraduationCap, ArrowUpDown, Camera } from "lucide-react"
+import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { api } from "@/lib/api"
+import { toast } from "sonner"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { studentApi, schoolApi } from "@/lib/api"
 import ExcelImportModal from "./components/ExcelImportModal"
-// 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation, usePaginatedQuery, useAction } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
-import { downloadStudentTemplate, processStudentImport } from "./student-import-utils"
 
 interface Student {
-  id: string
-  nisn: string
-  nama: string
-  kelas: string
-  sekolah: string
-  jk: "L" | "P"
-  // Optional fields for detailed view/edit
+  id: number
+  nisn?: string
   nik?: string
-  tempatLahir?: string
-  tanggalLahir?: string
-  namaAyah?: string
-  namaIbu?: string
+  nama: string
+  kelas?: string
+  status?: string
+  school_id?: number
+  school?: { nama: string }
+  jenis_kelamin?: string
+  tempat_lahir?: string
+  tanggal_lahir?: string
+  nama_ayah?: string
+  nama_ibu?: string
   alamat?: string
   provinsi?: string
   kabupaten?: string
   kecamatan?: string
   kelurahan?: string
-  nomorTelepon?: string
   npsn?: string
-  namaWali?: string
-  nomorIndukMaarif?: string
-  photoId?: string
-  status?: string
+  nomor_telepon?: string
+  nama_wali?: string
 }
 
 export default function StudentListPage() {
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  
-  const createStudentMutation = useMutation(convexApi.students.create);
-
-  // Manual Add Logic
-  const [isAddOpen, setIsAddOpen] = useState(false)
-  const [formData, setFormData] = useState<Partial<Student>>({
-      nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
-      nomorIndukMaarif: "", nik: "", tempatLahir: "", tanggalLahir: "", alamat: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", nomorTelepon: "", namaAyah: "", namaIbu: "", namaWali: "", npsn: ""
-  })
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false)
-  const [isBulkConfirmOpen, setIsBulkConfirmOpen] = useState(false)
-
-  
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [isTransitionModalOpen, setIsTransitionModalOpen] = useState(false)
-  const [isTransitionLoading, setIsTransitionLoading] = useState(false)
-  
-  const currentSchool = useQuery(convexApi.schools.getMyself, { 
-    token: localStorage.getItem("token") || "" 
-  });
-
-  // API Wilayah (Cilacap Only)
-  const [regionData, setRegionData] = useState<any>(null)
-  useEffect(() => {
-    fetch('/data/cilacap.json')
-      .then(res => res.json())
-      .then(data => setRegionData(data))
-      .catch(console.error)
-  }, [])
-
-  // PERMISSION: Filter by Unit Kerja for Operators
-  const [userUnit] = useState<string | null>(() => {
-    try {
-        const u = localStorage.getItem("user")
-        if (u) {
-            const user = JSON.parse(u)
-            if (user.role !== "super_admin" && user.unitKerja) {
-                return user.unitKerja
-            }
-        }
-    } catch(e) { return null }
-    return null
-  })
-
-  // 🔥 REAL-TIME CONVEX PAGINATED QUERY
-  const {
-      results: rawStudents,
-      status: queryStatus,
-      loadMore,
-      isLoading
-  } = usePaginatedQuery(
-      convexApi.students.listPaginated,
-      {
-          namaSekolah: userUnit || undefined,
-          search: searchTerm || undefined,
-          status: statusFilter !== "all" ? statusFilter : undefined,
-          token: localStorage.getItem("token") || undefined,
-      },
-      { initialNumItems: 20 }
-  );
-
-  // Map Convex data to Student interface
-  const students = (rawStudents || []).map((s: any) => ({
-    id: s._id,
-    nisn: s.nisn || "",
-    nama: s.nama || "",
-    kelas: s.kelas || "",
-    sekolah: s.namaSekolah || "",
-    jk: (s.jenisKelamin === "Perempuan" ? "P" : "L") as "L" | "P",
-    // Map additional fields
-    nik: s.nik,
-    tempatLahir: s.tempatLahir,
-    tanggalLahir: s.tanggalLahir,
-    namaAyah: s.namaAyah,
-    namaIbu: s.namaIbu,
-    alamat: s.alamat,
-    provinsi: s.provinsi,
-    kabupaten: s.kabupaten,
-    kecamatan: s.kecamatan,
-    kelurahan: s.kelurahan,
-    nomorTelepon: s.nomorTelepon,
-    npsn: s.npsn,
-    namaWali: s.namaWali,
-    photoId: s.photoId,
-    status: s.status || "Aktif"
-  }))
-
-  // Convex mutations
-  const deleteStudentMutation = useMutation(convexApi.students.remove)
-  const bulkCreateStudentMutation = useMutation(convexApi.students.bulkCreate)
-  const bulkUpdateStatusMutation = useMutation(convexApi.students.bulkUpdateStatus)
-
-  // Delete confirmation modal state
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [studentToDelete, setStudentToDelete] = useState<{id: string, name: string} | null>(null)
-
-  // Sorting State
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null);
-
-  // Fetch count of students for transition - ONLY when modal is open to avoid blocking page load
-  const transitionStudentCount = useQuery(convexApi.students.countActiveBySchool, 
-    (isTransitionModalOpen && currentSchool?.nama) ? { namaSekolah: currentSchool.nama } : "skip"
-  );
-
-  const loadStudents = async () => {
-    // No longer needed - Convex auto-updates!
-    // Kept for compatibility
-  }
-
-  // Sort visible items
-  const sortedStudents = useMemo(() => {
-    const sortableItems = [...students];
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        // Handle undefined values
-        const aValue = a[sortConfig.key] || "";
-        const bValue = b[sortConfig.key] || "";
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [students, sortConfig]);
-
-  // 📄 CLIENT-SIDE PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
-  // Better Pattern: Reset page during render if filters change
-  const [prevFilters, setPrevFilters] = useState({ searchTerm, statusFilter, sortConfig })
-  if (prevFilters.searchTerm !== searchTerm || prevFilters.statusFilter !== statusFilter || prevFilters.sortConfig !== sortConfig) {
-      setPrevFilters({ searchTerm, statusFilter, sortConfig })
-      setCurrentPage(1)
-  }
-
-  // Computed Students for Current Page
-  const paginatedStudents = useMemo(() => {
-      const startIndex = (currentPage - 1) * itemsPerPage
-      return sortedStudents.slice(startIndex, startIndex + itemsPerPage)
-  }, [sortedStudents, currentPage])
-
-  // Auto-open Import Modal if requested via URL
-  const [searchParams, setSearchParams] = useSearchParams()
-  useEffect(() => {
-      if (searchParams.get("action") === "import") {
-          // eslint-disable-next-line react-hooks/exhaustive-deps
-          setIsImportModalOpen(true)
-          // Clear param to prevent reopening on refresh
-          setSearchParams(params => {
-              params.delete("action")
-              return params
-          })
-      }
-  }, [searchParams, setSearchParams])
-
-  // Sort Handler
-  const requestSort = (key: keyof Student) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-  
-  const getSortIcon = (name: keyof Student) => {
-      if (!sortConfig || sortConfig.key !== name) {
-          return <ArrowUpDown className="ml-2 h-4 w-4" />
-      }
-      return sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-  }
-
-   const handleBulkGraduate = () => {
-    if (selectedIds.length === 0) return;
-    setIsBulkConfirmOpen(true);
-  }
-
-  const executeBulkGraduate = async () => {
+  const [user] = useState<any>(() => {
+    const u = localStorage.getItem("user_data")
     try {
-      setIsBulkActionLoading(true);
-      await bulkUpdateStatusMutation({
-        ids: selectedIds as any[],
-        status: "Lulus"
-      });
-      toast.success(`Berhasil meluluskan ${selectedIds.length} siswa!`);
-      setSelectedIds([]);
-      setIsBulkConfirmOpen(false);
+      return u ? JSON.parse(u) : null
+    } catch (e) {
+      return null
+    }
+  })
+  const isOperator = user?.role === "operator"
+
+  // 🔥 REST API QUERY
+  const { data: studentsData, isLoading } = useQuery({
+    queryKey: ['students', currentPage, searchTerm, statusFilter],
+    queryFn: () => studentApi.list({
+      page: currentPage,
+      per_page: itemsPerPage,
+      search: searchTerm || undefined,
+      status: statusFilter === "all" ? undefined : statusFilter
+    })
+  })
+
+  const students = studentsData?.data || []
+  const totalPages = studentsData?.last_page || 1
+
+  // Mutations
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => studentApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      toast.success("Siswa berhasil dihapus")
+    }
+  })
+
+  const batchTransitionMutation = useMutation({
+    mutationFn: (action: 'promote' | 'graduate') => studentApi.batchTransition({
+        school_id: user?.school_id,
+        action
+    }),
+    onSuccess: (res) => {
+        queryClient.invalidateQueries({ queryKey: ['students'] })
+        toast.success(`Berhasil memproses ${res.count} siswa`)
+    }
+  })
+
+  // Modal States
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [formData, setFormData] = useState<Partial<Student>>({})
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isTransitionModalOpen, setIsTransitionModalOpen] = useState(false)
+
+  const handleSave = async () => {
+    if (!formData.nama) { toast.error("Nama wajib diisi!"); return }
+    try {
+      if (formData.id) {
+        await studentApi.update(formData.id, formData)
+        toast.success("Berhasil memperbarui siswa")
+      } else {
+        await studentApi.create(formData)
+        toast.success("Berhasil menambah siswa")
+      }
+      queryClient.invalidateQueries({ queryKey: ['students'] })
+      setIsAddOpen(false)
     } catch (e: any) {
-      console.error(e);
-      toast.error("Gagal meluluskan siswa secara massal.");
-    } finally {
-      setIsBulkActionLoading(false);
+      toast.error("Gagal menyimpan: " + e.message)
     }
   }
-
-  const toggleSelectAll = () => {
-    if (selectedIds.length === paginatedStudents.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(paginatedStudents.map(s => s.id));
-    }
-  }
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  }
-  
-  // ... (existing code)
-
-  const updateStudentMutation = useMutation(convexApi.students.update);
-  const batchTransitionMutation = useMutation(convexApi.students.batchTransition);
-  const generateUploadUrl = useMutation(convexApi.students.generateUploadUrl);
-  const uploadToDrive = useAction(convexApi.drive.uploadFile);
-  const getPhotoUrlQuery = convexApi.students.getPhotoUrl;
-
-  const handleAdd = async () => {
-      // Validate Required Fields
-      if (!formData.nama || !formData.nisn) {
-          toast.error("Nama dan NISN wajib diisi")
-          return
-      }
-
-      // Helper to clean empty strings to undefined
-      const clean = (val: string | undefined | null) => (val && val.trim().length > 0) ? val.trim() : undefined;
-      
-      const payload: any = {
-        nisn: String(formData.nisn).trim(),
-        nama: String(formData.nama).trim(),
-        // Optional fields
-        nik: clean(formData.nik),
-        nomorIndukMaarif: clean(formData.nomorIndukMaarif),
-        jenisKelamin: formData.jk, // Send "L" or "P" directly
-        tempatLahir: clean(formData.tempatLahir),
-        tanggalLahir: clean(formData.tanggalLahir),
-        namaAyah: clean(formData.namaAyah),
-        namaIbu: clean(formData.namaIbu),
-        alamat: clean(formData.alamat),
-        provinsi: clean(formData.provinsi),
-        kabupaten: clean(formData.kabupaten),
-        kecamatan: clean(formData.kecamatan),
-        kelurahan: clean(formData.kelurahan),
-        // Ensure namaSekolah is strictly string or undefined
-        namaSekolah: clean(formData.sekolah) ?? (userUnit ? String(userUnit) : undefined),
-        npsn: clean(formData.npsn),
-        kelas: clean(formData.kelas),
-        nomorTelepon: clean(formData.nomorTelepon),
-        namaWali: clean(formData.namaWali),
-        photoId: formData.photoId,
-        status: formData.status || "Aktif",
-      };
-
-      // Strip undefined keys
-      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
-
-      console.log("Submitting Student Payload (Cleaned JSON):", JSON.stringify(payload, null, 2));
-
-      try {
-          if (formData.id) {
-            // Update existing student
-            await updateStudentMutation({
-                id: formData.id as any,
-                ...payload
-            })
-            toast.success("Berhasil memperbarui data siswa")
-          } else {
-            // Create new student
-            await createStudentMutation(payload)
-            toast.success("Berhasil menambah siswa")
-          }
-          
-          setIsAddOpen(false)
-          setFormData({ 
-              nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
-              nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", nomorTelepon: "", namaWali: "", nik: "", namaAyah: "", namaIbu: "", npsn: ""
-          })
-      } catch (e: any) {
-          console.error("Mutation Error:", e)
-          const errorMsg = e.message || "Unknown error";
-          // Handle specific Convex errors readable
-          if (errorMsg.includes("NISN sudah terdaftar")) {
-             toast.error("Gagal: NISN sudah terdaftar di sistem");
-          } else {
-             toast.error(`Gagal ${formData.id ? 'mengedit' : 'menambah'} siswa: ` + errorMsg)
-          }
-      }
-  }
-
-  const handleDelete = async (id: string, name: string) => {
-      setStudentToDelete({ id, name })
-      setDeleteConfirmOpen(true)
-  }
-
-  const confirmDelete = async () => {
-      if (!studentToDelete) return
-      try {
-          await deleteStudentMutation({ id: studentToDelete.id as any })
-          toast.success(`Siswa "${studentToDelete.name}" berhasil dihapus!`)
-          setDeleteConfirmOpen(false)
-          setStudentToDelete(null)
-      } catch (e: any) {
-          console.error('Delete error:', e)
-          toast.error("Gagal menghapus siswa: " + e.message)
-      }
-  }
-
-  const cancelDelete = () => {
-      setDeleteConfirmOpen(false)
-      setStudentToDelete(null)
-  }
-
-  const handleExport = async () => {
-      try {
-          const blob = await api.exportStudents(userUnit || undefined)
-          const url = window.URL.createObjectURL(new Blob([blob]));
-          const link = document.createElement('a');
-          link.href = url;
-          link.setAttribute('download', `Data_Siswa_${new Date().toISOString().split('T')[0]}.xlsx`);
-          document.body.appendChild(link);
-          link.click();
-          link.parentNode?.removeChild(link);
-      } catch (e: any) {
-          console.error(e)
-          toast.error("Gagal mengexport data.")
-      }
-  }
-
-  const handleDownloadTemplate = () => {
-      try {
-          downloadStudentTemplate();
-          toast.success("Template berhasil didownload!");
-      } catch (error) {
-          console.error('Failed to download template:', error);
-          toast.error('Gagal mendownload template.');
-      }
-  }
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
-
-      // Validate (Max 500KB, Image)
-      if (file.size > 500 * 1024) {
-          toast.error("Ukuran foto maksimal 500KB");
-          return;
-      }
-      if (!file.type.startsWith("image/")) {
-          toast.error("Harap upload file gambar (JPG/PNG)");
-          return;
-      }
-
-      try {
-          setIsUploadingPhoto(true)
-          
-          // 1. Convert to Base64
-          const base64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.readAsDataURL(file);
-              reader.onload = () => resolve((reader.result as string).split(',')[1]);
-              reader.onerror = reject;
-          });
-
-          // 2. Upload to Google Drive via Action
-          const result: any = await uploadToDrive({
-              fileData: base64,
-              fileName: `FOTO_SISWA_${formData.nisn || Date.now()}.jpg`,
-              mimeType: file.type
-          });
-
-          if (!result || !result.success) {
-              throw new Error(result?.error || "Upload response empty");
-          }
-
-          // 3. Update Form State with Embed URL
-          const embedUrl = `https://lh3.googleusercontent.com/d/${result.id}`;
-          setFormData(prev => ({ ...prev, photoId: embedUrl }))
-          toast.success("Foto berhasil diunggah!")
-      } catch (err: any) {
-          console.error("Photo upload error:", err)
-          toast.error("Gagal unggah foto: " + err.message)
-      } finally {
-          setIsUploadingPhoto(false)
-      }
-  }
-
-  const handleBatchTransition = async () => {
-    if (!currentSchool) {
-        toast.error("Data sekolah tidak ditemukan.");
-        return;
-    }
-
-    try {
-        setIsTransitionLoading(true);
-        let isDone = false;
-        let totalPromoted = 0;
-        let totalGraduated = 0;
-        let totalProcessed = 0;
-
-        const token = localStorage.getItem("token") || "";
-        const transitionTimestamp = Date.now();
-
-        while (!isDone) {
-            const result = await batchTransitionMutation({
-                schoolId: currentSchool._id,
-                token,
-                transitionTimestamp
-            });
-            
-            totalPromoted += result.promoted;
-            totalGraduated += result.graduated;
-            totalProcessed += result.processed;
-            isDone = result.isDone;
-
-            if (!isDone) {
-                // Optional: small delay to not hammer the server? 
-                // But Convex mutations are fast and this is a user-triggered batch.
-                console.log(`[Transition] Processed ${totalProcessed} students...`);
-            }
-        }
-
-        toast.success(`Selesai! ${totalPromoted} naik kelas, ${totalGraduated} lulus.`);
-        setIsTransitionModalOpen(false);
-    } catch (e: any) {
-        console.error("[Transition Error]", e);
-        toast.error("Gagal memproses kenaikan kelas: " + e.message);
-    } finally {
-        setIsTransitionLoading(false);
-    }
-  }
-
-  const isSuperAdmin = useMemo(() => {
-    try {
-        const u = localStorage.getItem("user")
-        if (u) {
-            return JSON.parse(u).role === "super_admin"
-        }
-    } catch(e) {}
-    return false
-  }, [])
 
   return (
     <div className="space-y-6">
@@ -508,312 +124,249 @@ export default function StudentListPage() {
         title="Data Siswa"
         description="Data peserta didik di lingkungan LP Ma'arif NU Cilacap"
         actions={[
-          {
-            label: 'Export Excel',
-            onClick: handleExport,
-            variant: 'mint',
-            icon: <Download className="h-5 w-5 text-gray-700" />
-          },
-
-          {
-            label: 'Tambah Manual',
-            onClick: () => setIsAddOpen(true),
-            variant: 'cream',
-            icon: <Plus className="h-5 w-5 text-gray-700" />
-          },
-          {
-            label: 'Import Excel',
-            onClick: () => setIsImportModalOpen(true),
-            variant: 'blue',
-            icon: <FileSpreadsheet className="h-5 w-5 text-gray-700" />
-          },
-          {
-            label: 'Naik Kelas / Lulus',
-            onClick: () => setIsTransitionModalOpen(true),
-            variant: 'orange',
-            icon: <GraduationCap className="h-5 w-5 text-gray-700" />
-          }
+          { label: 'Naik Kelas', onClick: () => setIsTransitionModalOpen(true), variant: 'blue', icon: <ArrowUpDown className="h-5 w-5" /> },
+          { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'cream', icon: <FileSpreadsheet className="h-5 w-5" /> },
+          { label: 'Tambah Manual', onClick: () => { setFormData({}); setIsAddOpen(true); }, variant: 'mint', icon: <Plus className="h-5 w-5" /> }
         ]}
       />
 
-      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
-        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-purple-400/10 blur-[100px] pointer-events-none rounded-full" />
-          
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between px-6 py-5 border-b border-white/60 bg-white/40">
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 sm:w-[350px]">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-blue-600/60" />
-                <Input
-                  placeholder="Cari nama, NISN, atau sekolah..."
-                  className="pl-10 border-slate-200 bg-white/60 focus-visible:ring-blue-500 shadow-sm rounded-xl transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[160px] bg-white/60 border-slate-200 shadow-sm rounded-xl focus:ring-blue-500">
-                    <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-blue-100 shadow-lg">
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="Aktif">Aktif</SelectItem>
-                    <SelectItem value="Lulus">Lulus</SelectItem>
-                    <SelectItem value="Keluar">Keluar</SelectItem>
-                </SelectContent>
-              </Select>
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden bg-white/80 backdrop-blur-md">
+        <CardHeader className="pb-4 border-b">
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative flex-1 w-full max-w-md">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                        placeholder="Cari siswa..."
+                        className="pl-10 rounded-xl"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-[160px] rounded-xl">
+                        <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Semua Status</SelectItem>
+                        <SelectItem value="Aktif">Aktif</SelectItem>
+                        <SelectItem value="Lulus">Lulus</SelectItem>
+                        <SelectItem value="Keluar">Keluar</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
-
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2 bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 px-4 py-2 rounded-xl animate-in fade-in slide-in-from-top-1 shadow-sm">
-                <span className="text-xs font-bold text-blue-800 uppercase tracking-wider">
-                  {selectedIds.length} Siswa Terpilih
-                </span>
-                <div className="h-4 w-px bg-blue-200 mx-1" />
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 gap-2 bg-white/60 text-blue-700 border-blue-200 hover:bg-white"
-                  onClick={handleBulkGraduate}
-                  disabled={isBulkActionLoading}
-                >
-                  {isBulkActionLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <GraduationCap className="h-3.5 w-3.5" />}
-                  Luluskan
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-100/50"
-                  onClick={() => setSelectedIds([])}
-                >
-                  Batal
-                </Button>
-              </div>
-            )}
-          </div>
-          
+        </CardHeader>
         <CardContent className="p-0">
-                <div className="overflow-x-auto border-0">
-                <Table className="min-w-[1200px]">
-                  <TableHeader className="bg-blue-50/80 backdrop-blur-sm">
-                    <TableRow className="border-b border-blue-100/60 hover:bg-transparent">
-                      <TableHead className="w-[50px]">
-                        <Checkbox 
-                          checked={selectedIds.length > 0 && selectedIds.length === paginatedStudents.length}
-                          onCheckedChange={toggleSelectAll}
-                        />
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('nisn')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[120px]">
-                          <div className="flex items-center">NISN {getSortIcon('nisn')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('nama')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[200px]">
-                          <div className="flex items-center">Nama Lengkap {getSortIcon('nama')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('nik')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[140px]">
-                          <div className="flex items-center">NIK {getSortIcon('nik')}</div>
-                      </TableHead>
-                      <TableHead className="w-[180px]">Tempat/Tgl Lahir</TableHead>
-                      <TableHead onClick={() => requestSort('kelas')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[80px]">
-                          <div className="flex items-center">Kelas {getSortIcon('kelas')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('jk')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[60px]">
-                          <div className="flex items-center">L/P {getSortIcon('jk')}</div>
-                      </TableHead>
-                      <TableHead className="w-[150px]">Nama Ayah</TableHead>
-                      <TableHead className="w-[150px]">Nama Ibu</TableHead>
-                      <TableHead onClick={() => requestSort('sekolah')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[200px]">
-                          <div className="flex items-center">Asal Sekolah {getSortIcon('sekolah')}</div>
-                      </TableHead>
-                      <TableHead onClick={() => requestSort('npsn')} className="cursor-pointer hover:bg-muted/50 transition-colors w-[100px]">
-                          <div className="flex items-center">NPSN {getSortIcon('npsn')}</div>
-                      </TableHead>
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead className="text-right w-[100px] sticky right-0 bg-background shadow-sm">Aksi</TableHead>
+            <Table>
+                <TableHeader className="bg-emerald-50/40">
+                    <TableRow>
+                        <TableHead className="w-12 text-center">
+                            <div className="w-4 h-4 rounded-full border border-emerald-500 mx-auto" />
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer whitespace-nowrap">
+                            <div className="flex items-center gap-1">NISN <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer min-w-[140px]">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1">Nama Lengkap <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer whitespace-nowrap">
+                            <div className="flex items-center gap-1">NIK <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold min-w-[120px]">
+                            Tempat/Tgl<br/>Lahir
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer">
+                            <div className="flex items-center gap-1">Kelas <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer group">
+                            <div className="flex items-center gap-1">L/P <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold">
+                            Nama<br/>Ayah
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold">
+                            Nama<br/>Ibu
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer min-w-[160px]">
+                            <div className="flex items-center gap-1">Asal Sekolah <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold cursor-pointer whitespace-nowrap">
+                            <div className="flex items-center gap-1">NPSN <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
+                        </TableHead>
+                        <TableHead className="text-emerald-800 font-semibold">Status</TableHead>
+                        <TableHead className="text-emerald-800 font-semibold text-center border-l bg-white/40 backdrop-blur-sm shadow-sm sticky right-0">Aksi</TableHead>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedStudents.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={13} className="h-24 text-center">
-                                {isLoading || queryStatus === "LoadingMore" ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" /> Sedang memuat data...
-                                    </div>
-                                ) : "Tidak ada data siswa ditemukan pada halaman ini."}
-                            </TableCell>
-                        </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoading ? (
+                        <TableRow><TableCell colSpan={13} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-emerald-500" /></TableCell></TableRow>
+                    ) : students.length === 0 ? (
+                        <TableRow><TableCell colSpan={13} className="h-32 text-center text-slate-400">Tidak ada data.</TableCell></TableRow>
                     ) : (
-                        paginatedStudents.map((item) => (
-                          <TableRow key={item.id} className={selectedIds.includes(item.id) ? "bg-blue-50/30" : ""}>
-                            <TableCell>
-                              <Checkbox 
-                                checked={selectedIds.includes(item.id)}
-                                onCheckedChange={() => toggleSelect(item.id)}
-                              />
-                            </TableCell>
-                            <TableCell className="font-medium">{item.nisn}</TableCell>
-                            <TableCell>{item.nama}</TableCell>
-                            <TableCell>{item.nik || "-"}</TableCell>
-                            <TableCell>
-                                <div className="flex flex-col text-xs">
-                                    <span>{item.tempatLahir || "-"}</span>
-                                    <span className="text-muted-foreground">{item.tanggalLahir || "-"}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>{item.kelas}</TableCell>
-                            <TableCell>{item.jk}</TableCell>
-                            <TableCell>{item.namaAyah || "-"}</TableCell>
-                            <TableCell>{item.namaIbu || "-"}</TableCell>
-                            <TableCell>{item.sekolah}</TableCell>
-                            <TableCell>{item.npsn || "-"}</TableCell>
-                            <TableCell>
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${
-                                    item.status === "Aktif" ? "bg-green-100 text-green-800" : 
-                                    item.status === "Lulus" ? "bg-blue-100 text-blue-800" : 
-                                    "bg-slate-100 text-slate-800"
-                                }`}>
-                                    {item.status || "Aktif"}
-                                </span>
-                            </TableCell>
-                            <TableCell className="text-right space-x-2 sticky right-0 bg-background shadow-sm">
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                                    setFormData(item)
-                                    setIsAddOpen(true)
-                                }}><Edit className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.nama)}><Trash2 className="h-4 w-4" /></Button>
-                            </TableCell>
-                          </TableRow>
+                        students.map((item: Student) => (
+                            <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <TableCell className="text-center align-top pt-4">
+                                    <div className="w-4 h-4 rounded-full border border-emerald-500 mx-auto" />
+                                </TableCell>
+                                <TableCell className="font-semibold text-slate-800 text-sm align-top pt-4">{item.nisn || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-700 align-top pt-4">{item.nama || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-600 align-top pt-4">{item.nik || "-"}</TableCell>
+                                <TableCell className="align-top pt-4">
+                                    <div className="text-xs text-slate-700">{item.tempat_lahir || "Cilacap"}</div>
+                                    <div className="text-[11px] text-slate-400">{item.tanggal_lahir || "-"}</div>
+                                </TableCell>
+                                <TableCell className="text-sm text-slate-700 align-top pt-4">{item.kelas || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-700 align-top pt-4">{item.jenis_kelamin || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-700 align-top pt-4">{item.nama_ayah || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-700 align-top pt-4">{item.nama_ibu || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-600 align-top pt-4 max-w-[150px] truncate" title={item.school?.nama || ""}>{item.school?.nama || "-"}</TableCell>
+                                <TableCell className="text-sm text-slate-600 align-top pt-4">{item.npsn || "-"}</TableCell>
+                                <TableCell className="align-top pt-4">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] capitalize font-semibold ${
+                                        item.status === 'Aktif' ? 'bg-green-100 text-green-700' : 
+                                        item.status === 'Lulus' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-slate-100 text-slate-600'
+                                    }`}>{item.status || "Lulus"}</span>
+                                </TableCell>
+                                <TableCell className="text-center border-l bg-white/40 group-hover:bg-slate-50/50 transition-colors sticky right-0 align-top pt-2">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <button className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => { setFormData(item); setIsAddOpen(true) }}>
+                                            <Edit className="h-4 w-4" />
+                                        </button>
+                                        <button className="text-slate-600 hover:text-red-500 transition-colors" onClick={() => {
+                                            if(confirm("Hapus siswa ini?")) deleteMutation.mutate(item.id)
+                                        }}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
                         ))
                     )}
-                  </TableBody>
-                </Table>
-                </div>
+                </TableBody>
+            </Table>
             
-            {/* Pagination Controls */}
-            <div className="flex items-center justify-between py-4">
-                <div className="text-sm text-muted-foreground">
-                    Halaman {currentPage} (Menampilkan {paginatedStudents.length} dari {sortedStudents.length}{queryStatus === "CanLoadMore" ? "+" : ""} data)
-                </div>
-                <div className="flex items-center space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1 || queryStatus === "LoadingMore"}
-                    >
-                        Sebelumnya
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                            if (currentPage * itemsPerPage >= sortedStudents.length && queryStatus === "CanLoadMore") {
-                                loadMore(itemsPerPage);
-                            }
-                            setCurrentPage(p => p + 1);
-                        }}
-                        disabled={(queryStatus === "Exhausted" && currentPage * itemsPerPage >= sortedStudents.length) || queryStatus === "LoadingMore"}
-                    >
-                        {queryStatus === "LoadingMore" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Selanjutnya"}
-                    </Button>
+            <div className="flex items-center justify-between p-4 border-t">
+                <div className="text-sm text-slate-500">Halaman {currentPage} dari {totalPages}</div>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Sebelumnya</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Selanjutnya</Button>
                 </div>
             </div>
         </CardContent>
-    </Card>
+      </Card>
 
-      <Dialog open={isAddOpen} onOpenChange={(open) => {
-          setIsAddOpen(open)
-          if (!open) {
-              setFormData({ 
-                  nisn: "", nama: "", kelas: "", sekolah: "", jk: "L", status: "Aktif",
-                  nomorIndukMaarif: "", tempatLahir: "", tanggalLahir: "", alamat: "", provinsi: "", kabupaten: "", kecamatan: "", kelurahan: "", nomorTelepon: "", namaWali: ""
-              })
-          }
-      }}>
+      {/* Transition Modal */}
+      <ExcelImportModal
+        title="Import Data Siswa"
+        description="Gunakan format excel hasil ekspor Emis untuk mempercepat proses."
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={async (data) => {
+            try {
+                const res = await studentApi.import(data)
+                queryClient.invalidateQueries({ queryKey: ['students'] })
+                if (res.errors && res.errors.length > 0) {
+                    const firstError = res.errors[0]?.error || "Unknown error"
+                    toast.warning(`Berhasil: ${res.created}, Gagal: ${res.errors.length}. Detail error pertama: ${firstError}`, {
+                        duration: 6000
+                    })
+                } else {
+                    toast.success(`Berhasil mengimpor ${res.created} data siswa!`)
+                }
+                setIsImportModalOpen(false)
+            } catch (e: any) {
+                toast.error("Gagal import: " + e.message)
+            }
+        }}
+      />
+
+      <Dialog open={isTransitionModalOpen} onOpenChange={setIsTransitionModalOpen}>
+        <DialogContent>
+            <DialogHeader><DialogTitle>Naik Kelas / Lulus Massal</DialogTitle></DialogHeader>
+            <div className="py-6 text-center space-y-4">
+                <p className="text-sm text-slate-600">Pilih aksi yang ingin dilakukan untuk seluruh siswa aktif di sekolah ini.</p>
+                <div className="grid grid-cols-2 gap-4">
+                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => {
+                        if(confirm("Proses naik kelas seluruh siswa?")) batchTransitionMutation.mutate('promote')
+                    }} disabled={batchTransitionMutation.isPending}>
+                        <ArrowUpDown className="h-6 w-6 text-blue-500" />
+                        <span>Naik Kelas</span>
+                    </Button>
+                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => {
+                        if(confirm("Luluskan seluruh siswa aktif?")) batchTransitionMutation.mutate('graduate')
+                    }} disabled={batchTransitionMutation.isPending}>
+                        <GraduationCap className="h-6 w-6 text-orange-500" />
+                        <span>Luluskan</span>
+                    </Button>
+                </div>
+            </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Add Dialog */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-                <DialogTitle>{formData.id ? "Edit Data Siswa" : "Tambah Data Siswa"}</DialogTitle>
+            <DialogHeader className="border-b pb-4 mb-4">
+                <DialogTitle className="text-xl font-bold text-emerald-900">
+                    {formData.id ? "Edit Data Siswa" : "Tambah Data Siswa"}
+                </DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-                {/* Photo Upload Section */}
-                <div className="flex flex-col items-center justify-center border-b pb-6 space-y-3">
-                    <div className="relative w-24 h-24 rounded-full border-2 border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center group">
-                        {formData.photoId ? (
-                            <StudentPhotoPreview photoId={formData.photoId} />
-                        ) : (
-                            <Camera className="w-8 h-8 text-slate-300" />
-                        )}
-                        <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                            <span className="text-[10px] text-white font-medium">UBAH</span>
-                            <input 
-                                type="file" 
-                                accept="image/*" 
-                                className="hidden" 
-                                onChange={handlePhotoUpload}
-                                disabled={isUploadingPhoto}
-                            />
-                        </label>
-                        {isUploadingPhoto && (
-                            <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                            </div>
-                        )}
+            
+            <div className="space-y-6">
+                {/* Foto Profil Placeholder */}
+                <div className="flex flex-col items-center justify-center pt-2">
+                    <div className="h-24 w-24 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center mb-2">
+                        <Camera className="h-8 w-8 text-slate-400" />
                     </div>
-                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Foto Profil Siswa</p>
+                    <span className="text-xs font-bold text-slate-500 tracking-wider">FOTO PROFIL SISWA</span>
                 </div>
 
-                {/* Row 1: NISN, Nama, NIK */}
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="nisn">NISN <span className="text-red-500">*</span></Label>
-                        <Input id="nisn" value={formData.nisn || ""} onChange={e => setFormData({...formData, nisn: e.target.value})} placeholder="NISN" />
+                {/* Form Grid Area */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Baris 1 */}
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">NISN <span className="text-red-500">*</span></Label>
+                        <Input placeholder="NISN" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nisn || ""} onChange={e => setFormData({...formData, nisn: e.target.value})} />
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="nama">Nama Lengkap <span className="text-red-500">*</span></Label>
-                        <Input id="nama" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} placeholder="Nama Siswa" />
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Nama Lengkap <span className="text-red-500">*</span></Label>
+                        <Input placeholder="Nama Siswa" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nama || ""} onChange={e => setFormData({...formData, nama: e.target.value})} />
                     </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="nik">NIK</Label>
-                        <Input id="nik" value={formData.nik || ""} onChange={e => setFormData({...formData, nik: e.target.value})} placeholder="NIK Siswa" />
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">NIK</Label>
+                        <Input placeholder="NIK Siswa" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nik || ""} onChange={e => setFormData({...formData, nik: e.target.value})} />
                     </div>
-                </div>
 
-                {/* Row 2: Tempat Lahir, Tanggal Lahir, Kelas */}
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="tempat_lahir">Tempat Lahir</Label>
-                        <Input id="tempat_lahir" value={formData.tempatLahir || ""} onChange={e => setFormData({...formData, tempatLahir: e.target.value})} />
+                    {/* Baris 2 */}
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Tempat Lahir</Label>
+                        <Input placeholder="Tempat Lahir" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.tempat_lahir || ""} onChange={e => setFormData({...formData, tempat_lahir: e.target.value})} />
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="tanggal_lahir">Tanggal Lahir</Label>
-                        <Input id="tanggal_lahir" type="date" value={formData.tanggalLahir || ""} onChange={e => setFormData({...formData, tanggalLahir: e.target.value})} />
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Tanggal Lahir</Label>
+                        <Input type="date" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.tanggal_lahir || ""} onChange={e => setFormData({...formData, tanggal_lahir: e.target.value})} />
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="kelas">Kelas</Label>
-                        <Input id="kelas" value={formData.kelas || ""} onChange={e => setFormData({...formData, kelas: e.target.value})} placeholder="Contoh: 7A" />
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Kelas</Label>
+                        <Input placeholder="Contoh: 7A" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.kelas || ""} onChange={e => setFormData({...formData, kelas: e.target.value})} />
                     </div>
-                </div>
 
-                {/* Row 3: Jenis Kelamin, Nama Ayah, Nama Ibu */}
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="jk">Jenis Kelamin</Label>
-                        <Select value={formData.jk || "L"} onValueChange={(val: "L" | "P") => setFormData({...formData, jk: val})}>
-                            <SelectTrigger id="jk">
-                                <SelectValue placeholder="Pilih L/P" />
-                            </SelectTrigger>
+                    {/* Baris 3 */}
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Jenis Kelamin</Label>
+                        <Select value={formData.jenis_kelamin || ""} onValueChange={v => setFormData({...formData, jenis_kelamin: v})}>
+                            <SelectTrigger className="bg-white border-slate-200 rounded-lg text-sm"><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="L">Laki-laki</SelectItem>
                                 <SelectItem value="P">Perempuan</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="status">Status Siswa</Label>
-                        <Select value={formData.status || "Aktif"} onValueChange={(val: string) => setFormData({...formData, status: val})}>
-                            <SelectTrigger id="status">
-                                <SelectValue placeholder="Pilih Status" />
-                            </SelectTrigger>
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Status Siswa</Label>
+                        <Select value={formData.status || ""} onValueChange={v => setFormData({...formData, status: v})}>
+                            <SelectTrigger className="bg-white border-slate-200 rounded-lg text-sm"><SelectValue placeholder="Pilih Status" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Aktif">Aktif</SelectItem>
                                 <SelectItem value="Lulus">Lulus</SelectItem>
@@ -821,272 +374,72 @@ export default function StudentListPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="nama_ayah">Nama Ayah</Label>
-                        <Input id="nama_ayah" value={formData.namaAyah || ""} onChange={e => setFormData({...formData, namaAyah: e.target.value})} />
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Nama Ayah</Label>
+                        <Input placeholder="Nama Ayah" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nama_ayah || ""} onChange={e => setFormData({...formData, nama_ayah: e.target.value})} />
                     </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="nama_ibu">Nama Ibu</Label>
-                        <Input id="nama_ibu" value={formData.namaIbu || ""} onChange={e => setFormData({...formData, namaIbu: e.target.value})} />
-                    </div>
-                </div>
 
-                {/* Row 4: Asal Sekolah, NPSN */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="sekolah">Asal Sekolah</Label>
-                         <Input 
-                            id="sekolah" 
-                            value={formData.sekolah || ""} 
-                            onChange={e => setFormData({...formData, sekolah: e.target.value})} 
-                            disabled={!!userUnit} 
-                            placeholder={userUnit ? "Otomatis terisi" : "Nama Sekolah"} 
-                        />
+                    {/* Baris 4 */}
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">Nama Ibu</Label>
+                        <Input placeholder="Nama Ibu" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nama_ibu || ""} onChange={e => setFormData({...formData, nama_ibu: e.target.value})} />
                     </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="npsn">NPSN</Label>
-                        <Input id="npsn" value={formData.npsn || ""} onChange={e => setFormData({...formData, npsn: e.target.value})} placeholder="NPSN Sekolah" />
-                    </div>
-                </div>
+                    <div className="md:col-span-2"></div>
 
-                {/* Additional Fields (Collapsed/Optional) */}
-                 <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
-                     <div className="grid gap-2 col-span-2 md:col-span-1">
-                        <Label>Provinsi</Label>
-                        <Input className="bg-muted" value={formData.provinsi || ""} readOnly placeholder="Otomatis" />
-                     </div>
-                     <div className="grid gap-2 col-span-2 md:col-span-1">
-                        <Label>Kabupaten/Kota</Label>
-                        <Input className="bg-muted" value={formData.kabupaten || ""} readOnly placeholder="Otomatis" />
-                     </div>
-                     <div className="grid gap-2 col-span-2 md:col-span-1">
-                        <Label>Kecamatan</Label>
-                        <Select 
-                            value={formData.kecamatan} 
-                            onValueChange={(val) => {
-                                setFormData({...formData, kecamatan: val, kelurahan: "", provinsi: regionData?.provinsi || "Jawa Tengah", kabupaten: regionData?.kabupaten || "Cilacap"})
-                            }}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Pilih Kecamatan" /></SelectTrigger>
-                            <SelectContent>
-                                {regionData?.kecamatan?.map((k: any) => (
-                                    <SelectItem key={k.nama} value={k.nama}>{k.nama}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                     </div>
-                     <div className="grid gap-2 col-span-2 md:col-span-1">
-                        <Label>Kelurahan/Desa</Label>
-                        <Select 
-                            disabled={!formData.kecamatan}
-                            value={formData.kelurahan} 
-                            onValueChange={(val) => setFormData({...formData, kelurahan: val})}
-                        >
-                            <SelectTrigger><SelectValue placeholder="Pilih Kelurahan/Desa" /></SelectTrigger>
-                            <SelectContent>
-                                {regionData?.kecamatan?.find((k: any) => k.nama === formData.kecamatan)?.desa?.map((d: any) => (
-                                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                     </div>
-                     <div className="grid gap-2 col-span-2">
-                        <Label htmlFor="alamat">Alamat Lengkap (Jalan/RT/RW)</Label>
-                        <Input id="alamat" value={formData.alamat || ""} onChange={e => setFormData({...formData, alamat: e.target.value})} placeholder="Jl. Contoh No. 123 RT 01 RW 02" />
+                    {/* Baris 5 */}
+                    <div className="space-y-2 md:col-span-2">
+                        <Label className="text-slate-700 font-semibold">Asal Sekolah</Label>
+                        <Input placeholder="Nama Sekolah" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.school?.nama || formData.school_id?.toString() || ""} readOnly disabled />
                     </div>
-                     <div className="grid gap-2 col-span-2 md:col-span-1">
-                        <Label htmlFor="nomor_telepon">No. Telepon</Label>
-                        <Input id="nomor_telepon" value={formData.nomorTelepon || ""} onChange={e => setFormData({...formData, nomorTelepon: e.target.value})} />
-                     </div>
-                     <div className="grid gap-2 col-span-2 md:col-span-1">
-                        <Label htmlFor="nama_wali">Nama Wali</Label>
-                        <Input id="nama_wali" value={formData.namaWali || ""} onChange={e => setFormData({...formData, namaWali: e.target.value})} />
-                     </div>
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-semibold">NPSN</Label>
+                        <Input placeholder="NPSN Sekolah" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.npsn || ""} onChange={e => setFormData({...formData, npsn: e.target.value})} />
+                    </div>
+
+                    {/* Baris 6 */}
+                    <div className="space-y-2 md:col-span-1 border-t pt-4 mt-2 border-slate-100">
+                        <Label className="text-slate-700 font-semibold">Provinsi</Label>
+                        <Input placeholder="Otomatis" className="bg-slate-50 border-slate-200 rounded-lg text-sm text-slate-500" value={formData.provinsi || ""} disabled />
+                    </div>
+                    <div className="space-y-2 md:col-span-2 border-t pt-4 mt-2 border-slate-100">
+                        <Label className="text-slate-700 font-semibold">Kabupaten/Kota</Label>
+                        <Input placeholder="Otomatis" className="bg-slate-50 border-slate-200 rounded-lg text-sm text-slate-500" value={formData.kabupaten || ""} disabled />
+                    </div>
+
+                    {/* Baris 7 */}
+                    <div className="space-y-2 md:col-span-1">
+                        <Label className="text-slate-700 font-semibold">Kecamatan</Label>
+                        <Input placeholder="Pilih Kecamatan" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.kecamatan || ""} onChange={e => setFormData({...formData, kecamatan: e.target.value})} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label className="text-slate-700 font-semibold">Kelurahan/Desa</Label>
+                        <Input placeholder="Pilih Kelurahan/Desa" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.kelurahan || ""} onChange={e => setFormData({...formData, kelurahan: e.target.value})} />
+                    </div>
+
+                    {/* Baris 8 */}
+                    <div className="space-y-2 md:col-span-3">
+                        <Label className="text-slate-700 font-semibold">Alamat Lengkap (Jalan/RT/RW)</Label>
+                        <Input placeholder="Jl. Contoh No. 123 RT 01 RW 02" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.alamat || ""} onChange={e => setFormData({...formData, alamat: e.target.value})} />
+                    </div>
+
+                    {/* Baris 9 */}
+                    <div className="space-y-2 md:col-span-1">
+                        <Label className="text-slate-700 font-semibold">No. Telepon</Label>
+                        <Input placeholder="Contoh: 08123456789" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nomor_telepon || ""} onChange={e => setFormData({...formData, nomor_telepon: e.target.value})} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label className="text-slate-700 font-semibold">Nama Wali</Label>
+                        <Input placeholder="Nama Wali" className="bg-white border-slate-200 rounded-lg text-sm" value={formData.nama_wali || ""} onChange={e => setFormData({...formData, nama_wali: e.target.value})} />
+                    </div>
                 </div>
             </div>
-            <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
-                <Button onClick={handleAdd}>Simpan</Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Excel Import Modal */}
-      <ExcelImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportSuccess={loadStudents}
-        title="Import Data Siswa"
-        description="Upload file Excel (.xlsx) untuk import data siswa. Pastikan format sesuai template."
-        onDownloadTemplate={handleDownloadTemplate}
-        onFileImport={async (file) => {
-          try {
-             // 1. Parse Excel
-             const data = await processStudentImport(file);
-             if (data.length === 0) throw new Error("File kosong atau format salah.");
-             
-             // 2. Send to Backend
-             const result = await bulkCreateStudentMutation({ students: data });
-             
-             // 3. Feedback
-             toast.success(`Berhasil import ${result.count} data siswa!`);
-          } catch (err: any) {
-             console.error(err);
-             throw new Error(err.message || "Gagal import data.");
-          }
-        }}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <div className="flex items-center gap-3 text-red-600 mb-2">
-                <div className="p-2 bg-red-50 rounded-full">
-                    <Trash2 className="h-6 w-6" />
-                </div>
-                <DialogTitle className="text-xl font-bold">Hapus Data Siswa</DialogTitle>
-            </div>
-          </DialogHeader>
-          <div className="py-2">
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Apakah Anda yakin ingin menghapus data siswa:
-            </p>
-            <p className="font-bold text-lg mt-1 text-slate-800">
-              {studentToDelete?.name}
-            </p>
-            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-xs text-red-800 font-bold flex items-center gap-2">
-                    <XCircle className="h-4 w-4" /> PERINGATAN
-                </p>
-                <p className="text-[11px] text-red-700 mt-1 leading-normal">
-                   Data akan terhapus secara <strong>PERMANEN</strong> dari sistem. Tindakan ini tidak dapat dibatalkan.
-                </p>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
-            <Button variant="ghost" onClick={cancelDelete}>
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700 shadow-sm gap-2"
-            >
-              <Trash2 className="h-4 w-4" /> Ya, Hapus Siswa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk Graduation Confirmation Modal */}
-      <Dialog open={isBulkConfirmOpen} onOpenChange={setIsBulkConfirmOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                  <div className="flex items-center gap-3 text-blue-600 mb-2">
-                      <div className="p-2 bg-blue-50 rounded-full">
-                          <AlertTriangle className="h-6 w-6" />
-                      </div>
-                      <DialogTitle className="text-xl font-bold">Luluskan Siswa</DialogTitle>
-                  </div>
-              </DialogHeader>
-              <div className="py-4">
-                  <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                          Apakah Anda yakin ingin meluluskan <span className="font-bold text-foreground inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100">{selectedIds.length} siswa</span> yang telah dipilih?
-                      </p>
-                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                          <p className="text-xs text-amber-800 leading-normal">
-                              <strong>Catatan:</strong> Status siswa akan dirubah menjadi <strong>"Lulus"</strong>. Pastikan data yang Anda pilih sudah benar sebelum melanjutkan.
-                          </p>
-                      </div>
-                  </div>
-              </div>
-              <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
-                  <Button variant="ghost" onClick={() => setIsBulkConfirmOpen(false)} disabled={isBulkActionLoading} className="text-slate-600">
-                      Batal
-                  </Button>
-                  <Button variant="default" onClick={executeBulkGraduate} disabled={isBulkActionLoading} className="bg-blue-600 hover:bg-blue-700 gap-2 shadow-sm">
-                      {isBulkActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GraduationCap className="h-4 w-4" />}
-                      Ya, Luluskan Sekarang
-                  </Button>
-              </DialogFooter>
-          </DialogContent>
-      </Dialog>
-      
-      {/* Batch Transition (Promotion/Graduation) Modal */}
-      <Dialog open={isTransitionModalOpen} onOpenChange={setIsTransitionModalOpen}>
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-6 w-6 text-orange-600" />
-                    Kenaikan Kelas & Kelulusan
-                </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-2">
-                    <div className="flex items-center gap-2 text-orange-800 font-bold text-sm">
-                        <AlertTriangle className="h-4 w-4" />
-                        PERHATIAN
-                    </div>
-                    <p className="text-xs text-orange-700 leading-relaxed">
-                        Fitur ini digunakan pada akhir tahun ajaran untuk memproses siswa secara kolektif:
-                    </p>
-                    <ul className="text-xs text-orange-700 list-disc pl-4 space-y-1">
-                        <li>Siswa kelas akhir (6/9/12) akan otomatis berstatus <strong>Lulus</strong>.</li>
-                        <li>Siswa lainnya akan naik 1 tingkat (contoh: 7A → 8A).</li>
-                        <li>Hanya memproses siswa dengan status <strong>Aktif</strong>.</li>
-                    </ul>
-                </div>
-                
-                <p className="text-sm text-slate-600">
-                    {transitionStudentCount !== undefined ? (
-                        <>Ditemukan <strong>{transitionStudentCount}</strong> siswa aktif di <strong>{currentSchool?.nama || 'Sekolah'}</strong>.</>
-                    ) : (
-                        <>Menghitung jumlah siswa...</>
-                    )}
-                </p>
-                <p className="text-xs text-slate-400 italic">
-                    Tindakan ini akan memproses semua siswa di atas dalam beberapa tahap untuk memastikan data aman.
-                </p>
-            </div>
-            <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsTransitionModalOpen(false)} disabled={isTransitionLoading}>
-                    Batal
-                </Button>
-                <Button 
-                    className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
-                    onClick={handleBatchTransition}
-                    disabled={isTransitionLoading}
-                >
-                    {isTransitionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-4 w-4" />}
-                    Proses Sekarang
-                </Button>
+            <DialogFooter className="mt-8 border-t pt-4">
+                <Button variant="outline" className="rounded-xl px-6" onClick={() => setIsAddOpen(false)}>Batal</Button>
+                <Button className="rounded-xl px-8 bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Simpan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
-}
-
-function StudentPhotoPreview({ photoId }: { photoId: string }) {
-    // If it's a URL, we don't need to ask the backend for one
-    const isUrl = photoId && (photoId.startsWith("http") || photoId.startsWith("https"));
-    
-    // 🔥 OPTIMIZATION: Skip query if already a URL
-    const url = useQuery(convexApi.students.getPhotoUrl, isUrl ? "skip" : { photoId });
-    
-    // Normalize Preview Link if it's a Drive Link but not yet an embed link
-    const displayUrl = useMemo(() => {
-        if (photoId && photoId.startsWith("http") && photoId.includes("drive.google.com")) {
-             const match = photoId.match(/id=([a-zA-Z0-9_-]+)/) || photoId.match(/\/d\/([a-zA-Z0-9_-]+)/);
-             if (match && match[1]) {
-                 return `https://lh3.googleusercontent.com/d/${match[1]}`;
-             }
-        }
-        return isUrl ? photoId : url;
-    }, [url, photoId, isUrl]);
-
-    if (!displayUrl && !url) return <div className="animate-pulse bg-slate-100 w-full h-full" />;
-    return <img src={displayUrl || url || ""} alt="Siswa" className="w-full h-full object-cover" />;
 }

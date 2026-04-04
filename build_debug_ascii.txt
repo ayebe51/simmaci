@@ -1,0 +1,86 @@
+
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+npm : X [ERROR] Expecte
+d ";" but found "{"
+At line:1 char:1
++ npm run build > build
+_debug.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecified
+:     (X [ERROR] Expect
+ed     ";" but found "{
+":St    ring) [], Remot
+eExce    ption
+    + FullyQualifiedErr
+o    rId : NativeComman
+dE    rror
+ 
+
+    vite.config.ts:6:28
+:
+      6 ???       onwar
+n(warning, warn) {
+        ???            
+                 ^
+        ???            
+                 ;
+
+[31mfailed to load con
+fig from D:\apss-source
+\SIMMACI\vite.config.ts
+[39m
+[31merror during build
+:
+Error: Build failed wit
+h 1 error:
+vite.config.ts:6:28: ER
+ROR: Expected ";" but f
+ound "{"
+    at failureErrorWith
+Log (D:\apss-source\SIM
+MACI\node_modules\vite\
+node_modules\esbuild\li
+b\main.js:1467:15)
+    at D:\apss-source\S
+IMMACI\node_modules\vit
+e\node_modules\esbuild\
+lib\main.js:926:25
+    at runOnEndCallback
+s (D:\apss-source\SIMMA
+CI\node_modules\vite\no
+de_modules\esbuild\lib\
+main.js:1307:45)
+    at buildResponseToR
+esult (D:\apss-source\S
+IMMACI\node_modules\vit
+e\node_modules\esbuild\
+lib\main.js:924:7)
+    at D:\apss-source\S
+IMMACI\node_modules\vit
+e\node_modules\esbuild\
+lib\main.js:951:16
+    at responseCallback
+s.<computed> (D:\apss-s
+ource\SIMMACI\node_modu
+les\vite\node_modules\e
+sbuild\lib\main.js:603:
+9)
+    at handleIncomingPa
+cket (D:\apss-source\SI
+MMACI\node_modules\vite
+\node_modules\esbuild\l
+ib\main.js:658:12)
+    at Socket.readFromS
+tdout (D:\apss-source\S
+IMMACI\node_modules\vit
+e\node_modules\esbuild\
+lib\main.js:581:7)
+    at Socket.emit (nod
+e:events:524:28)
+    at addChunk (node:i
+nternal/streams/readabl
+e:561:12)[39m

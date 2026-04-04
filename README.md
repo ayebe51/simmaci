@@ -56,12 +56,14 @@ Aplikasi ini dibangun menggunakan **Modern Full-Stack Architecture** untuk menja
 
 ### Backend
 
-- **Framework:** [NestJS](https://nestjs.com/) (Node.js framework)
-- **Database:** PostgreSQL (Production) / SQLite (Dev)
-- **ORM:** TypeORM
-- **Authentication:** JWT (JSON Web Tokens)
-- **File Handling:** Multer (Uploads)
-- **PDF Generation:** PDFKit / Puppeteer
+- **Framework:** [Laravel 12](https://laravel.com/) (PHP)
+- **Database:** PostgreSQL
+- **ORM:** Eloquent ORM
+- **Authentication:** [Laravel Sanctum](https://laravel.com/docs/sanctum) (Token-based API auth)
+- **Admin Panel:** [Filament v3](https://filamentphp.com/)
+- **File Handling:** Laravel Storage (Local / S3)
+- **Document Generation:** PHPWord (`.docx` templates)
+- **Audit Trail:** Activity Logging (custom + Spatie)
 
 ---
 
@@ -86,16 +88,20 @@ cd sim-maarif-cilacap
 
 ```bash
 cd backend
-npm install
+composer install
 
 # Setup Environment Variables (Buat file .env)
 cp .env.example .env
+php artisan key:generate
+
+# Jalankan Migrasi Database
+php artisan migrate --seed
 
 # Jalankan Server (Development)
-npm run start:dev
+php artisan serve
 ```
 
-*Backend akan berjalan di `http://localhost:3000`*
+*Backend akan berjalan di `http://localhost:8000`*
 
 ### 3. Setup Frontend
 
@@ -112,6 +118,43 @@ npm run dev
 ```
 
 *Frontend akan berjalan di `http://localhost:5173`*
+
+---
+
+## 🐳 Running with Docker
+
+SIMMACI is fully dockerized for easy deployment. Ensure Docker and Docker Compose are installed.
+
+1. **Clone & Configure** (Standard steps)
+2. **Environment Setup**:
+
+```bash
+cp .env.example .env
+cd backend && cp .env.example .env
+```
+
+3. **Launch the stack**:
+
+```bash
+docker compose up -d --build
+```
+
+4. **Database Migration**:
+
+```bash
+docker exec -it simmaci-backend php artisan migrate --seed
+```
+
+The app will be accessible at `http://localhost`.
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+Uses **GitHub Actions** for automated quality assurance:
+
+- **Backend-CI**: PHP 8.2 Unit Tests via `Tests\Feature\SkDocumentApiTest`.
+- **Frontend-CI**: Node 20 ESLint + Vite Production Build verification.
 
 ---
 

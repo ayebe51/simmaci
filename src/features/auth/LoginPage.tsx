@@ -12,16 +12,12 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
-// 🔥 CONVEX AUTH
-import { useMutation } from "convex/react"
-import { api } from "../../../convex/_generated/api"
+// 🔥 REST API AUTH
+import { authApi } from "@/lib/api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  
-  // Convex login mutation
-  const loginMutation = useMutation(api.auth.login)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,23 +28,15 @@ export default function LoginPage() {
     const passwordInput = (document.getElementById("password") as HTMLInputElement)?.value || ""
 
     try {
-        // 🔥 Call Convex login
-        const data = await loginMutation({
-          email: emailInput,
-          password: passwordInput,
-        })
-        
-        // Save token (user ID)
-        localStorage.setItem("token", data.token)
-        
-        // Save user data
-        localStorage.setItem("user", JSON.stringify(data.user))
+        // 🔥 Call Laravel REST API login
+        await authApi.login(emailInput, passwordInput)
 
         toast.success("Login Berhasil!")
         navigate("/dashboard")
     } catch (err: any) {
         console.error(err);
-        toast.error(err.message || "Login Gagal! Username atau Password salah.")
+        const message = err.response?.data?.message || err.message || "Login Gagal! Username atau Password salah.";
+        toast.error(message)
     } finally {
         setLoading(false)
     }

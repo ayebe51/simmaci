@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { eventApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -22,7 +22,7 @@ export default function EventsPage() {
 
   const loadEvents = async () => {
     try {
-        const data = await api.getEvents();
+        const data = await eventApi.list();
         setEvents(data);
     } catch (e) {
         console.error(e);
@@ -42,7 +42,7 @@ export default function EventsPage() {
       if (!eventToDelete) return;
       try {
           setIsDeleting(true);
-          await api.deleteEvent(eventToDelete.id);
+          await eventApi.delete(eventToDelete.id as any);
           toast.success(`Event "${eventToDelete.name}" berhasil dihapus`);
           setIsDeleteDialogOpen(false);
           setEventToDelete(null);

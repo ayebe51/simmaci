@@ -4,15 +4,16 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: "super_admin" | "operator" | "user";
-  unitKerja?: string; // School ID for operators
+  role: "super_admin" | "admin_yayasan" | "operator";
+  unitKerja?: string; // School name/unit
+  schoolId?: number;
 }
 
 /**
  * Get current logged-in user from localStorage
  */
 export function getCurrentUser(): User | null {
-  const userStr = localStorage.getItem("user");
+  const userStr = localStorage.getItem("user_data");
   if (!userStr) return null;
   
   try {

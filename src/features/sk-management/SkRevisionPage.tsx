@@ -6,48 +6,44 @@ import { useNavigate, useParams } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-
-import { useQuery, useMutation } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
-import { Id } from "../../../convex/_generated/dataModel"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { skApi } from "@/lib/api"
 
 export default function SkRevisionPage() {
     const navigate = useNavigate()
     const { id } = useParams()
+    const queryClient = useQueryClient()
 
-    const skDoc = useQuery(convexApi.sk.get, id ? { id: id as Id<"skDocuments"> } : "skip")
-    const requestRevisionMutation = useMutation(convexApi.sk.requestRevision)
+    const { data: skDoc, isLoading } = useQuery({
+        queryKey: ['sk-document', id],
+        queryFn: () => skApi.get(Number(id)),
+        enabled: !!id
+    })
+
+    const requestRevisionMutation = useMutation({
+        mutationFn: (data: any) => skApi.update(Number(id), data),
+        onSuccess: () => {
+            toast.success("Pengajuan revisi profil berhasil dikirim ke Admin!")
+            queryClient.invalidateQueries({ queryKey: ['sk-document', id] })
+            navigate(`/dashboard/sk/${id}`)
+        },
+        onError: (err: any) => toast.error("Gagal mengajukan revisi: " + (err.response?.data?.message || err.message))
+    })
 
     const [isSubmitting, setIsSubmitting] = useState(false)
     
     // Form state
     const [formData, setFormData] = useState({
         nama: "",
-        tempatLahir: "",
-        tanggalLahir: "",
-        nip: "", // NIY / NIP
-        pendidikanTerakhir: "",
-        unitKerja: "",
-        tmtPendidik: "",
+        tempat_lahir: "",
+        tanggal_lahir: "",
+        nip: "",
+        pendidikan_terakhir: "",
+        unit_kerja: "",
+        tmt: "",
         reason: ""
     })
-
-    // Custom safe date parser
-    const parseDateSafe = (dateString: string | undefined | null) => {
-        if (!dateString) return ""
-        try {
-            // Check if it's already an ISO or valid parseable date
-            const d = new Date(dateString)
-            if (!isNaN(d.getTime())) {
-                return d.toISOString().split('T')[0]
-            }
-            return "" // If invalid (e.g. '05 Juni 1990'), just return empty so input="date" doesn't crash
-        } catch {
-            return ""
-        }
-    }
 
     // Pre-fill data when skDoc loads
     useEffect(() => {
@@ -55,12 +51,12 @@ export default function SkRevisionPage() {
             const teacher: any = skDoc.teacher || {}
             setFormData({
                 nama: skDoc.nama || "",
-                tempatLahir: teacher.tempatLahir || "",
-                tanggalLahir: parseDateSafe(teacher.tanggalLahir),
+                tempat_lahir: teacher.tempat_lahir || "",
+                tanggal_lahir: teacher.tanggal_lahir ? teacher.tanggal_lahir.split('T')[0] : "",
                 nip: teacher.nip || "",
-                pendidikanTerakhir: teacher.pendidikanTerakhir || "",
-                unitKerja: skDoc.unitKerja || "",
-                tmtPendidik: parseDateSafe(teacher.tmtPendidik),
+                pendidikan_terakhir: teacher.pendidikan_terakhir || "",
+                unit_kerja: skDoc.unit_kerja || "",
+                tmt: teacher.tmt ? teacher.tmt.split('T')[0] : "",
                 reason: ""
             })
         }
@@ -79,180 +75,123 @@ export default function SkRevisionPage() {
             return
         }
 
+        setIsSubmitting(true)
         try {
-            setIsSubmitting(true)
-            
-            // Compose the proposed data payload
-            const proposedDataString = JSON.stringify({
+            const proposedData = {
                 nama: formData.nama,
-                tempatLahir: formData.tempatLahir,
-                // Ensure we pass ISO strings for dates if they were changed
-                tanggalLahir: formData.tanggalLahir ? new Date(formData.tanggalLahir).toISOString() : undefined,
+                tempat_lahir: formData.tempat_lahir,
+                tanggal_lahir: formData.tanggal_lahir,
                 nip: formData.nip,
-                pendidikanTerakhir: formData.pendidikanTerakhir,
-                unitKerja: formData.unitKerja,
-                tmtPendidik: formData.tmtPendidik ? new Date(formData.tmtPendidik).toISOString() : undefined,
-            })
+                pendidikan_terakhir: formData.pendidikan_terakhir,
+                unit_kerja: formData.unit_kerja,
+                tmt: formData.tmt,
+            }
 
-            await requestRevisionMutation({
-                skId: id as Id<"skDocuments">,
-                reason: formData.reason,
-                proposedData: proposedDataString
+            await requestRevisionMutation.mutateAsync({
+                revision_status: 'revision_pending',
+                revision_reason: formData.reason,
+                revision_data: proposedData
             })
-
-            toast.success("Pengajuan revisi profil berhasil dikirim ke Admin!")
-            navigate(`/dashboard/sk/${id}`)
-        } catch (error: any) {
-            toast.error("Gagal mengajukan revisi: " + error.message)
+        } catch (error) {
+            console.error(error)
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    if (!skDoc) {
-        return <div className="p-8 text-center text-muted-foreground flex items-center justify-center">
-            <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat data SK & Profil...
+    if (isLoading) {
+        return <div className="p-10 text-center flex flex-col items-center justify-center min-h-[400px]">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
+            <span className="text-xs font-black uppercase tracking-widest text-slate-400">Menarik Data Dokumen...</span>
         </div>
     }
 
-    if (skDoc.status !== "approved" && skDoc.status !== "active") {
-        return <div className="p-8 text-center text-red-500">
-            Hanya SK yang sudah disetujui/terbit yang dapat direvisi layanannya.
-            <br/>
-            <Button variant="outline" className="mt-4" onClick={() => navigate("/dashboard/sk")}>Kembali ke Dashboard</Button>
-        </div>
-    }
+    if (!skDoc) return null
 
     return (
         <div className="max-w-3xl mx-auto space-y-6 pb-20">
             <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Batal
+                <Button variant="ghost" onClick={() => navigate(-1)} className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Batal & Kembali
                 </Button>
             </div>
 
-            <Card className="border-orange-100 shadow-md">
-                <CardHeader className="bg-orange-50/50 border-b border-orange-100 pb-8">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-orange-100 rounded-lg">
-                            <User className="h-6 w-6 text-orange-600" />
+            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+                <CardHeader className="p-10 bg-amber-50/50 border-b border-amber-100">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                            <User className="h-7 w-7" />
                         </div>
                         <div>
-                            <CardTitle className="text-2xl text-orange-900">Perbaikan Data Profil SK</CardTitle>
-                            <CardDescription className="text-orange-700/80 mt-1">
-                                Ubah isian di bawah ini untuk memperbaiki data pribadi yang keliru pada lampiran SK nomor <strong>{skDoc.nomorSk || "Belum ada"}</strong>. Perubahan ini akan memicu *update* langsung pada data Induk Guru setelah di-ACC.
+                            <CardTitle className="text-2xl font-black text-amber-900 uppercase tracking-tight">Perbaikan Profil SK</CardTitle>
+                            <CardDescription className="text-amber-700/60 font-medium text-sm pt-1">
+                                Layanan koreksi data guru pada SK No: <span className="font-black text-amber-800">{skDoc.nomor_sk || "DRAFT"}</span>
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
-                    <CardContent className="space-y-6 pt-6">
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="nama" className="font-semibold">Nama Lengkap & Gelar</Label>
-                                <Input 
-                                    id="nama" 
-                                    value={formData.nama} 
-                                    onChange={handleInputChange}
-                                    placeholder="Contoh: Ahmad Yani, S.Pd"
-                                    className="border-slate-300 focus:border-orange-400 focus:ring-orange-400"
-                                />
+                    <CardContent className="p-10 space-y-10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Lengkap & Gelar</Label>
+                                <Input id="nama" value={formData.nama} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500 font-bold" />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="nip" className="font-semibold">NIY / NIP</Label>
-                                <Input 
-                                    id="nip" 
-                                    value={formData.nip} 
-                                    onChange={handleInputChange}
-                                    placeholder="Masukkan Nomor Induk"
-                                    className="border-slate-300 focus:border-orange-400 focus:ring-orange-400"
-                                />
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NIP / NIY</Label>
+                                <Input id="nip" value={formData.nip} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500 font-mono" />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="tempatLahir" className="font-semibold">Tempat Lahir</Label>
-                                <Input 
-                                    id="tempatLahir" 
-                                    value={formData.tempatLahir} 
-                                    onChange={handleInputChange}
-                                    placeholder="Contoh: Cilacap"
-                                    className="border-slate-300 focus:border-orange-400 focus:ring-orange-400"
-                                />
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tempat Lahir</Label>
+                                <Input id="tempat_lahir" value={formData.tempat_lahir} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500" />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="tanggalLahir" className="font-semibold">Tanggal Lahir</Label>
-                                <Input 
-                                    id="tanggalLahir" 
-                                    type="date"
-                                    value={formData.tanggalLahir} 
-                                    onChange={handleInputChange}
-                                    className="border-slate-300 focus:border-orange-400 focus:ring-orange-400"
-                                />
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Lahir</Label>
+                                <Input id="tanggal_lahir" type="date" value={formData.tanggal_lahir} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500" />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="pendidikanTerakhir" className="font-semibold">Pendidikan Terakhir & Jurusan</Label>
-                                <Input 
-                                    id="pendidikanTerakhir" 
-                                    value={formData.pendidikanTerakhir} 
-                                    onChange={handleInputChange}
-                                    placeholder="Contoh: S1 / Pendidikan Agama Islam"
-                                    className="border-slate-300 focus:border-orange-400 focus:ring-orange-400"
-                                />
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pendidikan</Label>
+                                <Input id="pendidikan_terakhir" value={formData.pendidikan_terakhir} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500 font-bold" />
                             </div>
                             
-                            <div className="space-y-2">
-                                <Label htmlFor="tmtPendidik" className="font-semibold text-blue-700">TMT (Tanggal Mulai Tugas)</Label>
-                                <Input 
-                                    id="tmtPendidik" 
-                                    type="date"
-                                    value={formData.tmtPendidik} 
-                                    onChange={handleInputChange}
-                                    className="border-blue-200 bg-blue-50/50 focus:border-blue-400 focus:ring-blue-400"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">Sangat vital untuk dicetak ke dalam SK.</p>
+                            <div className="space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-blue-600">TMT (Tanggal Mulai Tugas)</Label>
+                                <Input id="tmt" type="date" value={formData.tmt} onChange={handleInputChange} className="h-12 rounded-xl bg-blue-50 border-0 focus:ring-blue-500" />
                             </div>
                             
-                            <div className="space-y-2 md:col-span-2">
-                                <Label htmlFor="unitKerja" className="font-semibold">Unit Kerja / Sekolah</Label>
-                                {/* We keep it as text input for now, ideally this would be a select from schools table */}
-                                <Input 
-                                    id="unitKerja" 
-                                    value={formData.unitKerja} 
-                                    onChange={handleInputChange}
-                                    placeholder="Contoh: SMP NU Cilacap"
-                                    className="border-slate-300 focus:border-orange-400 focus:ring-orange-400 bg-slate-50"
-                                />
+                            <div className="md:col-span-2 space-y-3">
+                                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Unit Kerja / Madrasah</Label>
+                                <Input id="unit_kerja" value={formData.unit_kerja} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500 font-bold opacity-80" />
                             </div>
                         </div>
 
-                        <hr className="my-6 border-slate-200" />
-
-                        <div className="space-y-3 bg-red-50/50 p-4 border border-red-100 rounded-lg">
-                            <Label htmlFor="reason" className="font-bold text-red-700 flex items-center gap-2">
-                                Alasan Permintaan Revisi <span className="text-red-500">*wajib</span>
+                        <div className="p-6 bg-red-50 border border-red-100 rounded-2xl space-y-4">
+                            <Label className="text-[10px] font-black uppercase text-red-600 tracking-widest flex items-center gap-2">
+                                <span className="bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[8px]">!</span>
+                                Alasan Permintaan Revisi *Wajib
                             </Label>
                             <Textarea 
                                 id="reason" 
                                 value={formData.reason} 
                                 onChange={handleInputChange}
-                                placeholder="Jelaskan secara singkat apa yang salah. Contoh: 'Penulisan gelar pada nama kurang S.Pd.' atau 'Tahun TMT terbalik harusnya 2015 bukan 2025'."
-                                className="min-h-[100px] border-red-200 focus:border-red-400 focus:ring-red-400 bg-white"
+                                placeholder="Jelaskan bagian mana yang perlu diperbaiki (Cth: Typo nama, Tanggal lahir salah)..."
+                                className="h-24 rounded-xl bg-white border-red-200 focus:ring-red-500 resize-none font-medium text-sm"
                             />
                         </div>
 
                     </CardContent>
                     
-                    <CardFooter className="bg-slate-50 px-6 py-4 border-t flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground hidden sm:block">Perubahan ini membutuhkan ACC dari Admin Cabang.</p>
-                        <div className="flex gap-3 w-full sm:w-auto">
-                            <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-full sm:w-auto">Batal</Button>
-                            <Button type="submit" disabled={isSubmitting || !formData.reason.trim()} className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700">
+                    <CardFooter className="p-10 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Membutuhkan Verifikasi Admin</p>
+                        <div className="flex gap-4">
+                            <Button type="button" variant="ghost" onClick={() => navigate(-1)} className="rounded-xl h-12 px-8 text-xs font-black uppercase tracking-widest text-slate-400">Batal</Button>
+                            <Button type="submit" disabled={isSubmitting || !formData.reason.trim()} className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-12 px-8 text-xs font-black uppercase tracking-widest shadow-xl shadow-amber-100">
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} 
-                                Ajukan Perbaikan Sekarang
+                                Ajukan Perbaikan
                             </Button>
                         </div>
                     </CardFooter>

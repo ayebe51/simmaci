@@ -1,50 +1,23 @@
 import { useState } from "react"
-import { useQuery, useMutation, useAction } from "convex/react"
-import { api } from "../../../convex/_generated/api"
+import { useQuery, useMutation } from "@tanstack/react-query"
+import { nuptkApi, teacherApi, mediaApi, authApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Send, UploadCloud, CheckCircle, XCircle, Clock, FileIcon, Search } from "lucide-react"
+import { Send, UploadCloud, CheckCircle, XCircle, Clock, Loader2, Search, FileText } from "lucide-react"
 import { toast } from "sonner"
-import SoftPageHeader from "@/components/ui/SoftPageHeader"
 
 export function PengajuanNuptkPage() {
-    const userStr = localStorage.getItem("user")
-    const user = userStr ? JSON.parse(userStr) : null;
+    const user = authApi.getStoredUser()
     const isOperator = user?.role === "operator"
-    const schoolId = isOperator ? user.schoolId : undefined
-
-    const teachers = useQuery(api.teachers.listAll, { 
-        token: localStorage.getItem("token") || "",
-        schoolId: isOperator ? (user.schoolId as any) : undefined 
-    }) || []
-    const submissions = useQuery(api.nuptk.listRequests, { 
-        schoolId: isOperator ? (user.schoolId as any) : undefined 
-    }) || []
-    
-    // Filter teachers who don't have NUPTK OR their NUPTK is just a temporary ID, dummy "-/0", or strictly blank whitespace
-    const eligibleTeachers = teachers.filter(t => {
-        if (!t.nuptk) return true;
-        const strVal = String(t.nuptk).trim();
-        return strVal === "" || strVal === "-" || strVal === "0" || strVal.toLowerCase() === "belum ada" || strVal.startsWith("TMP-");
-    });
-    
-    // Check if teacher already has pending/approved request
-    const isTeacherSubmitted = (teacherId: string) => {
-        return submissions.some(s => s.teacherId === teacherId && s.status !== "Rejected")
-    }
 
     const [searchTerm, setSearchTerm] = useState("")
-
-    // Submission Modal State
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedTeacher, setSelectedTeacher] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
-    
-    // File IDs
     const [files, setFiles] = useState<{
         ktp?: string,
         ijazah?: string,
@@ -52,204 +25,114 @@ export function PengajuanNuptkPage() {
         penugasan?: string
     }>({})
 
-    const uploadToDrive = useAction((api as any).drive.uploadFile)
-    const submitRequest = useMutation(api.nuptk.submitRequest)
-    const removeRequest = useMutation(api.nuptk.removeRequest)
+    // 🔥 REST API QUERIES
+    const { data: teachersRes, isLoading: loadingTeachers } = useQuery({
+        queryKey: ['teachers-nuptk-eligible', searchTerm],
+        queryFn: () => teacherApi.list({ 
+            search: searchTerm || undefined,
+            per_page: 50
+        })
+    })
 
-    const handleUploadClick = () => {
-        // Trigger generic file input. For simplicity we use standard input elements below
+    const { data: submissionsRes, isLoading: loadingSubmissions, refetch: refetchSubmissions } = useQuery({
+        queryKey: ['nuptk-submissions-history'],
+        queryFn: () => nuptkApi.list({ per_page: 50 })
+    })
+
+    const teachers = teachersRes?.data || []
+    const submissions = submissionsRes?.data || []
+
+    // Filter eligible: NUPTK is null/empty/dummy
+    const eligibleTeachers = teachers.filter((t: any) => {
+        if (!t.nuptk) return true;
+        const s = String(t.nuptk).trim();
+        return s === "" || s === "-" || s === "0" || s.startsWith("TMP-");
+    })
+
+    const isTeacherSubmitted = (teacherId: number) => {
+        return submissions.some((s: any) => s.teacher_id === teacherId && s.status !== "Rejected")
     }
 
     const onFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: keyof typeof files) => {
         const file = e.target.files?.[0]
         if (!file) return
+        if (file.size > 2 * 1024 * 1024) return toast.error("Max 2MB")
 
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error("Ukuran file maksimal 2MB")
-            return
-        }
-
-        const loadingId = toast.loading(`Mengunggah file ${type}...`)
+        const loaderId = toast.loading(`Uploading ${type}...`)
         try {
-            // 1. Convert to Base64
-            const base64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve((reader.result as string).split(',')[1]);
-                reader.onerror = reject;
-            });
-
-            // 2. Determine Extension
-            const ext = file.type.includes('pdf') ? 'pdf' : (file.type.includes('png') ? 'png' : 'jpg');
-
-            // 3. Upload to Google Drive
-            const result: any = await uploadToDrive({
-                fileData: base64,
-                fileName: `REQ_NUPTK_${type.toUpperCase()}_${Date.now()}.${ext}`,
-                mimeType: file.type
-            });
-
-            if (!result || result.success === false) {
-                throw new Error(result?.error || "Gagal menghubungi Google Drive");
-            }
-            
-            // 4. Construct direct embed link
-            const driveUrl = `https://lh3.googleusercontent.com/d/${result.id}`;
-
-            setFiles(prev => ({ ...prev, [type]: driveUrl }))
-            toast.success(`Berhasil mengunggah ${type}`, { id: loadingId })
-        } catch (error: any) {
-            console.error(error)
-            toast.error(`Gagal mengunggah ${type}: ${error.message}`, { id: loadingId })
+            const res = await mediaApi.upload(file, 'nuptk-docs')
+            setFiles(prev => ({ ...prev, [type]: res.url }))
+            toast.success(`${type} diunggah`, { id: loaderId })
+        } catch (error) {
+            toast.error(`Gagal upload ${type}`, { id: loaderId })
         }
     }
 
     const handleSubmit = async () => {
-        if (!files.ktp || !files.ijazah || !files.pengangkatan || !files.penugasan) {
-            toast.error("Mohon lengkapi semua dokumen persyaratan!")
-            return
-        }
-
+        if (Object.keys(files).length < 4) return toast.error("Lengkapi dokumen!")
         setIsSubmitting(true)
         try {
-            await submitRequest({
-                teacherId: selectedTeacher._id,
-                schoolId: selectedTeacher.schoolId,
-                dokumenKtpId: files.ktp as any,
-                dokumenIjazahId: files.ijazah as any,
-                dokumenPengangkatanId: files.pengangkatan as any,
-                dokumenPenugasanId: files.penugasan as any,
+            await nuptkApi.store({
+                teacher_id: selectedTeacher.id,
+                school_id: selectedTeacher.school_id,
+                dokumen_ktp_id: files.ktp,
+                dokumen_ijazah_id: files.ijazah,
+                dokumen_pengangkatan_id: files.pengangkatan,
+                dokumen_penugasan_id: files.penugasan
             })
-            toast.success("Berhasil mengajukan permohonan rekomendasi NUPTK!")
+            toast.success("Berhasil mengajukan NUPTK")
             setIsModalOpen(false)
             setFiles({})
-            setSelectedTeacher(null)
+            refetchSubmissions()
         } catch (error: any) {
-            toast.error(error.message || "Gagal mengajukan permohonan")
+            toast.error(error.response?.data?.message || "Gagal kirim")
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    const displayedTeachers = eligibleTeachers.filter(t => 
-        t.nama?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-
     return (
-        <div className="space-y-6">
-            <SoftPageHeader 
-                title="Pengajuan Rekomendasi NUPTK"
-                description="Ajukan permohonan Surat Rekomendasi Penerbitan NUPTK dengan melampirkan persyaratan."
-            />
+        <div className="space-y-10 pb-20">
+            <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Rekomendasi NUPTK</h1>
+                <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+                   Ajukan Surat Pengantar Penerbitan NUPTK ke PC LP Ma'arif NU
+                </p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
-                    <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                    <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                    <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-                        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Daftar Guru Tanpa NUPTK</CardTitle>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                {/* Eligible Teachers */}
+                <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+                    <CardHeader className="p-8 border-b bg-slate-50/50">
+                        <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-widest">Guru Belum Ber-NUPTK</CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="relative mb-4">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
-                            <Input
-                                placeholder="Cari nama guru..."
-                                className="pl-10 border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                    <CardContent className="p-8 space-y-6">
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input placeholder="Cari nama guru..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="h-12 rounded-xl pl-12 border-slate-200" />
                         </div>
-                        <div className="rounded-md border-0 h-[400px] overflow-auto">
+                        <div className="rounded-2xl border border-slate-100 h-[400px] overflow-auto">
                             <Table>
-                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
-                                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
-                                        <TableHead className="font-semibold text-emerald-800 tracking-wide">Nama Guru</TableHead>
-                                        <TableHead className="text-right font-semibold text-emerald-800 tracking-wide">Aksi</TableHead>
+                                <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                                    <TableRow>
+                                        <TableHead className="text-[9px] font-black uppercase text-slate-400 py-4 pl-6">Profil Guru</TableHead>
+                                        <TableHead className="text-[9px] font-black uppercase text-slate-400 py-4 text-right pr-6">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {displayedTeachers.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">
-                                                Tidak ada guru yang memenuhi syarat pengajuan baru.
+                                    {loadingTeachers ? (
+                                        <TableRow><TableCell colSpan={2} className="text-center py-20 animate-pulse text-[10px] uppercase font-black text-slate-300">Syncing Eligible List...</TableCell></TableRow>
+                                    ) : eligibleTeachers.map((t: any) => (
+                                        <TableRow key={t.id} className="hover:bg-slate-50/50">
+                                            <TableCell className="pl-6 py-4">
+                                                <div className="font-bold text-slate-800 text-sm">{t.nama}</div>
+                                                <div className="text-[9px] font-bold text-slate-400 uppercase">{t.status || 'GTY'}</div>
                                             </TableCell>
-                                        </TableRow>
-                                    ) : displayedTeachers.map(teacher => {
-                                        const submitted = isTeacherSubmitted(teacher._id as string)
-                                        return (
-                                            <TableRow key={teacher._id} className="hover:bg-slate-50/50">
-                                                <TableCell className="font-medium">{teacher.nama}</TableCell>
-                                                <TableCell className="text-right">
-                                                    {submitted ? (
-                                                        <Badge variant="outline" className="bg-amber-50 text-amber-700">Sudah Diajukan</Badge>
-                                                    ) : (
-                                                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover-lift" onClick={() => {
-                                                            setSelectedTeacher(teacher)
-                                                            setFiles({})
-                                                            setIsModalOpen(true)
-                                                        }}>
-                                                            Ajukan
-                                                        </Button>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
-                    <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                    <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                    <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-                        <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Riwayat Pengajuan</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="rounded-md border-0 h-[460px] overflow-auto">
-                            <Table>
-                                <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
-                                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
-                                        <TableHead className="font-semibold text-emerald-800 tracking-wide">Nama Guru</TableHead>
-                                        <TableHead className="font-semibold text-emerald-800 tracking-wide">Status</TableHead>
-                                        <TableHead className="text-right font-semibold text-emerald-800 tracking-wide">Aksi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {submissions.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
-                                                Belum ada riwayat pengajuan.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : submissions.map(sub => (
-                                        <TableRow key={sub._id}>
-                                            <TableCell>
-                                                <div className="font-medium">{sub.teacherName}</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {new Date(sub.submittedAt).toLocaleDateString("id-ID")}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {sub.status === "Pending" && <Badge variant="secondary" className="bg-amber-100 text-amber-800"><Clock className="w-3 h-3 mr-1"/> Pending</Badge>}
-                                                {sub.status === "Approved" && <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1"/> Disetujui</Badge>}
-                                                {sub.status === "Rejected" && (
-                                                    <div className="flex flex-col gap-1 items-start">
-                                                        <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1"/> Ditolak</Badge>
-                                                        {sub.rejectionReason && <span className="text-[10px] text-red-600">Alasan: {sub.rejectionReason}</span>}
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {sub.status === "Pending" && (
-                                                    <Button variant="ghost" size="sm" className="text-red-500" onClick={async () => {
-                                                        if(confirm("Batal mengajukan NUPTK untuk guru ini?")) {
-                                                            await removeRequest({ id: sub._id as any })
-                                                            toast.success("Pengajuan dibatalkan")
-                                                        }
-                                                    }}>Batal</Button>
+                                            <TableCell className="text-right pr-6">
+                                                {isTeacherSubmitted(t.id) ? (
+                                                    <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 text-[9px] font-black uppercase px-3 py-1">In Process</Badge>
+                                                ) : (
+                                                    <Button size="sm" onClick={() => { setSelectedTeacher(t); setIsModalOpen(true)}} className="h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-widest px-6 shadow-lg shadow-blue-100">Ajukan</Button>
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -259,51 +142,64 @@ export function PengajuanNuptkPage() {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* History */}
+                <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+                    <CardHeader className="p-8 border-b bg-slate-50/50">
+                        <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-widest">Riwayat Pengajuan Rekomendasi</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 h-[500px] overflow-auto">
+                        <Table>
+                             <TableHeader className="bg-slate-50 sticky top-0 z-10">
+                                <TableRow>
+                                    <TableHead className="text-[9px] font-black uppercase text-slate-400 py-4 pl-6">Penerima & Tgl</TableHead>
+                                    <TableHead className="text-[9px] font-black uppercase text-slate-400 py-4">Status & Alasan</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {submissions.map((s: any) => (
+                                    <TableRow key={s.id}>
+                                        <TableCell className="pl-6 py-5">
+                                            <div className="font-bold text-slate-800 text-sm">{s.teacher?.nama}</div>
+                                            <div className="text-[9px] font-black text-slate-400 uppercase mt-1">{new Date(s.submitted_at).toLocaleDateString("id-ID")}</div>
+                                        </TableCell>
+                                        <TableCell className="py-5 pr-6">
+                                             <div className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-tight mb-1 ${
+                                                 s.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                 s.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                                             }`}>
+                                                 {s.status === 'Pending' && <Clock className="w-3 h-3 mr-1.5" />}
+                                                 {s.status}
+                                             </div>
+                                             {s.rejection_reason && <div className="text-[9px] font-bold text-rose-500 max-w-[150px] leading-relaxed">Ket: {s.rejection_reason}</div>}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
             </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Ajukan NUPTK: {selectedTeacher?.nama}</DialogTitle>
-                        <DialogDescription>
-                            Unggah 4 dokumen wajib berformat PDF/JPG untuk persyaratan pengajuan rekomendasi NUPTK.
-                        </DialogDescription>
+                <DialogContent className="max-w-2xl rounded-[2.5rem] p-10 border-0 shadow-2xl">
+                    <DialogHeader className="space-y-3">
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">Kirim Berkas Persyaratan</DialogTitle>
+                        <DialogDescription className="font-medium text-slate-400">Ajukan NUPTK untuk <span className="text-blue-600 font-bold">{selectedTeacher?.nama}</span>. Seluruh dokumen wajib diunggah.</DialogDescription>
                     </DialogHeader>
                     
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                        <UploadBox 
-                            label="1. KTP" 
-                            id="ktp"
-                            hasFile={!!files.ktp} 
-                            onChange={(e) => onFileUpload(e, "ktp")} 
-                        />
-                        <UploadBox 
-                            label="2. Ijazah (SD s/d Terakhir)" 
-                            id="ijazah"
-                            hasFile={!!files.ijazah} 
-                            onChange={(e) => onFileUpload(e, "ijazah")} 
-                        />
-                        <UploadBox 
-                            label="3. SK Pengangkatan (PNS/Ketua Yayasan)" 
-                            id="pengangkatan"
-                            hasFile={!!files.pengangkatan} 
-                            onChange={(e) => onFileUpload(e, "pengangkatan")} 
-                        />
-                        <UploadBox 
-                            label="4. SK Penugasan (Kepala Sekolah)" 
-                            id="penugasan"
-                            hasFile={!!files.penugasan} 
-                            onChange={(e) => onFileUpload(e, "penugasan")} 
-                            description="Pembagian jam mengajar (Min 2 Tahun)"
-                        />
+                    <div className="grid grid-cols-2 gap-6 py-8">
+                        <UploadBox label="SCAN KTP ASLI" id="ktp" hasFile={!!files.ktp} onChange={(e: any) => onFileUpload(e, "ktp")} />
+                        <UploadBox label="IJAZAH (SD-TERAKHIR)" id="ijazah" hasFile={!!files.ijazah} onChange={(e: any) => onFileUpload(e, "ijazah")} />
+                        <UploadBox label="SK PENGANGKATAN" id="pengangkatan" hasFile={!!files.pengangkatan} onChange={(e: any) => onFileUpload(e, "pengangkatan")} />
+                        <UploadBox label="SK PENUGASAN (KAMAD)" id="penugasan" hasFile={!!files.penugasan} onChange={(e: any) => onFileUpload(e, "penugasan")} />
                     </div>
 
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsModalOpen(false)}>Batal</Button>
-                        <Button onClick={handleSubmit} disabled={isSubmitting || Object.keys(files).length < 4} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover-lift">
-                            {isSubmitting ? "Mengirim..." : (
-                                <><Send className="mr-2 h-4 w-4"/> Kirim Pengajuan</>
-                            )}
+                        <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400">Batalkan</Button>
+                        <Button onClick={handleSubmit} disabled={isSubmitting || Object.keys(files).length < 4} className="h-14 px-10 rounded-2xl bg-slate-900 hover:bg-black text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-slate-200">
+                            {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Send className="mr-2 h-5 w-5 text-blue-400" />}
+                            Proses Pengajuan
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -312,30 +208,20 @@ export function PengajuanNuptkPage() {
     )
 }
 
-function UploadBox({ label, id, hasFile, onChange, description }: { label: string, id: string, hasFile: boolean, onChange: any, description?: string }) {
+function UploadBox({ label, id, hasFile, onChange }: any) {
     return (
-        <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-colors ${hasFile ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-300 hover:border-emerald-400 bg-slate-50/50'}`}>
+        <div className={`relative border-2 border-dashed rounded-[1.5rem] p-6 flex flex-col items-center justify-center text-center transition-all group ${hasFile ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-100 hover:border-blue-400 bg-slate-50/50'}`}>
+            <input type="file" id={id} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept=".pdf,image/png,image/jpeg" onChange={onChange} />
             {hasFile ? (
                 <>
-                    <CheckCircle className="h-8 w-8 text-emerald-500 mb-2" />
-                    <span className="font-medium text-emerald-700 text-sm">Berhasil Diunggah</span>
+                    <div className="bg-emerald-100 p-3 rounded-full mb-3"><CheckCircle className="h-6 w-6 text-emerald-600" /></div>
+                    <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Document Secured</span>
                 </>
             ) : (
                 <>
-                    <UploadCloud className="h-8 w-8 text-slate-400 mb-2" />
-                    <span className="font-medium text-sm">{label}</span>
-                    {description && <span className="text-xs text-muted-foreground mt-1">{description}</span>}
-                    <div className="mt-3 relative">
-                        <Input 
-                            type="file" 
-                            id={id}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                            accept=".pdf,image/png,image/jpeg"
-                            onChange={onChange}
-                        />
-                        <Button type="button" variant="outline" size="sm" className="pointer-events-none">Pilih File</Button>
-                    </div>
-                    <span className="text-[10px] text-muted-foreground mt-2">Maks 2MB (PDF/JPG)</span>
+                    <div className="bg-white p-3 rounded-full mb-3 shadow-sm group-hover:scale-110 transition-transform"><UploadCloud className="h-6 w-6 text-slate-400" /></div>
+                    <span className="text-[10px] font-black uppercase text-slate-600 tracking-widest">{label}</span>
+                    <span className="text-[8px] font-bold text-slate-300 uppercase mt-1">Max 2MB (PDF/JPG)</span>
                 </>
             )}
         </div>

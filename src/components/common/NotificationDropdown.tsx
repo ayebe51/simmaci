@@ -7,58 +7,56 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, FileCheck, CheckCheck, Trash2 } from "lucide-react"
+import { Bell, FileCheck, CheckCheck, Trash2, ShieldAlert, Zap, Loader2, Sparkles } from "lucide-react"
 import { useEffect, useRef, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
-import { useQuery, useMutation } from "convex/react"
-import { api } from "../../../convex/_generated/api"
-import { Doc } from "../../../convex/_generated/dataModel"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { notificationApi } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDistanceToNow } from "date-fns"
 import { id } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 export function NotificationDropdown() {
   const navigate = useNavigate()
-  const lastNotifIdRef = useRef<string | null>(null)
+  const queryClient = useQueryClient()
+  const lastNotifIdRef = useRef<number | null>(null)
   
-  // Get user from localStorage
-  const userStr = localStorage.getItem("user")
-   
-  const user: any = userStr ? JSON.parse(userStr) : null
+  // 🔥 REST API QUERIES
+  const { data: notificationsRes, isLoading } = useQuery({
+    queryKey: ['notifications-list'],
+    queryFn: () => notificationApi.list(),
+    refetchInterval: 30000 // Poll every 30s
+  })
 
-  // Fetch notifications from Convex
-  const notifications = useQuery(
-    api.notifications.getRecentNotifications,
-    user?._id ? { userId: user._id, limit: 10 } : "skip"
-  )
+  const { data: unreadRes } = useQuery({
+    queryKey: ['notifications-unread-count'],
+    queryFn: () => notificationApi.unreadCount(),
+    refetchInterval: 30000
+  })
 
-  const unreadCount = useQuery(
-    api.notifications.getUnreadCount,
-    user?._id ? { userId: user._id } : "skip"
-  )
+  const notifications = notificationsRes?.data || []
+  const unreadCount = unreadRes?.count ?? 0
 
-  // Mutations
-  const markAsRead = useMutation(api.notifications.markAsRead)
-  const markAllAsRead = useMutation(api.notifications.markAllAsRead)
-  const deleteNotification = useMutation(api.notifications.deleteNotification)
-
-  const handleNotificationClick = useCallback(async (notif: Doc<"notifications">) => {
+  const handleNotificationClick = useCallback(async (notif: any) => {
     // Mark as read if unread
-    if (!notif.isRead) {
+    if (!notif.read_at) {
       try {
-        await markAsRead({ notificationId: notif._id })
+        await notificationApi.markRead(notif.id)
+        queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
+        queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
       } catch (error) {
         console.error("Failed to mark as read:", error)
       }
     }
 
     // Navigate to relevant page
-    if (notif.metadata?.skId) {
-      navigate(`/dashboard/sk-management`)
+    if (notif.data?.link) {
+      navigate(notif.data.link)
     } else {
       navigate("/dashboard")
     }
-  }, [markAsRead, navigate])
+  }, [navigate, queryClient])
 
   // Toast for new notifications
   useEffect(() => {
@@ -67,150 +65,122 @@ export function NotificationDropdown() {
     const latestNotif = notifications[0]
     const storedLastId = localStorage.getItem("lastNotifId")
 
-    // Check if it's a new notification we haven't seen in this session (ref) or stored
-    if (latestNotif._id !== storedLastId && latestNotif._id !== lastNotifIdRef.current) {
-      lastNotifIdRef.current = latestNotif._id
-      localStorage.setItem("lastNotifId", latestNotif._id)
+    if (latestNotif.id.toString() !== storedLastId && latestNotif.id !== lastNotifIdRef.current) {
+      lastNotifIdRef.current = latestNotif.id
+      localStorage.setItem("lastNotifId", latestNotif.id.toString())
 
-      // Show toast for new notification
-      toast.info(latestNotif.title, {
-        description: latestNotif.message,
-        action: {
-          label: "Lihat",
-          onClick: () => handleNotificationClick(latestNotif),
-        },
-      })
+      if (!latestNotif.read_at) {
+        toast.info(latestNotif.data.title, {
+          description: latestNotif.data.message,
+          action: {
+            label: "Detail",
+            onClick: () => handleNotificationClick(latestNotif),
+          },
+        })
+      }
     }
   }, [notifications, handleNotificationClick])
 
   const handleMarkAllRead = async () => {
-    if (!user?._id) return
-    
     try {
-      await markAllAsRead({ userId: user._id })
+      await notificationApi.markAllRead()
+      queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
       toast.success("Semua notifikasi ditandai sudah dibaca")
     } catch (error) {
-      console.error("Failed to mark all as read:", error)
-      toast.error("Gagal menandai semua sebagai dibaca")
-    }
-  }
-
-  const handleDeleteNotif = async (notifId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    
-    try {
-      await deleteNotification({ notificationId: notifId })
-      toast.success("Notifikasi dihapus")
-    } catch (error) {
-      console.error("Failed to delete notification:", error)
-      toast.error("Gagal menghapus notifikasi")
+      toast.error("Gagal sinkronisasi status baca")
     }
   }
 
   const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "sk_approved":
-        return <FileCheck className="h-4 w-4 text-green-600" />
-      case "sk_rejected":
-        return <FileCheck className="h-4 w-4 text-red-600" />
-      case "batch_complete":
-        return <CheckCheck className="h-4 w-4 text-blue-600" />
-      default:
-        return <Bell className="h-4 w-4 text-gray-600" />
-    }
+    const iconClass = "h-4 w-4"
+    if (type.includes("sk_")) return <FileCheck className={cn(iconClass, "text-emerald-500")} />
+    if (type.includes("mutation")) return <Zap className={cn(iconClass, "text-blue-500")} />
+    return <Bell className={cn(iconClass, "text-slate-400")} />
   }
-
-  if (!user) return null
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unreadCount !== undefined && unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-medium">
+        <Button variant="ghost" size="icon" className="relative h-11 w-11 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all">
+          <Bell className="h-5 w-5 text-slate-600" />
+          {unreadCount > 0 && (
+            <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-rose-500 border-2 border-white text-white text-[8px] flex items-center justify-center font-black animate-in zoom-in duration-300">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
           <span className="sr-only">Toggle notifications</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-        <div className="flex items-center justify-between px-2 py-1.5">
-          <DropdownMenuLabel className="p-0">Pemberitahuan</DropdownMenuLabel>
-          {unreadCount !== undefined && unreadCount > 0 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-auto p-1 text-xs"
-              onClick={handleMarkAllRead}
-            >
-              Tandai semua
-            </Button>
-          )}
+      <DropdownMenuContent align="end" className="w-[380px] rounded-[2rem] p-0 overflow-hidden shadow-2xl border-0">
+        <div className="bg-slate-50/50 p-6 border-b flex items-center justify-between">
+            <div>
+              <DropdownMenuLabel className="p-0 text-sm font-black uppercase italic tracking-tighter text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-blue-500" /> System Broadcast
+              </DropdownMenuLabel>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Real-time Activity Stream</p>
+            </div>
+            {unreadCount > 0 && (
+                <Button variant="outline" size="sm" onClick={handleMarkAllRead} className="h-9 px-4 rounded-xl border-slate-200 text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all">
+                    Read All
+                </Button>
+            )}
         </div>
-        <DropdownMenuSeparator />
 
-        {!notifications || notifications.length === 0 ? (
-          <div className="p-8 text-center">
-            <Bell className="h-12 w-12 mx-auto mb-2 text-muted-foreground opacity-50" />
-            <p className="text-sm text-muted-foreground">
-              Tidak ada pemberitahuan
-            </p>
-          </div>
-        ) : (
-          notifications.map((notif) => (
-            <DropdownMenuItem
-              key={notif._id}
-              className={`cursor-pointer flex-col items-start gap-2 p-3 ${
-                !notif.isRead ? "bg-blue-50 hover:bg-blue-100" : ""
-              }`}
-              onClick={() => handleNotificationClick(notif)}
-            >
-              <div className="flex items-start gap-2 w-full">
-                <div className="mt-1 rounded-full bg-white p-1.5 shadow-sm">
-                  {getNotificationIcon(notif.type)}
+        <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
+            {isLoading ? (
+                <div className="p-20 text-center space-y-4">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto opacity-20" />
+                    <p className="text-[10px] font-black uppercase text-slate-300 tracking-widest italic">Syncing Feeds...</p>
                 </div>
-                <div className="flex-1 space-y-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium leading-none">
-                      {notif.title}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-auto p-0.5 hover:bg-transparent"
-                      onClick={(e) => handleDeleteNotif(notif._id, e)}
-                    >
-                      <Trash2 className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {notif.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(notif.createdAt), {
-                      addSuffix: true,
-                      locale: id,
-                    })}
-                  </p>
+            ) : notifications.length === 0 ? (
+                <div className="p-20 text-center space-y-6">
+                    <div className="w-16 h-16 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto">
+                        <ShieldAlert className="h-8 w-8 text-slate-200" />
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="font-black text-slate-300 uppercase italic tracking-tighter">Quiet Spectrum</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No active system events found.</p>
+                    </div>
                 </div>
-              </div>
-            </DropdownMenuItem>
-          ))
-        )}
+            ) : (
+                <div className="divide-y divide-slate-50">
+                    {notifications.map((notif: any) => (
+                        <DropdownMenuItem
+                            key={notif.id}
+                            className={cn(
+                                "cursor-pointer p-6 flex items-start gap-4 transition-all focus:bg-slate-50",
+                                !notif.read_at ? "bg-blue-50/30 border-l-4 border-blue-500" : "border-l-4 border-transparent"
+                            )}
+                            onClick={() => handleNotificationClick(notif)}
+                        >
+                            <div className="mt-1 w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center shrink-0">
+                                {getNotificationIcon(notif.type)}
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-start justify-between gap-4">
+                                    <h4 className="text-xs font-black uppercase text-slate-800 leading-tight tracking-tight truncate">
+                                        {notif.data.title}
+                                    </h4>
+                                    <span className="text-[8px] font-black text-slate-400 uppercase whitespace-nowrap">
+                                        {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: id })}
+                                    </span>
+                                </div>
+                                <p className="text-[10px] font-bold text-slate-500 leading-relaxed italic line-clamp-2">
+                                    {notif.data.message}
+                                </p>
+                            </div>
+                        </DropdownMenuItem>
+                    ))}
+                </div>
+            )}
+        </div>
 
-        {notifications && notifications.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer justify-center text-center text-xs text-muted-foreground"
-              onClick={() => navigate("/dashboard")}
-            >
-              Lihat dashboard
-            </DropdownMenuItem>
-          </>
-        )}
+        <div className="p-4 bg-slate-50/50 border-t">
+            <Button variant="ghost" onClick={() => navigate("/dashboard")} className="w-full h-10 rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-blue-600 transition-colors">
+                Open Command Center
+            </Button>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

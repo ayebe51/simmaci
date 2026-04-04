@@ -1,49 +1,26 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
-import { useMutation, useQuery, useAction } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { mediaApi } from "@/lib/api";
 
 interface TeacherPhotoUploadProps {
-  photoId?: Id<"_storage"> | string;
-  onPhotoUploaded: (storageId: string | Id<"_storage">) => void;
-  onRemovePhoto?: () => void; // Optional removal
-  isEditing?: boolean;
+  photoId?: string;
+  onPhotoUploaded: (url: string) => void;
+  onRemovePhoto?: () => void;
 }
 
 export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemovePhoto }: TeacherPhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // 🔥 USE DRIVE UPLOAD
-  const uploadToDrive = useAction((api as any).drive.uploadFile);
-  
-  // Fetch Photo URL: If it's a Storage ID, fetch it. If it's a URL, use it directly.
-  const isStorageId = photoId && !photoId.startsWith("http");
-  const storageUrl = useQuery(api.teachers.getPhotoUrl, isStorageId ? { storageId: photoId as Id<"_storage"> } : "skip");
-  
-  // Final URL to display (with drive normalization)
-  const displayUrl = useMemo(() => {
-    const rawUrl = isStorageId ? storageUrl : photoId;
-    if (rawUrl && typeof rawUrl === 'string' && rawUrl.includes("drive.google.com")) {
-        // Fix for broken Drive links: Convert to direct embed link
-        const match = rawUrl.match(/id=([a-zA-Z0-9_-]+)/) || rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-            return `https://lh3.googleusercontent.com/d/${match[1]}`;
-        }
-    }
-    return rawUrl;
-  }, [isStorageId, storageUrl, photoId]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate (Max 500KB, Image)
-    if (file.size > 500 * 1024) {
-      toast.error("Ukuran foto maksimal 500KB");
+    // Validate (Max 2MB, Image)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ukuran foto maksimal 2MB");
       return;
     }
     if (!file.type.startsWith("image/")) {
@@ -53,39 +30,19 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
 
     try {
       setIsUploading(true);
+      const result = await mediaApi.upload(file, 'teachers');
       
-      // 1. Convert to Base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve((reader.result as string).split(',')[1]);
-          reader.onerror = reject;
-      });
-
-      // 2. Upload to Google Drive
-      const result: any = await uploadToDrive({
-          fileData: base64,
-          fileName: `FOTO_GURU_${Date.now()}.jpg`,
-          mimeType: file.type
-      });
-
-      if (!result) throw new Error("Upload response empty");
-      
-      if (result.success === false) {
-          throw new Error(result.error);
+      if (result.url) {
+        onPhotoUploaded(result.url);
+        toast.success("Foto berhasil diunggah!");
+      } else {
+        throw new Error("Gagal mendapatkan URL file");
       }
-      
-      // 3. Callback to parent (Return URL or ID)
-      // We construct a direct embed link using the File ID
-      const embedUrl = `https://lh3.googleusercontent.com/d/${result.id}`;
-      onPhotoUploaded(embedUrl);
-      
     } catch (error: any) {
       console.error("Upload error:", error);
-      toast.error(`Gagal Upload Foto: ${error.message}`);
+      toast.error(`Gagal Upload Foto: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsUploading(false);
-      // Reset input
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -93,9 +50,9 @@ export default function TeacherPhotoUpload({ photoId, onPhotoUploaded, onRemoveP
   return (
     <div className="flex flex-col gap-3 items-center p-4 border rounded-lg bg-slate-50 border-dashed border-slate-300">
       <div className="relative w-32 h-40 bg-slate-200 rounded overflow-hidden flex items-center justify-center shadow-sm border">
-        {displayUrl ? (
+        {photoId ? (
           <img 
-            src={displayUrl} 
+            src={photoId} 
             alt="Foto Guru" 
             className="w-full h-full object-cover"
           />

@@ -1,0 +1,63 @@
+FROM php:8.3-fpm
+WORKDIR /var/www/html
+
+# Install system dependencies (Debian Bullseye/Bookworm)
+RUN apt-get update && apt-get install -y \
+    bash \
+    curl \
+    libpng-dev \
+    libzip-dev \
+    zlib1g-dev \
+    libicu-dev \
+    libpq-dev \
+    libonig-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    supervisor \
+    nginx \
+    unzip \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_pgsql mbstring zip gd intl bcmath exif pcntl
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copy project files
+COPY . .
+
+# Install dependencies (Update used to sync stale lock file from host)
+RUN composer update --no-interaction --optimize-autoloader --no-dev --no-scripts
+
+# Set permissions
+RUN chown -R www-data:www-data storage bootstrap/cache
+
+# Copy Nginx configuration
+COPY ./docker/nginx/backend.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+
+# Copy Supervisor configuration
+COPY ./docker/supervisor/backend.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Modify PHP-FPM config
+RUN sed -i 's/listen = \/run\/php\/php8.3-fpm.sock/listen = 0.0.0.0:9000/g' /usr/local/etc/php-fpm.d/zz-docker.conf || \
+    echo 'listen = 0.0.0.0:9000' >> /usr/local/etc/php-fpm.d/zz-docker.conf
+
+EXPOSE 80
+
+# Create startup script that fixes CRLF from Windows volume mounts before launching
+RUN printf '#!/bin/sh\n\
+# Fix Windows CRLF line endings on mounted .env file\n\
+if [ -f /var/www/html/.env ]; then\n\
+  sed -i "s/\\r$//" /var/www/html/.env\n\
+fi\n\
+# Run pending migrations (ignore errors on first boot)\n\
+cd /var/www/html && php artisan migrate --force 2>/dev/null || true\n\
+# Start supervisor\n\
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
+' > /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh
+
+CMD ["/usr/local/bin/start.sh"]

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -9,375 +9,234 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, AlertTriangle, XCircle, UserX, Download } from "lucide-react"
+import { Plus, Search, Trash2, Edit, AlertTriangle, XCircle, UserX, Download, Loader2, ShieldCheck, UserCircle2 } from "lucide-react"
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import * as XLSX from "xlsx"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import SoftPageHeader from "@/components/ui/SoftPageHeader"
-// 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
-import { Doc, Id } from "../../../convex/_generated/dataModel"
-import { Loader2 } from "lucide-react"
-
-interface User {
-  id: string
-  name: string
-  email: string // Acts as username for login
-  password?: string
-  role: 'super_admin' | 'admin' | 'operator'
-  status: 'active' | 'inactive'
-  unitKerja?: string
-}
+import { useQuery } from "@tanstack/react-query"
+import { userApi, schoolApi } from "@/lib/api"
 
 export default function UserListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editingUser, setEditingUser] = useState<any>(null)
   
-  // 🔥 CONVEX QUERIES
-  const convexUsers = useQuery(convexApi.auth.listUsers)
-  const convexSchools = useQuery(convexApi.schools.list, {})
-  const updateUserSchoolMutation = useMutation(convexApi.auth.updateUserSchool)
-  
-  // Delete Dialog State
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [userToDelete, setUserToDelete] = useState<{id: string, name: string} | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  
-  // Map Convex users to frontend format
-  const users: User[] = (convexUsers || []).map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role as 'super_admin' | 'admin' | 'operator',
-    status: u.isActive ? "active" : "inactive",
-    unitKerja: u.unitKerja
-  }))
+  // 🔥 REST API QUERIES
+  const { data: usersRes, isLoading, refetch } = useQuery({
+    queryKey: ['users', searchTerm],
+    queryFn: () => userApi.list({ search: searchTerm, per_page: 100 })
+  })
 
-  const schools = (convexSchools || []).map((s: Doc<"schools">) => s.nama)
+  const { data: schoolsRes } = useQuery({
+    queryKey: ['schools-light'],
+    queryFn: () => schoolApi.list({ per_page: 500 })
+  })
+
+  const users = usersRes?.data || []
+  const schools = schoolsRes?.data || []
   
   // Form State
-  const [formData, setFormData] = useState<Partial<User>>({
+  const [formData, setFormData] = useState({
       name: "",
       email: "",
       password: "",
       role: "operator",
-      unitKerja: "",
-      status: "active"
+      school_id: "" as string | number,
+      is_active: true
   })
 
-  // Handle Add/Edit
   const handleSave = async () => {
-      if (!formData.name || !formData.email) {
-          toast.error("Nama dan Username wajib diisi")
-          return
-      }
+      if (!formData.name || !formData.email) return toast.error("Nama dan Username wajib diisi")
+      
+      const payload = { ...formData }
+      if (editingUser && !formData.password) delete (payload as any).password
 
       try {
-          // TODO: Implement user creation via Convex mutation
-          toast.info("Fitur tambah/edit user via UI coming soon. Gunakan Convex dashboard untuk sekarang.")
-          
+          if (editingUser) {
+              await userApi.update(editingUser.id, payload)
+              toast.success("User diperbarui")
+          } else {
+              await userApi.create(payload)
+              toast.success("User baru ditambahkan")
+          }
           setIsDialogOpen(false)
-          setEditingUser(null)
-          setFormData({ name: "", email: "", password: "", role: "operator", unitKerja: "", status: "active" })
-      } catch (err) {
-         toast.error((err as Error).message || "Gagal menyimpan user")
-      }
-  }
-
-  const handleDelete = (id: string, name: string) => {
-    setUserToDelete({ id, name })
-    setDeleteConfirmOpen(true)
-  }
-
-  const confirmDelete = async () => {
-      if (!userToDelete) return
-      try {
-          setIsDeleting(true)
-          // TODO: Implement actual delete mutation when available in Convex
-          console.log("Deleting user", userToDelete.id)
-          toast.info("Fitur hapus user sedang diintegrasikan ke backend")
-          setDeleteConfirmOpen(false)
-          setUserToDelete(null)
+          refetch()
       } catch (err: any) {
-          toast.error("Gagal menghapus user: " + err.message)
-      } finally {
-          setIsDeleting(false)
+          toast.error(err.response?.data?.message || "Gagal menyimpan user")
       }
   }
 
-  const openEdit = (user: User) => {
+  const handleDelete = async (user: any) => {
+    if (!confirm(`Hapus akses untuk ${user.name}?`)) return
+    try {
+        await userApi.delete(user.id)
+        toast.success("User dinonaktifkan")
+        refetch()
+    } catch (err: any) {
+        toast.error("Gagal menghapus")
+    }
+  }
+
+  const openEdit = (user: any) => {
       setEditingUser(user)
-      setFormData({ ...user, password: "" }) // Don't show password, require new one only if changing
+      setFormData({ 
+        name: user.name, 
+        email: user.email, 
+        password: "", 
+        role: user.role, 
+        school_id: user.school_id || "", 
+        is_active: !!user.is_active 
+      })
       setIsDialogOpen(true)
   }
 
-  const resetForm = () => {
-      setEditingUser(null)
-      setFormData({ name: "", email: "", password: "", role: "operator", unitKerja: "", status: "active" })
-  }
-
-  const filtered = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const getRoleBadge = (role: string) => {
-    switch(role) {
-      case 'super_admin': return <Badge variant="destructive">Super Admin</Badge>
-      case 'admin': return <Badge variant="secondary">Admin</Badge>
-      default: return <Badge variant="outline">Operator</Badge>
-    }
-  }
-
   const handleExportExcel = () => {
-    if (filtered.length === 0) {
-      toast.error("Tidak ada data untuk diekspor");
-      return;
-    }
-
-    const exportData = filtered.map((u, index) => ({
+    const exportData = users.map((u: any, index: number) => ({
       "No": index + 1,
-      "Nama Lengkap / Instansi": u.name,
-      "Username / Email": u.email,
-      "Role": u.role === "super_admin" ? "Super Admin" : (u.role === "admin" ? "Admin Wilayah" : "Operator Sekolah"),
-      "Unit Kerja (Akses)": u.unitKerja || "-",
-      "Status": u.status === "active" ? "Aktif" : "Non-Aktif"
+      "Nama": u.name,
+      "Username": u.email,
+      "Role": u.role,
+      "Sekolah": u.school?.nama || "-",
+      "Status": u.is_active ? "Aktif" : "Non-Aktif"
     }));
-
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Data User");
-
-    // Auto-size columns slightly
-    const colWidths = [
-      { wch: 5 }, // No
-      { wch: 30 }, // Nama
-      { wch: 30 }, // Username
-      { wch: 15 }, // Role
-      { wch: 30 }, // Unit Kerja
-      { wch: 10 }, // Status
-    ];
-    worksheet['!cols'] = colWidths;
-
-    XLSX.writeFile(workbook, `Data_User_SIMMACI_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+    XLSX.writeFile(workbook, `Users_SIMMACI.xlsx`);
   }
 
   return (
-    <div className="space-y-6">
-      <SoftPageHeader
-        title="Manajemen User"
-        description="Kelola akses Operator Sekolah dan Admin"
-        actions={[
-          {
-            label: "Export Excel",
-            onClick: handleExportExcel,
-            variant: "outline",
-            icon: <Download className="h-4 w-4 mr-2" />
-          },
-          {
-            label: "Tambah User",
-            onClick: () => {
-                resetForm();
-                setIsDialogOpen(true);
-            },
-            variant: "cream",
-            icon: <Plus className="h-5 w-5 text-gray-700" />
-          }
-        ]}
-      />
+    <div className="space-y-10 pb-20">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic">Akses & Manajemen Akun</h1>
+            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2">
+               <ShieldCheck className="w-3 h-3 text-emerald-500" /> Kontrol Keamanan & Hak Akses Hirarki Pengguna
+            </p>
+        </div>
+        <div className="flex gap-4">
+            <Button variant="outline" onClick={handleExportExcel} className="h-14 rounded-2xl px-8 border-slate-200 font-black uppercase text-[10px] tracking-widest shadow-sm">Export</Button>
+            <Button onClick={() => { setEditingUser(null); setFormData({name:"", email:"", password:"", role:"operator", school_id:"", is_active:true}); setIsDialogOpen(true)}} className="h-14 rounded-2xl px-10 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100">
+                <Plus className="w-5 h-5 mr-2" /> Tambah Akun
+            </Button>
+        </div>
+      </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) resetForm(); }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingUser ? "Edit User" : "Tambah User Baru"}</DialogTitle>
-                        <DialogDescription>
-                            Operator Sekolah membutuhkan akun untuk login dan mengajukan SK.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label>Nama Lengkap / Sekolah</Label>
-                            <Input 
-                                placeholder="Contoh: Operator MI Ma'arif 01" 
-                                value={formData.name}
-                                onChange={e => setFormData({...formData, name: e.target.value})}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Username / Email Login</Label>
-                            <Input 
-                                placeholder="operator.mi01" 
-                                value={formData.email}
-                                onChange={e => setFormData({...formData, email: e.target.value})}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>{editingUser ? "Password Baru (Biarkan kosong jika tetap)" : "Password"}</Label>
-                            <Input 
-                                type="password"
-                                placeholder="***" 
-                                value={formData.password}
-                                onChange={e => setFormData({...formData, password: e.target.value})}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Role</Label>
-                            <Select 
-                                value={formData.role} 
-                                onValueChange={(v) => setFormData({...formData, role: v as User['role']})}
-                            >
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="operator">Operator Sekolah</SelectItem>
-                                    <SelectItem value="admin">Admin Wilayah</SelectItem>
-                                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Unit Kerja (Opsional)</Label>
-                            <Input 
-                                placeholder="Nama Sekolah / Unit" 
-                                value={formData.unitKerja}
-                                onChange={e => setFormData({...formData, unitKerja: e.target.value})}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
-                        <Button onClick={handleSave}>Simpan User</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-      
-
-      <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
-        <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-        <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-emerald-600/60" />
-              <Input
-                placeholder="Cari user (nama / username)..."
-                className="pl-10 max-w-sm border-slate-200 bg-white/60 focus-visible:ring-emerald-500 shadow-sm rounded-xl transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex items-center gap-4 bg-slate-50/20">
+            <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input placeholder="Cari filter nama / username..." className="h-12 pl-12 rounded-xl border-slate-200 bg-white font-bold text-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
-        </CardHeader>
-        <CardContent className="p-0">
-            <div className="border-0">
-                <Table>
-                  <TableHeader className="bg-emerald-50/80 backdrop-blur-sm">
-                    <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
-                      <TableHead className="font-bold text-emerald-800 tracking-wide pl-4">Nama</TableHead>
-                      <TableHead className="font-bold text-emerald-800 tracking-wide">Username / Email</TableHead>
-                      <TableHead className="font-bold text-emerald-800 tracking-wide">Role</TableHead>
-                      <TableHead className="font-bold text-emerald-800 tracking-wide">Assign Sekolah</TableHead>
-                      <TableHead className="text-right font-bold text-emerald-800 tracking-wide pr-6">Aksi</TableHead>
+        </div>
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader className="bg-slate-50 border-b border-slate-100">
+                    <TableRow>
+                        <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Identitas User</TableHead>
+                        <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Akses Login</TableHead>
+                        <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Role & Privilege</TableHead>
+                        <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Unit Kerja</TableHead>
+                        <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Manajemen</TableHead>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-slate-50/50">
-                        <TableCell className="font-medium pl-4">{item.name}</TableCell>
-                        <TableCell>{item.email}</TableCell>
-                        <TableCell>{getRoleBadge(item.role)}</TableCell>
-                        <TableCell>
-                          {item.role === "operator" ? (
-                            <Select 
-                              value={item.unitKerja || ""} 
-                              onValueChange={async (schoolName) => {
-                                try {
-                                  await updateUserSchoolMutation({ 
-                                    userId: item.id as Id<"users">,
-                                    schoolName: schoolName || undefined 
-                                  })
-                                  toast.success(`✅ ${item.name} di-assign ke ${schoolName}`)
-                                } catch {
-                                  toast.error("Gagal assign sekolah")
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-[200px] bg-white/60 border-slate-200 shadow-sm rounded-lg focus:ring-emerald-500">
-                                <SelectValue placeholder="Pilih Sekolah..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">- Tidak Di-assign -</SelectItem>
-                                {schools.map(school => (
-                                  <SelectItem key={school} value={school}>{school}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right space-x-2 pr-6">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(item)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            {item.role !== 'super_admin' && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, item.name)}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </TableCell>
+                </TableHeader>
+                <TableBody>
+                    {isLoading ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-24 animate-pulse uppercase font-black text-slate-300 text-xs italic tracking-widest">Syncing Identity Data...</TableCell></TableRow>
+                    ) : users.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center py-24 font-bold text-slate-300 text-xs italic">User database blank</TableCell></TableRow>
+                    ) : users.map((u: any) => (
+                        <TableRow key={u.id} className="hover:bg-slate-50/30 transition-colors group">
+                            <TableCell className="p-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                        <UserCircle2 className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-slate-800 text-sm tracking-tight">{u.name}</div>
+                                        <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{u.is_active ? 'Status: Aktif' : 'Status: Non-Aktif'}</div>
+                                    </div>
+                                </div>
+                            </TableCell>
+                            <TableCell className="p-8 font-bold text-slate-500 text-xs tracking-tight">{u.email}</TableCell>
+                            <TableCell className="p-8">
+                                <Badge className={cn("rounded-lg text-[9px] font-black uppercase px-3 py-1", 
+                                    u.role === 'super_admin' ? 'bg-rose-100 text-rose-700' : 
+                                    u.role === 'admin_yayasan' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                                )}>{u.role}</Badge>
+                            </TableCell>
+                            <TableCell className="p-8 font-bold text-slate-400 text-[11px] italic uppercase tracking-wider">{u.school?.nama || 'Akses Global'}</TableCell>
+                            <TableCell className="p-8 text-right">
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="h-10 w-10 rounded-xl hover:bg-blue-50 text-blue-600"><Edit className="w-4 h-4" /></Button>
+                                    {u.role !== 'super_admin' && (
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(u)} className="h-10 w-10 rounded-xl hover:bg-rose-50 text-rose-600"><Trash2 className="w-4 h-4" /></Button>
+                                    )}
+                                </div>
+                            </TableCell>
                         </TableRow>
                     ))}
-                  </TableBody>
-                </Table>
-            </div>
-        </CardContent>
+                </TableBody>
+            </Table>
+        </div>
       </Card>
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <div className="flex items-center gap-3 text-red-600 mb-2">
-                <div className="p-2 bg-red-50 rounded-full">
-                    <UserX className="h-6 w-6" />
-                </div>
-                <DialogTitle className="text-xl font-bold">Hapus Akun Pengguna</DialogTitle>
-            </div>
-          </DialogHeader>
-          <div className="py-2">
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Apakah Anda yakin ingin menghapus akses untuk pengguna:
-            </p>
-            <p className="font-bold text-lg mt-1 text-slate-800">
-              {userToDelete?.name}
-            </p>
-            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-xs text-red-800 font-bold flex items-center gap-2">
-                    <XCircle className="h-4 w-4" /> BAHAYA
-                </p>
-                <p className="text-[11px] text-red-700 mt-1 leading-normal">
-                   Menghapus akun akan mencabut seluruh hak akses pengguna tersebut secara permanen. Akun tersebut tidak akan bisa login lagi.
-                </p>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
-            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)} disabled={isDeleting}>
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 shadow-sm gap-2"
-            >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Ya, Hapus Akun
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-xl rounded-[2.5rem] p-10 border-0 shadow-2xl">
+              <DialogHeader>
+                  <DialogTitle className="text-2xl font-black uppercase tracking-tight italic">{editingUser ? "Modifikasi Akun" : "Akun Baru"}</DialogTitle>
+                  <DialogDescription className="font-bold text-slate-400 text-[10px] uppercase">Konfigurasi Parameter Akses Engine</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-6 py-10">
+                  <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-400">Nama Tampilan</Label>
+                          <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="h-12 rounded-xl border-slate-200 font-bold" />
+                      </div>
+                      <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-400">Username Login</Label>
+                          <Input value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="h-12 rounded-xl border-slate-200 font-bold" />
+                      </div>
+                  </div>
+                  <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-400">Password Access</Label>
+                      <Input type="password" placeholder={editingUser ? "Kosongkan jika tidak diubah" : "Password minimal 6 karakter"} value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="h-12 rounded-xl border-slate-200 font-bold" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-400">Otoritas / Role</Label>
+                          <Select value={formData.role} onValueChange={v => setFormData({...formData, role: v})}>
+                              <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold"><SelectValue /></SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                  <SelectItem value="operator">Operator Sekolah</SelectItem>
+                                  <SelectItem value="admin_yayasan">Admin Yayasan</SelectItem>
+                                  <SelectItem value="super_admin">Super Administrator</SelectItem>
+                              </SelectContent>
+                          </Select>
+                      </div>
+                      <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase text-slate-400">Lingkup Unit Kerja</Label>
+                          <Select value={formData.school_id?.toString() || "none"} onValueChange={v => setFormData({...formData, school_id: v === 'none' ? "" : v})}>
+                              <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold"><SelectValue placeholder="Pilih Sekolah" /></SelectTrigger>
+                              <SelectContent className="rounded-xl max-h-64">
+                                  <SelectItem value="none">Akses Global / Yayasan</SelectItem>
+                                  {schools.map((s: any) => (
+                                      <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
+                                  ))}
+                              </SelectContent>
+                          </Select>
+                      </div>
+                  </div>
+              </div>
+              <DialogFooter>
+                  <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400">Abort</Button>
+                  <Button onClick={handleSave} className="h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100">Simpan Akun</Button>
+              </DialogFooter>
+          </DialogContent>
       </Dialog>
     </div>
   )

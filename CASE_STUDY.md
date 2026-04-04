@@ -32,11 +32,13 @@ Dibangun dengan **React + TypeScript + Vite** untuk performa maksimal.
 
 ### Backend (Logic & Security)
 
-Ditenagai oleh **NestJS (Node.js)** sebagai REST API yang robust.
+Ditenagai oleh **Laravel 12 (PHP)** sebagai REST API yang robust.
 
-- **Layered Architecture:** Controller -> Service -> Repository pattern untuk separation of concerns.
-- **Database:** PostgreSQL dengan TypeORM. Skema relasional untuk User, School, Student, dan SK.
-- **Authentication:** JWT (JSON Web Tokens) dengan Guard dan Decorator untuk Role-Based Access Control (Super Admin vs Operator).
+- **Layered Architecture:** Controller -> Service Logic -> Eloquent Model pattern untuk separation of concerns.
+- **Database:** PostgreSQL dengan Eloquent ORM. Skema relasional untuk User, School, Student, Teacher, dan SK.
+- **Authentication:** Laravel Sanctum (Token-based) dengan Middleware dan Role Helper untuk Role-Based Access Control (Super Admin vs Operator).
+- **Admin Panel:** Filament v3 untuk dashboard administrasi internal.
+- **Audit Trail:** Custom AuditLogTrait pada semua model untuk tracking perubahan data otomatis.
 
 ### Key Features Implementation
 
@@ -54,6 +56,17 @@ Ditenagai oleh **NestJS (Node.js)** sebagai REST API yang robust.
 - **Kecepatan:** Waktu penerbitan 1000 SK berkurang dari 2 minggu menjadi <1 jam.
 - **Akurasi:** Eliminasi 99% kesalahan pengetikan manusia via sistem database.
 - **Aksesibilitas:** Operator sekolah dapat mengunduh dokumen kapan saja via dashboard mandiri.
+
+---
+
+## ⚙️ Infrastructure & DevOps
+
+Project ini mengimplementasikan standar industri modern untuk menjamin reliabilitas:
+
+- **Dockerization**: Full stack dikemas dalam container (PHP-FPM, Nginx, PostgreSQL) untuk lingkungan yang konsisten lintas platform.
+- **CI/CD Pipeline**: GitHub Actions otomatis menjalankan unit test backend dan verifikasi build frontend pada setiap commit.
+- **API Observability**: Middleware logging kustom untuk monitoring performa dan error secara real-time.
+- **Optimization**: Code-splitting yang agresif pada aset frontend untuk responsivitas maksimal.
 
 ---
 

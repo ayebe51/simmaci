@@ -1,0 +1,85 @@
+name: SIMMACI CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ── Backend CI ───────────────────────────────────────────
+  backend-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: sim_maarif_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, bcmath, gd, zip
+        coverage: none
+
+    - name: Install Dependencies
+      run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+    - name: Create .env
+      run: |
+        cp .env.example .env
+        sed -i 's/DB_CONNECTION=pgsql/DB_CONNECTION=pgsql/' .env
+        sed -i 's/DB_DATABASE=sim_maarif/DB_DATABASE=sim_maarif_test/' .env
+        sed -i 's/DB_PORT=5432/DB_PORT=5432/' .env
+        sed -i 's/DB_PASSWORD=secret/DB_PASSWORD=secret/' .env
+        php artisan key:generate
+
+    - name: Run Migrations
+      run: php artisan migrate --force
+
+    - name: Execute Tests
+      run: php artisan test --filter=SkDocumentApiTest
+
+  # ── Frontend CI ──────────────────────────────────────────
+  frontend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Linting
+      run: npm run lint
+      continue-on-error: true
+
+    - name: Production Build
+      run: npm run build
+      env:
+        # Dummy env for build
+        VITE_API_URL: "https://api.example.com"
+        VITE_STORAGE_URL: "https://storage.example.com"

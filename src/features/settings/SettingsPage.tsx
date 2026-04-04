@@ -6,743 +6,217 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff, AlertTriangle, CreditCard } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { useState, useEffect } from "react"
-import { useMutation, useQuery } from "convex/react"
-import { api } from "../../../convex/_generated/api"
+import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff, ShieldAlert, CloudUpload, Loader2 } from "lucide-react"
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { settingApi, authApi, mediaApi } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
+  const user = authApi.getStoredUser()
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'admin_yayasan'
+  
   const [activeTab, setActiveTab] = useState("template")
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState<string | null>(null)
-  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
-  // API Safety Check
-  const isApiReady = !!api.settings
-
-  // Switch to NEW Module: settings_cloud
-   
-  const apiCloud = (api as any).settings_cloud;
-  
-  // Use Safe Query from New Module
-  const cloudSettings = useQuery(apiCloud ? apiCloud.list : "skip") || [];
-
-  // Use Mutation from New Module (Fallback to password change if not ready, just to carry a valid function)
-  const saveTemplate = useMutation(apiCloud ? apiCloud.save : api.auth.changePassword)
-
-  // Cloud Upload Handler
-  const handleCloudUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-      const file = e.target.files?.[0]
-      if (!file) return
-
-      try {
-          setIsUploading(key)
-          
-          // CONVERSION: File -> Base64
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          
-          reader.onload = async () => {
-              const base64 = reader.result as string;
-              
-              if (apiCloud) {
-                  // DIRECT SAVE TO NEW DB MODULE
-                  await saveTemplate({
-                      key,
-                      base64,
-                      mimeType: file.type
-                  })
-                  // CRITICAL FIX: Sync to LocalStorage for immediate use by Generator
-                  localStorage.setItem(key + "_blob", base64);
-                  toast.success("Template berhasil disimpan di Cloud & Browser!")
-              } else {
-                  toast.error("Module Cloud belum siap. Coba refresh.")
-              }
-              setIsUploading(null)
-          };
-          
-          reader.onerror = (error) => {
-              throw new Error("Gagal membaca file: " + error);
-          };
-
-      } catch (err: unknown) {
-          console.error(err)
-           
-          toast.error("Gagal upload: " + (err as any).message)
-      } finally {
-          setIsUploading(null)
-      }
-  }
-
-  
-  // Default Settings State
-  const [settings, setSettings] = useState({
-    // Profil Lembaga
-    namaYayasan: "Lembaga Pendidikan Ma'arif NU Cilacap",
-    alamatYayasan: "Jl. Masjid No. 09, Cilacap",
-    teleponYayasan: "0282-123456",
-    
-    // SK Settings - Dual Signatories
-    signerKetuaName: "H. Munib",
-    signerKetuaNip: "",
-    signerSekretarisName: "H. Makhmud",
-    signerSekretarisNip: "",
-    skPrefix: "SK/YP-MACI"
-
+  // 🔥 REST API QUERY
+  const { data: settingsMap, isLoading: isLoadingSettings, refetch } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => settingApi.list()
   })
 
-  // Password State
-  const changePassword = useMutation(api.auth.changePassword)
-  const [passForm, setPassForm] = useState({ old: "", new: "", confirm: "" })
-  const [showPass, setShowPass] = useState({ old: false, new: false })
-
-  const handlePassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      setPassForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
+  const [passForm, setPassForm] = useState({ old_password: "", new_password: "", confirm_password: "" })
+  const [showPass, setShowPass] = useState(false)
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
       e.preventDefault()
-      if (passForm.new.length < 6) {
-          toast.error("Password baru minimal 6 karakter")
-          return
-      }
-      if (passForm.new !== passForm.confirm) {
-          toast.error("Konfirmasi password tidak cocok")
-          return
-      }
-
+      if (passForm.new_password.length < 6) return toast.error("Password minimal 6 karakter")
+      if (passForm.new_password !== passForm.confirm_password) return toast.error("Konfirmasi password tidak cocok")
+      
+      setIsSaving(true)
       try {
-          const userStr = localStorage.getItem("user")
-          const user = userStr ? JSON.parse(userStr) : null
-          
-          if (!user || !user._id) {
-              toast.error("Sesi tidak valid.")
-              return
-          }
-
-          await changePassword({
-              userId: user._id,
-              oldPassword: passForm.old,
-              newPassword: passForm.new
+          await authApi.changePassword({
+              old_password: passForm.old_password,
+              new_password: passForm.new_password
           })
-          
-          toast.success("Password berhasil diubah! Silakan login ulang.")
-          setPassForm({ old: "", new: "", confirm: "" })
-          // Optionally logout or just stay
+          toast.success("Password berhasil diperbarui")
+          setPassForm({ old_password: "", new_password: "", confirm_password: "" })
+      } catch (err: any) {
+          toast.error(err.response?.data?.message || "Gagal perbarui password")
+      } finally {
+          setIsSaving(false)
+      }
+  }
+
+  const handleUploadTemplate = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsUploading(key)
+    try {
+        // 1. Upload to Media (get URL or use Base64 if backend handles it directly in settings)
+        // For simplicity and to match previous logic (Base64 storage for templates), we'll use Base64
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const base64 = reader.result as string;
+            await settingApi.update({ key, value: base64 })
+            toast.success(`Template ${key} diperbarui`)
+            refetch()
+            setIsUploading(null)
+        };
+    } catch (err) {
+        toast.error("Gagal upload")
+        setIsUploading(null)
+    }
+  }
+
+  const handleSaveGeneral = async (data: any) => {
+      setIsSaving(true)
+      try {
+          // Bulk update settings
+          for (const key in data) {
+              await settingApi.update({ key, value: data[key] })
+          }
+          toast.success("Pengaturan umum disimpan")
+          refetch()
       } catch (err) {
-          toast.error("Gagal ubah password: " + (err as Error).message)
+          toast.error("Gagal simpan")
+      } finally {
+          setIsSaving(false)
       }
   }
 
-  // User Role State
-  const [userRole, setUserRole] = useState<string | null>(null)
-
-  // Load from local storage on mount
-  useEffect(() => {
-    // 1. Get User Role
-    try {
-        const userStr = localStorage.getItem("user")
-        if (userStr) {
-            const user = JSON.parse(userStr)
-            setUserRole(user.role || "operator")
-            
-            // If NOT Privileged, default to Security tab for fast password access
-            const privilegedRoles = ["super_admin", "admin_yayasan", "admin"];
-            if (!privilegedRoles.includes(user.role)) {
-                setActiveTab("security")
-            }
-        }
-    } catch (e) {
-        console.error("Error parsing user", e)
-    }
-
-    // 2. Load Settings
-    const saved = localStorage.getItem("app_settings")
-    if (saved) {
-        try {
-            setSettings(prev => ({ ...prev, ...JSON.parse(saved) }))
-        } catch (e) { console.error("Failed to parse settings", e) }
-    }
-  }, [])
-
-  const isAdmin = userRole === "super_admin"
-
-  const handleChange = (key: string, value: string) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
-  }
-
-  // ... (Keep handleSave, handleDownloadBackup, handleRestoreBackup, handleResetData) ...
-  const handleSave = () => {
-    setIsSaving(true)
-    setTimeout(() => {
-        localStorage.setItem("app_settings", JSON.stringify(settings))
-        setIsSaving(false)
-        toast.success("Pengaturan berhasil disimpan!")
-    }, 800)
-  }
-
-  const handleDownloadBackup = () => {
-    try {
-         
-        const backupData: Record<string, any> = {}
-        const keysToBackup = ["app_schools", "app_teachers", "app_students", "app_settings", "sk_submissions", "sk_template_name", "sk_template_blob"]
-        keysToBackup.forEach(key => {
-            const val = localStorage.getItem(key)
-            if (val) backupData[key] = val
-        })
-        const blob = new Blob([JSON.stringify({ version: "1.0", timestamp: new Date().toISOString(), data: backupData }, null, 2)], { type: "application/json" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `sim_maarif_backup_${new Date().toISOString().slice(0,10)}.json`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        toast.success("Backup berhasil didownload.")
-    } catch (error) { console.error(error); toast.error("Gagal membuat backup.") }
-  }
-
-    const handleRestoreBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = (event) => {
-          try {
-              const json = JSON.parse(event.target?.result as string)
-              if (!json.data || !json.version) throw new Error("Format file backup tidak valid.")
-              Object.keys(json.data).forEach(key => localStorage.setItem(key, json.data[key]))
-              toast.success("Data berhasil dipulihkan! Reloading...")
-              setTimeout(() => window.location.reload(), 1500)
-          } catch (err) { console.error(err); toast.error("Gagal restore.") }
-      }
-      reader.readAsText(file)
-  }
-
-  const handleResetData = () => {
-     setShowResetConfirm(true)
-  }
-
-  const confirmReset = () => {
-      localStorage.clear()
-      window.location.reload()
-  }
-
+  if (isLoadingSettings) return <div className="p-24 text-center animate-pulse font-black text-slate-300 uppercase italic tracking-widest">Hydrating System Configuration...</div>
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-            <h1 className="text-2xl font-bold tracking-tight">Pengaturan Sistem</h1>
-            <p className="text-muted-foreground">
-                {(isAdmin || userRole === "admin_yayasan" || userRole === "admin") ? "Konfigurasi profil lembaga, template SK, dan pejabat penandatangan." : "Kelola profil lembaga dan keamanan akun anda."}
-            </p>
-        </div>
-        {/* Header Save Button */}
-        {(isAdmin || userRole === "admin_yayasan") && (
-            <Button onClick={handleSave} disabled={isSaving} className="rounded-xl shadow-lg bg-emerald-600 hover:bg-emerald-700 transition-all hover:scale-105 active:scale-95 text-white">
-                {isSaving ? "Menyimpan..." : <><Save className="mr-2 h-4 w-4" /> Simpan Perubahan</>}
-            </Button>
-        )}
+    <div className="space-y-10 pb-20">
+      <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic">Konfigurasi Engine</h1>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2">
+             <ShieldAlert className="w-3 h-3 text-emerald-500" /> Pengaturan Global & Keamanan Infrastruktur Digital
+          </p>
       </div>
 
-      <Tabs defaultValue="template" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto w-full justify-start gap-2 bg-transparent p-0 mb-6">
-           {/* Template Tab (Privileged) */}
-           {(isAdmin || userRole === "admin_yayasan") && (
-               <TabsTrigger value="template" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Template SK</TabsTrigger>
-           )}
-           {/* Signer Tab (Privileged) */}
-           {(isAdmin || userRole === "admin_yayasan") && (
-               <TabsTrigger value="signer" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Penandatangan</TabsTrigger>
-           )}
-           <TabsTrigger value="security" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Keamanan Akun</TabsTrigger>
-           <TabsTrigger value="profil" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Profil Lembaga</TabsTrigger>
+      <Tabs defaultValue={isAdmin ? "template" : "security"} value={activeTab} onValueChange={setActiveTab} className="space-y-10">
+        <TabsList className="flex h-auto w-full justify-start gap-4 bg-transparent p-0">
            {isAdmin && (
-               <TabsTrigger value="system" className="rounded-xl px-4 py-2 data-[state=active]:bg-white/80 data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm bg-slate-100/50 hover:bg-white/40 border border-transparent data-[state=active]:border-emerald-200/50 transition-all backdrop-blur-sm">Sistem</TabsTrigger>
+             <>
+               <TabsTrigger value="template" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Template SK</TabsTrigger>
+               <TabsTrigger value="signer" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Penandatangan</TabsTrigger>
+             </>
            )}
+           <TabsTrigger value="security" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Keamanan</TabsTrigger>
+           <TabsTrigger value="profil" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Profil Unit</TabsTrigger>
         </TabsList>
 
-        {/* Template Tab (Admin & Yayasan) */}
-        {(isAdmin || userRole === "admin_yayasan") && (
-        <TabsContent value="template">
-            {!isApiReady ? (
-                 <div className="p-8 text-center bg-amber-50 rounded border border-amber-200 text-amber-800">
-                    <h3 className="font-bold">⚠️ Sistem Sedang Update</h3>
-                    <p>Module API Settings belum terbaca oleh browser. Mohon tunggu 1-2 menit lalu Refresh Halaman.</p>
+        <TabsContent value="template" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <TemplateCard title="Guru Tetap Yayasan (GTY)" settingKey="sk_template_gty" onUpload={handleUploadTemplate} data={settingsMap} uploading={isUploading} />
+                <TemplateCard title="Guru Tidak Tetap (GTT)" settingKey="sk_template_gtt" onUpload={handleUploadTemplate} data={settingsMap} uploading={isUploading} />
+                <TemplateCard title="Tenaga Kependidikan" settingKey="sk_template_tendik" onUpload={handleUploadTemplate} data={settingsMap} uploading={isUploading} />
+                <TemplateCard title="Kepala Madrasah" settingKey="sk_template_kamad" onUpload={handleUploadTemplate} data={settingsMap} uploading={isUploading} />
+            </div>
+            <Card className="border-0 shadow-sm bg-blue-50/50 rounded-3xl p-8">
+                <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600"><FileText className="w-5 h-5" /></div>
+                    <div>
+                        <h4 className="font-black text-blue-900 text-sm uppercase italic">Placeholder Guide</h4>
+                        <p className="text-[10px] text-blue-600 font-bold uppercase mt-1 leading-relaxed max-w-2xl">
+                            Syntax Word: {'{{NAMA}}, {{NIP}}, {{UNIT_KERJA}}, {{JABATAN}}, {{MASA_BHAKTI}}, {{TANGGAL_PENETAPAN}}, {{qrcode}}'}
+                        </p>
+                    </div>
                 </div>
-            ) : cloudSettings === undefined ? (
-                <div className="p-8 text-center text-muted-foreground animate-pulse">
-                    Memuat data cloud...
-                </div>
-            ) : (
-                <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><FileText className="h-5 w-5 text-emerald-600"/> Template Generator SK</CardTitle>
-                    <CardDescription className="text-slate-500">Upload file Word (.docx) untuk masing-masing jenis SK.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {[
-                            { id: "sk_template_gty", label: "SK Guru Tetap Yayasan (GTY)", desc: "Template untuk GTY", type: "docx" },
-                            { id: "sk_template_gtt", label: "SK Guru Tidak Tetap (GTT)", desc: "Template untuk GTT", type: "docx" },
-                            { id: "sk_template_tendik", label: "SK Tenaga Kependidikan", desc: "Template untuk Staff/TU", type: "docx" },
-                            { id: "sk_template_kamad_nonpns", label: "SK Kamad (Non PNS)", desc: "Khusus Kepala Sekolah Non-PNS", type: "docx" },
-                        ].map((template) => {
-                            const cloudSetting = cloudSettings?.find(s => s.key === template.id)
-                            const hasCloud = !!cloudSetting 
-                            const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
-                            
-                            return (
-                                <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
-                                    <div className="mb-3">
-                                        <h3 className="font-semibold text-sm text-slate-800">{template.label}</h3>
-                                        <p className="text-xs text-muted-foreground">{template.desc}</p>
-                                    </div>
-                                    
-                                    <input 
-                                        id={`upload-${template.id}`}
-                                        type="file" accept=".docx"
-                                        disabled={isUploading === template.id}
-                                        className="hidden" 
-                                        aria-label="Upload Template Word"
-                                        onChange={(e) => handleCloudUpload(e, template.id)}
-                                    />
-                                    
-                                    {hasCloud ? (
-                                        <div className="flex items-center gap-3 p-3 bg-white border rounded border-green-200">
-                                            <div className="bg-green-100 p-2 rounded-full text-green-600">
-                                                <CheckCircle className="h-4 w-4" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-medium truncate">Tersimpan di Cloud ✅</p>
-                                                <p className="text-[10px] text-green-600">Update: {cloudTime}</p>
-                                            </div>
-                                            <Button 
-                                                variant="outline" size="sm" className="h-7 text-xs"
-                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                            >
-                                                Ganti
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-center p-4 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer relative"
-                                            onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                        >
-                                            <div className="text-center space-y-1">
-                                                <Download className="mx-auto h-4 w-4 text-muted-foreground" />
-                                                <span className="text-xs text-slate-500 block">
-                                                    {isUploading === template.id ? "Mengupload..." : "Upload .docx"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-                
-                    <div className="bg-blue-50 p-4 rounded-md text-xs text-blue-700 space-y-2 border border-blue-100">
-                         <p className="font-semibold">Bantuan Placeholder SK (Word):</p>
-                         <p>Gunakan kode berikut di dalam file Word anda, sistem akan otomatis menggantinya:</p>
-                         <div className="grid grid-cols-2 gap-2 font-mono text-[10px]">
-                             <span>{`{{NAMA}}`} - Nama Lengkap</span>
-                             <span>{`{{NIP}}`} - NIP/PegID</span>
-                             <span>{`{{UNIT_KERJA}}`} - Unit Kerja</span>
-                             <span>{`{{STATUS}}`} - Status</span>
-                             <span>{`{{KETUA_NAMA}}`} - Nama Ketua</span>
-                         </div>
-                    </div>
-
-                    <div className="pt-6 border-t">
-                        <CardTitle className="text-md flex items-center gap-2 mb-4">
-                            <CreditCard className="h-4 w-4"/> Template Kartu Anggota (KTA)
-                        </CardTitle>
-                        <div className="grid gap-6 md:grid-cols-2">
-                             {[
-                                { id: "kta_template_front", label: "Background Depan", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
-                                { id: "kta_template_back", label: "Background Belakang", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
-                             ].map((template) => {
-                                const cloudSetting = cloudSettings?.find(s => s.key === template.id)
-                                const hasCloud = !!cloudSetting 
-                                const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
-                                
-                                return (
-                                    <div key={template.id} className="border p-4 rounded-lg bg-slate-50 relative group">
-                                         <div className="mb-3">
-                                            <h3 className="font-semibold text-sm text-slate-800">{template.label}</h3>
-                                            <p className="text-xs text-muted-foreground">{template.desc}</p>
-                                        </div>
-                                        
-                                        <input 
-                                            id={`upload-${template.id}`}
-                                            type="file" accept="image/*"
-                                            disabled={isUploading === template.id}
-                                            className="hidden" 
-                                            aria-label={`Upload background ${template.label}`}
-                                            onChange={(e) => handleCloudUpload(e, template.id)}
-                                        />
-
-                                        {hasCloud ? (
-                                            <div className="space-y-3">
-                                                <div className="h-24 bg-white border rounded overflow-hidden relative">
-                                                    <img 
-                                                        src={localStorage.getItem(template.id + "_blob") || ""} 
-                                                        className="w-full h-full object-cover opacity-50" 
-                                                        alt={`Preview ${template.label}`} 
-                                                    />
-                                                    <div className="absolute inset-0 flex items-center justify-center bg-green-900/10">
-                                                        <CheckCircle className="h-8 w-8 text-green-600" />
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] text-green-600 font-medium">Aktif • {cloudTime}</span>
-                                                    <Button 
-                                                        variant="outline" size="sm" className="h-7 text-xs"
-                                                        onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                                    >
-                                                        Ganti Gambar
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center p-8 border-2 border-dashed rounded bg-white hover:bg-slate-50 transition-colors cursor-pointer"
-                                                onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                            >
-                                                <div className="text-center space-y-1">
-                                                    <CreditCard className="mx-auto h-5 w-5 text-muted-foreground" />
-                                                    <span className="text-xs text-slate-500 block">Upload Background</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )
-                             })}
-                        </div>
-                        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-100 rounded-md">
-                            <h4 className="text-xs font-bold text-emerald-800 mb-1 uppercase">Panduan Template KTA Guru:</h4>
-                            <ul className="text-[10px] text-emerald-700 space-y-1 list-disc pl-4">
-                                <li>Kosongkan area **Kiri Depan** untuk Foto Profil.</li>
-                                <li>Kosongkan area **Kiri Bawah Belakang** untuk QR Code Validasi.</li>
-                                <li>Teks (Nama, ID, Unit) akan otomatis dicetak di atas gambar yang Anda upload.</li>
-                                <li>Gunakan format **PNG** atau **JPG** dengan resolusi minimal **960x600 px**.</li>
-                            </ul>
-                        </div>
-
-                        <div className="pt-8 border-t">
-                            <CardTitle className="text-md flex items-center gap-2 mb-4">
-                                <CreditCard className="h-4 w-4 text-blue-600"/> Template Kartu Pelajar (Siswa)
-                            </CardTitle>
-                            <div className="grid gap-6 md:grid-cols-2">
-                                 {[
-                                    { id: "student_template_front", label: "Background Depan Siswa", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
-                                    { id: "student_template_back", label: "Background Belakang Siswa", desc: "Ukuran ideal 480x300 px (PNG/JPG)" },
-                                 ].map((template) => {
-                                    const cloudSetting = cloudSettings?.find(s => s.key === template.id)
-                                    const hasCloud = !!cloudSetting 
-                                    const cloudTime = cloudSetting?.updatedAt ? new Date(cloudSetting.updatedAt).toLocaleDateString() : ""
-                                    
-                                    return (
-                                        <div key={template.id} className="border p-4 rounded-lg bg-blue-50/30 relative group">
-                                             <div className="mb-3">
-                                                <h3 className="font-semibold text-sm text-blue-900">{template.label}</h3>
-                                                <p className="text-xs text-muted-foreground">{template.desc}</p>
-                                            </div>
-                                            
-                                            <input 
-                                                id={`upload-${template.id}`}
-                                                type="file" accept="image/*"
-                                                disabled={isUploading === template.id}
-                                                className="hidden" 
-                                                aria-label={`Upload background ${template.label}`}
-                                                onChange={(e) => handleCloudUpload(e, template.id)}
-                                            />
-
-                                            {hasCloud ? (
-                                                <div className="space-y-3">
-                                                    <div className="h-24 bg-white border rounded overflow-hidden relative">
-                                                        <img 
-                                                            src={localStorage.getItem(template.id + "_blob") || ""} 
-                                                            className="w-full h-full object-cover opacity-50" 
-                                                            alt={`Preview ${template.label}`} 
-                                                        />
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-blue-900/10">
-                                                            <CheckCircle className="h-8 w-8 text-blue-600" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] text-blue-600 font-medium">Aktif Siswa • {cloudTime}</span>
-                                                        <Button 
-                                                            variant="outline" size="sm" className="h-7 text-xs border-blue-200 text-blue-700"
-                                                            onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                                        >
-                                                            Ganti Gambar
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center justify-center p-8 border-2 border-dashed border-blue-200 rounded bg-white hover:bg-blue-50 transition-colors cursor-pointer"
-                                                    onClick={() => document.getElementById(`upload-${template.id}`)?.click()}
-                                                >
-                                                    <div className="text-center space-y-1">
-                                                        <CreditCard className="mx-auto h-5 w-5 text-blue-400" />
-                                                        <span className="text-xs text-blue-500 block">Upload Background Siswa</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                 })}
-                            </div>
-                            <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-                                <h4 className="text-xs font-bold text-blue-800 mb-1 uppercase">Panduan Template Kartu Pelajar:</h4>
-                                <ul className="text-[10px] text-blue-700 space-y-1 list-disc pl-4">
-                                    <li>Tata letak data siswa: **Foto (Kiri Depan)**, **Nama/NISN (Kanan Depan)**.</li>
-                                    <li>**Barcode/QR Code** fokus di area bawah sisi belakang.</li>
-                                    <li>Optimalkan desain untuk identitas sekolah agar terlihat profesional saat dicetak.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
             </Card>
-            )}
         </TabsContent>
-        )}
 
-        {/* Signer Tab (Admin & Yayasan) */}
-        {(isAdmin || userRole === "admin_yayasan") && (
         <TabsContent value="signer">
-            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><FileSignature className="h-5 w-5 text-emerald-600"/> Pejabat Penandatangan</CardTitle>
-                    <CardDescription className="text-slate-500">Konfigurasi nama Ketua dan Sekretaris yang akan muncul di SK.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-3 p-4 border rounded-md bg-slate-50">
-                        <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 1: Ketua</h4>
-                        <div className="grid gap-2">
-                            <Label htmlFor="signerKetuaName">Nama Lengkap</Label>
-                            <Input id="signerKetuaName" value={settings.signerKetuaName} onChange={(e) => handleChange("signerKetuaName", e.target.value)} />
+            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] p-10 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-6">
+                        <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest italic">Otoritas 01: Ketua</h3>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Nama Lengkap</Label>
+                            <Input defaultValue={settingsMap?.signer_ketua_name?.value} onBlur={e => handleSaveGeneral({signer_ketua_name: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="signerKetuaNip">NIY / NIP (Opsional)</Label>
-                            <Input id="signerKetuaNip" value={settings.signerKetuaNip} onChange={(e) => handleChange("signerKetuaNip", e.target.value)} />
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">NIY / NIP</Label>
+                            <Input defaultValue={settingsMap?.signer_ketua_nip?.value} onBlur={e => handleSaveGeneral({signer_ketua_nip: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
                         </div>
                     </div>
-
-                    <div className="space-y-3 p-4 border rounded-md bg-slate-50">
-                        <h4 className="font-semibold text-sm uppercase tracking-wide text-slate-500">Pihak 2: Sekretaris</h4>
-                        <div className="grid gap-2">
-                            <Label htmlFor="signerSekretarisName">Nama Lengkap</Label>
-                            <Input id="signerSekretarisName" value={settings.signerSekretarisName} onChange={(e) => handleChange("signerSekretarisName", e.target.value)} />
+                    <div className="space-y-6">
+                        <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest italic">Otoritas 02: Sekretaris</h3>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Nama Lengkap</Label>
+                            <Input defaultValue={settingsMap?.signer_sekretaris_name?.value} onBlur={e => handleSaveGeneral({signer_sekretaris_name: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="signerSekretarisNip">NIY / NIP (Opsional)</Label>
-                            <Input id="signerSekretarisNip" value={settings.signerSekretarisNip} onChange={(e) => handleChange("signerSekretarisNip", e.target.value)} />
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-400">NIY / NIP</Label>
+                            <Input defaultValue={settingsMap?.signer_sekretaris_nip?.value} onBlur={e => handleSaveGeneral({signer_sekretaris_nip: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
                         </div>
                     </div>
-
-                    <div className="grid gap-2 pt-4 border-t">
-                         <Label htmlFor="skPrefix">Prefix Nomor SK</Label>
-                         <Input id="skPrefix" value={settings.skPrefix} onChange={(e) => handleChange("skPrefix", e.target.value)} />
-                         <p className="text-[10px] text-muted-foreground">Format nomor: [Auto]/[Prefix]/[Bulan]/[Tahun]</p>
-                    </div>
-                </CardContent>
+                </div>
             </Card>
         </TabsContent>
-        )}
-
-        {/* Profil Tab */}
-        <TabsContent value="profil">
-            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><Building className="h-5 w-5 text-emerald-600"/> {isAdmin ? "Profil Yayasan / Cabang" : "Profil Lembaga Anda"}</CardTitle>
-                    <CardDescription className="text-slate-500">Informasi ini digunakan dalam Kop Surat dan Data Lembaga.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                        <Label>Nama Yayasan / Cabang</Label>
-                        <Input value={settings.namaYayasan} onChange={(e) => handleChange("namaYayasan", e.target.value)} disabled={!isAdmin && userRole !== "admin_yayasan"} />
-                        {!isAdmin && userRole !== "admin_yayasan" && <p className="text-[10px] text-muted-foreground">Hubungi Admin PC untuk mengubah data induk.</p>}
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Alamat Lengkap</Label>
-                        <Input value={settings.alamatYayasan} onChange={(e) => handleChange("alamatYayasan", e.target.value)} disabled={!isAdmin && userRole !== "admin_yayasan"} />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label>Telepon / Kontak</Label>
-                        <Input value={settings.teleponYayasan} onChange={(e) => handleChange("teleponYayasan", e.target.value)} disabled={!isAdmin && userRole !== "admin_yayasan"} />
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
-
 
         <TabsContent value="security">
-            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 rounded-2xl">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <CardHeader className="pb-4 border-b border-white/60 bg-white/40">
-                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2"><Lock className="h-5 w-5 text-emerald-600"/> Ganti Password</CardTitle>
-                    <CardDescription className="text-slate-500">Amankan akun Anda dengan mengganti password secara berkala.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
+            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] p-10 max-w-2xl">
+                <form onSubmit={handleUpdatePassword} className="space-y-8">
+                    <div className="space-y-2">
+                        <h2 className="text-xl font-black uppercase italic tracking-tight">Otentikasi Akun</h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Perbarui kredensial akses Anda</p>
+                    </div>
+                    <div className="space-y-6">
                         <div className="space-y-2">
-                            <Label>Password Lama</Label>
-                            <div className="relative">
-                                <Input 
-                                    type={showPass.old ? "text" : "password"}
-                                    name="old"
-                                    value={passForm.old}
-                                    onChange={handlePassChange}
-                                    required
-                                    placeholder="Password saat ini"
-                                />
-                                <Button
-                                    type="button" variant="ghost" size="icon"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowPass(p => ({...p, old: !p.old}))}
-                                >
-                                    {showPass.old ? <EyeOff className="h-4 w-4 text-muted-foreground"/> : <Eye className="h-4 w-4 text-muted-foreground"/>}
-                                </Button>
+                            <Label className="text-[10px] font-black uppercase text-slate-400">Password Saat Ini</Label>
+                            <Input type="password" value={passForm.old_password} onChange={e => setPassForm({...passForm, old_password: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Password Baru</Label>
+                                <Input type="password" value={passForm.new_password} onChange={e => setPassForm({...passForm, new_password: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase text-slate-400">Konfirmasi</Label>
+                                <Input type="password" value={passForm.confirm_password} onChange={e => setPassForm({...passForm, confirm_password: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Password Baru</Label>
-                            <div className="relative">
-                                <Input 
-                                    type={showPass.new ? "text" : "password"}
-                                    name="new"
-                                    value={passForm.new}
-                                    onChange={handlePassChange}
-                                    required
-                                    placeholder="Min 8 kar, 1 Besar, 1 Angka, 1 Simbol"
-                                />
-                                <Button
-                                    type="button" variant="ghost" size="icon"
-                                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                    onClick={() => setShowPass(p => ({...p, new: !p.new}))}
-                                >
-                                    {showPass.new ? <EyeOff className="h-4 w-4 text-muted-foreground"/> : <Eye className="h-4 w-4 text-muted-foreground"/>}
-                                </Button>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">
-                                Syarat: Minimal 8 karakter, ada Huruf Besar, Angka, dan Simbol unik (!@#$).
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Konfirmasi Password Baru</Label>
-                            <Input 
-                                type={showPass.new ? "text" : "password"}
-                                name="confirm"
-                                value={passForm.confirm}
-                                onChange={handlePassChange}
-                                required
-                                placeholder="Ulangi password baru"
-                            />
-                        </div>
-                        <Button type="submit">
-                            Update Password
-                        </Button>
-                    </form>
-                </CardContent>
+                    </div>
+                    <Button type="submit" disabled={isSaving} className="h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100">
+                        {isSaving ? <Loader2 className="animate-spin h-5 w-5" /> : 'Perbarui Kredensial'}
+                    </Button>
+                </form>
             </Card>
         </TabsContent>
-
-        {/* System Tab (Admin Only) */}
-        {isAdmin && (
-        <TabsContent value="system" className="space-y-4">
-          <div className="grid gap-6">
-              {/* BACKUP SECTION */}
-              <div className="border rounded-md p-6 bg-blue-50/50 border-blue-100">
-                  <div className="flex items-center gap-4 mb-4">
-                      <div className="p-2 bg-blue-100 rounded-full text-blue-600">
-                         <Save className="w-6 h-6" />
-                      </div>
-                      <div>
-                          <h3 className="font-bold text-lg text-blue-900">Backup Data Aplikasi</h3>
-                          <p className="text-sm text-blue-700">Download seluruh data (Guru, Sekolah, Siswa, Template Settings) ke dalam file JSON untuk keamanan.</p>
-                      </div>
-                  </div>
-                  <Button onClick={handleDownloadBackup} variant="outline" className="border-blue-300 text-blue-800 hover:bg-blue-100 w-full sm:w-auto">
-                      <Download className="mr-2 h-4 w-4" /> Download Backup (.json)
-                  </Button>
-              </div>
-
-              {/* RESTORE SECTION */}
-              <div className="border rounded-md p-6 bg-amber-50/50 border-amber-100">
-                  <div className="flex items-center gap-4 mb-4">
-                      <div className="p-2 bg-amber-100 rounded-full text-amber-600">
-                         <RefreshCw className="w-6 h-6" />
-                      </div>
-                      <div>
-                          <h3 className="font-bold text-lg text-amber-900">Restore / Pulihkan Data</h3>
-                          <p className="text-sm text-amber-700">Upload file backup (.json) untuk mengembalikan kondisi data. <span className="font-bold">PERINGATAN: Data saat ini akan ditimpa!</span></p>
-                      </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                      <div className="relative">
-                          <Input 
-                              type="file" 
-                              accept=".json"
-                              className="w-full max-w-sm bg-white"
-                              onChange={handleRestoreBackup}
-                          />
-                      </div>
-                  </div>
-              </div>
-
-              {/* RESET SECTION */}
-              <div className="border rounded-md p-6 bg-red-50 border-red-100">
-                 <h3 className="font-bold text-red-800 mb-2">Danger Zone</h3>
-                 <p className="text-sm text-red-600 mb-4">Menghapus seluruh data aplikasi dari browser ini. Tidak dapat dibatalkan.</p>
-                 <Button variant="destructive" onClick={handleResetData}>
-                     Reset Data Aplikasi (Factory Reset)
-                 </Button>
-              </div>
-          </div>
-        </TabsContent>
-        )}
-        
       </Tabs>
-      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="h-5 w-5" /> Konfirmasi Reset Data
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              PERINGATAN: Tindakan ini akan <b>MENGHAPUS SELURUH DATA</b> aplikasi yang tersimpan di browser ini (Guru, Siswa, Sekolah, Pengaturan).
-              <br/><br/>
-              Data yang sudah dihapus <b>TIDAK DAPAT DIKEMBALIKAN</b> kecuali Anda memiliki backup JSON.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReset} className="bg-red-600 hover:bg-red-700 text-white">
-              Ya, Hapus Semua
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
+}
+
+function TemplateCard({ title, settingKey, onUpload, data, uploading }: any) {
+    const hasData = !!data?.[settingKey]?.value
+    return (
+        <Card className="border-0 shadow-sm bg-white rounded-3xl p-8 group hover:border-blue-200 transition-all border border-transparent">
+            <div className="flex items-start justify-between">
+                <div>
+                    <h3 className="font-black text-slate-800 text-sm uppercase italic tracking-tight">{title}</h3>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">E-Document Skeleton (.docx)</p>
+                </div>
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center transition-colors", hasData ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400")}>
+                    {hasData ? <CheckCircle className="w-4 h-4" /> : <CloudUpload className="w-4 h-4" />}
+                </div>
+            </div>
+            <div className="mt-8 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-slate-300 italic">{hasData ? 'Synced to Cloud' : 'Not Configured'}</span>
+                <div className="relative">
+                    <Input type="file" accept=".docx" onChange={e => onUpload(e, settingKey)} className="hidden" id={`u-${settingKey}`} />
+                    <Button asChild size="sm" variant="outline" className="h-10 rounded-xl px-4 font-black uppercase text-[10px] tracking-widest border-slate-200 hover:bg-slate-50">
+                        <label htmlFor={`u-${settingKey}`}>
+                            {uploading === settingKey ? <Loader2 className="animate-spin h-4 w-4" /> : (hasData ? 'Ganti Template' : 'Upload Template')}
+                        </label>
+                    </Button>
+                </div>
+            </div>
+        </Card>
+    )
 }

@@ -1,111 +1,88 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare, Activity } from "lucide-react";
-import { useAction } from "convex/react";
-import { useEffect, useCallback } from "react";
+import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare, Activity, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { attendanceApi } from "@/lib/api";
 
 export default function AttendanceSettingsPage() {
-  const userStr = localStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
-  const schoolId = user?.schoolId as Id<"schools"> | undefined;
-  const settings = useQuery(api.attendanceSettings.get, schoolId ? { schoolId } : "skip");
-  const saveMutation = useMutation(api.attendanceSettings.save);
-  const regeneratePinMutation = useMutation(api.attendanceSettings.regeneratePin);
+  const queryClient = useQueryClient();
+  
+  // 🔥 REST API QUERIES
+  const { data: settings, isLoading } = useQuery({ 
+      queryKey: ['attendance-settings'], 
+      queryFn: attendanceApi.settingsShow 
+  });
 
-  const [absensiGuruAktif, setAbsensiGuruAktif] = useState(false);
-  const [absensiSiswaAktif, setAbsensiSiswaAktif] = useState(false);
-  const [qrScanAktif, setQrScanAktif] = useState(false);
-  const [gowaUrl, setGowaUrl] = useState("");
-  const [gowaDeviceId, setGowaDeviceId] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => attendanceApi.settingsUpdate(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance-settings'] });
+      toast.success("Pengaturan absensi berhasil disimpan!");
+    }
+  });
+
+  const [formState, setFormState] = useState({
+    absensi_guru_aktif: false,
+    absensi_siswa_aktif: false,
+    qr_scan_aktif: false,
+    gowa_url: "",
+    gowa_device_id: "",
+  });
+
   const [showPin, setShowPin] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
+  const [waStatus, setWaStatus] = useState<"idle" | "checking" | "online" | "offline">("idle");
 
-  // Load settings when data arrives
-  if (settings && !loaded) {
-    setAbsensiGuruAktif(settings.absensiGuruAktif);
-    setAbsensiSiswaAktif(settings.absensiSiswaAktif);
-    setQrScanAktif(settings.qrScanAktif);
-    setGowaUrl(settings.gowaUrl || "");
-    setGowaDeviceId(settings.gowaDeviceId || "");
-    setLoaded(true);
-  }
-
-  const handleSave = async () => {
-    if (!schoolId) {
-      toast.error("School ID tidak ditemukan");
-      return;
-    }
-    try {
-      const result = await saveMutation({
-        schoolId,
-        absensiGuruAktif,
-        absensiSiswaAktif,
-        scannerPin: settings?.scannerPin || undefined,
-        qrScanAktif,
-        gowaUrl,
-        gowaDeviceId,
+  useEffect(() => {
+    if (settings) {
+      setFormState({
+        absensi_guru_aktif: !!settings.absensi_guru_aktif,
+        absensi_siswa_aktif: !!settings.absensi_siswa_aktif,
+        qr_scan_aktif: !!settings.qr_scan_aktif,
+        gowa_url: settings.gowa_url || "",
+        gowa_device_id: settings.gowa_device_id || "",
       });
-      if (result.pin && !settings?.scannerPin) {
-        toast.success(`Pengaturan disimpan! PIN baru: ${result.pin}`);
-      } else {
-        toast.success("Pengaturan absensi berhasil disimpan!");
-      }
-    } catch (err) {
-      toast.error("Gagal menyimpan pengaturan");
     }
-  };
+  }, [settings]);
 
-  const handleRegenerate = async () => {
-    if (!schoolId) return;
-    setRegenerating(true);
-    try {
-      const result = await regeneratePinMutation({ schoolId });
-      toast.success(`PIN baru: ${result.pin}`);
-      setShowPin(true);
-    } catch (err) {
-      toast.error("Gagal generate PIN baru");
-    }
-    setRegenerating(false);
+  const handleSave = () => {
+    saveMutation.mutate(formState);
   };
 
   const handleCopyPin = () => {
-    if (settings?.scannerPin) {
-      navigator.clipboard.writeText(settings.scannerPin);
+    if (settings?.scanner_pin) {
+      navigator.clipboard.writeText(settings.scanner_pin);
       toast.success("PIN berhasil disalin!");
     }
   };
 
-    const [waStatus, setWaStatus] = useState<"idle" | "checking" | "online" | "offline">("idle");
-    const checkWaStatusAction = useAction(api.monitoring.checkWaStatus);
-  
-    const checkConnection = useCallback(async () => {
-      if (!gowaUrl) {
-        toast.error("Masukkan URL GoWA terlebih dahulu");
-        return;
-      }
-      setWaStatus("checking");
-      try {
-        const result = await checkWaStatusAction({ gowaUrl });
-        setWaStatus(result.online ? "online" : "offline");
-        if (result.online) {
+  const checkConnection = async () => {
+    if (!formState.gowa_url) {
+      toast.error("Masukkan URL GoWA terlebih dahulu");
+      return;
+    }
+    setWaStatus("checking");
+    try {
+      const res = await attendanceApi.checkWaConnection();
+      if (res.status === 'online') {
+          setWaStatus("online");
           toast.success("Koneksi Server WA Berhasil! 🟢");
-        } else {
-          toast.error("Server WA Tidak Merespon 🔴");
-        }
-      } catch (err) {
-        setWaStatus("offline");
-        toast.error("Gagal menghubungi server WA");
+      } else {
+          setWaStatus("offline");
+          toast.error("Server WA Offline: " + (res.message || "Unknown error"));
       }
-    }, [gowaUrl, checkWaStatusAction]);
+    } catch (e: any) {
+        setWaStatus("offline");
+        toast.error("Gagal cek koneksi: " + e.message);
+    }
+  };
+
+  if (isLoading) return <div className="h-96 flex items-center justify-center"><Loader2 className="animate-spin text-emerald-500" /></div>;
 
   return (
     <div className="space-y-6">
@@ -115,155 +92,138 @@ export default function AttendanceSettingsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-emerald-200/50">
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 bg-slate-50/50">
             <CardTitle className="text-base flex items-center gap-2">
               <UserCheck className="h-4 w-4 text-emerald-600" />
               Absensi Guru
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="guru-toggle" className="text-sm text-slate-600">Aktifkan absensi guru</Label>
-              <Switch id="guru-toggle" checked={absensiGuruAktif} onCheckedChange={setAbsensiGuruAktif} />
+              <Label className="text-sm text-slate-600">Aktifkan modul absensi guru</Label>
+              <Switch 
+                checked={formState.absensi_guru_aktif} 
+                onCheckedChange={(v) => setFormState({...formState, absensi_guru_aktif: v})} 
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-blue-200/50">
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 bg-slate-50/50">
             <CardTitle className="text-base flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-blue-600" />
               Absensi Siswa
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="siswa-toggle" className="text-sm text-slate-600">Aktifkan absensi siswa</Label>
-              <Switch id="siswa-toggle" checked={absensiSiswaAktif} onCheckedChange={setAbsensiSiswaAktif} />
+              <Label className="text-sm text-slate-600">Aktifkan modul absensi siswa</Label>
+              <Switch 
+                checked={formState.absensi_siswa_aktif} 
+                onCheckedChange={(v) => setFormState({...formState, absensi_siswa_aktif: v})} 
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-purple-200/50">
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 bg-slate-50/50">
             <CardTitle className="text-base flex items-center gap-2">
               <QrCode className="h-4 w-4 text-purple-600" />
-              QR Scan
+              QR Scan & Real-time
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="qr-toggle" className="text-sm text-slate-600">Aktifkan QR Scanner</Label>
-              <Switch id="qr-toggle" checked={qrScanAktif} onCheckedChange={setQrScanAktif} />
+              <Label className="text-sm text-slate-600">Aktifkan fitur scan kartu (KTA)</Label>
+              <Switch 
+                checked={formState.qr_scan_aktif} 
+                onCheckedChange={(v) => setFormState({...formState, qr_scan_aktif: v})} 
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200/50">
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="pb-3 bg-slate-50/50">
             <CardTitle className="text-base flex items-center gap-2">
               <Shield className="h-4 w-4 text-amber-600" />
-              PIN Scanner
+              PIN Scanner Device
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-slate-500">
-              PIN ini digunakan guru untuk masuk ke halaman scanner absensi. PIN di-generate otomatis dan unik per sekolah.
+          <CardContent className="pt-4 space-y-3">
+            <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+              PIN ini digunakan untuk login ke mode scanner di tablet/smartphone sekolah. Rahasiakan PIN ini.
             </p>
 
-            {settings?.scannerPin ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 font-mono text-2xl tracking-[0.3em] text-center font-bold text-slate-800">
-                    {showPin ? settings.scannerPin : "••••••"}
-                  </div>
-                  <Button variant="outline" size="icon" onClick={() => setShowPin(!showPin)} title={showPin ? "Sembunyikan" : "Tampilkan"}>
-                    {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={handleCopyPin} title="Salin PIN">
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRegenerate}
-                  disabled={regenerating}
-                  className="w-full text-amber-700 border-amber-200 hover:bg-amber-50"
-                >
-                  <RefreshCw className={`mr-2 h-3.5 w-3.5 ${regenerating ? "animate-spin" : ""}`} />
-                  {regenerating ? "Generating..." : "Generate PIN Baru"}
-                </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 font-mono text-xl tracking-[0.3em] text-center font-bold text-slate-700">
+                {showPin ? settings?.scanner_pin : "••••••"}
               </div>
-            ) : (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-                <p className="text-sm text-amber-700 font-medium">PIN belum dibuat</p>
-                <p className="text-xs text-amber-600 mt-1">Klik "Simpan Pengaturan" untuk auto-generate PIN</p>
-              </div>
-            )}
+              <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={() => setShowPin(!showPin)}>
+                {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl" onClick={handleCopyPin}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-green-200/50">
-          <CardHeader className="pb-3">
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden md:col-span-2">
+          <CardHeader className="pb-3 bg-slate-50/50">
             <CardTitle className="text-base flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-green-600" />
-                Notifikasi WhatsApp (GoWA)
+                Integrasi Gateway WhatsApp (GoWA)
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${waStatus === "online" ? "bg-green-500" : waStatus === "offline" ? "bg-red-500" : "bg-slate-300"}`} />
-                <span className="text-[10px] uppercase font-bold text-slate-400">
-                  {waStatus === "online" ? "Online" : waStatus === "offline" ? "Offline" : ""}
-                </span>
-              </div>
+              <Badge variant={waStatus === "online" ? "default" : "outline"} className={waStatus === "online" ? "bg-green-500" : ""}>
+                {waStatus.toUpperCase()}
+              </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-4 grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm text-slate-600">URL Server GoWA</Label>
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">URL Server Gateway</Label>
                 <button 
                   onClick={checkConnection}
                   disabled={waStatus === "checking"}
-                  className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase"
+                  className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 uppercase"
                 >
-                  {waStatus === "checking" ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : <Activity className="h-2.5 w-2.5" />}
+                  {waStatus === "checking" ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Activity className="h-3 w-3" />}
                   Cek Koneksi
                 </button>
               </div>
-              <p className="text-xs text-slate-500">
-                Alamat Localtunnel Yayasan Pusat. Kosongkan jika tidak mau kirim WA.
-              </p>
               <Input
-                placeholder="https://simmaci-gowa-pusat.loca.lt"
-                value={gowaUrl}
-                onChange={(e) => setGowaUrl(e.target.value)}
-                className="font-mono text-sm"
+                placeholder="https://wa.maarif-cilacap.or.id"
+                value={formState.gowa_url}
+                onChange={(e) => setFormState({...formState, gowa_url: e.target.value})}
+                className="font-mono text-sm rounded-xl h-11"
               />
             </div>
             
             <div className="space-y-2">
-              <Label className="text-sm text-slate-600">Device ID Madrasah (Opsional)</Label>
-              <p className="text-xs text-slate-500">
-                Kode unik madrasah untuk Multi-Device (misal: "mialfalah"). Biarkan kosong jika Yayasan hanya menggunakan 1 nomor WA tunggal.
-              </p>
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instance / Device ID</Label>
               <Input
-                placeholder="mialfalah"
-                value={gowaDeviceId}
-                onChange={(e) => setGowaDeviceId(e.target.value)}
-                className="font-mono text-sm"
+                placeholder="unit_01"
+                value={formState.gowa_device_id}
+                onChange={(e) => setFormState({...formState, gowa_device_id: e.target.value})}
+                className="font-mono text-sm rounded-xl h-11"
               />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700">
-        <Save className="mr-2 h-4 w-4" />
-        Simpan Pengaturan
-      </Button>
+      <div className="flex justify-end pt-4">
+        <Button onClick={handleSave} size="lg" className="bg-emerald-600 hover:bg-emerald-700 h-12 px-8 rounded-xl" disabled={saveMutation.isPending}>
+          {saveMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="mr-2 h-5 w-5" />}
+          Simpan Semua Pengaturan
+        </Button>
+      </div>
     </div>
   );
 }

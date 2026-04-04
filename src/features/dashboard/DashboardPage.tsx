@@ -106,7 +106,7 @@ export default function DashboardPage() {
               <p className="text-slate-500 mt-2 flex items-center gap-2">
                   Selamat datang kembali, <span className="font-bold text-emerald-800">{user?.name || "Admin"}</span>
                   <span className="text-[10px] font-bold tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200 shadow-sm uppercase">
-                    {user?.role === 'super_admin' ? 'Super Admin' : 'Operator'}
+                    {["super_admin", "admin_yayasan", "admin"].includes(user?.role) ? 'Super Admin' : 'Operator'}
                   </span>
               </p>
            </div>

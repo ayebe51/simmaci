@@ -63,7 +63,7 @@ export default function DashboardPage() {
     skCount: 0,
   }
 
-  const logs = statsData?.recentLogs || []
+  const logs = Array.isArray(statsData?.recentLogs) ? statsData.recentLogs : []
   const [logFilter, setLogFilter] = useState<"all" | "sk" | "emis" | "school">("all")
   
   // Filter logs based on selection
@@ -151,7 +151,7 @@ export default function DashboardPage() {
                 </div>
             </div>
             <div className="mt-6">
-                <Sparkline data={statsData?.teacherTrend || []} color="#059669" />
+                <Sparkline data={Array.isArray(statsData?.teacherTrend) ? statsData.teacherTrend : []} color="#059669" />
             </div>
           </CardContent>
         </Card>
@@ -233,37 +233,55 @@ export default function DashboardPage() {
          </div>
        )}
 
-       {skTrend && (
-         <Card className="mt-8">
-           <CardHeader><CardTitle>Trend Pengajuan SK</CardTitle></CardHeader>
-           <CardContent>
-             <div className="h-[300px] w-full">
-               <ResponsiveContainer width="100%" height="100%">
-                 <AreaChart data={skTrend}>
-                   <XAxis dataKey="month" />
-                   <YAxis />
-                   <Tooltip />
-                   <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
-                 </AreaChart>
-               </ResponsiveContainer>
-             </div>
-           </CardContent>
-         </Card>
-       )}
+        {Array.isArray(skTrend) && skTrend.length > 0 && (
+          <Card className="mt-8 shadow-sm">
+            <CardHeader><CardTitle className="text-lg">Trend Pengajuan SK</CardTitle></CardHeader>
+            <CardContent>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={skTrend}>
+                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
+                    <YAxis stroke="#94a3b8" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#10b981" 
+                      fill="url(#colorTrend)" 
+                      fillOpacity={1} 
+                      strokeWidth={3}
+                    />
+                    <defs>
+                      <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
        <div className="grid gap-6 md:grid-cols-2 mt-8">
           <Card>
              <CardHeader className="border-b"><CardTitle>Riwayat Aktivitas</CardTitle></CardHeader>
              <CardContent className="pt-4">
                   <div className="space-y-4">
-                       {filteredLogs?.length > 0 ? (
-                            filteredLogs.map((log: any, i: number) => (
-                                <div key={i} className="flex flex-col border-b pb-2 last:border-0">
-                                   <p className="text-sm font-semibold">{log.action}</p>
-                                   <p className="text-xs text-slate-500">{log.details}</p>
-                                </div>
-                            ))
-                       ) : <p className="text-center py-4 text-slate-400">Belum ada aktivitas.</p>}
+                        {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
+                             filteredLogs.map((log: any, i: number) => (
+                                 <div key={i} className="flex flex-col border-b border-slate-50 last:border-0 pb-3 mb-3 last:mb-0">
+                                    <div className="flex justify-between items-start mb-1">
+                                      <p className="text-sm font-bold text-slate-800">{log.action}</p>
+                                      <span className="text-[10px] text-slate-400 font-medium">{new Date(log.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 leading-relaxed">{log.details}</p>
+                                 </div>
+                             ))
+                        ) : <p className="text-center py-8 text-slate-400 italic">Belum ada aktivitas baru.</p>}
                   </div>
              </CardContent>
           </Card>

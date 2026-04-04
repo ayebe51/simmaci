@@ -1,18 +1,16 @@
 import { useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { Printer, ShieldCheck, Sparkles, UserCircle2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { cn } from "@/lib/utils";
 
 interface StudentCardProps {
   student: {
     nama: string;
     nisn: string;
     nik?: string;
-    namaSekolah?: string;
-    photoId?: Id<"_storage"> | string;
+    nama_sekolah?: string;
+    photo_id?: string;
     kelas?: string;
   };
   isBatch?: boolean;
@@ -21,25 +19,27 @@ interface StudentCardProps {
 export default function StudentCard({ student, isBatch }: StudentCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   
-  // Load student-specific templates
+  // Load student-specific templates from local storage (System Config)
   const templateFront = typeof window !== 'undefined' ? localStorage.getItem("student_template_front_blob") : null;
   const templateBack = typeof window !== 'undefined' ? localStorage.getItem("student_template_back_blob") : null;
 
-  // Fetch Photo URL Logic
-  const isStorageId = student.photoId && !student.photoId.startsWith("http");
-  const storageUrl = useQuery(api.students.getPhotoUrl, isStorageId ? { photoId: student.photoId as string } : "skip");
-  
-  // Final URL to display (with drive normalization)
+  // Resolve Photo URL for Laravel Backend
   const displayUrl = useMemo(() => {
-    const rawUrl = isStorageId ? storageUrl : student.photoId;
-    if (rawUrl && typeof rawUrl === 'string' && rawUrl.includes("drive.google.com")) {
-        const match = rawUrl.match(/id=([a-zA-Z0-9_-]+)/) || rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (!student.photo_id) return null;
+    if (student.photo_id.startsWith("http")) return student.photo_id;
+    
+    // Resolve drive links if any
+    if (student.photo_id.includes("drive.google.com")) {
+        const match = student.photo_id.match(/id=([a-zA-Z0-9_-]+)/) || student.photo_id.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (match && match[1]) {
             return `https://lh3.googleusercontent.com/d/${match[1]}`;
         }
     }
-    return rawUrl;
-  }, [isStorageId, storageUrl, student.photoId]);
+
+    // Default Laravel Storage Path
+    const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+    return `${apiBase}/storage/${student.photo_id}`;
+  }, [student.photo_id]);
   
   const baseUrl = (import.meta.env as any).VITE_APP_URL || window.location.origin;
   const verifyUrl = `${baseUrl}/verify/student/${student.nisn || "unknown"}`;
@@ -51,21 +51,18 @@ export default function StudentCard({ student, isBatch }: StudentCardProps) {
   const cardStyle = {
     width: "480px",
     height: "300px",
-    borderRadius: "12px",
+    borderRadius: "24px",
     position: "relative" as const,
     overflow: "hidden" as const,
-    color: "white",
-    fontFamily: "sans-serif",
     flexShrink: 0
   };
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-10 group">
       <style>
         {`
           @media print {
-            /* Force natural flow for all parent containers */
-            html, body, #root, main, .md\\:col-span-3, .md\\:col-span-4 {
+            html, body, #root, main {
               height: auto !important;
               min-height: 0 !important;
               overflow: visible !important;
@@ -74,21 +71,15 @@ export default function StudentCard({ student, isBatch }: StudentCardProps) {
               margin: 0 !important;
               padding: 0 !important;
             }
-
             .no-print { display: none !important; }
-            
             .student-print-container {
                display: block !important;
                width: 100% !important;
                margin: 0 auto !important;
                padding: 20px 0 !important;
-               background: white !important;
                page-break-after: always !important;
                break-after: page !important;
-               position: relative !important;
             }
-            
-            /* Isolated absolute center for single-card mode */
             #student-print-area {
                position: absolute !important;
                left: 0 !important;
@@ -102,19 +93,11 @@ export default function StudentCard({ student, isBatch }: StudentCardProps) {
                z-index: 99999 !important;
                background: white !important;
             }
-            
             * { 
               -webkit-print-color-adjust: exact !important; 
               print-color-adjust: exact !important; 
-              backdrop-filter: none !important;
-              -webkit-backdrop-filter: none !important;
-              filter: none !important;
             }
-            
-            @page { 
-              margin: 5mm; 
-              size: auto;
-            }
+            @page { margin: 5mm; size: auto; }
           }
         `}
       </style>
@@ -122,144 +105,148 @@ export default function StudentCard({ student, isBatch }: StudentCardProps) {
       {/* PRINT CONTAINER */}
       <div 
         id={isBatch ? undefined : "student-print-area"} 
-        className={`student-print-container flex flex-col ${isBatch ? "mb-12" : "md:flex-row gap-6"} items-center justify-center`}
+        className={cn(
+            "student-print-container flex flex-col items-center justify-center gap-10",
+            isBatch ? "mb-20" : "md:flex-row md:gap-12"
+        )}
       >
-          
+          {/* FRONT SIDE */}
           <div 
             style={{
                 ...cardStyle,
-                backgroundImage: templateFront ? `url(${templateFront})` : "linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)", // Premium Navy
+                backgroundImage: templateFront ? `url(${templateFront})` : "linear-gradient(145deg, #0f172a 0%, #1e3a8a 100%)",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+                boxShadow: isBatch ? "none" : "0 30px 60px -12px rgba(0,0,0,0.25), 0 18px 36px -18px rgba(0,0,0,0.3)"
             }}
-            className={`border border-blue-400/20 relative overflow-hidden print:shadow-none ${isBatch ? "print:border-slate-800" : ""}`}
+            className="border border-white/10 relative overflow-hidden"
           >
-            {/* Holographic / Light Accent overlays */}
+            {/* Holographic Overlays */}
             {!templateFront && (
-              <>
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-[80px] -ml-32 -mb-32 pointer-events-none"></div>
-                {/* Subtle Hexagon Pattern */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M54.627 0l.83.48-15.022 26.02-15.02-26.02.83-.48h28.382zM29.5 0l-.83.48 15.02 26.02 15.022-26.02-.83-.48H29.5zm-5.383 0h-28.38l-.83.48 15.02 26.02 15.02-26.02-.83-.48zM0 0l.83.48 15.022 26.02L.83 52.52 0 52.04V0zm0 53.48l.83-.48 15.02 26.02-15.02 26.02-.83-.48v-51.08zm29.5 53.48l-.83-.48-15.022 26.02 15.02 26.02.83-.48V53.48zM60 0v52.04l-.83.48-15.02-26.02L59.17.48 60 0zm0 53.48v51.08l-.83.48-15.022-26.02L59.17 53 60 53.48zM24.117 52.04h28.38l.83.48-15.02 26.02-15.022-26.02.83-.48H24.117zm-5.382 0l-.83.48-15.02 26.02L17.905 104l.83-.48h-28.38zM54.627 104h-28.38l-.83.48 15.02 26.02 15.02-26.02.83-.48z\' fill=\'%23fbbf24\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")' }}></div>
-              </>
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-blue-400/10 rounded-full blur-[100px] -mr-40 -mt-40"></div>
+                <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-400/5 rounded-full blur-[100px] -ml-40 -mb-40"></div>
+              </div>
             )}
 
-            {/* Header always shown */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-900/80 to-slate-900/80 backdrop-blur-md border-b border-blue-400/20 flex items-center px-4 justify-between z-10 print:bg-blue-900/100">
-                <div className="flex items-center gap-3">
-                    <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-14 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            {/* Premium Header */}
+            <div className="absolute top-0 left-0 right-0 h-20 bg-white/5 backdrop-blur-xl border-b border-white/10 flex items-center px-6 justify-between z-10">
+                <div className="flex items-center gap-4">
+                    <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-2xl" />
                     <div className="flex flex-col">
-                        <h1 className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 uppercase tracking-widest leading-none mb-0.5 print-color-yellow">KARTU TANDA PELAJAR</h1>
-                        <h2 className="text-[8px] font-semibold text-blue-300 uppercase tracking-widest leading-none print-color-blue">LP MA'ARIF NU CILACAP</h2>
+                        <h1 className="text-[14px] font-black text-white uppercase tracking-tight italic leading-none mb-1">KARTU TANDA PELAJAR</h1>
+                        <h2 className="text-[8px] font-bold text-blue-300 uppercase tracking-widest leading-none">LP MA'ARIF NU CILACAP</h2>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="text-right">
-                        <span className="block text-[6px] text-yellow-500/80 uppercase tracking-widest mb-0.5 print-color-yellow">NISN / ID Siswa</span>
-                        <span className="font-mono font-bold text-[10px] text-yellow-100 tracking-wider bg-slate-950/50 px-2 py-0.5 rounded border border-yellow-500/30 print:border-yellow-500/100 print-color-white">{student.nisn || "---"}</span>
-                    </div>
+                <div className="flex flex-col items-end">
+                    <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <ShieldCheck className="w-2 h-2" /> Verified Identity
+                    </span>
+                    <Badge variant="outline" className="bg-slate-950/40 text-white border-white/20 text-[10px] font-black px-3 py-1 rounded-lg">
+                        {student.nisn || "NO-ID"}
+                    </Badge>
                 </div>
             </div>
 
-            {/* Common Elements (Drawn over template too) */}
-            <div className={`relative z-10 flex gap-5 w-full h-full box-border ${templateFront ? 'pt-16 pb-6 px-5' : 'pt-20 pb-6 px-5'}`}>
-                {/* PHOTO */}
-                <div className="w-24 h-32 bg-slate-800 rounded-md border-2 border-blue-400/40 shadow-[0_0_15px_rgba(59,130,246,0.15)] overflow-hidden flex-shrink-0 relative print-border-blue">
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10 pointer-events-none"></div>
+            <div className="relative z-10 flex gap-8 w-full h-full pt-24 px-8 pb-8">
+                {/* PHOTO CONTAINER */}
+                <div className="w-28 h-36 bg-slate-900/50 rounded-2xl border-2 border-white/10 shadow-2xl overflow-hidden shrink-0 relative">
                     {displayUrl ? (
                         <img src={displayUrl} className="w-full h-full object-cover" alt="Profile" crossOrigin="anonymous" />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px] bg-slate-800 print-color-white">No Photo</div>
-                    )}
-                </div>
-
-                {/* INFO */}
-                <div className="flex-1 flex flex-col justify-start pt-1 space-y-3">
-                    <div className="border-b border-blue-900/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print-color-yellow">Nama Lengkap</label>
-                        <p className="font-bold text-sm text-slate-100 capitalize line-clamp-2 tracking-wide text-shadow-sm print-color-white">{student.nama}</p>
-                    </div>
-                    <div className="border-b border-blue-900/50 pb-2">
-                        <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print-color-yellow">Asal Madrasah / Sekolah</label>
-                        <p className="font-semibold text-[11px] text-blue-200 line-clamp-2 tracking-wide print-color-blue">{student.namaSekolah}</p>
-                    </div>
-                    {student.nik && student.nik !== "-" && (
-                        <div>
-                            <label className="text-[7px] text-yellow-500 uppercase tracking-widest block mb-1 print-color-yellow">NIK</label>
-                            <p className="font-mono text-[10px] text-slate-300 tracking-wider inline-block bg-slate-900/80 px-2 py-0.5 rounded border border-blue-900 print-border-blue print-color-white">{student.nik}</p>
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-slate-500 gap-2">
+                            <UserCircle2 className="w-10 h-10 opacity-20" />
+                            <span className="text-[8px] font-black uppercase text-center px-4">No Digital Identity</span>
                         </div>
                     )}
                 </div>
+
+                {/* INFO CONTENT */}
+                <div className="flex-1 flex flex-col justify-start pt-2 space-y-4">
+                    <div className="space-y-1">
+                        <label className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Student Narrative</label>
+                        <p className="font-black text-xl text-white uppercase italic tracking-tighter leading-none truncate">{student.nama}</p>
+                    </div>
+                    
+                    <div className="space-y-1">
+                        <label className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Institution Hub</label>
+                        <p className="font-bold text-xs text-slate-200 uppercase tracking-tight leading-tight line-clamp-2">{student.nama_sekolah || 'Digital Hub'}</p>
+                    </div>
+
+                    <div className="pt-2 flex gap-4">
+                        {student.nik && (
+                            <div className="h-8 px-3 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                                <span className="text-[7px] font-black text-slate-400 uppercase">NIK:</span>
+                                <span className="text-[9px] font-bold text-slate-200 font-mono italic">{student.nik}</span>
+                            </div>
+                        )}
+                        <div className="h-8 px-3 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                            <span className="text-[7px] font-black text-slate-400 uppercase">CLASS:</span>
+                            <span className="text-[9px] font-bold text-slate-200 italic">{student.kelas || '-'}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Footer Strip always shown */}
-            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-r from-yellow-600 to-yellow-500 flex items-center justify-center z-20 print:bg-yellow-500">
-                <span className="text-[7px] text-yellow-950 font-extrabold uppercase tracking-[0.2em] print:text-black">Belajar • Berjuang • Bertaqwa</span>
-            </div>
+            {/* Bottom Accent */}
+            <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-emerald-500 to-yellow-500"></div>
           </div>
 
+          {/* BACK SIDE */}
           <div 
             style={{
                 ...cardStyle,
-                backgroundImage: templateBack ? `url(${templateBack})` : "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
-                backgroundColor: "#0f172a",
+                backgroundImage: templateBack ? `url(${templateBack})` : "linear-gradient(145deg, #1e3a8a 0%, #0f172a 100%)",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                color: "white",
-                boxShadow: isBatch ? "none" : "0 10px 25px -5px rgba(0, 0, 0, 0.5)"
+                boxShadow: isBatch ? "none" : "0 30px 60px -12px rgba(0,0,0,0.25), 0 18px 36px -18px rgba(0,0,0,0.3)"
             }}
-            className="border border-blue-500/20 relative"
+            className="border border-white/10 relative overflow-hidden"
           >
-            {!templateBack && (
-                <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M54.627 0l.83.48-15.022 26.02-15.02-26.02.83-.48h28.382zM29.5 0l-.83.48 15.02 26.02 15.022-26.02-.83-.48H29.5zm-5.383 0h-28.38l-.83.48 15.02 26.02 15.02-26.02-.83-.48zM0 0l.83.48 15.022 26.02L.83 52.52 0 52.04V0zm0 53.48l.83-.48 15.02 26.02-15.02 26.02-.83-.48v-51.08zm29.5 53.48l-.83-.48-15.022 26.02 15.02 26.02.83-.48V53.48zM60 0v52.04l-.83.48-15.02-26.02L59.17.48 60 0zm0 53.48v51.08l-.83.48-15.022-26.02L59.17 53 60 53.48zM24.117 52.04h28.38l.83.48-15.02 26.02-15.022-26.02.83-.48H24.117zm-5.382 0l-.83.48-15.02 26.02L17.905 104l.83-.48h-28.38zM54.627 104h-28.38l-.83.48 15.02 26.02 15.02-26.02.83-.48z\' fill=\'%23fbbf24\' fill-opacity=\'1\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")' }}></div>
-            )}
-            
-            <div className="p-5 flex flex-col h-full justify-between z-10 relative">
-                <div>
-                   <h3 className="text-[9px] font-bold uppercase border-b border-blue-400/30 pb-1.5 mb-2.5 text-blue-300 tracking-widest">Ketentuan Kartu Pelajar</h3>
-                   <ul className="text-[7.5px] space-y-1.5 list-none pl-1 text-slate-300">
-                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-yellow-400 mt-1 flex-shrink-0"></div> Kartu ini adalah kartu identitas resmi Siswa LP Ma'arif NU Cilacap.</li>
-                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-yellow-400 mt-1 flex-shrink-0"></div> Wajib dibawa saat mengikuti KBM dan kegiatan ekstrakurikuler.</li>
-                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-yellow-400 mt-1 flex-shrink-0"></div> Dapat digunakan untuk sistem absensi digital dan perpustakaan.</li>
-                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-yellow-400 mt-1 flex-shrink-0"></div> Jika kartu ini hilang, segera lapor ke admin sekolah masing-masing.</li>
-                       <li className="flex gap-2"><div className="w-1 h-1 rounded-full bg-yellow-400 mt-1 flex-shrink-0"></div> Jika menemukan kartu ini, harap kembalikan ke kantor LP Ma'arif NU Cilacap.</li>
+            <div className="p-8 flex flex-col h-full justify-between z-10 relative">
+                <div className="space-y-4">
+                   <h3 className="text-[10px] font-black uppercase text-emerald-400 border-b border-white/10 pb-3 tracking-[0.2em] flex items-center gap-2 italic">
+                       <Sparkles className="w-3 h-3" /> Protocol & Engagement
+                   </h3>
+                   <ul className="text-[8px] space-y-2 text-slate-300 font-bold uppercase tracking-tight leading-relaxed">
+                       <li className="flex gap-3"><span className="text-blue-400">01</span> Kartu identitas resmi ekosistem digital Ma'arif.</li>
+                       <li className="flex gap-3"><span className="text-blue-400">02</span> Wajib digunakan untuk otentikasi kehadiran.</li>
+                       <li className="flex gap-3"><span className="text-blue-400">03</span> Token akses perpustakaan & fasilitas mandiri.</li>
+                       <li className="flex gap-3"><span className="text-blue-400">04</span> Kehilangan wajib dilaporkan ke departemen IT.</li>
                    </ul>
                 </div>
 
-                <div className="flex justify-between items-end pb-1">
-                   {/* QR/Barcode (Attendance focus) */}
-                   <div className="bg-white/10 p-1.5 rounded-lg border border-white/20 shadow-md flex flex-col items-center backdrop-blur-sm">
-                      <div className="bg-white p-1 rounded-md">
-                          <QRCodeSVG value={verifyUrl} size={60} level="M" />
-                      </div>
-                      <span className="text-[5px] mt-1.5 text-yellow-400 font-mono tracking-[0.15em] font-semibold">NISN: {student.nisn}</span>
-                   </div>
+                <div className="flex justify-between items-end">
+                   {/* QR Code Segment */}
+                    <div className="p-3 bg-white rounded-3xl shadow-2xl flex flex-col items-center gap-2 group/qr">
+                        <QRCodeSVG value={verifyUrl} size={70} level="H" includeMargin={false} />
+                        <span className="text-[6px] font-black text-slate-400 uppercase tracking-widest group-hover/qr:text-blue-600 transition-colors">Scan Verify</span>
+                    </div>
 
-                    {/* Signature Area */}
-                    <div className="text-center pr-2">
-                        <p className="text-[7.5px] text-slate-400 mb-1 font-medium">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                        <div className="flex flex-col items-center pt-0 relative">
-                            <div className="relative flex justify-center items-center h-10 w-24 mx-auto mb-2 mt-1">
-                                {/* Stempel */}
-                                <img src="/stempel-maarif-putih.png" alt="Stempel" className="absolute -left-8 -top-5 h-20 w-20 object-contain mix-blend-screen opacity-90" />
-                                {/* Tanda Tangan */}
-                                <img src="/ttd-ketua-putih.png" alt="Tanda Tangan" className="absolute top-0 h-12 w-auto object-contain z-10 mix-blend-screen" />
+                    {/* Authority Segment */}
+                    <div className="text-right pb-1">
+                        <p className="text-[8px] font-bold text-slate-400 mb-2 uppercase tracking-widest italic">Cilacap, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                        <div className="flex flex-col items-center relative">
+                            <div className="relative h-14 w-32 flex justify-center items-center">
+                                {/* Stamp & Signature */}
+                                <img src="/stempel-maarif-putih.png" alt="Stempel" className="absolute -left-6 -top-2 h-20 w-auto object-contain opacity-80 mix-blend-screen scale-110" />
+                                <img src="/ttd-ketua-putih.png" alt="TTD" className="absolute top-0 h-14 w-auto object-contain z-10 mix-blend-screen" />
                             </div>
-                            <p className="text-[10px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500 border-b border-yellow-500/30 pb-1 mb-1 px-4 tracking-wide relative z-20">Ali Sodiqin, S.Ag., M.Pd.I.</p>
-                            <p className="text-[6.5px] uppercase tracking-[0.14em] text-blue-300 font-semibold relative z-20">Ketua LP Ma'arif NU Cilacap</p>
+                            <h4 className="text-[11px] font-black text-white border-b-2 border-emerald-500/50 pb-1 mb-1 px-4 italic tracking-tight uppercase relative z-20">Ali Sodiqin, S.Ag., M.Pd.I.</h4>
+                            <p className="text-[7px] font-black text-blue-300 uppercase tracking-widest relative z-20">Chief Executive Protocol</p>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <div className="absolute inset-0 bg-blue-500/5 opacity-50 blur-3xl pointer-events-none"></div>
           </div>
-
       </div>
 
       {/* ACTIONS */}
-      <div className="flex gap-4 no-print mt-4">
-        <Button onClick={handlePrint} className="bg-blue-700 hover:bg-blue-800">
-            <Printer className="w-4 h-4 mr-2" /> Cetak Kartu Pelajar
+      <div className="flex gap-4 no-print">
+        <Button onClick={handlePrint} size="lg" className="h-16 px-10 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 font-black uppercase text-xs tracking-widest shadow-xl transition-all active:scale-95">
+            <Printer className="w-5 h-5 mr-3 text-blue-600" /> Dispatch to Print Array
         </Button>
       </div>
     </div>

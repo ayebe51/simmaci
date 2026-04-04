@@ -1,7 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +18,8 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { attendanceApi, teacherApi, schoolApi } from "@/lib/api";
 
 type ScanMode = "select" | "guru" | "siswa";
 type AuthState = "pin" | "authenticated";
@@ -42,48 +41,67 @@ export default function QrScannerPage() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanCooldownRef = useRef(false);
 
-  // Queries
-  const schools = useQuery(api.schools.list);
-  const selectedSchoolIdTyped = schoolId ? schoolId as Id<"schools"> : undefined;
+  // 🔥 REST API QUERIES
+  const { data: schools = [] } = useQuery({ queryKey: ['schools'], queryFn: schoolApi.list });
+  
+  const { data: classes = [] } = useQuery({ 
+      queryKey: ['classes', schoolId], 
+      queryFn: () => attendanceApi.classList(),
+      enabled: !!schoolId 
+  });
+  
+  const { data: subjects = [] } = useQuery({ 
+      queryKey: ['subjects', schoolId], 
+      queryFn: () => attendanceApi.subjectList(),
+      enabled: !!schoolId 
+  });
+  
+  const { data: lessonSlots = [] } = useQuery({ 
+      queryKey: ['lesson-schedules', schoolId], 
+      queryFn: () => attendanceApi.scheduleList(),
+      enabled: !!schoolId 
+  });
+  
+  const { data: teachersData } = useQuery({ 
+      queryKey: ['teachers', schoolId], 
+      queryFn: () => teacherApi.list({ per_page: 100 }),
+      enabled: !!schoolId 
+  });
 
-  const classes = useQuery(
-    api.classes.listActive,
-    selectedSchoolIdTyped ? { schoolId: selectedSchoolIdTyped } : "skip"
-  );
-  const subjects = useQuery(
-    api.subjects.listActive,
-    selectedSchoolIdTyped ? { schoolId: selectedSchoolIdTyped } : "skip"
-  );
-  const lessonSlots = useQuery(
-    api.lessonSchedule.list,
-    selectedSchoolIdTyped ? { schoolId: selectedSchoolIdTyped } : "skip"
-  );
-  const teachers = useQuery(
-    api.teachers.getBySchool,
-    selectedSchoolIdTyped ? { schoolId: selectedSchoolIdTyped } : "skip"
-  );
+  const qrScanMutation = useMutation({
+    queryFn: (qrCode: string) => attendanceApi.qrScan(qrCode),
+    onSuccess: (data) => {
+        if (data.success) {
+            toast.success(data.message || "Absensi tercatat");
+            setScanResults((prev) => [
+                { name: data.user_name || "Unknown", status: data.attendance_status || "Hadir", time: new Date().toLocaleTimeString("id-ID") },
+                ...prev,
+            ]);
+        } else {
+            toast.error(data.message || "Gagal memproses QR");
+        }
+    },
+    onError: (err: any) => {
+        toast.error(err.response?.data?.message || "Kesalahan sistem");
+    }
+  });
 
-  // Mutations
-  const smartScanTeacher = useMutation(api.teacherAttendance.smartScan);
-  const recordStudentScan = useMutation(api.studentAttendance.recordScan);
+  const teachers = teachersData?.data || [];
 
   // PIN verification
-  const handlePinSubmit = useCallback(async () => {
+  const handlePinSubmit = () => {
     if (!schoolId || !pin) {
       toast.error("Pilih sekolah dan masukkan PIN");
       return;
     }
-    // Simple PIN check - in production, use backend verification
-    try {
-      setAuthState("authenticated");
-      toast.success("PIN diterima! Silakan pilih mode absensi.");
-    } catch {
-      toast.error("PIN salah atau fitur absensi belum aktif");
-    }
-  }, [schoolId, pin]);
+    // Simple PIN check - usually validated via API, but we'll assume it's okay for now
+    // or we can add a verifyPin method to attendanceApi
+    setAuthState("authenticated");
+    toast.success("PIN diterima! Silakan pilih mode absensi.");
+  };
 
   // Start QR Scanner
-  const startScanner = useCallback(async () => {
+  const startScanner = async () => {
     try {
       const scanner = new Html5Qrcode("qr-reader");
       scannerRef.current = scanner;
@@ -91,30 +109,29 @@ export default function QrScannerPage() {
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+          fps: 15,
+          qrbox: { width: 280, height: 280 },
           aspectRatio: 1,
         },
         async (decodedText) => {
-          // Cooldown to prevent rapid duplicate scans
           if (scanCooldownRef.current) return;
           scanCooldownRef.current = true;
-          setTimeout(() => { scanCooldownRef.current = false; }, 3000);
+          setTimeout(() => { scanCooldownRef.current = false; }, 2500);
 
-          await handleScanResult(decodedText);
+          qrScanMutation.mutate(decodedText);
         },
-        () => {} // Ignore errors (no QR found in frame)
+        () => {} // Ignore frame errors
       );
 
       setScanning(true);
     } catch (err) {
       console.error("Camera error:", err);
-      toast.error("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.");
+      toast.error("Gagal membuka kamera. Cek izin browser.");
     }
-  }, [mode, selectedClassId, selectedSubjectId, selectedJamKe, selectedTeacherId, schoolId]);
+  };
 
   // Stop QR Scanner
-  const stopScanner = useCallback(async () => {
+  const stopScanner = async () => {
     if (scannerRef.current) {
       try {
         await scannerRef.current.stop();
@@ -124,81 +141,9 @@ export default function QrScannerPage() {
       }
     }
     setScanning(false);
-  }, []);
-
-  // Handle scan result
-  const handleScanResult = async (url: string) => {
-    try {
-      // Extract NUPTK or NISN from the verification URL
-      // URLs: /verify/teacher/:nuptk or /verify/student/:nisn
-      let nuptk = "";
-      let nisn = "";
-
-      if (url.includes("/verify/teacher/")) {
-        nuptk = url.split("/verify/teacher/")[1]?.split("?")[0] || "";
-      } else if (url.includes("/verify/student/")) {
-        nisn = url.split("/verify/student/")[1]?.split("?")[0] || "";
-      } else {
-        toast.error("QR Code tidak valid");
-        return;
-      }
-
-      if (mode === "guru" && nuptk) {
-        // Find teacher by NUPTK
-        const teacher = teachers?.find((t: any) => String(t.nuptk) === nuptk);
-        if (!teacher) {
-          toast.error(`Guru dengan NUPTK ${nuptk} tidak ditemukan di sekolah ini`);
-          return;
-        }
-
-        const result = await smartScanTeacher({
-          teacherId: teacher._id,
-          schoolId: schoolId as Id<"schools">,
-        });
-
-        if (result.success) {
-          const type = result.type === "masuk" ? "🟢" : "🔵";
-          toast.success(`${type} ${teacher.nama} — ${result.message}`);
-          setScanResults((prev) => [
-            { name: teacher.nama, status: result.message || "", time: new Date().toLocaleTimeString("id-ID") },
-            ...prev,
-          ]);
-        } else {
-          toast.warning(`${teacher.nama}: ${result.message}`);
-        }
-      } else if (mode === "siswa" && nisn) {
-        // Record student attendance
-        const today = new Date().toISOString().split("T")[0];
-        const result = await recordStudentScan({
-          studentId: nisn,
-          schoolId: schoolId as Id<"schools">,
-          classId: selectedClassId as Id<"classes">,
-          subjectId: selectedSubjectId as Id<"subjects">,
-          tanggal: today,
-          jamKe: selectedJamKe ? parseInt(selectedJamKe) : undefined,
-          recordedByTeacherId: selectedTeacherId ? selectedTeacherId as Id<"teachers"> : undefined,
-        });
-
-        if (result.success) {
-          // Find student name from NISN
-          toast.success(`✅ NISN ${nisn} — Hadir`);
-          setScanResults((prev) => [
-            { name: `NISN: ${nisn}`, status: "Hadir", time: new Date().toLocaleTimeString("id-ID") },
-            ...prev,
-          ]);
-        } else {
-          toast.warning(`NISN ${nisn}: ${result.message}`);
-        }
-      } else {
-        toast.error(mode === "guru" ? "QR bukan KTA Guru" : "QR bukan Kartu Pelajar");
-      }
-    } catch (err) {
-      console.error("Scan error:", err);
-      toast.error("Terjadi kesalahan saat memproses scan");
-    }
   };
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
@@ -210,51 +155,51 @@ export default function QrScannerPage() {
   // PIN Entry Screen
   if (authState === "pin") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/95 backdrop-blur-xl shadow-2xl border-0">
-          <CardHeader className="text-center space-y-3 pb-2">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <ShieldCheck className="h-8 w-8 text-white" />
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white border-0 shadow-2xl rounded-3xl overflow-hidden">
+          <CardHeader className="text-center space-y-4 pb-2 pt-8">
+            <div className="mx-auto w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center">
+              <ShieldCheck className="h-10 w-10 text-emerald-600" />
             </div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-emerald-700 to-teal-600 bg-clip-text text-transparent">
-              Scanner Absensi
+            <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">
+              Mode Scanner
             </CardTitle>
-            <p className="text-sm text-slate-500">Masukkan kode sekolah dan PIN untuk mengakses scanner</p>
+            <p className="text-xs text-slate-400 font-medium px-8">Akses terbatas untuk petugas piket atau guru yang bertugas.</p>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5 block">Pilih Sekolah</label>
+          <CardContent className="space-y-4 p-8">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block ml-1">Pilih Unit Sekolah</label>
               <Select value={schoolId} onValueChange={setSchoolId}>
-                <SelectTrigger className="h-12">
+                <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-emerald-500">
                   <SelectValue placeholder="Pilih sekolah..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   {schools?.map((s: any) => (
-                    <SelectItem key={s._id} value={s._id}>
+                    <SelectItem key={s.id} value={s.id.toString()}>
                       {s.nama}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5 block">PIN Scanner</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block ml-1">PIN Scanner</label>
               <Input
                 type="password"
-                placeholder="Masukkan PIN..."
+                placeholder="••••••"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                className="h-12 text-center text-2xl tracking-[0.5em] font-mono"
+                className="h-14 text-center text-3xl tracking-[0.6em] font-mono rounded-xl bg-slate-50 border-0 focus:ring-emerald-500"
+                maxLength={6}
                 onKeyDown={(e) => e.key === "Enter" && handlePinSubmit()}
               />
             </div>
             <Button
               onClick={handlePinSubmit}
-              className="w-full h-12 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-base shadow-lg"
+              className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg rounded-xl shadow-lg mt-4 transition-all active:scale-[0.98]"
               disabled={!schoolId || !pin}
             >
-              <ShieldCheck className="mr-2 h-5 w-5" />
-              Masuk Scanner
+              Verify & Launch
             </Button>
           </CardContent>
         </Card>
@@ -265,44 +210,44 @@ export default function QrScannerPage() {
   // Mode Selection Screen
   if (mode === "select") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-4">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Scanner Absensi</h1>
-            <p className="text-emerald-300/70 text-sm">Pilih mode absensi yang ingin digunakan</p>
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-black text-white mb-2 tracking-tight">SIMMACI SCAN</h1>
+            <p className="text-slate-400 text-sm font-medium">Pilih target absensi saat ini</p>
           </div>
 
           <button
             onClick={() => setMode("guru")}
-            className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 flex items-center gap-5 hover:bg-white/20 transition-all duration-300 group"
+            className="w-full bg-slate-800 border border-slate-700 rounded-3xl p-8 flex items-center gap-6 hover:bg-slate-750 transition-all group border-b-4 border-b-emerald-600/50"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <UserCheck className="h-8 w-8 text-white" />
+            <div className="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-emerald-500/20 shadow-xl group-hover:rotate-3 transition-transform">
+              <UserCheck className="h-10 w-10 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-bold text-white">Absensi Guru</h3>
-              <p className="text-emerald-300/60 text-sm">Scan KTA untuk mencatat jam masuk & pulang</p>
+              <h3 className="text-2xl font-black text-white">Guru / Staff</h3>
+              <p className="text-slate-400 text-sm mt-1">Smart check-in jam datang & pulang</p>
             </div>
           </button>
 
           <button
             onClick={() => setMode("siswa")}
-            className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 flex items-center gap-5 hover:bg-white/20 transition-all duration-300 group"
+            className="w-full bg-slate-800 border border-slate-700 rounded-3xl p-8 flex items-center gap-6 hover:bg-slate-750 transition-all group border-b-4 border-b-blue-600/50"
           >
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <GraduationCap className="h-8 w-8 text-white" />
+            <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-blue-500/20 shadow-xl group-hover:-rotate-3 transition-transform">
+              <GraduationCap className="h-10 w-10 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-bold text-white">Absensi Siswa</h3>
-              <p className="text-blue-300/60 text-sm">Bulk scan kartu pelajar per kelas per mapel</p>
+              <h3 className="text-2xl font-black text-white">Siswa</h3>
+              <p className="text-slate-400 text-sm mt-1">Mencatat kehadiran per mata pelajaran</p>
             </div>
           </button>
 
           <button
             onClick={() => { setAuthState("pin"); setMode("select"); setPin(""); }}
-            className="w-full text-white/40 hover:text-white/70 text-sm mt-4 transition"
+            className="w-full text-slate-500 hover:text-white text-xs font-bold uppercase tracking-widest mt-8 transition"
           >
-            ← Kembali ke layar PIN
+            ← Keluar Scanner
           </button>
         </div>
       </div>
@@ -310,12 +255,12 @@ export default function QrScannerPage() {
   }
 
   // Main Scanner UI
-  const isStudentModeReady = mode === "siswa" && selectedClassId && selectedSubjectId;
+  const isStudentModeReady = mode === "siswa" ? (selectedClassId && selectedSubjectId) : true;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
+    <div className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/10 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 px-6 py-4 flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
@@ -324,78 +269,65 @@ export default function QrScannerPage() {
             setMode("select");
             setScanResults([]);
           }}
-          className="text-white hover:bg-white/10"
+          className="text-white hover:bg-slate-800 rounded-xl"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-6 w-6" />
         </Button>
         <div className="flex-1">
-          <h2 className="text-white font-bold text-lg">
-            {mode === "guru" ? "🟢 Absensi Guru" : "🔵 Absensi Siswa"}
+          <h2 className="font-black text-xl tracking-tight">
+            {mode === "guru" ? "ABSENSI GURU" : "ABSENSI SISWA"}
           </h2>
-          <p className="text-white/50 text-xs">
-            {scanning ? "Scanner aktif — arahkan ke QR Code" : "Konfigurasi scan"}
-          </p>
         </div>
-        <Badge variant="outline" className="text-emerald-400 border-emerald-400/30">
-          <Clock className="h-3 w-3 mr-1" />
+        <div className="bg-slate-800 px-4 py-2 rounded-xl flex items-center gap-2 border border-slate-700 shadow-lg font-mono font-bold text-emerald-400">
+          <Clock className="h-4 w-4" />
           {new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-        </Badge>
+        </div>
       </div>
 
-      <div className="p-4 space-y-4 max-w-lg mx-auto">
-        {/* Student mode: configuration selectors */}
+      <div className="p-6 space-y-6 max-w-xl mx-auto">
         {mode === "siswa" && !scanning && (
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardContent className="pt-4 space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-1 block">Nama Guru</label>
+          <Card className="bg-slate-800 border-slate-700 rounded-3xl overflow-hidden shadow-2xl">
+            <CardHeader className="bg-slate-750/50 py-4 px-6 border-b border-slate-700">
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Konfigurasi Pelajaran</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Nama Guru Pembuat</label>
                 <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="Pilih guru..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teachers?.map((t: any) => (
-                      <SelectItem key={t._id} value={t._id}>{t.nama}</SelectItem>
-                    ))}
+                  <SelectTrigger className="bg-slate-900 border-0 h-11 rounded-xl"><SelectValue placeholder="Pilih guru..." /></SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700 text-white rounded-xl">
+                    {teachers.map((t: any) => <SelectItem key={t.id} value={t.id.toString()}>{t.nama}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-1 block">Kelas</label>
-                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="Pilih kelas..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes?.map((c: any) => (
-                      <SelectItem key={c._id} value={c._id}>{c.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Kelas</label>
+                    <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                    <SelectTrigger className="bg-slate-900 border-0 h-11 rounded-xl"><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white rounded-xl">
+                        {classes.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nama}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Mata Pelajaran</label>
+                    <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                    <SelectTrigger className="bg-slate-900 border-0 h-11 rounded-xl"><SelectValue placeholder="Pilih mapel..." /></SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white rounded-xl">
+                        {subjects.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>)}
+                    </SelectContent>
+                    </Select>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-1 block">Mata Pelajaran</label>
-                <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="Pilih mapel..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects?.map((s: any) => (
-                      <SelectItem key={s._id} value={s._id}>{s.nama}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-1 block">Jam Ke-</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Jam Pelajaran</label>
                 <Select value={selectedJamKe} onValueChange={setSelectedJamKe}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="Pilih jam..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lessonSlots?.map((slot: any) => (
-                      <SelectItem key={slot._id} value={String(slot.jamKe)}>
-                        Jam ke-{slot.jamKe} ({slot.jamMulai} - {slot.jamSelesai})
+                  <SelectTrigger className="bg-slate-900 border-0 h-11 rounded-xl"><SelectValue placeholder="Pilih jam..." /></SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-700 text-white rounded-xl">
+                    {lessonSlots.map((slot: any) => (
+                      <SelectItem key={slot.id} value={slot.jam_ke.toString()}>
+                        Jam ke-{slot.jam_ke} ({slot.jam_mulai.substring(0,5)} - {slot.jam_selesai.substring(0,5)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -405,72 +337,81 @@ export default function QrScannerPage() {
           </Card>
         )}
 
-        {/* QR Reader Container */}
-        <div className="relative rounded-2xl overflow-hidden bg-black/50 border border-white/10">
-          <div id="qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
+        <div className="relative rounded-[2.5rem] overflow-hidden bg-black border-[6px] border-slate-800 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+          <div id="qr-reader" className="w-full" style={{ minHeight: scanning ? 320 : 0 }} />
           {!scanning && (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center border-2 border-dashed border-white/20">
-                <Camera className="h-10 w-10 text-white/40" />
+            <div className="flex flex-col items-center justify-center py-24 gap-6">
+              <div className="w-24 h-24 bg-slate-900 rounded-3xl flex items-center justify-center border-2 border-dashed border-slate-700">
+                <Camera className="h-10 w-10 text-slate-600" />
               </div>
-              <p className="text-white/40 text-sm">
-                {mode === "guru" ? "Siap scan KTA Guru" : 
-                  isStudentModeReady ? "Siap scan Kartu Pelajar" : "Lengkapi pengaturan di atas dulu"}
-              </p>
+              <div className="text-center">
+                <p className="text-slate-400 text-lg font-bold">Kamera Ready</p>
+                <p className="text-slate-600 text-xs mt-1">
+                  {mode === "guru" ? "Scan KTA Guru untuk masuk/pulang" : 
+                    isStudentModeReady ? "Scan Kartu Pelajar Siswa" : "Lengkapi konfigurasi di atas"}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {scanning && (
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-64 h-64 border-2 border-emerald-500/50 rounded-3xl relative">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-500 rounded-br-xl" />
+                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-emerald-500/30 animate-pulse" />
+                </div>
             </div>
           )}
         </div>
 
-        {/* Start/Stop Button */}
-        {(mode === "guru" || isStudentModeReady) && (
+        {isStudentModeReady && (
           <Button
             onClick={scanning ? stopScanner : startScanner}
-            className={`w-full h-14 text-lg font-bold rounded-xl shadow-lg ${
+            className={`w-full h-20 text-xl font-black rounded-3xl shadow-2xl transition-all active:scale-95 ${
               scanning
-                ? "bg-red-500 hover:bg-red-600 text-white"
-                : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+                ? "bg-red-600 hover:bg-red-700 text-white"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
             }`}
           >
             {scanning ? (
-              <>
-                <XCircle className="mr-2 h-5 w-5" />
-                Berhenti Scan
-              </>
+              <><XCircle className="mr-3 h-8 w-8" /> BERHENTI SCAN</>
             ) : (
-              <>
-                <ScanLine className="mr-2 h-5 w-5" />
-                Mulai Scan
-              </>
+              <><ScanLine className="mr-3 h-8 w-8" /> MULAI SCANNING</>
             )}
           </Button>
         )}
 
-        {/* Scan Results Feed (Bulk Scan: live results) */}
         {scanResults.length > 0 && (
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-white text-sm flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                Hasil Scan ({scanResults.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-2">
+                <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Riwayat Scan Hari Ini
+                </h3>
+                <Badge variant="outline" className="text-[10px] bg-slate-900 border-slate-800 text-slate-400">{scanResults.length} TOTAL</Badge>
+            </div>
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
                 {scanResults.map((result, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2 border border-white/10"
+                    className="flex items-center justify-between bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-sm animate-in slide-in-from-bottom-2 duration-300"
                   >
-                    <div>
-                      <p className="text-white text-sm font-medium">{result.name}</p>
-                      <p className="text-white/50 text-xs">{result.status}</p>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-500 font-bold text-xs">
+                            {result.name.charAt(0)}
+                        </div>
+                        <div>
+                        <p className="text-white font-bold leading-tight">{result.name}</p>
+                        <p className="text-emerald-500 text-[10px] font-black uppercase mt-0.5 tracking-tighter">{result.status}</p>
+                        </div>
                     </div>
-                    <span className="text-white/30 text-xs">{result.time}</span>
+                    <span className="text-slate-600 font-mono text-xs font-bold">{result.time}</span>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </div>

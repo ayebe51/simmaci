@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 
 export interface User {
   id: string;
-  username: string;
+  email: string;
   name: string;
-  role: 'super_admin' | 'admin_pusat' | 'operator_madrasah' | 'kepala_madrasah';
+  role: 'super_admin' | 'admin_yayasan' | 'operator';
   unitKerja?: string;
-  kecamatan?: string;
-  permissions: string[];
+  schoolId?: number;
+  isActive?: boolean;
+  permissions?: string[];
 }
 
 /**
@@ -15,7 +16,7 @@ export interface User {
  */
 export const useUser = (): User | null => {
   const [user, setUser] = useState<User | null>(() => {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem('user_data');
     try {
       return userStr ? JSON.parse(userStr) : null;
     } catch (e) {

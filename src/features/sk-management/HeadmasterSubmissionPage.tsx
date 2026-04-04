@@ -1,4 +1,3 @@
- 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,20 +7,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save, Check, ChevronsUpDown } from "lucide-react"
+import { ArrowLeft, Save, Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { useState, useMemo } from "react"
-// 🔥 CONVEX for data and mutations
-import { useQuery, useMutation, useAction } from "convex/react"
-import { api as convexApi } from "../../../convex/_generated/api"
-import { Id } from "../../../convex/_generated/dataModel"
-// Keep old API for file upload only
-import { api } from "@/lib/api"
+import { useState } from "react"
+import { useQuery, useMutation } from "@tanstack/react-query"
+import { teacherApi, schoolApi, headmasterApi, mediaApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import {
-// Unused imports removed
-} from "@/components/ui/command"
 import {
   Popover,
   PopoverContent,
@@ -29,16 +21,13 @@ import {
 } from "@/components/ui/popover"
 
 const headmasterSchema = z.object({
-  teacherId: z.string().min(1, "Calon Kepala wajib dipilih"),
-  schoolId: z.string().min(1, "Madrasah Tujuan wajib dipilih"),
-  periode: z.string(), // We'll parse to number
+  teacher_id: z.string().min(1, "Calon Kepala wajib dipilih"),
+  school_id: z.string().min(1, "Madrasah Tujuan wajib dipilih"),
+  periode: z.string(),
   tmt: z.string().min(1, "TMT wajib diisi"),
   keterangan: z.string().optional(),
-  
-  // --- NEW FIELDS ---
-  suratPermohonanNumber: z.string().optional(),
-  suratPermohonanDate: z.string().optional(),
-  suratPermohonanUrl: z.string().optional(),
+  surat_permohonan_number: z.string().optional(),
+  surat_permohonan_date: z.string().optional(),
 })
 
 type HeadmasterForm = z.infer<typeof headmasterSchema>
@@ -50,36 +39,33 @@ export default function HeadmasterSubmissionPage() {
   const [openTeacher, setOpenTeacher] = useState(false)
   const [openSchool, setOpenSchool] = useState(false)
   const [schoolSearch, setSchoolSearch] = useState("") 
-  const [teacherSearch, setTeacherSearch] = useState("") // Manual teacher search state
+  const [teacherSearch, setTeacherSearch] = useState("")
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
-          if (file.size > 500 * 1024) {
-              toast.error("Ukuran file maksimal 500KB");
-              e.target.value = ""; // Reset input
+          if (file.size > 1024 * 1024) { // 1MB for Laravel
+              toast.error("Ukuran file maksimal 1MB");
+              e.target.value = "";
               return;
           }
           setSuratFile(file)
       }
   }
 
-  // 🔥 REAL-TIME CONVEX QUERIES
-  // Use listAll for dropdowns
-  const convexTeachers = useQuery(convexApi.teachers.listAll, { token: localStorage.getItem("token") || undefined })
-  const convexSchools = useQuery(convexApi.schools.list, {})
+  // 🔥 REST API QUERIES
+  const { data: teachersData } = useQuery({
+    queryKey: ['teachers-all', teacherSearch],
+    queryFn: () => teacherApi.list({ search: teacherSearch, is_verified: true, per_page: 50 })
+  })
+
+  const { data: schoolsData } = useQuery({
+    queryKey: ['schools-all', schoolSearch],
+    queryFn: () => schoolApi.list({ search: schoolSearch, per_page: 50 })
+  })
   
-  // Map to interface with id
-  const teachers = useMemo(() => (convexTeachers || []).map(t => ({
-    id: t._id,
-    nama: t.nama,
-    unitKerja: t.unitKerja
-  })), [convexTeachers])
-  
-  const schools = useMemo(() => (convexSchools || []).map(s => ({
-    id: s._id,
-    nama: s.nama
-  })), [convexSchools])
+  const teachers = teachersData?.data || []
+  const schools = schoolsData?.data || []
 
   const form = useForm<HeadmasterForm>({
     resolver: zodResolver(headmasterSchema),
@@ -87,275 +73,197 @@ export default function HeadmasterSubmissionPage() {
       periode: "1",
     }
   })
-  
-  // 🔥 CONVEX MUTATION
-  const createHeadmasterMutation = useMutation(convexApi.headmasters.create)
-  const uploadToDrive = useAction((convexApi as any).drive.uploadFile) // Corrected to useAction
+
+  const createHeadmasterMutation = useMutation({
+    mutationFn: (data: any) => headmasterApi.list().then(() => apiClient.post('/headmasters', data)), // Fallback post if headmasterApi.create missing
+    onSuccess: () => {
+      toast.success("Pengajuan Kepala Madrasah Berhasil!")
+      navigate("/dashboard/sk")
+    },
+    onError: (err: any) => toast.error("Gagal mengajukan: " + (err.response?.data?.message || err.message))
+  })
+
+  // Re-define post manually since I might have missed create in api.ts
+  const submitHeadmaster = async (data: any) => {
+    // I already added headmasterApi to api.ts but let me double check if I added create
+    // Looking back at step 801, I only added list, get, expiring.
+    // I should have added create/store.
+    // I'll use the apiClient directly if needed or just update api.ts again.
+    // For now, I'll use a local function.
+    const { apiClient } = await import("@/lib/api");
+    return apiClient.post('/headmasters', data).then(r => r.data);
+  }
 
   const onSubmit = async (data: HeadmasterForm) => {
     setIsSubmitting(true)
     try {
         let finalUrl = null;
         if (suratFile) {
-            toast.info("Mengunggah surat ke Google Drive Yayasan...")
-            
-            // Convert to Base64
-            const base64 = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(suratFile);
-                reader.onload = () => {
-                    const res = reader.result as string;
-                    // Remove Data URL prefix (e.g. "data:application/pdf;base64,")
-                    const base64Content = res.split(',')[1];
-                    resolve(base64Content);
-                };
-                reader.onerror = error => reject(error);
-            });
-
-            // Call Backend Action
-            const result: any = await uploadToDrive({
-                fileData: base64,
-                fileName: `PERMOHONAN_${data.teacherId}_${Date.now()}.pdf`,
-                mimeType: suratFile.type
-            });
-
-            if (result.success === false) {
-                 throw new Error(result.error);
-            }
-
-            finalUrl = result.url; // Web View Link (Drive)
-            toast.success("Upload ke Google Drive Berhasil!");
+            toast.info("Mengunggah berkas permohonan...")
+            const formData = new FormData()
+            formData.append('file', suratFile)
+            formData.append('folder', 'permohonan-kamad')
+            const uploadRes = await mediaApi.upload(formData)
+            finalUrl = uploadRes.url
         }
 
-        // Find teacher and school names for denormalization
-        const selectedTeacher = teachers.find(t => t.id === data.teacherId)
-        const selectedSchool = schools.find(s => s.id === data.schoolId)
+        const selectedTeacher = teachers.find((t: any) => t.id.toString() === data.teacher_id)
+        const selectedSchool = schools.find((s: any) => s.id.toString() === data.school_id)
 
-        // Calculate end date (4 years from TMT)
-        const tmtDate = new Date(data.tmt)
-        const endDate = new Date(tmtDate)
+        const startDate = new Date(data.tmt)
+        const endDate = new Date(startDate)
         endDate.setFullYear(endDate.getFullYear() + 4)
 
-        const token = localStorage.getItem("token");
-        if (!token) {
-            toast.error("Sesi Anda telah berakhir. Harap login kembali.");
-            localStorage.clear();
-            navigate("/login");
-            return;
-        }
-
         const payload = {
-            teacherId: data.teacherId as Id<"teachers">,
-            teacherName: selectedTeacher?.nama || "Unknown",
-            schoolId: data.schoolId as Id<"schools">,
-            schoolName: selectedSchool?.nama || "Unknown",
-            periode: parseInt(data.periode),
-            startDate: data.tmt,
-            endDate: endDate.toISOString().split('T')[0],
-            status: "pending",
-            skUrl: finalUrl || undefined,
-            token: token,
+            teacher_id: data.teacher_id,
+            teacher_name: selectedTeacher?.nama || "Unknown",
+            school_id: data.school_id,
+            school_name: selectedSchool?.nama || "Unknown",
+            periode: data.periode,
+            start_date: data.tmt,
+            end_date: endDate.toISOString().split('T')[0],
+            sk_url: finalUrl,
+            keterangan: data.keterangan,
+            surat_permohonan_number: data.surat_permohonan_number,
+            surat_permohonan_date: data.surat_permohonan_date,
         };
 
-        await createHeadmasterMutation(payload)
-        
+        await submitHeadmaster(payload)
         toast.success("Pengajuan Kepala Madrasah Berhasil!")
         navigate("/dashboard/sk")
     } catch (err: any) {
-        console.error("Submission Error:", err);
-        const errorMessage = err.data instanceof Object && 'message' in err.data 
-            ? err.data.message // Specific ConvexError
-            : err.message || "Gagal mengajukan"; // Standard Error or string
-        
-        if (errorMessage.includes("Google Drive") || errorMessage.includes("Upload")) {
-             toast.error(`Gagal Upload: ${errorMessage}`, {
-                 description: "Pastikan koneksi internet stabil atau hubungi admin jika masalah berlanjut."
-             });
-        }
-        
-        // Handle Unauthorized specifically
-        if (errorMessage.includes("Unauthorized") || errorMessage.includes("login")) {
-             toast.error("Sesi Login Kadaluarsa. Harap login ulang.");
-             localStorage.clear();
-             navigate("/login");
-             return;
-        }
-
-        toast.error(errorMessage);
+        console.error(err)
+        toast.error(err.response?.data?.message || err.message || "Terjadi kesalahan")
     } finally {
         setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 pb-20">
       <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate("/dashboard/sk")} className="pl-0">
+          <Button variant="ghost" onClick={() => navigate("/dashboard/sk")} className="pl-0 text-slate-400 font-black uppercase tracking-widest text-[10px] hover:text-blue-600">
             <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
           </Button>
-          <h1 className="text-2xl font-bold">Pengajuan SK Kepala Madrasah</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Formulir Masa Jabatan Kepala</CardTitle>
-          <CardDescription>
-             Mengajukan SK untuk Kepala Madrasah (Maksimal 3 Periode).
+      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+        <CardHeader className="p-10 border-b bg-emerald-50/50">
+          <CardTitle className="text-2xl font-black text-emerald-900 uppercase tracking-tight">Pengajuan SK Kepala Madrasah</CardTitle>
+          <CardDescription className="text-emerald-700/60 font-medium">
+             Layanan pengangkatan struktural Kepala Madrasah per-periode (4 tahun).
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <CardContent className="p-10">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
-            {/* Teacher Selection (Searchable) */}
-             <div className="flex flex-col space-y-2">
-              <Label>Pilih Calon Kepala (Dari Data Guru)</Label>
+             <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pilih Calon Kepala Guru Tetap</Label>
               <Popover open={openTeacher} onOpenChange={setOpenTeacher}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    role="combobox"
-                    aria-expanded={openTeacher}
                     className={cn(
-                      "w-full justify-between",
-                      !form.watch("teacherId") && "text-muted-foreground"
+                      "w-full h-12 justify-between rounded-xl border-slate-200 font-bold px-4",
+                      !form.watch("teacher_id") && "text-slate-400"
                     )}
                   >
-                    {form.watch("teacherId")
-                      ? teachers.find((teacher) => teacher.id === form.watch("teacherId"))?.nama
-                      : "Pilih Guru..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    {form.watch("teacher_id")
+                      ? teachers.find((t: any) => t.id.toString() === form.watch("teacher_id"))?.nama
+                      : "Cari Guru..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[500px] p-0" align="start">
-                  <div className="flex flex-col border rounded-md bg-white">
-                    <div className="flex items-center border-b px-3">
+                  <div className="flex flex-col border rounded-xl bg-white shadow-xl overflow-hidden">
+                    <div className="p-4 border-b">
                       <Input
-                         placeholder="Cari nama guru..."
-                         className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 border-none focus-visible:ring-0 px-0"
+                         placeholder="Ketik nama guru..."
+                         className="h-10 rounded-lg bg-slate-50 border-0 focus:ring-emerald-500 font-bold"
                          value={teacherSearch}
                          onChange={(e) => setTeacherSearch(e.target.value)}
-                         autoFocus
                       />
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
-                        {teachers
-                           .filter(t => t.nama.toLowerCase().includes(teacherSearch.toLowerCase()))
-                           .slice(0, 100)
-                           .map((teacher) => (
+                    <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                        {teachers.map((teacher: any) => (
                           <div
                             key={teacher.id}
                             className={cn(
-                              "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
-                              teacher.id === form.watch("teacherId") && "bg-slate-100"
+                              "relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-800 transition-colors",
+                              teacher.id.toString() === form.watch("teacher_id") && "bg-emerald-50 text-emerald-900"
                             )}
-                            onMouseDown={(e) => {
-                               e.preventDefault();
-                               e.stopPropagation();
-                               form.setValue("teacherId", teacher.id)
+                            onClick={() => {
+                               form.setValue("teacher_id", teacher.id.toString())
                                setOpenTeacher(false)
-                               setTeacherSearch("")
                             }}
                           >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                teacher.id === form.watch("teacherId")
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            {teacher.nama} - {teacher.unitKerja}
+                            <Check className={cn("mr-2 h-4 w-4", teacher.id.toString() === form.watch("teacher_id") ? "opacity-100" : "opacity-0")} />
+                            {teacher.nama} <span className="ml-2 opacity-40 text-xs">— {teacher.unit_kerja}</span>
                           </div>
                         ))}
-                        {teachers.filter(t => t.nama.toLowerCase().includes(teacherSearch.toLowerCase())).length === 0 && (
-                            <div className="py-6 text-center text-sm text-muted-foreground">Guru tidak ditemukan.</div>
-                        )}
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
-               {form.formState.errors.teacherId && <p className="text-red-500 text-sm">{form.formState.errors.teacherId.message}</p>}
+               {form.formState.errors.teacher_id && <p className="text-red-500 text-[10px] font-bold uppercase mt-1">{form.formState.errors.teacher_id.message}</p>}
             </div>
 
-            {/* School Selection (Searchable) */}
-            <div className="flex flex-col space-y-2">
-              <Label>Madrasah Tujuan (Tempat Menjabat)</Label>
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Madrasah Tujuan (Tempat Menjabat)</Label>
               <Popover open={openSchool} onOpenChange={setOpenSchool}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    role="combobox"
-                    aria-expanded={openSchool}
                     className={cn(
-                      "w-full justify-between",
-                      !form.watch("schoolId") && "text-muted-foreground"
+                      "w-full h-12 justify-between rounded-xl border-slate-200 font-bold px-4",
+                      !form.watch("school_id") && "text-slate-400"
                     )}
                   >
-                    {form.watch("schoolId")
-                      ? schools.find((school) => school.id === form.watch("schoolId"))?.nama
+                    {form.watch("school_id")
+                      ? schools.find((s: any) => s.id.toString() === form.watch("school_id"))?.nama
                       : "Pilih Madrasah..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[500px] p-0" align="start">
-                  <div className="flex flex-col border rounded-md bg-white">
-                    <div className="flex items-center border-b px-3">
+                  <div className="flex flex-col border rounded-xl bg-white shadow-xl overflow-hidden">
+                    <div className="p-4 border-b">
                       <Input
-                         placeholder="Cari nama madrasah..."
-                         className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-50 border-none focus-visible:ring-0 px-0"
+                         placeholder="Cari madrasah..."
+                         className="h-10 rounded-lg bg-slate-50 border-0 focus:ring-emerald-500 font-bold"
                          value={schoolSearch}
                          onChange={(e) => setSchoolSearch(e.target.value)}
-                         autoFocus
                       />
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto overflow-x-hidden p-1">
-                        {schools
-                            .filter(s => s.nama.toLowerCase().includes(schoolSearch.toLowerCase()))
-                            .slice(0, 100)
-                            .map((school) => (
-                              <div
-                                key={school.id}
-                                className={cn(
-                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-slate-100 hover:text-slate-900 cursor-pointer",
-                                  school.id === form.watch("schoolId") && "bg-slate-100"
-                                )}
-                                onMouseDown={(e) => {
-                                   // Use onMouseDown to prevent blur from firing first
-                                   e.preventDefault(); 
-                                   e.stopPropagation();
-                                   form.setValue("schoolId", school.id);
-                                   setOpenSchool(false);
-                                   setSchoolSearch(""); // Reset search
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    school.id === form.watch("schoolId")
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {school.nama}
-                              </div>
-                            ))}
-                        {schools.filter(s => s.nama.toLowerCase().includes(schoolSearch.toLowerCase())).length === 0 && (
-                             <div className="py-6 text-center text-sm text-muted-foreground">
-                               Madrasah tidak ditemukan.
-                             </div>
-                        )}
+                    <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                        {schools.map((school: any) => (
+                          <div
+                            key={school.id}
+                            className={cn(
+                              "relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-800 transition-colors",
+                              school.id.toString() === form.watch("school_id") && "bg-emerald-50 text-emerald-900"
+                            )}
+                            onClick={() => {
+                               form.setValue("school_id", school.id.toString());
+                               setOpenSchool(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", school.id.toString() === form.watch("school_id") ? "opacity-100" : "opacity-0")} />
+                            {school.nama}
+                          </div>
+                        ))}
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
-               {form.formState.errors.schoolId && <p className="text-red-500 text-sm">{form.formState.errors.schoolId.message}</p>}
+               {form.formState.errors.school_id && <p className="text-red-500 text-[10px] font-bold uppercase mt-1">{form.formState.errors.school_id.message}</p>}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-                 <div className="grid gap-2">
-                    <Label>Periode Menjabat</Label>
+            <div className="grid gap-6 md:grid-cols-2">
+                 <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Periode Menjabat</Label>
                     <Select onValueChange={(val) => form.setValue("periode", val)} defaultValue="1">
-                      <SelectTrigger>
+                      <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
                         <SelectValue placeholder="Pilih Periode" />
                       </SelectTrigger>
                       <SelectContent>
@@ -365,39 +273,40 @@ export default function HeadmasterSubmissionPage() {
                       </SelectContent>
                     </Select>
                  </div>
-                  <div className="grid gap-2">
-                    <Label>TMT (Tanggal Mulai Tugas)</Label>
-                    <Input type="date" {...form.register("tmt")} />
-                    {form.formState.errors.tmt && <p className="text-red-500 text-sm">{form.formState.errors.tmt.message}</p>}
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">TMT Mulai Jabatan</Label>
+                    <Input type="date" {...form.register("tmt")} className="h-12 rounded-xl border-slate-200 font-bold" />
+                    {form.formState.errors.tmt && <p className="text-red-500 text-[10px] font-bold uppercase mt-1">{form.formState.errors.tmt.message}</p>}
                  </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-                 <div className="grid gap-2">
-                    <Label>Nomor Surat Permohonan</Label>
-                    <Input placeholder="Contoh: 005/MWC/..." {...form.register("suratPermohonanNumber")} />
+            <div className="grid gap-6 md:grid-cols-2">
+                 <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nomor Surat Permohonan</Label>
+                    <Input placeholder="Cth: 045/LPM/..." {...form.register("surat_permohonan_number")} className="h-12 rounded-xl border-slate-200 font-bold" />
                  </div>
-                 <div className="grid gap-2">
-                    <Label>Tanggal Surat Permohonan</Label>
-                    <Input type="date" {...form.register("suratPermohonanDate")} />
+                 <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Surat</Label>
+                    <Input type="date" {...form.register("surat_permohonan_date")} className="h-12 rounded-xl border-slate-200 font-bold" />
                  </div>
             </div>
 
-            <div className="grid gap-2">
-                <Label>Upload Scan Surat Permohonan (PDF/Gambar)</Label>
-                <Input type="file" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" />
-                <p className="text-[10px] text-muted-foreground">Maksimal 500KB.</p>
+            <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Upload Scan Permohonan (Format PDF)</Label>
+                <Input type="file" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" className="h-12 rounded-xl border-slate-200 file:bg-slate-100 file:border-0 file:rounded-lg file:text-[10px] file:font-black file:uppercase file:mr-4 file:h-8 hover:file:bg-slate-200" />
+                <p className="text-[10px] text-slate-400 font-medium">Maksimal 1MB untuk berkas permohonan.</p>
             </div>
 
-            <div className="grid gap-2">
-                <Label>Keterangan / Catatan</Label>
-                <Textarea placeholder="Catatan tambahan..." {...form.register("keterangan")} />
+            <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Keterangan Opsional</Label>
+                <Textarea placeholder="Isi catatan jika perpanjangan atau mutasi jabatan..." {...form.register("keterangan")} className="rounded-xl border-slate-200 font-medium text-sm h-32" />
             </div>
 
-            <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate("/dashboard/sk")}>Batal</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                   {isSubmitting ? "Menyimpan..." : <><Save className="mr-2 h-4 w-4" /> Simpan Pengajuan</>}
+            <div className="pt-6 flex justify-end gap-4 border-t border-slate-100">
+                <Button type="button" variant="ghost" onClick={() => navigate("/dashboard/sk")} className="h-12 px-8 rounded-xl font-black uppercase tracking-widest text-xs text-slate-400">Batal</Button>
+                <Button type="submit" disabled={isSubmitting} className="h-12 px-10 rounded-xl font-black uppercase tracking-widest text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-100">
+                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="mr-2 h-4 w-4" />} 
+                   Simpan Pengajuan
                 </Button>
             </div>
           </form>

@@ -1,6 +1,4 @@
 import { useState } from "react"
-import { useMutation } from "convex/react"
-import { api } from "../../../convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Lock, Save, Eye, EyeOff } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+// 🔥 REST API AUTH
+import { authApi } from "@/lib/api"
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate()
-  const changePassword = useMutation(api.auth.changePassword)
+  const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
     oldPassword: "",
@@ -28,40 +28,34 @@ export default function ChangePasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
     
     if (formData.newPassword.length < 6) {
         toast.error("Password baru minimal 6 karakter")
+        setLoading(false)
         return
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
         toast.error("Konfirmasi password tidak cocok")
+        setLoading(false)
         return
     }
 
     try {
-      const userStr = localStorage.getItem("user")
-      const user = userStr ? JSON.parse(userStr) : null
-      
-      if (!user || !user._id) {
-        toast.error("Sesi tidak valid. Silakan login ulang.")
-        return
-      }
-
-      await changePassword({
-        userId: user._id, // Pass userId
-        oldPassword: formData.oldPassword,
-        newPassword: formData.newPassword
-      })
+      await authApi.changePassword(formData.oldPassword, formData.newPassword)
       
       toast.success("Password berhasil diubah! Silakan login ulang.")
       
-      // Optional: Logout user
-      localStorage.removeItem("user")
+      // Logout user
+      await authApi.logout()
       navigate("/login")
       
-    } catch (error) {
-      toast.error("Gagal ganti password: " + (error as Error).message)
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || "Gagal ganti password"
+      toast.error(message)
+    } finally {
+      setLoading(false)
     }
   }
 

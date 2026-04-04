@@ -1,19 +1,70 @@
 services:
-  gowa:
-    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
-    container_name: gowa_whatsapp
-    ports:
-      - "3000:3000"
-    environment:
-      - APP_PORT=3000
-    volumes:
-      - ./gowa_data:/app/data
-    restart: unless-stopped
+  # Database Service (PostgreSQL)
+  db:
+      image: postgres:16-alpine
+      container_name: simmaci-db
+      restart: always
+      environment:
+          POSTGRES_DB: ${DB_DATABASE:-sim_maarif}
+          POSTGRES_USER: ${DB_USERNAME:-sim_user}
+          POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+      volumes:
+          - postgres-data:/var/lib/postgresql/data
+      ports:
+          - "5433:5432"
+      networks:
+          - simmaci-network
 
-  localtunnel:
-    image: node:18-alpine
-    container_name: gowa_localtunnel
-    command: sh -c "npx -y localtunnel --port 3000 --local-host gowa_whatsapp --subdomain simmaci-pusat-wa"
-    depends_on:
-      - gowa
-    restart: unless-stopped
+  # Backend Service (Laravel 12)
+  backend:
+      build:
+          context: ./backend
+          dockerfile: Dockerfile
+      container_name: simmaci-backend
+      restart: always
+      depends_on:
+          - db
+      environment:
+          - APP_NAME=SIM Maarif
+          - APP_ENV=local
+          - APP_DEBUG=true
+          - APP_URL=http://localhost
+          - DB_CONNECTION=pgsql
+          - DB_HOST=db
+          - DB_PORT=5432
+          - DB_DATABASE=${DB_DATABASE:-sim_maarif}
+          - DB_USERNAME=${DB_USERNAME:-sim_user}
+          - DB_PASSWORD=${DB_PASSWORD:-secret}
+          - SESSION_DRIVER=file
+          - CACHE_STORE=file
+          - QUEUE_CONNECTION=sync
+          - LOG_CHANNEL=stack
+          - SANCTUM_STATEFUL_DOMAINS=localhost
+          - CORS_ALLOWED_ORIGINS=http://localhost
+      volumes:
+          - ./backend:/var/www/html
+      networks:
+          - simmaci-network
+
+  # Frontend Service (React + Vite)
+  frontend:
+      build:
+          context: .
+          dockerfile: Dockerfile
+      container_name: simmaci-frontend
+      restart: always
+      depends_on:
+          - backend
+      ports:
+          - "80:80"
+      networks:
+          - simmaci-network
+
+networks:
+  simmaci-network:
+      driver: bridge
+
+volumes:
+  postgres-data:
+      driver: local
+

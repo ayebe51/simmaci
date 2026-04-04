@@ -1,0 +1,109 @@
+
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32m???[39m 4086 modules transformed.
+npm : [31m???[39m Bu
+ild failed in 6.17s
+At line:1 char:1
++ npm run build > buil
+d_debug4.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ([31m???[   
+ 39m Build failed     
+in 6.17s:String)     [
+], RemoteExcepti    on
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+[31merror during buil
+d:
+[31msrc/features/even
+ts/EventsPage.tsx (2:9
+): "api" is not export
+ed by "src/lib/api.ts"
+, imported by "src/fea
+tures/events/EventsPag
+e.tsx".[31m
+file: [36mD:/apss-sou
+rce/SIMMACI/src/featur
+es/events/EventsPage.t
+sx:2:9[31m
+[33m
+1: import React, { use
+Effect, useState } fro
+m 'react';
+2: import { api } from
+ '@/lib/api';
+            ^
+3: import { Card, Card
+Content, CardHeader, C
+ardTitle } from '@/com
+ponents/ui/card';
+4: import { Button } f
+rom '@/components/ui/b
+utton';
+[31m
+    at getRollupError 
+(file:///D:/apss-sourc
+e/SIMMACI/node_modules
+/rollup/dist/es/shared
+/parseAst.js:402:41)
+    at error (file:///
+D:/apss-source/SIMMACI
+/node_modules/rollup/d
+ist/es/shared/parseAst
+.js:398:42)
+    at Module.error (f
+ile:///D:/apss-source/
+SIMMACI/node_modules/r
+ollup/dist/es/shared/n
+ode-entry.js:17040:16)
+    at Module.traceVar
+iable (file:///D:/apss
+-source/SIMMACI/node_m
+odules/rollup/dist/es/
+shared/node-entry.js:1
+7452:29)
+    at ModuleScope.fin
+dVariable (file:///D:/
+apss-source/SIMMACI/no
+de_modules/rollup/dist
+/es/shared/node-entry.
+js:15070:39)
+    at FunctionScope.f
+indVariable (file:///D
+:/apss-source/SIMMACI/
+node_modules/rollup/di
+st/es/shared/node-entr
+y.js:5673:38)
+    at FunctionBodySco
+pe.findVariable (file:
+///D:/apss-source/SIMM
+ACI/node_modules/rollu
+p/dist/es/shared/node-
+entry.js:5673:38)
+    at ReturnValueScop
+e.findVariable (file:/
+//D:/apss-source/SIMMA
+CI/node_modules/rollup
+/dist/es/shared/node-e
+ntry.js:5673:38)
+    at FunctionBodySco
+pe.findVariable (file:
+///D:/apss-source/SIMM
+ACI/node_modules/rollu
+p/dist/es/shared/node-
+entry.js:5673:38)
+    at BlockScope.find
+Variable (file:///D:/a
+pss-source/SIMMACI/nod
+e_modules/rollup/dist/
+es/shared/node-entry.j
+s:5673:38)[39m

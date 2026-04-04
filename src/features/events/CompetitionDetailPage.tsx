@@ -10,7 +10,7 @@ import { ArrowLeft, Loader2, Download } from 'lucide-react';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
 
-import { API_URL, api } from '@/lib/api';
+import { API_URL, eventApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function CompetitionDetailPage() {
@@ -111,7 +111,7 @@ export default function CompetitionDetailPage() {
                     triggerLabel="Import Hasil (Excel)"
                     onFileImport={async (file) => {
                         if(!competitionId) return;
-                        await api.importCompetitionResults(competitionId, file)
+                        await eventApi.importCompetitionResults(competitionId, file)
                         window.location.reload()
                     }}
                 />

@@ -59,16 +59,22 @@ export default function ExcelImportModal({
             toast.error("Gagal import: " + (error as Error).message)
         }
     } else if (onImport) {
-        onImport(data)
-        if (isControlled && controlledOnClose) {
-          controlledOnClose()
-        } else {
-          setInternalOpen(false)
+        try {
+            setIsUploading(true)
+            await onImport(data)
+            setIsUploading(false)
+            if (isControlled && controlledOnClose) {
+              controlledOnClose()
+            } else {
+              setInternalOpen(false)
+            }
+            if (onImportSuccess) {
+              onImportSuccess()
+            }
+        } catch(error: unknown) {
+            setIsUploading(false)
+            toast.error("Gagal import: " + (error as Error).message)
         }
-        if (onImportSuccess) {
-          onImportSuccess()
-        }
-        toast.success(`Berhasil mengimpor ${data.length} data!`)
     }
   }
 

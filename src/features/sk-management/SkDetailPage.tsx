@@ -13,16 +13,16 @@ import {
   AlertTriangle,
   XCircle,
   Printer,
+  Loader2,
+  Download,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import StatusBadge from "@/components/shared/StatusBadge";
 import type { StatusType } from "@/components/shared/StatusBadge";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
-// 🔥 CONVEX REAL-TIME
-import { useQuery, useMutation, useConvex } from "convex/react";
-import { api as convexApi, api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { skApi, settingApi, authApi } from "@/lib/api";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -32,7 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Download } from "lucide-react";
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater";
@@ -48,7 +47,7 @@ function base64DataURLToArrayBuffer(dataURL: string) {
   if (typeof window !== "undefined") {
     binaryString = window.atob(stringBase64);
   } else {
-    binaryString = new Buffer(stringBase64, "base64").toString("binary");
+    binaryString = Buffer.from(stringBase64, "base64").toString("binary");
   }
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
@@ -58,70 +57,39 @@ function base64DataURLToArrayBuffer(dataURL: string) {
   return bytes.buffer;
 }
 
-// Helper: Add 1 year to Indonesian Date String
-const addOneYearIndonesian = (dateStr: string) => {
-  if (!dateStr || dateStr === "-") return "-";
-  try {
-    const parts = dateStr.split(" ");
-    if (parts.length < 3) return dateStr;
-    const year = parseInt(parts[parts.length - 1]);
-    if (isNaN(year)) return dateStr;
-    parts[parts.length - 1] = (year + 1).toString();
-    return parts.join(" ");
-  } catch {
-    return dateStr;
-  }
-};
-
-interface SkDetail {
-  id: string;
-  nomorSurat: string;
-  jenis: string;
-  nama: string;
-  niy: string;
-  unitKerja: string;
-  jenisPengajuan: string;
-  status: string; // Raw backend status
-  createdAt: string;
-  fileUrl?: string;
-  keterangan?: string;
-}
-
 export default function SkDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const queryClient = useQueryClient();
 
-  // 🔥 REAL-TIME CONVEX QUERY - Auto-updates!
-  const skDoc = useQuery(
-    convexApi.sk.get,
-    id ? { id: id as Id<"skDocuments"> } : "skip",
-  );
+  // 🔥 REST API QUERY
+  const { data: skDoc, isLoading, error } = useQuery({
+    queryKey: ['sk-document', id],
+    queryFn: () => id ? skApi.get(parseInt(id)) : null,
+    enabled: !!id
+  });
 
-  // Mutations & Client
-  const updateSk = useMutation(convexApi.sk.update);
-  const convex = useConvex();
+  const user = authApi.getStoredUser();
+  const isAdmin = ["super_admin", "admin_yayasan"].includes(user?.role);
 
-  // ✅ CHECK ACTUAL USER ROLE from localStorage
-  const [isAdmin] = useState(() => {
-    try {
-      const userStr = localStorage.getItem("user");
-      if (!userStr) return false;
-      const user = JSON.parse(userStr);
-      // super_admin AND admin_yayasan can approve/reject SK
-      return ["super_admin", "admin_yayasan"].includes(user.role);
-    } catch {
-      return false;
-    }
+  // Mutations
+  const updateStatus = useMutation({
+    mutationFn: ({ status, reason }: { status: string, reason?: string }) => 
+      skApi.batchUpdateStatus([parseInt(id!)], status, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sk-document', id] });
+      toast.success("Status dokumen berhasil diperbarui");
+      setIsConfirmOpen(false);
+    },
+    onError: (err: any) => toast.error("Gagal memperbarui status: " + (err.response?.data?.message || err.message))
   });
 
   // Confirmation Dialog State
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<
-    "approve" | "reject" | "revise" | null
-  >(null);
+  const [pendingAction, setPendingAction] = useState<"approved" | "rejected" | "draft" | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Helper to map Convex status to frontend badge status
+  // Helper to map backend status to frontend badge status
   const getBadgeStatus = (backendStatus: string): StatusType => {
     const lower = backendStatus?.toLowerCase() || "";
     if (lower === "pending" || lower === "draft") return "submitted";
@@ -130,68 +98,19 @@ export default function SkDetailPage() {
     return "draft";
   };
 
-  // Map Convex document to SkDetail interface
-  const sk: SkDetail | null = skDoc
-    ? {
-        id: skDoc._id,
-        nomorSurat: skDoc.nomorSk,
-        jenis: skDoc.jenisSk,
-        nama: skDoc.nama,
-        niy: "", // Not in Convex schema, infer from teacher if needed
-        unitKerja: skDoc.unitKerja || "-",
-        jenisPengajuan: skDoc.jenisSk, // Same as jenis
-        status: skDoc.status,
-        createdAt: new Date(skDoc.createdAt).toISOString(),
-        fileUrl: skDoc.fileUrl,
-        keterangan: "", // Not in schema yet
-      }
-    : null;
-
-  const isLoading = skDoc === undefined;
-
-  const handleAction = (action: "approve" | "reject" | "revise") => {
+  const handleAction = (action: "approved" | "rejected" | "draft") => {
     setPendingAction(action);
     setIsConfirmOpen(true);
   };
 
   const executeAction = async () => {
     if (!pendingAction || !id) return;
-
-    const confirmMsg =
-      pendingAction === "approve"
-        ? "Menyetujui"
-        : pendingAction === "reject"
-          ? "Menolak"
-          : "Merevisi";
-
-    try {
-      setIsProcessing(true);
-      let status = "";
-      if (pendingAction === "approve") status = "active";
-      else if (pendingAction === "reject") status = "archived";
-      else if (pendingAction === "revise") status = "draft";
-
-      await updateSk({
-        id: id as Id<"skDocuments">,
-        status: status,
-      });
-
-      toast.success(`SK Berhasil di-${status}`);
-      setIsConfirmOpen(false);
-      setPendingAction(null);
-    } catch (e: any) {
-      console.error("[ERROR] executeAction failed:", e);
-      toast.error(
-        `Gagal memproses tindakan: ${e?.message || "Error tidak diketahui"}`,
-      );
-    } finally {
-      setIsProcessing(false);
-    }
+    updateStatus.mutate({ status: pendingAction });
   };
 
   // --- DOCX GENERATION FUNCTION ---
   const handleDownloadDocx = async () => {
-    if (!skDoc || !sk) return;
+    if (!skDoc) return;
     setIsProcessing(true);
     toast.info("Sedang menyiapkan file DOCX...");
 
@@ -199,43 +118,35 @@ export default function SkDetailPage() {
       const teacherData: any = skDoc.teacher || {};
 
       // Determine Template ID
-      const jenis = (skDoc.jenisSk || skDoc.status || "").toLowerCase();
-      const jabatan = (teacherData.jabatan || "").toLowerCase();
+      const jenis = (skDoc.jenis_sk || "").toLowerCase();
+      const jabatan = (skDoc.jabatan || "").toLowerCase();
       const nip = (teacherData.nip || "").replace(/[^0-9]/g, "");
+      
       let templateId = "sk_template_tendik";
       if (jenis.includes("tetap yayasan") || jenis.includes("gty"))
         templateId = "sk_template_gty";
       else if (jenis.includes("tidak tetap") || jenis.includes("gtt"))
         templateId = "sk_template_gtt";
       else if (jenis.includes("kepala") || jenis.includes("kamad")) {
-        const isPns =
-          nip.length > 10 ||
-          (teacherData.statusKepegawaian || "").includes("PNS") ||
-          (teacherData.statusKepegawaian || "").includes("ASN");
-        if (jabatan.includes("plt") || jabatan.includes("pelaksana"))
-          templateId = "sk_template_kamad_plt";
+        const isPns = nip.length > 10 || (teacherData.status_kepegawaian || "").includes("PNS");
+        if (jabatan.includes("plt")) templateId = "sk_template_kamad_plt";
         else if (isPns) templateId = "sk_template_kamad_pns";
         else templateId = "sk_template_kamad_nonpns";
       }
 
-      // Fetch Template (LocalStorage first, then Cloud)
+      // Fetch Template via REST API
       let base64Template = localStorage.getItem(templateId + "_blob");
       if (!base64Template) {
-        const result = await convex.query(api.settings_cloud.getContent, {
-          key: templateId,
-        });
-        if (result && !result.startsWith("http")) {
-          base64Template = result.includes(";base64,")
-            ? result
-            : "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," +
-              result;
+        const result = await settingApi.get(templateId);
+        if (result && result.value) {
+          base64Template = result.value.includes(";base64,")
+            ? result.value
+            : "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64," + result.value;
         }
       }
 
       if (!base64Template) {
-        toast.error(
-          `Template tidak ditemukan (ID: ${templateId}). Harap atur di menu Pengaturan terlebih dahulu.`,
-        );
+        toast.error(`Template tidak ditemukan (ID: ${templateId}).`);
         setIsProcessing(false);
         return;
       }
@@ -245,19 +156,13 @@ export default function SkDetailPage() {
       const content = atob(realData);
 
       // Generate QR
-      const verificationUrl = `${window.location.origin}/verify/${skDoc._id}`;
-      const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
-        width: 400,
-        margin: 1,
-      });
+      const verificationUrl = `${window.location.origin}/verify/sk/${skDoc.nomor_sk}`;
+      const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
 
-      // Load Zip
       const pzip = new PizZip(content);
       const imageOpts = {
         getImage: (tagValue: string) => base64DataURLToArrayBuffer(tagValue),
-        getSize: (img: unknown, tagValue: string, tagName: string) => [
-          100, 100,
-        ],
+        getSize: () => [100, 100],
       };
       const imageModule = new ImageModule(imageOpts);
 
@@ -268,344 +173,150 @@ export default function SkDetailPage() {
         nullGetter: () => "",
       });
 
-      // Format Dates Helper
-      const formatIndoDate = (dateStr: string | undefined | null) => {
+      // Format Dates
+      const formatIndoDate = (dateStr: string) => {
         if (!dateStr) return "-";
-        try {
-          const d = new Date(dateStr);
-          if (!isNaN(d.getTime())) {
-            return d.toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            });
-          }
-        } catch (e) {}
-        return dateStr;
+        const d = new Date(dateStr);
+        return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
       };
 
-      const addOneYearIndonesian = (dateStr: string) => {
-        if (!dateStr || dateStr === "-") return "-";
-        try {
-          const parts = dateStr.split(" ");
-          if (parts.length < 3) return dateStr;
-          const year = parseInt(parts[parts.length - 1]);
-          if (isNaN(year)) return dateStr;
-          parts[parts.length - 1] = (year + 1).toString();
-          return parts.join(" ");
-        } catch {
-          return dateStr;
-        }
-      };
-
-      const ttlDate = formatIndoDate(teacherData.tanggalLahir);
-      const ttlValid = teacherData.tempatLahir || teacherData.tanggalLahir;
-      const ttl = ttlValid
-        ? `${teacherData.tempatLahir || ""}${teacherData.tempatLahir && teacherData.tanggalLahir ? ", " : ""}${ttlDate !== "-" ? ttlDate : ""}`
-        : "-";
-      const tmtFormatted = formatIndoDate(
-        teacherData.tmtPendidik || teacherData.tmt,
-      );
-      const tanggalPenetapanFormatted = formatIndoDate(skDoc.tanggalPenetapan);
-
-      // Extract pure 4-digit sequence from long nomorSk to prevent double numbering
-      const rawNomor = skDoc.nomorSk || "-";
-      const seqMatch = rawNomor.match(/^(\d{1,4})/);
-      const sequenceOnly = seqMatch ? seqMatch[1] : rawNomor;
-
-      // Align variables exactly with SkGeneratorPage (Kitchen Sink)
       const renderData: any = {
         ...skDoc,
         ...teacherData,
-
-        // NAMA
-        nama: skDoc.nama || "-",
-        Nama: skDoc.nama || "-",
-        NAMA: skDoc.nama?.toUpperCase() || "-",
-        NAMA_LENGKAP: skDoc.nama || "-",
-        NAMA_GURU: skDoc.nama || "-",
-
-        // NOMOR SK
-        nomor_sk: rawNomor,
-        Nomor_SK: rawNomor,
-        NOMOR_SURAT: rawNomor,
-        NOMOR: sequenceOnly,
-        nomor_induk: teacherData.nuptk || teacherData.nip || "-",
-        NOMOR_INDUK: teacherData.nuptk || teacherData.nip || "-",
-        "NOMOR INDUK MAARIF": teacherData.nuptk || teacherData.nip || "-",
-        "NOMOR INDUK MA'ARIF": teacherData.nuptk || teacherData.nip || "-",
-        "NOMOR INDUK MA’ARIF": teacherData.nuptk || teacherData.nip || "-",
-
-        // BIODATA
-        tempatLahir: teacherData.tempatLahir || "-",
-        tanggalLahir: ttlDate,
-        tanggallahir: ttlDate,
-        ttl: ttl,
-        TTL: ttl,
-        "TEMPAT/TANGGAL LAHIR": ttl,
-        "TEMPAT, TANGGAL LAHIR": ttl,
-
-        // IDS
+        nama: skDoc.nama?.toUpperCase() || "-",
         nuptk: teacherData.nuptk || "-",
-        NUPTK: teacherData.nuptk || "-",
-        nip: teacherData.nip || teacherData.nuptk || "-",
-        NIP: teacherData.nip || teacherData.nuptk || "-",
-
-        // PEKERJAAN
-        unitKerja: skDoc.unitKerja || "-",
-        unit_kerja: skDoc.unitKerja || "-",
-        Unit_Kerja: skDoc.unitKerja || "-",
-        UNIT_KERJA: skDoc.unitKerja || "-",
-        "UNIT KERJA": skDoc.unitKerja || "-",
-        KECAMATAN: teacherData.kecamatan || ".....",
-
-        jabatan:
-          skDoc.jabatan || teacherData.jabatan || teacherData.mapel || "Guru",
-        JABATAN:
-          skDoc.jabatan || teacherData.jabatan || teacherData.mapel || "Guru",
-
-        pendidikanTerakhir: teacherData.pendidikanTerakhir || "-",
-        pendidikan: teacherData.pendidikanTerakhir || "-",
-        PENDIDIKAN: teacherData.pendidikanTerakhir || "-",
-        jurusan: teacherData.jurusan || "-",
-        pangkat: teacherData.pangkat || "-",
-        golongan: teacherData.golongan || "-",
-
-        // TMT
-        tmtPendidik: tmtFormatted,
-        tmt: tmtFormatted,
-        TMT: tmtFormatted,
-        TANGGAL_MULAI_TUGAS: tmtFormatted,
-        TGL_MULAI_TUGAS: tmtFormatted,
-
-        // JENIS SK
-        jenisSk: skDoc.jenisSk || "-",
-        jenis_sk: skDoc.jenisSk?.toUpperCase() || "-",
-        Jenis_SK: skDoc.jenisSk || "-",
-        mengingat_tambahan: skDoc.jenisSk?.includes("GTY")
-          ? "Kekurangan Guru"
-          : "-",
-        status: skDoc.status || teacherData.status || "-",
-        STATUS: skDoc.status || teacherData.status || "-",
-
-        // PERMOHONAN & TAHUN
-        "NOMOR SURAT PERMOHONAN": "-",
-        "TANGGAL SURAT PERMOHONAN": "-",
-        "TAHUN PELAJARAN": "-",
-        TAHUN_PELAJARAN: "-",
-        TANGGAL_BERAKHIR: addOneYearIndonesian(tanggalPenetapanFormatted),
-        "TANGGAL LENGKAP": tanggalPenetapanFormatted,
-        TANGGAL_PENETAPAN: tanggalPenetapanFormatted,
-        "TANGGAL PENETAPAN": tanggalPenetapanFormatted,
-
-        // QR
+        nomor_sk: skDoc.nomor_sk || "-",
+        unit_kerja: skDoc.unit_kerja || "-",
+        jabatan: skDoc.jabatan || "Guru",
+        tanggal_sk: formatIndoDate(skDoc.tanggal_penetapan),
         qrcode: qrDataUrl,
       };
 
-      // Format CreatedAt / Tanggal SK (Indonesian)
-      const months = [
-        "Januari",
-        "Februari",
-        "Maret",
-        "April",
-        "Mei",
-        "Juni",
-        "Juli",
-        "Agustus",
-        "September",
-        "Oktober",
-        "November",
-        "Desember",
-      ];
-      const rawCreated =
-        skDoc.tanggalPenetapan || skDoc.createdAt || Date.now();
-      const d = new Date(rawCreated as string | number);
-      if (!isNaN(d.getTime())) {
-        renderData.tanggal_sk = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-        renderData.Tanggal_SK = renderData.tanggal_sk;
-        renderData.TANGGAL = `${d.getDate()}`;
-        renderData.BULAN = `${d.getMonth() + 1}`;
-        renderData.TAHUN = `${d.getFullYear()}`;
-        renderData.NAMA_BULAN = months[d.getMonth()];
-      } else {
-        renderData.tanggal_sk = "-";
-        renderData.Tanggal_SK = "-";
-        renderData.TANGGAL = "-";
-        renderData.BULAN = "-";
-        renderData.TAHUN = "-";
-        renderData.NAMA_BULAN = "-";
-      }
-
       doc.render(renderData);
-
       const out = doc.getZip().generate({
         type: "blob",
-        mimeType:
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       });
 
-      saveAs(
-        out,
-        `SK_${renderData.nama.replace(/\s+/g, "_")}_${renderData.unitKerja.replace(/\s+/g, "_")}.docx`,
-      );
-      toast.success("Berhasil mengunduh dokumen SK DOCX!");
-    } catch (error) {
-      console.error("Error DOCX:", error);
-      toast.error(
-        "Gagal men-generate template DOCX. Pastikan format template sudah benar.",
-      );
+      saveAs(out, `SK_${skDoc.nama.replace(/\s+/g, "_")}.docx`);
+      toast.success("Dokumen SK berhasil diunduh!");
+    } catch (e: any) {
+      console.error("Error DOCX:", e);
+      toast.error("Gagal membuat dokumen: " + e.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  if (isLoading)
-    return (
-      <div className="p-8 text-center text-muted-foreground">
-        Memuat data SK...
-      </div>
-    );
-  if (!sk)
-    return (
-      <div className="p-8 text-center text-muted-foreground">
-        Data SK tidak ditemukan.
-      </div>
-    );
+  if (isLoading) return <div className="p-20 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto text-blue-500" /></div>;
+  if (!skDoc) return <div className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest">Dokumen Tidak Ditemukan</div>;
 
-  const badgeStatus = getBadgeStatus(sk.status);
+  const badgeStatus = getBadgeStatus(skDoc.status);
   const isIssued = badgeStatus === "issued";
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard/sk")}
-          className="pl-0"
+          className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
+          <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Dashboard
         </Button>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {isIssued && (
-            <Button variant="outline" onClick={() => handleAction("revise")}>
-              <AlertTriangle className="mr-2 h-4 w-4 text-orange-500" />{" "}
-              Kembalikan ke Draft
+            <Button 
+                variant="outline" 
+                onClick={() => handleAction("draft")}
+                className="rounded-xl border-slate-200 text-slate-600 font-bold text-xs uppercase px-6"
+            >
+              <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" /> Kembalikan ke Draft
             </Button>
           )}
-          {sk.fileUrl ? (
+          {skDoc.file_url ? (
             <Button
-              variant="outline"
-              onClick={() => window.open(sk.fileUrl, "_blank")}
+              variant="default"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs uppercase px-6 shadow-lg shadow-blue-50"
+              onClick={() => window.open(skDoc.file_url, "_blank")}
             >
-              <Printer className="mr-2 h-4 w-4" /> Cetak / Download
+              <Printer className="mr-2 h-4 w-4" /> Cetak / Download PDF
             </Button>
           ) : (
-            <Button variant="outline" disabled>
-              <FileText className="mr-2 h-4 w-4" /> PDF Belum Tersedia
-            </Button>
-          )}
-          {isIssued && (
-            <Button
-              variant="outline"
-              className="text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
-              onClick={handleDownloadDocx}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}{" "}
-              Unduh SK (Word DOCX)
-            </Button>
+             isIssued && (
+                <Button
+                    variant="default"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase px-6 shadow-lg shadow-emerald-50"
+                    onClick={handleDownloadDocx}
+                    disabled={isProcessing}
+                >
+                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Generate Word (DOCX)
+                </Button>
+             )
           )}
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Main Info */}
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-8">
+          <Card className="border-0 shadow-sm rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="p-10 border-b bg-slate-50/50">
               <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-xl">{sk.jenis}</CardTitle>
-                  <CardDescription>
-                    Nomor: {sk.nomorSurat || "Belum Terbit"}
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{skDoc.jenis_sk}</p>
+                  <CardTitle className="text-3xl font-black text-slate-800 tracking-tight leading-tight">
+                    {skDoc.nama}
+                  </CardTitle>
+                  <CardDescription className="font-mono text-sm font-bold text-slate-400">
+                    ID: {skDoc.nomor_sk || "PENDING"}
                   </CardDescription>
                 </div>
-                <StatusBadge
-                  status={badgeStatus}
-                  className="text-sm px-3 py-1"
-                />
+                <StatusBadge status={badgeStatus} className="rounded-full px-5 py-2 font-black uppercase tracking-widest text-[10px]" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Nama Lengkap</p>
-                  <p className="font-medium">{sk.nama}</p>
+            <CardContent className="p-10 space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Kerja / Madrasah</p>
+                    <p className="font-bold text-slate-700">{skDoc.unit_kerja || "-"}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">NIY / NUPTK</p>
-                  <p className="font-medium">{sk.niy || "-"}</p>
+                <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Jabatan / Mapel</p>
+                    <p className="font-bold text-slate-700">{skDoc.jabatan || "-"}</p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Tanggal Pengajuan</p>
-                  <p className="font-medium">
-                    {new Date(sk.createdAt).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
+                <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal Penetapan</p>
+                    <p className="font-bold text-slate-700">
+                        {new Date(skDoc.tanggal_penetapan).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Unit Kerja</p>
-                  <p className="font-medium">{sk.unitKerja}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Jenis Pengajuan</p>
-                  <p className="font-medium">{sk.jenisPengajuan}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-muted-foreground">Keterangan / Pesan</p>
-                  <p className="font-medium text-slate-700 bg-slate-50 p-2 rounded block mt-1">
-                    {sk.keterangan || "-"}
-                  </p>
+                <div className="space-y-1.5">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NIY / NUPTK</p>
+                    <p className="font-bold text-slate-700">{skDoc.teacher?.nuptk || "-"}</p>
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="bg-slate-100" />
 
-              <div>
-                <h4 className="mb-2 font-semibold">Preview SK</h4>
-                {sk.fileUrl &&
-                (sk.fileUrl.startsWith("http") ||
-                  sk.fileUrl.startsWith("/")) ? (
-                  <div className="rounded-md border p-0 overflow-hidden bg-slate-100 h-[600px]">
-                    <iframe
-                      src={sk.fileUrl}
-                      className="w-full h-full"
-                      title="Preview SK"
-                    />
-                  </div>
-                ) : sk.fileUrl ? (
-                  <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground bg-slate-50">
-                    <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p>Preview tidak tersedia.</p>
-                    <p className="text-sm font-medium mt-1">{sk.fileUrl}</p>
-                    <p className="text-xs mt-1 text-slate-500">
-                      File SK ini digenerate secara massal (ZIP). Silakan cek
-                      file yang sudah didownload.
-                    </p>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Pratinjau Dokumen</h4>
+                    {skDoc.file_url && <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 text-[10px]">Cloud Storage PDF</Badge>}
+                </div>
+                
+                {skDoc.file_url ? (
+                  <div className="rounded-[2rem] border-0 overflow-hidden bg-slate-900 shadow-2xl h-[700px]">
+                    <iframe src={skDoc.file_url} className="w-full h-full border-0" title="PDF Preview" />
                   </div>
                 ) : (
-                  <div className="rounded-md border border-dashed p-8 text-center text-muted-foreground bg-slate-50">
-                    <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p>File SK belum digenerate.</p>
-                    <p className="text-xs mt-1">
-                      Silakan minta Admin untuk memproses.
+                  <div className="rounded-[2rem] border-4 border-dashed border-slate-100 p-20 text-center bg-slate-50">
+                    <div className="bg-white h-20 w-20 rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-6">
+                        <FileText className="h-8 w-8 text-slate-300" />
+                    </div>
+                    <p className="font-bold text-slate-600">Dokumen PDF Belum Tersedia</p>
+                    <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
+                      Gunakan fitur "Generate Word" untuk mengunduh dokumen atau minta Admin untuk mengunggah file PDF resmi.
                     </p>
                   </div>
                 )}
@@ -613,61 +324,54 @@ export default function SkDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Admin Actions Area */}
           {isAdmin && badgeStatus === "submitted" && (
-            <Card className="border-blue-200 bg-blue-50/50">
-              <CardHeader>
-                <CardTitle className="text-lg text-blue-800">
-                  Tindakan Admin
-                </CardTitle>
-                <CardDescription className="text-blue-600">
-                  Silakan periksa data sebelum memberikan persetujuan.
-                </CardDescription>
+            <Card className="border-0 bg-blue-600 text-white rounded-[2.5rem] shadow-xl shadow-blue-100 p-2 overflow-hidden">
+              <CardHeader className="p-8">
+                <CardTitle className="text-xl font-black uppercase tracking-tight">Panel Persetujuan Admin</CardTitle>
+                <CardDescription className="text-blue-100 font-medium">Data ini memerlukan verifikasi akhir sebelum nomor SK diterbitkan secara otomatis.</CardDescription>
               </CardHeader>
-              <CardContent className="flex gap-3">
+              <CardContent className="px-8 pb-8 flex gap-4">
                 <Button
-                  className="bg-green-600 hover:bg-green-700 flex-1"
-                  onClick={() => handleAction("approve")}
+                  className="bg-white text-emerald-600 hover:bg-emerald-50 h-14 rounded-2xl flex-1 font-black uppercase tracking-widest text-xs shadow-lg"
+                  onClick={() => handleAction("approved")}
                 >
-                  <CheckCircle className="mr-2 h-4 w-4" /> Setujui
+                  <CheckCircle className="mr-2 h-5 w-5" /> Setujui Dokumen
                 </Button>
                 <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => handleAction("reject")}
+                  className="bg-white/10 text-white hover:bg-white/20 h-14 rounded-2xl flex-1 font-black uppercase tracking-widest text-xs border border-white/20"
+                  onClick={() => handleAction("rejected")}
                 >
-                  <XCircle className="mr-2 h-4 w-4" /> Tolak
+                  <XCircle className="mr-2 h-5 w-5 text-red-400" /> Tolak Pengajuan
                 </Button>
               </CardContent>
             </Card>
           )}
         </div>
 
-        {/* Sidebar Info */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Metadata</CardTitle>
+        <div className="space-y-8">
+          <Card className="border-0 shadow-sm rounded-[2rem] overflow-hidden">
+            <CardHeader className="p-8 pb-4 bg-slate-50/50">
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Metadata Sistem</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div>
-                <span className="text-muted-foreground block text-xs uppercase tracking-wider">
-                  ID Sistem
-                </span>
-                <span className="font-mono text-xs text-slate-600 truncate block bg-slate-100 p-1 rounded">
-                  {sk.id}
+            <CardContent className="p-8 pt-4 space-y-6">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">UUID Dokumen</span>
+                <span className="font-mono text-[10px] block bg-slate-50 p-3 rounded-xl border border-slate-100 text-slate-600 break-all">
+                  {id}
                 </span>
               </div>
-              <div>
-                <span className="text-muted-foreground block text-xs uppercase tracking-wider">
-                  Status Database
-                </span>
-                <span className="font-mono text-xs">{sk.status}</span>
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status Database</span>
+                <Badge variant="outline" className="font-mono text-[10px] uppercase border-slate-200">{skDoc.status}</Badge>
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dibuat Oleh</span>
+                <span className="text-xs font-bold text-slate-700 block">{skDoc.created_by || "System"}</span>
               </div>
               <Separator />
-              <div className="pt-2">
-                <p className="text-xs text-muted-foreground text-center">
-                  Jika data salah, silakan hubungi Administrator PUSAT.
+              <div className="pt-2 text-center">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-relaxed">
+                  Dokumen ini dilindungi secara digital oleh Sistem Informasi Manajemen Ma'arif Cilacap.
                 </p>
               </div>
             </CardContent>
@@ -675,80 +379,34 @@ export default function SkDetailPage() {
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <div
-              className={`flex items-center gap-3 mb-2 ${
-                pendingAction === "approve"
-                  ? "text-green-600"
-                  : pendingAction === "reject"
-                    ? "text-red-600"
-                    : "text-amber-600"
+        <DialogContent className="rounded-[2.5rem] p-10 sm:max-w-md border-0 ring-1 ring-slate-100">
+          <DialogHeader className="items-center text-center">
+            <div className={`h-16 w-16 rounded-3xl flex items-center justify-center mb-6 ${
+                pendingAction === "approved" ? "bg-emerald-50 text-emerald-600" : 
+                pendingAction === "rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
+            }`}>
+              {pendingAction === "approved" ? <CheckCircle className="h-8 w-8" /> : 
+               pendingAction === "rejected" ? <XCircle className="h-8 w-8" /> : <AlertTriangle className="h-8 w-8" />}
+            </div>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight"> Konfirmasi Tindakan </DialogTitle>
+            <DialogDescription className="text-sm font-medium pt-2">
+              Apakah Anda yakin ingin <span className="font-bold text-slate-800 uppercase italic">
+                {pendingAction === "approved" ? "menyetujui" : pendingAction === "rejected" ? "menolak" : "mengembalikan ke draft"}
+              </span> dokumen ini? Tindakan ini tidak dapat dibatalkan secara otomatis.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-8 flex gap-3 sm:justify-center">
+            <Button variant="ghost" onClick={() => setIsConfirmOpen(false)} className="rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs">Batal</Button>
+            <Button 
+              onClick={executeAction} 
+              disabled={updateStatus.isPending}
+              className={`rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs text-white ${
+                pendingAction === "approved" ? "bg-emerald-600 hover:bg-emerald-700" : 
+                pendingAction === "rejected" ? "bg-red-600 hover:bg-red-700" : "bg-amber-600 hover:bg-amber-700"
               }`}
             >
-              <div
-                className={`p-2 rounded-full ${
-                  pendingAction === "approve"
-                    ? "bg-green-50"
-                    : pendingAction === "reject"
-                      ? "bg-red-50"
-                      : "bg-amber-50"
-                }`}
-              >
-                {pendingAction === "approve" ? (
-                  <CheckCircle className="h-6 w-6" />
-                ) : pendingAction === "reject" ? (
-                  <XCircle className="h-6 w-6" />
-                ) : (
-                  <AlertTriangle className="h-6 w-6" />
-                )}
-              </div>
-              <DialogTitle className="text-xl font-bold">
-                {pendingAction === "approve"
-                  ? "Setujui SK"
-                  : pendingAction === "reject"
-                    ? "Tolak SK"
-                    : "Kembalikan ke Draft"}
-              </DialogTitle>
-            </div>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground leading-relaxed">
-              Apakah Anda yakin ingin{" "}
-              {pendingAction === "approve"
-                ? "menyetujui"
-                : pendingAction === "reject"
-                  ? "menolak"
-                  : "mengembalikan ke draft"}{" "}
-              dokumen SK ini? Tindakan ini akan mengubah status dokumen secara
-              langsung.
-            </p>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0 border-t pt-4">
-            <Button
-              variant="ghost"
-              onClick={() => setIsConfirmOpen(false)}
-              disabled={isProcessing}
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={executeAction}
-              disabled={isProcessing}
-              className={
-                pendingAction === "approve"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : pendingAction === "reject"
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-amber-600 hover:bg-amber-700"
-              }
-            >
-              {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Ya, Lanjutkan
+              Ya, Proses Sekarang
             </Button>
           </DialogFooter>
         </DialogContent>

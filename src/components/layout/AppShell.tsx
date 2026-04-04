@@ -25,10 +25,12 @@ import {
   BookOpen,
   ClipboardList,
   UserCheck,
+  Bell,
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { useNavigate, useLocation, Link } from "react-router-dom"
+import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary"
 import { NotificationDropdown } from "@/components/common/NotificationDropdown"
 import { Toaster } from "sonner"
 
@@ -42,10 +44,21 @@ export default function AppShell({ children }: AppShellProps) {
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
-  // Get user role for conditional menu visibility
-  const userStr = localStorage.getItem("user");
-  const userRole = userStr ? JSON.parse(userStr)?.role : null;
+  // Safe user loading from storage
+  const [user] = useState<any>(() => {
+    const u = localStorage.getItem("user_data")
+    if (!u) return null
+    try {
+      return JSON.parse(u)
+    } catch {
+      return null
+    }
+  })
+
+  const userRole = user?.role || null;
   const isSuperAdmin = userRole === "super_admin";
+  const isAdminYayasan = userRole === "admin_yayasan";
+  const isOperator = userRole === "operator";
 
   // Navigation Groups
   const navGroups = [
@@ -114,19 +127,19 @@ export default function AppShell({ children }: AppShellProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white/70 backdrop-blur-2xl border-r border-white/60 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static print:hidden",
+          "fixed inset-y-0 left-0 z-40 flex flex-col glass backdrop-blur-2xl border-r border-white/40 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static print:hidden",
           sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
         )}
       >
         {/* Sidebar Header */}
         <div className="flex h-20 items-center border-b border-slate-100 px-6 bg-gradient-to-r from-emerald-600/5 to-transparent">
           <Link to="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-slate-800">
-            <div className="p-1.5 bg-white rounded-xl shadow-sm border border-emerald-100">
+            <div className="p-1.5 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-emerald-100/50">
                 <img src="/logo-icon.png" alt="Logo" className="h-8 w-8 object-contain" />
             </div>
             <div className={cn("flex flex-col justify-center", !sidebarOpen && "hidden")}>
               <span className="leading-none text-emerald-800 font-extrabold pb-1">SIMMACI</span>
-              <span className="text-[10px] leading-none text-emerald-600/70 font-medium tracking-wide">MA'ARIF NU CILACAP</span>
+              <span className="text-[10px] leading-none text-emerald-600/70 font-medium tracking-wide font-sans">MA'ARIF NU CILACAP</span>
             </div>
           </Link>
         </div>
@@ -135,29 +148,24 @@ export default function AppShell({ children }: AppShellProps) {
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="grid gap-2 px-3">
             {navGroups.map((group, groupIndex) => {
-              // Filter items inside the group based on RBAC
-              const userStr = localStorage.getItem("user")
-              const user = userStr ? JSON.parse(userStr) : null
-              const userRole = user?.role || ""
-
               const visibleItems = group.items.filter(item => {
-                  // 1. ADMIN & OPERATOR (Settings access)
-                  if (item.label === "Pengaturan") {
-                      return ["super_admin", "admin_yayasan", "admin", "operator"].includes(userRole);
-                  }
+                  // Role-based visibility according to design.md and requirements
+                  if (item.label === "Pengaturan") return ["super_admin", "admin_yayasan", "operator"].includes(userRole);
+                  
+                  const adminRoles = ["super_admin", "admin_yayasan"];
+                  const adminOnlyLabels = [
+                    "Manajemen User", "Health Data", "Event / Lomba", 
+                    "Generator SK", "Approval Yayasan", "Monitoring Kepala", 
+                    "Persetujuan NUPTK", "Laporan Guru", "Laporan SK"
+                  ];
 
-                  // 2. YAYASAN & SUPER ADMIN EXCLUSIVE
-                  if (["Manajemen User", "Health Data", "Event / Lomba", "Generator SK", "Approval Yayasan", "Monitoring Kepala", "Persetujuan NUPTK", "Laporan Guru", "Laporan SK"].includes(item.label)) {
-                      return ["super_admin", "admin_yayasan", "admin"].includes(userRole);
+                  if (adminOnlyLabels.includes(item.label)) {
+                      return adminRoles.includes(userRole);
                   }
-
-                 // 3. OPERATOR (DEFAULT)
-                 // Operator can see everything else (Master Data, New SK, My SK, etc)
-                 return true;
+                  return true;
               })
 
               if (visibleItems.length === 0) return null
-
               const isDefaultOpen = group.title === "Master Data" || group.title === "Administrasi SK"
 
               return (
@@ -166,29 +174,27 @@ export default function AppShell({ children }: AppShellProps) {
                   defaultOpen={isDefaultOpen} 
                   className="group/collapsible"
                 >
-                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-800/40 hover:bg-emerald-50/50 hover:text-emerald-800 transition-colors">
                     {group.title}
                     <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
                   </CollapsibleTrigger>
                   
                   <CollapsibleContent className="space-y-1 pt-1 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
                     {visibleItems.map((item, index) => {
-                      const isExactMatch = location.pathname === item.href
-                      const isChildRoute = location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard'
-                      const isActive = isExactMatch || isChildRoute
+                      const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard')
 
                       return (
                         <Link
                           key={index}
                           to={item.href}
                           className={cn(
-                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
+                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 border-glow",
                             isActive
-                              ? "bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-800 font-bold shadow-sm border border-emerald-200/60 ring-1 ring-emerald-500/10"
-                              : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-900"
+                              ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-md border-transparent ring-2 ring-emerald-500/20"
+                              : "text-slate-500 hover:bg-emerald-50/50 hover:text-emerald-800"
                           )}
                         >
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className={cn("h-4.5 w-4.5", isActive ? "text-white" : "text-emerald-600/70")} />
                           {item.label}
                         </Link>
                       )
@@ -201,35 +207,27 @@ export default function AppShell({ children }: AppShellProps) {
         </div>
 
         {/* User Footer */}
-        <div className="border-t p-4">
+        <div className="border-t p-4 bg-emerald-50/20">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
-               <User className="h-4 w-4 text-gray-500"/>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm border border-emerald-100">
+               <User className="h-5 w-5 text-emerald-600"/>
             </div>
             <div className="flex flex-col overflow-hidden">
-                {(() => {
-                  const userStr = localStorage.getItem("user")
-                  const user = userStr ? JSON.parse(userStr) : null
-                  return (
-                    <>
-                      <span className="truncate text-sm font-medium">{user?.name || "User"}</span>
-                      <span className="truncate text-xs text-muted-foreground">{user?.email || ""}</span>
-                    </>
-                  )
-                })()}
+                <span className="truncate text-sm font-bold text-slate-800">{user?.name || "User"}</span>
+                <span className="truncate text-[10px] uppercase tracking-wider text-emerald-600/70 font-bold">{user?.role?.replace('_', ' ') || ""}</span>
             </div>
           </div>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="mt-2 w-full justify-start text-muted-foreground hover:text-red-500"
+            className="mt-3 w-full justify-start text-muted-foreground hover:bg-red-50 hover:text-red-500 rounded-lg group transition-colors"
             onClick={() => {
-                localStorage.removeItem("token")
-                localStorage.removeItem("user")
+                localStorage.removeItem("auth_token")
+                localStorage.removeItem("user_data")
                 window.location.href = "/login"
             }}
           >
-             <LogOut className="mr-2 h-4 w-4"/> Sign Out
+             <LogOut className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform"/> Sign Out
           </Button>
         </div>
       </aside>
@@ -237,26 +235,26 @@ export default function AppShell({ children }: AppShellProps) {
       {/* Main Content Wrapper */}
       <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full max-w-full print:block print:overflow-visible print:h-auto">
         {/* Header */}
-        <header className="flex h-20 items-center gap-4 px-6 bg-white/40 backdrop-blur-md border-b border-white/50 sticky top-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.02)] print:hidden">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex hover:bg-emerald-50 hover:text-emerald-700">
+        <header className="flex h-20 items-center gap-4 px-6 bg-white/40 backdrop-blur-xl border-b border-white/50 sticky top-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.02)] print:hidden">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden md:flex hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
              <Menu className="h-5 w-5"/>
              <span className="sr-only">Toggle Sidebar</span>
           </Button>
-           {/* Mobile Menu Toggle (reusing same logic roughly) */}
+           {/* Mobile Menu Toggle */}
            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden">
              <Menu className="h-5 w-5"/>
           </Button>
           
           <div className="ml-auto flex items-center gap-2">
-             <NotificationDropdown />
-             <span className="text-sm font-medium text-muted-foreground border-l pl-4 ml-2">
-               Tahun Ajaran: {(() => {
+             <GlobalErrorBoundary fallback={<Button variant="ghost" size="icon" disabled><Bell className="h-5 w-5 text-slate-300" /></Button>}>
+                <NotificationDropdown />
+             </GlobalErrorBoundary>
+             <div className="h-8 w-[1px] bg-slate-200 mx-2" />
+             <span className="text-[11px] font-bold text-emerald-800/60 uppercase tracking-widest bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+               {(() => {
                  const now = new Date()
                  const year = now.getFullYear()
-                 const month = now.getMonth() + 1 // 0-indexed
-                 // Academic year starts in July (month 7)
-                 // If Jan-June: show (year-1)/(year)
-                 // If Jul-Dec: show (year)/(year+1)
+                 const month = now.getMonth() + 1
                  return month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`
                })()}
              </span>
@@ -264,7 +262,7 @@ export default function AppShell({ children }: AppShellProps) {
         </header>
 
         {/* Main Content View with Scroll */}
-        <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible print:block print:h-auto">
+        <main className="flex-1 overflow-y-auto p-6 animate-slow-fade print:p-0 print:overflow-visible print:block print:h-auto">
            {children}
         </main>
         <Toaster richColors position="top-right" />

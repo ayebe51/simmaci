@@ -1,0 +1,113 @@
+
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32m???[39m 4086 modules transformed.
+npm : [31m???[39m Bui
+ld failed in 9.18s
+At line:1 char:1
++ npm run build > build
+_debug3.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([31m???[39m   
+  Build failed in 9    
+.18s:String) [], R    e
+moteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+[31merror during build
+:
+[31msrc/features/repor
+ts/ReportPage.tsx (7:9)
+: "reportApi" is not ex
+ported by "src/lib/api.
+ts", imported by "src/f
+eatures/reports/ReportP
+age.tsx".[31m
+file: [36mD:/apss-sour
+ce/SIMMACI/src/features
+/reports/ReportPage.tsx
+:7:9[31m
+[33m
+5: import { Printer, Se
+arch, Loader2, FileText
+, BarChart3, Building2,
+ UserCheck2, AlertCircl
+e } from "lucide-react"
+6: import { useEffect, 
+useState, useMemo } fro
+m "react"
+7: import { reportApi, 
+schoolApi } from "@/lib
+/api"
+            ^
+8: import { toast } fro
+m "sonner"
+9: import { useQuery } 
+from "@tanstack/react-q
+uery"
+[31m
+    at getRollupError (
+file:///D:/apss-source/
+SIMMACI/node_modules/ro
+llup/dist/es/shared/par
+seAst.js:402:41)
+    at error (file:///D
+:/apss-source/SIMMACI/n
+ode_modules/rollup/dist
+/es/shared/parseAst.js:
+398:42)
+    at Module.error (fi
+le:///D:/apss-source/SI
+MMACI/node_modules/roll
+up/dist/es/shared/node-
+entry.js:17040:16)
+    at Module.traceVari
+able (file:///D:/apss-s
+ource/SIMMACI/node_modu
+les/rollup/dist/es/shar
+ed/node-entry.js:17452:
+29)
+    at ModuleScope.find
+Variable (file:///D:/ap
+ss-source/SIMMACI/node_
+modules/rollup/dist/es/
+shared/node-entry.js:15
+070:39)
+    at FunctionScope.fi
+ndVariable (file:///D:/
+apss-source/SIMMACI/nod
+e_modules/rollup/dist/e
+s/shared/node-entry.js:
+5673:38)
+    at FunctionBodyScop
+e.findVariable (file://
+/D:/apss-source/SIMMACI
+/node_modules/rollup/di
+st/es/shared/node-entry
+.js:5673:38)
+    at ReturnValueScope
+.findVariable (file:///
+D:/apss-source/SIMMACI/
+node_modules/rollup/dis
+t/es/shared/node-entry.
+js:5673:38)
+    at FunctionBodyScop
+e.findVariable (file://
+/D:/apss-source/SIMMACI
+/node_modules/rollup/di
+st/es/shared/node-entry
+.js:5673:38)
+    at MemberExpression
+.bind (file:///D:/apss-
+source/SIMMACI/node_mod
+ules/rollup/dist/es/sha
+red/node-entry.js:7392:
+49)[39m

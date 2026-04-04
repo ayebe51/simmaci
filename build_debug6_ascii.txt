@@ -1,0 +1,213 @@
+
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32m???[39m 4086 modules transformed.
+npm : [33m[plugin vit
+e:reporter] 
+At line:1 char:1
++ npm run build > buil
+d_debug6.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ([33m[plug   
+ in vite:reporter]    
+ :String) [], Rem    o
+teException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+(!) D:/apss-source/SIM
+MACI/src/lib/api.ts is
+ dynamically imported 
+by D:/apss-source/SIMM
+ACI/src/features/sk-ma
+nagement/HeadmasterSub
+missionPage.tsx but al
+so statically imported
+ by D:/apss-source/SIM
+MACI/src/components/co
+mmon/NotificationDropd
+own.tsx, D:/apss-sourc
+e/SIMMACI/src/features
+/approval/YayasanAppro
+valPage.tsx, D:/apss-s
+ource/SIMMACI/src/feat
+ures/attendance/Attend
+anceSettingsPage.tsx, 
+D:/apss-source/SIMMACI
+/src/features/attendan
+ce/ClassesPage.tsx, D:
+/apss-source/SIMMACI/s
+rc/features/attendance
+/LessonSchedulePage.ts
+x, D:/apss-source/SIMM
+ACI/src/features/atten
+dance/QrScannerPage.ts
+x, D:/apss-source/SIMM
+ACI/src/features/atten
+dance/StudentAttendanc
+ePage.tsx, D:/apss-sou
+rce/SIMMACI/src/featur
+es/attendance/StudentA
+ttendanceReportPage.ts
+x, D:/apss-source/SIMM
+ACI/src/features/atten
+dance/SubjectsPage.tsx
+, D:/apss-source/SIMMA
+CI/src/features/attend
+ance/TeacherAttendance
+Page.tsx, D:/apss-sour
+ce/SIMMACI/src/feature
+s/auth/ChangePasswordP
+age.tsx, D:/apss-sourc
+e/SIMMACI/src/features
+/auth/LoginPage.tsx, D
+:/apss-source/SIMMACI/
+src/features/dashboard
+/DashboardPage.tsx, D:
+/apss-source/SIMMACI/s
+rc/features/dashboard/
+components/DashboardOp
+erator.tsx, D:/apss-so
+urce/SIMMACI/src/featu
+res/events/Competition
+DetailPage.tsx, D:/aps
+s-source/SIMMACI/src/f
+eatures/events/CreateE
+ventPage.tsx, D:/apss-
+source/SIMMACI/src/fea
+tures/events/EventDeta
+ilPage.tsx, D:/apss-so
+urce/SIMMACI/src/featu
+res/events/EventsPage.
+tsx, D:/apss-source/SI
+MMACI/src/features/eve
+nts/components/Partici
+pantList.tsx, D:/apss-
+source/SIMMACI/src/fea
+tures/events/component
+s/ResultInput.tsx, D:/
+apss-source/SIMMACI/sr
+c/features/kta/KtaGene
+ratorPage.tsx, D:/apss
+-source/SIMMACI/src/fe
+atures/kta/StudentCard
+Page.tsx, D:/apss-sour
+ce/SIMMACI/src/feature
+s/master-data/DataAudi
+tPage.tsx, D:/apss-sou
+rce/SIMMACI/src/featur
+es/master-data/SchoolD
+etailPage.tsx, D:/apss
+-source/SIMMACI/src/fe
+atures/master-data/Sch
+oolListPage.tsx, D:/ap
+ss-source/SIMMACI/src/
+features/master-data/S
+tudentListPage.tsx, D:
+/apss-source/SIMMACI/s
+rc/features/master-dat
+a/TeacherListPage.tsx,
+ D:/apss-source/SIMMAC
+I/src/features/monitor
+ing/HeadmasterExpiryPa
+ge.tsx, D:/apss-source
+/SIMMACI/src/features/
+mutations/MutationPage
+.tsx, D:/apss-source/S
+IMMACI/src/features/re
+ports/ReportPage.tsx, 
+D:/apss-source/SIMMACI
+/src/features/reports/
+SkReportPageSimple.tsx
+, D:/apss-source/SIMMA
+CI/src/features/school
+s/SchoolProfilePage.ts
+x, D:/apss-source/SIMM
+ACI/src/features/sdm/P
+engajuanNuptkPage.tsx,
+ D:/apss-source/SIMMAC
+I/src/features/sdm/Per
+setujuanNuptkPage.tsx,
+ D:/apss-source/SIMMAC
+I/src/features/setting
+s/SettingsPage.tsx, D:
+/apss-source/SIMMACI/s
+rc/features/sk-managem
+ent/HeadmasterSubmissi
+onPage.tsx, D:/apss-so
+urce/SIMMACI/src/featu
+res/sk-management/MySk
+Page.tsx, D:/apss-sour
+ce/SIMMACI/src/feature
+s/sk-management/SkDash
+boardPage.tsx, D:/apss
+-source/SIMMACI/src/fe
+atures/sk-management/S
+kDetailPage.tsx, D:/ap
+ss-source/SIMMACI/src/
+features/sk-management
+/SkGeneratorPage.tsx, 
+D:/apss-source/SIMMACI
+/src/features/sk-manag
+ement/SkPrintPage.tsx,
+ D:/apss-source/SIMMAC
+I/src/features/sk-mana
+gement/SkRevisionListP
+age.tsx, D:/apss-sourc
+e/SIMMACI/src/features
+/sk-management/SkRevis
+ionPage.tsx, D:/apss-s
+ource/SIMMACI/src/feat
+ures/sk-management/SkS
+ubmissionPage.tsx, D:/
+apss-source/SIMMACI/sr
+c/features/sk-manageme
+nt/components/BulkSkSu
+bmission.tsx, D:/apss-
+source/SIMMACI/src/fea
+tures/users/UserListPa
+ge.tsx, D:/apss-source
+/SIMMACI/src/features/
+verification/PublicVer
+ificationPage.tsx, D:/
+apss-source/SIMMACI/sr
+c/features/verificatio
+n/VerifyStudentPage.ts
+x, D:/apss-source/SIMM
+ACI/src/features/verif
+ication/VerifyTeacherP
+age.tsx, dynamic impor
+t will not move module
+ into another chunk.
+[39m
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m    0.68 kB[22m[1m[22m[2m ??? gzip:   0.40 kB[22m
+[2mdist/[22m[35massets/index-CYepP7lI.css  [39m[1m[2m   90.06 kB[22m[1m[22m[2m ??? gzip:  14.53 kB[22m
+[2mdist/[22m[36massets/index-BAjen8jk.js   [39m[1m[33m3,108.92 kB[39m[22m[2m ??? gzip: 913.72 kB[22m
+[33m
+(!) Some chunks are la
+rger than 500 kB after
+ minification. Conside
+r:
+- Using dynamic import
+() to code-split the a
+pplication
+- Use build.rollupOpti
+ons.output.manualChunk
+s to improve chunking:
+ https://rollupjs.org/
+configuration-options/
+#output-manualchunks
+- Adjust chunk size li
+mit for this warning v
+ia build.chunkSizeWarn
+ingLimit.[39m
+[32m??? built in 18.53s[39m

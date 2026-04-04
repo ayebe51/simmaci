@@ -32,22 +32,29 @@ sudo apt install -y curl git unzip build-essential
 
 ---
 
-## 2. Instalasi NodeJS & PM2
+## 2. Instalasi PHP, Composer & NodeJS
 
-Kita akan menggunakan **Node.js LTS (v20)**.
+Kita membutuhkan **PHP 8.2+** untuk Laravel dan **Node.js** untuk build frontend.
 
 ```bash
-# Install Node.js v20
+# Install PHP 8.2 dan ekstensi yang dibutuhkan
+sudo apt install -y php8.2-fpm php8.2-cli php8.2-pgsql php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-bcmath php8.2-gd
+
+# Install Composer (PHP package manager)
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+
+# Verifikasi
+php -v
+# Output: PHP 8.2.x
+composer -V
+
+# Install Node.js v20 (untuk build frontend)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# Verifikasi
-node -v 
-# Output: v20.x.x
+node -v
 npm -v
-
-# Install PM2 (Process Manager agar aplikasi terus berjalan)
-sudo npm install -g pm2
 ```
 
 ---
@@ -84,7 +91,7 @@ exit
 
 ---
 
-## 4. Setup Backend (NestJS)
+## 4. Setup Backend (Laravel)
 
 ### A. Clone Repository
 
@@ -95,10 +102,10 @@ mkdir -p /var/www/simmaci
 cd /var/www/simmaci
 
 # Clone repo (Ganti URL dengan repo GitHub Anda jika ada, atau upload manual via SFTP)
-# Jika upload manual, pastikan folder 'backend' dan 'frontend' terupload.
+# Jika upload manual, pastikan folder 'backend' dan folder root frontend terupload.
 ```
 
-*Asumsi: Folder proyek Anda sudah ada di `/var/www/simmaci` (berisi folder `backend` dan `frontend`)*.
+*Asumsi: Folder proyek Anda sudah ada di `/var/www/simmaci` (berisi folder `backend` dan file-file frontend)*.
 
 ### B. Install & Build Backend
 
@@ -106,10 +113,7 @@ cd /var/www/simmaci
 cd /var/www/simmaci/backend
 
 # Install dependencies
-npm install
-
-# Build aplikasi
-npm run build
+composer install --optimize-autoloader --no-dev
 ```
 
 ### C. Konfigurasi Environment (.env)
@@ -117,34 +121,50 @@ npm run build
 Buat file `.env` untuk production:
 
 ```bash
+cp .env.example .env
 nano .env
 ```
 
 Isi dengan konfigurasi berikut (sesuaikan password DB):
 
 ```env
-PORT=3000
-DATABASE_TYPE=postgres
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_USER=sim_user
-DATABASE_PASSWORD=password_super_rahasia
-DATABASE_NAME=sim_maarif
-JWT_SECRET=rahasia_negara_yang_sangat_panjang_dan_acak_123!@#
-# Hapus fallback secret di kode jika ada!
+APP_NAME="SIM Maarif"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://sim.maarif.nu
+
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=sim_maarif
+DB_USERNAME=sim_user
+DB_PASSWORD=password_super_rahasia
 ```
 
 Simpan dengan `Ctrl+X`, `Y`, `Enter`.
 
-### D. Jalankan Backend dengan PM2
+### D. Finalisasi Laravel
 
 ```bash
-pm2 start dist/main.js --name "sim-backend"
-pm2 save
-pm2 startup
+# Generate application key
+php artisan key:generate
+
+# Jalankan migrasi database
+php artisan migrate --force
+
+# Cache konfigurasi untuk performa
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Set permission storage & cache
+sudo chown -R www-data:www-data /var/www/simmaci/backend/storage
+sudo chown -R www-data:www-data /var/www/simmaci/backend/bootstrap/cache
+sudo chmod -R 775 /var/www/simmaci/backend/storage
+sudo chmod -R 775 /var/www/simmaci/backend/bootstrap/cache
 ```
 
-Backend sekarang berjalan di port 3000.
+Backend sekarang berjalan via **PHP-FPM** (dikelola oleh Nginx).
 
 ---
 
@@ -207,31 +227,33 @@ server {
     listen 80;
     server_name sim.maarif.nu; # Ganti domain
 
-    root /var/www/simmaci/dist; # Folder hasil build frontend
+    # ── Frontend (React SPA) ──
+    root /var/www/simmaci/dist;
     index index.html;
 
-    # Frontend (React Router Support)
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # Backend API Reverse Proxy
-    location /api/ {
-        # Hapus /api prefix saat meneruskan ke backend jika backend tidak pakai prefix global
-        # Tapi di struktur NestJS biasanya kita set global prefix atau sesuaikan di sini.
-        # Jika Backend Anda pakai prefix 'api', gunakan:
-        proxy_pass http://localhost:3000/api/; # Perhatikan trailing slash jika perlu rewrite
-        
-        # Jika di backend main.ts Anda TIDAK set globalPrefix 'api', tapi di Nginx pakai /api:
-        # rewrite ^/api/(.*)$ /$1 break;
-        # proxy_pass http://localhost:3000;
-        
-        # Opsi standar proxy
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+    # ── Backend API (Laravel via PHP-FPM) ──
+    location /api {
+        alias /var/www/simmaci/backend/public;
+        try_files $uri $uri/ @laravel;
+
+        location ~ \.php$ {
+            fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME $request_filename;
+            include fastcgi_params;
+        }
+    }
+
+    location @laravel {
+        rewrite ^/api/(.*)$ /api/index.php/$1 last;
+    }
+
+    # ── Deny dotfiles ──
+    location ~ /\.(?!well-known) {
+        deny all;
     }
 }
 ```
@@ -272,14 +294,27 @@ Buka domain Anda `https://sim.maarif.nu`.
 ## 🛠️ Troubleshooting (Jika Error)
 
 1. **Backend Error:**
-   Cek log PM2:
+   Cek log Laravel:
 
    ```bash
-   pm2 logs sim-backend
+   tail -f /var/www/simmaci/backend/storage/logs/laravel.log
    ```
 
 2. **Nginx 502 Bad Gateway:**
-   Artinya Backend mati. Cek `pm2 list` atau pastikan port backend benar (3000).
+   Artinya PHP-FPM mati. Cek status:
+
+   ```bash
+   sudo systemctl status php8.2-fpm
+   sudo systemctl restart php8.2-fpm
+   ```
 
 3. **Halaman White Page di Production:**
    Seringkali karena path asset salah. Pastikan build frontend sukses dan `index.html` bisa diakses.
+
+4. **Permission Error (500):**
+   Pastikan `storage/` dan `bootstrap/cache/` writable:
+
+   ```bash
+   sudo chmod -R 775 /var/www/simmaci/backend/storage
+   sudo chmod -R 775 /var/www/simmaci/backend/bootstrap/cache
+   ```

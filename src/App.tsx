@@ -43,6 +43,8 @@ import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 
+import { PageTransition } from "./components/common/PageTransition"
+
 // Attendance Module
 import QrScannerPage from "./features/attendance/QrScannerPage"
 import TeacherAttendancePage from "./features/attendance/TeacherAttendancePage"
@@ -57,10 +59,12 @@ import AttendanceSettingsPage from "./features/attendance/AttendanceSettingsPage
 const queryClient = new QueryClient()
 
 export default function App() {
+  console.log("App Rendering...");
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          <Route path="/test-render" element={<div className="p-10 bg-red-500 text-white">TEST ROUTE WORKING</div>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/verify/:id" element={<PublicVerificationPage />} />
           <Route path="/verify/teacher/:nuptk" element={<VerifyTeacherPage />} />
@@ -73,6 +77,7 @@ export default function App() {
               <ProtectedLayout>
                   <AppShell>
                     <GlobalErrorBoundary>
+                      <PageTransition>
                       <Routes>
                         <Route path="/" element={<DashboardPage />} />
                         <Route path="master/schools" element={<SchoolListPage />} />
@@ -122,6 +127,7 @@ export default function App() {
                         <Route path="attendance/schedule" element={<LessonSchedulePage />} />
                         <Route path="attendance/settings" element={<AttendanceSettingsPage />} />
                       </Routes>
+                      </PageTransition>
                     </GlobalErrorBoundary>
                   </AppShell>
               </ProtectedLayout>
@@ -129,6 +135,7 @@ export default function App() {
           />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<div className="p-10 text-center">404 - Page Not Found (Catch-all)</div>} />
         </Routes>
         <Toaster />
       </BrowserRouter>

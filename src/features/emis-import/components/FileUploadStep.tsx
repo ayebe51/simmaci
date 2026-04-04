@@ -69,6 +69,7 @@ export default function FileUploadStep({ onFileAccepted, disabled }: FileUploadS
                  const headers = Object.keys(jsonData[0] as object)
                  // Artificial delay for UX
                  setTimeout(() => {
+                    console.log("[DEBUG EXCEL IMPORT] Final JSON payload to be sent to backend:", JSON.stringify(jsonData, null, 2))
                     onFileAccepted(file, headers, jsonData)
                     setIsProcessing(false)
                  }, 800)

@@ -1,7 +1,4 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,15 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FileText, Download, Printer, Users, CalendarDays, Loader2, Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Input } from "@/components/ui/input";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { attendanceApi } from "@/lib/api";
 
 const statusColors: Record<string, string> = {
   Hadir: "text-emerald-600 font-bold",
   Sakit: "text-yellow-600 font-bold",
   Izin: "text-blue-600 font-bold",
   Alpa: "text-red-600 font-bold",
-  Alpha: "text-red-600 font-bold",
 };
 
 const statusShort: Record<string, string> = {
@@ -25,40 +22,34 @@ const statusShort: Record<string, string> = {
   Sakit: "S",
   Izin: "I",
   Alpa: "A",
-  Alpha: "A", // Backend transition support
 };
 
 export default function StudentAttendanceReportPage() {
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
-  const schoolId = user?.schoolId as Id<"schools"> | undefined;
-
   const { search } = useLocation();
   const queryParams = new URLSearchParams(search);
-  const classParam = queryParams.get("className");
+  const classIdParam = queryParams.get("classId");
 
   const [bulan, setBulan] = useState(new Date().toISOString().split("-").slice(0, 2).join("-"));
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
 
-  const classes = useQuery(api.classes.listActive, schoolId ? { schoolId } : "skip");
-  const subjects = useQuery(api.subjects.listActive, schoolId ? { schoolId } : "skip");
-
-  // Auto-select class from query param
   useEffect(() => {
-    if (classParam && classes) {
-      const found = classes.find(c => c.nama === classParam);
-      if (found) setSelectedClassId(found._id);
-    }
-  }, [classParam, classes]);
+    if (classIdParam) setSelectedClassId(classIdParam);
+  }, [classIdParam]);
 
-  const classIdTyped = selectedClassId ? selectedClassId as Id<"classes"> : undefined;
-  const subjectIdTyped = selectedSubjectId ? selectedSubjectId as Id<"subjects"> : undefined;
+  // 🔥 REST API QUERIES
+  const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: attendanceApi.classList });
+  const { data: subjects = [] } = useQuery({ queryKey: ['subjects'], queryFn: attendanceApi.subjectList });
 
-  const reportData = useQuery(
-    api.studentAttendance.getMonthlyClassReport,
-    classIdTyped && subjectIdTyped ? { classId: classIdTyped, subjectId: subjectIdTyped, bulan } : "skip"
-  );
+  const { data: reportData, isLoading } = useQuery({
+    queryKey: ['attendance', 'report', selectedClassId, selectedSubjectId, bulan],
+    queryFn: () => attendanceApi.studentReport({ 
+        class_id: selectedClassId, 
+        subject_id: selectedSubjectId, 
+        bulan 
+    }),
+    enabled: !!selectedClassId && !!selectedSubjectId && !!bulan
+  });
 
   const daysInMonth = useMemo(() => {
     const [year, month] = bulan.split("-").map(Number);
@@ -76,11 +67,10 @@ export default function StudentAttendanceReportPage() {
   const handleExportExcel = () => {
     if (!reportData) return;
 
-    // Build headers explicitly to ensure "No", "NISN", "Nama" are on the left
     const dayHeaders = daysInMonth.map(d => String(d.day));
     const allHeaders = ["No", "NISN", "Nama", ...dayHeaders, "H", "S", "I", "A"];
 
-    const data = reportData.students.map((student, idx) => {
+    const data = reportData.students.map((student: any, idx: number) => {
       const row: any = {
         No: idx + 1,
         NISN: student.nisn,
@@ -88,15 +78,13 @@ export default function StudentAttendanceReportPage() {
       };
       let hCount = 0, sCount = 0, iCount = 0, aCount = 0;
       daysInMonth.forEach(d => {
-        const stat = reportData.attendance[student.id]?.[d.fullDate];
-        const statusStr = String(stat || "").toLowerCase();
+        const stat = reportData.matrix[student.id]?.[d.fullDate];
+        row[String(d.day)] = stat ? statusShort[stat] || "-" : "-";
         
-        row[String(d.day)] = stat ? statusShort[stat] || statusShort[stat.charAt(0).toUpperCase() + stat.slice(1).toLowerCase()] : "-";
-        
-        if (statusStr === "hadir") hCount++;
-        else if (statusStr === "sakit") sCount++;
-        else if (statusStr === "izin") iCount++;
-        else if (statusStr === "alpa" || statusStr === "alpha") aCount++;
+        if (stat === "Hadir") hCount++;
+        else if (stat === "Sakit") sCount++;
+        else if (stat === "Izin") iCount++;
+        else if (stat === "Alpa") aCount++;
       });
       row["H"] = hCount;
       row["S"] = sCount;
@@ -108,8 +96,7 @@ export default function StudentAttendanceReportPage() {
     const ws = XLSX.utils.json_to_sheet(data, { header: allHeaders });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Rekap Absensi");
-    
-    XLSX.writeFile(wb, `Rekap_Absensi_${reportData.className}_${bulan}.xlsx`);
+    XLSX.writeFile(wb, `Rekap_Absensi_${reportData.class_name}_${bulan}.xlsx`);
   };
 
   const handlePrint = () => window.print();
@@ -118,256 +105,134 @@ export default function StudentAttendanceReportPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-800">Laporan Absensi Siswa</h1>
-          <p className="text-muted-foreground">Rekapitulasi kehadiran bulanan per mata pelajaran.</p>
+          <h1 className="text-2xl font-bold text-slate-800">Laporan Absensi Siswa</h1>
+          <p className="text-slate-500 text-sm mt-1">Rekapitulasi kehadiran bulanan per mata pelajaran</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportExcel} disabled={!reportData}>
+          <Button variant="outline" className="rounded-lg shadow-sm" onClick={handleExportExcel} disabled={!reportData}>
             <Download className="mr-2 h-4 w-4" /> Excel
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePrint} disabled={!reportData}>
+          <Button className="bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md" onClick={handlePrint} disabled={!reportData}>
             <Printer className="mr-2 h-4 w-4" /> Cetak PDF
           </Button>
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { size: landscape; margin: 0.5cm; }
-          
-          /* Hide all global wrapper elements */
-          aside, header, footer, .print\\:hidden, 
-          div[class*="bg-emerald-400"], div[class*="bg-blue-400"], div[class*="bg-amber-400"] { 
-            display: none !important; 
-          }
-          
-          body { 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
-            background: white !important;
-            font-family: "Times New Roman", Times, serif;
-            overflow: visible !important;
-            height: auto !important;
-          }
-          
-          /* Reset main content container */
-          main, .flex-1, .h-screen { 
-            display: block !important; 
-            padding: 0 !important; 
-            margin: 0 !important; 
-            overflow: visible !important;
-            height: auto !important;
-            max-width: none !important;
-          }
-
-          .shadow-xl, .shadow-sm, .shadow { box-shadow: none !important; border: none !important; }
-          .border-slate-200 { border: none !important; }
-          .p-0, .p-6 { padding: 0 !important; }
-          
-          table { 
-            font-size: 8px !important; 
-            width: 100% !important; 
-            border-collapse: collapse !important; 
-            border: 1px solid black !important;
-            margin-top: 10px !important;
-            table-layout: auto !important;
-          }
-          th, td { 
-            padding: 1px !important; 
-            border: 0.5pt solid black !important; 
-            color: black !important;
-            line-height: 1 !important;
-          }
-          th { background-color: #f1f5f9 !important; font-weight: bold !important; }
-          
-          /* Force small widths for columns to avoid cutoff */
-          .w-\\[50px\\] { width: 30px !important; min-width: 30px !important; }
-          .w-\\[250px\\] { width: 140px !important; min-width: 140px !important; word-break: break-all !important; }
-          .min-w-\\[32px\\] { width: 18px !important; min-width: 18px !important; }
-          .w-\\[60px\\] { width: 22px !important; min-width: 22px !important; }
-          
-          .bg-slate-50 { background-color: transparent !important; }
-          .bg-emerald-50 { background-color: #f0fdf4 !important; }
-          .bg-yellow-50 { background-color: #fefce8 !important; }
-          .bg-blue-50 { background-color: #eff6ff !important; }
-          .bg-red-50 { background-color: #fef2f2 !important; }
-          
-          .sticky { position: static !important; }
-          h1, h2, h3 { color: black !important; margin: 0 !important; }
-          
-          .kop-surat {
-            border-bottom: 3px double black;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-          }
-        }
-      `}} />
-
       {/* Filters */}
-      <Card className="print:hidden border-slate-200 shadow-sm">
-        <CardHeader className="pb-3 text-slate-800">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Search className="w-4 h-4 text-slate-500" /> Filter Laporan
+      <Card className="print:hidden border-0 shadow-sm rounded-xl">
+        <CardHeader className="pb-3 border-b bg-slate-50/50">
+            <CardTitle className="text-xs font-bold flex items-center gap-2 text-slate-500 uppercase tracking-widest">
+                <Search className="w-4 h-4" /> Filter Pencarian
             </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-4">
+        <CardContent className="p-6 grid gap-4 md:grid-cols-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase">Bulan</label>
-            <Input type="month" value={bulan} onChange={(e) => setBulan(e.target.value)} />
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Periode Bulan</label>
+            <Input type="month" value={bulan} onChange={(e) => setBulan(e.target.value)} className="rounded-lg h-10" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase">Kelas</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Kelas</label>
             <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
+              <SelectTrigger className="rounded-lg h-10"><SelectValue placeholder="Pilih Kelas" /></SelectTrigger>
               <SelectContent>
-                {classes?.map(c => <SelectItem key={c._id} value={c._id}>{c.nama}</SelectItem>)}
+                {classes.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nama}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-500 uppercase">Mata Pelajaran</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Mata Pelajaran</label>
             <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-              <SelectTrigger title="Pilih Mapel"><SelectValue placeholder="Pilih Mapel" /></SelectTrigger>
+              <SelectTrigger className="rounded-lg h-10"><SelectValue placeholder="Pilih Mapel" /></SelectTrigger>
               <SelectContent>
-                {subjects?.map(subj => <SelectItem key={subj._id} value={subj._id}>{subj.nama}</SelectItem>)}
+                {subjects.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-end">
-            <p className="text-[10px] text-slate-400 italic">Pilih filter untuk memuat data laporan.</p>
-          </div>
+          <p className="text-[10px] text-slate-400 italic font-medium leading-tight">
+             Laporan akan otomatis dimuat setelah filter lengkap.
+          </p>
         </CardContent>
       </Card>
 
       {/* Matrix Table */}
-      <Card className="border-slate-200 shadow-xl overflow-hidden">
+      <Card className="border-0 shadow-sm rounded-xl overflow-hidden relative min-h-[400px]">
         <CardContent className="p-0">
           {!selectedClassId || !selectedSubjectId ? (
-            <div className="py-20 text-center text-slate-400">
-              <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p className="font-medium">Silakan pilih Filter terlebih dahulu.</p>
+            <div className="py-24 text-center text-slate-400 flex flex-col items-center">
+              <CalendarDays className="w-16 h-16 mx-auto mb-4 opacity-10" />
+              <p className="text-sm font-bold tracking-tight">Tentukan Filter Terlebih Dahulu</p>
+              <p className="text-[10px] uppercase font-bold tracking-widest mt-1 opacity-50">Data rekapitulasi akan muncul di sini</p>
             </div>
-          ) : reportData === undefined ? (
-            <div className="py-20 text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-500 mb-2" />
-              <p className="text-sm text-slate-500">Memproses data laporan...</p>
-            </div>
-          ) : (reportData as any)?.error ? (
-            <div className="py-20 text-center text-red-500">
-              <p className="font-bold">Error!</p>
-              <p className="text-sm">{(reportData as any).error}</p>
+          ) : isLoading ? (
+            <div className="py-24 text-center">
+              <Loader2 className="w-10 h-10 animate-spin mx-auto text-emerald-500 mb-4" />
+              <p className="text-sm font-bold text-slate-500">Mengkalkulasi Laporan...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto relative min-h-[400px]">
-               {/* PRINT HEADER (Kop Surat) */}
-               <div className="hidden print:block text-center kop-surat">
-                 <h2 className="text-xl font-bold uppercase leading-tight">Lembaga Pendidikan Ma'arif NU Cilacap</h2>
-                 <h3 className="text-lg font-bold uppercase leading-tight">{user?.unitKerja || "Unit Kerja"}</h3>
-                 <p className="text-xs italic mt-1">Sistem Informasi Manajemen Madrasah Cilacap (SIMMACI)</p>
-                 
-                 <div className="flex justify-between items-end mt-6 text-left text-xs">
-                    <div className="space-y-1">
-                       <p><span className="font-bold">Mata Pelajaran:</span> {subjects?.find(s => s._id === selectedSubjectId)?.nama}</p>
-                       <p><span className="font-bold">Kelas:</span> {reportData.className}</p>
-                    </div>
-                    <div className="text-right space-y-1">
-                       <p className="text-sm font-bold underline capitalize">Rekapitulasi Absensi Siswa</p>
-                       <p><span className="font-bold">Periode:</span> {new Date(bulan).toLocaleDateString('id-ID', {month:'long', year:'numeric'})}</p>
-                    </div>
-                 </div>
-               </div>
-
+            <div className="overflow-x-auto relative">
               <Table className="border-collapse">
                 <TableHeader>
-                  <TableRow className="bg-slate-50 print:bg-slate-100">
-                    <TableHead className="w-[50px] border text-center font-bold sticky left-0 bg-slate-50 z-20">No</TableHead>
-                    <TableHead className="w-[250px] border font-bold sticky left-[50px] bg-slate-50 z-20">Nama Siswa</TableHead>
+                  <TableRow className="bg-slate-50 border-b-2">
+                    <TableHead className="w-10 border-x text-center font-black sticky left-0 bg-slate-50 z-20 text-[10px]">NO</TableHead>
+                    <TableHead className="w-[180px] border-x font-black sticky left-10 bg-slate-50 z-20 text-[10px]">NAMA SISWA</TableHead>
                     {daysInMonth.map(d => (
-                      <TableHead key={d.day} className="border text-center p-1 min-w-[32px] font-bold text-[10px]">
+                      <TableHead key={d.day} className="border-x text-center p-0.5 min-w-[28px] font-black text-[9px] leading-tight">
                         <div className="flex flex-col">
-                          <span>{d.dayName}</span>
-                          <span className="text-slate-900 border-t mt-0.5">{d.day}</span>
+                          <span className="text-slate-400">{d.dayName}</span>
+                          <span className="text-slate-800 border-t mt-0.5 pt-0.5">{d.day}</span>
                         </div>
                       </TableHead>
                     ))}
-                    <TableHead className="w-[60px] border text-center font-bold bg-emerald-50">H</TableHead>
-                    <TableHead className="w-[60px] border text-center font-bold bg-yellow-50">S</TableHead>
-                    <TableHead className="w-[60px] border text-center font-bold bg-blue-50">I</TableHead>
-                    <TableHead className="w-[60px] border text-center font-bold bg-red-50">A</TableHead>
+                    <TableHead className="border-x text-center font-black bg-emerald-50 text-[10px] text-emerald-700">H</TableHead>
+                    <TableHead className="border-x text-center font-black bg-yellow-50 text-[10px] text-yellow-700">S</TableHead>
+                    <TableHead className="border-x text-center font-black bg-blue-50 text-[10px] text-blue-700">I</TableHead>
+                    <TableHead className="border-x text-center font-black bg-red-50 text-[10px] text-red-700">A</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {reportData.students.map((student, idx) => {
+                  {reportData.students.map((student: any, idx: number) => {
                     let hCount = 0, sCount = 0, iCount = 0, aCount = 0;
                     return (
-                      <TableRow key={student.id} className="hover:bg-slate-50 transition-colors">
-                        <TableCell className="text-center border sticky left-0 bg-white z-10">{idx + 1}</TableCell>
-                        <TableCell className="border font-medium sticky left-[50px] bg-white z-10 truncate max-w-[250px]">
+                      <TableRow key={student.id} className="hover:bg-slate-50 transition-colors border-b">
+                        <TableCell className="text-center border-x p-2 font-mono text-xs text-slate-400 sticky left-0 bg-white z-10">{idx + 1}</TableCell>
+                        <TableCell className="border-x p-2 font-bold text-xs sticky left-10 bg-white z-10 truncate max-w-[180px] text-slate-700">
                             {student.nama}
-                            <p className="text-[10px] text-slate-400 font-mono mt-0.5 print:hidden">{student.nisn}</p>
                         </TableCell>
                         {daysInMonth.map(d => {
-                          const status = reportData.attendance[student.id]?.[d.fullDate];
-                          const statusStr = String(status || "").toLowerCase();
-                          
-                          if (statusStr === "hadir") hCount++;
-                          else if (statusStr === "sakit") sCount++;
-                          else if (statusStr === "izin") iCount++;
-                          else if (statusStr === "alpa" || statusStr === "alpha") aCount++;
+                          const status = reportData.matrix[student.id]?.[d.fullDate];
+                          if (status === "Hadir") hCount++;
+                          else if (status === "Sakit") sCount++;
+                          else if (status === "Izin") iCount++;
+                          else if (status === "Alpa") aCount++;
 
                           return (
-                            <TableCell key={d.day} className={`text-center p-0 border text-[11px] h-10 ${status ? "" : "bg-slate-50/30"}`}>
-                              <span className={status ? statusColors[status] || statusColors[status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()] : ""}>
-                                {status ? statusShort[status] || statusShort[status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()] : "-"}
+                            <TableCell key={d.day} className={`text-center p-0.5 border-x text-[10px] h-10 ${status ? "" : "bg-slate-50/20"}`}>
+                              <span className={status ? statusColors[status] : "text-slate-200"}>
+                                {status ? statusShort[status] : "—"}
                               </span>
                             </TableCell>
                           );
                         })}
-                        <TableCell className="text-center border font-black bg-emerald-50/30 text-emerald-700">{hCount || "-"}</TableCell>
-                        <TableCell className="text-center border font-black bg-yellow-50/30 text-yellow-700">{sCount || "-"}</TableCell>
-                        <TableCell className="text-center border font-black bg-blue-50/30 text-blue-700">{iCount || "-"}</TableCell>
-                        <TableCell className="text-center border font-black bg-red-50/30 text-red-700">{aCount || "-"}</TableCell>
+                        <TableCell className="text-center border-x font-black bg-emerald-50/50 text-emerald-700 text-xs">{hCount || "-"}</TableCell>
+                        <TableCell className="text-center border-x font-black bg-yellow-50/50 text-yellow-700 text-xs">{sCount || "-"}</TableCell>
+                        <TableCell className="text-center border-x font-black bg-blue-50/50 text-blue-700 text-xs">{iCount || "-"}</TableCell>
+                        <TableCell className="text-center border-x font-black bg-red-50/50 text-red-700 text-xs">{aCount || "-"}</TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-
-               {/* LEGEND & SIGNATURE (Print only) */}
-               <div className="hidden print:block mt-8 text-xs">
-                  <div className="flex justify-between">
-                      <div className="space-y-1 border p-2 rounded max-w-xs">
-                          <p className="font-bold border-b pb-1 mb-1">Keterangan:</p>
-                          <div className="grid grid-cols-2 gap-x-4">
-                              <p>H: Hadir</p>
-                              <p>S: Sakit</p>
-                              <p>I: Izin</p>
-                              <p>A: Alpa</p>
-                          </div>
-                      </div>
-                      
-                      <div className="flex gap-20">
-                          <div className="text-center w-40">
-                              <p>Mengetahui,</p>
-                              <p className="mb-16">Kepala Madrasah</p>
-                              <p className="font-bold underline">( ............................ )</p>
-                          </div>
-                          <div className="text-center w-40">
-                              <p>Cilacap, {new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p>
-                              <p className="mb-16">Guru Mata Pelajaran</p>
-                              <p className="font-bold underline">( {user?.nama || "............................"} )</p>
-                          </div>
-                      </div>
-                  </div>
-               </div>
             </div>
           )}
         </CardContent>
       </Card>
       
-      <p className="text-[10px] text-slate-400 italic text-center print:hidden uppercase tracking-widest font-bold">
-        SIMMACI DIGITAL REKAPITULASI • PERSENSI OTOMATIS
-      </p>
+      <div className="flex justify-center items-center gap-6 print:hidden">
+        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500"></span><span className="text-[10px] font-bold text-slate-500">H: HADIR</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-500"></span><span className="text-[10px] font-bold text-slate-500">S: SAKIT</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span><span className="text-[10px] font-bold text-slate-500">I: IZIN</span></div>
+        <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500"></span><span className="text-[10px] font-bold text-slate-500">A: ALPA</span></div>
+      </div>
     </div>
   );
 }

@@ -1,210 +1,201 @@
 import { useState } from "react"
-import { useQuery, useMutation } from "convex/react"
-import { api } from "../../../convex/_generated/api"
+import { useQuery } from "@tanstack/react-query"
+import { nuptkApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, XCircle, Clock, Eye, Download } from "lucide-react"
+import { CheckCircle, XCircle, Clock, Eye, Download, Loader2, Filter, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import SoftPageHeader from "@/components/ui/SoftPageHeader"
-import { Id } from "../../../convex/_generated/dataModel"
+import { Label } from "@/components/ui/label"
 
 export function PersetujuanNuptkPage() {
-    const submissions = useQuery(api.nuptk.listRequests, {}) || []
+    const [statusFilter, setStatusFilter] = useState<string>("Pending")
     
-    // Status Filter
-    const [statusFilter, setStatusFilter] = useState<"All" | "Pending" | "Approved" | "Rejected">("Pending")
-    
-    // Approval Modal State
+    // 🔥 REST API QUERY
+    const { data: submissionsRes, isLoading, refetch } = useQuery({
+        queryKey: ['nuptk-submissions-admin', statusFilter],
+        queryFn: () => nuptkApi.list({ status: statusFilter !== 'All' ? statusFilter : undefined, per_page: 100 })
+    })
+
+    const submissions = submissionsRes?.data || []
+
     const [isApproveOpen, setIsApproveOpen] = useState(false)
     const [isRejectOpen, setIsRejectOpen] = useState(false)
+    const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [selectedSub, setSelectedSub] = useState<any>(null)
-    const [rejectionReason, setRejectionReason] = useState("")
     const [isProcessing, setIsProcessing] = useState(false)
 
-    // Details Modal State
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-
-    const updateStatus = useMutation(api.nuptk.updateStatus)
+    // Approval Data
+    const [recomNumber, setRecomNumber] = useState("")
+    const [recomDate, setRecomDate] = useState("")
+    const [rejectionReason, setRejectionReason] = useState("")
 
     const handleApprove = async () => {
-        if (!selectedSub) return
+        if (!recomNumber || !recomDate) return toast.error("Lengkapi data rekomendasi")
         setIsProcessing(true)
-        const loadingId = toast.loading("Memproses persetujuan...")
         try {
-            await updateStatus({
-                id: selectedSub._id,
-                status: "Approved"
+            await nuptkApi.approve(selectedSub.id, {
+                nomor_surat_rekomendasi: recomNumber,
+                tanggal_surat_rekomendasi: recomDate
             })
-            toast.success("Pengajuan disetujui!", { id: loadingId })
+            toast.success("Pengajuan disetujui")
             setIsApproveOpen(false)
-            setSelectedSub(null)
+            refetch()
         } catch (error: any) {
-            toast.error(error.message || "Gagal menyetujui pengajuan", { id: loadingId })
+            toast.error(error.response?.data?.message || "Gagal menyetujui")
         } finally {
             setIsProcessing(false)
         }
     }
 
     const handleReject = async () => {
-        if (!selectedSub || !rejectionReason.trim()) {
-            toast.error("Alasan penolakan wajib diisi!")
-            return
-        }
+        if (!rejectionReason.trim()) return toast.error("Alasan wajib diisi")
         setIsProcessing(true)
-        const loadingId = toast.loading("Memproses penolakan...")
         try {
-            await updateStatus({
-                id: selectedSub._id,
-                status: "Rejected",
-                rejectionReason
-            })
-            toast.success("Pengajuan ditolak", { id: loadingId })
+            await nuptkApi.reject(selectedSub.id, { rejection_reason: rejectionReason })
+            toast.success("Pengajuan ditolak")
             setIsRejectOpen(false)
-            setSelectedSub(null)
-            setRejectionReason("")
+            refetch()
         } catch (error: any) {
-            toast.error(error.message || "Gagal menolak pengajuan", { id: loadingId })
+            toast.error(error.response?.data?.message || "Gagal menolak")
         } finally {
             setIsProcessing(false)
         }
     }
 
-    const filteredSubmissions = submissions.filter(s => statusFilter === "All" || s.status === statusFilter)
-
     return (
-        <div className="space-y-6">
-            <SoftPageHeader 
-                title="Persetujuan NUPTK"
-                description="Verifikasi dokumen dan berikan keputusan atas pengajuan NUPTK dari lembaga."
-            />
+        <div className="space-y-10 pb-20">
+            <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic">Validasi Berkas NUPTK</h1>
+                    <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2">
+                        <AlertCircle className="w-3 h-3 text-blue-500" /> Verifikasi data & Terbitkan Surat Rekomendasi Resmi
+                    </p>
+                </div>
+                <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl">
+                    {["Pending", "Approved", "Rejected", "All"].map((s) => (
+                        <Button key={s} variant="ghost" onClick={() => setStatusFilter(s)} className={`h-10 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === s ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>
+                            {s}
+                        </Button>
+                    ))}
+                </div>
+            </div>
 
-            <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden relative z-10 flex flex-col h-full rounded-2xl">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-emerald-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[100px] pointer-events-none rounded-full" />
-                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between pb-5 border-b border-white/60 bg-white/40 px-6 pt-6 gap-4">
-                    <CardTitle className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">Antrean Pengajuan</CardTitle>
-                    <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                        <Button variant={statusFilter === "Pending" ? "default" : "outline"} onClick={() => setStatusFilter("Pending")} size="sm" className={statusFilter === "Pending" ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm" : "bg-white/60 hover:bg-emerald-50 text-slate-600"}>Pending</Button>
-                        <Button variant={statusFilter === "Approved" ? "default" : "outline"} onClick={() => setStatusFilter("Approved")} size="sm" className={statusFilter === "Approved" ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm" : "bg-white/60 hover:bg-emerald-50 text-slate-600"}>Disetujui</Button>
-                        <Button variant={statusFilter === "Rejected" ? "default" : "outline"} onClick={() => setStatusFilter("Rejected")} size="sm" className={statusFilter === "Rejected" ? "bg-red-600 hover:bg-red-700 shadow-sm" : "bg-white/60 hover:bg-red-50 text-slate-600"}>Ditolak</Button>
-                        <Button variant={statusFilter === "All" ? "default" : "outline"} onClick={() => setStatusFilter("All")} size="sm" className={statusFilter === "All" ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm" : "bg-white/60 hover:bg-emerald-50 text-slate-600"}>Semua</Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="border-0 h-[550px] overflow-auto">
-                        <Table>
-                            <TableHeader className="bg-emerald-50/80 sticky top-0 z-10 backdrop-blur-sm">
-                                <TableRow className="border-b border-emerald-100/60 hover:bg-transparent">
-                                    <TableHead className="font-semibold text-emerald-800 tracking-wide pl-6">Nama Guru</TableHead>
-                                    <TableHead className="font-semibold text-emerald-800 tracking-wide">Lembaga Induk</TableHead>
-                                    <TableHead className="font-semibold text-emerald-800 tracking-wide">Tanggal Pengajuan</TableHead>
-                                    <TableHead className="font-semibold text-emerald-800 tracking-wide">Status</TableHead>
-                                    <TableHead className="text-right font-semibold text-emerald-800 tracking-wide pr-6">Aksi</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredSubmissions.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-48 text-muted-foreground">
-                                            Tidak ada data pengajuan dengan status {statusFilter}.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : filteredSubmissions.map(sub => (
-                                    <TableRow key={sub._id} className="hover:bg-slate-50/50">
-                                        <TableCell className="font-medium pl-6">{sub.teacherName}</TableCell>
-                                        <TableCell>{sub.schoolName}</TableCell>
-                                        <TableCell>{new Date(sub.submittedAt).toLocaleDateString("id-ID", { day: '2-digit', month: 'long', year: 'numeric' })}</TableCell>
-                                        <TableCell>
-                                            {sub.status === "Pending" && <Badge variant="secondary" className="bg-amber-100 text-amber-800"><Clock className="w-3 h-3 mr-1"/> Pending</Badge>}
-                                            {sub.status === "Approved" && <Badge variant="secondary" className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1"/> Disetujui</Badge>}
-                                            {sub.status === "Rejected" && <Badge variant="secondary" className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1"/> Ditolak</Badge>}
-                                        </TableCell>
-                                        <TableCell className="text-right flex justify-end gap-2 pr-6">
-                                            <Button variant="outline" size="sm" onClick={() => {
-                                                setSelectedSub(sub)
-                                                setIsDetailsOpen(true)
-                                            }} className="hover:bg-slate-100 bg-white">
-                                                <Eye className="w-4 h-4 mr-1" /> Berkas
+            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader className="bg-slate-50 border-b border-slate-100">
+                            <TableRow>
+                                <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Informasi Guru</TableHead>
+                                <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Lembaga Induk</TableHead>
+                                <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal</TableHead>
+                                <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Status</TableHead>
+                                <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Manajemen</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow><TableCell colSpan={5} className="text-center py-24 animate-pulse uppercase font-black text-slate-300 text-xs italic tracking-widest">Verifying Submission Data...</TableCell></TableRow>
+                            ) : submissions.length === 0 ? (
+                                <TableRow><TableCell colSpan={5} className="text-center py-24 font-bold text-slate-300 text-xs italic">Tidak ada pengajuan ditemukan</TableCell></TableRow>
+                            ) : submissions.map((sub: any) => (
+                                <TableRow key={sub.id} className="hover:bg-slate-50/30 transition-colors">
+                                    <TableCell className="p-8">
+                                        <div className="font-black text-slate-800 text-sm tracking-tight">{sub.teacher?.nama}</div>
+                                        <div className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">NIP: {sub.teacher?.nip || '-'}</div>
+                                    </TableCell>
+                                    <TableCell className="p-8 font-bold text-slate-500 text-xs">{sub.school?.nama}</TableCell>
+                                    <TableCell className="p-8 text-xs font-bold text-slate-400">{new Date(sub.submitted_at).toLocaleDateString("id-ID", {day:'numeric', month:'long', year:'numeric'})}</TableCell>
+                                    <TableCell className="p-8 text-center">
+                                        <div className={`inline-flex items-center px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tight ${
+                                            sub.status === "Approved" ? "bg-emerald-100 text-emerald-700" :
+                                            sub.status === "Rejected" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                                        }`}>
+                                            {sub.status === "Pending" && <Clock className="w-3 h-3 mr-2" />}
+                                            {sub.status}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="p-8 text-right">
+                                        <div className="flex justify-end gap-3">
+                                            <Button variant="outline" size="sm" onClick={() => { setSelectedSub(sub); setIsDetailsOpen(true)}} className="h-10 rounded-xl px-4 border-slate-200 font-black uppercase text-[10px] tracking-widest">
+                                                <Eye className="w-4 h-4 mr-2 text-blue-500" /> Berkas
                                             </Button>
-                                            
                                             {sub.status === "Pending" && (
                                                 <>
-                                                    <Button variant="outline" size="sm" className="text-green-600 border-green-200 bg-white hover:bg-green-50" onClick={() => {
-                                                        setSelectedSub(sub)
-                                                        setIsApproveOpen(true)
-                                                    }}>
-                                                        Setujui
-                                                    </Button>
-                                                    <Button variant="outline" size="sm" className="text-red-700 border-red-200 bg-white hover:bg-red-50" onClick={() => {
-                                                        setSelectedSub(sub)
-                                                        setRejectionReason("")
-                                                        setIsRejectOpen(true)
-                                                    }}>
-                                                        Tolak
-                                                    </Button>
+                                                    <Button onClick={() => { setSelectedSub(sub); setRecomNumber(""); setRecomDate(""); setIsApproveOpen(true)}} className="h-10 rounded-xl px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest">Valid</Button>
+                                                    <Button variant="ghost" onClick={() => { setSelectedSub(sub); setRejectionReason(""); setIsRejectOpen(true)}} className="h-10 rounded-xl px-6 text-rose-600 font-black uppercase text-[10px] tracking-widest hover:bg-rose-50">Reject</Button>
                                                 </>
                                             )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </Card>
 
-            {/* Berkas Modal */}
+            {/* Details Modal */}
             <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                <DialogContent className="max-w-xl">
+                <DialogContent className="max-w-2xl rounded-[2.5rem] p-10 border-0 shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle>Berkas Persyaratan: {selectedSub?.teacherName}</DialogTitle>
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight">E-Dossier: {selectedSub?.teacher?.nama}</DialogTitle>
+                        <DialogDescription className="font-bold text-slate-400 text-[10px] uppercase tracking-widest">Verifikasi Autentikasi Dokumen Fisik</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <FileLink label="1. KTP" storageId={selectedSub?.dokumenKtpId} />
-                        <FileLink label="2. Ijazah (SD s/d Terakhir)" storageId={selectedSub?.dokumenIjazahId} />
-                        <FileLink label="3. SK Pengangkatan" storageId={selectedSub?.dokumenPengangkatanId} />
-                        <FileLink label="4. SK Penugasan (Min. 2 Tahun)" storageId={selectedSub?.dokumenPenugasanId} />
+                    <div className="grid grid-cols-2 gap-4 py-8">
+                        <FileItem label="KARTU TANDA PENDUDUK" url={selectedSub?.dokumen_ktp_id} />
+                        <FileItem label="IJAZAH PENDIDIKAN" url={selectedSub?.dokumen_ijazah_id} />
+                        <FileItem label="SK PENGANGKATAN" url={selectedSub?.dokumen_pengangkatan_id} />
+                        <FileItem label="SK PENUGASAN BERKALA" url={selectedSub?.dokumen_penugasan_id} />
                     </div>
                 </DialogContent>
             </Dialog>
 
             {/* Approve Modal */}
             <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
-                <DialogContent>
+                <DialogContent className="rounded-[2.5rem] p-10 border-0 shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle>Setujui Pengajuan</DialogTitle>
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight text-emerald-600 italic">Penerbitan Rekomendasi</DialogTitle>
+                        <DialogDescription className="font-bold text-slate-400 text-[10px] uppercase">Input data surat pengantar untuk {selectedSub?.teacher?.nama}</DialogDescription>
                     </DialogHeader>
-                    <p className="py-4 text-sm text-slate-600">
-                        Apakah Anda yakin ingin menyetujui pengajuan rekomendasi NUPTK untuk <b>{selectedSub?.teacherName}</b> dari lembaga <b>{selectedSub?.schoolName}</b>?
-                    </p>
+                    <div className="space-y-6 py-8">
+                        <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-slate-400">Nomor Surat Rekomendasi</Label>
+                             <Input placeholder="Contoh: 123/PC.LP/XII/2023" value={recomNumber} onChange={e => setRecomNumber(e.target.value)} className="h-14 rounded-2xl border-slate-200 font-black text-slate-800" />
+                        </div>
+                        <div className="space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-slate-400">Tanggal Terbit</Label>
+                             <Input type="date" value={recomDate} onChange={e => setRecomDate(e.target.value)} className="h-14 rounded-2xl border-slate-200 font-bold" />
+                        </div>
+                    </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsApproveOpen(false)}>Batal</Button>
-                        <Button onClick={handleApprove} disabled={isProcessing} className="bg-green-600 hover:bg-green-700">Ya, Setujui</Button>
+                        <Button variant="ghost" onClick={() => setIsApproveOpen(false)} className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400">Batal</Button>
+                        <Button onClick={handleApprove} disabled={isProcessing} className="h-14 px-10 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100">
+                             {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : 'Terbitkan & Setujui'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Reject Modal */}
             <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-                <DialogContent>
+                <DialogContent className="rounded-[2.5rem] p-10 border-0 shadow-2xl">
                     <DialogHeader>
-                        <DialogTitle className="text-red-600">Tolak Pengajuan</DialogTitle>
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight text-rose-600 italic">Penolakan Berkas</DialogTitle>
+                        <DialogDescription className="font-bold text-slate-400 text-[10px] uppercase">Berikan alasan mengapa pengajuan ini tidak valid</DialogDescription>
                     </DialogHeader>
-                    <div className="py-4">
-                        <label className="text-sm font-medium mb-1 block">Alasan Penolakan</label>
-                        <Input 
-                            placeholder="Contoh: Dokumen KTP buram / Ijazah tidak terbaca" 
-                            value={rejectionReason}
-                            onChange={(e) => setRejectionReason(e.target.value)}
-                        />
+                    <div className="py-8">
+                        <Label className="text-[10px] font-black uppercase text-slate-400">Alasan Penolakan</Label>
+                        <Input placeholder="Contoh: Dokumen KTP tidak terbaca / buram" value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} className="h-14 rounded-2xl border-slate-200 mt-2 font-bold" />
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Batal</Button>
-                        <Button onClick={handleReject} disabled={isProcessing || !rejectionReason.trim()} variant="destructive">Tolak Pengajuan</Button>
+                        <Button variant="ghost" onClick={() => setIsRejectOpen(false)} className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400">Batal</Button>
+                        <Button onClick={handleReject} disabled={isProcessing} className="h-14 px-10 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-rose-100">
+                             {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : 'Kirim Penolakan'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -212,18 +203,17 @@ export function PersetujuanNuptkPage() {
     )
 }
 
-function FileLink({ label, storageId }: { label: string, storageId?: string }) {
-    const url = useQuery(api.nuptk.getDocumentUrl, { storageId }) || null
-    
+function FileItem({ label, url }: { label: string, url?: string }) {
     return (
-        <div className="flex justify-between items-center p-3 border rounded-lg bg-slate-50">
-            <span className="text-sm font-medium">{label}</span>
+        <div className="group relative bg-slate-50 p-6 rounded-3xl border border-slate-100 hover:border-blue-300 transition-all">
+            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">{label}</div>
             {url ? (
-                <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center text-xs bg-white border shadow-sm px-3 py-1.5 rounded-md hover:bg-slate-100 transition-colors text-blue-600">
-                    <Download className="w-3 h-3 mr-1" /> Unduh / Lihat
+                <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between font-bold text-slate-700 hover:text-blue-600">
+                    <span className="text-xs">Lihat Dokumen</span>
+                    <Download className="w-4 h-4 text-slate-300 group-hover:text-blue-500" />
                 </a>
             ) : (
-                <span className="text-xs text-red-500 italic">Berkas Kosong</span>
+                <span className="text-xs text-rose-400 font-bold italic">Berkas Kosong</span>
             )}
         </div>
     )

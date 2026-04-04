@@ -1,0 +1,250 @@
+﻿
+> sim-maarif-cilacap@1.0.0 build
+> vite build
+
+[36mvite v6.4.1 [32mbuilding for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 4772 modules transformed.
+npm : [33m[plugin vite:re
+porter] 
+At line:1 char:1
++ npm run build 2>&1 | Out
+-File -FilePath d:\apss-so
+urce\SIMMACI\build_ ...
++ ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (  
+  [33m[plugin vite:repo   
+ rter] :String) [], Re    
+moteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+(!) D:/apss-source/SIMMACI
+/src/lib/api.ts is dynamic
+ally imported by D:/apss-s
+ource/SIMMACI/src/features
+/sk-management/HeadmasterS
+ubmissionPage.tsx but also
+ statically imported by D:
+/apss-source/SIMMACI/src/c
+omponents/common/Notificat
+ionDropdown.tsx, D:/apss-s
+ource/SIMMACI/src/features
+/approval/YayasanApprovalP
+age.tsx, D:/apss-source/SI
+MMACI/src/features/attenda
+nce/AttendanceSettingsPage
+.tsx, D:/apss-source/SIMMA
+CI/src/features/attendance
+/ClassesPage.tsx, D:/apss-
+source/SIMMACI/src/feature
+s/attendance/LessonSchedul
+ePage.tsx, D:/apss-source/
+SIMMACI/src/features/atten
+dance/QrScannerPage.tsx, D
+:/apss-source/SIMMACI/src/
+features/attendance/Studen
+tAttendancePage.tsx, D:/ap
+ss-source/SIMMACI/src/feat
+ures/attendance/StudentAtt
+endanceReportPage.tsx, D:/
+apss-source/SIMMACI/src/fe
+atures/attendance/Subjects
+Page.tsx, D:/apss-source/S
+IMMACI/src/features/attend
+ance/TeacherAttendancePage
+.tsx, D:/apss-source/SIMMA
+CI/src/features/auth/Chang
+ePasswordPage.tsx, D:/apss
+-source/SIMMACI/src/featur
+es/auth/LoginPage.tsx, D:/
+apss-source/SIMMACI/src/fe
+atures/dashboard/Dashboard
+Page.tsx, D:/apss-source/S
+IMMACI/src/features/dashbo
+ard/components/DashboardOp
+erator.tsx, D:/apss-source
+/SIMMACI/src/features/even
+ts/CompetitionDetailPage.t
+sx, D:/apss-source/SIMMACI
+/src/features/events/Creat
+eEventPage.tsx, D:/apss-so
+urce/SIMMACI/src/features/
+events/EventDetailPage.tsx
+, D:/apss-source/SIMMACI/s
+rc/features/events/EventsP
+age.tsx, D:/apss-source/SI
+MMACI/src/features/events/
+components/ParticipantList
+.tsx, D:/apss-source/SIMMA
+CI/src/features/events/com
+ponents/ResultInput.tsx, D
+:/apss-source/SIMMACI/src/
+features/kta/KtaGeneratorP
+age.tsx, D:/apss-source/SI
+MMACI/src/features/kta/Stu
+dentCardPage.tsx, D:/apss-
+source/SIMMACI/src/feature
+s/master-data/DataAuditPag
+e.tsx, D:/apss-source/SIMM
+ACI/src/features/master-da
+ta/SchoolDetailPage.tsx, D
+:/apss-source/SIMMACI/src/
+features/master-data/Schoo
+lListPage.tsx, D:/apss-sou
+rce/SIMMACI/src/features/m
+aster-data/StudentListPage
+.tsx, D:/apss-source/SIMMA
+CI/src/features/master-dat
+a/TeacherListPage.tsx, D:/
+apss-source/SIMMACI/src/fe
+atures/monitoring/Headmast
+erExpiryPage.tsx, D:/apss-
+source/SIMMACI/src/feature
+s/mutations/MutationPage.t
+sx, D:/apss-source/SIMMACI
+/src/features/reports/Repo
+rtPage.tsx, D:/apss-source
+/SIMMACI/src/features/repo
+rts/SkReportPageSimple.tsx
+, D:/apss-source/SIMMACI/s
+rc/features/schools/School
+ProfilePage.tsx, D:/apss-s
+ource/SIMMACI/src/features
+/sdm/PengajuanNuptkPage.ts
+x, D:/apss-source/SIMMACI/
+src/features/sdm/Persetuju
+anNuptkPage.tsx, D:/apss-s
+ource/SIMMACI/src/features
+/settings/SettingsPage.tsx
+, D:/apss-source/SIMMACI/s
+rc/features/sk-management/
+HeadmasterSubmissionPage.t
+sx, D:/apss-source/SIMMACI
+/src/features/sk-managemen
+t/MySkPage.tsx, D:/apss-so
+urce/SIMMACI/src/features/
+sk-management/SkDashboardP
+age.tsx, D:/apss-source/SI
+MMACI/src/features/sk-mana
+gement/SkDetailPage.tsx, D
+:/apss-source/SIMMACI/src/
+features/sk-management/SkG
+eneratorPage.tsx, D:/apss-
+source/SIMMACI/src/feature
+s/sk-management/SkPrintPag
+e.tsx, D:/apss-source/SIMM
+ACI/src/features/sk-manage
+ment/SkRevisionListPage.ts
+x, D:/apss-source/SIMMACI/
+src/features/sk-management
+/SkRevisionPage.tsx, D:/ap
+ss-source/SIMMACI/src/feat
+ures/sk-management/SkSubmi
+ssionPage.tsx, D:/apss-sou
+rce/SIMMACI/src/features/s
+k-management/components/Bu
+lkSkSubmission.tsx, D:/aps
+s-source/SIMMACI/src/featu
+res/users/UserListPage.tsx
+, D:/apss-source/SIMMACI/s
+rc/features/verification/P
+ublicVerificationPage.tsx,
+ D:/apss-source/SIMMACI/sr
+c/features/verification/Ve
+rifyStudentPage.tsx, D:/ap
+ss-source/SIMMACI/src/feat
+ures/verification/VerifyTe
+acherPage.tsx, dynamic imp
+ort will not move module i
+nto another chunk.
+[39m
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mregisterSW.js              [39m[1m[2m    0.13 kB[22m[1m[22m
+[2mdist/[22m[32mmanifest.webmanifest       [39m[1m[2m    0.26 kB[22m[1m[22m
+[2mdist/[22m[32mindex.html                 [39m[1m[2m    0.80 kB[22m[1m[22m[2m Γöé gzip:     0.45 kB[22m
+[2mdist/[22m[35massets/index-DAfK_UXm.css  [39m[1m[2m   96.79 kB[22m[1m[22m[2m Γöé gzip:    15.28 kB[22m
+[33m
+(!) Some chunks are larger
+ than 500 kB after minific
+ation. Consider:
+- Using dynamic import() t
+o code-split the applicati
+on
+- Use build.rollupOptions.
+output.manualChunks to imp
+rove chunking: https://rol
+lupjs.org/configuration-op
+tions/#output-manualchunks
+- Adjust chunk size limit 
+for this warning via build
+.chunkSizeWarningLimit.[3
+9m
+[2mdist/[22m[36massets/index-DJ6ah25I.js   [39m[1m[33m3,539.46 kB[39m[22m[2m Γöé gzip: 1,047.61 kB[22m
+[32mΓ£ô built in 47.46s[39m
+[31merror during build:
+Error: 
+  Configure "workbox.maxim
+umFileSizeToCacheInBytes" 
+to change the limit: the d
+efault value is 2 MiB.
+  Check https://vite-pwa-o
+rg.netlify.app/guide/faq.h
+tml#missing-assets-from-sw
+-precache-manifest for mor
+e information.
+  Assets exceeding the lim
+it:
+  - assets/index-DJ6ah25I.
+js is 3.54 MB, and won't b
+e precached.
+
+    at logWorkboxResult (f
+ile:///D:/apss-source/SIMM
+ACI/node_modules/vite-plug
+in-pwa/dist/chunk-G4TAN34B
+.js:44:13)
+    at generateServiceWork
+er (file:///D:/apss-source
+/SIMMACI/node_modules/vite
+-plugin-pwa/dist/index.js:
+209:3)
+    at async _generateSW (
+file:///D:/apss-source/SIM
+MACI/node_modules/vite-plu
+gin-pwa/dist/index.js:234:
+5)
+    at async Object.handle
+r (file:///D:/apss-source/
+SIMMACI/node_modules/vite-
+plugin-pwa/dist/index.js:4
+27:13)
+    at async PluginDriver.
+hookParallel (file:///D:/a
+pss-source/SIMMACI/node_mo
+dules/rollup/dist/es/share
+d/node-entry.js:22452:17)
+    at async Object.close 
+(file:///D:/apss-source/SI
+MMACI/node_modules/rollup/
+dist/es/shared/node-entry.
+js:23471:13)
+    at async buildEnvironm
+ent (file:///D:/apss-sourc
+e/SIMMACI/node_modules/vit
+e/dist/node/chunks/dep-D4N
+MHUTW.js:46258:17)
+    at async Object.defaul
+tBuildApp [as buildApp] (f
+ile:///D:/apss-source/SIMM
+ACI/node_modules/vite/dist
+/node/chunks/dep-D4NMHUTW.
+js:46713:5)
+    at async CAC.<anonymou
+s> (file:///D:/apss-source
+/SIMMACI/node_modules/vite
+/dist/node/cli.js:863:7)[
+39m

@@ -1,0 +1,1 @@
+<?php echo "Total Students: " . \App\Models\Student::count() . "\n"; echo "Latest 5 Students:\n"; $latest = \App\Models\Student::latest()->limit(5)->get(["id", "nisn", "nama", "school_id", "created_at"]); foreach($latest as $s) { echo "ID: {$s->id} | NISN: {$s->nisn} | Nama: {$s->nama} | School ID: {$s->school_id} | Created: {$s->created_at}\n"; } ?>

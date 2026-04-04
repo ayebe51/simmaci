@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { GraduationCap, CheckCircle2, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { GraduationCap, Save, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { attendanceApi, studentApi } from "@/lib/api";
 
-
-const statusOptions = ["Hadir", "Sakit", "Izin", "Alpa"];
 const statusColors: Record<string, string> = {
   Hadir: "bg-emerald-100 text-emerald-700",
   Sakit: "bg-yellow-100 text-yellow-700",
@@ -21,74 +18,77 @@ const statusColors: Record<string, string> = {
 };
 
 export default function StudentAttendancePage() {
-  const userStr = localStorage.getItem('user');
-const user = userStr ? JSON.parse(userStr) : null;
-  const schoolId = user?.schoolId as Id<"schools"> | undefined;
-
+  const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
-  const [selectedClassId, setSelectedClassId] = useState("");
-  const [selectedSubjectId, setSelectedSubjectId] = useState("");
-  const [studentStatuses, setStudentStatuses] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [studentStatuses, setStudentStatuses] = useState<Record<number, string>>({});
 
-  const classes = useQuery(api.classes.listActive, schoolId ? { schoolId } : "skip");
-  const subjects = useQuery(api.subjects.listActive, schoolId ? { schoolId } : "skip");
+  // 🔥 REST API QUERIES
+  const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: attendanceApi.classList });
+  const { data: subjects = [] } = useQuery({ queryKey: ['subjects'], queryFn: attendanceApi.subjectList });
 
-  const classIdTyped = selectedClassId ? selectedClassId as Id<"classes"> : undefined;
-  const subjectIdTyped = selectedSubjectId ? selectedSubjectId as Id<"subjects"> : undefined;
+  const selectedClassName = classes.find((c: any) => c.id === Number(selectedClassId))?.nama;
 
-  const existingRecords = useQuery(
-    api.studentAttendance.listByClassSubjectDate,
-    classIdTyped && subjectIdTyped ? { classId: classIdTyped, subjectId: subjectIdTyped, tanggal: selectedDate } : "skip"
-  );
+  const { data: studentsData, isLoading: isLoadingStudents } = useQuery({
+    queryKey: ['students', 'class', selectedClassName],
+    queryFn: () => studentApi.list({ kelas: selectedClassName, per_page: 100 }),
+    enabled: !!selectedClassName
+  });
 
-  // We need to get students by school — use search or list
-  // For now, use a simple list filtered by kelas from the class name
-  const selectedClass = classes?.find((c: any) => c._id === selectedClassId);
+  const { data: existingRecords = [], isLoading: isLoadingAttendance } = useQuery({
+    queryKey: ['attendance', 'students', selectedClassId, selectedSubjectId, selectedDate],
+    queryFn: () => attendanceApi.studentLogIndex({ 
+        class_id: selectedClassId, 
+        subject_id: selectedSubjectId, 
+        tanggal: selectedDate 
+    }),
+    enabled: !!selectedClassId && !!selectedSubjectId && !!selectedDate
+  });
 
-  const recordBulk = useMutation(api.studentAttendance.recordBulk);
-
-  // Initialize statuses from existing records
-  const initializeStatuses = () => {
-    if (existingRecords && existingRecords.length > 0) {
-      const statuses: Record<string, string> = {};
-      existingRecords.forEach((r: any) => {
-        statuses[r.studentId] = r.status;
-      });
-      return statuses;
+  const recordBulkMutation = useMutation({
+    queryFn: (data: any) => attendanceApi.studentLogStore(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance', 'students'] });
+      toast.success("Absensi siswa berhasil disimpan!");
     }
-    return {};
-  };
+  });
 
-  const handleStatusChange = (studentId: string, status: string) => {
+  useEffect(() => {
+    if (existingRecords.length > 0) {
+      const statuses: Record<number, string> = {};
+      existingRecords.forEach((r: any) => {
+        statuses[r.student_id] = r.status;
+      });
+      setStudentStatuses(statuses);
+    } else {
+      setStudentStatuses({});
+    }
+  }, [existingRecords]);
+
+  const handleStatusChange = (studentId: number, status: string) => {
     setStudentStatuses((prev) => ({ ...prev, [studentId]: status }));
   };
 
   const handleSaveBulk = async () => {
-    if (!schoolId || !classIdTyped || !subjectIdTyped) return;
-    setSaving(true);
-    try {
-      const records = Object.entries(studentStatuses).map(([studentId, status]) => ({
-        studentId,
-        status,
-      }));
+    if (!selectedClassId || !selectedSubjectId) return;
+    
+    const records = Object.entries(studentStatuses).map(([studentId, status]) => ({
+      student_id: Number(studentId),
+      status,
+    }));
 
-      if (records.length === 0) {
-        toast.warning("Belum ada yang diisi");
-        setSaving(false);
-        return;
-      }
+    if (records.length === 0) {
+      toast.warning("Belum ada data yang diisi");
+      return;
+    }
 
-      await recordBulk({
-        schoolId,
-        classId: classIdTyped,
-        subjectId: subjectIdTyped,
-        tanggal: selectedDate,
-        records,
-      });
-      toast.success(`Absensi ${records.length} siswa berhasil disimpan!`);
-    } catch { toast.error("Gagal menyimpan"); }
-    setSaving(false);
+    recordBulkMutation.mutate({
+      class_id: Number(selectedClassId),
+      subject_id: Number(selectedSubjectId),
+      tanggal: selectedDate,
+      records,
+    });
   };
 
   const navigateDate = (days: number) => {
@@ -97,11 +97,8 @@ const user = userStr ? JSON.parse(userStr) : null;
     setSelectedDate(date.toISOString().split("T")[0]);
   };
 
-  const summary = Object.values(studentStatuses);
-  const hadir = summary.filter((s) => s === "Hadir").length;
-  const sakit = summary.filter((s) => s === "Sakit").length;
-  const izin = summary.filter((s) => s === "Izin").length;
-  const alpa = summary.filter((s) => s === "Alpa").length;
+  const students = studentsData?.data || [];
+  const isLoading = isLoadingStudents || isLoadingAttendance;
 
   return (
     <div className="space-y-6">
@@ -110,97 +107,96 @@ const user = userStr ? JSON.parse(userStr) : null;
         <p className="text-slate-500 text-sm mt-1">Input absensi per kelas per mata pelajaran</p>
       </div>
 
-      {/* Filters */}
-      <div className="grid gap-3 md:grid-cols-4">
-        <div>
-          <label className="text-xs font-semibold text-slate-600 mb-1 block">Tanggal</label>
+      <div className="grid gap-4 md:grid-cols-4 items-end">
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-600">Tanggal</label>
           <div className="flex gap-1">
-            <Button variant="outline" size="icon" className="h-9" onClick={() => navigateDate(-1)}><ChevronLeft className="h-3 w-3" /></Button>
-            <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="h-9" />
-            <Button variant="outline" size="icon" className="h-9" onClick={() => navigateDate(1)}><ChevronRight className="h-3 w-3" /></Button>
+            <Button variant="outline" size="icon" onClick={() => navigateDate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+            <Button variant="outline" size="icon" onClick={() => navigateDate(1)}><ChevronRight className="h-4 w-4" /></Button>
           </div>
         </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-600 mb-1 block">Kelas</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-600">Kelas</label>
           <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
             <SelectContent>
-              {classes?.map((c: any) => (
-                <SelectItem key={c._id} value={c._id}>{c.nama}</SelectItem>
-              ))}
+              {classes.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nama}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-600 mb-1 block">Mata Pelajaran</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-slate-600">Mata Pelajaran</label>
           <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Pilih mapel..." /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Pilih mapel..." /></SelectTrigger>
             <SelectContent>
-              {subjects?.map((s: any) => (
-                <SelectItem key={s._id} value={s._id}>{s.nama}</SelectItem>
-              ))}
+              {subjects.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-end">
-          <Button onClick={handleSaveBulk} className="w-full h-9 bg-emerald-600 hover:bg-emerald-700" disabled={saving || !selectedClassId || !selectedSubjectId}>
-            <Save className="h-4 w-4 mr-1" /> Simpan Absensi
-          </Button>
-        </div>
+        <Button onClick={handleSaveBulk} className="bg-emerald-600 h-10" disabled={!selectedClassId || !selectedSubjectId || recordBulkMutation.isPending}>
+          {recordBulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+          Simpan Absensi
+        </Button>
       </div>
 
-      {/* Summary Strip */}
-      {Object.keys(studentStatuses).length > 0 && (
-        <div className="flex gap-3 flex-wrap">
-          <Badge className="bg-emerald-100 text-emerald-700">Hadir: {hadir}</Badge>
-          <Badge className="bg-yellow-100 text-yellow-700">Sakit: {sakit}</Badge>
-          <Badge className="bg-blue-100 text-blue-700">Izin: {izin}</Badge>
-          <Badge className="bg-red-100 text-red-700">Alpa: {alpa}</Badge>
-        </div>
-      )}
-
-      {/* Student Checklist */}
       {selectedClassId && selectedSubjectId ? (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Daftar Siswa — {selectedClass?.nama || ""}
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden">
+          <CardHeader className="bg-slate-50 border-b py-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-emerald-600" />
+              Siswa Kelas {selectedClassName || ""}
             </CardTitle>
-            <p className="text-xs text-slate-400">
-              Klik status untuk setiap siswa, lalu simpan. Atau gunakan QR Scanner untuk scan massal.
-            </p>
           </CardHeader>
-          <CardContent>
-            {existingRecords !== undefined ? (
-              <div className="space-y-2">
-                {existingRecords.map((r: any, i: number) => (
-                  <div key={r._id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 border">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 w-6">{i + 1}</span>
-                      <span className="font-medium text-sm">{r.studentId}</span>
-                    </div>
-                    <Badge className={statusColors[r.status] || ""}>{r.status}</Badge>
-                  </div>
-                ))}
-                {existingRecords.length === 0 && (
-                  <p className="text-center text-slate-400 py-6 text-sm">
-                    Belum ada data absensi untuk sesi ini. Gunakan QR Scanner atau input manual di bawah.
-                  </p>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12 text-center">No</TableHead>
+                  <TableHead>Nama Siswa</TableHead>
+                  <TableHead className="text-center">Status Absensi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={3} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-emerald-500" /></TableCell></TableRow>
+                ) : students.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="h-32 text-center text-slate-400">Tidak ada siswa di kelas ini.</TableCell></TableRow>
+                ) : (
+                  students.map((student: any, i: number) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="text-center text-xs text-slate-400">{i + 1}</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-slate-800">{student.nama}</div>
+                        <div className="text-[10px] text-slate-500 font-mono uppercase">{student.nisn || "No NISN"}</div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {["Hadir", "Sakit", "Izin", "Alpa"].map((s) => (
+                            <Button 
+                              key={s} 
+                              size="sm" 
+                              variant={studentStatuses[student.id] === s ? "default" : "outline"}
+                              className={`h-8 px-4 text-xs ${studentStatuses[student.id] === s ? statusColors[s] : "text-slate-500"}`}
+                              onClick={() => handleStatusChange(student.id, s)}
+                            >
+                              {s}
+                            </Button>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
-              </div>
-            ) : (
-              <p className="text-center text-slate-400 py-6">Memuat data...</p>
-            )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="py-12 text-center text-slate-400">
-            <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p>Pilih kelas dan mata pelajaran untuk mulai input absensi</p>
-          </CardContent>
-        </Card>
+        <div className="py-20 text-center text-slate-400 flex flex-col items-center">
+           <GraduationCap className="h-12 w-12 opacity-20 mb-3" />
+           <p className="text-sm">Pilih filter untuk memuat daftar siswa</p>
+        </div>
       )}
     </div>
   );

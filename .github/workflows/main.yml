@@ -6,9 +6,15 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/simmaci-backend
+  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/simmaci-frontend
+
 jobs:
-  # ── Backend CI ───────────────────────────────────────────
+  # 1. ── Backend CI (Tests) ───────────────────────────────
   backend-test:
+    name: "Backend CI (PHP 8.3)"
     runs-on: ubuntu-latest
     
     services:
@@ -35,7 +41,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.2'
+        php-version: '8.3'
         extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, bcmath, gd, zip
         coverage: none
 
@@ -47,7 +53,6 @@ jobs:
         cp .env.example .env
         sed -i 's/DB_CONNECTION=pgsql/DB_CONNECTION=pgsql/' .env
         sed -i 's/DB_DATABASE=sim_maarif/DB_DATABASE=sim_maarif_test/' .env
-        sed -i 's/DB_PORT=5432/DB_PORT=5432/' .env
         sed -i 's/DB_PASSWORD=secret/DB_PASSWORD=secret/' .env
         php artisan key:generate
 
@@ -55,10 +60,11 @@ jobs:
       run: php artisan migrate --force
 
     - name: Execute Tests
-      run: php artisan test --filter=SkDocumentApiTest
+      run: php artisan test
 
-  # ── Frontend CI ──────────────────────────────────────────
+  # 2. ── Frontend CI (Build Verification) ────────────────
   frontend-build:
+    name: "Frontend CI (Node 20)"
     runs-on: ubuntu-latest
 
     steps:
@@ -80,6 +86,81 @@ jobs:
     - name: Production Build
       run: npm run build
       env:
-        # Dummy env for build
         VITE_API_URL: "https://api.example.com"
-        VITE_STORAGE_URL: "https://storage.example.com"
+
+  # 3. ── Build & Push Docker Images ──────────────────────
+  # This job only runs if tests pass on the main branch
+  build-and-push:
+    name: "Build & Push Docker"
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ env.IMAGE_BACKEND }}
+          ${{ env.IMAGE_FRONTEND }}
+
+    # Backend Image
+    - name: Build and Push Backend
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: |
+          ${{ env.IMAGE_BACKEND }}:latest
+          ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    # Frontend Image (Root context)
+    - name: Build and Push Frontend
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ env.IMAGE_FRONTEND }}:latest
+          ${{ env.IMAGE_FRONTEND }}:${{ github.sha }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  # 4. ── Deployment (Template) ──────────────────────────
+  # Commented out until VPS is ready. 
+  # Requirements:
+  # - SSH_PRIVATE_KEY
+  # - SERVER_IP
+  # - REPO_DIR (directory on server containing docker-compose.yml)
+  
+  # deploy:
+  #   name: "Deploy to VPS"
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-push
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #   - name: SSH Deploy
+  #     uses: appleboy/ssh-action@v1.0.3
+  #     with:
+  #       host: ${{ secrets.SERVER_IP }}
+  #       username: root
+  #       key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #       script: |
+  #         cd ${{ secrets.REPO_DIR }}
+  #         docker compose pull
+  #         docker compose up -d
+  #         docker image prune -f

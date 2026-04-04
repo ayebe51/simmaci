@@ -56,8 +56,7 @@ export default function AppShell({ children }: AppShellProps) {
   })
 
   const userRole = user?.role || null;
-  const isSuperAdmin = userRole === "super_admin";
-  const isAdminYayasan = userRole === "admin_yayasan";
+  const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(userRole);
   const isOperator = userRole === "operator";
 
   // Navigation Groups

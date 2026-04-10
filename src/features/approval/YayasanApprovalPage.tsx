@@ -46,7 +46,13 @@ export default function YayasanApprovalPage() {
   const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/{BULAN}/{TAHUN}")
   const [nomorStart, setNomorStart] = useState("0001")
   const [tanggalPenetapan, setTanggalPenetapan] = useState("")
-  const [tahunAjaran, setTahunAjaran] = useState("2024/2025")
+  const [tahunAjaran, setTahunAjaran] = useState(() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth() + 1
+    return m >= 7 ? `${y}/${y + 1}` : `${y - 1}/${y}`
+  })
+
 
   const handleApprove = async (id: number) => {
     setIsProcessing(true)

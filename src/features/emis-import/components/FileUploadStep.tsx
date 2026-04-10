@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
-import { UploadCloud, FileSpreadsheet, Loader2 } from "lucide-react"
+import { UploadCloud, FileSpreadsheet, Loader2, Download } from "lucide-react"
 import { useCallback, useState } from "react"
+import { API_URL } from "@/lib/api"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import * as mammoth from "mammoth"
@@ -8,10 +9,14 @@ import * as mammoth from "mammoth"
 interface FileUploadStepProps {
   onFileAccepted: (file: File, headers: string[], data: Record<string, unknown>[]) => void
   disabled?: boolean
-
+  templateUrl?: string
 }
 
-export default function FileUploadStep({ onFileAccepted, disabled }: FileUploadStepProps) {
+export default function FileUploadStep({ 
+  onFileAccepted, 
+  disabled, 
+  templateUrl = "/schools_import_template.xlsx" 
+}: FileUploadStepProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -127,16 +132,28 @@ export default function FileUploadStep({ onFileAccepted, disabled }: FileUploadS
              Drag & drop file Excel (.xlsx), Word (.docx) atau CSV di sini.
         </p>
 
-        <div className="relative">
-             <input 
-                type="file" 
-                accept=".xlsx, .xls, .csv, .docx, .doc" 
-                aria-label="Upload Excel, CSV, or Word file"
-                className="absolute inset-0 cursor-pointer opacity-0"
-                onChange={handleFileSelect}
+        <div className="flex gap-3">
+             <div className="relative">
+                  <input 
+                    type="file" 
+                    accept=".xlsx, .xls, .csv, .docx, .doc" 
+                    aria-label="Upload Excel, CSV, or Word file"
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    onChange={handleFileSelect}
+                    disabled={isProcessing}
+                />
+                <Button disabled={isProcessing}>Pilih File</Button>
+            </div>
+            <Button 
+                variant="outline" 
+                asChild
                 disabled={isProcessing}
-            />
-            <Button disabled={isProcessing}>Pilih File</Button>
+            >
+                <a href={templateUrl} download>
+                    <Download className="mr-2 h-4 w-4" />
+                    Unduh Template
+                </a>
+            </Button>
         </div>
       </div>
 

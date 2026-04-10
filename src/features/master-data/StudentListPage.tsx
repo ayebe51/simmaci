@@ -262,6 +262,7 @@ export default function StudentListPage() {
         description="Gunakan format excel hasil ekspor Emis untuk mempercepat proses."
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        templateUrl="/TEMPLATE_IMPORT_DATA_SISWA_V3.xlsx"
         onImport={async (data) => {
             try {
                 const res = await studentApi.import(data)

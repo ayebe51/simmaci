@@ -86,24 +86,32 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Schools (no tenant isolation — global resource)
+    Route::delete('schools/delete-all',       [SchoolController::class, 'deleteAll']);
+    Route::post('schools/generate-accounts',  [SchoolController::class, 'generateAccounts']);
+    Route::post('schools/profile/me',         [SchoolController::class, 'profile']);
     Route::apiResource('schools', SchoolController::class);
     Route::post('schools/import', [SchoolController::class, 'import']);
+
 
     // ── Tenant-Isolated Routes ──
     Route::middleware('tenant')->group(function () {
         // Teachers
+        Route::delete('teachers/delete-all',        [TeacherController::class, 'deleteAll']);
+        Route::post('teachers/generate-accounts',   [TeacherController::class, 'generateAccounts']);
         Route::apiResource('teachers', TeacherController::class);
         Route::post('teachers/import', [TeacherController::class, 'import']);
+
 
         // Students
         Route::apiResource('students', StudentController::class);
         Route::post('students/import', [StudentController::class, 'import']);
 
-        // SK Documents
-        Route::apiResource('sk-documents', SkDocumentController::class);
-        Route::post('sk-documents/bulk',         [SkDocumentController::class, 'bulkStore']);
-        Route::post('sk-documents/batch-action', [SkDocumentController::class, 'batchAction']);
+        // SK Documents — specific routes MUST come before apiResource
+        Route::post('sk-documents/submit-request',  [SkDocumentController::class, 'submitRequest']);
+        Route::post('sk-documents/bulk-request',    [SkDocumentController::class, 'bulkRequest']);
+        Route::patch('sk-documents/batch-status',   [SkDocumentController::class, 'batchUpdateStatus']);
         Route::get('sk-documents/{skDocument}/revisions', [SkDocumentController::class, 'revisions']);
+        Route::apiResource('sk-documents', SkDocumentController::class);
 
         // Headmasters
         Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store']);
@@ -151,8 +159,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('mark-all-read', [NotificationController::class, 'markAllRead']);
         });
 
-        // Settings
+        // Settings — GET /settings (list) + GET /settings/{key} (show) + POST /settings (upsert)
+        Route::get('settings/{key}',   [SettingController::class, 'show']);
         Route::apiResource('settings', SettingController::class)->only(['index', 'store', 'update']);
+
 
         // Events
         Route::apiResource('events', EventController::class);

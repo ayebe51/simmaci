@@ -58,11 +58,11 @@ export default function SkDashboardPage() {
     enabled: statusFilter !== 'draft'
   })
 
-  // 2. Teacher Candidates (Draft status in UI) - teachers who are not yet verified
+  // 2. Pending SK Requests (Draft status in UI) — formal SK submissions awaiting review
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
-    queryKey: ['teacher-candidates', searchTerm, page],
-    queryFn: () => teacherApi.list({
-      is_verified: false,
+    queryKey: ['sk-pending', searchTerm, page],
+    queryFn: () => skApi.list({
+      status: 'pending',
       search: searchTerm,
       page: page,
       per_page: 10
@@ -76,7 +76,7 @@ export default function SkDashboardPage() {
       skApi.batchUpdateStatus(ids, status, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sk-documents'] })
-      queryClient.invalidateQueries({ queryKey: ['teacher-candidates'] })
+      queryClient.invalidateQueries({ queryKey: ['sk-pending'] })
       toast.success("Status berhasil diperbarui")
       setSelectedIds(new Set())
     },
@@ -282,7 +282,7 @@ export default function SkDashboardPage() {
                                     variant="ghost" 
                                     size="sm" 
                                     className="h-8 text-xs font-black uppercase text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 rounded-lg"
-                                    onClick={() => navigate(statusFilter === 'draft' ? `/dashboard/sk/new?teacher_id=${item.id}` : `/dashboard/sk/${item.id}`)}
+                                    onClick={() => navigate(statusFilter === 'draft' ? `/dashboard/sk/${item.id}` : `/dashboard/sk/${item.id}`)}
                                 >
                                     {statusFilter === 'draft' ? "Proses" : "Detail"}
                                 </Button>

@@ -111,7 +111,8 @@ class TeacherController extends Controller
             'nuptk', 'nama', 'nip', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
             'pendidikan_terakhir', 'mapel', 'unit_kerja', 'school_id', 'status',
             'phone_number', 'email', 'is_active', 'is_verified',
-            'is_certified', 'tmt', 'pdpkpnu', 'kecamatan'
+            'is_certified', 'tmt', 'pdpkpnu', 'kecamatan',
+            'provinsi', 'kabupaten', 'kelurahan'
         ];
 
         foreach ($request->teachers as $index => $row) {
@@ -145,6 +146,46 @@ class TeacherController extends Controller
                     }
                 }
                 $normalizedRow['nip'] = $nip ? trim((string)$nip) : null;
+
+                // Parse Satminkal (unit_kerja)
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'satminkal') || str_contains($k, 'unit_kerja')) {
+                        $normalizedRow['unit_kerja'] = $v;
+                        break;
+                    }
+                }
+
+                // Parse Provinsi
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'provinsi') || str_contains($k, 'propinsi')) {
+                        $normalizedRow['provinsi'] = $v;
+                        break;
+                    }
+                }
+
+                // Parse Kabupaten/Kota
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'kab_kota') || str_contains($k, 'kabupaten')) {
+                        $normalizedRow['kabupaten'] = $v;
+                        break;
+                    }
+                }
+
+                // Parse Kelurahan/Desa
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'kelurahan_desa') || str_contains($k, 'kelurahan')) {
+                        $normalizedRow['kelurahan'] = $v;
+                        break;
+                    }
+                }
+
+                // Parse No HP
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'no_hp') || str_contains($k, 'nomor_hp')) {
+                        $normalizedRow['phone_number'] = $v;
+                        break;
+                    }
+                }
 
                 $schoolId = $normalizedRow['school_id'] ?? null;
                 if (!$schoolId && isset($normalizedRow['unit_kerja'])) {
@@ -331,4 +372,83 @@ class TeacherController extends Controller
             'summary' => "Berhasil: $created, Gagal: " . count($errors)
         ]);
     }
+
+    /**
+     * Delete all teachers from the database.
+     */
+    public function deleteAll(): JsonResponse
+    {
+        $count = Teacher::count();
+        Teacher::query()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menghapus $count data guru.",
+            'deleted' => $count,
+        ]);
+    }
+
+    /**
+     * Generate user accounts for teachers who don't have one.
+     * Username: email (from NUPTK@maarif.nu if no email), Password: tanggal_lahir (ddmmyyyy).
+     */
+    public function generateAccounts(Request $request): JsonResponse
+    {
+        $teacherIds = $request->input('teacher_ids');
+
+        $query = Teacher::query();
+        if ($teacherIds && count($teacherIds) > 0) {
+            $query->whereIn('id', $teacherIds);
+        }
+        $teachers = $query->get();
+
+        $accounts = [];
+
+        foreach ($teachers as $teacher) {
+            // Generate email from NUPTK or name
+            $slug = $teacher->nuptk
+                ? strtolower(preg_replace('/\s+/', '', $teacher->nuptk))
+                : strtolower(preg_replace('/[^a-z0-9]/', '', str_replace(' ', '', $teacher->nama)));
+
+            $email = $teacher->email ?: "{$slug}@maarif.nu";
+
+            // Skip if user with this email already exists
+            if (\App\Models\User::where('email', $email)->exists()) {
+                continue;
+            }
+
+            // Generate password from tanggal_lahir (ddmmyyyy) or default
+            $passwordPlain = $teacher->tanggal_lahir
+                ? \Carbon\Carbon::parse($teacher->tanggal_lahir)->format('dmY')
+                : 'maarif' . ($teacher->nuptk ? substr($teacher->nuptk, -4) : '1234');
+
+            $user = \App\Models\User::create([
+                'name'     => $teacher->nama,
+                'email'    => $email,
+                'password' => $passwordPlain,
+                'role'     => 'operator',
+                'is_active' => true,
+                'school_id' => $teacher->school_id,
+            ]);
+
+            // Update teacher email reference
+            if (!$teacher->email) {
+                $teacher->update(['email' => $email]);
+            }
+
+            $accounts[] = [
+                'teacher_id'     => $teacher->id,
+                'nama'           => $teacher->nama,
+                'email'          => $email,
+                'password_plain' => $passwordPlain,
+            ];
+        }
+
+        return response()->json([
+            'success'  => true,
+            'accounts' => $accounts,
+            'message'  => 'Berhasil generate ' . count($accounts) . ' akun.',
+        ]);
+    }
 }
+

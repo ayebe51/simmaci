@@ -137,7 +137,13 @@ export const teacherApi = {
   update: (id: number, data: any) => apiClient.put(`/teachers/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/teachers/${id}`).then((r) => r.data),
   import: (teachers: any[]) => apiClient.post('/teachers/import', { teachers }).then((r) => r.data),
+  deleteAll: () => apiClient.delete('/teachers/delete-all').then((r) => r.data),
+  generateAccounts: (teacherIds?: number[]) =>
+    apiClient.post('/teachers/generate-accounts', { teacher_ids: teacherIds }).then((r) => r.data),
+  export: (params?: Record<string, any>) =>
+    apiClient.get('/teachers/export', { params, responseType: 'blob' }).then((r) => r.data),
 };
+
 
 // ── Students API ──
 
@@ -162,7 +168,10 @@ export const schoolApi = {
   delete: (id: number) => apiClient.delete(`/schools/${id}`).then((r) => r.data),
   profile: () => apiClient.get('/schools/profile/me').then((r) => r.data),
   import: (schools: any[]) => apiClient.post('/schools/import', { schools }).then((r) => r.data),
+  deleteAll: () => apiClient.delete('/schools/delete-all').then((r) => r.data),
+  generateAccounts: () => apiClient.post('/schools/generate-accounts').then((r) => r.data),
 };
+
 
 // ── SK Documents API ──
 
@@ -173,6 +182,9 @@ export const skApi = {
   update: (id: number, data: any) => apiClient.put(`/sk-documents/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/sk-documents/${id}`).then((r) => r.data),
   bulkCreate: (documents: any[]) => apiClient.post('/sk-documents/bulk', { documents }).then((r) => r.data),
+  submitRequest: (data: any) => apiClient.post('/sk-documents/submit-request', data).then((r) => r.data),
+  bulkRequest: (data: { documents: any[]; surat_permohonan_url: string }) =>
+    apiClient.post('/sk-documents/bulk-request', data).then((r) => r.data),
   batchUpdateStatus: (ids: number[], status: string, rejectionReason?: string) =>
     apiClient.patch('/sk-documents/batch-status', { ids, status, rejection_reason: rejectionReason }).then((r) => r.data),
   getRevisions: () => apiClient.get('/sk-documents-revisions').then((r) => r.data),
@@ -203,23 +215,32 @@ export const notificationApi = {
 export const settingApi = {
   list: () => apiClient.get('/settings').then((r) => r.data),
   get: (key: string) => apiClient.get(`/settings/${key}`).then((r) => r.data),
-  update: (key: string, value: string, schoolId?: number) =>
-    apiClient.post('/settings', { key, value, school_id: schoolId }).then((r) => r.data),
+  /** update({ key, value }) OR update(key, value, schoolId) */
+  update: (keyOrObj: string | { key: string; value: string; school_id?: number | null }, value?: string, schoolId?: number) => {
+    const payload = typeof keyOrObj === 'object'
+      ? keyOrObj
+      : { key: keyOrObj, value: value ?? '', school_id: schoolId }
+    return apiClient.post('/settings', payload).then((r) => r.data)
+  },
 };
 
 // ── Media API ──
 
 export const mediaApi = {
-  upload: (file: File, folder: string = 'general') => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('folder', folder);
-    return apiClient.post('/media/upload', formData, {
+  upload: (file: File | FormData, folder: string = 'general') => {
+    const formData = file instanceof FormData ? file : (() => {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('folder', folder)
+      return fd
+    })()
+    return apiClient.post('/files/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data);
+    }).then((r) => r.data)
   },
-  delete: (path: string) => apiClient.delete('/media/delete', { data: { path } }).then((r) => r.data),
+  delete: (path: string) => apiClient.delete('/files', { data: { path } }).then((r) => r.data),
 };
+
 
 // ── Attendance API ──
 
@@ -319,4 +340,3 @@ export const reportApi = {
   },
   summary: () => apiClient.get('/reports/summary').then((r) => r.data),
 };
-

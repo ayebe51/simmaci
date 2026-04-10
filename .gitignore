@@ -1,5 +1,24 @@
 node_modules
-
-.env.local
-.vercel
+dist
+.env
 .env*.local
+.vercel
+
+# Laravel specific
+backend/storage/framework/sessions/*
+backend/storage/framework/cache/data/*
+backend/storage/framework/views/*.php
+backend/storage/logs/*.log
+backend/vendor
+backend/.env
+
+# Temp/Misc
+*.xlsx
+!backend/public/*.xlsx
+*.csv
+!backend/public/*.csv
+diag.php
+diag_advanced.php
+reflect.php
+test_env.php
+check-headers.cjs

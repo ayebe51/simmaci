@@ -89,6 +89,7 @@ class SchoolController extends Controller
             $request->validate(['schools' => 'required|array']);
 
             $created = 0;
+            $updated = 0;
             $errors = [];
 
             // Whitelist of fields allowed in the schools table
@@ -107,14 +108,14 @@ class SchoolController extends Controller
                         $cleanKey = preg_replace('/_+/', '_', $cleanKey);
                         $cleanKey = trim($cleanKey, '_');
                         
-                        // Sanitize value for UTF-8
+                        // Sanitize value for UTF-8 and basic TRIM
                         if (is_string($value)) {
-                            $value = htmlspecialchars_decode(htmlspecialchars($value, ENT_SUBSTITUTE, 'UTF-8'));
+                            $value = trim(htmlspecialchars_decode(htmlspecialchars($value, ENT_SUBSTITUTE, 'UTF-8')));
                         }
                         $normalizedRow[$cleanKey] = $value;
                     }
 
-                    // NSM Selection with Aliases
+                    // Identifier Selection with Aliases
                     $nsm = $normalizedRow['nsm'] 
                         ?? $normalizedRow['nsm_nss']
                         ?? $normalizedRow['nomor_statistik'] 
@@ -122,8 +123,8 @@ class SchoolController extends Controller
                         ?? $normalizedRow['n_s_m']
                         ?? null;
                     
-                    $nsm = $nsm ? trim((string)$nsm) : null;
-                    $npsn = isset($normalizedRow['npsn']) ? trim((string)$normalizedRow['npsn']) : null;
+                    $npsn = $normalizedRow['npsn'] ?? null;
+                    $npsmNu = $normalizedRow['npsm_nu'] ?? $normalizedRow['no_maarif'] ?? null;
 
                     // Filter row to only include allowed fields
                     $dataToSave = [];
@@ -144,10 +145,7 @@ class SchoolController extends Controller
                     }
 
                     if (empty($dataToSave['nama'])) {
-                        // If everything is empty, this might be a blank row trailing at the end of excel
-                        if (empty(array_filter($normalizedRow))) {
-                            continue; 
-                        }
+                        if (empty(array_filter($normalizedRow))) continue; 
                         $dataToSave['nama'] = "Sekolah Baru (Harap lengkapi)";
                     }
 
@@ -156,27 +154,61 @@ class SchoolController extends Controller
                     }
 
                     if (empty($dataToSave['telepon'])) {
-                        $dataToSave['telepon'] = $normalizedRow['nomor_hp'] ?? $normalizedRow['no_hp'] ?? null;
+                        $dataToSave['telepon'] = $normalizedRow['no_telepon'] ?? $normalizedRow['nomor_hp'] ?? $normalizedRow['no_hp'] ?? null;
                     }
 
                     if (empty($dataToSave['status_jamiyyah'])) {
-                        $dataToSave['status_jamiyyah'] = $normalizedRow['status_jam_iyyah_jama_ah'] ?? null;
+                        $dataToSave['status_jamiyyah'] = $normalizedRow['status_jam_iyyah_jama_ah'] 
+                            ?? $normalizedRow['status_afiliasi']
+                            ?? $normalizedRow['afiliasi']
+                            ?? $normalizedRow['kategori']
+                            ?? null;
                     }
 
-                    // Decide how to save: update by NSM, by NPSN, or just create
-                    if ($nsm) {
-                        School::updateOrCreate(['nsm' => $nsm], array_filter($dataToSave, fn($v) => !is_null($v)));
-                    } elseif ($npsn) {
-                        School::updateOrCreate(['npsn' => $npsn], array_filter($dataToSave, fn($v) => !is_null($v)));
-                    } else {
-                        School::create(array_filter($dataToSave, fn($v) => !is_null($v)));
+                    // Content-based detection for "Jam'iyyah" / "Jama'ah"
+                    $statusVal = $dataToSave['status'] ?? $normalizedRow['status'] ?? '';
+                    if (is_string($statusVal) && (str_contains(strtolower($statusVal), 'jam') || str_contains(strtolower($statusVal), 'afiliasi'))) {
+                        $dataToSave['status_jamiyyah'] = $statusVal;
+                        // If it was in the generic 'status', we might want to clear it if it's not a real status
+                        if (isset($dataToSave['status']) && $dataToSave['status'] === $statusVal) {
+                            // Only clear if it looks like it belongs ONLY to jamiyyah
+                            if (!in_array(strtolower($statusVal), ['aktif', 'pasif', 'tutup'])) {
+                                unset($dataToSave['status']);
+                            }
+                        }
                     }
-                    $created++;
+
+                    if (empty($dataToSave['npsm_nu'])) {
+                        $dataToSave['npsm_nu'] = $npsmNu;
+                    }
+
+                    // Check for existing school to prevent unique constraints
+                    $school = null;
+                    if ($nsm) {
+                        $school = School::where('nsm', $nsm)->first();
+                    }
+                    if (!$school && $npsn) {
+                        $school = School::where('npsn', $npsn)->first();
+                    }
+                    if (!$school && $npsmNu) {
+                        $school = School::where('npsm_nu', $npsmNu)->first();
+                    }
+
+                    $saveData = array_filter($dataToSave, fn($v) => !is_null($v));
+
+                    if ($school) {
+                        $school->update($saveData);
+                        $updated++;
+                    } else {
+                        School::create($saveData);
+                        $created++;
+                    }
+
                 } catch (\Throwable $e) {
-                    // Return more detail for debugging
                     $errors[] = [
                         'row' => $index + 1,
-                        'nsm' => (string)($row['nsm'] ?? $row['NSM'] ?? $row['nsm_nss'] ?? 'empty'), 
+                        'name' => (string)($row['nama_sekolah'] ?? $row['nama'] ?? 'Unknown'), 
+                        'identifier' => "NSM: ".($nsm ?? '-').", NPSN: ".($npsn ?? '-'),
                         'error' => $e->getMessage()
                     ];
                 }
@@ -184,19 +216,19 @@ class SchoolController extends Controller
 
             return response()->json([
                 'created' => $created, 
+                'updated' => $updated,
                 'errors' => $errors,
-                'summary' => "Berhasil: $created, Gagal: " . count($errors)
+                'summary' => "Selesai: Simpan Baru $created, Update $updated, Gagal " . count($errors)
             ]);
         } catch (\Throwable $e) {
-            \Log::error("Import schools crash: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            \Log::error("Import schools crash: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
-                'error' => 'Fatal error during import: ' . $e->getMessage(),
+                'error' => 'Fatal error: ' . $e->getMessage(),
                 'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
+
 
     /**
      * GET /api/schools/profile — Operator's own school
@@ -213,5 +245,62 @@ class SchoolController extends Controller
             ->findOrFail($user->school_id);
 
         return response()->json($school);
+    }
+
+    /**
+     * DELETE /api/schools/delete-all
+     */
+    public function deleteAll(): JsonResponse
+    {
+        $count = School::count();
+        School::query()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menghapus $count data lembaga.",
+            'deleted' => $count,
+        ]);
+    }
+
+    /**
+     * POST /api/schools/generate-accounts
+     * Username: {nsm}@maarif.nu, Password: nsm plain
+     */
+    public function generateAccounts(): JsonResponse
+    {
+        $schools = School::all();
+        $accounts = [];
+
+        foreach ($schools as $school) {
+            $email = $school->email ?: (($school->nsm ? strtolower($school->nsm) : 'school' . $school->id) . '@maarif.nu');
+
+            if (\App\Models\User::where('email', $email)->exists()) {
+                continue;
+            }
+
+            $passwordPlain = $school->nsm ?: ('school' . $school->id);
+
+            \App\Models\User::create([
+                'name'      => $school->nama,
+                'email'     => $email,
+                'password'  => $passwordPlain,
+                'role'      => 'operator',
+                'is_active' => true,
+                'school_id' => $school->id,
+            ]);
+
+            $accounts[] = [
+                'school_id'      => $school->id,
+                'nama'           => $school->nama,
+                'email'          => $email,
+                'password_plain' => $passwordPlain,
+            ];
+        }
+
+        return response()->json([
+            'success'  => true,
+            'accounts' => $accounts,
+            'message'  => 'Berhasil generate ' . count($accounts) . ' akun.',
+        ]);
     }
 }

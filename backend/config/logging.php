@@ -60,14 +60,14 @@ return [
 
         'single' => [
             'driver' => 'single',
-            'path' => storage_path('logs/laravel.log'),
+            'path' => realpath(__DIR__.'/../storage/logs/laravel.log') ?: __DIR__.'/../storage/logs/laravel.log',
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ],
 
         'daily' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/laravel.log'),
+            'path' => realpath(__DIR__.'/../storage/logs/laravel.log') ?: __DIR__.'/../storage/logs/laravel.log',
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
@@ -124,12 +124,12 @@ return [
         ],
 
         'emergency' => [
-            'path' => storage_path('logs/laravel.log'),
+            'path' => realpath(__DIR__.'/../storage/logs/laravel.log') ?: __DIR__.'/../storage/logs/laravel.log',
         ],
 
         'api' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/api.log'),
+            'path' => realpath(__DIR__.'/../storage/logs/api.log') ?: __DIR__.'/../storage/logs/api.log',
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 7,
             'replace_placeholders' => true,

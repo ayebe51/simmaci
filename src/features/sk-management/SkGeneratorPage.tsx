@@ -99,16 +99,22 @@ export default function SkGeneratorPage() {
   const [tanggalPenetapan, setTanggalPenetapan] = useState("")
   const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
-  const [tahunAjaran, setTahunAjaran] = useState("2024/2025")
+  const [tahunAjaran, setTahunAjaran] = useState(() => {
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth() + 1 // 1–12
+    return m >= 7 ? `${y}/${y + 1}` : `${y - 1}/${y}`
+  })
+
   const [defaultKecamatan, setDefaultKecamatan] = useState("")
 
   // 🔥 REST API QUERIES
   
-  // 1. Teacher Candidates (Unverified Teachers)
+  // 1. SK Request Candidates (Pending SkDocuments)
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
-    queryKey: ['teacher-candidates-generator', searchTerm, page],
-    queryFn: () => teacherApi.list({
-      is_verified: false,
+    queryKey: ['sk-candidates-generator', searchTerm, page],
+    queryFn: () => skApi.list({
+      status: 'pending',
       search: searchTerm,
       page: page,
       per_page: 10
@@ -132,8 +138,8 @@ export default function SkGeneratorPage() {
   }, [lastSkData])
 
   // Mutations
-  const createSkMutation = useMutation({
-    mutationFn: (data: any) => skApi.create(data)
+  const updateSkMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number, data: any }) => skApi.update(id, data)
   })
 
   const markVerifiedMutation = useMutation({
@@ -165,7 +171,7 @@ export default function SkGeneratorPage() {
             const t = selectedTeachers[i]
             
             // 1. Determine Template
-            const jenis = (t.status || "").toLowerCase()
+            const jenis = (t.jenis_sk || "").toLowerCase()
             let templateId = "sk_template_tendik"
             if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "sk_template_gty"
             else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "sk_template_gtt"
@@ -225,18 +231,19 @@ export default function SkGeneratorPage() {
             folder?.file(`${t.nama.replace(/\s+/g, '_')}_SK.docx`, out)
 
             // 5. Sync to Backend
-            await createSkMutation.mutateAsync({
-                nomor_sk: generatedNomor,
-                jenis_sk: renderData.tanggal_penetapan.includes("GTY") ? "SK GTY" : "SK Guru",
-                status: "approved",
-                teacher_id: t.id,
-                nama: t.nama,
-                unit_kerja: t.unit_kerja,
-                tanggal_penetapan: renderData.tanggal_penetapan,
-                file_url: "Generated via Bulk ZIP"
+            await updateSkMutation.mutateAsync({
+                id: t.id,
+                data: {
+                    nomor_sk: generatedNomor,
+                    status: "approved",
+                    tanggal_penetapan: renderData.tanggal_penetapan,
+                    file_url: "Generated via Bulk ZIP"
+                }
             })
             
-            await markVerifiedMutation.mutateAsync(t.id)
+            if (t.teacher_id) {
+                await markVerifiedMutation.mutateAsync(t.teacher_id)
+            }
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob" })
@@ -246,8 +253,8 @@ export default function SkGeneratorPage() {
         link.download = "SK_Masal_Maarif.zip"
         link.click()
         
-        toast.success(`Berhasil membuat ${selectedIds.size} SK!`)
-        queryClient.invalidateQueries({ queryKey: ['teacher-candidates-generator'] })
+        toast.success(`Berhasil menerbitkan ${selectedIds.size} SK!`)
+        queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
         setSelectedIds(new Set())
     } catch (e: any) {
         console.error(e)
@@ -318,10 +325,10 @@ export default function SkGeneratorPage() {
                             />
                         </TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Lengkap</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jabatan / Mapel</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jenis SK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Unit Kerja</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Pendidikan</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-right pr-8">Status</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jabatan</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-right pr-8">Surat Permohonan</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -344,11 +351,15 @@ export default function SkGeneratorPage() {
                                     />
                                 </TableCell>
                                 <TableCell className="font-bold text-slate-800 text-sm">{t.nama}</TableCell>
-                                <TableCell className="text-xs text-slate-500 font-medium">{t.jabatan || t.mapel || "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500 font-medium">{t.jenis_sk || "-"}</TableCell>
                                 <TableCell className="text-xs text-slate-600 font-bold">{t.unit_kerja || "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500">{t.pendidikan_terakhir || "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500">{t.jabatan || "-"}</TableCell>
                                 <TableCell className="text-right pr-8">
-                                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-md uppercase tracking-tight">Kandidat</span>
+                                    {t.surat_permohonan_url ? (
+                                        <Button variant="ghost" size="sm" asChild className="h-8 text-[10px] font-black uppercase text-blue-600">
+                                            <a href={t.surat_permohonan_url} target="_blank" rel="noreferrer"><Eye className="mr-1 h-3 w-3" /> Lihat PDF</a>
+                                        </Button>
+                                    ) : <span className="text-[10px] text-slate-300">N/A</span>}
                                 </TableCell>
                             </TableRow>
                         ))

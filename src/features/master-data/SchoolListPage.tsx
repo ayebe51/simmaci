@@ -9,10 +9,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle } from "lucide-react"
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { schoolApi } from "@/lib/api"
 import { toast } from "sonner"
 import ExcelImportModal from "./components/ExcelImportModal"
+import * as XLSX from "xlsx"
 
 interface School {
   id: number
@@ -75,6 +76,11 @@ export default function SchoolListPage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState<Partial<School>>({})
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false)
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false)
+  const [generateResult, setGenerateResult] = useState<any[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const openAdd = () => {
     setIsEditMode(false)
@@ -109,16 +115,72 @@ export default function SchoolListPage() {
     "Cilacap Selatan", "Cilacap Tengah", "Cilacap Utara", "Kesugihan", "Adipala", "Maos", "Kroya", "Binangun", "Nusawungu", "Sampang", "Karangpucung", "Cimanggu", "Majenang", "Wanareja", "Dayeuhluhur", "Gandrungmangu", "Sidareja", "Kedungreja", "Patimuan", "Bantarsari", "Kawunganten", "Jeruklegi", "Kampung Laut", "Cipari"
   ].sort()
 
+  // ── Export Excel (client-side) ──
+  const handleExportExcel = async () => {
+    setIsExporting(true)
+    try {
+      const res = await schoolApi.list({ per_page: 9999 })
+      const rows = (res.data || []).map((s: any, i: number) => ({
+        No: i + 1,
+        NSM: s.nsm || '',
+        NPSN: s.npsn || '',
+        'NPSM-NU': s.npsm_nu || '',
+        'Nama Sekolah': s.nama,
+        Kecamatan: s.kecamatan || '',
+        'Kepala Madrasah': s.kepala_madrasah || '',
+        Akreditasi: s.akreditasi || '',
+        Status: s.status_jamiyyah || '',
+        Alamat: s.alamat || '',
+        Email: s.email || '',
+        Telepon: s.telepon || '',
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Data Lembaga')
+      XLSX.writeFile(wb, `Data_Lembaga_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      toast.success(`Berhasil export ${rows.length} data lembaga!`)
+    } catch (e: any) {
+      toast.error('Gagal export: ' + e.message)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // ── Delete All ──
+  const deleteAllMutation = useMutation({
+    mutationFn: () => schoolApi.deleteAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
+      toast.success('Semua data lembaga berhasil dihapus')
+      setIsDeleteAllOpen(false)
+    },
+    onError: (e: any) => toast.error('Gagal hapus: ' + (e.response?.data?.message || e.message))
+  })
+
+  // ── Generate Akun ──
+  const handleGenerateAccounts = async () => {
+    setIsGenerating(true)
+    try {
+      const res = await schoolApi.generateAccounts()
+      setGenerateResult(res.accounts || [])
+      toast.success(`Berhasil generate ${res.accounts?.length || 0} akun!`)
+    } catch (e: any) {
+      toast.error('Gagal generate akun: ' + (e.response?.data?.message || e.message))
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   return (
     <div className="space-y-6 pb-10">
       <SoftPageHeader
         title="Profil Lembaga"
         description="Manajemen profil satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
-          { label: 'Export Excel', onClick: () => toast.info('Fitur Export Excel belum tersedia'), variant: 'mint', icon: <Download className="h-4 w-4" /> },
-          { label: 'Delete All', onClick: () => toast.error('Fitur Delete All belum tersedia'), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
+          { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
+          { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
           { label: 'Tambah Manual', onClick: openAdd, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
-          { label: 'Generate Akun', onClick: () => toast.info('Fitur Generate Akun belum tersedia'), variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
+          { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
           { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
         ]}
       />
@@ -303,9 +365,10 @@ export default function SchoolListPage() {
 
       <ExcelImportModal
         title="Import Data Sekolah"
-        description="Pastikan file excel Anda memiliki kolom: nsm, nama, kecamatan, alamat, kepala_madrasah."
+        description="Pastikan file excel Anda memiliki kolom: nama_sekolah, nsm, npsn, kepala_madrasah, akreditasi, npsm_nu, status, kecamatan, alamat, email, no_telepon."
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        templateUrl="/TEMPLATE_IMPORT_DATA_LEMBAGA_V3.xlsx"
         onImport={async (data) => {
           try {
             const res = await schoolApi.import(data)
@@ -324,6 +387,95 @@ export default function SchoolListPage() {
           }
         }}
       />
+
+      {/* ── Delete All Confirmation Dialog ── */}
+      <Dialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
+        <DialogContent className="rounded-[2rem] p-8 sm:max-w-md border-0 ring-1 ring-slate-100">
+          <DialogHeader className="items-center text-center">
+            <div className="bg-red-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Hapus Semua Data Lembaga?</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
+              Tindakan ini akan menghapus <strong>seluruh data profil lembaga/sekolah</strong> secara permanen dan tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+            <button onClick={() => setIsDeleteAllOpen(false)} className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+            <button
+              onClick={() => deleteAllMutation.mutate()}
+              disabled={deleteAllMutation.isPending}
+              className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+            >
+              {deleteAllMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Ya, Hapus Semua'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Generate Akun Dialog ── */}
+      <Dialog open={isGenerateOpen} onOpenChange={(v) => { if (!isGenerating) setIsGenerateOpen(v) }}>
+        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="items-center text-center">
+            <div className="bg-purple-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
+              <KeyRound className="h-8 w-8 text-purple-500" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Generate Akun Operator</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
+              Membuat akun login untuk kepala madrasah / operator sekolah yang belum memiliki akun.<br />
+              Username: NSM@maarif.nu &bull; Password: NSM sekolah
+            </DialogDescription>
+          </DialogHeader>
+
+          {generateResult.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-600 text-center">{generateResult.length} Akun Berhasil Dibuat</p>
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Lembaga</th>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Email / Username</th>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Password</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generateResult.map((a: any, i: number) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-4 py-2 font-medium">{a.nama}</td>
+                        <td className="px-4 py-2 font-mono text-slate-600">{a.email}</td>
+                        <td className="px-4 py-2 font-mono text-purple-600 font-bold">{a.password_plain}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                onClick={() => {
+                  const ws = XLSX.utils.json_to_sheet(generateResult.map((a: any) => ({ Lembaga: a.nama, Email: a.email, Password: a.password_plain })))
+                  const wb = XLSX.utils.book_new()
+                  XLSX.utils.book_append_sheet(wb, ws, 'Akun Operator')
+                  XLSX.writeFile(wb, `Akun_Operator_${new Date().toISOString().slice(0, 10)}.xlsx`)
+                }}
+                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest transition-colors"
+              >
+                <Download className="h-3 w-3 inline mr-2" /> Download Daftar Akun (Excel)
+              </button>
+            </div>
+          ) : (
+            <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+              <button onClick={() => setIsGenerateOpen(false)} className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+              <button
+                onClick={handleGenerateAccounts}
+                disabled={isGenerating}
+                className="flex-1 h-12 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+              >
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Generate Sekarang'}
+              </button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

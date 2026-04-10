@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\Notification;
 use App\Models\School;
 use App\Models\SkDocument;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,12 @@ class SkDocumentController extends Controller
             $query->where('nama', 'ilike', "%{$request->search}%");
         }
         if ($request->status && $request->status !== 'all') {
-            $query->byStatus($request->status);
+            // For the SK Generator, we source from 'pending' requests
+            if ($request->status === 'unverified') {
+                $query->where('status', 'pending');
+            } else {
+                $query->byStatus($request->status);
+            }
         }
         if ($request->jenis_sk && $request->jenis_sk !== 'all') {
             $query->byJenis($request->jenis_sk);
@@ -239,6 +245,168 @@ class SkDocumentController extends Controller
 
         return response()->json($revisions);
     }
+
+    /**
+     * POST /api/sk-documents/submit-request
+     * Submit single SK request (individual)
+     */
+    public function submitRequest(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'nama' => 'required|string',
+            'nuptk' => 'nullable|string',
+            'nip' => 'nullable|string',
+            'jenis_sk' => 'required|string',
+            'unit_kerja' => 'required|string',
+            'jabatan' => 'nullable|string',
+            'surat_permohonan_url' => 'required|string', // Mandatory official letter
+            'tanggal_penetapan' => 'nullable|string',
+            'status_kepegawaian' => 'nullable|string',
+        ]);
+
+        $school = School::where('nama', $data['unit_kerja'])->first();
+        $schoolId = $school?->id;
+
+        // Upsert Teacher logic
+        $teacher = null;
+        if (!empty($data['nuptk'])) {
+            $teacher = Teacher::where('nuptk', $data['nuptk'])->first();
+        } elseif (!empty($data['nip'])) {
+            $teacher = Teacher::where('nip', $data['nip'])->first();
+        } else {
+            $teacher = Teacher::where('nama', $data['nama'])->where('school_id', $schoolId)->first();
+        }
+
+        $teacherData = [
+            'nama' => $data['nama'],
+            'nuptk' => $data['nuptk'],
+            'nip' => $data['nip'],
+            'unit_kerja' => $data['unit_kerja'],
+            'school_id' => $schoolId,
+            'jabatan' => $data['jabatan'],
+            'status' => $data['status_kepegawaian'] ?? 'Draft',
+            'is_verified' => false,
+        ];
+
+        if ($teacher) {
+            $teacher->update($teacherData);
+        } else {
+            $teacher = Teacher::create($teacherData);
+        }
+
+        $sk = SkDocument::create([
+            'teacher_id' => $teacher->id,
+            'nama' => $data['nama'],
+            'jenis_sk' => $data['jenis_sk'],
+            'unit_kerja' => $data['unit_kerja'],
+            'school_id' => $schoolId,
+            'jabatan' => $data['jabatan'],
+            'surat_permohonan_url' => $data['surat_permohonan_url'],
+            'status' => 'pending',
+            'created_by' => $request->user()->email,
+            'tanggal_penetapan' => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+        ]);
+
+        ActivityLog::log(
+            description: "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
+            event: 'submit_sk_request',
+            logName: 'sk',
+            subject: $sk,
+            causer: $request->user(),
+            schoolId: $schoolId
+        );
+
+        return response()->json($sk, 201);
+    }
+
+    /**
+     * POST /api/sk-documents/bulk-request
+     * Submit bulk SK requests from Excel
+     */
+    public function bulkRequest(Request $request): JsonResponse
+    {
+        $request->validate([
+            'documents'            => 'required|array',
+            'surat_permohonan_url' => 'required|string',
+        ]);
+
+        $created     = 0;
+        $skipped     = 0;
+        $schoolCache = [];
+        $year        = now()->year;
+        $seq         = SkDocument::whereYear('created_at', $year)->count();
+
+        foreach ($request->documents as $doc) {
+            $schoolId = null;
+            if (isset($doc['unit_kerja'])) {
+                $schoolId = $schoolCache[$doc['unit_kerja']]
+                    ?? ($schoolCache[$doc['unit_kerja']] = School::where('nama', $doc['unit_kerja'])->value('id'));
+            }
+
+            // Upsert Teacher
+            $teacherData = [
+                'nama'       => $doc['nama'],
+                'nuptk'      => $doc['nuptk'] ?? null,
+                'nip'        => $doc['nip'] ?? null,
+                'unit_kerja' => $doc['unit_kerja'] ?? null,
+                'school_id'  => $schoolId,
+                'is_verified' => false,
+                'status'     => $doc['status'] ?? 'Draft',
+            ];
+
+            $teacher = null;
+            if (!empty($teacherData['nuptk'])) {
+                $teacher = Teacher::where('nuptk', $teacherData['nuptk'])->first();
+            } elseif (!empty($teacherData['nip'])) {
+                $teacher = Teacher::where('nip', $teacherData['nip'])->first();
+            } else {
+                $teacher = Teacher::where('nama', $teacherData['nama'])->where('school_id', $schoolId)->first();
+            }
+
+            if ($teacher) {
+                $teacher->update($teacherData);
+            } else {
+                $teacher = Teacher::create($teacherData);
+            }
+
+            // Auto-generate unique nomor_sk: REQ/{year}/{padded_seq}
+            $seq++;
+            $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            // Ensure uniqueness
+            while (SkDocument::where('nomor_sk', $nomorSk)->exists()) {
+                $seq++;
+                $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            }
+
+            $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
+
+            SkDocument::create([
+                'nomor_sk'             => $nomorSk,
+                'teacher_id'           => $teacher->id,
+                'nama'                 => $doc['nama'],
+                'jenis_sk'             => $jenisSk,
+                'unit_kerja'           => $doc['unit_kerja'] ?? null,
+                'school_id'            => $schoolId,
+                'surat_permohonan_url' => $request->surat_permohonan_url,
+                'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
+                'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
+                'status'               => 'pending',
+                'created_by'           => $request->user()->email,
+                'tanggal_penetapan'    => now()->format('Y-m-d'),
+            ]);
+            $created++;
+        }
+
+        ActivityLog::log(
+            description: "Bulk Pengajuan SK: {$created} permohonan dibuat",
+            event: 'bulk_sk_request',
+            logName: 'sk',
+            causer: $request->user()
+        );
+
+        return response()->json(['count' => $created, 'skipped' => $skipped, 'success' => true]);
+    }
+
 
     /**
      * GET /api/sk-documents/count

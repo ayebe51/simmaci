@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
@@ -17,13 +17,14 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { teacherApi, schoolApi } from "@/lib/api"
 import ExcelImportModal from "./components/ExcelImportModal"
 import TeacherPhotoUpload from "./components/TeacherPhotoUpload"
 import KtaCard from "./components/KtaCard"
+import * as XLSX from "xlsx"
 
 interface Teacher {
   id: number
@@ -115,6 +116,8 @@ export default function TeacherListPage() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [formData, setFormData] = useState<Partial<Teacher>>({})
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const openAdd = () => {
     setIsEditMode(false)
@@ -144,20 +147,70 @@ export default function TeacherListPage() {
     }
   }
 
+  // ── Export Excel (client-side) ──
+  const handleExportExcel = async () => {
+    setIsExporting(true)
+    try {
+      // Fetch ALL data (no pagination)
+      const res = await teacherApi.list({ per_page: 9999, is_active: activeFilter === 'all' ? undefined : (activeFilter === 'active' ? 1 : 0) })
+      const rows = (res.data || []).map((t: any, i: number) => ({
+        No: i + 1,
+        NUPTK: t.nuptk || '',
+        NIP: t.nip || '',
+        Nama: t.nama,
+        Status: t.status || '',
+        Mapel: t.mapel || '',
+        'Unit Kerja': t.unit_kerja || '',
+        Kecamatan: t.kecamatan || '',
+        Pendidikan: t.pendidikan_terakhir || '',
+        Sertifikasi: t.is_certified ? 'Ya' : 'Tidak',
+        PDPKPNU: t.pdpkpnu || '',
+        'No HP': t.phone_number || '',
+        Email: t.email || '',
+        'TMT': t.tmt || '',
+        'Tempat Lahir': t.tempat_lahir || '',
+        'Tanggal Lahir': t.tanggal_lahir || '',
+        'Status Aktif': t.is_active ? 'Aktif' : 'Non-Aktif',
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Data Guru')
+      XLSX.writeFile(wb, `Data_Guru_Tendik_${new Date().toISOString().slice(0,10)}.xlsx`)
+      toast.success(`Berhasil export ${rows.length} data guru!`)
+    } catch (e: any) {
+      toast.error('Gagal export: ' + e.message)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // ── Delete All ──
+  const deleteAllMutation = useMutation({
+    mutationFn: () => teacherApi.deleteAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] })
+      toast.success('Semua data guru berhasil dihapus')
+      setIsDeleteAllOpen(false)
+    },
+    onError: (e: any) => toast.error('Gagal hapus: ' + (e.response?.data?.message || e.message))
+  })
+
+
+
   return (
     <div className="space-y-6">
       <SoftPageHeader
         title="Data Guru & Tenaga Kependidikan"
         description="Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap"
         actions={[
-          { label: 'Export Excel', onClick: () => toast.info('Fitur Export Excel belum tersedia'), variant: 'mint', icon: <Download className="h-4 w-4" /> },
-          { label: 'Delete All', onClick: () => toast.info('Fitur Delete All belum tersedia'), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
+          { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
+          { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
           { label: 'Tambah Manual', onClick: () => {
               setFormData({ is_active: true })
               setIsEditMode(false)
               setIsAddOpen(true)
           }, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
-          { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> }
+          { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
         ]}
       />
 
@@ -462,6 +515,7 @@ export default function TeacherListPage() {
         description="Gunakan format excel Emis atau format standar (nuptk, nama, mapel, unit_kerja)."
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        templateUrl="/TEMPLATE_IMPORT_DATA_GURU_V4.xlsx"
         onImport={async (data) => {
             try {
                 const res = await teacherApi.import(data)
@@ -480,6 +534,110 @@ export default function TeacherListPage() {
             }
         }}
       />
+
+      {/* ── Delete All Confirmation Dialog ── */}
+      <Dialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
+        <DialogContent className="rounded-[2rem] p-8 sm:max-w-md border-0 ring-1 ring-slate-100">
+          <DialogHeader className="items-center text-center">
+            <div className="bg-red-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Hapus Semua Data Guru?</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
+              Tindakan ini akan menghapus <strong>seluruh data guru dan tenaga kependidikan</strong> secara permanen dan tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+            <button
+              onClick={() => setIsDeleteAllOpen(false)}
+              className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => deleteAllMutation.mutate()}
+              disabled={deleteAllMutation.isPending}
+              className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+            >
+              {deleteAllMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Ya, Hapus Semua'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Generate Akun Dialog ── */}
+      <Dialog open={isGenerateOpen} onOpenChange={(v) => { if (!isGenerating) setIsGenerateOpen(v) }}>
+        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="items-center text-center">
+            <div className="bg-purple-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
+              <KeyRound className="h-8 w-8 text-purple-500" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Generate Akun Guru</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
+              {selectedTeacherIds.size > 0
+                ? `Akan mengenerate akun untuk ${selectedTeacherIds.size} guru yang dipilih.`
+                : 'Akan mengenerate akun untuk semua guru yang belum memiliki akun.'}
+              {' '}Username dari email / NUPTK, password dari tanggal lahir (ddmmyyyy).
+            </DialogDescription>
+          </DialogHeader>
+
+          {generateResult.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-600 text-center">{generateResult.length} Akun Berhasil Dibuat</p>
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Nama</th>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Email / Username</th>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Password</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generateResult.map((a: any, i: number) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-4 py-2 font-medium">{a.nama}</td>
+                        <td className="px-4 py-2 font-mono text-slate-600">{a.email}</td>
+                        <td className="px-4 py-2 font-mono text-purple-600 font-bold">{a.password_plain}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                onClick={() => {
+                  const ws = XLSX.utils.json_to_sheet(generateResult.map((a: any) => ({
+                    Nama: a.nama, Email: a.email, Password: a.password_plain
+                  })))
+                  const wb = XLSX.utils.book_new()
+                  XLSX.utils.book_append_sheet(wb, ws, 'Akun Guru')
+                  XLSX.writeFile(wb, `Akun_Guru_${new Date().toISOString().slice(0,10)}.xlsx`)
+                }}
+                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest transition-colors"
+              >
+                <Download className="h-3 w-3 inline mr-2" /> Download Daftar Akun (Excel)
+              </button>
+            </div>
+          ) : (
+            <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+              <button
+                onClick={() => setIsGenerateOpen(false)}
+                className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleGenerateAccounts}
+                disabled={isGenerating}
+                className="flex-1 h-12 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+              >
+                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Generate Sekarang'}
+              </button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+

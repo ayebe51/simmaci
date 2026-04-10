@@ -7,7 +7,7 @@ import { useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
-import { teacherApi, mediaApi, authApi } from "@/lib/api"
+import { skApi, teacherApi, mediaApi, authApi } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -115,38 +115,46 @@ export function BulkSkSubmission() {
   }
 
   const importMutation = useMutation({
-    mutationFn: (teachers: any[]) => teacherApi.import(teachers),
+    mutationFn: (data: { documents: any[], surat_permohonan_url: string }) => skApi.bulkRequest(data),
     onSuccess: (res) => {
-      setSuccessCount(res.created)
+      setSuccessCount(res.count || res.created || 0)
       setShowSuccessModal(true)
     },
-    onError: (err: any) => toast.error("Gagal mengimpor data: " + (err.response?.data?.message || err.message))
+    onError: (err: any) => {
+      toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))
+      setIsProcessing(false)
+    }
   })
 
   const handleSubmit = async () => {
-    if (candidates.length === 0) return
+    if (candidates.length === 0) {
+      toast.error("Belum ada data guru yang diupload.")
+      return
+    }
+    if (!suratPermohonanFile) {
+      toast.error("Wajib mengunggah Surat Permohonan resmi (PDF).")
+      return
+    }
+
     setIsProcessing(true)
     try {
-      let permohonanUrl = ""
-      if (suratPermohonanFile) {
-        const fd = new FormData()
-        fd.append('file', suratPermohonanFile)
-        fd.append('folder', 'permohonan-kolektif')
-        const res = await mediaApi.upload(fd)
-        permohonanUrl = res.url
-      }
+      toast.loading("Mengunggah surat permohonan...", { id: 'bulk-upload' })
+      const uploadRes = await mediaApi.upload(suratPermohonanFile, 'permohonan-kolektif')
+      const permohonanUrl = uploadRes.url
 
-      const payload = candidates.map(c => ({
+      toast.loading(`Memproses ${candidates.length} data...`, { id: 'bulk-upload' })
+      const documents = candidates.map(c => ({
         ...c,
-        is_verified: false, // Mark as candidate
-        surat_permohonan_url: permohonanUrl || undefined,
-        surat_permohonan_number: nomorPermohonanUi || undefined,
-        surat_permohonan_date: tanggalPermohonanUi || undefined
+        status_kepegawaian: c.status || 'GTY',
+        nomor_permohonan:   nomorPermohonanUi || undefined,
+        tanggal_permohonan: tanggalPermohonanUi || undefined
       }))
 
-      await importMutation.mutateAsync(payload)
-    } catch (e) {
-      console.error(e)
+      await importMutation.mutateAsync({ documents, surat_permohonan_url: permohonanUrl })
+      toast.dismiss('bulk-upload')
+    } catch (e: any) {
+      toast.dismiss('bulk-upload')
+      toast.error("Gagal memproses: " + (e.response?.data?.message || e.message))
     } finally {
       setIsProcessing(false)
     }
@@ -183,8 +191,10 @@ export function BulkSkSubmission() {
                 </div>
             </div>
 
-            <div className="space-y-6 bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100">
-                 <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Langkah 3: Berkas Pendukung (Opsional)</Label>
+             <div className="space-y-6 bg-slate-50/50 p-6 rounded-[2rem] border-2 border-dashed border-blue-200">
+                  <Label className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
+                    Langkah 3: Berkas Permohonan Resmi <span className="text-red-500">*</span>
+                  </Label>
                  <div className="space-y-4">
                     <Input type="file" accept=".pdf" onChange={(e) => setSuratPermohonanFile(e.target.files?.[0] || null)} className="h-12 rounded-xl bg-white border-slate-200" />
                     <div className="grid grid-cols-2 gap-4">
@@ -252,7 +262,7 @@ export function BulkSkSubmission() {
             </div>
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Impor Berhasil!</DialogTitle>
             <DialogDescription className="font-medium text-slate-500">
-              Berhasil memasukkan {successCount} data ke antrian verifikasi SK.
+              Berhasil mengirim pengajuan SK untuk {successCount} orang. Mohon tunggu verifikasi dari Admin LP Ma'arif.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-6">

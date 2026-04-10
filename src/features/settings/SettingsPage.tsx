@@ -1,15 +1,13 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, RefreshCw, Building, FileSignature, FileText, CheckCircle, Download, Lock, Eye, EyeOff, ShieldAlert, CloudUpload, Loader2 } from "lucide-react"
+import { Save, FileText, CheckCircle, Lock, EyeOff, ShieldAlert, CloudUpload, Loader2, Download, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { settingApi, authApi, mediaApi } from "@/lib/api"
+import { settingApi, authApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
@@ -193,8 +191,28 @@ export default function SettingsPage() {
   )
 }
 
-function TemplateCard({ title, settingKey, onUpload, data, uploading }: any) {
+function TemplateCard({ title, settingKey, onUpload, onDelete, data, uploading }: any) {
     const hasData = !!data?.[settingKey]?.value
+
+    const handleDownload = () => {
+        const raw = data?.[settingKey]?.value as string | undefined
+        if (!raw) return
+        // Strip DataURL prefix if present
+        const base64 = raw.includes(';base64,') ? raw.split(';base64,')[1] : raw
+        const binary = atob(base64)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+        const blob = new Blob([bytes], {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${settingKey}.docx`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
     return (
         <Card className="border-0 shadow-sm bg-white rounded-3xl p-8 group hover:border-blue-200 transition-all border border-transparent">
             <div className="flex items-start justify-between">
@@ -206,15 +224,25 @@ function TemplateCard({ title, settingKey, onUpload, data, uploading }: any) {
                     {hasData ? <CheckCircle className="w-4 h-4" /> : <CloudUpload className="w-4 h-4" />}
                 </div>
             </div>
-            <div className="mt-8 flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-300 italic">{hasData ? 'Synced to Cloud' : 'Not Configured'}</span>
-                <div className="relative">
-                    <Input type="file" accept=".docx" onChange={e => onUpload(e, settingKey)} className="hidden" id={`u-${settingKey}`} />
-                    <Button asChild size="sm" variant="outline" className="h-10 rounded-xl px-4 font-black uppercase text-[10px] tracking-widest border-slate-200 hover:bg-slate-50">
-                        <label htmlFor={`u-${settingKey}`}>
-                            {uploading === settingKey ? <Loader2 className="animate-spin h-4 w-4" /> : (hasData ? 'Ganti Template' : 'Upload Template')}
-                        </label>
-                    </Button>
+
+            <div className="mt-8 flex items-center justify-between gap-3">
+                <span className="text-[10px] font-black uppercase text-slate-300 italic">{hasData ? 'Synced ✓' : 'Not Configured'}</span>
+                <div className="flex items-center gap-2">
+                    {hasData && (
+                        <Button size="sm" variant="outline" onClick={handleDownload}
+                            className="h-10 rounded-xl px-3 font-black uppercase text-[10px] tracking-widest border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                            <Download className="h-3.5 w-3.5 mr-1" /> Unduh
+                        </Button>
+                    )}
+                    <div className="relative">
+                        <Input type="file" accept=".docx" onChange={e => onUpload(e, settingKey)} className="hidden" id={`u-${settingKey}`} />
+                        <Button asChild size="sm" variant="outline"
+                            className="h-10 rounded-xl px-4 font-black uppercase text-[10px] tracking-widest border-slate-200 hover:bg-slate-50">
+                            <label htmlFor={`u-${settingKey}`} className="cursor-pointer">
+                                {uploading === settingKey ? <Loader2 className="animate-spin h-4 w-4" /> : (hasData ? 'Ganti' : 'Upload Template')}
+                            </label>
+                        </Button>
+                    </div>
                 </div>
             </div>
         </Card>

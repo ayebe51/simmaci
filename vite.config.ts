@@ -11,6 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
+        clientsClaim: true,
+        skipWaiting: true,
+        navigateFallbackDenylist: [/^\/.*\.xlsx$/]
       },
     }),
   ],
@@ -37,4 +40,12 @@ export default defineConfig({
       },
     },
   },
+  server: {
+    proxy: {
+      '^/TEMPLATE_IMPORT_DATA_.*\\.xlsx$': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      }
+    }
+  }
 });

@@ -15,7 +15,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
         'unit',
         'school_id',
         'is_active',
@@ -26,6 +25,16 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isOperator(): bool
+    {
+        return $this->role === 'operator';
+    }
+
     protected function casts(): array
     {
         return [
@@ -34,39 +43,8 @@ class User extends Authenticatable
         ];
     }
 
-    // ── Relationships ──
-
     public function school()
     {
         return $this->belongsTo(School::class);
-    }
-
-    public function notifications()
-    {
-        return $this->hasMany(Notification::class);
-    }
-
-    // ── Scopes ──
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeSuperAdmin($query)
-    {
-        return $query->whereIn('role', ['super_admin', 'admin_yayasan', 'admin']);
-    }
-
-    // ── Helpers ──
-
-    public function isSuperAdmin(): bool
-    {
-        return in_array($this->role, ['super_admin', 'admin_yayasan', 'admin']);
-    }
-
-    public function isOperator(): bool
-    {
-        return $this->role === 'operator';
     }
 }

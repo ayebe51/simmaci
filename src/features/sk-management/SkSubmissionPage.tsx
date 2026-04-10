@@ -14,7 +14,7 @@ import { useState, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { teacherApi, mediaApi, authApi } from "@/lib/api"
+import { skApi, teacherApi, mediaApi, authApi } from "@/lib/api"
 
 const skSchema = z.object({
   jenisSk: z.string().min(1, "Jenis SK wajib dipilih"),
@@ -56,11 +56,11 @@ export default function SkSubmissionPage() {
   })
 
   // Mutations
-  const createCandidateMutation = useMutation({
-    mutationFn: (data: any) => teacherApi.create({ ...data, is_verified: false }),
+  const createRequestMutation = useMutation({
+    mutationFn: (data: any) => skApi.submitRequest(data),
     onSuccess: () => {
-      toast.success("✅ Pengajuan berhasil dikirim! Data masuk antrean verifikasi.")
-      queryClient.invalidateQueries({ queryKey: ['teacher-candidates'] })
+      toast.success("✅ Pengajuan SK berhasil dikirim! Menunggu verifikasi admin.")
+      queryClient.invalidateQueries({ queryKey: ['sk-documents'] })
       navigate("/dashboard/sk")
     },
     onError: (err: any) => toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))
@@ -76,26 +76,32 @@ export default function SkSubmissionPage() {
   }
 
   const onSubmit = async (data: SkFormValues) => {
+    if (!selectedFile) {
+      toast.error("Wajib mengunggah Surat Permohonan resmi.")
+      return
+    }
     setIsSubmitting(true)
     try {
-        let fileUrl = undefined
-        if (selectedFile) {
-            setIsUploading(true)
-            const uploadRes = await mediaApi.upload(selectedFile, 'sk-requests')
-            fileUrl = uploadRes.url
-            setIsUploading(false)
-        }
+      setIsUploading(true)
+      const uploadRes = await mediaApi.upload(selectedFile, 'sk-requests')
+      const fileUrl = uploadRes.url
+      setIsUploading(false)
 
-        await createCandidateMutation.mutateAsync({
-            ...data,
-            surat_permohonan_url: fileUrl,
-            status: data.status_kepegawaian || (data.jenisSk.includes("GTY") ? "GTY" : "GTT")
-        })
+      await createRequestMutation.mutateAsync({
+        nama: data.nama,
+        nuptk: data.nuptk,
+        nip: data.nip,
+        jenis_sk: data.jenisSk,
+        unit_kerja: data.unit_kerja,
+        jabatan: data.jabatan,
+        surat_permohonan_url: fileUrl,
+        status_kepegawaian: data.status_kepegawaian || (data.jenisSk.includes("GTY") ? "GTY" : "GTT")
+      })
     } catch (err) {
-        console.error(err)
+      console.error(err)
     } finally {
-        setIsSubmitting(false)
-        setIsUploading(false)
+      setIsSubmitting(false)
+      setIsUploading(false)
     }
   }
 

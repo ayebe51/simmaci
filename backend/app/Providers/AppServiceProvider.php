@@ -26,9 +26,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Warn if APP_DEBUG is enabled in production
-        if (app()->isProduction() && config('app.debug')) {
-            Log::warning('APP_DEBUG is enabled in production environment. This is a security risk.');
-        }
+        // Logic removed to prevent early bootstrapping crash
     }
 }

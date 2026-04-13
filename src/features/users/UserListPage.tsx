@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useQuery } from "@tanstack/react-query"
+import { cn } from "@/lib/utils"
 import { userApi, schoolApi } from "@/lib/api"
 
 export default function UserListPage() {

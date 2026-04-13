@@ -21,6 +21,7 @@ export default function SchoolProfilePage() {
     kepala_jabatan_selesai: "",
     akreditasi: "",
     npsn: "",
+    npsmnu: "",
     status_jamiyyah: "",
     nsm: ""
   })
@@ -45,6 +46,7 @@ export default function SchoolProfilePage() {
         kepala_jabatan_selesai: school.kepala_jabatan_selesai || "",
         akreditasi: school.akreditasi || "",
         npsn: school.npsn || "",
+        npsmnu: school.npsmnu || "",
         status_jamiyyah: school.status_jamiyyah || "",
         nsm: school.nsm || ""
       })
@@ -106,21 +108,26 @@ export default function SchoolProfilePage() {
 
       <form onSubmit={handleSubmit} className="grid gap-10">
         <div className="grid gap-10 md:grid-cols-2">
-            {/* Identitas Utama */}
-            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+            {/* Identitas Utama (Merged Card) */}
+            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden md:col-span-2">
               <CardHeader className="p-10 border-b bg-slate-50/50">
                 <CardTitle className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
                   <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><Building2 className="h-5 w-5" /></div>
-                  Identitas Utama
+                  Identitas & Atribut Lembaga
                 </CardTitle>
-                <CardDescription className="text-xs font-medium text-slate-400">Data fundamental madrasah. Hubungi Admin jika ada kesalahan.</CardDescription>
+                <CardDescription className="text-xs font-medium text-slate-400">Data fundamental madrasah. Hubungi Admin jika ada kesalahan data permanen.</CardDescription>
               </CardHeader>
-              <CardContent className="p-10 space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Resmi</Label>
-                  <Input value={school.nama} disabled className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-500" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+              <CardContent className="p-10 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="space-y-2 lg:col-span-3">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Resmi Madrasah</Label>
+                        <Input value={school.nama} disabled className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-500" />
+                    </div>
+                    <div className="space-y-2 lg:col-span-1">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Update Terakhir</Label>
+                        <Input value={school.updated_at ? new Date(school.updated_at).toLocaleDateString('id-ID') : '-'} disabled className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-500" />
+                    </div>
+                    
                     <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NSM</Label>
                         <Input value={school.nsm} disabled className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-500" />
@@ -129,36 +136,18 @@ export default function SchoolProfilePage() {
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NPSN</Label>
                         <Input name="npsn" value={formData.npsn} onChange={handleChange} className="h-12 rounded-xl border-slate-200 font-bold" />
                     </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Administrasi Dokumen */}
-            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
-              <CardHeader className="p-10 border-b bg-emerald-50/50">
-                <CardTitle className="text-lg font-black text-emerald-900 uppercase tracking-tight flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600"><User className="h-5 w-5" /></div>
-                  Atribut Dokumen
-                </CardTitle>
-                <CardDescription className="text-xs font-medium text-emerald-600/60">Informasi tambahan mengenai identitas dan atribut madrasah.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-10 space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Update Dokumen Terakhir</Label>
-                  <Input 
-                    value={school.updated_at ? new Date(school.updated_at).toLocaleDateString('id-ID') : '-'} 
-                    disabled 
-                    className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-500" 
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-blue-600">NPSMNU (Nomor Induk NU)</Label>
+                        <Input name="npsmnu" value={formData.npsmnu} onChange={handleChange} placeholder="No Induk NU" className="h-12 rounded-xl border-blue-100 bg-blue-50/10 font-bold" />
+                    </div>
                     <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Akreditasi</Label>
-                        <Input name="akreditasi" value={formData.akreditasi} onChange={handleChange} placeholder="A / B / C" className="h-12 rounded-xl border-slate-200 font-bold text-center" />
+                        <Input name="akreditasi" value={formData.akreditasi} onChange={handleChange} placeholder="A / B / C" className="h-12 rounded-xl border-slate-200 font-bold" />
                     </div>
-                     <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status Afiliasi</Label>
-                        <Input name="status_jamiyyah" value={formData.status_jamiyyah} onChange={handleChange} placeholder="Jamaah / Jamiyyah" className="h-12 rounded-xl border-slate-200 font-bold" />
+
+                    <div className="space-y-2 lg:col-span-4">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status Afiliasi (Jam'iyyah / Jamaah)</Label>
+                        <Input name="status_jamiyyah" value={formData.status_jamiyyah} onChange={handleChange} placeholder="Contoh: Jam'iyyah" className="h-12 rounded-xl border-slate-200 font-bold" />
                     </div>
                 </div>
               </CardContent>

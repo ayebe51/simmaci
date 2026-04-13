@@ -30,8 +30,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy project files
 COPY . .
 
-# Install dependencies (Update used to sync stale lock file from host)
-RUN composer update --no-interaction --optimize-autoloader --no-dev --no-scripts
+# Install dependencies
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
 # Set permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
@@ -49,14 +49,30 @@ RUN sed -i 's/listen = \/run\/php\/php8.3-fpm.sock/listen = 0.0.0.0:9000/g' /usr
 
 EXPOSE 80
 
-# Create startup script that fixes CRLF from Windows volume mounts before launching
+# Create startup script
 RUN printf '#!/bin/sh\n\
 # Fix Windows CRLF line endings on mounted .env file\n\
 if [ -f /var/www/html/.env ]; then\n\
   sed -i "s/\\r$//" /var/www/html/.env\n\
 fi\n\
-# Run pending migrations (ignore errors on first boot)\n\
-cd /var/www/html && php artisan migrate --force 2>/dev/null || true\n\
+\n\
+cd /var/www/html\n\
+\n\
+# Generate app key if not set\n\
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then\n\
+  php artisan key:generate --force\n\
+fi\n\
+\n\
+# Cache config for production performance\n\
+if [ "$APP_ENV" = "production" ]; then\n\
+  php artisan config:cache 2>/dev/null || true\n\
+  php artisan route:cache 2>/dev/null || true\n\
+  php artisan view:cache 2>/dev/null || true\n\
+fi\n\
+\n\
+# Run pending migrations\n\
+php artisan migrate --force 2>/dev/null || true\n\
+\n\
 # Start supervisor\n\
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /usr/local/bin/start.sh && chmod +x /usr/local/bin/start.sh

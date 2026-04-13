@@ -33,8 +33,16 @@ class SkDocumentController extends Controller
             $query->byJenis($request->jenis_sk);
         }
 
+        // --- Tenant Isolation ---
+        $user = $request->user();
+        if ($user->role === 'operator' && $user->school_id) {
+            $query->where('school_id', $user->school_id);
+        } elseif ($request->school_id) {
+            $query->where('school_id', $request->school_id);
+        }
+
         return response()->json(
-            $query->orderByDesc('created_at')->paginate($request->integer('per_page', 25))
+            $query->orderByDesc('created_at')->orderByDesc('id')->paginate($request->integer('per_page', 25))
         );
     }
 
@@ -91,25 +99,35 @@ class SkDocumentController extends Controller
 
     public function update(Request $request, SkDocument $skDocument): JsonResponse
     {
-        $oldStatus = $skDocument->status;
+        try {
+            $oldStatus = $skDocument->status;
 
-        $skDocument->update($request->only([
-            'nomor_sk', 'jenis_sk', 'teacher_id', 'nama', 'jabatan',
-            'unit_kerja', 'tanggal_penetapan', 'status', 'file_url', 'qr_code',
-            'revision_status', 'revision_reason', 'revision_data',
-        ]));
+            $skDocument->update($request->only([
+                'nomor_sk', 'jenis_sk', 'teacher_id', 'nama', 'jabatan',
+                'unit_kerja', 'tanggal_penetapan', 'status', 'file_url', 'qr_code',
+                'revision_status', 'revision_reason', 'revision_data',
+            ]));
 
-        ActivityLog::log(
-            description: "SK {$skDocument->nomor_sk} diperbarui" .
-                ($oldStatus !== $skDocument->status ? " (status: {$oldStatus} → {$skDocument->status})" : ''),
-            event: 'update_sk',
-            logName: 'sk',
-            subject: $skDocument,
-            causer: $request->user(),
-            schoolId: $skDocument->school_id
-        );
+            ActivityLog::log(
+                description: "SK {$skDocument->nomor_sk} diperbarui" .
+                    ($oldStatus !== $skDocument->status ? " (status: {$oldStatus} → {$skDocument->status})" : ''),
+                event: 'update_sk',
+                logName: 'sk',
+                subject: $skDocument,
+                causer: $request->user(),
+                schoolId: $skDocument->school_id
+            );
 
-        return response()->json($skDocument->fresh());
+            return response()->json($skDocument->fresh());
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == '23505') { // Postgres Unique violation
+                return response()->json([
+                    'message' => 'Gagal memperbarui SK. Nomor SK sudah digunakan oleh dokumen lain.',
+                    'error' => $e->getMessage()
+                ], 400);
+            }
+            throw $e;
+        }
     }
 
     public function destroy(Request $request, SkDocument $skDocument): JsonResponse
@@ -199,6 +217,32 @@ class SkDocumentController extends Controller
                 'status' => $request->status,
             ]);
 
+            // If it's a revision approval, apply the suggested data
+            if ($request->status === 'approved' && $sk->revision_status === 'revision_pending' && $sk->revision_data) {
+                $revData = $sk->revision_data;
+                
+                // Update SK Document
+                $sk->update([
+                    'nama' => $revData['nama'] ?? $sk->nama,
+                    'unit_kerja' => $revData['unit_kerja'] ?? $sk->unit_kerja,
+                    'revision_status' => 'approved',
+                ]);
+
+                // Update related Teacher
+                if ($sk->teacher_id) {
+                    $sk->teacher->update([
+                        'nama' => $revData['nama'] ?? $sk->teacher->nama,
+                        'nip' => $revData['nip'] ?? $sk->teacher->nip,
+                        'tempat_lahir' => $revData['tempat_lahir'] ?? $sk->teacher->tempat_lahir,
+                        'tanggal_lahir' => $revData['tanggal_lahir'] ?? $sk->teacher->tanggal_lahir,
+                        'pendidikan_terakhir' => $revData['pendidikan_terakhir'] ?? $sk->teacher->pendidikan_terakhir,
+                        'tmt' => $revData['tmt'] ?? $sk->teacher->tmt,
+                    ]);
+                }
+            } elseif ($request->status === 'rejected' && $sk->revision_status === 'revision_pending') {
+                $sk->update(['revision_status' => 'rejected']);
+            }
+
             // Verify teacher when SK approved
             if ($request->status === 'approved' && $sk->teacher_id) {
                 $sk->teacher?->update(['is_verified' => true]);
@@ -267,6 +311,12 @@ class SkDocumentController extends Controller
         $school = School::where('nama', $data['unit_kerja'])->first();
         $schoolId = $school?->id;
 
+        // Force school_id for operators
+        if ($request->user()->role === 'operator') {
+            $schoolId = $request->user()->school_id;
+        }
+        $data['school_id'] = $schoolId;
+
         // Upsert Teacher logic
         $teacher = null;
         if (!empty($data['nuptk'])) {
@@ -325,6 +375,12 @@ class SkDocumentController extends Controller
      */
     public function bulkRequest(Request $request): JsonResponse
     {
+        \Illuminate\Support\Facades\Log::info('Bulk SK Request Payload:', ['data' => $request->all()]);
+        
+        if ($request->has('meta.detected_headers')) {
+            \Illuminate\Support\Facades\Log::info('Detected Headers from Frontend:', ['headers' => $request->input('meta.detected_headers')]);
+        }
+        
         $request->validate([
             'documents'            => 'required|array',
             'surat_permohonan_url' => 'required|string',
@@ -338,29 +394,56 @@ class SkDocumentController extends Controller
 
         foreach ($request->documents as $doc) {
             $schoolId = null;
-            if (isset($doc['unit_kerja'])) {
+            // Force user's school if operator
+            if ($request->user()->role === 'operator') {
+                $schoolId = $request->user()->school_id;
+            } elseif (isset($doc['unit_kerja'])) {
                 $schoolId = $schoolCache[$doc['unit_kerja']]
                     ?? ($schoolCache[$doc['unit_kerja']] = School::where('nama', $doc['unit_kerja'])->value('id'));
             }
 
             // Upsert Teacher
             $teacherData = [
-                'nama'       => $doc['nama'],
-                'nuptk'      => $doc['nuptk'] ?? null,
-                'nip'        => $doc['nip'] ?? null,
-                'unit_kerja' => $doc['unit_kerja'] ?? null,
-                'school_id'  => $schoolId,
-                'is_verified' => false,
-                'status'     => $doc['status'] ?? 'Draft',
+                'nama'                => $doc['nama'],
+                'nuptk'               => $doc['nuptk'] ?? null,
+                'nip'                 => $doc['nip'] ?? null,
+                'nomor_induk_maarif'  => $doc['nomor_induk_maarif'] ?? null,
+                'unit_kerja'          => $doc['unit_kerja'] ?? null,
+                'school_id'           => $schoolId,
+                'tempat_lahir'        => $doc['tempat_lahir'] ?? null,
+                'tanggal_lahir'       => $doc['tanggal_lahir'] ?? null,
+                'pendidikan_terakhir' => $doc['pendidikan_terakhir'] ?? null,
+                'tmt'                 => $doc['tmt'] ?? null,
+                'kecamatan'           => $doc['kecamatan'] ?? null,
+                'status'              => $doc['status'] ?? 'Draft',
+                'is_verified'         => false,
             ];
+
+            // If NIP is empty but NIM is provided, or vice versa - and they represent the same concept for this user
+            if (empty($teacherData['nip']) && !empty($teacherData['nomor_induk_maarif'])) {
+                $teacherData['nip'] = $teacherData['nomor_induk_maarif'];
+            }
+            if (empty($teacherData['nomor_induk_maarif']) && !empty($teacherData['nip'])) {
+                $teacherData['nomor_induk_maarif'] = $teacherData['nip'];
+            }
 
             $teacher = null;
             if (!empty($teacherData['nuptk'])) {
                 $teacher = Teacher::where('nuptk', $teacherData['nuptk'])->first();
-            } elseif (!empty($teacherData['nip'])) {
+            }
+            
+            if (!$teacher && !empty($teacherData['nip'])) {
                 $teacher = Teacher::where('nip', $teacherData['nip'])->first();
-            } else {
-                $teacher = Teacher::where('nama', $teacherData['nama'])->where('school_id', $schoolId)->first();
+            }
+
+            if (!$teacher && !empty($teacherData['nomor_induk_maarif'])) {
+                $teacher = Teacher::where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])->first();
+            }
+            
+            if (!$teacher) {
+                $teacher = Teacher::where('nama', $teacherData['nama'])
+                    ->where('school_id', $schoolId)
+                    ->first();
             }
 
             if ($teacher) {

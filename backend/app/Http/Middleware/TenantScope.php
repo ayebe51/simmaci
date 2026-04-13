@@ -17,11 +17,17 @@ class TenantScope
     {
         $user = $request->user();
 
-        if ($user && $user->isOperator() && $user->school_id) {
-            DB::statement("SET app.current_school_id = '{$user->school_id}'");
+        if ($user && $user->isOperator()) {
+            if ($user->school_id) {
+                DB::statement("SET app.current_school_id = '{$user->school_id}'");
+            } else {
+                // Orphaned operator: allow seeing all schools temporarily so auto-heal can find them.
+                // This is safe now because migrations fixed the ::bigint crash.
+                DB::statement("SET app.current_school_id = ''");
+            }
         } else {
-            // Super admin / no user: clear the variable so RLS USING clause passes all rows
-            DB::statement("SET app.current_school_id = ''");
+            // Super Admin or anonymous: bypass RLS
+            DB::statement("SET app.current_school_id TO DEFAULT");
         }
 
         return $next($request);

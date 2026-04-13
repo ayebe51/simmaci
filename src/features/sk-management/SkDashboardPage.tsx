@@ -89,8 +89,16 @@ export default function SkDashboardPage() {
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState("")
 
-  const items = statusFilter === 'draft' ? (candidatesData?.data || []) : (skDocsData?.data || [])
-  const totalItems = statusFilter === 'draft' ? (candidatesData?.total || 0) : (skDocsData?.total || 0)
+  const itemsRaw = statusFilter === 'draft' ? candidatesData : skDocsData
+  
+  // Robust array handling to prevent "h.map is not a function"
+  const items = useMemo(() => {
+    if (!itemsRaw) return [];
+    if (Array.isArray(itemsRaw)) return itemsRaw;
+    if (itemsRaw.data && Array.isArray(itemsRaw.data)) return itemsRaw.data;
+    return [];
+  }, [itemsRaw]);
+  const totalItems = statusFilter === 'draft' ? (candidatesData?.total || (Array.isArray(candidatesData) ? candidatesData.length : 0)) : (skDocsData?.total || (Array.isArray(skDocsData) ? skDocsData.length : 0))
   const isLoading = statusFilter === 'draft' ? isCandidatesLoading : isSkLoading
 
   const handleSelectAll = (checked: boolean) => {
@@ -242,54 +250,79 @@ export default function SkDashboardPage() {
                         </TableCell>
                     </TableRow>
                 ) : (
-                    items.map((item: any) => (
-                      <TableRow 
-                        key={item.id} 
-                        className="hover:bg-slate-50/50 border-b border-slate-50 transition-colors group"
-                      >
-                        <TableCell className="pl-8">
-                            <Checkbox
-                                checked={selectedIds.has(item.id)}
-                                onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
-                                className="rounded-md border-slate-300"
-                            />
-                        </TableCell>
-                        <TableCell className="text-xs font-bold text-slate-500 py-4">
-                            {new Date(item.created_at || item.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </TableCell>
-                        <TableCell className="text-xs font-bold text-slate-600">
-                            {item.school?.nama || item.unit_kerja || "-"}
-                        </TableCell>
-                        <TableCell className="text-xs font-bold text-slate-800">
-                            {item.jenis_sk || (item.nuptk ? "Verifikasi Baru" : "-")}
-                        </TableCell>
-                        <TableCell>
-                            <div className="font-black text-slate-800 text-sm tracking-tight">{item.nama}</div>
-                            {item.nuptk && <div className="text-[10px] font-bold text-blue-500 uppercase">NUPTK: {item.nuptk}</div>}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-slate-500">{item.nomor_sk || "-"}</TableCell>
-                        <TableCell>
-                            {renderStatusBadge(item.status || 'draft')}
-                        </TableCell>
-                        <TableCell className="text-right pr-8">
-                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {item.file_url && (
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => window.open(item.file_url, '_blank')}>
-                                        <FileText className="w-4 h-4" />
-                                    </Button>
-                                )}
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 text-xs font-black uppercase text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 rounded-lg"
-                                    onClick={() => navigate(statusFilter === 'draft' ? `/dashboard/sk/${item.id}` : `/dashboard/sk/${item.id}`)}
-                                >
-                                    {statusFilter === 'draft' ? "Proses" : "Detail"}
-                                </Button>
-                            </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    items.map((item: any) => {
+                      const roleRaw = user?.role || "";
+                      const role = String(roleRaw).toLowerCase().trim();
+                      const status = String(item.status || "").toLowerCase().trim();
+                      
+                      // Pengecekan role: Tampilkan Revisi jika BUKAN admin/super_admin, atau jika mengandung kata 'operator'
+                      const isAdminRole = ['super_admin', 'admin_yayasan', 'admin'].includes(role);
+                      const isOperatorLike = role.includes('operator') || (!isAdminRole && role !== "");
+                      
+                      const isApproved = ['approved', 'active', 'disetujui', 'issued'].includes(status);
+                      const canRevise = isOperatorLike && isApproved;
+
+                      return (
+                        <TableRow 
+                          key={item.id} 
+                          className="hover:bg-slate-50/50 border-b border-slate-50 transition-colors group"
+                        >
+                          <TableCell className="pl-8">
+                              <Checkbox
+                                  checked={selectedIds.has(item.id)}
+                                  onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
+                                  className="rounded-md border-slate-300"
+                              />
+                          </TableCell>
+                          <TableCell className="text-xs font-bold text-slate-500 py-4">
+                              {new Date(item.created_at || item.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </TableCell>
+                          <TableCell className="text-xs font-bold text-slate-600">
+                              {item.school?.nama || item.unit_kerja || "-"}
+                          </TableCell>
+                          <TableCell className="text-xs font-bold text-slate-800">
+                              {item.jenis_sk || (item.nuptk ? "Verifikasi Baru" : "-")}
+                          </TableCell>
+                          <TableCell>
+                              <div className="font-black text-slate-800 text-sm tracking-tight">{item.nama}</div>
+                              {item.nuptk && <div className="text-[10px] font-bold text-blue-500 uppercase">NUPTK: {item.nuptk}</div>}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-slate-500">{item.nomor_sk || "-"}</TableCell>
+                          <TableCell>
+                              {renderStatusBadge(item.status || 'draft')}
+                          </TableCell>
+                          <TableCell className="text-right pr-8">
+                              <div className="flex justify-end gap-1">
+                                  {item.file_url && (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => window.open(item.file_url, '_blank')}>
+                                          <FileText className="w-4 h-4" />
+                                      </Button>
+                                  )}
+                                  {canRevise ? (
+                                      <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-8 text-[10px] font-black uppercase text-amber-600 hover:bg-amber-50 px-3 rounded-lg flex items-center gap-2 border border-amber-100/50"
+                                          onClick={() => navigate(`/dashboard/sk/${item.id}/revision`)}
+                                      >
+                                          <AlertTriangle className="w-3.5 h-3.5" />
+                                          Revisi
+                                      </Button>
+                                  ) : (
+                                      <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 rounded-lg"
+                                          onClick={() => navigate(`/dashboard/sk/${item.id}`)}
+                                      >
+                                          {statusFilter === 'draft' ? "Proses" : "Detail"}
+                                      </Button>
+                                  )}
+                              </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                 )}
               </TableBody>
             </Table>

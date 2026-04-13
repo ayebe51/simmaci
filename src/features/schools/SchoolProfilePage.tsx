@@ -130,7 +130,7 @@ export default function SchoolProfilePage() {
                   <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600"><User className="h-5 w-5" /></div>
                   Atribut Dokumen
                 </CardTitle>
-                <CardDescription className="text-xs font-medium text-emerald-600/60">Informasi ini akan tercetak otomatis pada Kop Surat & SK.</CardDescription>
+                <CardDescription className="text-xs font-medium text-emerald-600/60">Informasi tambahan mengenai identitas dan atribut madrasah.</CardDescription>
               </CardHeader>
               <CardContent className="p-10 space-y-6">
                  <div className="space-y-2">

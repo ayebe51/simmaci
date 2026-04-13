@@ -65,7 +65,11 @@ export default function AppShell({ children }: AppShellProps) {
       title: "Master Data",
       items: [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { label: "Profil Lembaga", href: "/dashboard/master/schools", icon: School },
+        { 
+          label: "Profil Lembaga", 
+          href: userRole === "operator" ? "/dashboard/school/profile" : "/dashboard/master/schools", 
+          icon: School 
+        },
         { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
         { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
       ]
@@ -75,7 +79,7 @@ export default function AppShell({ children }: AppShellProps) {
       items: [
         { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
         { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
-        { label: "Revisi Data SK", href: "/dashboard/sk-revision", icon: FileEdit },
+        { label: "Revisi Data SK", href: "/dashboard/sk-revisions", icon: FileEdit },
         { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
 
         { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },

@@ -13,7 +13,8 @@ class SettingController extends Controller
     {
         $schoolId = $request->user()->isOperator() ? $request->user()->school_id : null;
 
-        $settings = Setting::when($schoolId, fn($q) => $q->where('school_id', $schoolId))
+        $settings = Setting::withoutTenantScope()
+            ->when($schoolId, fn($q) => $q->where('school_id', $schoolId))
             ->get()
             ->keyBy('key');
 
@@ -29,17 +30,31 @@ class SettingController extends Controller
         return response()->json(['key' => $key, 'value' => $value]);
     }
 
-    public function update(Request $request): JsonResponse
+    /**
+     * POST /settings — Upsert a setting (store OR update).
+     * Accepts: { key, value, school_id? }
+     */
+    public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'key' => 'required|string',
-            'value' => 'nullable|string',
+            'key'   => 'required|string|max:255',
+            'value' => 'nullable',
         ]);
 
-        $schoolId = $request->user()->isOperator() ? $request->user()->school_id : $request->school_id;
+        $schoolId = $request->user()->isOperator()
+            ? $request->user()->school_id
+            : $request->input('school_id');
 
         Setting::setValue($request->key, $request->value, $schoolId);
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * PUT /settings/{setting} — also upsert (legacy route support).
+     */
+    public function update(Request $request): JsonResponse
+    {
+        return $this->store($request);
     }
 }

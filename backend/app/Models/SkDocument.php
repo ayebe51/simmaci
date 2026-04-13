@@ -16,8 +16,9 @@ class SkDocument extends Model
         'nomor_sk', 'jenis_sk', 'teacher_id', 'nama',
         'jabatan', 'unit_kerja', 'school_id', 'tanggal_penetapan',
         'status', 'file_url', 'surat_permohonan_url', 'qr_code',
-        'revision_status', 'revision_reason', 'revision_data',
+        'tahun_ajaran', 'revision_status', 'revision_reason', 'revision_data',
         'created_by', 'archived_at', 'archived_by', 'archive_reason',
+        'nomor_permohonan', 'tanggal_permohonan'
     ];
 
     protected function casts(): array

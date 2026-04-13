@@ -69,6 +69,7 @@ export default function TeacherListPage() {
     }
   })
   const isOperator = user?.role === "operator"
+  const isSuperAdmin = user?.role === "super_admin"
 
   // 🔥 REST API QUERY
   const { data: teachersData, isLoading } = useQuery({
@@ -118,6 +119,26 @@ export default function TeacherListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+
+  // Account Generation States
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateResult, setGenerateResult] = useState<any[]>([])
+
+  const handleGenerateAccounts = async () => {
+    setIsGenerating(true)
+    try {
+        const teacherIds = selectedTeacherIds.size > 0 ? Array.from(selectedTeacherIds) : undefined
+        const res = await teacherApi.generateAccounts(teacherIds)
+        setGenerateResult(res.accounts || [])
+        toast.success(`Berhasil generate ${res.accounts?.length || 0} akun guru.`)
+        queryClient.invalidateQueries({ queryKey: ["teachers"] })
+    } catch (err: any) {
+        toast.error("Gagal generate akun: " + (err.response?.data?.message || err.message))
+    } finally {
+        setIsGenerating(false)
+    }
+  }
 
   const openAdd = () => {
     setIsEditMode(false)
@@ -204,7 +225,9 @@ export default function TeacherListPage() {
         description="Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap"
         actions={[
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
-          { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
+          ...(isSuperAdmin ? [
+              { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
+          ] : []),
           { label: 'Tambah Manual', onClick: () => {
               setFormData({ is_active: true })
               setIsEditMode(false)

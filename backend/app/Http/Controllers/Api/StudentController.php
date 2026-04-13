@@ -24,6 +24,14 @@ class StudentController extends Controller
             $query->byStatus($request->status);
         }
 
+        // --- Tenant Isolation ---
+        $user = $request->user();
+        if ($user->role === 'operator' && $user->school_id) {
+            $query->where('school_id', $user->school_id);
+        } elseif ($request->school_id) {
+            $query->where('school_id', $request->school_id);
+        }
+
         $students = $query->orderByDesc('updated_at')->paginate($request->integer('per_page', 25));
 
         // Sanitize output to prevent UTF-8 errors
@@ -185,9 +193,11 @@ class StudentController extends Controller
                     $dataToSave['nisn'] = $nisn;
                 }
 
-                // If super admin (null schoolId), try to find school from the row data
-                $actualSchoolId = $schoolId;
-                if (!$actualSchoolId) {
+                // Force ownership based on authenticated user
+                $actualSchoolId = $request->user()->school_id;
+                
+                if (!$actualSchoolId && $request->user()->role !== 'operator') {
+                    // If super admin (null schoolId), try to find school from the row data
                     if (!empty($dataToSave['npsn'])) {
                         $sch = \App\Models\School::where('npsn', $dataToSave['npsn'])->first();
                         if ($sch) $actualSchoolId = $sch->id;

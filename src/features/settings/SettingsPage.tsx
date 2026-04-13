@@ -4,10 +4,10 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Save, FileText, CheckCircle, Lock, EyeOff, ShieldAlert, CloudUpload, Loader2, Download, Trash2 } from "lucide-react"
+import { FileText, CheckCircle, ShieldAlert, CloudUpload, Loader2, Download, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { settingApi, authApi } from "@/lib/api"
+import { settingApi, authApi, mediaApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
@@ -50,22 +50,36 @@ export default function SettingsPage() {
   const handleUploadTemplate = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Reset input value so same file can be selected again
+    e.target.value = ""
+
     setIsUploading(key)
     try {
-        // 1. Upload to Media (get URL or use Base64 if backend handles it directly in settings)
-        // For simplicity and to match previous logic (Base64 storage for templates), we'll use Base64
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-            const base64 = reader.result as string;
-            await settingApi.update({ key, value: base64 })
-            toast.success(`Template ${key} diperbarui`)
-            refetch()
-            setIsUploading(null)
-        };
-    } catch (err) {
-        toast.error("Gagal upload")
-        setIsUploading(null)
+      // Strategy 1: Upload file to server, store URL in settings
+      let valueToStore: string
+      try {
+        const uploaded = await mediaApi.upload(file, 'sk-templates')
+        valueToStore = uploaded.url ?? uploaded.path ?? uploaded.file_url
+        if (!valueToStore) throw new Error('No URL returned')
+      } catch {
+        // Strategy 2: Fallback to Base64 if file upload fails
+        valueToStore = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+        })
+      }
+
+      await settingApi.update({ key, value: valueToStore })
+      toast.success(`Template berhasil disimpan`)
+      refetch()
+    } catch (err: any) {
+      console.error('Upload template error:', err)
+      toast.error('Gagal upload template: ' + (err?.response?.data?.message || err?.message || 'Unknown error'))
+    } finally {
+      setIsUploading(null)
     }
   }
 

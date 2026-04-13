@@ -20,6 +20,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'verified'     => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'tenant'       => \App\Http\Middleware\TenantScope::class,
             'valid_tenant' => \App\Http\Middleware\EnsureTenantIsValid::class,
+            'role'         => \App\Http\Middleware\CheckRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

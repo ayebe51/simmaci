@@ -60,6 +60,7 @@ export default function StudentListPage() {
     }
   })
   const isOperator = user?.role === "operator"
+  const isSuperAdmin = user?.role === "super_admin"
 
   // 🔥 REST API QUERY
   const { data: studentsData, isLoading } = useQuery({

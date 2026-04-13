@@ -35,7 +35,7 @@ export function NotificationDropdown() {
     refetchInterval: 30000
   })
 
-  const notifications = notificationsRes?.data || []
+  const notifications = Array.isArray(notificationsRes) ? notificationsRes : (notificationsRes?.data || [])
   const unreadCount = unreadRes?.count ?? 0
 
   const handleNotificationClick = useCallback(async (notif: any) => {

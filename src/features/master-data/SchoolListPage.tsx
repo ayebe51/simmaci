@@ -44,6 +44,17 @@ interface School {
 export default function SchoolListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [user] = useState<any>(() => {
+    const u = localStorage.getItem("user_data")
+    try {
+      return u ? JSON.parse(u) : null
+    } catch (e) {
+      return null
+    }
+  })
+
+  const isSuperAdmin = user?.role === "super_admin"
+
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -178,10 +189,13 @@ export default function SchoolListPage() {
         description="Manajemen profil satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
         actions={[
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
-          { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
-          { label: 'Tambah Manual', onClick: openAdd, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
-          { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
-          { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
+          // Only Superadmin can access these sensitive actions
+          ...(isSuperAdmin ? [
+              { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
+              { label: 'Tambah Manual', onClick: openAdd, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
+              { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
+              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
+          ] : [])
         ]}
       />
 
@@ -253,11 +267,15 @@ export default function SchoolListPage() {
                                         <Link to={`/dashboard/master/schools/${item.id}`}>
                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"><Eye className="h-4 w-4" /></Button>
                                         </Link>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => toast.info('Reset password belum tersedia')}><KeyRound className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
-                                            if(confirm(`Yakin ingin menghapus ${item.nama}?`)) deleteMutation.mutate(item.id)
-                                        }}><Trash2 className="h-4 w-4" /></Button>
+                                        {isSuperAdmin && (
+                                            <>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => toast.info('Reset password belum tersedia')}><KeyRound className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
+                                                    if(confirm(`Yakin ingin menghapus ${item.nama}?`)) deleteMutation.mutate(item.id)
+                                                }}><Trash2 className="h-4 w-4" /></Button>
+                                            </>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>

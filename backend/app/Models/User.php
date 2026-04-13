@@ -47,4 +47,8 @@ class User extends Authenticatable
     {
         return $this->belongsTo(School::class);
     }
-}
+
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class, 'user_id');
+    }

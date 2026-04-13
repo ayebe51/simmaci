@@ -7,9 +7,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
-# Copy all necessary project files explicitly, avoiding "COPY . ." to prevent massive context transfer or BuildKit crashes with node_modules/vendor
+# Copy source files (explicitly, no .env files from host)
 COPY src ./src
 COPY public ./public
 COPY index.html ./
@@ -18,7 +18,16 @@ COPY vite.config.ts ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
 COPY eslint.config.js ./
-COPY .env* ./
+
+# Build args for runtime configuration (injected by Coolify)
+ARG VITE_API_URL=/api
+ARG VITE_STORAGE_URL=/storage
+ARG VITE_SENTRY_DSN=
+
+# Write .env.production from build args
+RUN echo "VITE_API_URL=${VITE_API_URL}" > .env.production && \
+    echo "VITE_STORAGE_URL=${VITE_STORAGE_URL}" >> .env.production && \
+    echo "VITE_SENTRY_DSN=${VITE_SENTRY_DSN}" >> .env.production
 
 # Build the app (Vite production build)
 RUN npm run build
@@ -32,8 +41,12 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy custom Nginx configuration for React Router
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
+# Copy entrypoint script
+COPY nginx/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose port
 EXPOSE 80
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Use entrypoint to inject BACKEND_URL at runtime
+ENTRYPOINT ["/entrypoint.sh"]

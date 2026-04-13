@@ -56,29 +56,24 @@ class DashboardController extends Controller
     public function schoolStats(Request $request): JsonResponse
     {
         $user = $request->user();
-
+ 
         if ($user->role !== 'operator' || ! $user->unit) {
             return response()->json(['error' => 'Not an operator or no unit assigned'], 403);
         }
-
-        $schoolName = $user->unit;
+ 
         $schoolId = $user->school_id;
-
+        $schoolName = $user->unit;
+ 
         $teachersList = Teacher::where('school_id', $schoolId)
-            ->orWhere('unit_kerja', $schoolName)
             ->where('is_active', true)
             ->get();
-
-        $students = Student::where('school_id', $schoolId)
-            ->orWhere('nama_sekolah', $schoolName)
-            ->count();
-
-        $skBase = SkDocument::where('school_id', $schoolId)
-            ->orWhere('unit_kerja', $schoolName);
-
+ 
+        $students = Student::where('school_id', $schoolId)->count();
+        $skBase = SkDocument::where('school_id', $schoolId);
+ 
         $statusCounts = ['PNS' => 0, 'GTY' => 0, 'GTT' => 0, 'Tendik' => 0];
         $certCounts = ['Sudah Sertifikasi' => 0, 'Belum Sertifikasi' => 0];
-
+ 
         foreach ($teachersList as $t) {
             $label = $this->determineTeacherStatus($t);
             if (isset($statusCounts[$label])) $statusCounts[$label]++;
@@ -88,7 +83,7 @@ class DashboardController extends Controller
                     : $certCounts['Belum Sertifikasi']++;
             }
         }
-
+ 
         return $this->successResponse([
             'schoolName' => $schoolName,
             'teachers' => $teachersList->count(),

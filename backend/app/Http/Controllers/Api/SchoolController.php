@@ -69,6 +69,8 @@ class SchoolController extends Controller
             'nsm', 'npsn', 'nama', 'alamat', 'provinsi', 'kabupaten',
             'kecamatan', 'kelurahan', 'telepon', 'email',
             'kepala_madrasah', 'akreditasi', 'status_jamiyyah',
+            'kepala_nim', 'kepala_nuptk', 'kepala_whatsapp',
+            'kepala_jabatan_mulai', 'kepala_jabatan_selesai'
         ]));
 
         return response()->json($school->fresh());

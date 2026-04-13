@@ -75,15 +75,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me',               [AuthController::class, 'user']);
     Route::post('auth/change-password', [AuthController::class, 'changePassword']);
 
-    // Dashboard
-    Route::prefix('dashboard')->group(function () {
-        Route::get('stats',            [DashboardController::class, 'stats']);
-        Route::get('school-stats',     [DashboardController::class, 'schoolStats']);
-        Route::get('charts',           [DashboardController::class, 'charts']);
-        Route::get('sk-statistics',    [DashboardController::class, 'skStatistics']);
-        Route::get('sk-trend',         [DashboardController::class, 'skTrend']);
-        Route::get('school-breakdown', [DashboardController::class, 'schoolBreakdown']);
-    });
 
     // Schools (no tenant isolation — global resource)
     Route::middleware('role:super_admin')->group(function () {
@@ -98,6 +89,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Tenant-Isolated Routes ──
     Route::middleware('tenant')->group(function () {
+        // Dashboard (Tenant-Aware)
+        Route::prefix('dashboard')->group(function () {
+            Route::get('stats',            [DashboardController::class, 'stats']);
+            Route::get('school-stats',     [DashboardController::class, 'schoolStats']);
+            Route::get('charts',           [DashboardController::class, 'charts']);
+            Route::get('sk-statistics',    [DashboardController::class, 'skStatistics']);
+            Route::get('sk-trend',         [DashboardController::class, 'skTrend']);
+            Route::get('school-breakdown', [DashboardController::class, 'schoolBreakdown']);
+        });
         // Teachers
         Route::middleware('role:super_admin')->group(function () {
             Route::delete('teachers/delete-all',        [TeacherController::class, 'deleteAll']);

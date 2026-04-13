@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\HeadmasterTenure;
 use App\Models\Notification;
+use App\Models\School;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -65,16 +66,44 @@ class HeadmasterController extends Controller
 
     public function expiring(Request $request): JsonResponse
     {
-        $tenures = HeadmasterTenure::where('status', 'active')
-            ->with(['teacher', 'school'])
-            ->get()
-            ->filter(function ($t) {
-                $end = strtotime($t->end_date);
-                return $end && $end <= strtotime('+90 days');
-            })
-            ->sortBy(fn($t) => strtotime($t->end_date))
-            ->values();
+        $limit = strtotime('+90 days');
+        $user = $request->user();
 
-        return response()->json($tenures);
+        // 1. Data from formal tenures (SK)
+        $tenureQuery = HeadmasterTenure::where('status', 'active')->with(['teacher', 'school']);
+        if ($user->isOperator()) {
+            $tenureQuery->where('school_id', $user->school_id);
+        }
+
+        $tenures = $tenureQuery->get()->filter(function ($t) {
+            $end = strtotime($t->end_date);
+            return $end && $end <= strtotime('+90 days');
+        });
+
+        // 2. Data from School Profiles (Manual detect)
+        $schoolQuery = School::whereNotNull('kepala_jabatan_selesai');
+        if ($user->isOperator()) {
+            $schoolQuery->where('id', $user->school_id);
+        }
+
+        $schoolStats = $schoolQuery->get()->filter(function ($s) use ($limit) {
+            $end = strtotime($s->kepala_jabatan_selesai);
+            return $end && $end <= $limit;
+        })->map(function ($s) {
+            return [
+                'id' => 'legacy-' . $s->id,
+                'teacher_name' => $s->kepala_madrasah . ' (Profil Lembaga)',
+                'school_name' => $s->nama,
+                'periode' => 'Masa Jabatan Aktif',
+                'start_date' => $s->kepala_jabatan_mulai,
+                'end_date' => $s->kepala_jabatan_selesai,
+                'status' => 'active',
+                'source' => 'profile'
+            ];
+        });
+
+        $combined = collect($tenures)->merge($schoolStats)->sortBy(fn($t) => is_array($t) ? strtotime($t['end_date']) : strtotime($t->end_date))->values();
+
+        return response()->json($combined);
     }
 }

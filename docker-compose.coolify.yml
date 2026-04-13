@@ -132,10 +132,9 @@ services:
     environment:
       # nginx entrypoint uses this to proxy /api → backend container
       BACKEND_URL: http://backend
-    ports:
-      # Port 80 dipakai Nginx host untuk SSL termination di VPS
-      # Coolify otomatis handle routing, jadi port ini tidak perlu diubah
-      - "${FRONTEND_PORT:-80}:80"
+    # No ports exposed — Coolify's Traefik handles routing via domain labels
+    expose:
+      - "80"
     networks:
       - simmaci-network
 

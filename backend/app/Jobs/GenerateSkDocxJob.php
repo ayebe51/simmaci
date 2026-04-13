@@ -33,20 +33,32 @@ class GenerateSkDocxJob implements ShouldQueue
 
         // Header
         $section->addText('SURAT KEPUTUSAN', ['bold' => true, 'size' => 16], ['alignment' => 'center']);
-        $section->addText("Nomor: {$sk->nomor_sk}", ['size' => 12], ['alignment' => 'center']);
+        $section->addText("Nomor: {$sk->nomor_sk}", ['name' => 'Consolas', 'bold' => true, 'size' => 12], ['alignment' => 'center']);
         $section->addTextBreak(1);
 
         // Content
         $section->addText("Jenis SK: {$sk->jenis_sk}");
-        $section->addText("Nama: {$sk->nama}");
+        
+        $textRun = $section->addTextRun();
+        $textRun->addText("Nama: ");
+        $textRun->addText($sk->nama, ['bold' => true]);
+        
         $section->addText("Jabatan: " . ($sk->jabatan ?? '-'));
         $section->addText("Unit Kerja: " . ($sk->unit_kerja ?? '-'));
-        $section->addText("Tanggal Penetapan: {$sk->tanggal_penetapan}");
+
+        $tglPenetapan = \Carbon\Carbon::parse($sk->tanggal_penetapan)->locale('id')->translatedFormat('d F Y');
+        $section->addText("Tanggal Penetapan: {$tglPenetapan}");
 
         if ($sk->teacher) {
             $section->addTextBreak(1);
             $section->addText("NUPTK: " . ($sk->teacher->nuptk ?? '-'));
-            $section->addText("NIM: " . ($sk->teacher->nomor_induk_maarif ?? '-'));
+            $nim = $sk->teacher->nomor_induk_maarif ?? '-';
+            $section->addText("NIM: {$nim}");
+            
+            if ($sk->teacher->tmt) {
+                $tmtFormatted = \Carbon\Carbon::parse($sk->teacher->tmt)->locale('id')->translatedFormat('d F Y');
+                $section->addText("Terhitung Mulai Tanggal (TMT): {$tmtFormatted}");
+            }
         }
 
         // Save to temp then upload to S3

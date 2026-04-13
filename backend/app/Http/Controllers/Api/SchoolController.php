@@ -238,7 +238,22 @@ class SchoolController extends Controller
         $user = $request->user();
 
         if (! $user->school_id) {
-            return response()->json(['error' => 'No school assigned'], 404);
+            // Auto-heal orphaned operator accounts by matching name
+            // Uses trimmed case-insensitive match
+            $targetName = trim($user->name);
+            $school = School::where('nama', 'ilike', $targetName)->first();
+            
+            if ($school) {
+                $user->update(['school_id' => $school->id]);
+                Log::info("Auto-heal: Linked User ID {$user->id} to School ID {$school->id} via name match.");
+            } else {
+                Log::error("Auto-heal failed: No school found matching user name '{$targetName}' for User ID {$user->id}.");
+                return response()->json([
+                    'error' => 'Profil Madrasah belum dihubungkan dengan akun Anda.',
+                    'details' => 'Nama akun ' . $targetName . ' tidak ditemukan di daftar madrasah.',
+                    'contact' => 'Silakan hubungi Admin Kabupaten.'
+                ], 404);
+            }
         }
 
         $school = School::withCount(['teachers', 'students', 'skDocuments'])

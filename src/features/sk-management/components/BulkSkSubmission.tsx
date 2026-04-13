@@ -40,25 +40,28 @@ export function BulkSkSubmission() {
   const [suratPermohonanFile, setSuratPermohonanFile] = useState<File | null>(null)
   const [nomorPermohonanUi, setNomorPermohonanUi] = useState("")
   const [tanggalPermohonanUi, setTanggalPermohonanUi] = useState("")
+  const [detectedHeaders, setDetectedHeaders] = useState<string[]>([])
+  const [mappingDiagnostics, setMappingDiagnostics] = useState<Record<string, string>>({})
+  const [headerIndex, setHeaderIndex] = useState(-1)
 
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
 
   // Mapping Configuration
-  const HEADER_MAP: Record<string, string[]> = {
-    "nama": ["nama", "nama lengkap", "nama guru"],
-    "tempat_lahir": ["tempat lahir", "tmp lahir"],
-    "tanggal_lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
-    "nip": ["nip", "niy", "nomor induk", "n.i.y", "pegid"],
-    "nuptk": ["nuptk"],
-    "pendidikan_terakhir": ["pendidikan terakhir", "pendidikan", "ijazah terakhir"],
-    "unit_kerja": ["unit kerja", "satminkal", "tempat tugas", "lembaga", "nama madrasah", "sekolah"],
-    "tmt": ["tanggal mulai tugas", "tmt", "mulai tugas", "tgl masuk", "tmt guru"],
-    "status": ["status", "status kepegawaian", "status guru"],
-    "pdpkpnu": ["pdpkpnu", "pkpnu", "diklat"],
-    "kecamatan": ["kecamatan", "kec"],
-  }
-
+    const HEADER_MAP: Record<string, string[]> = {
+      "nama": ["nama lengkap", "nama guru", "nama"],
+      "tempat_lahir": ["tempat lahir", "tmp lahir"],
+      "tanggal_lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
+      "nomor_induk_maarif": ["nomor induk maarif", "nim", "n.i.m", "n.i.m.", "niy", "nigk", "n.i.y", "maarif", "nomor induk ma'arif", "nomor induk m", "no. induk maarif", "no. induk", "no induk ma'arif", "nok", "id guru"],
+      "nip": ["nip", "nomor induk pegawai", "nrp", "nik", "pegid", "no. pegawai"],
+      "nuptk": ["nuptk"],
+      "pendidikan_terakhir": ["pendidikan terakhir", "pendidikan", "ijazah terakhir"],
+      "unit_kerja": ["unit kerja", "satminkal", "tempat tugas", "lembaga", "nama madrasah", "sekolah"],
+      "tmt": ["tanggal mulai tugas", "tmt", "mulai tugas", "tgl masuk", "tmt guru", "tanggal masuk"],
+      "status": ["status", "status kepegawaian", "status guru"],
+      "pdpkpnu": ["pdpkpnu", "pkpnu", "diklat"],
+      "kecamatan": ["kecamatan", "kec"],
+    }
   const handleDownloadTemplate = () => {
     const headers = ["Nama", "Tempat Lahir", "Tanggal Lahir", "NUPTK", "NIP/NIY", "Pendidikan Terakhir", "Unit Kerja", "TMT", "Status", "PDPKPNU", "Kecamatan"];
     const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "1990-05-12", "1234567890123456", "123456789", "S1 PAI", "MI Ma'arif 01", "2015-07-01", "GTY", "Lulus", "Cilacap Selatan"]]);
@@ -79,22 +82,58 @@ export function BulkSkSubmission() {
         const ws = wb.Sheets[wb.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][]
         
-        if (rows.length < 2) throw new Error("File tidak memiliki baris data")
+        if (rows.length < 1) throw new Error("File Excel kosong")
 
-        const headers = rows[0].map(h => String(h).toLowerCase().trim())
+        // --- Score-based Header Row Detection ---
+        let bestRowIndex = 0;
+        let highestScore = 0;
+        const allAliases = Object.values(HEADER_MAP).flat();
+
+        for (let i = 0; i < Math.min(rows.length, 15); i++) {
+          const rowValues = (rows[i] || []).map(v => String(v || '').toLowerCase().trim());
+          let score = 0;
+          rowValues.forEach(v => {
+            if (v && allAliases.some(a => v === a || v.includes(a))) score++;
+          });
+          
+          if (score > highestScore) {
+            highestScore = score;
+            bestRowIndex = i;
+          }
+        }
+
+        const headers = rows[bestRowIndex].map(h => String(h || '').toLowerCase().trim());
         const colMap: Record<string, number> = {}
+        const diagnostics: Record<string, string> = {}
 
         Object.entries(HEADER_MAP).forEach(([key, aliases]) => {
-          const idx = headers.findIndex(h => aliases.some(a => h.includes(a)))
-          if (idx !== -1) colMap[key] = idx
-        })
+          let idx = headers.findIndex(h => aliases.some(a => h === a));
+          if (idx === -1) {
+            idx = headers.findIndex(h => aliases.some(a => h.includes(a)));
+          }
+          
+          if (idx !== -1) {
+            colMap[key] = idx;
+            diagnostics[key] = headers[idx];
+          }
+        });
 
-        const data = rows.slice(1).map(row => {
+        // Collision prevention: If multiple fields map to same column
+        // e.g. NIM and NIP both match a generic "ID" column
+        if (colMap['nomor_induk_maarif'] === colMap['nip'] && colMap['nip'] !== undefined) {
+           const headVal = headers[colMap['nip']];
+           if (headVal.includes('nip') || headVal.includes('pegawai')) {
+              // It's NIP, NIM probably doesn't exist or is elsewhere
+           } else if (headVal.includes('maarif') || headVal.includes('nim')) {
+              // It's NIM
+           }
+        }
+
+        const data = rows.slice(bestRowIndex + 1).map(row => {
           const obj: any = {}
           Object.entries(colMap).forEach(([key, idx]) => {
             let val = row[idx]
             if (key.includes('tanggal') || key === 'tmt') {
-               // Basic date handling
                if (typeof val === 'number') {
                   const d = new Date((val - 25569) * 86400 * 1000)
                   val = d.toISOString().split('T')[0]
@@ -105,6 +144,9 @@ export function BulkSkSubmission() {
           return obj
         }).filter(o => o.nama)
 
+        setHeaderIndex(bestRowIndex)
+        setMappingDiagnostics(diagnostics)
+        setDetectedHeaders(headers)
         setCandidates(data)
         setUploadError(null)
       } catch (err: any) {
@@ -115,7 +157,7 @@ export function BulkSkSubmission() {
   }
 
   const importMutation = useMutation({
-    mutationFn: (data: { documents: any[], surat_permohonan_url: string }) => skApi.bulkRequest(data),
+    mutationFn: (data: { documents: any[], surat_permohonan_url: string, meta?: any }) => skApi.bulkRequest(data),
     onSuccess: (res) => {
       setSuccessCount(res.count || res.created || 0)
       setShowSuccessModal(true)
@@ -150,7 +192,11 @@ export function BulkSkSubmission() {
         tanggal_permohonan: tanggalPermohonanUi || undefined
       }))
 
-      await importMutation.mutateAsync({ documents, surat_permohonan_url: permohonanUrl })
+      await importMutation.mutateAsync({ 
+        documents, 
+        surat_permohonan_url: permohonanUrl,
+        meta: { detected_headers: detectedHeaders }
+      })
       toast.dismiss('bulk-upload')
     } catch (e: any) {
       toast.dismiss('bulk-upload')
@@ -213,6 +259,30 @@ export function BulkSkSubmission() {
 
         {candidates.length > 0 && (
             <div className="space-y-6 pt-6 border-t border-slate-100">
+                {/* Diagnostic Bar */}
+                <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex flex-wrap gap-6 items-center">
+                    <div className="flex items-center gap-2 text-blue-700 font-bold text-[10px] uppercase tracking-wider">
+                        <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                        Diagnostik Pemetaan:
+                    </div>
+                    <div className="flex flex-wrap gap-x-8 gap-y-2 text-[11px]">
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-400">Pencarian Header:</span>
+                            <span className="font-bold text-slate-700">Mulai Baris #{headerIndex + 1}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-400">NIM/NIY:</span>
+                            <span className={`font-bold ${mappingDiagnostics.nomor_induk_maarif ? 'text-green-600' : 'text-red-500'}`}>
+                                {mappingDiagnostics.nomor_induk_maarif ? `[${mappingDiagnostics.nomor_induk_maarif}]` : 'X TIDAK DITEMUKAN'}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-slate-400">Nama Guru:</span>
+                            <span className="font-bold text-blue-600">[{mappingDiagnostics.nama || 'X'}]</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
                         <CheckCircle className="h-3 w-3" /> Terdeteksi {candidates.length} data valid
@@ -223,6 +293,7 @@ export function BulkSkSubmission() {
                         <TableHeader className="bg-slate-50">
                             <TableRow>
                                 <TableHead className="text-[9px] font-black uppercase py-4 pl-6">Nama</TableHead>
+                                <TableHead className="text-[9px] font-black uppercase py-4">NIM</TableHead>
                                 <TableHead className="text-[9px] font-black uppercase py-4">Unit Kerja</TableHead>
                                 <TableHead className="text-[9px] font-black uppercase py-4">Status</TableHead>
                             </TableRow>
@@ -231,6 +302,9 @@ export function BulkSkSubmission() {
                             {candidates.slice(0, 5).map((row, i) => (
                                 <TableRow key={i}>
                                     <TableCell className="pl-6 font-bold text-xs">{row.nama}</TableCell>
+                                    <TableCell className="text-xs font-medium text-emerald-600">
+                                        {row.nomor_induk_maarif || <span className="text-slate-300 italic">Kosong</span>}
+                                    </TableCell>
                                     <TableCell className="text-xs text-slate-500">{row.unit_kerja}</TableCell>
                                     <TableCell className="text-[10px] font-black text-blue-500 uppercase">{row.status || 'GTY'}</TableCell>
                                 </TableRow>

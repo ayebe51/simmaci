@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -66,7 +67,8 @@ export default function SkDetailPage() {
   const { data: skDoc, isLoading, error } = useQuery({
     queryKey: ['sk-document', id],
     queryFn: () => id ? skApi.get(parseInt(id)) : null,
-    enabled: !!id
+    enabled: !!id,
+    retry: 1
   });
 
   const user = authApi.getStoredUser();
@@ -209,6 +211,16 @@ export default function SkDetailPage() {
   };
 
   if (isLoading) return <div className="p-20 text-center"><Loader2 className="h-10 w-10 animate-spin mx-auto text-blue-500" /></div>;
+  
+  if (error) return (
+    <div className="p-20 text-center space-y-4">
+      <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
+      <h3 className="text-lg font-bold text-slate-800 uppercase">Gagal Memuat Data</h3>
+      <p className="text-slate-500 text-sm max-w-md mx-auto">Terjadi kesalahan saat mengambil detail dokumen. Pastikan koneksi internet stabil atau hubungi admin.</p>
+      <Button onClick={() => navigate("/dashboard/sk")} variant="outline" className="mt-4 rounded-xl">Kembali ke Dashboard</Button>
+    </div>
+  );
+
   if (!skDoc) return <div className="p-20 text-center text-slate-400 font-bold uppercase tracking-widest">Dokumen Tidak Ditemukan</div>;
 
   const badgeStatus = getBadgeStatus(skDoc.status);
@@ -243,20 +255,53 @@ export default function SkDetailPage() {
               <Printer className="mr-2 h-4 w-4" /> Cetak / Download PDF
             </Button>
           ) : (
-             isIssued && (
-                <Button
-                    variant="default"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase px-6 shadow-lg shadow-emerald-50"
-                    onClick={handleDownloadDocx}
-                    disabled={isProcessing}
-                >
-                    {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Generate Word (DOCX)
-                </Button>
-             )
+                   <>
+                     {isIssued && (
+                         <Button
+                             variant="default"
+                             className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase px-6 shadow-lg shadow-emerald-50"
+                             onClick={handleDownloadDocx}
+                             disabled={isProcessing}
+                         >
+                             {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                             Generate Word (DOCX)
+                         </Button>
+                     )}
+                     {isIssued && !isAdmin && (
+                         <Button
+                             variant="outline"
+                             className="rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50 font-bold text-xs uppercase px-6"
+                             onClick={() => navigate(`/dashboard/sk/${id}/revision`)}
+                         >
+                             <AlertTriangle className="mr-2 h-4 w-4" /> Ajukan Perbaikan Data
+                         </Button>
+                     )}
+                   </>
           )}
         </div>
       </div>
+
+      {skDoc.revision_status === 'revision_pending' && (
+        <div className="bg-amber-50 border border-amber-200 p-6 rounded-[2rem] flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-amber-900 uppercase tracking-tight">Menunggu Persetujuan Perbaikan</p>
+              <p className="text-xs text-amber-700/70 font-medium">Pengajuan perbaikan data sedang ditinjau oleh Admin Yayasan.</p>
+            </div>
+          </div>
+          {isAdmin && (
+            <Button 
+                onClick={() => navigate('/dashboard/sk-revisions')}
+                className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-10 px-6 text-[10px] font-black uppercase tracking-widest"
+            >
+                Cek Kotak Masuk Revisi
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
@@ -295,31 +340,6 @@ export default function SkDetailPage() {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NIY / NUPTK</p>
                     <p className="font-bold text-slate-700">{skDoc.teacher?.nuptk || "-"}</p>
                 </div>
-              </div>
-
-              <Separator className="bg-slate-100" />
-
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Pratinjau Dokumen</h4>
-                    {skDoc.file_url && <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 text-[10px]">Cloud Storage PDF</Badge>}
-                </div>
-                
-                {skDoc.file_url ? (
-                  <div className="rounded-[2rem] border-0 overflow-hidden bg-slate-900 shadow-2xl h-[700px]">
-                    <iframe src={skDoc.file_url} className="w-full h-full border-0" title="PDF Preview" />
-                  </div>
-                ) : (
-                  <div className="rounded-[2rem] border-4 border-dashed border-slate-100 p-20 text-center bg-slate-50">
-                    <div className="bg-white h-20 w-20 rounded-3xl shadow-sm flex items-center justify-center mx-auto mb-6">
-                        <FileText className="h-8 w-8 text-slate-300" />
-                    </div>
-                    <p className="font-bold text-slate-600">Dokumen PDF Belum Tersedia</p>
-                    <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto">
-                      Gunakan fitur "Generate Word" untuk mengunduh dokumen atau minta Admin untuk mengunggah file PDF resmi.
-                    </p>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

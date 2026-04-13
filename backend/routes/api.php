@@ -86,18 +86,24 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Schools (no tenant isolation — global resource)
-    Route::delete('schools/delete-all',       [SchoolController::class, 'deleteAll']);
-    Route::post('schools/generate-accounts',  [SchoolController::class, 'generateAccounts']);
-    Route::post('schools/profile/me',         [SchoolController::class, 'profile']);
+    Route::middleware('role:super_admin')->group(function () {
+        Route::delete('schools/delete-all',       [SchoolController::class, 'deleteAll']);
+        Route::post('schools/generate-accounts',  [SchoolController::class, 'generateAccounts']);
+        Route::post('schools/import',             [SchoolController::class, 'import']);
+    });
+    
+    Route::get('schools/profile/me', [SchoolController::class, 'profile']);
     Route::apiResource('schools', SchoolController::class);
-    Route::post('schools/import', [SchoolController::class, 'import']);
 
 
     // ── Tenant-Isolated Routes ──
     Route::middleware('tenant')->group(function () {
         // Teachers
-        Route::delete('teachers/delete-all',        [TeacherController::class, 'deleteAll']);
-        Route::post('teachers/generate-accounts',   [TeacherController::class, 'generateAccounts']);
+        Route::middleware('role:super_admin')->group(function () {
+            Route::delete('teachers/delete-all',        [TeacherController::class, 'deleteAll']);
+            Route::post('teachers/generate-accounts',   [TeacherController::class, 'generateAccounts']);
+        });
+        
         Route::apiResource('teachers', TeacherController::class);
         Route::post('teachers/import', [TeacherController::class, 'import']);
 
@@ -110,6 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('sk-documents/submit-request',  [SkDocumentController::class, 'submitRequest']);
         Route::post('sk-documents/bulk-request',    [SkDocumentController::class, 'bulkRequest']);
         Route::patch('sk-documents/batch-status',   [SkDocumentController::class, 'batchUpdateStatus']);
+        Route::get('sk-documents-revisions', [SkDocumentController::class, 'revisions']);
         Route::get('sk-documents/{skDocument}/revisions', [SkDocumentController::class, 'revisions']);
         Route::apiResource('sk-documents', SkDocumentController::class);
 
@@ -175,7 +182,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Users (admin-level, no tenant isolation)
-    Route::apiResource('users', UserController::class);
+    Route::middleware('role:super_admin')->group(function () {
+        Route::apiResource('users', UserController::class);
+    });
 
     // File Upload
     Route::post('files/upload', [FileUploadController::class, 'upload']);

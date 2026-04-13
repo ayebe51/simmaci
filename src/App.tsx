@@ -92,7 +92,7 @@ export default function App() {
                         <Route path="sk-saya" element={<MySkPage />} />
                         <Route path="sk/:id" element={<SkDetailPage />} />
                         <Route path="sk/:id/revision" element={<SkRevisionPage />} />
-                        <Route path="sk-revision" element={<SkRevisionListPage />} />
+                        <Route path="sk-revisions" element={<SkRevisionListPage />} />
                         <Route path="generator" element={<SkGeneratorPage />} />
                         <Route path="audit" element={<DataAuditPage />} />
                         <Route path="settings" element={<SettingsPage />} />

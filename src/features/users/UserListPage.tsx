@@ -21,6 +21,23 @@ import { useQuery } from "@tanstack/react-query"
 import { userApi, schoolApi } from "@/lib/api"
 
 export default function UserListPage() {
+  const [user] = useState<any>(() => {
+    const u = localStorage.getItem("user_data")
+    try {
+      return u ? JSON.parse(u) : null
+    } catch (e) {
+      return null
+    }
+  })
+
+  const navigate = useNavigate()
+
+  // Strict check: only super_admin can access user management
+  if (user?.role !== "super_admin") {
+    navigate("/dashboard", { replace: true })
+    return null
+  }
+
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
@@ -36,8 +53,8 @@ export default function UserListPage() {
     queryFn: () => schoolApi.list({ per_page: 500 })
   })
 
-  const users = usersRes?.data || []
-  const schools = schoolsRes?.data || []
+  const users = Array.isArray(usersRes) ? usersRes : (usersRes?.data || [])
+  const schools = Array.isArray(schoolsRes) ? schoolsRes : (schoolsRes?.data || [])
   
   // Form State
   const [formData, setFormData] = useState({

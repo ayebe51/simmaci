@@ -22,6 +22,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { skApi, authApi, settingApi } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Info } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater";
@@ -54,12 +64,14 @@ export default function SkRevisionListPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const user = authApi.getStoredUser();
   const isAdmin = ["admin", "super_admin", "admin_yayasan"].includes(user?.role);
 
   // 🔥 REST API QUERIES
-  const { data: revisionsList, isLoading } = useQuery({
+  const { data: revisionsList, isLoading, error } = useQuery({
     queryKey: ['sk-revisions'],
     queryFn: () => skApi.getRevisions()
   });
@@ -84,6 +96,18 @@ export default function SkRevisionListPage() {
     setIsActionLoading(true);
     await updateStatusMutation.mutateAsync({ ids: [skId], status: 'rejected', reason: 'Ditolak Admin' });
     setIsActionLoading(false);
+    setIsPreviewOpen(false);
+  };
+
+  const handleOpenPreview = (item: any) => {
+    setSelectedItem(item);
+    setIsPreviewOpen(true);
+  };
+
+  const handleApproveFromPreview = async () => {
+    if (!selectedItem) return;
+    await handleApproveRevisionSubmit(selectedItem.id);
+    setIsPreviewOpen(false);
   };
 
   // --- DOCX GENERATION FUNCTION ---
@@ -159,15 +183,22 @@ export default function SkRevisionListPage() {
   };
 
   const filteredData = useMemo(() => {
-    if (!revisionsList) return [];
-    if (!searchTerm) return revisionsList;
-    const term = searchTerm.toLowerCase();
-    return (revisionsList as any[]).filter(
-      (sk) =>
-        sk.nama?.toLowerCase().includes(term) ||
-        sk.nomor_sk?.toLowerCase().includes(term) ||
-        sk.unit_kerja?.toLowerCase().includes(term)
-    );
+    const list = Array.isArray(revisionsList) ? revisionsList : ((revisionsList as any)?.data || []);
+    if (!list.length) return [];
+    
+    // Normalize and filter based on search
+    let results = list;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase().trim();
+      results = results.filter(
+        (item: any) =>
+          item.nama?.toLowerCase().includes(term) ||
+          item.teacher?.nama?.toLowerCase().includes(term) ||
+          item.sk_document?.nomor_sk?.toLowerCase().includes(term) ||
+          item.revision_reason?.toLowerCase().includes(term)
+      );
+    }
+    return results;
   }, [revisionsList, searchTerm]);
 
   return (
@@ -205,7 +236,9 @@ export default function SkRevisionListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {error ? (
+                <TableRow><TableCell colSpan={4} className="h-40 text-center text-red-500 font-bold uppercase tracking-widest px-10">Gagal memuat data revisi. Silakan coba lagi nanti.</TableCell></TableRow>
+              ) : isLoading ? (
                 <TableRow><TableCell colSpan={4} className="h-40 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow><TableCell colSpan={4} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Tidak ada pengajuan revisi</TableCell></TableRow>
@@ -225,16 +258,16 @@ export default function SkRevisionListPage() {
                     </TableCell>
                     <TableCell>
                       <Badge className={`rounded-lg uppercase text-[9px] font-black tracking-widest py-1 px-3 ${
-                        item.status === 'revision_pending' ? "bg-amber-100 text-amber-700 hover:bg-amber-100" :
-                        item.status === 'approved' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" :
+                        (item.revision_status || item.status) === 'revision_pending' ? "bg-amber-100 text-amber-700 hover:bg-amber-100" :
+                        (item.revision_status || item.status) === 'approved' ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" :
                         "bg-slate-100 text-slate-700 hover:bg-slate-100"
                       }`}>
-                        {item.status === 'revision_pending' ? 'Menunggu' : item.status}
+                        {(item.revision_status || item.status) === 'revision_pending' ? 'Menunggu' : (item.revision_status || item.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right pr-10">
                       <div className="flex justify-end gap-2">
-                        {item.status === "revision_pending" && isAdmin ? (
+                        {((item.status?.toLowerCase() === "revision_pending") || (item.revision_status?.toLowerCase() === "revision_pending")) && isAdmin ? (
                           <>
                             <Button
                               variant="outline"
@@ -244,6 +277,14 @@ export default function SkRevisionListPage() {
                               disabled={isActionLoading}
                             >
                               <CheckCircle className="h-3 w-3 mr-2" /> ACC
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 px-4 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold uppercase text-[10px] tracking-widest"
+                              onClick={() => handleOpenPreview(item)}
+                            >
+                              <Search className="h-3 w-3 mr-2" /> Cek Data
                             </Button>
                             <Button
                               variant="outline"
@@ -288,6 +329,95 @@ export default function SkRevisionListPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-0 rounded-[2.5rem] shadow-2xl">
+          <DialogHeader className="p-10 bg-amber-50 border-b border-amber-100">
+            <div className="flex items-center gap-4">
+               <div className="bg-white p-3 rounded-2xl text-amber-600 shadow-sm">
+                  <FileEdit className="h-6 w-6" />
+               </div>
+               <div>
+                  <DialogTitle className="text-2xl font-black text-amber-900 uppercase tracking-tight">Tinjau Perubahan Data</DialogTitle>
+                  <DialogDescription className="text-amber-700/60 font-medium">
+                    Bandingkan data saat ini dengan perubahan yang diusulkan oleh sekolah.
+                  </DialogDescription>
+               </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="p-10 space-y-8 max-h-[60vh] overflow-y-auto bg-white">
+            <div className="bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-200">
+               <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                  <Info className="h-3 w-3" /> Alasan Pengajuan:
+               </h4>
+               <p className="text-sm font-bold text-slate-700 italic">"{selectedItem?.revision_reason || 'Tidak ada alasan.'}"</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-10">
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b pb-3">Data Saat Ini (Lama)</h4>
+                <div className="space-y-4">
+                  {[
+                    { label: "Nama", val: selectedItem?.nama },
+                    { label: "NIP", val: selectedItem?.teacher?.nip },
+                    { label: "Tempat Lahir", val: selectedItem?.teacher?.tempat_lahir },
+                    { label: "Tgl Lahir", val: selectedItem?.teacher?.tanggal_lahir?.split('T')[0] },
+                    { label: "Pendidikan", val: selectedItem?.teacher?.pendidikan_terakhir },
+                    { label: "Unit Kerja", val: selectedItem?.unit_kerja },
+                    { label: "TMT", val: selectedItem?.teacher?.tmt?.split('T')[0] },
+                  ].map(f => (
+                    <div key={f.label} className="space-y-1">
+                      <p className="text-[9px] font-black uppercase text-slate-300 tracking-wider font-mono">{f.label}</p>
+                      <p className="text-xs font-bold text-slate-400">{f.val || "-"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-600 border-b border-amber-100 pb-3">Data Usulan (Baru)</h4>
+                <div className="space-y-4">
+                  {[
+                    { key: 'nama', label: "Nama" },
+                    { key: 'nip', label: "NIP" },
+                    { key: 'tempat_lahir', label: "Tempat Lahir" },
+                    { key: 'tanggal_lahir', label: "Tgl Lahir" },
+                    { key: 'pendidikan_terakhir', label: "Pendidikan" },
+                    { key: 'unit_kerja', label: "Unit Kerja" },
+                    { key: 'tmt', label: "TMT" },
+                  ].map(f => {
+                    const isChanged = selectedItem?.revision_data?.[f.key] && 
+                                      selectedItem?.revision_data?.[f.key] !== (f.key === 'nama' || f.key === 'unit_kerja' ? selectedItem?.[f.key] : selectedItem?.teacher?.[f.key]);
+                    return (
+                      <div key={f.label} className="space-y-1">
+                        <p className="text-[9px] font-black uppercase text-slate-300 tracking-wider font-mono">{f.label}</p>
+                        <p className={`text-xs font-black ${isChanged ? 'text-blue-600 bg-blue-50 px-2 py-1 rounded-md inline-block' : 'text-slate-500'}`}>
+                          {selectedItem?.revision_data?.[f.key] || "-"}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="p-10 bg-slate-50 border-t flex justify-between items-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Verifikasi data di atas sebelum setuju</p>
+            <div className="flex gap-4">
+              <Button variant="ghost" onClick={() => setIsPreviewOpen(false)} className="h-12 px-8 rounded-xl font-black uppercase text-xs tracking-widest text-slate-400">Batal</Button>
+              <Button 
+                onClick={handleApproveFromPreview}
+                disabled={isActionLoading}
+                className="h-12 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-emerald-100"
+              >
+                {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <CheckCircle className="h-4 w-4 mr-2"/>} Setujui Perubahan
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

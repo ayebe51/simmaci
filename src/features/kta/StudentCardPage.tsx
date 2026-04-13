@@ -22,13 +22,15 @@ export default function StudentCardPage() {
   const [isBatchMode, setIsBatchMode] = useState(false);
 
   // 🔥 REST API QUERIES
-  const { data: schools = [] } = useQuery({ queryKey: ['schools'], queryFn: schoolApi.list });
+  const { data: schoolsRaw = [] } = useQuery({ queryKey: ['schools'], queryFn: schoolApi.list });
+  const schools = Array.isArray(schoolsRaw) ? schoolsRaw : ((schoolsRaw as any)?.data || []);
   
-  const { data: classes = [] } = useQuery({ 
+  const { data: classesRaw = [] } = useQuery({ 
       queryKey: ['classes', selectedSchoolId], 
       queryFn: attendanceApi.classList,
       enabled: selectedSchoolId !== "all"
   });
+  const classes = Array.isArray(classesRaw) ? classesRaw : ((classesRaw as any)?.data || []);
 
   const { data: studentsData, isLoading } = useQuery({
     queryKey: ['students', 'card', selectedSchoolId, selectedClassId],
@@ -43,7 +45,7 @@ export default function StudentCardPage() {
     }
   });
 
-  const students = studentsData?.data || [];
+  const students = Array.isArray(studentsData) ? studentsData : (studentsData?.data || []);
 
   const filteredStudents = useMemo(() => {
     if (!search) return students;

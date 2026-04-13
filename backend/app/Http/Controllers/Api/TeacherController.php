@@ -33,6 +33,14 @@ class TeacherController extends Controller
             $query->where('is_verified', $request->boolean('is_verified'));
         }
 
+        // --- Tenant Isolation ---
+        $user = $request->user();
+        if ($user->role === 'operator' && $user->school_id) {
+            $query->where('school_id', $user->school_id);
+        } elseif ($request->school_id) {
+            $query->where('school_id', $request->school_id);
+        }
+
         $teachers = $query->orderByDesc('updated_at')
             ->paginate($request->integer('per_page', 25));
 
@@ -59,8 +67,10 @@ class TeacherController extends Controller
     {
         $data = $request->validated();
 
-        // Auto-resolve school_id from unit_kerja if not provided
-        if (! isset($data['school_id']) && isset($data['unit_kerja'])) {
+        // Auto-resolve school_id
+        if ($request->user()->role === 'operator') {
+            $data['school_id'] = $request->user()->school_id;
+        } elseif (! isset($data['school_id']) && isset($data['unit_kerja'])) {
             $school = School::where('nama', $data['unit_kerja'])->first();
             $data['school_id'] = $school?->id;
         }
@@ -111,7 +121,7 @@ class TeacherController extends Controller
             'nuptk', 'nama', 'nip', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir',
             'pendidikan_terakhir', 'mapel', 'unit_kerja', 'school_id', 'status',
             'phone_number', 'email', 'is_active', 'is_verified',
-            'is_certified', 'tmt', 'pdpkpnu', 'kecamatan',
+            'is_certified', 'tmt', 'pdpkpnu', 'kecamatan', 'nomor_induk_maarif',
             'provinsi', 'kabupaten', 'kelurahan'
         ];
 
@@ -126,6 +136,16 @@ class TeacherController extends Controller
                     $normalizedRow[$cleanKey] = $value;
                 }
 
+                // Parse N.I.M (Nomor Induk Maarif)
+                $nim = null;
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'maarif') || (str_contains($k, 'nomor_induk') && !str_contains($k, 'pegawai')) || (str_contains($k, 'nim') && !str_contains($k, 'p'))) {
+                        $nim = $v;
+                        break;
+                    }
+                }
+                $normalizedRow['nomor_induk_maarif'] = $nim ? trim((string)$nim) : null;
+
                 // Parse NUPTK
                 $nuptk = null;
                 foreach($normalizedRow as $k => $v) {
@@ -137,10 +157,10 @@ class TeacherController extends Controller
                 $nuptk = $nuptk ? trim((string)$nuptk) : null;
                 $normalizedRow['nuptk'] = $nuptk;
 
-                // Parse N.I.M (NIP/Nomor Induk Maarif)
+                // Parse NIP (Pegawai/NIY)
                 $nip = null;
                 foreach($normalizedRow as $k => $v) {
-                    if (str_contains($k, 'induk') || str_contains($k, 'nim') || str_contains($k, 'n_i_m') || str_contains($k, 'nip')) {
+                    if (str_contains($k, 'nip') || str_contains($k, 'niy') || str_contains($k, 'pegawai') || (str_contains($k, 'n_i_y'))) {
                         $nip = $v;
                         break;
                     }
@@ -188,7 +208,10 @@ class TeacherController extends Controller
                 }
 
                 $schoolId = $normalizedRow['school_id'] ?? null;
-                if (!$schoolId && isset($normalizedRow['unit_kerja'])) {
+                // Force user's school if operator
+                if ($request->user()->role === 'operator') {
+                    $schoolId = $request->user()->school_id;
+                } elseif (!$schoolId && isset($normalizedRow['unit_kerja'])) {
                     $school = School::where('nama', $normalizedRow['unit_kerja'])->first();
                     $schoolId = $school?->id;
                 }
@@ -348,13 +371,21 @@ class TeacherController extends Controller
                 }
 
                 $savePayload = array_merge(array_filter($dataToSave, fn($v) => !is_null($v)), ['school_id' => $schoolId]);
+                $teacher = null;
                 if ($nuptk) {
-                    Teacher::updateOrCreate(['nuptk' => $nuptk], $savePayload);
+                    $teacher = Teacher::where('nuptk', $nuptk)->first();
+                }
+                
+                if (!$teacher) {
+                    $teacher = Teacher::where('nama', $dataToSave['nama'])
+                        ->where('school_id', $schoolId)
+                        ->first();
+                }
+
+                if ($teacher) {
+                    $teacher->update($savePayload);
                 } else {
-                    Teacher::updateOrCreate(
-                        ['nama' => $dataToSave['nama'], 'school_id' => $schoolId],
-                        $savePayload
-                    );
+                    $teacher = Teacher::create($savePayload);
                 }
                 $created++;
             } catch (\Throwable $e) {

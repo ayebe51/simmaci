@@ -96,9 +96,10 @@ export default function SkGeneratorPage() {
   // Settings States
   const [nomorMulai, setNomorMulai] = useState("0001")
   const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{TANGGAL}/{BULAN}/{TAHUN}")
-  const [tanggalPenetapan, setTanggalPenetapan] = useState("")
+  const [tanggalPenetapan, setTanggalPenetapan] = useState(() => new Date().toISOString().split('T')[0])
   const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
+  const [combineInOneFile, setCombineInOneFile] = useState(false)
   const [tahunAjaran, setTahunAjaran] = useState(() => {
     const now = new Date()
     const y = now.getFullYear()
@@ -129,9 +130,11 @@ export default function SkGeneratorPage() {
 
   useEffect(() => {
     if (lastSkData?.data?.[0]?.nomor_sk) {
-        const lastNum = lastSkData.data[0].nomor_sk.match(/^(\d{4})/);
-        if (lastNum) {
-            const next = String(parseInt(lastNum[1]) + 1).padStart(4, '0');
+        // Regex to match the starting sequence of the SK number (e.g., REQ/2026/0001 -> 0001)
+        // Or specific formats like 0001/PC.L/...
+        const match = lastSkData.data[0].nomor_sk.match(/^(\d+)/) || lastSkData.data[0].nomor_sk.match(/REQ\/\d+\/(\d+)/);
+        if (match) {
+            const next = String(parseInt(match[1]) + 1).padStart(4, '0');
             setNomorMulai(next);
         }
     }
@@ -154,40 +157,98 @@ export default function SkGeneratorPage() {
     }
 
     setIsGenerating(true)
-    const zip = new JSZip()
-    const folder = zip.folder("SK_Generated")
-    const templateCache: Record<string, any> = {}
-
     try {
         const selectedTeachers = (candidatesData?.data || []).filter((t: any) => selectedIds.has(t.id))
         const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
         const dateObj = new Date()
         const dd = String(dateObj.getDate()).padStart(2, '0')
-        const mmAngka = String(dateObj.getMonth() + 1)
         const mmRoma = toRoman(dateObj.getMonth() + 1)
         const yyyy = dateObj.getFullYear()
 
+        const allItemsByGroup: Record<string, any[]> = {}
+        const masterBuffersByGroup: Record<string, ArrayBuffer> = {}
+        const templateCache: Record<string, any> = {}
+
+        const templateIdMapping: Record<string, string> = {
+            'sk_template_gty': 'Guru_Tetap_Yayasan',
+            'sk_template_gtt': 'Guru_Tidak_Tetap',
+            'sk_template_kamad': 'Kepala_Madrasah',
+            'sk_template_tendik': 'Tenaga_Kependidikan'
+        }
+
+        // Custom parser to handle spaces inside braces { NAMA } -> {NAMA}
+        const customParser = (tag: string) => {
+            const cleanTag = tag.replace(/^[%#/]/, "").trim().toLowerCase();
+            return {
+                get(scope: any) {
+                    if (cleanTag === ".") return scope;
+                    
+                    // Look through all keys in a case-insensitive way
+                    for (const k in scope) {
+                        if (k.toLowerCase() === cleanTag) return scope[k];
+                    }
+                    return ""; 
+                }
+            };
+        };
+
+        const zip = new JSZip()
+        const folder = zip.folder("SK_Generated")
+
         for (let i = 0; i < selectedTeachers.length; i++) {
             const t = selectedTeachers[i]
+            const teacher = t.teacher || {}
             
-            // 1. Determine Template
+            // 1. Determine Template - Prioritize status, fallback to jenis_sk
+            const teacherStatus = (teacher.status || "").toLowerCase();
             const jenis = (t.jenis_sk || "").toLowerCase()
-            let templateId = "sk_template_tendik"
-            if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "sk_template_gty"
-            else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "sk_template_gtt"
-            else if (jenis.includes("kamad") || jenis.includes("kepala")) templateId = "sk_template_kamad"
-
+            
+            let templateId = "sk_template_tendik" // Default
+            
+            if (teacherStatus.includes("gty") || teacherStatus.includes("tetap yayasan") || 
+                jenis.includes("gty") || jenis.includes("tetap yayasan")) {
+                templateId = "sk_template_gty"
+            } else if (teacherStatus.includes("gtt") || teacherStatus.includes("tidak tetap") || 
+                       jenis.includes("gtt") || jenis.includes("tidak tetap") || 
+                       jenis.includes("tidak tetap") || teacherStatus.includes("guru")) {
+                templateId = "sk_template_gtt"
+            } else if (teacherStatus.includes("kamad") || teacherStatus.includes("kepala") || 
+                       jenis.includes("kamad") || jenis.includes("kepala")) {
+                templateId = "sk_template_kamad"
+            }
+            
             // 2. Fetch Template if not cached
             if (!templateCache[templateId]) {
                 const res = await settingApi.get(templateId)
                 if (res?.value) {
-                    const base64 = res.value.split(";base64,")[1] || res.value
-                    templateCache[templateId] = atob(base64)
+                    const val: string = res.value
+                    if (val.startsWith('http') || val.startsWith('/storage')) {
+                        const resp = await fetch(val)
+                        if (!resp.ok) throw new Error(`Gagal mengunduh template: ${templateId}`)
+                        const arrayBuffer = await resp.arrayBuffer()
+                        
+                        const bytes = new Uint8Array(arrayBuffer)
+                        let binary = ''
+                        for (let b = 0; b < bytes.byteLength; b++) {
+                            binary += String.fromCharCode(bytes[b])
+                        }
+                        templateCache[templateId] = { binary, buffer: arrayBuffer }
+                    } else {
+                        const base64 = val.includes(';base64,') ? val.split(';base64,')[1] : val
+                        const binaryString = atob(base64)
+                        
+                        const len = binaryString.length
+                        const bytes = new Uint8Array(len)
+                        for (let b = 0; b < len; b++) {
+                            bytes[b] = binaryString.charCodeAt(b)
+                        }
+                        templateCache[templateId] = { binary: binaryString, buffer: bytes.buffer }
+                    }
                 }
             }
-
-            const content = templateCache[templateId]
-            if (!content) {
+            
+            const cached = templateCache[templateId]
+            if (!cached) {
                 toast.error(`Template ${templateId} tidak ditemukan.`)
                 continue
             }
@@ -198,67 +259,219 @@ export default function SkGeneratorPage() {
             const generatedNomor = nomorFormat
                 .replace(/{NOMOR}/g, seqStr)
                 .replace(/{TANGGAL}/g, dd)
-                .replace(/{BULAN}/g, mmAngka)
+                .replace(/{BULAN}/g, String(dateObj.getMonth() + 1))
                 .replace(/{BL_ROMA}/g, mmRoma)
                 .replace(/{TAHUN}/g, String(yyyy))
 
             const verificationUrl = `${window.location.origin}/verify/sk/${generatedNomor}`
-            const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
+            const qrCodeData = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
-            const renderData = {
-                ...t,
-                nomor_sk: generatedNomor,
-                tanggal_penetapan: tanggalPenetapan || `${dd} ${months[dateObj.getMonth()]} ${yyyy}`,
-                qrcode: qrDataUrl,
-                TAHUN_PELAJARAN: tahunAjaran,
-                KECAMATAN: t.kecamatan || defaultKecamatan || "....."
-            }
+             const formatDateIndo = (dateStr: any) => {
+                if (!dateStr) return "-"
+                try {
+                    const indos = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+                    
+                    // 1. If it already contains Indonesian month names, return as is
+                    if (typeof dateStr === 'string' && indos.some(m => dateStr.includes(m))) {
+                        return dateStr
+                    }
 
-            // 4. Generate DOCX
-            const pzip = new PizZip(content)
-            const doc = new Docxtemplater(pzip, {
-                paragraphLoop: true,
-                linebreaks: true,
-                modules: [new ImageModule({
-                    getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
-                    getSize: () => [100, 100]
-                })],
-                nullGetter: () => ""
-            })
+                    // 2. Handle YYYY-MM-DD specifically (common from DB/Excel)
+                    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                        const [y, m, d] = dateStr.split('-')
+                        const mIdx = parseInt(m) - 1
+                        if (mIdx >= 0 && mIdx < 12) {
+                            return `${parseInt(d)} ${indos[mIdx]} ${y}`
+                        }
+                    }
 
-            doc.render(renderData)
-            const out = doc.getZip().generate({ type: "uint8array" })
-            folder?.file(`${t.nama.replace(/\s+/g, '_')}_SK.docx`, out)
+                    // 3. Handle DD/MM/YYYY or DD-MM-YYYY
+                    if (typeof dateStr === 'string') {
+                        const directMatch = dateStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/)
+                        if (directMatch) {
+                            const d = directMatch[1].padStart(2, '0')
+                            const mIdx = parseInt(directMatch[2]) - 1
+                            const y = directMatch[3]
+                            if (mIdx >= 0 && mIdx < 12) return `${parseInt(d)} ${indos[mIdx]} ${y}`
+                        }
+                    }
 
-            // 5. Sync to Backend
-            await updateSkMutation.mutateAsync({
-                id: t.id,
-                data: {
-                    nomor_sk: generatedNomor,
-                    status: "approved",
-                    tanggal_penetapan: renderData.tanggal_penetapan,
-                    file_url: "Generated via Bulk ZIP"
+                    // 4. Fallback to native Date
+                    const d = new Date(dateStr)
+                    if (isNaN(d.getTime())) return dateStr
+
+                    const day = d.getDate()
+                    const month = indos[d.getMonth()]
+                    const year = d.getFullYear()
+                    return `${day} ${month} ${year}`
+                } catch {
+                    return dateStr
                 }
-            })
-            
-            if (t.teacher_id) {
-                await markVerifiedMutation.mutateAsync(t.teacher_id)
             }
+
+            const identity = {
+                nama: t.nama || teacher.nama,
+                tempat_lahir: t.tempat_lahir || teacher.tempat_lahir,
+                tanggal_lahir: formatDateIndo(t.tanggal_lahir || teacher.tanggal_lahir),
+                pendidikan_terakhir: t.pendidikan_terakhir || teacher.pendidikan_terakhir,
+                unit_kerja: t.unit_kerja || teacher.unit_kerja,
+                tmt: formatDateIndo(t.tmt || teacher.tmt),
+                tanggal_mulai_tugas: formatDateIndo(t.tmt || teacher.tmt),
+                nomor_induk_maarif: t.nomor_induk_maarif || teacher.nomor_induk_maarif || t.nip || teacher.nip || "-",
+                kecamatan: t.kecamatan || teacher.kecamatan || defaultKecamatan
+            }
+
+            const birthDateStr = identity.tanggal_lahir || "-"
+            const tempatTglLahir = (identity.tempat_lahir || "") + (birthDateStr !== "-" ? ", " + birthDateStr : "")
+
+            const tglPenetapanVal = tanggalPenetapan ? new Date(tanggalPenetapan) : new Date()
+            const tglBerakhirVal = new Date(tglPenetapanVal)
+            tglBerakhirVal.setFullYear(tglBerakhirVal.getFullYear() + 1)
+            tglBerakhirVal.setDate(tglBerakhirVal.getDate() - 1)
+
+            const renderData: any = {
+                ...teacher,
+                ...t,
+                ...identity,
+                nomor_sk: generatedNomor,
+                "NOMOR": seqStr,
+                "TANGGAL": dd,
+                "BULAN": String(dateObj.getMonth() + 1),
+                "TAHUN": String(yyyy),
+                "BL_ROMA": mmRoma,
+                "NAMA": identity.nama,
+                "UNIT KERJA": identity.unit_kerja || "-",
+                "NOMOR INDUK MAARIF": identity.nomor_induk_maarif,
+                "NOMOR INDUK MA'ARIF": identity.nomor_induk_maarif,
+                "NOMOR_INDUK_MAARIF": identity.nomor_induk_maarif,
+                "NIM": identity.nomor_induk_maarif,
+                "TEMPAT/TANGGAL LAHIR": tempatTglLahir,
+                "PENDIDIKAN": identity.pendidikan_terakhir || "-",
+                "Pendidikan": identity.pendidikan_terakhir || "-",
+                "TMT": identity.tmt,
+                "TMT GURU": identity.tmt,
+                "TANGGAL MULAI TUGAS": identity.tmt,
+                "TANGGAL_MULAI_TUGAS": identity.tmt,
+                "tanggal_mulai_tugas": identity.tmt,
+                "TANGGAL PENETAPAN": formatDateIndo(tanggalPenetapan),
+                "TAHUN PELAJARAN": tahunAjaran,
+                "TANGGAL LENGKAP": formatDateIndo(tanggalPenetapan),
+                "TANGGAL_BERAKHIR": formatDateIndo(tglBerakhirVal.toISOString()),
+                "NOMOR SURAT PERMOHONAN": t.nomor_permohonan || t.nomor_surat_permohonan || teacher.nomor_permohonan || nomorSuratMasuk || "-",
+                "TANGGAL SURAT PERMOHONAN": formatDateIndo(t.tanggal_permohonan || t.tanggal_surat_permohonan || teacher.tanggal_permohonan || tanggalSuratMasuk),
+                "KECAMATAN": identity.kecamatan || "-",
+                "qrcode": qrCodeData,
+                "image": qrCodeData
+            }
+
+            if (combineInOneFile) {
+                if (!allItemsByGroup[templateId]) {
+                    allItemsByGroup[templateId] = []
+                    masterBuffersByGroup[templateId] = cached.buffer
+                }
+                allItemsByGroup[templateId].push(renderData)
+            } else {
+                const pzip = new PizZip(cached.binary)
+                const doc = new Docxtemplater(pzip, {
+                    paragraphLoop: true,
+                    linebreaks: true,
+                    parser: customParser,
+                    modules: [new ImageModule({
+                        getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
+                        getSize: () => [120, 120]
+                    })],
+                    nullGetter: () => ""
+                })
+
+                doc.render(renderData)
+                const out = doc.getZip().generate({ type: "uint8array" })
+                folder?.file(`${(teacher.nama || t.nama).replace(/\s+/g, '_')}_SK.docx`, out)
+            }
+
+            // Sync to Backend
+            try {
+                await updateSkMutation.mutateAsync({
+                    id: t.id,
+                    data: {
+                        nomor_sk: generatedNomor,
+                        status: "approved",
+                        tanggal_penetapan: formatDateIndo(tanggalPenetapan),
+                        tahun_ajaran: tahunAjaran,
+                        file_url: combineInOneFile ? "Generated via Bulk (Collective Group)" : "Generated via Bulk (ZIP)"
+                    }
+                })
+                if (t.teacher_id) await markVerifiedMutation.mutateAsync(t.teacher_id)
+            } catch (err) {}
         }
 
-        const zipBlob = await zip.generateAsync({ type: "blob" })
-        const url = URL.createObjectURL(zipBlob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = "SK_Masal_Maarif.zip"
-        link.click()
-        
-        toast.success(`Berhasil menerbitkan ${selectedIds.size} SK!`)
+        if (combineInOneFile) {
+            const groupIds = Object.keys(allItemsByGroup)
+            for (const tId of groupIds) {
+                const groupItems = allItemsByGroup[tId]
+                const masterBuffer = masterBuffersByGroup[tId]
+                if (!masterBuffer) continue
+
+                const collectivePzip = new PizZip(masterBuffer)
+                let docXml = collectivePzip.file("word/document.xml").asText()
+                
+                const bodyMatch = docXml.match(/<w:body>(.*?)<\/w:body>/s)
+                if (bodyMatch) {
+                    let bodyInner = bodyMatch[1].trim()
+                    
+                    let sectPr = ""
+                    const sectMatch = bodyInner.match(/(<w:sectPr.*?>.*?<\/w:sectPr>)$/s)
+                    if (sectMatch) {
+                        sectPr = sectMatch[1]
+                        bodyInner = bodyInner.substring(0, bodyInner.length - sectPr.length).trim()
+                    }
+
+                    const startLoopParagraph = '<w:p><w:r><w:t>{#items}</w:t></w:r></w:p>'
+                    const pageBreakParagraph = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+                    const endLoopParagraph = '<w:p><w:r><w:t>{/items}</w:t></w:r></w:p>'
+                    
+                    const newBodyXml = `<w:body>${startLoopParagraph}${bodyInner}${pageBreakParagraph}${endLoopParagraph}${sectPr}</w:body>`
+                    docXml = docXml.replace(/<w:body>.*?<\/w:body>/s, () => newBodyXml)
+                    
+                    collectivePzip.file("word/document.xml", docXml)
+
+                    const doc = new Docxtemplater(collectivePzip, {
+                        paragraphLoop: true,
+                        linebreaks: true,
+                        parser: customParser,
+                        modules: [new ImageModule({
+                            getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
+                            getSize: () => [120, 120]
+                        })],
+                        nullGetter: () => ""
+                    })
+
+                    doc.render({ items: groupItems })
+                    const finalOut = doc.getZip().generate({ type: "blob" })
+                    const groupLabel = templateIdMapping[tId] || tId.replace('sk_template_', '')
+                    const fileName = `SK_Kolektif_${groupLabel}_${new Date().getTime()}.docx`
+
+                    if (groupIds.length > 1) {
+                        folder?.file(fileName, finalOut)
+                    } else {
+                        saveAs(finalOut, fileName)
+                    }
+                }
+            }
+
+            if (groupIds.length > 1) {
+                const zipBlob = await zip.generateAsync({ type: "blob" })
+                saveAs(zipBlob, `SK_Kolektif_GABUNGAN_${new Date().getTime()}.zip`)
+            }
+        } else {
+            const zipBlob = await zip.generateAsync({ type: "blob" })
+            saveAs(zipBlob, `SK_Generated_TERPISAH_${new Date().getTime()}.zip`)
+        }
+        toast.success("Berhasil generate SK.")
         queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
         setSelectedIds(new Set())
-    } catch (e: any) {
-        console.error(e)
-        toast.error("Gagal generate SK: " + e.message)
+    } catch (error: any) {
+        console.error(error)
+        toast.error("Gagal generate SK: " + (error.message || "Unknown error"))
     } finally {
         setIsGenerating(false)
     }
@@ -297,6 +510,17 @@ export default function SkGeneratorPage() {
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tahun Ajaran</label>
                     <Input value={tahunAjaran} onChange={e => setTahunAjaran(e.target.value)} className="h-11 rounded-xl bg-white border-slate-200" />
+                </div>
+                <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Output</label>
+                    <div className="flex items-center space-x-2 h-11">
+                        <Checkbox 
+                            id="combine" 
+                            checked={combineInOneFile} 
+                            onCheckedChange={(val) => setCombineInOneFile(!!val)} 
+                        />
+                        <label htmlFor="combine" className="text-xs font-bold text-slate-600 cursor-pointer select-none">Gabung dalam 1 file Word</label>
+                    </div>
                 </div>
             </div>
         </CardHeader>
@@ -391,6 +615,9 @@ export default function SkGeneratorPage() {
             </Button>
         </div>
       )}
+      <div className="fixed bottom-4 right-4 text-[8px] font-black text-slate-300 uppercase tracking-widest pointer-events-none opacity-50">
+          Simmaci Engine v1.1 - Final Data Patch
+      </div>
     </div>
   )
 }

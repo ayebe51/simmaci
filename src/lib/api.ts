@@ -10,6 +10,18 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const API_BASE_URL = API_URL;
+export const API_STORAGE_URL = API_BASE_URL.replace('/api', '/storage');
+
+export const getFileUrl = (path: string) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  // If it starts with storage/, remove it as the base URL already includes it (usually)
+  // or handle based on backend behavior. 
+  // For Laravel, it's usually http://domain/storage/path
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+  return `${API_BASE_URL.replace('/api', '')}/${cleanPath}`;
+};
+
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user_data';
 

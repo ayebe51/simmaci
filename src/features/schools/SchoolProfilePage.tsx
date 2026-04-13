@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Save, Building2, User, Loader2 } from "lucide-react"
+import { Save, Building2, User, Loader2, Briefcase, Phone, Calendar } from "lucide-react"
 
 export default function SchoolProfilePage() {
   const [formData, setFormData] = useState({
@@ -14,6 +14,11 @@ export default function SchoolProfilePage() {
     telepon: "",
     email: "",
     kepala_madrasah: "",
+    kepala_nim: "",
+    kepala_nuptk: "",
+    kepala_whatsapp: "",
+    kepala_jabatan_mulai: "",
+    kepala_jabatan_selesai: "",
     akreditasi: "",
     npsn: "",
     status_jamiyyah: "",
@@ -33,6 +38,11 @@ export default function SchoolProfilePage() {
         telepon: school.telepon || "",
         email: school.email || "",
         kepala_madrasah: school.kepala_madrasah || "",
+        kepala_nim: school.kepala_nim || "",
+        kepala_nuptk: school.kepala_nuptk || "",
+        kepala_whatsapp: school.kepala_whatsapp || "",
+        kepala_jabatan_mulai: school.kepala_jabatan_mulai || "",
+        kepala_jabatan_selesai: school.kepala_jabatan_selesai || "",
         akreditasi: school.akreditasi || "",
         npsn: school.npsn || "",
         status_jamiyyah: school.status_jamiyyah || "",
@@ -133,14 +143,12 @@ export default function SchoolProfilePage() {
                 <CardDescription className="text-xs font-medium text-emerald-600/60">Informasi tambahan mengenai identitas dan atribut madrasah.</CardDescription>
               </CardHeader>
               <CardContent className="p-10 space-y-6">
-                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Kepala Madrasah (Gelar Lengkap)</Label>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Update Dokumen Terakhir</Label>
                   <Input 
-                    name="kepala_madrasah" 
-                    value={formData.kepala_madrasah} 
-                    onChange={handleChange} 
-                    placeholder="Contoh: H. Ahmad, S.Pd.I"
-                    className="h-12 rounded-xl border-slate-200 font-bold"
+                    value={school.updated_at ? new Date(school.updated_at).toLocaleDateString('id-ID') : '-'} 
+                    disabled 
+                    className="h-12 rounded-xl bg-slate-50 border-slate-100 font-bold text-slate-500" 
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -156,6 +164,43 @@ export default function SchoolProfilePage() {
               </CardContent>
             </Card>
         </div>
+        
+        {/* Profil Kepala Madrasah (New Card) */}
+        <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden border-l-4 border-l-blue-600">
+           <CardHeader className="p-10 border-b bg-blue-50/30">
+                <CardTitle className="text-lg font-black text-blue-900 uppercase tracking-tight flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><User className="h-5 w-5" /></div>
+                  Profil Kepala Madrasah
+                </CardTitle>
+                <CardDescription className="text-xs font-medium text-blue-600/60">Informasi personal dan masa bakti pimpinan lembaga.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2 lg:col-span-1">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Lengkap (Tanpa Gelar)</Label>
+                    <Input name="kepala_madrasah" value={formData.kepala_madrasah} onChange={handleChange} placeholder="Nama Lengkap" className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NIM (Nomor Induk Ma'arif)</Label>
+                    <Input name="kepala_nim" value={formData.kepala_nim} onChange={handleChange} placeholder="No Induk" className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NUPTK</Label>
+                    <Input name="kepala_nuptk" value={formData.kepala_nuptk} onChange={handleChange} placeholder="NUPTK" className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Phone className="h-3 w-3" /> WhatsApp Kepala</Label>
+                    <Input name="kepala_whatsapp" value={formData.kepala_whatsapp} onChange={handleChange} placeholder="08..." className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Calendar className="h-3 w-3" /> Jabatan Mulai</Label>
+                    <Input type="date" name="kepala_jabatan_mulai" value={formData.kepala_jabatan_mulai} onChange={handleChange} className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Calendar className="h-3 w-3" /> Jabatan Selesai</Label>
+                    <Input type="date" name="kepala_jabatan_selesai" value={formData.kepala_jabatan_selesai} onChange={handleChange} className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+            </CardContent>
+        </Card>
 
         {/* Alamat & Kontak (Full Width) */}
         <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">

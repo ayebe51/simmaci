@@ -117,7 +117,10 @@ export default function UserListPage() {
     const exportData = users.map((u: any, index: number) => ({
       "No": index + 1,
       "Nama": u.name,
-      "Username": u.email,
+      "Username / Email": u.email,
+      "Password": u.role === 'operator' 
+        ? (u.email?.split('@')[0] || '-')  // NSM (bagian sebelum @simmaci.com)
+        : '(tidak ditampilkan)',
       "Role": u.role,
       "Sekolah": u.school?.nama || "-",
       "Status": u.is_active ? "Aktif" : "Non-Aktif"
@@ -125,7 +128,7 @@ export default function UserListPage() {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-    XLSX.writeFile(workbook, `Users_SIMMACI.xlsx`);
+    XLSX.writeFile(workbook, `Akun_Users_SIMMACI.xlsx`);
   }
 
   return (

@@ -281,17 +281,20 @@ class SchoolController extends Controller
 
     /**
      * POST /api/schools/generate-accounts
-     * Username: {nsm}@maarif.nu, Password: nsm plain
+     * Username: {nsm}@simmaci.com, Password: nsm plain
      */
     public function generateAccounts(): JsonResponse
     {
         $schools = School::all();
         $accounts = [];
+        $skipped = 0;
 
         foreach ($schools as $school) {
-            $email = $school->email ?: (($school->nsm ? strtolower($school->nsm) : 'school' . $school->id) . '@maarif.nu');
+            $nsm = $school->nsm ? strtolower(trim($school->nsm)) : null;
+            $email = $nsm ? "{$nsm}@simmaci.com" : ('school' . $school->id . '@simmaci.com');
 
             if (\App\Models\User::where('email', $email)->exists()) {
+                $skipped++;
                 continue;
             }
 
@@ -317,7 +320,8 @@ class SchoolController extends Controller
         return response()->json([
             'success'  => true,
             'accounts' => $accounts,
-            'message'  => 'Berhasil generate ' . count($accounts) . ' akun.',
+            'skipped'  => $skipped,
+            'message'  => 'Berhasil generate ' . count($accounts) . ' akun. ' . $skipped . ' sudah ada.',
         ]);
     }
 }

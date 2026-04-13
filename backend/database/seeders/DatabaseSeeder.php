@@ -13,11 +13,9 @@ class DatabaseSeeder extends Seeder
             SchoolSeeder::class,
         ]);
 
-        $defaultSchool = \App\Models\School::first();
-
         // 1. Super Admin
         User::updateOrCreate(
-            ['email' => 'admin@maarif.nu'],
+            ['email' => 'admin@simmaci.com'],
             [
                 'name'      => 'Super Admin',
                 'password'  => 'admin123',
@@ -28,7 +26,7 @@ class DatabaseSeeder extends Seeder
 
         // 2. Admin Yayasan
         User::updateOrCreate(
-            ['email' => 'yayasan@maarif.nu'],
+            ['email' => 'yayasan@simmaci.com'],
             [
                 'name'      => 'Admin Yayasan',
                 'password'  => 'admin123',
@@ -37,21 +35,10 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 3. Operator
-        User::updateOrCreate(
-            ['email' => 'operator@maarif.nu'],
-            [
-                'name'      => 'Operator Sekolah',
-                'password'  => 'admin123',
-                'role'      => 'operator',
-                'school_id' => $defaultSchool?->id,
-                'is_active' => true,
-            ]
-        );
+        // Operator accounts are generated per-school after school data is uploaded
 
         $this->command->info('Users created:');
-        $this->command->info('- Superadmin: admin@maarif.nu / admin123');
-        $this->command->info('- Admin Yayasan: yayasan@maarif.nu / admin123');
-        $this->command->info('- Operator: operator@maarif.nu / admin123');
+        $this->command->info('- Superadmin: admin@simmaci.com / admin123');
+        $this->command->info('- Admin Yayasan: yayasan@simmaci.com / admin123');
     }
 }

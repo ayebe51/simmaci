@@ -118,7 +118,10 @@ export default function SchoolListPage() {
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       setIsAddOpen(false)
     } catch (e: any) {
-      toast.error("Gagal menyimpan: " + e.message)
+      const msg = e.response?.data?.message
+        || e.response?.data?.errors && Object.values(e.response.data.errors).flat().join(', ')
+        || e.message
+      toast.error("Gagal menyimpan: " + msg)
     }
   }
 

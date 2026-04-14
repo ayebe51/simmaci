@@ -33,9 +33,9 @@ class TenantScope implements Scope
             return;
         }
 
-        // Operator without a valid school_id — reject
+        // Operator without a valid school_id — reject with clear message
         if (is_null($user->school_id)) {
-            throw new AuthorizationException('Tenant tidak valid.');
+            throw new AuthorizationException('Akun operator belum terhubung ke sekolah. Hubungi administrator.');
         }
 
         // Operator — filter by their school_id

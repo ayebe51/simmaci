@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const user = authApi.getStoredUser()
   const isAdmin = user?.role === 'super_admin' || user?.role === 'admin_yayasan'
   
-  const [activeTab, setActiveTab] = useState("template")
+  const [activeTab, setActiveTab] = useState(() => isAdmin ? "template" : "security")
   const [isSaving, setIsSaving] = useState(false)
   const [isUploading, setIsUploading] = useState<string | null>(null)
 

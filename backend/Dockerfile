@@ -40,6 +40,9 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 COPY ./docker/nginx/backend.conf /etc/nginx/sites-available/default
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
+# Copy PHP-FPM pool configuration (increase worker count to prevent timeouts)
+COPY ./docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+
 # Copy Supervisor configuration
 COPY ./docker/supervisor/backend.conf /etc/supervisor/conf.d/supervisord.conf
 

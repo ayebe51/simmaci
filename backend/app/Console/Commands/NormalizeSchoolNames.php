@@ -52,6 +52,8 @@ class NormalizeSchoolNames extends Command
     private function normalizeName(string $name): string
     {
         // Step 1: Normalize prefix variants
+        // Ganti backtick (`) dengan apostrof (')
+        $name = str_replace('`', "'", $name);
         // MTsS, MTSS, MTS → MTs (case-insensitive, at start of string)
         $name = preg_replace('/^(MTsS|MTSS|MTS)\s+/i', 'MTs ', $name);
 

@@ -92,6 +92,7 @@ export default function SchoolListPage() {
   const [generateResult, setGenerateResult] = useState<any[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [generateTarget, setGenerateTarget] = useState<School | null>(null)
 
   const openAdd = () => {
     setIsEditMode(false)
@@ -171,13 +172,38 @@ export default function SchoolListPage() {
     onError: (e: any) => toast.error('Gagal hapus: ' + (e.response?.data?.message || e.message))
   })
 
-  // ── Generate Akun ──
+  // ── Generate Akun (semua sekolah) ──
   const handleGenerateAccounts = async () => {
     setIsGenerating(true)
     try {
       const res = await schoolApi.generateAccounts()
       setGenerateResult(res.accounts || [])
       toast.success(`Berhasil generate ${res.accounts?.length || 0} akun!`)
+    } catch (e: any) {
+      toast.error('Gagal generate akun: ' + (e.response?.data?.message || e.message))
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  // ── Generate Akun per-sekolah ──
+  const handleGenerateSingle = async (school: School) => {
+    setGenerateTarget(school)
+    setGenerateResult([])
+    setIsGenerateOpen(true)
+  }
+
+  const handleConfirmGenerateSingle = async () => {
+    if (!generateTarget) return
+    setIsGenerating(true)
+    try {
+      const res = await schoolApi.generateAccounts(generateTarget.id)
+      setGenerateResult(res.accounts || [])
+      if (res.accounts?.length === 0) {
+        toast.info(`Akun untuk ${generateTarget.nama} sudah ada (skipped: ${res.skipped})`)
+      } else {
+        toast.success(`Berhasil generate ${res.accounts?.length} akun untuk ${generateTarget.nama}`)
+      }
     } catch (e: any) {
       toast.error('Gagal generate akun: ' + (e.response?.data?.message || e.message))
     } finally {
@@ -272,7 +298,7 @@ export default function SchoolListPage() {
                                         </Link>
                                         {isSuperAdmin && (
                                             <>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => toast.info('Reset password belum tersedia')}><KeyRound className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Generate Akun" onClick={() => handleGenerateSingle(item)}><KeyRound className="h-4 w-4" /></Button>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
                                                     if(confirm(`Yakin ingin menghapus ${item.nama}?`)) deleteMutation.mutate(item.id)
@@ -435,16 +461,20 @@ export default function SchoolListPage() {
       </Dialog>
 
       {/* ── Generate Akun Dialog ── */}
-      <Dialog open={isGenerateOpen} onOpenChange={(v) => { if (!isGenerating) setIsGenerateOpen(v) }}>
+      <Dialog open={isGenerateOpen} onOpenChange={(v) => { if (!isGenerating) { setIsGenerateOpen(v); if (!v) { setGenerateTarget(null); setGenerateResult([]) } } }}>
         <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="items-center text-center">
             <div className="bg-purple-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
               <KeyRound className="h-8 w-8 text-purple-500" />
             </div>
-            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Generate Akun Operator</DialogTitle>
+            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">
+              {generateTarget ? `Generate Akun — ${generateTarget.nama}` : 'Generate Akun Operator'}
+            </DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
-              Membuat akun login untuk kepala madrasah / operator sekolah yang belum memiliki akun.<br />
-              Username: NSM@maarif.nu &bull; Password: NSM sekolah
+              {generateTarget
+                ? <>Generate akun operator untuk <strong>{generateTarget.nama}</strong>.<br />Username: {generateTarget.nsm?.toLowerCase()}@simmaci.com &bull; Password: {generateTarget.nsm}</>
+                : <>Membuat akun login untuk kepala madrasah / operator sekolah yang belum memiliki akun.<br />Username: NSM@simmaci.com &bull; Password: NSM sekolah</>
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -485,9 +515,9 @@ export default function SchoolListPage() {
             </div>
           ) : (
             <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
-              <button onClick={() => setIsGenerateOpen(false)} className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+              <button onClick={() => { setIsGenerateOpen(false); setGenerateTarget(null) }} className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
               <button
-                onClick={handleGenerateAccounts}
+                onClick={generateTarget ? handleConfirmGenerateSingle : handleGenerateAccounts}
                 disabled={isGenerating}
                 className="flex-1 h-12 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
               >

@@ -91,8 +91,8 @@ class NormalizeSchoolNames extends Command
                 continue;
             }
 
-            // Handle apostrophe words: MA'ARIF → Ma'arif, 'UQUL → 'Uqul
-            if (str_contains($word, "'") || str_contains($word, "'")) {
+            // Handle kata dengan apostrof: Ma'arif → Ma'arif, 'Uqul → 'Uqul
+            if (str_contains($word, "'") || str_contains($word, "'") || str_contains($word, '`')) {
                 $result[] = $this->titleCaseWithApostrophe($word);
                 continue;
             }
@@ -112,16 +112,29 @@ class NormalizeSchoolNames extends Command
 
     private function titleCaseWithApostrophe(string $word): string
     {
-        // Split on apostrophe, title-case EACH part (including after apostrophe)
-        // 'UQUL → 'Uqul, MA'ARIF → Ma'arif, Riyadlatul 'Uqul → Riyadlatul 'Uqul
-        $parts = preg_split("/(['''])/u", $word, -1, PREG_SPLIT_DELIM_CAPTURE);
+        // Dua kasus berbeda:
+        // 1. Apostrof di AWAL kata: 'Uqul → 'Uqul (huruf setelah apostrof uppercase)
+        // 2. Apostrof di TENGAH kata: Ma'arif → Ma'arif (huruf setelah apostrof lowercase)
+        
+        $apostrophes = ["'", "\u{2018}", "\u{2019}", "`"];
+        
+        // Cek apakah kata dimulai dengan apostrof
+        $firstChar = mb_substr($word, 0, 1);
+        if (in_array($firstChar, $apostrophes, true)) {
+            // 'UQUL → 'Uqul
+            $rest = mb_substr($word, 1);
+            return $firstChar . ucfirst(strtolower($rest));
+        }
+        
+        // Apostrof di tengah: MA'ARIF → Ma'arif (lowercase setelah apostrof)
+        $parts = preg_split("/(['''\`])/u", $word, -1, PREG_SPLIT_DELIM_CAPTURE);
         $out   = [];
-        foreach ($parts as $part) {
-            if (in_array($part, ["'", "\u{2018}", "\u{2019}"], true)) {
-                $out[] = $part;
+        foreach ($parts as $i => $part) {
+            if (in_array($part, $apostrophes, true)) {
+                $out[] = "'"; // normalize semua apostrof ke '
             } else {
-                // Each segment after split gets Title Case
-                $out[] = ucfirst(strtolower($part));
+                // Bagian pertama: Title Case, bagian setelah apostrof: lowercase
+                $out[] = $i === 0 ? ucfirst(strtolower($part)) : strtolower($part);
             }
         }
         return implode('', $out);

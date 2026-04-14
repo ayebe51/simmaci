@@ -57,20 +57,22 @@ class DashboardController extends Controller
     public function schoolStats(Request $request): JsonResponse
     {
         $user = $request->user();
- 
-        if ($user->role !== 'operator' || ! $user->unit) {
-            return response()->json(['error' => 'Not an operator or no unit assigned'], 403);
+
+        // Allow operator OR admin_yayasan; use school_id as primary key
+        if (! in_array($user->role, ['operator', 'admin_yayasan']) || ! $user->school_id) {
+            return response()->json(['error' => 'Not an operator or no school assigned'], 403);
         }
- 
-        $schoolId = $user->school_id;
-        $schoolName = $user->unit;
- 
-        $teachersList = Teacher::where('school_id', $schoolId)
+
+        $schoolId  = $user->school_id;
+        $schoolName = $user->unit ?? $user->school?->nama ?? 'Sekolah';
+
+        $teachersList = Teacher::withoutTenantScope()
+            ->where('school_id', $schoolId)
             ->where('is_active', true)
             ->get();
- 
-        $students = Student::where('school_id', $schoolId)->count();
-        $skBase = SkDocument::where('school_id', $schoolId);
+
+        $students = Student::withoutTenantScope()->where('school_id', $schoolId)->count();
+        $skBase   = SkDocument::withoutTenantScope()->where('school_id', $schoolId);
  
         $statusCounts = ['PNS' => 0, 'GTY' => 0, 'GTT' => 0, 'Tendik' => 0];
         $certCounts = ['Sudah Sertifikasi' => 0, 'Belum Sertifikasi' => 0];
@@ -95,7 +97,12 @@ class DashboardController extends Controller
             'skRejected' => (clone $skBase)->where('status', 'rejected')->count(),
             'status' => collect($statusCounts)->map(fn($v, $k) => ['name' => $k, 'value' => $v])->values(),
             'certification' => collect($certCounts)->map(fn($v, $k) => ['name' => $k, 'value' => $v])->values(),
-            'recentLogs' => ActivityLog::with('causer')->orderByDesc('id')->take(10)->get()->map(fn($l) => [
+            'recentLogs' => ActivityLog::with('causer')
+                ->where('school_id', $schoolId)
+                ->orderByDesc('id')
+                ->take(10)
+                ->get()
+                ->map(fn($l) => [
                 '_id' => (string) $l->id,
                 'user' => $l->causer?->name ?? 'System',
                 'role' => $l->causer?->role ?? 'system',
@@ -109,9 +116,17 @@ class DashboardController extends Controller
     /**
      * GET /api/dashboard/charts
      */
-    public function charts(): JsonResponse
+    public function charts(Request $request): JsonResponse
     {
-        $teachers = Teacher::active()->get();
+        $user = $request->user();
+
+        // Tenant-aware: operator hanya melihat data sekolahnya
+        $query = Teacher::withoutTenantScope()->active();
+        if ($user && $user->role === 'operator' && $user->school_id) {
+            $query->where('school_id', $user->school_id);
+        }
+
+        $teachers = $query->get();
 
         // Group by unit kerja (Jenjang)
         $unitMap = $teachers->groupBy(fn($t) => strtolower(trim($t->unit_kerja ?? '')))
@@ -135,11 +150,11 @@ class DashboardController extends Controller
         ];
 
         // Group by kecamatan
-        $kecMap = Teacher::selectRaw('COALESCE(kecamatan, \'Lainnya\') as name, COUNT(*) as jumlah')
-            ->groupBy('kecamatan')
-            ->orderByDesc('jumlah')
-            ->limit(10)
-            ->get();
+        $kecQuery = Teacher::withoutTenantScope()->selectRaw("COALESCE(kecamatan, 'Lainnya') as name, COUNT(*) as jumlah");
+        if ($user && $user->role === 'operator' && $user->school_id) {
+            $kecQuery->where('school_id', $user->school_id);
+        }
+        $kecMap = $kecQuery->groupBy('kecamatan')->orderByDesc('jumlah')->limit(10)->get();
 
         return $this->successResponse([
             'units' => $unitMap,

@@ -17,6 +17,20 @@ class TenantScope
     {
         $user = $request->user();
 
+        // Skip PostgreSQL-specific SET commands for non-PostgreSQL databases (SQLite in tests, etc.)
+        $driver = config('database.default');
+        $connection = DB::connection();
+        
+        // Double-check: use both config and actual connection driver
+        if ($driver !== 'pgsql' && $connection->getDriverName() !== 'pgsql') {
+            return $next($request);
+        }
+
+        // Additional safety: skip if we're in testing environment with SQLite
+        if (app()->environment('testing') && $connection->getDriverName() === 'sqlite') {
+            return $next($request);
+        }
+
         if ($user && $user->isOperator()) {
             if ($user->school_id) {
                 DB::statement("SET app.current_school_id = '{$user->school_id}'");

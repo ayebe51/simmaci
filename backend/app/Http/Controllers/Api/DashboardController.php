@@ -119,41 +119,37 @@ class DashboardController extends Controller
     public function charts(Request $request): JsonResponse
     {
         $user = $request->user();
+        $schoolId = ($user && $user->role === 'operator' && $user->school_id)
+            ? $user->school_id
+            : null;
 
-        // Tenant-aware: operator hanya melihat data sekolahnya
-        $query = Teacher::withoutTenantScope()->active();
-        if ($user && $user->role === 'operator' && $user->school_id) {
-            $query->where('school_id', $user->school_id);
-        }
-
-        $teachers = $query->get();
-
-        // Group by unit kerja (Jenjang)
-        $unitMap = $teachers->groupBy(fn($t) => strtolower(trim($t->unit_kerja ?? '')))
-            ->map(fn($group, $key) => [
-                'name' => strtoupper($key),
-                'jumlah' => $group->count(),
-            ])
-            ->sortByDesc('jumlah')
-            ->values()
-            ->take(8);
+        // Group by unit_kerja — aggregasi di DB, bukan di PHP
+        $unitQuery = Teacher::withoutTenantScope()
+            ->selectRaw("COALESCE(NULLIF(TRIM(unit_kerja), ''), 'Lainnya') as name, COUNT(*) as jumlah")
+            ->where('is_active', true);
+        if ($schoolId) $unitQuery->where('school_id', $schoolId);
+        $unitMap = $unitQuery->groupBy('unit_kerja')->orderByDesc('jumlah')->limit(8)->get();
 
         // Group by status
-        $statusMap = $teachers->groupBy(fn($t) => $t->status ?? 'GTT')
-            ->map(fn($group, $key) => ['name' => $key, 'value' => $group->count()])
-            ->values();
+        $statusQuery = Teacher::withoutTenantScope()
+            ->selectRaw("COALESCE(NULLIF(status, ''), 'GTT') as name, COUNT(*) as value")
+            ->where('is_active', true);
+        if ($schoolId) $statusQuery->where('school_id', $schoolId);
+        $statusMap = $statusQuery->groupBy('status')->get();
 
-        // Group by certification
+        // Certification counts
+        $certBase = Teacher::withoutTenantScope()->where('is_active', true);
+        if ($schoolId) $certBase->where('school_id', $schoolId);
         $certMap = [
-            ['name' => 'Sudah Sertifikasi', 'value' => $teachers->where('is_certified', true)->count()],
-            ['name' => 'Belum Sertifikasi', 'value' => $teachers->where('is_certified', false)->count()],
+            ['name' => 'Sudah Sertifikasi', 'value' => (clone $certBase)->where('is_certified', true)->count()],
+            ['name' => 'Belum Sertifikasi', 'value' => (clone $certBase)->where('is_certified', false)->count()],
         ];
 
         // Group by kecamatan
-        $kecQuery = Teacher::withoutTenantScope()->selectRaw("COALESCE(kecamatan, 'Lainnya') as name, COUNT(*) as jumlah");
-        if ($user && $user->role === 'operator' && $user->school_id) {
-            $kecQuery->where('school_id', $user->school_id);
-        }
+        $kecQuery = Teacher::withoutTenantScope()
+            ->selectRaw("COALESCE(NULLIF(kecamatan, ''), 'Lainnya') as name, COUNT(*) as jumlah")
+            ->where('is_active', true);
+        if ($schoolId) $kecQuery->where('school_id', $schoolId);
         $kecMap = $kecQuery->groupBy('kecamatan')->orderByDesc('jumlah')->limit(10)->get();
 
         return $this->successResponse([

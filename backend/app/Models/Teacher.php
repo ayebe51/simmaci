@@ -4,12 +4,19 @@ namespace App\Models;
 
 use App\Traits\AuditLogTrait;
 use App\Traits\HasTenantScope;
+use Database\Factories\TeacherFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Teacher extends Model
 {
-    use SoftDeletes, AuditLogTrait, HasTenantScope;
+    use HasFactory, SoftDeletes, AuditLogTrait, HasTenantScope;
+
+    protected static function newFactory(): TeacherFactory
+    {
+        return TeacherFactory::new();
+    }
 
     protected $fillable = [
         'nuptk', 'nomor_induk_maarif', 'nama', 'nip',

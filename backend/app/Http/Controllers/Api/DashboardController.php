@@ -26,16 +26,17 @@ class DashboardController extends Controller
         $activeSk = SkDocument::where('status', 'active')->count();
         $draftSk = SkDocument::where('status', 'draft')->count();
 
-        $recentLogs = ActivityLog::orderByDesc('id')
+        $recentLogs = ActivityLog::with('causer')
+            ->orderByDesc('id')
             ->take(15)
             ->get()
             ->map(fn($l) => [
                 '_id' => (string) $l->id,
-                'user' => $l->user ?? 'Unknown',
-                'role' => $l->role ?? 'User',
-                'action' => $l->action ?? 'Aktivitas',
-                'details' => $l->details ?? '-',
-                'timestamp' => $l->timestamp?->getTimestamp() * 1000 ?? $l->created_at->getTimestamp() * 1000,
+                'user' => $l->causer?->name ?? 'System',
+                'role' => $l->causer?->role ?? 'system',
+                'action' => $l->event ?? $l->log_name ?? 'Aktivitas',
+                'details' => $l->description ?? '-',
+                'timestamp' => $l->created_at->getTimestamp() * 1000,
             ]);
 
         return $this->successResponse([
@@ -94,13 +95,13 @@ class DashboardController extends Controller
             'skRejected' => (clone $skBase)->where('status', 'rejected')->count(),
             'status' => collect($statusCounts)->map(fn($v, $k) => ['name' => $k, 'value' => $v])->values(),
             'certification' => collect($certCounts)->map(fn($v, $k) => ['name' => $k, 'value' => $v])->values(),
-            'recentLogs' => ActivityLog::orderByDesc('id')->take(10)->get()->map(fn($l) => [
+            'recentLogs' => ActivityLog::with('causer')->orderByDesc('id')->take(10)->get()->map(fn($l) => [
                 '_id' => (string) $l->id,
-                'user' => $l->user ?? 'Unknown',
-                'role' => $l->role ?? 'User',
-                'action' => $l->action ?? 'Aktivitas',
-                'details' => $l->details ?? '-',
-                'timestamp' => $l->timestamp?->getTimestamp() * 1000 ?? $l->created_at->getTimestamp() * 1000,
+                'user' => $l->causer?->name ?? 'System',
+                'role' => $l->causer?->role ?? 'system',
+                'action' => $l->event ?? $l->log_name ?? 'Aktivitas',
+                'details' => $l->description ?? '-',
+                'timestamp' => $l->created_at->getTimestamp() * 1000,
             ]),
         ]);
     }

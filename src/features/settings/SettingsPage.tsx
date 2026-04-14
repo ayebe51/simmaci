@@ -34,10 +34,7 @@ export default function SettingsPage() {
       
       setIsSaving(true)
       try {
-          await authApi.changePassword({
-              old_password: passForm.old_password,
-              new_password: passForm.new_password
-          })
+          await authApi.changePassword(passForm.old_password, passForm.new_password)
           toast.success("Password berhasil diperbarui")
           setPassForm({ old_password: "", new_password: "", confirm_password: "" })
       } catch (err: any) {

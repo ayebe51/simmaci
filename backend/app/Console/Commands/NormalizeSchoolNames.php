@@ -13,8 +13,8 @@ class NormalizeSchoolNames extends Command
     // Kata yang harus tetap uppercase
     private const KEEP_UPPER = ['MI', 'MTs', 'MA', 'SMK', 'SD', 'SMP', 'SMA', 'NU', 'LP', 'PGRI'];
 
-    // Kata yang harus tetap lowercase (kata sambung)
-    private const KEEP_LOWER = ['dan', 'di', 'ke', 'dari', 'yang', 'untuk', 'dengan', 'al', 'bin', 'binti'];
+    // Kata yang harus tetap lowercase (kata sambung) — BUKAN "al" karena di nama sekolah "Al" adalah nama
+    private const KEEP_LOWER = ['dan', 'di', 'ke', 'dari', 'yang', 'untuk', 'dengan', 'bin', 'binti'];
 
     public function handle(): int
     {
@@ -89,9 +89,15 @@ class NormalizeSchoolNames extends Command
                 continue;
             }
 
-            // Handle apostrophe words: MA'ARIF → Ma'arif, NU'MAN → Nu'man
+            // Handle apostrophe words: MA'ARIF → Ma'arif, 'UQUL → 'Uqul
             if (str_contains($word, "'") || str_contains($word, "'")) {
                 $result[] = $this->titleCaseWithApostrophe($word);
+                continue;
+            }
+
+            // Handle hyphenated words: AL-MAHDY → Al-Mahdy, Al-mahdy → Al-Mahdy
+            if (str_contains($word, '-')) {
+                $result[] = $this->titleCaseWithHyphen($word);
                 continue;
             }
 
@@ -104,16 +110,25 @@ class NormalizeSchoolNames extends Command
 
     private function titleCaseWithApostrophe(string $word): string
     {
-        // Split on apostrophe, title-case each part, rejoin
+        // Split on apostrophe, title-case EACH part (including after apostrophe)
+        // 'UQUL → 'Uqul, MA'ARIF → Ma'arif, Riyadlatul 'Uqul → Riyadlatul 'Uqul
         $parts = preg_split("/(['''])/u", $word, -1, PREG_SPLIT_DELIM_CAPTURE);
         $out   = [];
-        foreach ($parts as $i => $part) {
-            if (in_array($part, ["'", "'", "'"], true)) {
+        foreach ($parts as $part) {
+            if (in_array($part, ["'", "\u{2018}", "\u{2019}"], true)) {
                 $out[] = $part;
             } else {
-                $out[] = $i === 0 ? ucfirst(strtolower($part)) : strtolower($part);
+                // Each segment after split gets Title Case
+                $out[] = ucfirst(strtolower($part));
             }
         }
         return implode('', $out);
+    }
+
+    private function titleCaseWithHyphen(string $word): string
+    {
+        // AL-MAHDY → Al-Mahdy, al-mahdy → Al-Mahdy
+        $parts = explode('-', $word);
+        return implode('-', array_map(fn($p) => ucfirst(strtolower($p)), $parts));
     }
 }

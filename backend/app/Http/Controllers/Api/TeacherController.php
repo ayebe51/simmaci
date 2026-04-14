@@ -111,7 +111,6 @@ class TeacherController extends Controller
      */
     public function import(Request $request): JsonResponse
     {
-        \Illuminate\Support\Facades\Storage::put('public/php_debug_dump.json', json_encode($request->all(), JSON_PRETTY_PRINT));
         $request->validate(['teachers' => 'required|array']);
 
         $created = 0;

@@ -56,7 +56,14 @@ jobs:
         sed -i 's/DB_USERNAME=.*/DB_USERNAME=postgres/' .env
         sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=secret/' .env
         sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+        sed -i 's/FILESYSTEM_DISK=.*/FILESYSTEM_DISK=local/' .env
+        sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=array/' .env
+        sed -i 's/QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/' .env
+        sed -i 's/CACHE_STORE=.*/CACHE_STORE=array/' .env
         php artisan key:generate
+
+    - name: Dump Autoload
+      run: composer dump-autoload
 
     - name: Run Migrations
       run: php artisan migrate --force

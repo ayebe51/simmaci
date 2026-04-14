@@ -58,6 +58,8 @@ class SchoolController extends Controller
             'provinsi' => 'nullable|string',
             'kabupaten' => 'nullable|string',
             'kelurahan' => 'nullable|string',
+            'npsm_nu' => 'nullable|string',
+            'jenjang' => 'nullable|string',
         ]);
 
         return response()->json(School::create($data), 201);

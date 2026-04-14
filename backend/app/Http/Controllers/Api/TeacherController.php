@@ -370,14 +370,15 @@ class TeacherController extends Controller
                     $dataToSave['nama'] = "Guru Baru (Tanpa Nama)";
                 }
 
-                $savePayload = array_merge(array_filter($dataToSave, fn($v) => !is_null($v)), ['school_id' => $schoolId]);
+                $savePayload = array_merge(array_filter($dataToSave, fn($v) => $v !== null && $v !== ''), ['school_id' => $schoolId]);
                 $teacher = null;
                 if ($nuptk) {
-                    $teacher = Teacher::where('nuptk', $nuptk)->first();
+                    $teacher = Teacher::withoutTenantScope()->where('nuptk', $nuptk)->first();
                 }
                 
                 if (!$teacher) {
-                    $teacher = Teacher::where('nama', $dataToSave['nama'])
+                    $teacher = Teacher::withoutTenantScope()
+                        ->where('nama', $dataToSave['nama'])
                         ->where('school_id', $schoolId)
                         ->first();
                 }
@@ -394,6 +395,7 @@ class TeacherController extends Controller
                     'nuptk' => (string)($row['nuptk'] ?? $row['NUPTK'] ?? 'empty'), 
                     'error' => $e->getMessage()
                 ];
+                continue; // pastikan loop berlanjut
             }
         }
 

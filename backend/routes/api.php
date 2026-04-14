@@ -104,13 +104,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('teachers/generate-accounts',   [TeacherController::class, 'generateAccounts']);
         });
         
-        Route::apiResource('teachers', TeacherController::class);
         Route::post('teachers/import', [TeacherController::class, 'import']);
+        Route::apiResource('teachers', TeacherController::class);
 
 
         // Students
-        Route::apiResource('students', StudentController::class);
         Route::post('students/import', [StudentController::class, 'import']);
+        Route::apiResource('students', StudentController::class);
 
         // SK Documents — specific routes MUST come before apiResource
         Route::post('sk-documents/submit-request',  [SkDocumentController::class, 'submitRequest']);

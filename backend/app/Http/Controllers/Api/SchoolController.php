@@ -285,9 +285,14 @@ class SchoolController extends Controller
      * POST /api/schools/generate-accounts
      * Username: {nsm}@simmaci.com, Password: nsm plain
      */
-    public function generateAccounts(): JsonResponse
+    public function generateAccounts(Request $request): JsonResponse
     {
-        $schools = School::all();
+        // If school_id provided, generate only for that school
+        $schoolId = $request->input('school_id');
+        $schools = $schoolId
+            ? School::where('id', $schoolId)->get()
+            : School::all();
+
         $accounts = [];
         $skipped = 0;
 

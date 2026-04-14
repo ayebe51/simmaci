@@ -113,22 +113,31 @@ export default function UserListPage() {
       setIsDialogOpen(true)
   }
 
-  const handleExportExcel = () => {
-    const exportData = users.map((u: any, index: number) => ({
-      "No": index + 1,
-      "Nama": u.name,
-      "Username / Email": u.email,
-      "Password": u.role === 'operator' 
-        ? (u.email?.split('@')[0] || '-')  // NSM (bagian sebelum @simmaci.com)
-        : '(tidak ditampilkan)',
-      "Role": u.role,
-      "Sekolah": u.school?.nama || "-",
-      "Status": u.is_active ? "Aktif" : "Non-Aktif"
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-    XLSX.writeFile(workbook, `Akun_Users_SIMMACI.xlsx`);
+  const handleExportExcel = async () => {
+    try {
+      // Fetch ALL users without pagination limit for export
+      const allUsersRes = await userApi.list({ per_page: 9999 })
+      const allUsers = Array.isArray(allUsersRes) ? allUsersRes : (allUsersRes?.data || [])
+      
+      const exportData = allUsers.map((u: any, index: number) => ({
+        "No": index + 1,
+        "Nama": u.name,
+        "Username / Email": u.email,
+        "Password": u.role === 'operator' 
+          ? (u.email?.split('@')[0] || '-')
+          : '(tidak ditampilkan)',
+        "Role": u.role,
+        "Sekolah": u.school?.nama || "-",
+        "Status": u.is_active ? "Aktif" : "Non-Aktif"
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+      XLSX.writeFile(workbook, `Akun_Users_SIMMACI.xlsx`);
+      toast.success(`${allUsers.length} akun berhasil diexport`)
+    } catch {
+      toast.error("Gagal export data")
+    }
   }
 
   return (

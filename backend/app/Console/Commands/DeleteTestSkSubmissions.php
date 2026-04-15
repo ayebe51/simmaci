@@ -16,6 +16,7 @@ class DeleteTestSkSubmissions extends Command
     protected $signature = 'sk:delete-test-submissions 
                             {--nomor_sk= : Specific nomor_sk to delete}
                             {--status=pending : Status of SK to delete (default: pending)}
+                            {--school= : Delete SK from specific school (unit_kerja)}
                             {--created-after= : Delete SK created after this date (Y-m-d format)}
                             {--dry-run : Show what would be deleted without actually deleting}
                             {--force : Skip confirmation prompt}';
@@ -34,6 +35,7 @@ class DeleteTestSkSubmissions extends Command
     {
         $nomorSk = $this->option('nomor_sk');
         $status = $this->option('status');
+        $school = $this->option('school');
         $createdAfter = $this->option('created-after');
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
@@ -47,6 +49,10 @@ class DeleteTestSkSubmissions extends Command
             // Default: only pending SK with REQ/ prefix (test submissions)
             $query->where('status', $status)
                   ->where('nomor_sk', 'like', 'REQ/%');
+        }
+
+        if ($school) {
+            $query->where('unit_kerja', 'like', '%' . $school . '%');
         }
 
         if ($createdAfter) {

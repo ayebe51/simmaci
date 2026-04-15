@@ -10,11 +10,11 @@ import * as z from "zod"
 import { ArrowLeft, Save, FileText, Upload, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { skApi, teacherApi, mediaApi, authApi } from "@/lib/api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { skApi, mediaApi, authApi, schoolApi } from "@/lib/api"
 
 const skSchema = z.object({
   jenisSk: z.string().min(1, "Jenis SK wajib dipilih"),
@@ -51,9 +51,22 @@ export default function SkSubmissionPage() {
     resolver: zodResolver(skSchema),
     defaultValues: {
       jenisPengajuan: "new",
-      unit_kerja: isOperator ? user?.unitKerja || "" : ""
+      unit_kerja: isOperator ? (user?.unit || "") : ""
     }
   })
+
+  // Auto-fill unit_kerja for operator from school profile
+  const { data: schoolProfile } = useQuery({
+    queryKey: ['school-profile-me'],
+    queryFn: () => schoolApi.profile(),
+    enabled: isOperator,
+  })
+
+  useEffect(() => {
+    if (schoolProfile?.nama && !form.getValues('unit_kerja')) {
+      form.setValue('unit_kerja', schoolProfile.nama)
+    }
+  }, [schoolProfile])
 
   // Mutations
   const createRequestMutation = useMutation({
@@ -132,7 +145,10 @@ export default function SkSubmissionPage() {
                 <CardDescription className="text-sm font-medium text-slate-400 pt-1">Mohon isi data calon penerima SK dengan lengkap sesuai berkas fisik.</CardDescription>
             </CardHeader>
             <CardContent className="p-10">
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                const firstError = Object.values(errors)[0]
+                if (firstError?.message) toast.error(firstError.message as string)
+              })} className="space-y-10">
                 <div className="grid gap-8 md:grid-cols-2">
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Jenis SK yang Diajukan</Label>

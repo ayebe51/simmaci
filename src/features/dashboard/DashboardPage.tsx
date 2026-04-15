@@ -50,6 +50,12 @@ export default function DashboardPage() {
     queryFn: () => dashboardApi.getSkTrend(6, operatorSchool) 
   })
 
+  const { data: chartsData, isLoading: isLoadingCharts } = useQuery({
+    queryKey: ['dashboard-charts'],
+    queryFn: () => dashboardApi.getCharts(),
+    enabled: !user || user.role !== 'operator'
+  })
+
   // Mapping logic for stability
   const stats = statsData ? {
     schoolCount: statsData.totalSchools || (statsData.schoolName ? 1 : 0),
@@ -185,7 +191,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-       <DashboardCharts data={statsData} />
+       <DashboardCharts data={chartsData} loading={isLoadingCharts} />
 
        {skStats && (
          <div className="mt-8 space-y-6">

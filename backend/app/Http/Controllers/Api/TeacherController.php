@@ -406,6 +406,53 @@ class TeacherController extends Controller
     }
 
     /**
+     * POST /api/teachers/{teacher}/generate-nim
+     * Generate NIM (Nomor Induk Ma'arif) for a teacher without one.
+     * Format: 1134{5-digit-sequence} — prefix 1134 is fixed (Cilacap code)
+     */
+    public function generateNim(Teacher $teacher): JsonResponse
+    {
+        if ($teacher->nomor_induk_maarif) {
+            return $this->errorResponse('Guru ini sudah memiliki NIM: ' . $teacher->nomor_induk_maarif, [], 422);
+        }
+
+        // Find the highest existing NIM with prefix 1134
+        $lastNim = Teacher::withoutTenantScope()
+            ->where('nomor_induk_maarif', 'like', '1134%')
+            ->whereRaw("LENGTH(nomor_induk_maarif) = 9")
+            ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC")
+            ->value('nomor_induk_maarif');
+
+        if ($lastNim) {
+            $lastSeq = (int) substr($lastNim, 4); // last 5 digits
+            $newSeq  = $lastSeq + 1;
+        } else {
+            $newSeq = 1; // start from 00001
+        }
+
+        $nim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+
+        // Ensure uniqueness
+        while (Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nim)->exists()) {
+            $newSeq++;
+            $nim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+        }
+
+        $teacher->update(['nomor_induk_maarif' => $nim]);
+
+        ActivityLog::log(
+            description: "Generate NIM untuk guru: {$teacher->nama} → {$nim}",
+            event: 'generate_nim',
+            logName: 'master',
+            subject: $teacher,
+            causer: auth()->user(),
+            schoolId: $teacher->school_id
+        );
+
+        return $this->successResponse(['nim' => $nim, 'teacher_id' => $teacher->id], "NIM berhasil digenerate: {$nim}");
+    }
+
+    /**
      * Delete all teachers from the database.
      */
     public function deleteAll(): JsonResponse

@@ -152,6 +152,8 @@ export const teacherApi = {
   deleteAll: () => apiClient.delete('/teachers/delete-all').then((r) => r.data),
   generateAccounts: (teacherIds?: number[]) =>
     apiClient.post('/teachers/generate-accounts', { teacher_ids: teacherIds }).then((r) => r.data),
+  generateNim: (teacherId: number) =>
+    apiClient.post(`/teachers/${teacherId}/generate-nim`).then((r) => r.data),
   export: (params?: Record<string, any>) =>
     apiClient.get('/teachers/export', { params, responseType: 'blob' }).then((r) => r.data),
 };

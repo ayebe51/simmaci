@@ -58,6 +58,16 @@ import AttendanceSettingsPage from "./features/attendance/AttendanceSettingsPage
 // Create a client
 const queryClient = new QueryClient()
 
+// Keepalive ping — prevents Traefik from dropping idle connections to backend
+// Pings /health every 4 minutes so the connection never goes fully idle
+if (typeof window !== 'undefined') {
+  const PING_INTERVAL = 4 * 60 * 1000 // 4 minutes
+  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace('/api', '')
+  setInterval(() => {
+    fetch(`${API_BASE}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {})
+  }, PING_INTERVAL)
+}
+
 export default function App() {
   console.log("App Rendering...");
   return (

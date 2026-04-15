@@ -176,7 +176,7 @@ export const schoolApi = {
   list: (params?: Record<string, any>) => apiClient.get('/schools', { params }).then((r) => r.data),
   get: (id: number) => apiClient.get(`/schools/${id}`).then((r) => r.data),
   create: (data: any) => apiClient.post('/schools', data).then((r) => r.data),
-  update: (id: number, data: any) => apiClient.put(`/schools/${id}`, data).then((r) => r.data),
+  update: (id: number, data: any) => apiClient.put(`/schools/${id}`, data, { timeout: 60000 }).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/schools/${id}`).then((r) => r.data),
   profile: () => apiClient.get('/schools/profile/me').then((r) => r.data),
   import: (schools: any[]) => apiClient.post('/schools/import', { schools }).then((r) => r.data),

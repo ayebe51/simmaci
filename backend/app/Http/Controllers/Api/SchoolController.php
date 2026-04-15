@@ -75,7 +75,7 @@ class SchoolController extends Controller
             'kepala_jabatan_mulai', 'kepala_jabatan_selesai'
         ]));
 
-        return response()->json($school->fresh());
+        return response()->json($school);
     }
 
     public function destroy(School $school): JsonResponse

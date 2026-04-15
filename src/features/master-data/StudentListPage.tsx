@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Edit, Download, FileSpreadsheet, Loader2, GraduationCap, ArrowUpDown, Camera } from "lucide-react"
+import { Plus, Search, Trash2, Edit, Download, FileSpreadsheet, Loader2, GraduationCap, ArrowUpDown } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { studentApi, schoolApi } from "@/lib/api"
 import ExcelImportModal from "./components/ExcelImportModal"
+import StudentPhotoUpload from "./components/StudentPhotoUpload"
 
 interface Student {
   id: number
@@ -42,6 +43,7 @@ interface Student {
   npsn?: string
   nomor_telepon?: string
   nama_wali?: string
+  photo_id?: string
 }
 
 export default function StudentListPage() {
@@ -316,12 +318,13 @@ export default function StudentListPage() {
             </DialogHeader>
             
             <div className="space-y-6">
-                {/* Foto Profil Placeholder */}
+                {/* Foto Profil */}
                 <div className="flex flex-col items-center justify-center pt-2">
-                    <div className="h-24 w-24 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center mb-2">
-                        <Camera className="h-8 w-8 text-slate-400" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-500 tracking-wider">FOTO PROFIL SISWA</span>
+                    <StudentPhotoUpload
+                        photoId={formData.photo_id}
+                        onPhotoUploaded={(url) => setFormData({ ...formData, photo_id: url })}
+                        onRemovePhoto={() => setFormData({ ...formData, photo_id: undefined })}
+                    />
                 </div>
 
                 {/* Form Grid Area */}

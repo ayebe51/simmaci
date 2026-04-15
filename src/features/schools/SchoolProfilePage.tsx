@@ -46,7 +46,7 @@ export default function SchoolProfilePage() {
         kepala_jabatan_selesai: school.kepala_jabatan_selesai || "",
         akreditasi: school.akreditasi || "",
         npsn: school.npsn || "",
-        npsmnu: school.npsmnu || "",
+        npsmnu: school.npsm_nu || "",
         status_jamiyyah: school.status_jamiyyah || "",
         nsm: school.nsm || ""
       })
@@ -58,9 +58,33 @@ export default function SchoolProfilePage() {
   }
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => schoolApi.update(school.id, data),
-    onSuccess: () => {
+    mutationFn: (data: any) => {
+      // Map frontend field name to DB column name
+      const payload = { ...data, npsm_nu: data.npsmnu }
+      delete payload.npsmnu
+      return schoolApi.update(school.id, payload)
+    },
+    onSuccess: (updated) => {
       toast.success("Profil sekolah berhasil diperbarui!")
+      // Update form directly from response to ensure UI reflects saved data
+      if (updated) {
+        setFormData({
+          alamat: updated.alamat || "",
+          telepon: updated.telepon || "",
+          email: updated.email || "",
+          kepala_madrasah: updated.kepala_madrasah || "",
+          kepala_nim: updated.kepala_nim || "",
+          kepala_nuptk: updated.kepala_nuptk || "",
+          kepala_whatsapp: updated.kepala_whatsapp || "",
+          kepala_jabatan_mulai: updated.kepala_jabatan_mulai || "",
+          kepala_jabatan_selesai: updated.kepala_jabatan_selesai || "",
+          akreditasi: updated.akreditasi || "",
+          npsn: updated.npsn || "",
+          npsmnu: updated.npsm_nu || "",
+          status_jamiyyah: updated.status_jamiyyah || "",
+          nsm: updated.nsm || ""
+        })
+      }
       refetch()
     },
     onError: (err: any) => toast.error("Gagal update: " + (err.response?.data?.message || err.message))

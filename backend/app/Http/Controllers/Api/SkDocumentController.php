@@ -296,91 +296,173 @@ class SkDocumentController extends Controller
      */
     public function submitRequest(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'nama' => 'required|string',
-            'nuptk' => 'nullable|string',
-            'nip' => 'nullable|string',
-            'jenis_sk' => 'required|string',
-            'unit_kerja' => 'required|string',
-            'jabatan' => 'nullable|string',
-            'surat_permohonan_url' => 'required|string',
-            'nomor_surat_permohonan' => 'nullable|string',
-            'tanggal_surat_permohonan' => 'nullable|string',
-            'tanggal_penetapan' => 'nullable|string',
-            'status_kepegawaian' => 'nullable|string',
-        ]);
+        try {
+            $data = $request->validate([
+                'nama' => 'required|string',
+                'nuptk' => 'nullable|string',
+                'nip' => 'nullable|string',
+                'jenis_sk' => 'required|string',
+                'unit_kerja' => 'required|string',
+                'jabatan' => 'nullable|string',
+                'surat_permohonan_url' => 'required|string',
+                'nomor_surat_permohonan' => 'nullable|string',
+                'tanggal_surat_permohonan' => 'nullable|string',
+                'tanggal_penetapan' => 'nullable|string',
+                'status_kepegawaian' => 'nullable|string',
+            ]);
 
-        $school = School::where('nama', $data['unit_kerja'])->first();
-        $schoolId = $school?->id;
+            // 3.1: Add school_id validation for operators
+            if ($request->user()->role === 'operator' && $request->user()->school_id === null) {
+                return response()->json([
+                    'message' => 'Akun operator belum terhubung ke sekolah. Hubungi administrator.',
+                ], 400);
+            }
 
-        // Force school_id for operators
-        if ($request->user()->role === 'operator') {
-            $schoolId = $request->user()->school_id;
-        }
-        $data['school_id'] = $schoolId;
+            $school = School::where('nama', $data['unit_kerja'])->first();
+            $schoolId = $school?->id;
 
-        // Upsert Teacher logic
-        $teacher = null;
-        if (!empty($data['nuptk'])) {
-            $teacher = Teacher::where('nuptk', $data['nuptk'])->first();
-        } elseif (!empty($data['nip'])) {
-            $teacher = Teacher::where('nip', $data['nip'])->first();
-        } else {
-            $teacher = Teacher::where('nama', $data['nama'])->where('school_id', $schoolId)->first();
-        }
+            // Force school_id for operators
+            if ($request->user()->role === 'operator') {
+                $schoolId = $request->user()->school_id;
+            }
+            $data['school_id'] = $schoolId;
 
-        $teacherData = [
-            'nama' => $data['nama'],
-            'nuptk' => $data['nuptk'],
-            'nip' => $data['nip'],
-            'unit_kerja' => $data['unit_kerja'],
-            'school_id' => $schoolId,
-            'jabatan' => $data['jabatan'],
-            'status' => $data['status_kepegawaian'] ?? 'Draft',
-            'is_verified' => false,
-        ];
+            // Upsert Teacher logic
+            $teacher = null;
+            if (!empty($data['nuptk'])) {
+                $teacher = Teacher::where('nuptk', $data['nuptk'])->first();
+            } elseif (!empty($data['nip'])) {
+                $teacher = Teacher::where('nip', $data['nip'])->first();
+            } else {
+                $teacher = Teacher::where('nama', $data['nama'])->where('school_id', $schoolId)->first();
+            }
 
-        if ($teacher) {
-            $teacher->update($teacherData);
-        } else {
-            $teacher = Teacher::create($teacherData);
-        }
+            $teacherData = [
+                'nama' => $data['nama'],
+                'nuptk' => $data['nuptk'] ?? null,
+                'nip' => $data['nip'] ?? null,
+                'unit_kerja' => $data['unit_kerja'],
+                'school_id' => $schoolId,
+                'jabatan' => $data['jabatan'] ?? null,
+                'status' => $data['status_kepegawaian'] ?? 'Draft',
+                'is_verified' => false,
+            ];
 
-        // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
-        $year = now()->year;
-        $seq  = SkDocument::withoutTenantScope()->whereYear('created_at', $year)->count() + 1;
-        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-        while (SkDocument::withoutTenantScope()->where('nomor_sk', $nomorSk)->exists()) {
-            $seq++;
+            // 3.2: Wrap teacher upsert in try-catch block
+            try {
+                if ($teacher) {
+                    $teacher->update($teacherData);
+                } else {
+                    $teacher = Teacher::create($teacherData);
+                }
+            } catch (\Illuminate\Database\QueryException $e) {
+                \Log::error('Teacher upsert failed', ['exception' => $e, 'data' => $teacherData]);
+                
+                $errorCode = $e->getCode();
+                if ($errorCode == '23505') {
+                    return response()->json([
+                        'message' => 'Data guru sudah ada dengan identitas yang sama',
+                    ], 422);
+                } elseif ($errorCode == '23503') {
+                    return response()->json([
+                        'message' => 'Data sekolah tidak valid. Hubungi administrator.',
+                    ], 422);
+                } elseif ($errorCode == '23502') {
+                    return response()->json([
+                        'message' => 'Field wajib tidak boleh kosong. Periksa formulir Anda.',
+                    ], 422);
+                }
+                
+                throw $e;
+            }
+
+            // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
+            $year = now()->year;
+            $seq  = SkDocument::withoutTenantScope()->whereYear('created_at', $year)->count() + 1;
             $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            while (SkDocument::withoutTenantScope()->where('nomor_sk', $nomorSk)->exists()) {
+                $seq++;
+                $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            }
+
+            // 3.3: Wrap SK document creation in try-catch block
+            try {
+                $sk = SkDocument::create([
+                    'nomor_sk'             => $nomorSk,
+                    'teacher_id'           => $teacher->id,
+                    'nama'                 => $data['nama'],
+                    'jenis_sk'             => $data['jenis_sk'],
+                    'unit_kerja'           => $data['unit_kerja'],
+                    'school_id'            => $schoolId,
+                    'jabatan'              => $data['jabatan'] ?? null,
+                    'surat_permohonan_url' => $data['surat_permohonan_url'],
+                    'nomor_permohonan'     => $data['nomor_surat_permohonan'] ?? null,
+                    'tanggal_permohonan'   => $data['tanggal_surat_permohonan'] ?? null,
+                    'status'               => 'pending',
+                    'created_by'           => $request->user()->email,
+                    'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                \Log::error('SK document creation failed', ['exception' => $e, 'data' => [
+                    'nomor_sk' => $nomorSk,
+                    'teacher_id' => $teacher->id,
+                    'nama' => $data['nama'],
+                ]]);
+                
+                $errorCode = $e->getCode();
+                $errorMessage = $e->getMessage();
+                
+                if ($errorCode == '23505') {
+                    return response()->json([
+                        'message' => 'Nomor SK sudah digunakan. Silakan coba lagi.',
+                    ], 422);
+                } elseif ($errorCode == '23503') {
+                    // Check which foreign key constraint failed
+                    if (strpos($errorMessage, 'teacher_id') !== false) {
+                        return response()->json([
+                            'message' => 'Data guru tidak valid. Silakan periksa kembali.',
+                        ], 422);
+                    } elseif (strpos($errorMessage, 'school_id') !== false) {
+                        return response()->json([
+                            'message' => 'Data sekolah tidak valid. Hubungi administrator.',
+                        ], 422);
+                    }
+                    return response()->json([
+                        'message' => 'Data sekolah tidak valid. Hubungi administrator.',
+                    ], 422);
+                } elseif ($errorCode == '23502') {
+                    return response()->json([
+                        'message' => 'Field wajib tidak boleh kosong. Periksa formulir Anda.',
+                    ], 422);
+                }
+                
+                throw $e;
+            }
+
+            // 3.4: Wrap activity log creation in try-catch block
+            try {
+                ActivityLog::log(
+                    description: "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
+                    event: 'submit_sk_request',
+                    logName: 'sk',
+                    subject: $sk,
+                    causer: $request->user(),
+                    schoolId: $schoolId
+                );
+            } catch (\Exception $e) {
+                \Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id]);
+                // Continue execution - activity log failure should not block the request
+            }
+
+            return response()->json($sk, 201);
+        } catch (\Exception $e) {
+            // 3.5: Add generic exception handler
+            \Log::error('Unexpected error in submitRequest', ['exception' => $e, 'request' => $request->all()]);
+            
+            return response()->json([
+                'message' => 'Gagal menyimpan pengajuan. Silakan coba lagi atau hubungi administrator.',
+            ], 500);
         }
-
-        $sk = SkDocument::create([
-            'nomor_sk'             => $nomorSk,
-            'teacher_id'           => $teacher->id,
-            'nama'                 => $data['nama'],
-            'jenis_sk'             => $data['jenis_sk'],
-            'unit_kerja'           => $data['unit_kerja'],
-            'school_id'            => $schoolId,
-            'jabatan'              => $data['jabatan'],
-            'surat_permohonan_url' => $data['surat_permohonan_url'],
-            'nomor_permohonan'     => $data['nomor_surat_permohonan'] ?? null,
-            'tanggal_permohonan'   => $data['tanggal_surat_permohonan'] ?? null,
-            'status'               => 'pending',
-            'created_by'           => $request->user()->email,
-            'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
-        ]);
-
-        ActivityLog::log(
-            description: "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
-            event: 'submit_sk_request',
-            logName: 'sk',
-            subject: $sk,
-            causer: $request->user(),
-            schoolId: $schoolId
-        );
-
-        return response()->json($sk, 201);
     }
 
     /**

@@ -1,0 +1,132 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Database Exception Returns Generic Error
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test that when database operations fail (null school_id, duplicate nomor_sk, constraint violations), the system returns specific user-friendly error messages instead of generic "Server Error"
+  - Test cases to implement:
+    - Operator with null school_id submits SK request → should return "Akun operator belum terhubung ke sekolah. Hubungi administrator."
+    - Duplicate nomor_sk constraint violation → should return "Nomor SK sudah digunakan. Silakan coba lagi."
+    - Foreign key constraint violation on teacher_id → should return "Data guru tidak valid. Silakan periksa kembali."
+    - Foreign key constraint violation on school_id → should return "Data sekolah tidak valid. Hubungi administrator."
+  - The test assertions should match the Expected Behavior Properties from design (specific error messages for each failure type)
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause (e.g., "null school_id returns 500 with 'Server Error' instead of 400 with specific message")
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Valid Submissions Continue to Work
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (valid SK submissions with all required fields)
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Valid SK submission creates teacher record, SK document, and activity log successfully
+    - Teacher upsert logic (match by NUPTK, NIP, or name+school_id) works correctly
+    - Temporary nomor_sk generation (REQ/{year}/{sequence}) ensures uniqueness
+    - Operator school_id forcing overrides unit_kerja lookup
+    - Successful submissions return 201 status with created SK data
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 3. Fix for SK submission server error
+
+  - [x] 3.1 Add school_id validation for operators
+    - Add validation check before any database operations
+    - Check if operator role has null school_id: `if ($request->user()->role === 'operator' && $request->user()->school_id === null)`
+    - Return 400 error with message: "Akun operator belum terhubung ke sekolah. Hubungi administrator."
+    - _Bug_Condition: isBugCondition(input) where input.user.role = 'operator' AND input.user.school_id IS NULL_
+    - _Expected_Behavior: Return 400 with specific validation error message_
+    - _Preservation: Valid operator submissions with non-null school_id continue to work_
+    - _Requirements: 1.5, 2.5_
+
+  - [x] 3.2 Wrap teacher upsert in try-catch block
+    - Add try-catch around teacher creation/update logic (Teacher::create/update)
+    - Catch `\Illuminate\Database\QueryException`
+    - Inspect error code and return specific messages:
+      - 23505 (unique violation): "Data guru sudah ada dengan identitas yang sama"
+      - 23503 (foreign key violation): "Data sekolah tidak valid. Hubungi administrator."
+      - 23502 (not null violation): "Field wajib tidak boleh kosong. Periksa formulir Anda."
+    - Log full exception details: `\Log::error('Teacher upsert failed', ['exception' => $e, 'data' => $teacherData])`
+    - Return 422 status with specific error message
+    - _Bug_Condition: teacherUpsertFails(input) AND exceptionIsNotCaught()_
+    - _Expected_Behavior: Catch exception, log it, return specific error message_
+    - _Preservation: Successful teacher upserts continue to work_
+    - _Requirements: 1.2, 2.2_
+
+  - [x] 3.3 Wrap SK document creation in try-catch block
+    - Add try-catch around `SkDocument::create()`
+    - Catch `\Illuminate\Database\QueryException`
+    - Inspect error code and return specific messages:
+      - 23505 (unique on nomor_sk): "Nomor SK sudah digunakan. Silakan coba lagi."
+      - 23503 (foreign key on teacher_id): "Data guru tidak valid. Silakan periksa kembali."
+      - 23503 (foreign key on school_id): "Data sekolah tidak valid. Hubungi administrator."
+      - 23502 (not null violation): "Field wajib tidak boleh kosong. Periksa formulir Anda."
+    - Log full exception details: `\Log::error('SK document creation failed', ['exception' => $e, 'data' => $sk])`
+    - Return 422 status with specific error message
+    - _Bug_Condition: skDocumentCreationFails(input) AND exceptionIsNotCaught()_
+    - _Expected_Behavior: Catch exception, log it, return specific error message_
+    - _Preservation: Successful SK document creation continues to work_
+    - _Requirements: 1.3, 2.3_
+
+  - [x] 3.4 Wrap activity log creation in try-catch block
+    - Add try-catch around `ActivityLog::log()`
+    - Catch any exception but DO NOT fail the request
+    - Log the error: `\Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id])`
+    - Continue execution and return success if SK was created successfully
+    - Activity log failure should not block the submission
+    - _Bug_Condition: activityLogCreationFails(input) AND blocksSuccessfulSubmission()_
+    - _Expected_Behavior: Log error but still return success if SK creation succeeded_
+    - _Preservation: Successful activity log creation continues to work_
+    - _Requirements: 1.4, 2.4_
+
+  - [x] 3.5 Add generic exception handler
+    - Add outer try-catch around entire submitRequest method body
+    - Catch any unexpected exceptions not caught by specific handlers
+    - Log full exception: `\Log::error('Unexpected error in submitRequest', ['exception' => $e, 'request' => $request->all()])`
+    - Return 500 with message: "Gagal menyimpan pengajuan. Silakan coba lagi atau hubungi administrator."
+    - This provides a safety net for any unforeseen errors
+    - _Bug_Condition: Any unexpected exception occurs_
+    - _Expected_Behavior: Log error and return user-friendly message_
+    - _Preservation: No change to successful submissions_
+    - _Requirements: 2.1_
+
+  - [x] 3.6 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Database Exception Returns Specific Error
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify all test cases now return specific error messages:
+      - Null school_id → "Akun operator belum terhubung ke sekolah. Hubungi administrator."
+      - Duplicate nomor_sk → "Nomor SK sudah digunakan. Silakan coba lagi."
+      - Foreign key violations → Specific messages for teacher_id and school_id
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+  - [x] 3.7 Verify preservation tests still pass
+    - **Property 2: Preservation** - Valid Submissions Continue to Work
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix:
+      - Valid SK submissions create all records successfully
+      - Teacher upsert logic works correctly
+      - Nomor SK generation ensures uniqueness
+      - Operator school_id forcing works
+      - 201 status returned with correct data
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run all tests (bug condition + preservation)
+  - Verify no regressions in existing functionality
+  - Verify all database exception scenarios return specific error messages
+  - Verify activity log failures don't block successful submissions
+  - Ask the user if questions arise

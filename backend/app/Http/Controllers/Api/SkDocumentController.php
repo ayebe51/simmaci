@@ -303,7 +303,9 @@ class SkDocumentController extends Controller
             'jenis_sk' => 'required|string',
             'unit_kerja' => 'required|string',
             'jabatan' => 'nullable|string',
-            'surat_permohonan_url' => 'required|string', // Mandatory official letter
+            'surat_permohonan_url' => 'required|string',
+            'nomor_surat_permohonan' => 'nullable|string',
+            'tanggal_surat_permohonan' => 'nullable|string',
             'tanggal_penetapan' => 'nullable|string',
             'status_kepegawaian' => 'nullable|string',
         ]);
@@ -352,6 +354,8 @@ class SkDocumentController extends Controller
             'school_id' => $schoolId,
             'jabatan' => $data['jabatan'],
             'surat_permohonan_url' => $data['surat_permohonan_url'],
+            'nomor_permohonan' => $data['nomor_surat_permohonan'] ?? null,
+            'tanggal_permohonan' => $data['tanggal_surat_permohonan'] ?? null,
             'status' => 'pending',
             'created_by' => $request->user()->email,
             'tanggal_penetapan' => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),

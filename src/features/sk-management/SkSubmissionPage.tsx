@@ -23,7 +23,7 @@ const skSchema = z.object({
   nuptk: z.string().optional(),
   nip: z.string().optional(),
   jabatan: z.string().min(1, "Jabatan wajib diisi"),
-  unit_kerja: z.string().min(1, "Unit Kerja wajib diisi"),
+  unit_kerja: z.string().optional(),
   keterangan: z.string().optional(),
   tempat_lahir: z.string().min(1, "Tempat Lahir wajib diisi"),
   tanggal_lahir: z.string().min(1, "Tanggal Lahir wajib diisi"),
@@ -89,6 +89,13 @@ export default function SkSubmissionPage() {
   }
 
   const onSubmit = async (data: SkFormValues) => {
+    // Ensure unit_kerja is filled for operators
+    const unitKerja = data.unit_kerja || schoolProfile?.nama || user?.unit || ""
+    if (!unitKerja) {
+      toast.error("Unit Kerja / Madrasah belum terisi. Pastikan profil lembaga sudah lengkap.")
+      return
+    }
+
     if (!selectedFile) {
       toast.error("Wajib mengunggah Surat Permohonan resmi.")
       return
@@ -105,7 +112,7 @@ export default function SkSubmissionPage() {
         nuptk: data.nuptk,
         nip: data.nip,
         jenis_sk: data.jenisSk,
-        unit_kerja: data.unit_kerja,
+        unit_kerja: unitKerja,
         jabatan: data.jabatan,
         surat_permohonan_url: fileUrl,
         status_kepegawaian: data.status_kepegawaian || (data.jenisSk.includes("GTY") ? "GTY" : "GTT")
@@ -201,7 +208,14 @@ export default function SkSubmissionPage() {
 
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Unit Kerja / Madrasah</Label>
-                        <Input disabled={!isSuperAdmin} {...form.register("unit_kerja")} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500 font-bold opacity-80" />
+                        <Input
+                            disabled={!isSuperAdmin}
+                            {...form.register("unit_kerja")}
+                            value={form.watch("unit_kerja") || schoolProfile?.nama || user?.unit || ""}
+                            onChange={e => form.setValue("unit_kerja", e.target.value)}
+                            placeholder={isOperator ? (schoolProfile?.nama || "Memuat...") : "Nama Madrasah"}
+                            className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500 font-bold opacity-80"
+                        />
                     </div>
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pendidikan Terakhir</Label>

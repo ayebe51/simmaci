@@ -541,19 +541,28 @@ export default function TeacherListPage() {
         templateUrl="/TEMPLATE_IMPORT_DATA_GURU_V4.xlsx"
         onImport={async (data) => {
             try {
-                const res = await teacherApi.import(data)
+                // Chunk import to avoid timeout on large datasets
+                const CHUNK_SIZE = 25
+                let totalCreated = 0
+                const allErrors: any[] = []
+
+                for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+                    const chunk = data.slice(i, i + CHUNK_SIZE)
+                    const res = await teacherApi.import(chunk as any[])
+                    totalCreated += res.created || 0
+                    if (res.errors) allErrors.push(...res.errors)
+                }
+
                 queryClient.invalidateQueries({ queryKey: ['teachers'] })
-                if (res.errors && res.errors.length > 0) {
-                    const firstError = res.errors[0]?.error || "Unknown error"
-                    toast.warning(`Berhasil: ${res.created}, Gagal: ${res.errors.length}. Detail error pertama: ${firstError}`, {
-                        duration: 6000
-                    })
+                if (allErrors.length > 0) {
+                    const firstError = allErrors[0]?.error || "Unknown error"
+                    toast.warning(`Berhasil: ${totalCreated}, Gagal: ${allErrors.length}. Error pertama: ${firstError}`, { duration: 6000 })
                 } else {
-                    toast.success(`Berhasil mengimpor ${res.created} data guru!`)
+                    toast.success(`Berhasil mengimpor ${totalCreated} data guru!`)
                 }
                 setIsImportModalOpen(false)
             } catch (e: any) {
-                toast.error("Gagal import: " + e.message)
+                toast.error("Gagal import: " + (e.response?.data?.message || e.message))
             }
         }}
       />

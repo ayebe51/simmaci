@@ -346,19 +346,29 @@ class SkDocumentController extends Controller
             $teacher = Teacher::create($teacherData);
         }
 
+        // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
+        $year = now()->year;
+        $seq  = SkDocument::withoutTenantScope()->whereYear('created_at', $year)->count() + 1;
+        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+        while (SkDocument::withoutTenantScope()->where('nomor_sk', $nomorSk)->exists()) {
+            $seq++;
+            $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+        }
+
         $sk = SkDocument::create([
-            'teacher_id' => $teacher->id,
-            'nama' => $data['nama'],
-            'jenis_sk' => $data['jenis_sk'],
-            'unit_kerja' => $data['unit_kerja'],
-            'school_id' => $schoolId,
-            'jabatan' => $data['jabatan'],
+            'nomor_sk'             => $nomorSk,
+            'teacher_id'           => $teacher->id,
+            'nama'                 => $data['nama'],
+            'jenis_sk'             => $data['jenis_sk'],
+            'unit_kerja'           => $data['unit_kerja'],
+            'school_id'            => $schoolId,
+            'jabatan'              => $data['jabatan'],
             'surat_permohonan_url' => $data['surat_permohonan_url'],
-            'nomor_permohonan' => $data['nomor_surat_permohonan'] ?? null,
-            'tanggal_permohonan' => $data['tanggal_surat_permohonan'] ?? null,
-            'status' => 'pending',
-            'created_by' => $request->user()->email,
-            'tanggal_penetapan' => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+            'nomor_permohonan'     => $data['nomor_surat_permohonan'] ?? null,
+            'tanggal_permohonan'   => $data['tanggal_surat_permohonan'] ?? null,
+            'status'               => 'pending',
+            'created_by'           => $request->user()->email,
+            'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
         ]);
 
         ActivityLog::log(

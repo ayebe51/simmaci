@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         
         Route::post('teachers/import', [TeacherController::class, 'import']);
+        Route::post('teachers/{teacher}/generate-nim', [TeacherController::class, 'generateNim']);
         Route::apiResource('teachers', TeacherController::class);
 
 

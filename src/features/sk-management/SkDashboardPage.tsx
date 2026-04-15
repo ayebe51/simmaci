@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle, CheckCircle, XCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle, CheckCircle, XCircle, Loader2, ChevronLeft, ChevronRight, FileDown } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate } from "react-router-dom"
 import { useState, useMemo } from "react"
@@ -227,13 +227,14 @@ export default function SkDashboardPage() {
                   <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Pemilik</TableHead>
                   <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nomor Surat</TableHead>
                   <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Status</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-center">Surat Permohonan</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                     <TableRow>
-                        <TableCell colSpan={8} className="h-40 text-center">
+                        <TableCell colSpan={9} className="h-40 text-center">
                             <div className="flex flex-col items-center justify-center space-y-3">
                                 <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Memuat data SK...</span>
@@ -242,7 +243,7 @@ export default function SkDashboardPage() {
                     </TableRow>
                 ) : items.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={8} className="h-60 text-center">
+                        <TableCell colSpan={9} className="h-60 text-center">
                             <div className="flex flex-col items-center justify-center space-y-3 opacity-30">
                                 <FileText className="h-16 w-16 text-slate-300" />
                                 <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</span>
@@ -290,6 +291,21 @@ export default function SkDashboardPage() {
                           <TableCell className="font-mono text-xs text-slate-500">{item.nomor_sk || "-"}</TableCell>
                           <TableCell>
                               {renderStatusBadge(item.status || 'draft')}
+                          </TableCell>
+                          <TableCell className="text-center">
+                              {item.surat_permohonan_url ? (
+                                  <a
+                                      href={item.surat_permohonan_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Download Surat Permohonan"
+                                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                  >
+                                      <FileDown className="w-4 h-4" />
+                                  </a>
+                              ) : (
+                                  <span className="text-[10px] text-slate-300 font-bold">-</span>
+                              )}
                           </TableCell>
                           <TableCell className="text-right pr-8">
                               <div className="flex justify-end gap-1">

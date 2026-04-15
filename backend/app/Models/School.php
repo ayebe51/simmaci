@@ -15,6 +15,8 @@ class School extends Model
         'provinsi', 'kabupaten', 'kecamatan', 'kelurahan',
         'telepon', 'email', 'kepala_madrasah',
         'akreditasi', 'status', 'status_jamiyyah', 'npsm_nu', 'jenjang',
+        'kepala_nim', 'kepala_nuptk', 'kepala_whatsapp',
+        'kepala_jabatan_mulai', 'kepala_jabatan_selesai',
     ];
 
     // ── Relationships ──

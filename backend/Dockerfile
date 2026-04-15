@@ -52,6 +52,10 @@ RUN sed -i 's/listen = \/run\/php\/php8.3-fpm.sock/listen = 0.0.0.0:9000/g' /usr
 
 EXPOSE 80
 
+# Health check — Traefik uses this to know when container is ready
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
 # Create startup script
 RUN printf '#!/bin/sh\n\
 # Fix Windows CRLF line endings on mounted .env file\n\

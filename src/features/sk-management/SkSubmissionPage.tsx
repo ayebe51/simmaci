@@ -30,6 +30,8 @@ const skSchema = z.object({
   pendidikan_terakhir: z.string().min(1, "Pendidikan Terakhir wajib diisi"),
   tmt: z.string().min(1, "Tanggal Mulai Tugas wajib diisi"),
   status_kepegawaian: z.string().optional(),
+  nomor_surat_permohonan: z.string().optional(),
+  tanggal_surat_permohonan: z.string().optional(),
 })
 
 type SkFormValues = z.infer<typeof skSchema>
@@ -115,6 +117,8 @@ export default function SkSubmissionPage() {
         unit_kerja: unitKerja,
         jabatan: data.jabatan,
         surat_permohonan_url: fileUrl,
+        nomor_surat_permohonan: data.nomor_surat_permohonan,
+        tanggal_surat_permohonan: data.tanggal_surat_permohonan,
         status_kepegawaian: data.status_kepegawaian || (data.jenisSk.includes("GTY") ? "GTY" : "GTT")
       })
     } catch (err) {
@@ -250,6 +254,16 @@ export default function SkSubmissionPage() {
                             )}
                             <Input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
                         </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nomor Surat Permohonan</Label>
+                        <Input placeholder="Cth: 001/MTs.NU/VII/2025" {...form.register("nomor_surat_permohonan")} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500 font-bold" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Surat Permohonan</Label>
+                        <Input type="date" {...form.register("tanggal_surat_permohonan")} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500" />
                     </div>
 
                     <div className="md:col-span-2 space-y-3">

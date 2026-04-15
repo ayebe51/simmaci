@@ -31,11 +31,12 @@ class DashboardController extends Controller
             ->take(15)
             ->get()
             ->map(fn($l) => [
-                '_id' => (string) $l->id,
-                'user' => $l->causer?->name ?? 'System',
-                'role' => $l->causer?->role ?? 'system',
-                'action' => $l->event ?? $l->log_name ?? 'Aktivitas',
-                'details' => $l->description ?? '-',
+                '_id'       => (string) $l->id,
+                'user'      => $l->causer?->name ?? 'System',
+                'role'      => $l->causer?->role ?? 'system',
+                'action'    => $this->formatActivityLabel($l->event, $l->log_name, $l->description),
+                'details'   => $l->description ?? '-',
+                'school'    => $l->school_id ? \App\Models\School::find($l->school_id)?->nama : null,
                 'timestamp' => $l->created_at->getTimestamp() * 1000,
             ]);
 
@@ -120,8 +121,9 @@ class DashboardController extends Controller
                     '_id'       => (string) $l->id,
                     'user'      => $l->causer?->name ?? 'System',
                     'role'      => $l->causer?->role ?? 'system',
-                    'action'    => $l->event ?? $l->log_name ?? 'Aktivitas',
+                    'action'    => $this->formatActivityLabel($l->event, $l->log_name, $l->description),
                     'details'   => $l->description ?? '-',
+                    'school'    => null,
                     'timestamp' => $l->created_at->getTimestamp() * 1000,
                 ]),
         ]);
@@ -244,6 +246,56 @@ class DashboardController extends Controller
             ->get();
 
         return $this->successResponse($breakdown);
+    }
+
+    private function formatActivityLabel(?string $event, ?string $logName, ?string $description): string
+    {
+        $eventMap = [
+            // Auth
+            'login'              => 'Login',
+            'logout'             => 'Logout',
+            // Teacher
+            'created'            => 'Data Ditambahkan',
+            'updated'            => 'Data Diperbarui',
+            'deleted'            => 'Data Dihapus',
+            'create_teacher'     => 'Tambah Guru',
+            'update_teacher'     => 'Update Guru',
+            'delete_teacher'     => 'Hapus Guru',
+            'import_teacher'     => 'Import Guru',
+            // Student
+            'create_student'     => 'Tambah Siswa',
+            'update_student'     => 'Update Siswa',
+            'delete_student'     => 'Hapus Siswa',
+            // School
+            'create_school'      => 'Tambah Sekolah',
+            'update_school'      => 'Update Sekolah',
+            // SK
+            'create_sk'          => 'Buat SK',
+            'submit_sk'          => 'Ajukan SK',
+            'approve_sk'         => 'Setujui SK',
+            'reject_sk'          => 'Tolak SK',
+            'generate_sk'        => 'Generate SK',
+        ];
+
+        if ($event && isset($eventMap[$event])) {
+            return $eventMap[$event];
+        }
+
+        // Fallback: derive from log_name + event
+        if ($logName && $event) {
+            $logLabels = [
+                'teacher' => 'Guru', 'student' => 'Siswa', 'school' => 'Sekolah',
+                'master'  => 'Data', 'sk'      => 'SK',    'user'   => 'Pengguna',
+            ];
+            $eventLabels = [
+                'created' => 'Ditambahkan', 'updated' => 'Diperbarui', 'deleted' => 'Dihapus',
+            ];
+            $subject = $logLabels[$logName] ?? ucfirst($logName);
+            $action  = $eventLabels[$event] ?? ucfirst($event);
+            return "{$subject} {$action}";
+        }
+
+        return $event ?? $logName ?? 'Aktivitas';
     }
 
     private function determineTeacherStatus($teacher): string

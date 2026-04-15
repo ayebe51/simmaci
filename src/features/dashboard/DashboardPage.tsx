@@ -70,14 +70,14 @@ export default function DashboardPage() {
   }
 
   const logs = Array.isArray(statsData?.recentLogs) ? statsData.recentLogs : []
-  const [logFilter, setLogFilter] = useState<"all" | "sk" | "emis" | "school">("all")
+  const [logFilter, setLogFilter] = useState<"all" | "sk" | "guru" | "sekolah">("all")
   
   // Filter logs based on selection
   const filteredLogs = logs?.filter((log: any) => {
     if (logFilter === "all") return true;
-    if (logFilter === "sk") return ["Submit SK", "Request SK Revision", "Approve SK Revision", "Reject SK Revision"].includes(log.action);
-    if (logFilter === "emis") return ["Import EMIS", "Sync EMIS", "sync_emis"].includes(log.action);
-    if (logFilter === "school") return ["Create School", "Update School", "Add Unit", "Update Unit Kerja"].includes(log.action);
+    if (logFilter === "sk") return log.action?.toLowerCase().includes('sk');
+    if (logFilter === "guru") return log.action?.toLowerCase().includes('guru') || log.action?.toLowerCase().includes('teacher');
+    if (logFilter === "sekolah") return log.action?.toLowerCase().includes('sekolah') || log.action?.toLowerCase().includes('school');
     return true;
   });
 
@@ -274,20 +274,53 @@ export default function DashboardPage() {
 
        <div className="grid gap-6 mt-8">
           <Card>
-             <CardHeader className="border-b"><CardTitle>Riwayat Aktivitas</CardTitle></CardHeader>
+             <CardHeader className="border-b">
+               <div className="flex items-center justify-between">
+                 <CardTitle>Riwayat Aktivitas</CardTitle>
+                 <div className="flex gap-2">
+                   {(["all", "sk", "guru", "sekolah"] as const).map(f => (
+                     <button
+                       key={f}
+                       onClick={() => setLogFilter(f)}
+                       className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                         logFilter === f
+                           ? 'bg-emerald-600 text-white'
+                           : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                       }`}
+                     >
+                       {f === 'all' ? 'Semua' : f === 'sk' ? 'SK' : f === 'guru' ? 'Guru' : 'Sekolah'}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             </CardHeader>
              <CardContent className="pt-4">
-                  <div className="space-y-4">
+                  <div className="space-y-1">
                         {Array.isArray(filteredLogs) && filteredLogs.length > 0 ? (
                              filteredLogs.map((log: any, i: number) => (
-                                 <div key={i} className="flex flex-col border-b border-slate-50 last:border-0 pb-3 mb-3 last:mb-0">
-                                    <div className="flex justify-between items-start mb-1">
-                                      <p className="text-sm font-bold text-slate-800">{log.action}</p>
-                                      <span className="text-[10px] text-slate-400 font-medium">{new Date(log.timestamp).toLocaleDateString()}</span>
+                                 <div key={i} className="flex items-start gap-3 py-3 border-b border-slate-50 last:border-0">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                                      <span className="text-[10px] font-black text-emerald-600">
+                                        {log.user?.charAt(0)?.toUpperCase() || 'S'}
+                                      </span>
                                     </div>
-                                    <p className="text-xs text-slate-500 leading-relaxed">{log.details}</p>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{log.action}</span>
+                                        <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                                          {new Date(log.timestamp).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-slate-600 mt-1 truncate">{log.details}</p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] text-slate-400">{log.user}</span>
+                                        {log.school && <span className="text-[10px] text-slate-300">•</span>}
+                                        {log.school && <span className="text-[10px] text-slate-400 truncate">{log.school}</span>}
+                                      </div>
+                                    </div>
                                  </div>
                              ))
-                        ) : <p className="text-center py-8 text-slate-400 italic">Belum ada aktivitas baru.</p>}
+                        ) : <p className="text-center py-8 text-slate-400 italic text-sm">Belum ada aktivitas.</p>}
                   </div>
              </CardContent>
           </Card>

@@ -548,6 +548,7 @@ export default function TeacherListPage() {
 
                 for (let i = 0; i < data.length; i += CHUNK_SIZE) {
                     const chunk = data.slice(i, i + CHUNK_SIZE)
+                    if (chunk.length === 0) continue // skip empty chunks
                     const res = await teacherApi.import(chunk as any[])
                     totalCreated += res.created || 0
                     if (res.errors) allErrors.push(...res.errors)
@@ -562,7 +563,10 @@ export default function TeacherListPage() {
                 }
                 setIsImportModalOpen(false)
             } catch (e: any) {
-                toast.error("Gagal import: " + (e.response?.data?.message || e.message))
+                const detail = e.response?.data?.message
+                    || (e.response?.data?.errors && JSON.stringify(e.response.data.errors))
+                    || e.message
+                toast.error("Gagal import: " + detail)
             }
         }}
       />

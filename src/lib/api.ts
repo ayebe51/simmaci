@@ -250,6 +250,7 @@ export const mediaApi = {
     })()
     return apiClient.post('/files/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
     }).then((r) => r.data)
   },
   delete: (path: string) => apiClient.delete('/files', { data: { path } }).then((r) => r.data),

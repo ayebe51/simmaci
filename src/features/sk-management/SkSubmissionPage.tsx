@@ -104,25 +104,34 @@ export default function SkSubmissionPage() {
     }
     setIsSubmitting(true)
     try {
+      // Upload file
       setIsUploading(true)
-      const uploadRes = await mediaApi.upload(selectedFile, 'sk-requests')
-      const fileUrl = uploadRes.url
-      setIsUploading(false)
+      let fileUrl: string
+      try {
+        const uploadRes = await mediaApi.upload(selectedFile, 'sk-requests')
+        fileUrl = uploadRes.url
+        if (!fileUrl) throw new Error('URL file tidak diterima dari server')
+      } catch (uploadErr: any) {
+        toast.error("Gagal upload dokumen: " + (uploadErr.response?.data?.message || uploadErr.message))
+        return
+      } finally {
+        setIsUploading(false)
+      }
 
       await createRequestMutation.mutateAsync({
         nama: data.nama,
-        nuptk: data.nuptk,
-        nip: data.nip,
+        nuptk: data.nuptk || undefined,
+        nip: data.nip || undefined,
         jenis_sk: data.jenisSk,
         unit_kerja: unitKerja,
         jabatan: data.jabatan,
         surat_permohonan_url: fileUrl,
-        nomor_surat_permohonan: data.nomor_surat_permohonan,
-        tanggal_surat_permohonan: data.tanggal_surat_permohonan,
-        status_kepegawaian: data.status_kepegawaian || (data.jenisSk.includes("GTY") ? "GTY" : "GTT")
+        nomor_surat_permohonan: data.nomor_surat_permohonan || undefined,
+        tanggal_surat_permohonan: data.tanggal_surat_permohonan || undefined,
+        status_kepegawaian: data.status_kepegawaian || (data.jenisSk?.includes("GTY") ? "GTY" : "GTT")
       })
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      toast.error("Gagal menyimpan pengajuan: " + (err.response?.data?.message || err.message || "Terjadi kesalahan"))
     } finally {
       setIsSubmitting(false)
       setIsUploading(false)

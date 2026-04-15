@@ -38,6 +38,7 @@ class UpdateStudentRequest extends FormRequest
             'kabupaten'          => 'nullable|string',
             'kecamatan'          => 'nullable|string',
             'kelurahan'          => 'nullable|string',
+            'photo_id'           => 'nullable|string',
         ];
     }
 }

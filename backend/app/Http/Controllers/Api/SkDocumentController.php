@@ -393,6 +393,7 @@ class SkDocumentController extends Controller
         $seq         = SkDocument::whereYear('created_at', $year)->count();
 
         foreach ($request->documents as $doc) {
+            try {
             $schoolId = null;
             // Force user's school if operator
             if ($request->user()->role === 'operator') {
@@ -478,6 +479,13 @@ class SkDocumentController extends Controller
                 'tanggal_penetapan'    => now()->format('Y-m-d'),
             ]);
             $created++;
+            } catch (\Throwable $e) {
+                $skipped++;
+                \Illuminate\Support\Facades\Log::warning('bulkRequest: skip row', [
+                    'nama'  => $doc['nama'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         ActivityLog::log(

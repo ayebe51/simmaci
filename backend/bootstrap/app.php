@@ -10,6 +10,12 @@ $app = Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function () {
+            // Register warmup routes (health checks and connection warming)
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/warmup.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Note: NOT using EnsureFrontendRequestsAreStateful because

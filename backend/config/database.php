@@ -64,6 +64,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            'options' => [
+                // Enable persistent connections to prevent cold start timeouts
+                PDO::ATTR_PERSISTENT => true,
+                // Set connection timeout
+                PDO::ATTR_TIMEOUT => 5,
+                // Automatically reconnect on connection loss
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ],
         ],
 
         'sqlsrv' => [

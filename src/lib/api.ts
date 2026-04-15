@@ -148,7 +148,7 @@ export const teacherApi = {
   create: (data: any) => apiClient.post('/teachers', data).then((r) => r.data),
   update: (id: number, data: any) => apiClient.put(`/teachers/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/teachers/${id}`).then((r) => r.data),
-  import: (teachers: any[]) => apiClient.post('/teachers/import', { teachers }).then((r) => r.data),
+  import: (teachers: any[]) => apiClient.post('/teachers/import', { teachers }, { timeout: 120000 }).then((r) => r.data),
   deleteAll: () => apiClient.delete('/teachers/delete-all').then((r) => r.data),
   generateAccounts: (teacherIds?: number[]) =>
     apiClient.post('/teachers/generate-accounts', { teacher_ids: teacherIds }).then((r) => r.data),
@@ -165,7 +165,7 @@ export const studentApi = {
   create: (data: any) => apiClient.post('/students', data).then((r) => r.data),
   update: (id: number, data: any) => apiClient.put(`/students/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/students/${id}`).then((r) => r.data),
-  import: (students: any[]) => apiClient.post('/students/import', { students }).then((r) => r.data),
+  import: (students: any[]) => apiClient.post('/students/import', { students }, { timeout: 120000 }).then((r) => r.data),
   batchTransition: (payload: { school_id: number; action: 'promote' | 'graduate' }) =>
     apiClient.post('/students/batch-transition', payload).then((r) => r.data),
 };

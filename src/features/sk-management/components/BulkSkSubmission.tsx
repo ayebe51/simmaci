@@ -159,8 +159,17 @@ export function BulkSkSubmission() {
   const importMutation = useMutation({
     mutationFn: (data: { documents: any[], surat_permohonan_url: string, meta?: any }) => skApi.bulkRequest(data),
     onSuccess: (res) => {
-      setSuccessCount(res.count || res.created || 0)
-      setShowSuccessModal(true)
+      // Handle both immediate success and queued responses
+      if (res.queued) {
+        // Large batch queued for background processing
+        toast.success(res.message || `Pengajuan ${res.count} SK sedang diproses di background.`, { duration: 5000 })
+        setSuccessCount(res.count || 0)
+        setShowSuccessModal(true)
+      } else {
+        // Small batch processed immediately
+        setSuccessCount(res.count || res.created || 0)
+        setShowSuccessModal(true)
+      }
     },
     onError: (err: any) => {
       toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))

@@ -482,6 +482,36 @@ class SkDocumentController extends Controller
             'surat_permohonan_url' => 'required|string',
         ]);
 
+        $documentCount = count($request->documents);
+
+        // For small batches (<= 10 rows), process synchronously for immediate feedback
+        if ($documentCount <= 10) {
+            return $this->processBulkRequestSync($request);
+        }
+
+        // For large batches (> 10 rows), dispatch to queue for background processing
+        \App\Jobs\ProcessBulkSkSubmission::dispatch(
+            documents: $request->documents,
+            suratPermohonanUrl: $request->surat_permohonan_url,
+            userId: $request->user()->id,
+            userEmail: $request->user()->email,
+            userSchoolId: $request->user()->school_id,
+            userRole: $request->user()->role
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Pengajuan {$documentCount} SK sedang diproses di background. Anda akan menerima notifikasi setelah selesai.",
+            'queued' => true,
+            'count' => $documentCount,
+        ], 202); // 202 Accepted
+    }
+
+    /**
+     * Process bulk request synchronously (for small batches)
+     */
+    private function processBulkRequestSync(Request $request): JsonResponse
+    {
         $created     = 0;
         $skipped     = 0;
         $schoolCache = [];

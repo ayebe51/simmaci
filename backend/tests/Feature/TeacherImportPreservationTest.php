@@ -102,7 +102,7 @@ class TeacherImportPreservationTest extends TestCase
         $response->assertStatus(201);
 
         $this->assertDatabaseHas('teachers', [
-            'nama'      => 'Guru Manual Test',
+            'nama'      => 'GURU MANUAL TEST',
             'school_id' => $this->school->id,
         ]);
     }
@@ -137,10 +137,10 @@ class TeacherImportPreservationTest extends TestCase
         $count = Teacher::where('nuptk', '1111222233334444')->count();
         $this->assertEquals(1, $count, 'Seharusnya tidak ada duplikat guru dengan NUPTK yang sama');
 
-        // Nama diupdate
+        // Nama diupdate (normalization converts to UPPERCASE)
         $this->assertDatabaseHas('teachers', [
             'nuptk' => '1111222233334444',
-            'nama'  => 'Nama Baru',
+            'nama'  => 'NAMA BARU',
         ]);
     }
 
@@ -164,13 +164,13 @@ class TeacherImportPreservationTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson(['created' => 2]);
 
-        // Semua baris harus punya school_id dari operator
+        // Semua baris harus punya school_id dari operator (normalization converts names to UPPERCASE)
         $this->assertDatabaseHas('teachers', [
-            'nama'      => 'Guru Import Satu',
+            'nama'      => 'GURU IMPORT SATU',
             'school_id' => $this->school->id,
         ]);
         $this->assertDatabaseHas('teachers', [
-            'nama'      => 'Guru Import Dua',
+            'nama'      => 'GURU IMPORT DUA',
             'school_id' => $this->school->id,
         ]);
     }

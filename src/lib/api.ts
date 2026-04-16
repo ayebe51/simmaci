@@ -174,8 +174,36 @@ export const studentApi = {
 
 // ── Schools API ──
 
+export interface School {
+  id: number;
+  nama: string;
+  kecamatan?: string;
+  nsm?: string;
+  npsn?: string;
+  alamat?: string;
+  telepon?: string;
+  email?: string;
+  jenjang?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const schoolApi = {
-  list: (params?: Record<string, any>) => apiClient.get('/schools', { params }).then((r) => r.data),
+  /**
+   * List schools with optional search parameter for autocomplete
+   * @param params - Optional query parameters including search
+   * @returns Promise<School[]>
+   */
+  list: async (params?: { search?: string } & Record<string, any>): Promise<School[]> => {
+    try {
+      const response = await apiClient.get('/schools', { params });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch schools:', error);
+      throw error;
+    }
+  },
   get: (id: number) => apiClient.get(`/schools/${id}`).then((r) => r.data),
   create: (data: any) => apiClient.post('/schools', data).then((r) => r.data),
   update: (id: number, data: any) => apiClient.put(`/schools/${id}`, data, { timeout: 60000 }).then((r) => r.data),

@@ -10,29 +10,38 @@ use Illuminate\Support\Facades\Log;
 
 class SchoolController extends Controller
 {
+    /**
+     * GET /api/schools
+     * Returns school list for autocomplete with optional search filtering
+     * Respects tenant scoping for operators
+     */
     public function index(Request $request): JsonResponse
     {
         $query = School::query();
-
-        if ($request->search) {
-            $query->where('nama', 'ilike', "%{$request->search}%");
-        }
-        if ($request->kecamatan) {
-            $query->byKecamatan($request->kecamatan);
-        }
-
-        $schools = $query->orderBy('nama')->paginate($request->integer('per_page', 25));
-
-        // Sanitize output to prevent UTF-8 errors
-        $schools->getCollection()->transform(function ($school) {
-            foreach ($school->getAttributes() as $key => $value) {
-                if (is_string($value)) {
-                    $school->$key = htmlspecialchars_decode(htmlspecialchars($value, ENT_SUBSTITUTE, 'UTF-8'));
-                }
+        
+        // Search filter (case-insensitive, minimum 2 characters)
+        if ($request->has('search')) {
+            $searchTerm = trim($request->search);
+            
+            // Enforce minimum 2 characters for search
+            if (strlen($searchTerm) >= 2) {
+                // Use database-agnostic case-insensitive search
+                $query->where('nama', 'LIKE', "%{$searchTerm}%");
             }
-            return $school;
-        });
-
+        }
+        
+        // Tenant scoping: operators see only their school, admins see all
+        $user = $request->user();
+        if ($user && $user->role === 'operator' && $user->school_id) {
+            $query->where('id', $user->school_id);
+        }
+        
+        // Return minimal fields for autocomplete
+        $schools = $query->select('id', 'nama', 'kecamatan')
+            ->orderBy('nama')
+            ->limit(50)
+            ->get();
+        
         return response()->json($schools);
     }
 

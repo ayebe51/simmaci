@@ -9,11 +9,16 @@ use App\Models\School;
 use App\Models\SkDocument;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\NormalizationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SkDocumentController extends Controller
 {
+    public function __construct(
+        private NormalizationService $normalizationService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = SkDocument::with('teacher');
@@ -311,6 +316,28 @@ class SkDocumentController extends Controller
                 'status_kepegawaian' => 'nullable|string',
             ]);
 
+            // Normalize school name and teacher name before processing
+            $originalUnitKerja = $data['unit_kerja'];
+            $originalNama = $data['nama'];
+            
+            $data['unit_kerja'] = $this->normalizationService->normalizeSchoolName($data['unit_kerja']);
+            $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
+            
+            // Track normalization changes for activity logging
+            $normalizationChanges = [];
+            if ($originalUnitKerja !== $data['unit_kerja']) {
+                $normalizationChanges['unit_kerja'] = [
+                    'original' => $originalUnitKerja,
+                    'normalized' => $data['unit_kerja']
+                ];
+            }
+            if ($originalNama !== $data['nama']) {
+                $normalizationChanges['nama'] = [
+                    'original' => $originalNama,
+                    'normalized' => $data['nama']
+                ];
+            }
+
             // 3.1: Add school_id validation for operators
             if ($request->user()->role === 'operator' && $request->user()->school_id === null) {
                 return response()->json([
@@ -318,7 +345,9 @@ class SkDocumentController extends Controller
                 ], 400);
             }
 
-            $school = School::where('nama', $data['unit_kerja'])->first();
+            // Case-insensitive school lookup with normalized name
+            // Use database-agnostic case-insensitive comparison
+            $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->first();
             $schoolId = $school?->id;
 
             // Force school_id for operators
@@ -337,6 +366,7 @@ class SkDocumentController extends Controller
                 $teacher = Teacher::where('nama', $data['nama'])->where('school_id', $schoolId)->first();
             }
 
+            // Teacher data with normalized values
             $teacherData = [
                 'nama' => $data['nama'],
                 'nuptk' => $data['nuptk'] ?? null,
@@ -441,14 +471,22 @@ class SkDocumentController extends Controller
 
             // 3.4: Wrap activity log creation in try-catch block
             try {
-                ActivityLog::log(
-                    description: "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
-                    event: 'submit_sk_request',
-                    logName: 'sk',
-                    subject: $sk,
-                    causer: $request->user(),
-                    schoolId: $schoolId
-                );
+                $logProperties = [];
+                if (!empty($normalizationChanges)) {
+                    $logProperties['normalization'] = $normalizationChanges;
+                }
+                
+                ActivityLog::create([
+                    'description' => "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
+                    'event' => 'submit_sk_request',
+                    'log_name' => 'sk',
+                    'subject_id' => $sk->id,
+                    'subject_type' => get_class($sk),
+                    'causer_id' => $request->user()->id,
+                    'causer_type' => get_class($request->user()),
+                    'school_id' => $schoolId,
+                    'properties' => $logProperties,
+                ]);
             } catch (\Exception $e) {
                 \Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id]);
                 // Continue execution - activity log failure should not block the request
@@ -520,16 +558,26 @@ class SkDocumentController extends Controller
 
         foreach ($request->documents as $doc) {
             try {
+            // Normalize school name and teacher name before processing
+            $originalUnitKerja = $doc['unit_kerja'] ?? null;
+            $originalNama = $doc['nama'];
+            
+            $doc['unit_kerja'] = $this->normalizationService->normalizeSchoolName($doc['unit_kerja'] ?? null);
+            $doc['nama'] = $this->normalizationService->normalizeTeacherName($doc['nama']);
+
             $schoolId = null;
             // Force user's school if operator
             if ($request->user()->role === 'operator') {
                 $schoolId = $request->user()->school_id;
             } elseif (isset($doc['unit_kerja'])) {
-                $schoolId = $schoolCache[$doc['unit_kerja']]
-                    ?? ($schoolCache[$doc['unit_kerja']] = School::where('nama', $doc['unit_kerja'])->value('id'));
+                // Case-insensitive school lookup with normalized name
+                if (!isset($schoolCache[$doc['unit_kerja']])) {
+                    $schoolCache[$doc['unit_kerja']] = School::where('nama', 'ILIKE', $doc['unit_kerja'])->value('id');
+                }
+                $schoolId = $schoolCache[$doc['unit_kerja']];
             }
 
-            // Upsert Teacher
+            // Upsert Teacher with normalized data
             $teacherData = [
                 'nama'                => $doc['nama'],
                 'nuptk'               => $doc['nuptk'] ?? null,

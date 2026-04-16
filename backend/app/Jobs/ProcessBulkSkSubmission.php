@@ -7,6 +7,7 @@ use App\Models\Teacher;
 use App\Models\SkDocument;
 use App\Models\ActivityLog;
 use App\Models\User;
+use App\Services\NormalizationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -36,7 +37,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(NormalizationService $normalizationService): void
     {
         Log::info('ProcessBulkSkSubmission: Starting', [
             'total_documents' => count($this->documents),
@@ -52,17 +53,24 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
         foreach ($this->documents as $index => $doc) {
             try {
+                // Normalize school name and teacher name before processing
+                $doc['unit_kerja'] = $normalizationService->normalizeSchoolName($doc['unit_kerja'] ?? null);
+                $doc['nama'] = $normalizationService->normalizeTeacherName($doc['nama']);
+
                 $schoolId = null;
 
                 // Force user's school if operator
                 if ($this->userRole === 'operator') {
                     $schoolId = $this->userSchoolId;
                 } elseif (isset($doc['unit_kerja'])) {
-                    $schoolId = $schoolCache[$doc['unit_kerja']]
-                        ?? ($schoolCache[$doc['unit_kerja']] = School::where('nama', $doc['unit_kerja'])->value('id'));
+                    // Case-insensitive school lookup with normalized name
+                    if (!isset($schoolCache[$doc['unit_kerja']])) {
+                        $schoolCache[$doc['unit_kerja']] = School::where('nama', 'ILIKE', $doc['unit_kerja'])->value('id');
+                    }
+                    $schoolId = $schoolCache[$doc['unit_kerja']];
                 }
 
-                // Upsert Teacher
+                // Upsert Teacher with normalized data
                 $teacherData = [
                     'nama'                => $doc['nama'],
                     'nuptk'               => $doc['nuptk'] ?? null,

@@ -8,20 +8,24 @@ use App\Http\Requests\Teacher\UpdateTeacherRequest;
 use App\Models\ActivityLog;
 use App\Models\School;
 use App\Models\Teacher;
+use App\Services\NormalizationService;
 use App\Services\TeacherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TeacherController extends Controller
 {
-    public function __construct(private TeacherService $teacherService) {}
+    public function __construct(
+        private TeacherService $teacherService,
+        private NormalizationService $normalizationService
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
         $query = Teacher::with('school');
 
         if ($request->search) {
-            $query->where('nama', 'ilike', "%{$request->search}%");
+            $query->whereRaw('LOWER(nama) LIKE LOWER(?)', ["%{$request->search}%"]);
         }
         if ($request->kecamatan) {
             $query->where('kecamatan', $request->kecamatan);
@@ -67,24 +71,58 @@ class TeacherController extends Controller
     {
         $data = $request->validated();
 
+        // Normalize teacher name
+        $originalNama = $data['nama'];
+        $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
+
+        // Normalize unit_kerja if present
+        $originalUnitKerja = $data['unit_kerja'] ?? null;
+        if (isset($data['unit_kerja'])) {
+            $data['unit_kerja'] = $this->normalizationService->normalizeSchoolName($data['unit_kerja']);
+        }
+        
+        // Track normalization changes for activity logging
+        $normalizationChanges = [];
+        if ($originalNama !== $data['nama']) {
+            $normalizationChanges['nama'] = [
+                'original' => $originalNama,
+                'normalized' => $data['nama']
+            ];
+        }
+        if ($originalUnitKerja && isset($data['unit_kerja']) && $originalUnitKerja !== $data['unit_kerja']) {
+            $normalizationChanges['unit_kerja'] = [
+                'original' => $originalUnitKerja,
+                'normalized' => $data['unit_kerja']
+            ];
+        }
+
         // Auto-resolve school_id
         if ($request->user()->role === 'operator') {
             $data['school_id'] = $request->user()->school_id;
         } elseif (! isset($data['school_id']) && isset($data['unit_kerja'])) {
-            $school = School::where('nama', $data['unit_kerja'])->first();
+            // Case-insensitive school lookup (database-agnostic)
+            $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->first();
             $data['school_id'] = $school?->id;
         }
 
         $teacher = $this->teacherService->createTeacher($data);
 
-        ActivityLog::log(
-            description: "Menambahkan guru: {$teacher->nama}",
-            event: 'create_teacher',
-            logName: 'master',
-            subject: $teacher,
-            causer: $request->user(),
-            schoolId: $teacher->school_id
-        );
+        $logProperties = [];
+        if (!empty($normalizationChanges)) {
+            $logProperties['normalization'] = $normalizationChanges;
+        }
+
+        ActivityLog::create([
+            'description' => "Menambahkan guru: {$teacher->nama}",
+            'event' => 'create_teacher',
+            'log_name' => 'master',
+            'subject_id' => $teacher->id,
+            'subject_type' => get_class($teacher),
+            'causer_id' => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id' => $teacher->school_id,
+            'properties' => $logProperties,
+        ]);
 
         return $this->successResponse($teacher, 'Guru berhasil ditambahkan.', 201);
     }
@@ -94,7 +132,51 @@ class TeacherController extends Controller
         $this->authorize('update', $teacher);
         $data = $request->validated();
 
+        // Track normalization changes for activity logging
+        $normalizationChanges = [];
+        
+        // Normalize teacher name if present
+        if (isset($data['nama'])) {
+            $originalNama = $data['nama'];
+            $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
+            
+            if ($originalNama !== $data['nama']) {
+                $normalizationChanges['nama'] = [
+                    'original' => $originalNama,
+                    'normalized' => $data['nama']
+                ];
+            }
+        }
+
+        // Normalize unit_kerja if present
+        if (isset($data['unit_kerja'])) {
+            $originalUnitKerja = $data['unit_kerja'];
+            $data['unit_kerja'] = $this->normalizationService->normalizeSchoolName($data['unit_kerja']);
+            
+            if ($originalUnitKerja !== $data['unit_kerja']) {
+                $normalizationChanges['unit_kerja'] = [
+                    'original' => $originalUnitKerja,
+                    'normalized' => $data['unit_kerja']
+                ];
+            }
+        }
+
         $this->teacherService->updateTeacher($teacher, $data);
+        
+        // Log normalization changes if any occurred
+        if (!empty($normalizationChanges)) {
+            ActivityLog::create([
+                'description' => "Normalisasi data guru: {$teacher->nama}",
+                'event' => 'normalize_teacher',
+                'log_name' => 'master',
+                'subject_id' => $teacher->id,
+                'subject_type' => get_class($teacher),
+                'causer_id' => $request->user()->id,
+                'causer_type' => get_class($request->user()),
+                'school_id' => $teacher->school_id,
+                'properties' => ['normalization' => $normalizationChanges],
+            ]);
+        }
 
         return $this->successResponse($teacher->fresh(), 'Guru berhasil diperbarui.');
     }
@@ -211,7 +293,8 @@ class TeacherController extends Controller
                 if ($request->user()->role === 'operator') {
                     $schoolId = $request->user()->school_id;
                 } elseif (!$schoolId && isset($normalizedRow['unit_kerja'])) {
-                    $school = School::where('nama', $normalizedRow['unit_kerja'])->first();
+                    // Case-insensitive school lookup (database-agnostic)
+                    $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$normalizedRow['unit_kerja']])->first();
                     $schoolId = $school?->id;
                 }
 
@@ -369,6 +452,30 @@ class TeacherController extends Controller
                     $dataToSave['nama'] = "Guru Baru (Tanpa Nama)";
                 }
 
+                // Apply name normalization
+                $originalNama = $dataToSave['nama'];
+                $dataToSave['nama'] = $this->normalizationService->normalizeTeacherName($dataToSave['nama']);
+
+                $originalUnitKerja = $dataToSave['unit_kerja'] ?? null;
+                if (isset($dataToSave['unit_kerja'])) {
+                    $dataToSave['unit_kerja'] = $this->normalizationService->normalizeSchoolName($dataToSave['unit_kerja']);
+                }
+                
+                // Track normalization changes for this teacher
+                $normalizationChanges = [];
+                if ($originalNama !== $dataToSave['nama']) {
+                    $normalizationChanges['nama'] = [
+                        'original' => $originalNama,
+                        'normalized' => $dataToSave['nama']
+                    ];
+                }
+                if ($originalUnitKerja && isset($dataToSave['unit_kerja']) && $originalUnitKerja !== $dataToSave['unit_kerja']) {
+                    $normalizationChanges['unit_kerja'] = [
+                        'original' => $originalUnitKerja,
+                        'normalized' => $dataToSave['unit_kerja']
+                    ];
+                }
+
                 $savePayload = array_merge(array_filter($dataToSave, fn($v) => $v !== null && $v !== ''), ['school_id' => $schoolId]);
                 $teacher = null;
                 if ($nuptk) {
@@ -387,6 +494,30 @@ class TeacherController extends Controller
                 } else {
                     $teacher = Teacher::create($savePayload);
                 }
+                
+                // Log normalization changes if any occurred during import
+                if (!empty($normalizationChanges)) {
+                    try {
+                        ActivityLog::create([
+                            'description' => "Import normalisasi guru: {$teacher->nama}",
+                            'event' => 'import_normalize_teacher',
+                            'log_name' => 'master',
+                            'subject_id' => $teacher->id,
+                            'subject_type' => get_class($teacher),
+                            'causer_id' => $request->user()->id,
+                            'causer_type' => get_class($request->user()),
+                            'school_id' => $teacher->school_id,
+                            'properties' => ['normalization' => $normalizationChanges],
+                        ]);
+                    } catch (\Exception $e) {
+                        // Continue processing even if activity log fails
+                        \Log::warning('Failed to log normalization during import', [
+                            'teacher_id' => $teacher->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
                 $created++;
             } catch (\Throwable $e) {
                 $errors[] = [

@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,28 +14,27 @@ import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
+import { SchoolAutocomplete } from "./components/SchoolAutocomplete"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { skApi, mediaApi, authApi, schoolApi } from "@/lib/api"
 
-const skSchema = z.object({
-  jenisSk: z.string().min(1, "Jenis SK wajib dipilih"),
-  jenisPengajuan: z.enum(["new", "renew"]),
-  nama: z.string().min(3, "Nama wajib diisi minimal 3 karakter"),
-  nuptk: z.string().optional(),
-  nip: z.string().optional(),
-  jabatan: z.string().min(1, "Jabatan wajib diisi"),
-  unit_kerja: z.string().optional(),
-  keterangan: z.string().optional(),
-  tempat_lahir: z.string().min(1, "Tempat Lahir wajib diisi"),
-  tanggal_lahir: z.string().min(1, "Tanggal Lahir wajib diisi"),
-  pendidikan_terakhir: z.string().min(1, "Pendidikan Terakhir wajib diisi"),
-  tmt: z.string().min(1, "Tanggal Mulai Tugas wajib diisi"),
-  status_kepegawaian: z.string().optional(),
-  nomor_surat_permohonan: z.string().optional(),
-  tanggal_surat_permohonan: z.string().optional(),
-})
-
-type SkFormValues = z.infer<typeof skSchema>
+type SkFormValues = {
+  jenisSk: string
+  jenisPengajuan: "new" | "renew"
+  nama: string
+  nuptk?: string
+  nip?: string
+  jabatan: string
+  unit_kerja: string
+  keterangan?: string
+  tempat_lahir: string
+  tanggal_lahir: string
+  pendidikan_terakhir: string
+  tmt: string
+  status_kepegawaian?: string
+  nomor_surat_permohonan?: string
+  tanggal_surat_permohonan?: string
+}
 
 export default function SkSubmissionPage() {
   const navigate = useNavigate()
@@ -49,12 +49,34 @@ export default function SkSubmissionPage() {
   const isOperator = user?.role === "operator"
   const isSuperAdmin = ["super_admin", "admin_yayasan"].includes(user?.role)
 
+  // Create schema with dynamic validation based on user role
+  const skSchema = z.object({
+    jenisSk: z.string().min(1, "Jenis SK wajib dipilih"),
+    jenisPengajuan: z.enum(["new", "renew"]),
+    nama: z.string().min(3, "Nama wajib diisi minimal 3 karakter"),
+    nuptk: z.string().optional(),
+    nip: z.string().optional(),
+    jabatan: z.string().min(1, "Jabatan wajib diisi"),
+    unit_kerja: isSuperAdmin 
+      ? z.string().min(1, "Unit Kerja wajib diisi")
+      : z.string().min(1, "Madrasah tidak valid. Pilih dari daftar yang tersedia."),
+    keterangan: z.string().optional(),
+    tempat_lahir: z.string().min(1, "Tempat Lahir wajib diisi"),
+    tanggal_lahir: z.string().min(1, "Tanggal Lahir wajib diisi"),
+    pendidikan_terakhir: z.string().min(1, "Pendidikan Terakhir wajib diisi"),
+    tmt: z.string().min(1, "Tanggal Mulai Tugas wajib diisi"),
+    status_kepegawaian: z.string().optional(),
+    nomor_surat_permohonan: z.string().optional(),
+    tanggal_surat_permohonan: z.string().optional(),
+  })
+
   const form = useForm<SkFormValues>({
     resolver: zodResolver(skSchema),
     defaultValues: {
       jenisPengajuan: "new",
       unit_kerja: isOperator ? (user?.unit || "") : ""
-    }
+    },
+    mode: "onChange" // Enable validation on change to show errors immediately
   })
 
   // Auto-fill unit_kerja for operator from school profile
@@ -91,12 +113,8 @@ export default function SkSubmissionPage() {
   }
 
   const onSubmit = async (data: SkFormValues) => {
-    // Ensure unit_kerja is filled for operators
+    // For operators, use the school profile name if available
     const unitKerja = data.unit_kerja || schoolProfile?.nama || user?.unit || ""
-    if (!unitKerja) {
-      toast.error("Unit Kerja / Madrasah belum terisi. Pastikan profil lembaga sudah lengkap.")
-      return
-    }
 
     if (!selectedFile) {
       toast.error("Wajib mengunggah Surat Permohonan resmi.")
@@ -221,14 +239,33 @@ export default function SkSubmissionPage() {
 
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Unit Kerja / Madrasah</Label>
-                        <Input
-                            disabled={!isSuperAdmin}
-                            {...form.register("unit_kerja")}
-                            value={form.watch("unit_kerja") || schoolProfile?.nama || user?.unit || ""}
-                            onChange={e => form.setValue("unit_kerja", e.target.value)}
-                            placeholder={isOperator ? (schoolProfile?.nama || "Memuat...") : "Nama Madrasah"}
-                            className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500 font-bold opacity-80"
-                        />
+                        {isSuperAdmin ? (
+                          // Super admin can type freely to create new schools
+                          <div className="space-y-2">
+                            <Input
+                              {...form.register("unit_kerja")}
+                              placeholder="Nama Madrasah"
+                              className={cn(
+                                "h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500 font-bold",
+                                form.formState.errors.unit_kerja && "border-red-500 border-2"
+                              )}
+                            />
+                            {form.formState.errors.unit_kerja && (
+                              <p className="text-xs text-red-500 font-medium">
+                                {form.formState.errors.unit_kerja.message}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          // Operator uses autocomplete, pre-populated and disabled if they have an assigned school
+                          <SchoolAutocomplete
+                            value={form.watch("unit_kerja") || ""}
+                            onChange={(value) => form.setValue("unit_kerja", value, { shouldValidate: true })}
+                            disabled={isOperator && !!schoolProfile?.nama}
+                            placeholder={isOperator ? (schoolProfile?.nama || "Memuat...") : "Pilih Madrasah"}
+                            error={form.formState.errors.unit_kerja?.message}
+                          />
+                        )}
                     </div>
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pendidikan Terakhir</Label>

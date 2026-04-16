@@ -128,6 +128,13 @@ class SkDocumentPreservationTest extends TestCase
             $response = $this->actingAs($this->operator)
                 ->postJson('/api/sk-documents/submit-request', $payload);
 
+            // Debug: dump response if not 201
+            if ($response->status() !== 201) {
+                dump("Test case $index failed with status {$response->status()}");
+                dump("Response:", $response->json());
+                dump("Payload:", $payload);
+            }
+
             // Verify 201 status
             $response->assertStatus(201);
 
@@ -145,10 +152,14 @@ class SkDocumentPreservationTest extends TestCase
 
             $responseData = $response->json();
 
+            // Normalize expected name (normalization is applied server-side)
+            $normalizedNama = app(\App\Services\NormalizationService::class)->normalizeTeacherName($payload['nama']);
+            $normalizedUnitKerja = app(\App\Services\NormalizationService::class)->normalizeSchoolName($payload['unit_kerja']);
+
             // Verify SK document was created
             $this->assertDatabaseHas('sk_documents', [
                 'id'         => $responseData['id'],
-                'nama'       => $payload['nama'],
+                'nama'       => $normalizedNama,
                 'jenis_sk'   => $payload['jenis_sk'],
                 'status'     => 'pending',
                 'school_id'  => $this->school->id,
@@ -158,13 +169,13 @@ class SkDocumentPreservationTest extends TestCase
             // Verify teacher was created
             $this->assertDatabaseHas('teachers', [
                 'id'        => $responseData['teacher_id'],
-                'nama'      => $payload['nama'],
+                'nama'      => $normalizedNama,
                 'school_id' => $this->school->id,
             ]);
 
-            // Verify activity log was created
+            // Verify activity log was created (description uses normalized values)
             $this->assertDatabaseHas('activity_logs', [
-                'description' => "Pengajuan SK Individual: {$payload['nama']} ({$payload['unit_kerja']})",
+                'description' => "Pengajuan SK Individual: {$normalizedNama} ({$normalizedUnitKerja})",
                 'event'       => 'submit_sk_request',
                 'log_name'    => 'sk',
                 'subject_id'  => $responseData['id'],
@@ -236,7 +247,7 @@ class SkDocumentPreservationTest extends TestCase
         // Verify teacher was updated (jabatan is NOT in teachers table, only in sk_documents)
         $this->assertDatabaseHas('teachers', [
             'id'      => $teacherId1,
-            'nama'    => 'Teacher NUPTK Updated',
+            'nama'    => 'TEACHER NUPTK UPDATED',
             'nuptk'   => $nuptk,
             'nip'     => '198501012010011001',
         ]);
@@ -424,7 +435,7 @@ class SkDocumentPreservationTest extends TestCase
         $this->assertEquals(User::class, $activityLog->causer_type);
         $this->assertEquals($this->school->id, $activityLog->school_id);
         $this->assertStringContainsString('Pengajuan SK Individual', $activityLog->description);
-        $this->assertStringContainsString('Teacher Activity Log', $activityLog->description);
+        $this->assertStringContainsString('TEACHER ACTIVITY LOG', $activityLog->description);
         $this->assertStringContainsString($this->school->nama, $activityLog->description);
     }
 

@@ -353,17 +353,17 @@ class SkSubmissionBugExplorationTest extends TestCase
             'school_id',
         ]);
 
-        // Verify SK was created in database
+        // Verify SK was created in database (normalization converts to UPPERCASE)
         $this->assertDatabaseHas('sk_documents', [
-            'nama'       => 'Valid Teacher',
+            'nama'       => 'VALID TEACHER',
             'jenis_sk'   => 'Pengangkatan',
             'status'     => 'pending',
             'created_by' => $this->operator->email,
         ]);
 
-        // Verify teacher was created
+        // Verify teacher was created (normalized name)
         $this->assertDatabaseHas('teachers', [
-            'nama'      => 'Valid Teacher',
+            'nama'      => 'VALID TEACHER',
             'nuptk'     => '5555666677778888',
             'school_id' => $this->school->id,
         ]);

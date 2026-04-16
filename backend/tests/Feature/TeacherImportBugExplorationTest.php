@@ -83,9 +83,9 @@ class TeacherImportBugExplorationTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson(['created' => 1]);
 
-        // Verifikasi nilai false tersimpan di DB, bukan null
+        // Verifikasi nilai false tersimpan di DB, bukan null (normalization converts name to UPPERCASE)
         $this->assertDatabaseHas('teachers', [
-            'nama'        => 'Guru Tidak Sertifikasi',
+            'nama'        => 'GURU TIDAK SERTIFIKASI',
             'is_certified' => false,
         ]);
     }

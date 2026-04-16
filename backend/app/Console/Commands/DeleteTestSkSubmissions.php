@@ -17,6 +17,7 @@ class DeleteTestSkSubmissions extends Command
                             {--nomor_sk= : Specific nomor_sk to delete}
                             {--status=pending : Status of SK to delete (default: pending)}
                             {--school= : Delete SK from specific school (unit_kerja)}
+                            {--exclude-names= : Comma-separated names to exclude from deletion}
                             {--created-after= : Delete SK created after this date (Y-m-d format)}
                             {--dry-run : Show what would be deleted without actually deleting}
                             {--force : Skip confirmation prompt}';
@@ -36,6 +37,7 @@ class DeleteTestSkSubmissions extends Command
         $nomorSk = $this->option('nomor_sk');
         $status = $this->option('status');
         $school = $this->option('school');
+        $excludeNames = $this->option('exclude-names');
         $createdAfter = $this->option('created-after');
         $dryRun = $this->option('dry-run');
         $force = $this->option('force');
@@ -53,6 +55,14 @@ class DeleteTestSkSubmissions extends Command
 
         if ($school) {
             $query->where('unit_kerja', 'like', '%' . $school . '%');
+        }
+
+        if ($excludeNames) {
+            // Parse comma-separated names and exclude them
+            $namesToExclude = array_map('trim', explode(',', $excludeNames));
+            foreach ($namesToExclude as $name) {
+                $query->where('nama', 'not like', '%' . $name . '%');
+            }
         }
 
         if ($createdAfter) {

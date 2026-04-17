@@ -88,7 +88,7 @@ class SchoolApiTest extends TestCase
 
         foreach ($testCases as $searchTerm => $expectedSchools) {
             $response = $this->actingAs($this->superAdmin)
-                ->getJson("/api/schools?search={$searchTerm}");
+                ->getJson("/api/schools/autocomplete?search={$searchTerm}");
 
             $response->assertOk();
 
@@ -109,7 +109,7 @@ class SchoolApiTest extends TestCase
     public function test_search_partial_name_matching(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=MI');
+            ->getJson('/api/schools/autocomplete?search=MI');
 
         $response->assertOk();
 
@@ -133,7 +133,7 @@ class SchoolApiTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=Al-Ikhlas');
+            ->getJson('/api/schools/autocomplete?search=Al-Ikhlas');
 
         $response->assertOk();
 
@@ -153,7 +153,7 @@ class SchoolApiTest extends TestCase
     {
         // Test with 1 character - should return all schools (no filtering)
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=M');
+            ->getJson('/api/schools/autocomplete?search=M');
 
         $response->assertOk();
         $schools = $response->json();
@@ -163,7 +163,7 @@ class SchoolApiTest extends TestCase
 
         // Test with 2 characters - should apply filtering
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=MI');
+            ->getJson('/api/schools/autocomplete?search=MI');
 
         $response->assertOk();
         $schools = $response->json();
@@ -180,7 +180,7 @@ class SchoolApiTest extends TestCase
     public function test_empty_search_parameter(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=');
+            ->getJson('/api/schools/autocomplete?search=');
 
         $response->assertOk();
         $schools = $response->json();
@@ -195,7 +195,7 @@ class SchoolApiTest extends TestCase
     public function test_whitespace_only_search_parameter(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=' . urlencode('   '));
+            ->getJson('/api/schools/autocomplete?search=' . urlencode('   '));
 
         $response->assertOk();
         $schools = $response->json();
@@ -213,7 +213,7 @@ class SchoolApiTest extends TestCase
     public function test_tenant_scoping_for_operators(): void
     {
         $response = $this->actingAs($this->operator)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
 
@@ -233,7 +233,7 @@ class SchoolApiTest extends TestCase
     {
         // Search for a term that would match other schools
         $response = $this->actingAs($this->operator)
-            ->getJson('/api/schools?search=cilacap');
+            ->getJson('/api/schools/autocomplete?search=cilacap');
 
         $response->assertOk();
 
@@ -244,7 +244,7 @@ class SchoolApiTest extends TestCase
 
         // Search for operator's own school
         $response = $this->actingAs($this->operator)
-            ->getJson('/api/schools?search=darwata');
+            ->getJson('/api/schools/autocomplete?search=darwata');
 
         $response->assertOk();
 
@@ -268,7 +268,7 @@ class SchoolApiTest extends TestCase
         ]);
 
         $response = $this->actingAs($operatorWithoutSchool)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
 
@@ -288,7 +288,7 @@ class SchoolApiTest extends TestCase
     public function test_super_admin_can_see_all_schools(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
 
@@ -311,7 +311,7 @@ class SchoolApiTest extends TestCase
     public function test_admin_yayasan_can_see_all_schools(): void
     {
         $response = $this->actingAs($this->adminYayasan)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
 
@@ -344,7 +344,7 @@ class SchoolApiTest extends TestCase
         }
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
 
@@ -372,7 +372,7 @@ class SchoolApiTest extends TestCase
         School::factory()->create(['nama' => 'M Test School']);
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=Test');
+            ->getJson('/api/schools/autocomplete?search=Test');
 
         $response->assertOk();
 
@@ -405,7 +405,7 @@ class SchoolApiTest extends TestCase
     public function test_response_format_includes_required_fields(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
 
@@ -432,7 +432,7 @@ class SchoolApiTest extends TestCase
     public function test_response_format_is_valid_json(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response->assertOk();
         $response->assertHeader('content-type', 'application/json');
@@ -448,7 +448,7 @@ class SchoolApiTest extends TestCase
      */
     public function test_unauthenticated_access_is_denied(): void
     {
-        $response = $this->getJson('/api/schools');
+        $response = $this->getJson('/api/schools/autocomplete');
 
         $response->assertUnauthorized();
     }
@@ -464,7 +464,7 @@ class SchoolApiTest extends TestCase
         ]);
 
         $response = $this->actingAs($inactiveUser)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         // If there's no active user check middleware, this will return 200
         // If there is middleware, it should return 401
@@ -481,7 +481,7 @@ class SchoolApiTest extends TestCase
         $maliciousSearch = "'; DROP TABLE schools; --";
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson("/api/schools?search=" . urlencode($maliciousSearch));
+            ->getJson("/api/schools/autocomplete?search=" . urlencode($maliciousSearch));
 
         $response->assertOk();
 
@@ -491,7 +491,7 @@ class SchoolApiTest extends TestCase
 
         // Verify schools table still exists by making another request
         $response2 = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools');
+            ->getJson('/api/schools/autocomplete');
 
         $response2->assertOk();
     }
@@ -508,7 +508,7 @@ class SchoolApiTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=Hidāyah');
+            ->getJson('/api/schools/autocomplete?search=Hidāyah');
 
         $response->assertOk();
 
@@ -526,7 +526,7 @@ class SchoolApiTest extends TestCase
         $longSearch = str_repeat('a', 1000);
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson("/api/schools?search={$longSearch}");
+            ->getJson("/api/schools/autocomplete?search={$longSearch}");
 
         $response->assertOk();
 
@@ -541,7 +541,7 @@ class SchoolApiTest extends TestCase
     public function test_multiple_search_parameters(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=darwata&search=cilacap');
+            ->getJson('/api/schools/autocomplete?search=darwata&search=cilacap');
 
         $response->assertOk();
 
@@ -559,7 +559,7 @@ class SchoolApiTest extends TestCase
     public function test_no_results_found_scenario(): void
     {
         $response = $this->actingAs($this->superAdmin)
-            ->getJson('/api/schools?search=nonexistentschool');
+            ->getJson('/api/schools/autocomplete?search=nonexistentschool');
 
         $response->assertOk();
 

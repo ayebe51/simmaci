@@ -211,9 +211,11 @@ class NormalizeData extends Command
                     try {
                         $originalName = $teacher->nama;
                         $originalUnit = $teacher->unit_kerja;
+                        $originalTempatLahir = $teacher->tempat_lahir;
                         
                         $normalizedName = $this->normalizationService->normalizeTeacherName($originalName);
                         $normalizedUnit = $this->normalizationService->normalizeSchoolName($originalUnit);
+                        $normalizedTempatLahir = $this->normalizationService->normalizePlaceOfBirth($originalTempatLahir);
 
                         $changes = [];
                         $logChanges = [];
@@ -236,6 +238,16 @@ class NormalizeData extends Command
                                 'field' => 'unit_kerja',
                                 'original' => $originalUnit,
                                 'normalized' => $normalizedUnit
+                            ];
+                        }
+                        if ($originalTempatLahir !== $normalizedTempatLahir) {
+                            $changes['tempat_lahir'] = $normalizedTempatLahir;
+                            $logChanges[] = [
+                                'table' => 'teachers',
+                                'record_id' => $teacher->id,
+                                'field' => 'tempat_lahir',
+                                'original' => $originalTempatLahir,
+                                'normalized' => $normalizedTempatLahir
                             ];
                         }
 

@@ -197,7 +197,7 @@ export const schoolApi = {
    */
   list: async (params?: { search?: string } & Record<string, any>): Promise<School[]> => {
     try {
-      const response = await apiClient.get('/schools', { params });
+      const response = await apiClient.get('/schools/autocomplete', { params });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch schools:', error);

@@ -26,6 +26,7 @@ import {
   ClipboardList,
   UserCheck,
   Bell,
+  LayoutTemplate,
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -115,6 +116,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Manajemen User", href: "/dashboard/users", icon: Users },
         { label: "Health Data", href: "/dashboard/audit", icon: Stethoscope },
         { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
+        { label: "Template SK", href: "/dashboard/sk-templates", icon: LayoutTemplate },
         { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
       ]
     }
@@ -161,7 +163,11 @@ export default function AppShell({ children }: AppShellProps) {
                     "Generator SK", "Approval Yayasan", "Monitoring Kepala", 
                     "Persetujuan NUPTK", "Laporan Guru", "Laporan SK"
                   ];
+                  const superAdminOnlyLabels = ["Template SK"];
 
+                  if (superAdminOnlyLabels.includes(item.label)) {
+                      return userRole === "super_admin";
+                  }
                   if (adminOnlyLabels.includes(item.label)) {
                       return adminRoles.includes(userRole);
                   }

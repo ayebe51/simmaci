@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\DataAuditController;
 use App\Http\Controllers\Api\ApprovalHistoryController;
 use App\Http\Controllers\Api\TeacherMutationController;
+use App\Http\Controllers\Api\SkTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -186,6 +187,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users (admin-level, no tenant isolation)
     Route::middleware('role:super_admin')->group(function () {
         Route::apiResource('users', UserController::class);
+    });
+
+    // SK Templates (global resource — no tenant isolation)
+    // NOTE: /sk-templates/active must be registered before the {skTemplate} wildcard routes
+    Route::get('sk-templates', [SkTemplateController::class, 'index']);
+    Route::get('sk-templates/active', [SkTemplateController::class, 'active']);
+    Route::middleware('role:super_admin')->group(function () {
+        Route::post('sk-templates', [SkTemplateController::class, 'store']);
+        Route::post('sk-templates/{skTemplate}/activate', [SkTemplateController::class, 'activate']);
+        Route::delete('sk-templates/{skTemplate}', [SkTemplateController::class, 'destroy']);
+        Route::get('sk-templates/{skTemplate}/download', [SkTemplateController::class, 'download']);
     });
 
     // File Upload

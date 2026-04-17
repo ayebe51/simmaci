@@ -31,8 +31,40 @@ class NormalizationService
         // Trim whitespace
         $schoolName = trim($schoolName);
 
-        // Convert to Title Case using multibyte-safe function
-        $normalized = mb_convert_case($schoolName, MB_CASE_TITLE, 'UTF-8');
+        // Convert to Title Case word by word
+        // Rules:
+        // - Split on spaces → capitalize first letter of each word
+        // - Split on hyphens within a word → capitalize each part (e.g. "Al-Hikmah")
+        // - Do NOT capitalize after apostrophes (e.g. "Ma'arif" not "MA'Arif")
+        // - Capitalize after opening parenthesis (e.g. "(Putra)" → "(Putra)")
+        $words = explode(' ', mb_strtolower($schoolName, 'UTF-8'));
+        $words = array_map(function (string $word): string {
+            if ($word === '') {
+                return $word;
+            }
+            // Handle hyphenated words: capitalize each hyphen-separated part
+            $parts = explode('-', $word);
+            $parts = array_map(function (string $part): string {
+                if ($part === '') {
+                    return $part;
+                }
+                // Strip leading punctuation like '(' to capitalize the actual letter
+                $prefix = '';
+                $rest = $part;
+                while ($rest !== '' && mb_strpos('(', mb_substr($rest, 0, 1, 'UTF-8')) !== false) {
+                    $prefix .= mb_substr($rest, 0, 1, 'UTF-8');
+                    $rest = mb_substr($rest, 1, null, 'UTF-8');
+                }
+                if ($rest === '') {
+                    return $prefix;
+                }
+                return $prefix
+                    . mb_strtoupper(mb_substr($rest, 0, 1, 'UTF-8'), 'UTF-8')
+                    . mb_substr($rest, 1, null, 'UTF-8');
+            }, $parts);
+            return implode('-', $parts);
+        }, $words);
+        $normalized = implode(' ', $words);
 
         // Preserve common abbreviations in uppercase
         foreach (self::SCHOOL_ABBREVIATIONS as $abbr) {

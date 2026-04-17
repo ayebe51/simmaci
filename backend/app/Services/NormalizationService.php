@@ -44,6 +44,21 @@ class NormalizationService
     }
 
     /**
+     * Normalize place of birth to Title Case format (e.g., "cilacap" → "Cilacap")
+     *
+     * @param string|null $placeOfBirth
+     * @return string|null
+     */
+    public function normalizePlaceOfBirth(?string $placeOfBirth): ?string
+    {
+        if ($placeOfBirth === null || trim($placeOfBirth) === '') {
+            return $placeOfBirth;
+        }
+
+        return mb_convert_case(trim($placeOfBirth), MB_CASE_TITLE, 'UTF-8');
+    }
+
+    /**
      * Normalize teacher name to UPPERCASE with preserved academic degrees
      * Handles degrees: S.Pd., M.Pd., Dr., Dra., S.H., S.Ag., M.Ag., etc.
      * 

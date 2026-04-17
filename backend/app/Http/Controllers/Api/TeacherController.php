@@ -80,7 +80,13 @@ class TeacherController extends Controller
         if (isset($data['unit_kerja'])) {
             $data['unit_kerja'] = $this->normalizationService->normalizeSchoolName($data['unit_kerja']);
         }
-        
+
+        // Normalize tempat_lahir if present
+        $originalTempatLahir = $data['tempat_lahir'] ?? null;
+        if (isset($data['tempat_lahir'])) {
+            $data['tempat_lahir'] = $this->normalizationService->normalizePlaceOfBirth($data['tempat_lahir']);
+        }
+
         // Track normalization changes for activity logging
         $normalizationChanges = [];
         if ($originalNama !== $data['nama']) {
@@ -93,6 +99,12 @@ class TeacherController extends Controller
             $normalizationChanges['unit_kerja'] = [
                 'original' => $originalUnitKerja,
                 'normalized' => $data['unit_kerja']
+            ];
+        }
+        if ($originalTempatLahir && isset($data['tempat_lahir']) && $originalTempatLahir !== $data['tempat_lahir']) {
+            $normalizationChanges['tempat_lahir'] = [
+                'original' => $originalTempatLahir,
+                'normalized' => $data['tempat_lahir']
             ];
         }
 
@@ -157,6 +169,19 @@ class TeacherController extends Controller
                 $normalizationChanges['unit_kerja'] = [
                     'original' => $originalUnitKerja,
                     'normalized' => $data['unit_kerja']
+                ];
+            }
+        }
+
+        // Normalize tempat_lahir if present
+        if (isset($data['tempat_lahir'])) {
+            $originalTempatLahir = $data['tempat_lahir'];
+            $data['tempat_lahir'] = $this->normalizationService->normalizePlaceOfBirth($data['tempat_lahir']);
+
+            if ($originalTempatLahir !== $data['tempat_lahir']) {
+                $normalizationChanges['tempat_lahir'] = [
+                    'original' => $originalTempatLahir,
+                    'normalized' => $data['tempat_lahir']
                 ];
             }
         }
@@ -460,7 +485,12 @@ class TeacherController extends Controller
                 if (isset($dataToSave['unit_kerja'])) {
                     $dataToSave['unit_kerja'] = $this->normalizationService->normalizeSchoolName($dataToSave['unit_kerja']);
                 }
-                
+
+                $originalTempatLahir = $dataToSave['tempat_lahir'] ?? null;
+                if (isset($dataToSave['tempat_lahir'])) {
+                    $dataToSave['tempat_lahir'] = $this->normalizationService->normalizePlaceOfBirth($dataToSave['tempat_lahir']);
+                }
+
                 // Track normalization changes for this teacher
                 $normalizationChanges = [];
                 if ($originalNama !== $dataToSave['nama']) {
@@ -473,6 +503,12 @@ class TeacherController extends Controller
                     $normalizationChanges['unit_kerja'] = [
                         'original' => $originalUnitKerja,
                         'normalized' => $dataToSave['unit_kerja']
+                    ];
+                }
+                if ($originalTempatLahir && isset($dataToSave['tempat_lahir']) && $originalTempatLahir !== $dataToSave['tempat_lahir']) {
+                    $normalizationChanges['tempat_lahir'] = [
+                        'original' => $originalTempatLahir,
+                        'normalized' => $dataToSave['tempat_lahir']
                     ];
                 }
 

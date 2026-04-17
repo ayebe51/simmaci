@@ -12,7 +12,7 @@ class NormalizationService
     /**
      * Indonesian academic degree patterns
      */
-    private const DEGREE_PATTERN = '/\b(Dr\.?|Dra\.?|S\.Pd\.?I?|M\.Pd\.?I?|S\.H\.?|S\.Ag\.?|M\.Ag\.?|S\.Si\.?|M\.Si\.?|S\.Kom\.?|M\.Kom\.?)\b/i';
+    private const DEGREE_PATTERN = '/\b(Dr\.?|Dra\.?|Prof\.?|S\.Pd\.?I?|M\.Pd\.?I?|S\.H\.?|M\.H\.?|S\.Ag\.?|M\.Ag\.?|S\.Si\.?|M\.Si\.?|S\.Kom\.?|M\.Kom\.?|S\.Sos\.?I?|M\.Sos\.?|S\.E\.?I?|M\.E\.?I?|S\.EI\.?|M\.EI\.?|S\.Fil\.?I?|S\.Th\.?I?|M\.Th\.?I?|S\.IP\.?|M\.IP\.?|S\.Psi\.?|M\.Psi\.?|S\.T\.?|M\.T\.?|S\.Hum\.?|M\.Hum\.?|M\.M\.?|M\.B\.A\.?|Lc\.?)\b/i';
 
     /**
      * Normalize school name to Title Case format
@@ -183,19 +183,41 @@ class NormalizationService
 
         // Map of degree formats
         $degreeFormats = [
-            'DR' => 'Dr.',
-            'DRA' => 'Dra.',
-            'SPD' => 'S.Pd.',
+            'DR'   => 'Dr.',
+            'DRA'  => 'Dra.',
+            'PROF' => 'Prof.',
+            'SPD'  => 'S.Pd.',
             'SPDI' => 'S.Pd.I',
-            'MPD' => 'M.Pd.',
+            'MPD'  => 'M.Pd.',
             'MPDI' => 'M.Pd.I',
-            'SH' => 'S.H.',
-            'SAG' => 'S.Ag.',
-            'MAG' => 'M.Ag.',
-            'SSI' => 'S.Si.',
-            'MSI' => 'M.Si.',
+            'SH'   => 'S.H.',
+            'MH'   => 'M.H.',
+            'SAG'  => 'S.Ag.',
+            'MAG'  => 'M.Ag.',
+            'SSI'  => 'S.Si.',
+            'MSI'  => 'M.Si.',
             'SKOM' => 'S.Kom.',
             'MKOM' => 'M.Kom.',
+            'SSOS' => 'S.Sos.',
+            'SSOSI'=> 'S.Sos.I',
+            'MSOS' => 'M.Sos.',
+            'SE'   => 'S.E.',
+            'SEI'  => 'S.E.I',
+            'MEI'  => 'M.E.I',
+            'SFILI'=> 'S.Fil.I',
+            'STHI' => 'S.Th.I',
+            'MTHI' => 'M.Th.I',
+            'SIP'  => 'S.IP.',
+            'MIP'  => 'M.IP.',
+            'SPSI' => 'S.Psi.',
+            'MPSI' => 'M.Psi.',
+            'ST'   => 'S.T.',
+            'MT'   => 'M.T.',
+            'SHUM' => 'S.Hum.',
+            'MHUM' => 'M.Hum.',
+            'MM'   => 'M.M.',
+            'MBA'  => 'M.B.A.',
+            'LC'   => 'Lc.',
         ];
 
         return $degreeFormats[$clean] ?? $degree;

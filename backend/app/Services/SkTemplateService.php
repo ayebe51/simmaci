@@ -150,6 +150,8 @@ class SkTemplateService
      */
     private function resolveDisk(): string
     {
-        return env('AWS_ACCESS_KEY_ID') ? 's3' : 'public';
+        return config('filesystems.default') === 's3' && config('filesystems.disks.s3.key')
+            ? 's3'
+            : 'public';
     }
 }

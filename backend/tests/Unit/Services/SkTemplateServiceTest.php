@@ -29,6 +29,10 @@ class SkTemplateServiceTest extends TestCase
     {
         parent::setUp();
 
+        // Force public disk for tests
+        config(['filesystems.default' => 'local']);
+        config(['filesystems.disks.s3.key' => null]);
+
         Storage::fake('public');
 
         $this->service = new SkTemplateService();

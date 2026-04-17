@@ -84,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     Route::get('schools/profile/me', [SchoolController::class, 'profile']);
+    Route::get('schools/autocomplete', [SchoolController::class, 'autocomplete']);
     Route::apiResource('schools', SchoolController::class);
 
 

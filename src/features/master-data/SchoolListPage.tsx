@@ -63,7 +63,7 @@ export default function SchoolListPage() {
   // 🔥 REST API QUERY
   const { data: schoolsData, isLoading } = useQuery({
     queryKey: ['schools', currentPage, searchTerm, filterKecamatan],
-    queryFn: () => schoolApi.list({
+    queryFn: () => schoolApi.paginate({
       page: currentPage,
       per_page: itemsPerPage,
       search: searchTerm || undefined,

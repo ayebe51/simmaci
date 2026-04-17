@@ -192,8 +192,7 @@ export interface School {
 export const schoolApi = {
   /**
    * List schools with optional search parameter for autocomplete
-   * @param params - Optional query parameters including search
-   * @returns Promise<School[]>
+   * Returns flat array from /schools/autocomplete endpoint
    */
   list: async (params?: { search?: string } & Record<string, any>): Promise<School[]> => {
     try {
@@ -204,6 +203,12 @@ export const schoolApi = {
       throw error;
     }
   },
+  /**
+   * Paginated school list for management pages
+   * Returns { data: School[], last_page: number, ... } from /schools endpoint
+   */
+  paginate: (params?: Record<string, any>) =>
+    apiClient.get('/schools', { params }).then((r) => r.data),
   get: (id: number) => apiClient.get(`/schools/${id}`).then((r) => r.data),
   create: (data: any) => apiClient.post('/schools', data).then((r) => r.data),
   update: (id: number, data: any) => apiClient.put(`/schools/${id}`, data, { timeout: 60000 }).then((r) => r.data),

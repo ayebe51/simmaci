@@ -10,6 +10,12 @@ class NormalizationService
     private const SCHOOL_ABBREVIATIONS = ['MI', 'MTs', 'MA', 'NU', 'SD', 'SMP', 'SMA', 'SMK'];
 
     /**
+     * Degrees that appear BEFORE the name (prefixes).
+     * Key = normalised lookup key (no dots/spaces, uppercase).
+     */
+    private const PREFIX_DEGREES = ['PROF', 'DR', 'DRA'];
+
+    /**
      * Canonical degree lookup table.
      * Key   = degree stripped of ALL dots and spaces, uppercased.
      * Value = canonical formatted form.
@@ -190,11 +196,13 @@ class NormalizationService
     /**
      * Normalize teacher name to UPPERCASE with properly formatted academic degrees.
      *
-     * Strategy:
-     *  1. Split the full name on commas and spaces to get tokens.
-     *  2. For each token, strip dots/spaces and uppercase → look up in DEGREE_MAP.
-     *  3. Tokens that match a degree are collected as degrees; the rest form the name.
-     *  4. Name → UPPERCASE, degrees → canonical form, joined with ", ".
+     * Prefix degrees (Dr., Dra., Prof.) appear BEFORE the name.
+     * Suffix degrees (S.Pd., M.Ag., etc.) appear AFTER the name, separated by ", ".
+     *
+     * Examples:
+     *   "dr. ahmad fauzi s.pd"  → "Dr. AHMAD FAUZI, S.Pd."
+     *   "dra. siti fatimah"     → "Dra. SITI FATIMAH"
+     *   "ahmad s.pd.i m.ag"     → "AHMAD, S.Pd.I, M.Ag."
      */
     public function normalizeTeacherName(?string $teacherName): ?string
     {
@@ -207,23 +215,30 @@ class NormalizationService
 
         $normalizedName = mb_strtoupper($parsed['name'], 'UTF-8');
 
-        if (!empty($parsed['degrees'])) {
-            return $normalizedName . ', ' . implode(', ', $parsed['degrees']);
+        $prefixes = $parsed['prefix_degrees'];
+        $suffixes = $parsed['suffix_degrees'];
+
+        $result = $normalizedName;
+
+        if (!empty($suffixes)) {
+            $result .= ', ' . implode(', ', $suffixes);
         }
 
-        return $normalizedName;
+        if (!empty($prefixes)) {
+            $result = implode(' ', $prefixes) . ' ' . $result;
+        }
+
+        return $result;
     }
 
     /**
      * Parse academic degrees from a full name string using the DEGREE_MAP lookup.
      *
-     * Tokenisation:
-     *  - Split on commas first (common separator: "Ahmad, S.Pd.I, M.Ag.")
-     *  - Then split each segment on spaces
-     *  - Consecutive degree tokens are merged before lookup so that
-     *    "A Ma Pust" (three space-separated tokens) is tried as "AMAPUST".
+     * Prefix degrees (Dr., Dra., Prof.) are separated from suffix degrees.
+     * A prefix degree is only treated as prefix when it appears BEFORE any name token.
+     * Once a name token is encountered, all subsequent degrees become suffixes.
      *
-     * @return array{name: string, degrees: string[]}
+     * @return array{name: string, prefix_degrees: string[], suffix_degrees: string[]}
      */
     protected function parseAcademicDegrees(string $fullName): array
     {
@@ -235,20 +250,29 @@ class NormalizationService
         $tokens = array_filter(explode(' ', trim($flat)), fn($t) => $t !== '');
         $tokens = array_values($tokens);
 
-        $nameTokens   = [];
-        $degreeTokens = [];
-        $i            = 0;
-        $n            = count($tokens);
+        $nameTokens     = [];
+        $prefixDegrees  = [];
+        $suffixDegrees  = [];
+        $nameStarted    = false;
+        $i              = 0;
+        $n              = count($tokens);
 
         while ($i < $n) {
             // Try to greedily match the longest run of tokens as a single degree.
-            // Max window = 4 tokens (e.g. "A Ma Pust" = 3, "M B A" = 3)
             $matched = false;
             for ($window = min(4, $n - $i); $window >= 1; $window--) {
-                $slice     = array_slice($tokens, $i, $window);
-                $key       = $this->degreeKey(implode('', $slice));
+                $slice = array_slice($tokens, $i, $window);
+                $key   = $this->degreeKey(implode('', $slice));
                 if (isset($map[$key])) {
-                    $degreeTokens[] = $map[$key];
+                    $canonical = $map[$key];
+                    $isPrefix  = in_array($key, self::PREFIX_DEGREES, true);
+
+                    if ($isPrefix && !$nameStarted) {
+                        $prefixDegrees[] = $canonical;
+                    } else {
+                        $suffixDegrees[] = $canonical;
+                    }
+
                     $i += $window;
                     $matched = true;
                     break;
@@ -256,17 +280,13 @@ class NormalizationService
             }
 
             if (!$matched) {
-                // Not a degree — belongs to the name portion
-                // But only if we haven't started collecting degrees yet,
-                // OR if it looks like a plain name word (no dots).
-                // Tokens with dots that aren't in the map are kept as-is in degrees
-                // to avoid mangling unknown abbreviations.
                 $token = $tokens[$i];
-                if (!empty($degreeTokens) && str_contains($token, '.')) {
-                    // Unknown degree-like token after known degrees — preserve as-is
-                    $degreeTokens[] = $token;
+                if (!empty($suffixDegrees) && str_contains($token, '.')) {
+                    // Unknown degree-like token after known suffix degrees — preserve as-is
+                    $suffixDegrees[] = $token;
                 } else {
-                    $nameTokens[] = $token;
+                    $nameTokens[]  = $token;
+                    $nameStarted   = true;
                 }
                 $i++;
             }
@@ -279,8 +299,9 @@ class NormalizationService
         $name = trim($name);
 
         return [
-            'name'    => $name,
-            'degrees' => $degreeTokens,
+            'name'           => $name,
+            'prefix_degrees' => $prefixDegrees,
+            'suffix_degrees' => $suffixDegrees,
         ];
     }
 

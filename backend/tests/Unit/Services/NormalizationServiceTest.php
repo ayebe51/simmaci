@@ -96,7 +96,8 @@ class NormalizationServiceTest extends TestCase
     {
         $testCases = [
             'siti fatimah s.pd'   => 'SITI FATIMAH, S.Pd.',
-            'dra. khadijah'       => 'KHADIJAH, Dra.',
+            'dra. khadijah'       => 'Dra. KHADIJAH',
+            'dr. ahmad fauzi'     => 'Dr. AHMAD FAUZI',
             'abdul rahman m.pd.i' => 'ABDUL RAHMAN, M.Pd.I',
         ];
 
@@ -116,6 +117,8 @@ class NormalizationServiceTest extends TestCase
             'siti fatimah, s.ag, m.ag'       => 'SITI FATIMAH, S.Ag., M.Ag.',
             'muhammad ali s.si m.si'          => 'MUHAMMAD ALI, S.Si., M.Si.',
             'Siti Aminah, S.Pd.I, M.Ag.'     => 'SITI AMINAH, S.Pd.I, M.Ag.',
+            'dr. ahmad fauzi s.pd m.ag'       => 'Dr. AHMAD FAUZI, S.Pd., M.Ag.',
+            'Prof. Dr. Siti Rahayu M.Pd.'     => 'Prof. Dr. SITI RAHAYU, M.Pd.',
         ];
 
         foreach ($testCases as $input => $expected) {
@@ -138,7 +141,9 @@ class NormalizationServiceTest extends TestCase
             'Nur Hidayah Amd Keb' => 'NUR HIDAYAH, Amd.Keb.',
             'WAHYU S E I'         => 'WAHYU, S.E.I',
             'Hasan LC'            => 'HASAN, Lc.',
-            'PROF DR AHMAD'       => 'AHMAD, Prof., Dr.',
+            'DR AHMAD FAUZI'      => 'Dr. AHMAD FAUZI',
+            'DRA SITI FATIMAH'    => 'Dra. SITI FATIMAH',
+            'PROF DR AHMAD'       => 'Prof. Dr. AHMAD',
         ];
 
         foreach ($testCases as $input => $expected) {
@@ -174,6 +179,7 @@ class NormalizationServiceTest extends TestCase
         $testCases = [
             'ahmad nu\'man s.pd'       => 'AHMAD NU\'MAN, S.Pd.',
             'al-farabi m.pd'           => 'AL-FARABI, M.Pd.',
+            'dr. abu bakar as-siddiq'  => 'Dr. ABU BAKAR AS-SIDDIQ',
             'siti \'aisyah s.ag'       => 'SITI \'AISYAH, S.Ag.',
         ];
 
@@ -370,7 +376,7 @@ class NormalizationServiceTest extends TestCase
         $teacherCases = [
             'ahmad ayub nu\'man s.h.'                    => 'AHMAD AYUB NU\'MAN, S.H.',
             'siti fatimah al-zahra s.pd.i m.pd.i'        => 'SITI FATIMAH AL-ZAHRA, S.Pd.I, M.Pd.I',
-            'muhammad ali al-farabi s.ag m.ag'           => 'MUHAMMAD ALI AL-FARABI, S.Ag., M.Ag.',
+            'dr. muhammad ali al-farabi s.ag m.ag'       => 'Dr. MUHAMMAD ALI AL-FARABI, S.Ag., M.Ag.',
         ];
 
         foreach ($teacherCases as $input => $expected) {
@@ -436,10 +442,13 @@ class NormalizationServiceTest extends TestCase
      */
     public function it_recognizes_all_supported_academic_degrees(): void
     {
-        $supportedDegrees = [
-            'Dr.'        => 'Dr.',
-            'Dra.'       => 'Dra.',
-            'Prof.'      => 'Prof.',
+        // Prefix degrees — appear before name
+        $this->assertEquals('Dr. AHMAD', $this->service->normalizeTeacherName('Dr. Ahmad'));
+        $this->assertEquals('Dra. SITI', $this->service->normalizeTeacherName('Dra. Siti'));
+        $this->assertEquals('Prof. BUDI', $this->service->normalizeTeacherName('Prof. Budi'));
+
+        // Suffix degrees — appear after name
+        $suffixDegrees = [
             'S.Pd.'      => 'S.Pd.',
             'S.Pd.I'     => 'S.Pd.I',
             'M.Pd.'      => 'M.Pd.',
@@ -463,9 +472,10 @@ class NormalizationServiceTest extends TestCase
             'M.M.'       => 'M.M.',
         ];
 
-        foreach ($supportedDegrees as $input => $expectedFormat) {
+        foreach ($suffixDegrees as $input => $expectedFormat) {
             $result = $this->service->normalizeTeacherName("ahmad {$input}");
             $this->assertStringContainsString($expectedFormat, $result, "Failed to recognize degree: {$input}");
+            $this->assertStringStartsWith('AHMAD', $result, "Suffix degree should come after name: {$input}");
         }
     }
 }

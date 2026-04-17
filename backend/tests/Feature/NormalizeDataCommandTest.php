@@ -95,7 +95,7 @@ class NormalizeDataCommandTest extends TestCase
         $this->assertEquals('SITI AMINAH, M.Pd.', $teachers[1]->nama);
         $this->assertEquals('MA Test School', $teachers[1]->unit_kerja);
         
-        $this->assertEquals('ABDUL RAHMAN, Dr., S.Ag., M.Ag.', $teachers[2]->nama);
+        $this->assertEquals('Dr. ABDUL RAHMAN, S.Ag., M.Ag.', $teachers[2]->nama);
         $this->assertEquals('MTs Test School', $teachers[2]->unit_kerja);
         
         $this->assertEquals('FATIMAH ZAHRA', $teachers[3]->nama);
@@ -149,7 +149,7 @@ class NormalizeDataCommandTest extends TestCase
         $this->assertEquals('SITI AMINAH, M.Pd.', $skDocuments[1]->nama);
         $this->assertEquals('MA Test School', $skDocuments[1]->unit_kerja);
         
-        $this->assertEquals('ABDUL RAHMAN, Dr., S.Ag.', $skDocuments[2]->nama);
+        $this->assertEquals('Dr. ABDUL RAHMAN, S.Ag.', $skDocuments[2]->nama);
         $this->assertEquals('MTs Test School', $skDocuments[2]->unit_kerja);
     }
 

@@ -77,7 +77,7 @@ class NormalizationServiceTest extends TestCase
     public function it_handles_school_names_with_special_characters(): void
     {
         $testCases = [
-            "MI Al-Hikmah Nu'man" => "MI Al-Hikmah NU'man", // NU is preserved as abbreviation
+            "MI Al-Hikmah Nu'man" => "MI Al-Hikmah Nu'man", // Nu'man is a name, not the NU abbreviation
             'MTs Darul-Ulum' => 'MTs Darul-Ulum',
             'MA An-Nur (Putra)' => 'MA An-Nur (Putra)',
         ];

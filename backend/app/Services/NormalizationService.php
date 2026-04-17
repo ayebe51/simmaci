@@ -28,32 +28,38 @@ class NormalizationService
             return $schoolName;
         }
 
-        // Trim whitespace
         $schoolName = trim($schoolName);
 
-        // Convert to Title Case word by word
-        // Rules:
-        // - Split on spaces → capitalize first letter of each word
-        // - Split on hyphens within a word → capitalize each part (e.g. "Al-Hikmah")
-        // - Do NOT capitalize after apostrophes (e.g. "Ma'arif" not "MA'Arif")
-        // - Capitalize after opening parenthesis (e.g. "(Putra)" → "(Putra)")
-        $words = explode(' ', mb_strtolower($schoolName, 'UTF-8'));
+        // Step 1: lowercase everything
+        $lower = mb_strtolower($schoolName, 'UTF-8');
+
+        // Step 2: Title Case word by word, splitting on spaces only.
+        // Within each space-separated token, also capitalize after hyphens and
+        // after leading punctuation like '(' — but NOT after apostrophes
+        // (straight ' or curly ') so "ma'arif" stays "Ma'arif".
+        $words = explode(' ', $lower);
         $words = array_map(function (string $word): string {
             if ($word === '') {
                 return $word;
             }
-            // Handle hyphenated words: capitalize each hyphen-separated part
+            // Capitalize each hyphen-separated segment
             $parts = explode('-', $word);
             $parts = array_map(function (string $part): string {
                 if ($part === '') {
                     return $part;
                 }
-                // Strip leading punctuation like '(' to capitalize the actual letter
+                // Skip leading punctuation chars (e.g. '(') and capitalize the
+                // first real letter
                 $prefix = '';
-                $rest = $part;
-                while ($rest !== '' && mb_strpos('(', mb_substr($rest, 0, 1, 'UTF-8')) !== false) {
-                    $prefix .= mb_substr($rest, 0, 1, 'UTF-8');
-                    $rest = mb_substr($rest, 1, null, 'UTF-8');
+                $rest   = $part;
+                while ($rest !== '') {
+                    $ch = mb_substr($rest, 0, 1, 'UTF-8');
+                    if (mb_strpos('([{', $ch) !== false) {
+                        $prefix .= $ch;
+                        $rest    = mb_substr($rest, 1, null, 'UTF-8');
+                    } else {
+                        break;
+                    }
                 }
                 if ($rest === '') {
                     return $prefix;
@@ -64,13 +70,18 @@ class NormalizationService
             }, $parts);
             return implode('-', $parts);
         }, $words);
+
         $normalized = implode(' ', $words);
 
-        // Preserve common abbreviations in uppercase
+        // Step 3: Restore known abbreviations to their canonical uppercase form.
+        // Use a space-aware replacement so we match whole space-delimited tokens,
+        // which avoids the \b / Unicode-apostrophe boundary problem.
+        // We pad with spaces, replace, then trim.
+        $padded = ' ' . $normalized . ' ';
         foreach (self::SCHOOL_ABBREVIATIONS as $abbr) {
-            $pattern = '/\b' . preg_quote($abbr, '/') . '\b/i';
-            $normalized = preg_replace($pattern, $abbr, $normalized);
+            $padded = str_ireplace(' ' . $abbr . ' ', ' ' . $abbr . ' ', $padded);
         }
+        $normalized = trim($padded);
 
         return $normalized;
     }

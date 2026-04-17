@@ -397,7 +397,7 @@ class NormalizationIntegrationTest extends TestCase
         // Verify special characters are preserved in normalization
         $skDocument = SkDocument::latest()->first();
         $this->assertEquals('AL-FARABI IBN SINA, Dr., S.H.', $skDocument->nama);
-        $this->assertEquals('MI Al-Ikhlas NU\'man', $skDocument->unit_kerja); // NU is preserved in uppercase
+        $this->assertEquals('MI Al-Ikhlas Nu\'man', $skDocument->unit_kerja); // Nu'man is a name, not the NU abbreviation
         $this->assertEquals($specialSchool->id, $skDocument->school_id);
     }
 

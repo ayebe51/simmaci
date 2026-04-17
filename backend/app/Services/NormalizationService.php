@@ -68,8 +68,6 @@ class NormalizationService
         'AMAPUST'   => 'A.Ma.Pust.',
         'AMAPD'     => 'A.Ma.Pd.',
         'AMA'       => 'A.Ma.',
-        'AMD'       => 'Amd.',
-        'AMDK'      => 'Amd.K.',
         'AMDKEB'    => 'Amd.Keb.',
         'AMDKEP'    => 'Amd.Kep.',
         'AMDFAR'    => 'Amd.Far.',
@@ -78,10 +76,12 @@ class NormalizationService
         'AMDRAD'    => 'Amd.Rad.',
         'AMDFIS'    => 'Amd.Fis.',
         'AMDPK'     => 'Amd.PK.',
+        'AMDK'      => 'Amd.K.',
+        'AMD'       => 'Amd.',
         'DIII'      => 'D.III',
         'DII'       => 'D.II',
-        'DI'        => 'D.I',
         'DIV'       => 'D.IV',
+        'DI'        => 'D.I',
 
         // ── Magister (S2) ─────────────────────────────────────────────────
         'MPDI'      => 'M.Pd.I',

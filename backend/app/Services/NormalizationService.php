@@ -74,12 +74,13 @@ class NormalizationService
         $normalized = implode(' ', $words);
 
         // Step 3: Restore known abbreviations to their canonical uppercase form.
-        // Use a space-aware replacement so we match whole space-delimited tokens,
-        // which avoids the \b / Unicode-apostrophe boundary problem.
-        // We pad with spaces, replace, then trim.
+        // Use space-aware replacement to match whole space-delimited tokens.
+        // Also handle abbreviations followed by a period (e.g. "MTs." → "MTs.")
         $padded = ' ' . $normalized . ' ';
         foreach (self::SCHOOL_ABBREVIATIONS as $abbr) {
+            // Match the abbreviation as a standalone token (with or without trailing period)
             $padded = str_ireplace(' ' . $abbr . ' ', ' ' . $abbr . ' ', $padded);
+            $padded = str_ireplace(' ' . $abbr . '. ', ' ' . $abbr . '. ', $padded);
         }
         $normalized = trim($padded);
 

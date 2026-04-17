@@ -21,6 +21,7 @@ import QRCode from "qrcode"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi } from "@/lib/api"
 import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
+import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -96,7 +97,7 @@ export default function SkGeneratorPage() {
   
   // Settings States
   const [nomorMulai, setNomorMulai] = useState("0001")
-  const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{TANGGAL}/{BULAN}/{TAHUN}")
+  const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{PERIODE}/{BULAN}/{TAHUN}")
   const [tanggalPenetapan, setTanggalPenetapan] = useState(() => new Date().toISOString().split('T')[0])
   const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
@@ -210,6 +211,8 @@ export default function SkGeneratorPage() {
         const zip = new JSZip()
         const folder = zip.folder("SK_Generated")
 
+        const tglPenetapanVal = tanggalPenetapan ? new Date(tanggalPenetapan) : new Date()
+
         for (let i = 0; i < selectedTeachers.length; i++) {
             const t = selectedTeachers[i]
             const teacher = t.teacher || {}
@@ -264,9 +267,18 @@ export default function SkGeneratorPage() {
             // 3. Prepare Mapping Data
             const currentSeq = (parseInt(nomorMulai) || 1) + i
             const seqStr = String(currentSeq).padStart(4, '0')
+
+            const tmtRaw = t.tmt || teacher.tmt
+            if (!tmtRaw) {
+                console.error(`TMT tidak ditemukan untuk guru: ${teacher.nama || t.nama}`)
+                continue
+            }
+            const periodeValue = calculatePeriode(tmtRaw, tglPenetapanVal)
+            const periodeStr = String(periodeValue)
+
             const generatedNomor = nomorFormat
                 .replace(/{NOMOR}/g, seqStr)
-                .replace(/{TANGGAL}/g, dd)
+                .replace(/{PERIODE}/g, templateId !== "sk_template_kamad" ? periodeStr : "")
                 .replace(/{BULAN}/g, String(dateObj.getMonth() + 1))
                 .replace(/{BL_ROMA}/g, mmRoma)
                 .replace(/{TAHUN}/g, String(yyyy))
@@ -332,7 +344,6 @@ export default function SkGeneratorPage() {
             const birthDateStr = identity.tanggal_lahir || "-"
             const tempatTglLahir = (identity.tempat_lahir || "") + (birthDateStr !== "-" ? ", " + birthDateStr : "")
 
-            const tglPenetapanVal = tanggalPenetapan ? new Date(tanggalPenetapan) : new Date()
             const tglBerakhirVal = new Date(tglPenetapanVal)
             tglBerakhirVal.setFullYear(tglBerakhirVal.getFullYear() + 1)
             tglBerakhirVal.setDate(tglBerakhirVal.getDate() - 1)
@@ -369,7 +380,8 @@ export default function SkGeneratorPage() {
                 "TANGGAL SURAT PERMOHONAN": formatDateIndo(t.tanggal_permohonan || t.tanggal_surat_permohonan || teacher.tanggal_permohonan || tanggalSuratMasuk),
                 "KECAMATAN": identity.kecamatan || "-",
                 "qrcode": qrCodeData,
-                "image": qrCodeData
+                "image": qrCodeData,
+                "PERIODE": templateId !== "sk_template_kamad" ? periodeStr : ""
             }
 
             if (combineInOneFile) {
@@ -514,6 +526,10 @@ export default function SkGeneratorPage() {
                 <div className="space-y-2 lg:col-span-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Format Nomor SK</label>
                     <Input value={nomorFormat} onChange={e => setNomorFormat(e.target.value)} className="h-11 rounded-xl bg-white border-slate-200" />
+                    <p className="text-[10px] text-slate-400">
+                        Placeholder: <code>{"{NOMOR}"}</code> urutan, <code>{"{PERIODE}"}</code> tahun masa kerja dari TMT,{" "}
+                        <code>{"{BULAN}"}</code> bulan, <code>{"{BL_ROMA}"}</code> bulan romawi, <code>{"{TAHUN}"}</code> tahun
+                    </p>
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tahun Ajaran</label>

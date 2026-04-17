@@ -388,3 +388,31 @@ export const reportApi = {
   },
   summary: () => apiClient.get('/reports/summary').then((r) => r.data),
 };
+
+// ── SK Templates API ──
+
+export const skTemplateApi = {
+  list: (params?: { sk_type?: string }) =>
+    apiClient.get('/sk-templates', { params }).then((r) => r.data),
+
+  upload: (file: File, skType: string) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('sk_type', skType);
+    return apiClient.post('/sk-templates', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
+  },
+
+  activate: (id: number) =>
+    apiClient.post(`/sk-templates/${id}/activate`).then((r) => r.data),
+
+  delete: (id: number) =>
+    apiClient.delete(`/sk-templates/${id}`).then((r) => r.data),
+
+  downloadUrl: (id: number) =>
+    apiClient.get(`/sk-templates/${id}/download`).then((r) => r.data),
+
+  getActive: (skType: string) =>
+    apiClient.get('/sk-templates/active', { params: { sk_type: skType } }).then((r) => r.data),
+};

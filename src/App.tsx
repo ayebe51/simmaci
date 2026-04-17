@@ -39,6 +39,7 @@ import DataAuditPage from '@/features/master-data/DataAuditPage';
 import StudentCardPage from "./features/kta/StudentCardPage"
 import { PengajuanNuptkPage } from "./features/sdm/PengajuanNuptkPage"
 import { PersetujuanNuptkPage } from "./features/sdm/PersetujuanNuptkPage"
+import SkTemplateManagementPage from "./features/sk-management/SkTemplateManagementPage"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
@@ -106,6 +107,7 @@ export default function App() {
                         <Route path="generator" element={<SkGeneratorPage />} />
                         <Route path="audit" element={<DataAuditPage />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="sk-templates" element={<SkTemplateManagementPage />} />
                         <Route path="change-password" element={<ChangePasswordPage />} />
                         <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
                         <Route path="reports/sk" element={

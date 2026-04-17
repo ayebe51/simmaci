@@ -19,7 +19,8 @@ import { Link } from "react-router-dom"
 import ImageModule from "docxtemplater-image-module-free"
 import QRCode from "qrcode"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { skApi, teacherApi, settingApi, authApi } from "@/lib/api"
+import { skApi, teacherApi, authApi } from "@/lib/api"
+import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -109,6 +110,19 @@ export default function SkGeneratorPage() {
 
   const [defaultKecamatan, setDefaultKecamatan] = useState("")
 
+  // 🔥 SK Template hooks — resolved once per session via TanStack Query cache
+  const skTemplateGty = useSkTemplate('gty')
+  const skTemplateGtt = useSkTemplate('gtt')
+  const skTemplateKamad = useSkTemplate('kamad')
+  const skTemplateTendik = useSkTemplate('tendik')
+
+  const skTemplateByType: Record<string, ReturnType<typeof useSkTemplate>> = {
+    sk_template_gty: skTemplateGty,
+    sk_template_gtt: skTemplateGtt,
+    sk_template_kamad: skTemplateKamad,
+    sk_template_tendik: skTemplateTendik,
+  }
+
   // 🔥 REST API QUERIES
   
   // 1. SK Request Candidates (Pending SkDocuments)
@@ -167,6 +181,7 @@ export default function SkGeneratorPage() {
 
         const allItemsByGroup: Record<string, any[]> = {}
         const masterBuffersByGroup: Record<string, ArrayBuffer> = {}
+        // Template buffers fetched from resolved URLs (useSkTemplate hook provides the URL)
         const templateCache: Record<string, any> = {}
 
         const templateIdMapping: Record<string, string> = {
@@ -219,32 +234,25 @@ export default function SkGeneratorPage() {
             
             // 2. Fetch Template if not cached
             if (!templateCache[templateId]) {
-                const res = await settingApi.get(templateId)
-                if (res?.value) {
-                    const val: string = res.value
-                    if (val.startsWith('http') || val.startsWith('/storage')) {
-                        const resp = await fetch(val)
-                        if (!resp.ok) throw new Error(`Gagal mengunduh template: ${templateId}`)
-                        const arrayBuffer = await resp.arrayBuffer()
-                        
-                        const bytes = new Uint8Array(arrayBuffer)
-                        let binary = ''
-                        for (let b = 0; b < bytes.byteLength; b++) {
-                            binary += String.fromCharCode(bytes[b])
-                        }
-                        templateCache[templateId] = { binary, buffer: arrayBuffer }
-                    } else {
-                        const base64 = val.includes(';base64,') ? val.split(';base64,')[1] : val
-                        const binaryString = atob(base64)
-                        
-                        const len = binaryString.length
-                        const bytes = new Uint8Array(len)
-                        for (let b = 0; b < len; b++) {
-                            bytes[b] = binaryString.charCodeAt(b)
-                        }
-                        templateCache[templateId] = { binary: binaryString, buffer: bytes.buffer }
-                    }
+                const hookResult = skTemplateByType[templateId]
+                if (hookResult?.error) {
+                    toast.error(hookResult.error)
+                    continue
                 }
+                const templateUrl = hookResult?.templateUrl
+                if (!templateUrl) {
+                    toast.error(`Template ${templateId} tidak tersedia.`)
+                    continue
+                }
+                const resp = await fetch(templateUrl)
+                if (!resp.ok) throw new Error(`Gagal mengunduh template: ${templateId}`)
+                const arrayBuffer = await resp.arrayBuffer()
+                const bytes = new Uint8Array(arrayBuffer)
+                let binary = ''
+                for (let b = 0; b < bytes.byteLength; b++) {
+                    binary += String.fromCharCode(bytes[b])
+                }
+                templateCache[templateId] = { binary, buffer: arrayBuffer }
             }
             
             const cached = templateCache[templateId]

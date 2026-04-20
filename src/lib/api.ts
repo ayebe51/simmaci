@@ -231,7 +231,7 @@ export const skApi = {
   bulkCreate: (documents: any[]) => apiClient.post('/sk-documents/bulk', { documents }).then((r) => r.data),
   submitRequest: (data: any) => apiClient.post('/sk-documents/submit-request', data).then((r) => r.data),
   bulkRequest: (data: { documents: any[]; surat_permohonan_url: string }) =>
-    apiClient.post('/sk-documents/bulk-request', data, { timeout: 120000 }).then((r) => r.data),
+    apiClient.post('/sk-documents/bulk-request', data, { timeout: 180000 }).then((r) => r.data),
   batchUpdateStatus: (ids: number[], status: string, rejectionReason?: string) =>
     apiClient.patch('/sk-documents/batch-status', { ids, status, rejection_reason: rejectionReason }).then((r) => r.data),
   getRevisions: () => apiClient.get('/sk-documents-revisions').then((r) => r.data),

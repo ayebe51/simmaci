@@ -522,8 +522,9 @@ class SkDocumentController extends Controller
 
         $documentCount = count($request->documents);
 
-        // For small batches (<= 10 rows), process synchronously for immediate feedback
-        if ($documentCount <= 10) {
+        // For very small batches (<= 3 rows), process synchronously for immediate feedback.
+        // Anything larger goes to the queue to avoid gateway timeouts on slow connections.
+        if ($documentCount <= 3) {
             return $this->processBulkRequestSync($request);
         }
 

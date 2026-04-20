@@ -172,7 +172,17 @@ export function BulkSkSubmission() {
       }
     },
     onError: (err: any) => {
-      toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))
+      const status = err.response?.status
+      if (status === 504 || err.code === 'ECONNABORTED') {
+        // 504 Gateway Timeout or Axios timeout — data may still be processing in background
+        toast.warning(
+          "Koneksi timeout, tapi data kemungkinan masih diproses di server. " +
+          "Silakan cek halaman Daftar SK dalam beberapa menit.",
+          { duration: 8000 }
+        )
+      } else {
+        toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))
+      }
       setIsProcessing(false)
     }
   })

@@ -407,13 +407,13 @@ class SkDocumentController extends Controller
             }
 
             // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
-            $year = now()->year;
-            $seq  = SkDocument::withoutTenantScope()->whereYear('created_at', $year)->count() + 1;
-            $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-            while (SkDocument::withoutTenantScope()->where('nomor_sk', $nomorSk)->exists()) {
-                $seq++;
-                $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-            }
+            $year    = now()->year;
+            $maxSeq  = (int) SkDocument::withoutTenantScope()
+                ->whereYear('created_at', $year)
+                ->where('nomor_sk', 'like', "REQ/{$year}/%")
+                ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
+                ->value('max_seq');
+            $nomorSk = 'REQ/' . $year . '/' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
 
             // 3.3: Wrap SK document creation in try-catch block
             try {
@@ -555,7 +555,15 @@ class SkDocumentController extends Controller
         $skipped     = 0;
         $schoolCache = [];
         $year        = now()->year;
-        $seq         = SkDocument::whereYear('created_at', $year)->count();
+
+        // Get the highest existing REQ/{year}/NNNN sequence number in one query,
+        // then increment locally — avoids a per-row existence-check loop.
+        $maxSeq = (int) SkDocument::withoutTenantScope()
+            ->whereYear('created_at', $year)
+            ->where('nomor_sk', 'like', "REQ/{$year}/%")
+            ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
+            ->value('max_seq');
+        $seq = $maxSeq;
 
         foreach ($request->documents as $doc) {
             try {
@@ -635,14 +643,9 @@ class SkDocumentController extends Controller
                 $teacher = Teacher::create($teacherData);
             }
 
-            // Auto-generate unique nomor_sk: REQ/{year}/{padded_seq}
+            // Auto-generate unique nomor_sk: increment local counter, no per-row DB loop
             $seq++;
             $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-            // Ensure uniqueness
-            while (SkDocument::where('nomor_sk', $nomorSk)->exists()) {
-                $seq++;
-                $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-            }
 
             $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
 

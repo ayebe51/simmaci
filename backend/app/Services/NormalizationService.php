@@ -241,19 +241,17 @@ class NormalizationService
      * A prefix degree is only treated as prefix when it appears BEFORE any name token.
      * Once a name token is encountered, all subsequent degrees become suffixes.
      *
-     * Special rule: if a prefix-type degree (Dr., Dra., Prof.) appears after the name
-     * WITHOUT a comma separator, it is moved to the prefix position. However, if it
-     * appears after a comma (explicit suffix placement), it stays as a suffix.
+     * Post-processing rule: if a prefix-type degree (Dr., Dra., Prof.) ended up as a
+     * suffix (because it appeared after the name, with or without a comma), AND there
+     * are no other non-prefix suffix degrees alongside it, move it to the prefix
+     * position. This handles the common Indonesian data-entry pattern of writing
+     * "MUMBASITOH, Dra." which should normalise to "Dra. MUMBASITOH".
      *
      * @return array{name: string, prefix_degrees: string[], suffix_degrees: string[]}
      */
     protected function parseAcademicDegrees(string $fullName): array
     {
         $map = $this->getDegreeMap();
-
-        // Detect whether there is a comma in the original input (before any name token).
-        // We use this to decide whether a trailing prefix-type degree should be moved.
-        $hasExplicitComma = str_contains($fullName, ',');
 
         // Normalise separators: replace commas with spaces, collapse whitespace
         $flat   = preg_replace('/,+/', ' ', $fullName);
@@ -309,18 +307,17 @@ class NormalizationService
         $name = preg_replace('/\s+/', ' ', $name);
         $name = trim($name);
 
-        // Post-process: if a prefix degree (Dr., Dra., Prof.) ended up in suffixes
-        // because it appeared after the name WITHOUT a comma (e.g. "fatimah dr."),
-        // move it to prefixes. But if there was an explicit comma in the original
-        // input (e.g. "updated name, dr"), keep it as a suffix — the user explicitly
-        // placed it there.
-        if (empty($prefixDegrees) && !$hasExplicitComma) {
+        // Post-process: if a prefix-type degree (Dr., Dra., Prof.) ended up in suffixes
+        // because it appeared after the name (e.g. "MUMBASITOH, Dra." or "fatimah dr."),
+        // move it to the prefix position — but only when there are no other suffix degrees
+        // alongside it (e.g. "FATIMAH, Dra., M.Pd." keeps Dra. as suffix).
+        if (empty($prefixDegrees)) {
             $nonPrefixSuffixes = array_filter($suffixDegrees, function ($deg) {
                 return !in_array($this->degreeKey($deg), self::PREFIX_DEGREES, true);
             });
 
             if (empty($nonPrefixSuffixes)) {
-                // All suffixes are prefix-type degrees and no comma was used — move to prefix
+                // All suffixes are prefix-type degrees — move them to prefix position
                 $movedPrefixes = [];
                 foreach ($suffixDegrees as $deg) {
                     if (in_array($this->degreeKey($deg), self::PREFIX_DEGREES, true)) {

@@ -138,7 +138,7 @@ class NormalizationActivityLogTest extends TestCase
         // Check nama normalization
         $this->assertArrayHasKey('nama', $normalization);
         $this->assertEquals('updated name, dr', $normalization['nama']['original']);
-        $this->assertEquals('UPDATED NAME, Dr.', $normalization['nama']['normalized']);
+        $this->assertEquals('Dr. UPDATED NAME', $normalization['nama']['normalized']);
     }
 
     public function test_no_normalization_log_when_no_changes(): void

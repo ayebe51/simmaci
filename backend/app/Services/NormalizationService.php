@@ -241,11 +241,19 @@ class NormalizationService
      * A prefix degree is only treated as prefix when it appears BEFORE any name token.
      * Once a name token is encountered, all subsequent degrees become suffixes.
      *
+     * Special rule: if a prefix-type degree (Dr., Dra., Prof.) appears after the name
+     * WITHOUT a comma separator, it is moved to the prefix position. However, if it
+     * appears after a comma (explicit suffix placement), it stays as a suffix.
+     *
      * @return array{name: string, prefix_degrees: string[], suffix_degrees: string[]}
      */
     protected function parseAcademicDegrees(string $fullName): array
     {
         $map = $this->getDegreeMap();
+
+        // Detect whether there is a comma in the original input (before any name token).
+        // We use this to decide whether a trailing prefix-type degree should be moved.
+        $hasExplicitComma = str_contains($fullName, ',');
 
         // Normalise separators: replace commas with spaces, collapse whitespace
         $flat   = preg_replace('/,+/', ' ', $fullName);
@@ -302,16 +310,17 @@ class NormalizationService
         $name = trim($name);
 
         // Post-process: if a prefix degree (Dr., Dra., Prof.) ended up in suffixes
-        // because it appeared after the name (e.g. "MUMBASITOH, Dra"), move it to
-        // prefixes — but only when no prefix degree was already found AND it is the
-        // only degree present (no other suffix degrees alongside it).
-        if (empty($prefixDegrees)) {
+        // because it appeared after the name WITHOUT a comma (e.g. "fatimah dr."),
+        // move it to prefixes. But if there was an explicit comma in the original
+        // input (e.g. "updated name, dr"), keep it as a suffix — the user explicitly
+        // placed it there.
+        if (empty($prefixDegrees) && !$hasExplicitComma) {
             $nonPrefixSuffixes = array_filter($suffixDegrees, function ($deg) {
                 return !in_array($this->degreeKey($deg), self::PREFIX_DEGREES, true);
             });
 
             if (empty($nonPrefixSuffixes)) {
-                // All suffixes are prefix-type degrees — move them to prefixes
+                // All suffixes are prefix-type degrees and no comma was used — move to prefix
                 $movedPrefixes = [];
                 foreach ($suffixDegrees as $deg) {
                     if (in_array($this->degreeKey($deg), self::PREFIX_DEGREES, true)) {

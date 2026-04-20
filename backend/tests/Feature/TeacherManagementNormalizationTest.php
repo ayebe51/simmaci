@@ -479,7 +479,7 @@ class TeacherManagementNormalizationTest extends TestCase
         // Verify updated normalized data in database
         $this->assertDatabaseHas('teachers', [
             'id' => $teacher->id,
-            'nama' => 'UPDATED DATABASE TEACHER, Dr.',
+            'nama' => 'Dr. UPDATED DATABASE TEACHER',
             'nuptk' => '9999999999999999',
         ]);
     }

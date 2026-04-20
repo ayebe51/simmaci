@@ -199,8 +199,8 @@ class NormalizationServiceTest extends TestCase
             'ahmad s.pd' => 'AHMAD, S.Pd.',
             'siti s.pd.' => 'SITI, S.Pd.',
             'muhammad S.Pd' => 'MUHAMMAD, S.Pd.',
-            'fatimah dr.' => 'FATIMAH, Dr.',
-            'ali Dr.' => 'ALI, Dr.',
+            'fatimah dr.' => 'Dr. FATIMAH',   // prefix degree alone after name → moved to prefix
+            'ali Dr.' => 'Dr. ALI',            // same
             'khadijah m.pd.i' => 'KHADIJAH, M.Pd.I',
             'rahman M.Pd.I' => 'RAHMAN, M.Pd.I',
         ];
@@ -476,6 +476,210 @@ class NormalizationServiceTest extends TestCase
             $result = $this->service->normalizeTeacherName("ahmad {$input}");
             $this->assertStringContainsString($expectedFormat, $result, "Failed to recognize degree: {$input}");
             $this->assertStringStartsWith('AHMAD', $result, "Suffix degree should come after name: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group bug-condition-exploration
+     * 
+     * Bug Condition Exploration Test for missing degree recognition.
+     * This test is EXPECTED TO FAIL on unfixed code - failure confirms the bug exists.
+     * 
+     * **Validates: Requirements 1.1, 1.2**
+     * 
+     * Bug Condition: S.Pd.SD. and A.Md. degrees are not recognized or incorrectly formatted.
+     * - DEGREE_MAP is missing entry for S.Pd.SD. (Sarjana Pendidikan SD)
+     * - DEGREE_MAP has wrong canonical format for A.Md. (should be "A.Md." not "Amd.")
+     */
+    public function it_normalizes_spdsd_and_amd_degrees_correctly(): void
+    {
+        // Test Case 1: S.Pd.SD. (Sarjana Pendidikan SD) - MISSING from DEGREE_MAP
+        // Expected: "AHMAD, S.Pd.SD."
+        // Bug: Will fail because SPDSD key is not in DEGREE_MAP
+        $result = $this->service->normalizeTeacherName('Ahmad S.Pd.SD.');
+        $this->assertEquals(
+            'AHMAD, S.Pd.SD.',
+            $result,
+            "S.Pd.SD. should be recognized and preserved in canonical format"
+        );
+
+        // Test Case 2: A.Md. (Ahli Madya) - WRONG CANONICAL FORMAT in DEGREE_MAP
+        // Expected: "SITI, A.Md."
+        // Bug: Will return "SITI, Amd." instead of "SITI, A.Md."
+        $result = $this->service->normalizeTeacherName('Siti A.Md.');
+        $this->assertEquals(
+            'SITI, A.Md.',
+            $result,
+            "A.Md. should be normalized to canonical format with dots after A and Md"
+        );
+    }
+
+    /**
+     * @test
+     * @group preservation
+     * 
+     * Preservation Property Test for existing degree normalization.
+     * This test verifies that existing degree normalization behavior is preserved.
+     * These tests MUST PASS on unfixed code - this confirms baseline behavior to preserve.
+     * 
+     * **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
+     * 
+     * Property: For any teacher name input that does NOT contain S.Pd.SD. or A.Md. degrees,
+     * the NormalizationService SHALL produce the same result, preserving all existing
+     * degree normalization behavior.
+     */
+    public function it_preserves_normalization_of_existing_degrees(): void
+    {
+        // Requirement 3.1: Existing degrees like S.Pd., M.Pd., Dr., Dra. continue to normalize correctly
+        $testCases = [
+            // S.Pd. variations
+            'ahmad s.pd' => 'AHMAD, S.Pd.',
+            'siti S.Pd.' => 'SITI, S.Pd.',
+            
+            // M.Pd. variations
+            'budi m.pd' => 'BUDI, M.Pd.',
+            'fatimah M.Pd.' => 'FATIMAH, M.Pd.',
+            
+            // Dr. (Doctor) - prefix degree
+            'dr. ahmad fauzi' => 'Dr. AHMAD FAUZI',
+            'DR. SITI RAHAYU' => 'Dr. SITI RAHAYU',
+            
+            // Dra. (Doktoranda) - prefix degree
+            'dra. khadijah' => 'Dra. KHADIJAH',
+            'DRA. FATIMAH' => 'Dra. FATIMAH',
+            
+            // Combined degrees
+            'dr. ahmad s.pd m.pd' => 'Dr. AHMAD, S.Pd., M.Pd.',
+            'dra. siti m.ag' => 'Dra. SITI, M.Ag.',
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals(
+                $expected,
+                $result,
+                "Existing degree normalization should be preserved for: {$input}"
+            );
+        }
+    }
+
+    /**
+     * @test
+     * @group preservation
+     * 
+     * Preservation Property Test for Amd.Keb. degree normalization.
+     * 
+     * **Validates: Requirement 3.2**
+     * 
+     * Property: Amd.Keb. (Ahli Madya Keperawatan) continues to normalize to "Amd.Keb."
+     */
+    public function it_preserves_amd_keb_normalization(): void
+    {
+        $testCases = [
+            'nur hidayah amd keb' => 'NUR HIDAYAH, Amd.Keb.',
+            'Nur Hidayah Amd.Keb.' => 'NUR HIDAYAH, Amd.Keb.',
+            'AHMAD AMDKEB' => 'AHMAD, Amd.Keb.',
+            'siti amd keb m.pd' => 'SITI, Amd.Keb., M.Pd.',
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals(
+                $expected,
+                $result,
+                "Amd.Keb. normalization should be preserved for: {$input}"
+            );
+        }
+    }
+
+    /**
+     * @test
+     * @group preservation
+     * 
+     * Preservation Property Test for names without degrees.
+     * 
+     * **Validates: Requirement 3.3**
+     * 
+     * Property: Names without degrees continue to convert to UPPERCASE.
+     */
+    public function it_preserves_uppercase_conversion_for_names_without_degrees(): void
+    {
+        $testCases = [
+            'ahmad ayub' => 'AHMAD AYUB',
+            'siti fatimah' => 'SITI FATIMAH',
+            'muhammad ali al-farabi' => 'MUHAMMAD ALI AL-FARABI',
+            'Ahmad Ayub Nu\'man' => 'AHMAD AYUB NU\'MAN',
+            'budi' => 'BUDI',
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals(
+                $expected,
+                $result,
+                "Names without degrees should be converted to UPPERCASE for: {$input}"
+            );
+        }
+    }
+
+    /**
+     * @test
+     * @group preservation
+     * 
+     * Preservation Property Test for multiple degrees separation.
+     * 
+     * **Validates: Requirement 3.4**
+     * 
+     * Property: Multiple degrees continue to be separated with ", ".
+     */
+    public function it_preserves_multiple_degrees_separation(): void
+    {
+        $testCases = [
+            'siti fatimah s.ag m.ag' => 'SITI FATIMAH, S.Ag., M.Ag.',
+            'muhammad ali s.si m.si' => 'MUHAMMAD ALI, S.Si., M.Si.',
+            'ahmad s.pd m.pd' => 'AHMAD, S.Pd., M.Pd.',
+            'dr. ahmad fauzi s.pd m.ag' => 'Dr. AHMAD FAUZI, S.Pd., M.Ag.',
+            'Prof. Dr. Siti Rahayu M.Pd.' => 'Prof. Dr. SITI RAHAYU, M.Pd.',
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals(
+                $expected,
+                $result,
+                "Multiple degrees should be separated with ', ' for: {$input}"
+            );
+        }
+    }
+
+    /**
+     * @test
+     * @group preservation
+     * 
+     * Preservation Property Test for A.Ma.Pust. and A.Ma.Pd. degrees.
+     * 
+     * **Validates: Requirement 3.5**
+     * 
+     * Property: A.Ma.Pust. and A.Ma.Pd. continue to normalize correctly.
+     */
+    public function it_preserves_ama_pust_and_ama_pd_normalization(): void
+    {
+        $testCases = [
+            'budi a ma pust' => 'BUDI, A.Ma.Pust.',
+            'Budi A.Ma.Pust.' => 'BUDI, A.Ma.Pust.',
+            'ahmad a ma pd' => 'AHMAD, A.Ma.Pd.',
+            'Ahmad A.Ma.Pd.' => 'AHMAD, A.Ma.Pd.',
+            'siti a.ma.pust. m.pd' => 'SITI, A.Ma.Pust., M.Pd.',
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals(
+                $expected,
+                $result,
+                "A.Ma.Pust. and A.Ma.Pd. normalization should be preserved for: {$input}"
+            );
         }
     }
 }

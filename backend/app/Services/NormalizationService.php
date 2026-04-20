@@ -253,6 +253,12 @@ class NormalizationService
     {
         $map = $this->getDegreeMap();
 
+        // Pre-process: merge split compound degrees that span two tokens.
+        // e.g. "S.Pd. SD" / "S.Pd SD" / "SPD SD" → "S.Pd.SD"
+        // This handles the common data-entry pattern where S.Pd.SD. is written
+        // as two separate tokens "S.Pd." and "SD".
+        $fullName = $this->mergeCompoundDegrees($fullName);
+
         // Normalise separators: replace commas with spaces, collapse whitespace
         $flat   = preg_replace('/,+/', ' ', $fullName);
         $flat   = preg_replace('/\s+/', ' ', $flat);
@@ -334,6 +340,36 @@ class NormalizationService
             'prefix_degrees' => $prefixDegrees,
             'suffix_degrees' => $suffixDegrees,
         ];
+    }
+
+    /**
+     * Pre-process a raw name string to merge compound degrees that are commonly
+     * written as two separate tokens due to data-entry inconsistency.
+     *
+     * Currently handles:
+     *   S.Pd. SD  / S.Pd SD  / SPD SD  → S.Pd.SD
+     *   SD, S.Pd. / SD S.Pd.           → S.Pd.SD  (reversed order)
+     *   A.Ma. Pd  / A.Ma Pd  / AMA PD  → A.Ma.Pd
+     *   A.Ma. Pust / A.Ma Pust          → A.Ma.Pust
+     *
+     * The merge is case-insensitive and handles optional trailing dots/commas.
+     */
+    protected function mergeCompoundDegrees(string $name): string
+    {
+        // S.Pd. SD → S.Pd.SD  (Sarjana Pendidikan Sekolah Dasar)
+        $name = preg_replace('/\bS\.?\s*Pd\.?\s+SD\.?\b/i', 'S.Pd.SD', $name);
+        // SPD SD (no dots at all)
+        $name = preg_replace('/\bSPD\s+SD\b/i', 'S.Pd.SD', $name);
+        // SD[,] S.Pd. → S.Pd.SD  (reversed: "DWI SUPRIYATI SD, S.Pd.")
+        $name = preg_replace('/\bSD[,.]?\s+S\.?\s*Pd\.?\b/i', 'S.Pd.SD', $name);
+
+        // A.Ma. Pd → A.Ma.Pd  (Ahli Madya Pendidikan)
+        $name = preg_replace('/\bA\.?\s*Ma\.?\s+Pd\.?\b/i', 'A.Ma.Pd', $name);
+
+        // A.Ma. Pust → A.Ma.Pust  (Ahli Madya Pustakawan)
+        $name = preg_replace('/\bA\.?\s*Ma\.?\s+Pust\.?\b/i', 'A.Ma.Pust', $name);
+
+        return $name;
     }
 
     /**

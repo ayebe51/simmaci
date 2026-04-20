@@ -32,6 +32,7 @@ class NormalizationService
 
         // ── Sarjana (S1) ──────────────────────────────────────────────────
         'SPDI'      => 'S.Pd.I',
+        'SPDSD'     => 'S.Pd.SD.',
         'SPD'       => 'S.Pd.',
         'SSOSI'     => 'S.Sos.I',
         'SSOS'      => 'S.Sos.',
@@ -39,6 +40,7 @@ class NormalizationService
         'SFIL'      => 'S.Fil.',
         'STHI'      => 'S.Th.I',
         'STH'       => 'S.Th.',
+        'SSY'       => 'S.Sy.',
         'SAG'       => 'S.Ag.',
         'SH'        => 'S.H.',
         'SEI'       => 'S.E.I',
@@ -63,6 +65,7 @@ class NormalizationService
         'STER'      => 'S.Ter.',
         'SANTER'    => 'S.An.',
         'SAN'       => 'S.An.',
+        'SM'        => 'S.M.',
 
         // ── Diploma ───────────────────────────────────────────────────────
         'AMAPUST'   => 'A.Ma.Pust.',
@@ -77,7 +80,7 @@ class NormalizationService
         'AMDFIS'    => 'Amd.Fis.',
         'AMDPK'     => 'Amd.PK.',
         'AMDK'      => 'Amd.K.',
-        'AMD'       => 'Amd.',
+        'AMD'       => 'A.Md.',
         'DIII'      => 'D.III',
         'DII'       => 'D.II',
         'DIV'       => 'D.IV',
@@ -297,6 +300,28 @@ class NormalizationService
         $name = preg_replace('/[.,]+/', '', $name);
         $name = preg_replace('/\s+/', ' ', $name);
         $name = trim($name);
+
+        // Post-process: if a prefix degree (Dr., Dra., Prof.) ended up in suffixes
+        // because it appeared after the name (e.g. "MUMBASITOH, Dra"), move it to
+        // prefixes — but only when no prefix degree was already found AND it is the
+        // only degree present (no other suffix degrees alongside it).
+        if (empty($prefixDegrees)) {
+            $nonPrefixSuffixes = array_filter($suffixDegrees, function ($deg) {
+                return !in_array($this->degreeKey($deg), self::PREFIX_DEGREES, true);
+            });
+
+            if (empty($nonPrefixSuffixes)) {
+                // All suffixes are prefix-type degrees — move them to prefixes
+                $movedPrefixes = [];
+                foreach ($suffixDegrees as $deg) {
+                    if (in_array($this->degreeKey($deg), self::PREFIX_DEGREES, true)) {
+                        $movedPrefixes[] = $deg;
+                    }
+                }
+                $prefixDegrees = $movedPrefixes;
+                $suffixDegrees = [];
+            }
+        }
 
         return [
             'name'           => $name,

@@ -317,6 +317,11 @@ class TeacherController extends Controller
                 // Force user's school if operator
                 if ($request->user()->role === 'operator') {
                     $schoolId = $request->user()->school_id;
+                    // If unit_kerja is blank, fall back to the operator's school name
+                    if (empty(trim((string)($normalizedRow['unit_kerja'] ?? '')))) {
+                        $operatorSchool = School::find($schoolId);
+                        $normalizedRow['unit_kerja'] = $operatorSchool?->nama;
+                    }
                 } elseif (!$schoolId && isset($normalizedRow['unit_kerja'])) {
                     // Case-insensitive school lookup (database-agnostic)
                     $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$normalizedRow['unit_kerja']])->first();

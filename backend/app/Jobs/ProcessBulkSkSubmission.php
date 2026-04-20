@@ -62,6 +62,13 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 // Force user's school if operator
                 if ($this->userRole === 'operator') {
                     $schoolId = $this->userSchoolId;
+                    // If unit_kerja is blank, fall back to the operator's school name
+                    if (empty(trim((string)($doc['unit_kerja'] ?? '')))) {
+                        if (!isset($schoolCache['__operator__'])) {
+                            $schoolCache['__operator__'] = School::find($schoolId)?->nama;
+                        }
+                        $doc['unit_kerja'] = $schoolCache['__operator__'];
+                    }
                 } elseif (isset($doc['unit_kerja'])) {
                     // Case-insensitive school lookup with normalized name
                     if (!isset($schoolCache[$doc['unit_kerja']])) {

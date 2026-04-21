@@ -324,7 +324,7 @@ class SkSubmissionBugExplorationTest extends TestCase
         $payload = [
             'nama'                      => 'Valid Teacher',
             'nuptk'                     => '5555666677778888',
-            'nip'                       => '198501012010011001',
+            'nip'                       => '555666777',
             'jabatan'                   => 'Guru Kelas',
             'jenis_sk'                  => 'Pengangkatan',
             'unit_kerja'                => $this->school->nama,

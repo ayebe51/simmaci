@@ -34,12 +34,6 @@ export default function UserListPage() {
 
   const navigate = useNavigate()
 
-  // Strict check: only super_admin can access user management
-  if (user?.role !== "super_admin") {
-    navigate("/dashboard", { replace: true })
-    return null
-  }
-
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
@@ -67,6 +61,12 @@ export default function UserListPage() {
       school_id: "" as string | number,
       is_active: true
   })
+
+  // Strict check: only super_admin can access user management
+  if (user?.role !== "super_admin") {
+    navigate("/dashboard", { replace: true })
+    return null
+  }
 
   const handleSave = async () => {
       if (!formData.name || !formData.email) return toast.error("Nama dan Username wajib diisi")

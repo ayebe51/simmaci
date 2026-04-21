@@ -73,11 +73,11 @@ class SkDocumentPreservationTest extends TestCase
         // NOTE: All optional fields must be explicitly set to null for unfixed code
         // because the controller accesses them directly without null coalescing
         $testCases = [
-            // Case 1: Full data with NUPTK and NIP
+            // Case 1: Full data with NUPTK and NIP (non-PNS NIP: 9 digits)
             [
                 'nama'                      => 'Ahmad Dahlan',
                 'nuptk'                     => '1234567890123456',
-                'nip'                       => '198501012010011001',
+                'nip'                       => '123456789',
                 'jabatan'                   => 'Guru Kelas',
                 'jenis_sk'                  => 'Pengangkatan',
                 'unit_kerja'                => $this->school->nama,
@@ -98,11 +98,11 @@ class SkDocumentPreservationTest extends TestCase
                 'nomor_surat_permohonan'    => 'SP/002/2025',
                 'tanggal_surat_permohonan'  => '2025-01-16',
             ],
-            // Case 3: Only NIP, no NUPTK
+            // Case 3: Only NIP, no NUPTK (non-PNS NIP: 9 digits)
             [
                 'nama'                      => 'Umar bin Khattab',
                 'nuptk'                     => null,
-                'nip'                       => '199001012015011002',
+                'nip'                       => '987654321',
                 'jabatan'                   => 'Kepala Sekolah',
                 'jenis_sk'                  => 'Pemberhentian',
                 'unit_kerja'                => $this->school->nama,
@@ -228,7 +228,7 @@ class SkDocumentPreservationTest extends TestCase
         $payload2 = [
             'nama'                      => 'Teacher NUPTK Updated',
             'nuptk'                     => $nuptk,
-            'nip'                       => '198501012010011001',
+            'nip'                       => '123456789',
             'jabatan'                   => 'Guru Kelas',
             'jenis_sk'                  => 'Mutasi',
             'unit_kerja'                => $this->school->nama,
@@ -249,11 +249,11 @@ class SkDocumentPreservationTest extends TestCase
             'id'      => $teacherId1,
             'nama'    => 'TEACHER NUPTK UPDATED',
             'nuptk'   => $nuptk,
-            'nip'     => '198501012010011001',
+            'nip'     => '123456789',
         ]);
 
         // Test Case 2: Match by NIP (no NUPTK)
-        $nip = '199001012015011002';
+        $nip = '987654321';
         
         $payload3 = [
             'nama'                      => 'Teacher NIP',
@@ -532,11 +532,11 @@ class SkDocumentPreservationTest extends TestCase
                 'unit_kerja'           => $this->school->nama,
                 'surat_permohonan_url' => 'https://example.com/minimal.pdf',
             ],
-            // All optional fields filled
+            // All optional fields filled (non-PNS NIP: 9 digits, GTY status)
             [
                 'nama'                      => 'Complete Teacher',
                 'nuptk'                     => '1111111111111111',
-                'nip'                       => '198501012010011001',
+                'nip'                       => '111222333',
                 'jabatan'                   => 'Guru Kelas',
                 'jenis_sk'                  => 'Mutasi',
                 'unit_kerja'                => $this->school->nama,
@@ -544,7 +544,7 @@ class SkDocumentPreservationTest extends TestCase
                 'nomor_surat_permohonan'    => 'SP/999/2025',
                 'tanggal_surat_permohonan'  => '2025-01-20',
                 'tanggal_penetapan'         => '2025-01-25',
-                'status_kepegawaian'        => 'PNS',
+                'status_kepegawaian'        => 'GTY',
             ],
             // Different jenis_sk values
             [

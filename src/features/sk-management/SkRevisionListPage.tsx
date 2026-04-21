@@ -21,7 +21,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { skApi, authApi, settingApi } from "@/lib/api";
+import { skApi, authApi, skTemplateApi } from "@/lib/api";
 import { getSkVerificationUrl } from "@/utils/verification";
 import {
   Dialog,
@@ -119,21 +119,45 @@ export default function SkRevisionListPage() {
 
     try {
       const teacherData = skDoc.teacher || {};
-      const jenis = (skDoc.jenis_sk || "").toLowerCase();
-      let templateId = "sk_template_tendik";
-      if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "sk_template_gty";
-      else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "sk_template_gtt";
-      else if (jenis.includes("kepala") || jenis.includes("kamad")) templateId = "sk_template_kamad_nonpns";
 
-      // 1. Fetch Template from Backend
-      const res = await settingApi.get(templateId);
-      if (!res?.value) {
-        toast.error(`Template ${templateId} tidak ditemukan di sistem.`);
-        return;
+      // Determine template type — same logic as SkGeneratorPage
+      const statusRaw = (skDoc.status_kepegawaian || teacherData.status || "").toLowerCase()
+      const jenis = (skDoc.jenis_sk || "").toLowerCase()
+      let skType = "tendik"
+      if (statusRaw.includes("gty") || statusRaw.includes("tetap yayasan") ||
+          jenis.includes("gty") || jenis.includes("tetap yayasan") ||
+          statusRaw.includes("kamad") || statusRaw.includes("kepala") ||
+          jenis.includes("kamad") || jenis.includes("kepala")) {
+        skType = "gty"
+      } else if (statusRaw.includes("gtt") || statusRaw.includes("tidak tetap") ||
+                 jenis.includes("gtt") || jenis.includes("tidak tetap")) {
+        skType = "gtt"
       }
-      
-      const base64 = res.value.split(";base64,")[1] || res.value;
-      const content = atob(base64);
+
+      // 1. Fetch Template — use skTemplateApi.getActive with fallback to static file
+      const fallbackUrl = `/templates/sk-${skType}-template.docx`
+      let templateBinary: string
+
+      try {
+        const templateRes = await skTemplateApi.getActive(skType)
+        const fileUrl = templateRes?.file_url ?? fallbackUrl
+        const resp = await fetch(fileUrl)
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const arrayBuffer = await resp.arrayBuffer()
+        const bytes = new Uint8Array(arrayBuffer)
+        let binary = ''
+        for (let b = 0; b < bytes.byteLength; b++) binary += String.fromCharCode(bytes[b])
+        templateBinary = binary
+      } catch {
+        // Fallback to static bundled template
+        const resp = await fetch(fallbackUrl)
+        if (!resp.ok) throw new Error(`Template ${skType} tidak tersedia (${resp.status})`)
+        const arrayBuffer = await resp.arrayBuffer()
+        const bytes = new Uint8Array(arrayBuffer)
+        let binary = ''
+        for (let b = 0; b < bytes.byteLength; b++) binary += String.fromCharCode(bytes[b])
+        templateBinary = binary
+      }
 
       // 2. Generate QR
       const verificationUrl = getSkVerificationUrl(skDoc.nomor_sk);
@@ -159,7 +183,7 @@ export default function SkRevisionListPage() {
       };
 
       // 4. Render DOCX
-      const pzip = new PizZip(content);
+      const pzip = new PizZip(templateBinary);
       const doc = new Docxtemplater(pzip, {
         paragraphLoop: true,
         linebreaks: true,

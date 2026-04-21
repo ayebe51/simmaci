@@ -532,17 +532,41 @@ export default function SkGeneratorPage() {
                 const numberingFile = collectivePzip.file("word/numbering.xml")
                 if (numberingFile) {
                     let numberingXml = numberingFile.asText()
-                    // Set restartNumberingAfterBreak="1" on all abstractNum elements
+                    // Force restart all numbered lists from 1 using lvlOverride/startOverride
+                    // This is the reliable OOXML way — w15:restartNumberingAfterBreak is Word 2013+ only
+                    // Add <w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride>
+                    // to every <w:num> that doesn't already have a startOverride
                     numberingXml = numberingXml.replace(
-                        /(<w:abstractNum\b[^>]*?)w15:restartNumberingAfterBreak="0"/g,
-                        '$1w15:restartNumberingAfterBreak="1"'
-                    )
-                    // Also handle cases where the attribute is missing — add it
-                    numberingXml = numberingXml.replace(
-                        /(<w:abstractNum\b(?![^>]*w15:restartNumberingAfterBreak)[^>]*)>/g,
-                        '$1 w15:restartNumberingAfterBreak="1">'
+                        /(<w:num\b[^>]*>)([\s\S]*?)(<\/w:num>)/g,
+                        (match, open, inner, close) => {
+                            if (inner.includes('<w:startOverride')) return match
+                            // Find all ilvl values referenced and add startOverride for each
+                            const ilvlMatches = inner.match(/w:ilvl="(\d+)"/g) || ['w:ilvl="0"']
+                            const ilvls = [...new Set(ilvlMatches.map((m: string) => m.match(/\d+/)?.[0] || '0'))]
+                            const overrides = ilvls.map((ilvl: string) =>
+                                `<w:lvlOverride w:ilvl="${ilvl}"><w:startOverride w:val="1"/></w:lvlOverride>`
+                            ).join('')
+                            return `${open}${inner}${overrides}${close}`
+                        }
                     )
                     collectivePzip.file("word/numbering.xml", numberingXml)
+                }
+
+                // Ensure {NAMA} placeholder run has bold formatting in combined mode too
+                const docFileCollective = collectivePzip.file("word/document.xml")
+                if (docFileCollective) {
+                    let docXmlStr = docFileCollective.asText()
+                    docXmlStr = docXmlStr.replace(
+                        /(<w:r\b[^>]*>)((?:(?!<\/w:r>)[\s\S])*?\{[\s]*NAMA[\s]*\}[\s\S]*?<\/w:r>)/g,
+                        (match, openTag, rest) => {
+                            if (rest.includes('<w:b/>') || rest.includes('<w:b w:val')) return match
+                            if (!rest.includes('<w:rPr>') && !rest.includes('<w:rPr ')) {
+                                return `${openTag}<w:rPr><w:b/><w:bCs/></w:rPr>${rest}`
+                            }
+                            return match.replace(/<w:rPr([\s\S]*?)>/, '<w:rPr$1><w:b/><w:bCs/>')
+                        }
+                    )
+                    collectivePzip.file("word/document.xml", docXmlStr)
                 }
                 
                 const bodyMatch = docXml.match(/<w:body>(.*?)<\/w:body>/s)

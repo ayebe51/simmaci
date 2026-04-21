@@ -506,7 +506,6 @@ export default function SkGeneratorPage() {
                     )
                     collectivePzip.file("word/numbering.xml", numberingXml)
                 }
-                let docXml = collectivePzip.file("word/document.xml").asText()
                 
                 const bodyMatch = docXml.match(/<w:body>(.*?)<\/w:body>/s)
                 if (bodyMatch) {

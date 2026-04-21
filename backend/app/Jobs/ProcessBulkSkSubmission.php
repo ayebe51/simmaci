@@ -52,12 +52,12 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
         // Get the highest existing REQ/{year}/NNNN sequence number in one query,
         // then increment locally — avoids a per-row existence-check loop.
-        $maxSeq = (int) SkDocument::withoutTenantScope()
-            ->whereYear('created_at', $year)
-            ->where('nomor_sk', 'like', "REQ/{$year}/%")
-            ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
-            ->value('max_seq');
-        $seq = $maxSeq;
+        $prefix = "REQ/{$year}/";
+        $seq = SkDocument::withoutTenantScope()
+            ->where('nomor_sk', 'like', $prefix . '%')
+            ->pluck('nomor_sk')
+            ->map(fn($n) => (int) substr($n, strlen($prefix)))
+            ->max() ?? 0;
 
         foreach ($this->documents as $index => $doc) {
             try {
@@ -136,13 +136,14 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     $teacher = Teacher::create($teacherData);
                 }
 
-                // Auto-generate unique nomor_sk: increment local counter, no per-row DB loop
+                // Auto-generate unique nomor_sk: increment local counter, no per-row DB loop.
+                // On a rare race-condition duplicate, re-fetch via generateNomorSk() and retry.
                 $seq++;
                 $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
                 $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
 
-                SkDocument::create([
+                $skData = [
                     'nomor_sk'             => $nomorSk,
                     'teacher_id'           => $teacher->id,
                     'nama'                 => $doc['nama'],
@@ -155,7 +156,17 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     'status'               => 'pending',
                     'created_by'           => $this->userEmail,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
-                ]);
+                ];
+
+                try {
+                    SkDocument::create($skData);
+                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    // Race condition: re-fetch the next safe nomor_sk and retry
+                    $nomorSk = SkDocument::generateNomorSk($year);
+                    $seq = (int) explode('/', $nomorSk)[2];
+                    $skData['nomor_sk'] = $nomorSk;
+                    SkDocument::create($skData);
+                }
 
                 $created++;
 

@@ -330,6 +330,7 @@ export const verificationApi = {
   verifyByCode: (code: string) => apiClient.get(`/verify/sk/${code}`).then((r) => r.data),
   verifyByNuptk: (nuptk: string) => apiClient.get(`/verify/teacher/${nuptk}`).then((r) => r.data),
   verifyByNisn: (nisn: string) => apiClient.get(`/verify/student/${nisn}`).then((r) => r.data),
+  verifyBySk: (nomor: string) => apiClient.get(`/verify/sk/${encodeURIComponent(nomor)}`),
 };
 
 // ── NUPTK Submissions API ──

@@ -31,6 +31,7 @@ import YayasanApprovalPage from "./features/approval/YayasanApprovalPage"
 import PublicVerificationPage from "./features/verification/PublicVerificationPage"
 import VerifyTeacherPage from "./features/verification/VerifyTeacherPage"
 import VerifyStudentPage from "./features/verification/VerifyStudentPage"
+import VerifySkPage from "./features/verification/VerifySkPage"
 
 import MutationPage from "./features/mutations/MutationPage"
 import SchoolProfilePage from "./features/schools/SchoolProfilePage"
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="/test-render" element={<div className="p-10 bg-red-500 text-white">TEST ROUTE WORKING</div>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/verify/:id" element={<PublicVerificationPage />} />
+          <Route path="/verify/sk/:nomor" element={<VerifySkPage />} />
           <Route path="/verify/teacher/:nuptk" element={<VerifyTeacherPage />} />
           <Route path="/verify/student/:nisn" element={<VerifyStudentPage />} />
           

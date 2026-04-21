@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BadgeCheck, CheckCircle, Download, FileText, XCircle, Upload, Loader2, Search, Filter, Calendar, Settings2 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { headmasterApi, mediaApi, authApi, settingApi } from "@/lib/api"
+import { getSkVerificationUrl } from "@/utils/verification"
 import { toast } from "sonner"
 import QRCode from "qrcode"
 import { Badge } from "@/components/ui/badge"
@@ -112,7 +113,7 @@ export default function YayasanApprovalPage() {
         if (!templateBlob) throw new Error("Template SK tidak ditemukan di pengaturan sistem")
 
         // 2. QR Code
-        const verificationUrl = `${window.location.origin}/verify/sk/${item.id}`;
+        const verificationUrl = getSkVerificationUrl(item.id);
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
 
         // 3. Prepare Data

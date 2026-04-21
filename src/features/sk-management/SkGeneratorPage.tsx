@@ -22,6 +22,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi } from "@/lib/api"
 import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
 import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
+import { getSkVerificationUrl } from "@/utils/verification"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -203,7 +204,8 @@ export default function SkGeneratorPage() {
                     for (const k in scope) {
                         if (k.toLowerCase() === cleanTag) return scope[k];
                     }
-                    return ""; 
+                    console.warn(`[SK Generator] Placeholder tidak ditemukan: "${tag}"`);
+                    return "-"; 
                 }
             };
         };
@@ -270,7 +272,7 @@ export default function SkGeneratorPage() {
 
             const tmtRaw = t.tmt || teacher.tmt
             if (!tmtRaw) {
-                console.error(`TMT tidak ditemukan untuk guru: ${teacher.nama || t.nama}`)
+                toast.warning(`Guru "${teacher.nama || t.nama}" dilewati: field TMT kosong.`)
                 continue
             }
             const periodeValue = calculatePeriode(tmtRaw, tglPenetapanVal)
@@ -282,8 +284,10 @@ export default function SkGeneratorPage() {
                 .replace(/{BULAN}/g, String(dateObj.getMonth() + 1))
                 .replace(/{BL_ROMA}/g, mmRoma)
                 .replace(/{TAHUN}/g, String(yyyy))
+                .replace(/\/\//g, '/')
+                .replace(/^\/|\/$/g, '')
 
-            const verificationUrl = `${window.location.origin}/verify/sk/${generatedNomor}`
+            const verificationUrl = getSkVerificationUrl(generatedNomor)
             const qrCodeData = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
              const formatDateIndo = (dateStr: any) => {
@@ -471,6 +475,7 @@ export default function SkGeneratorPage() {
                     const fileName = `SK_Kolektif_${groupLabel}_${new Date().getTime()}.docx`
 
                     if (groupIds.length > 1) {
+                        toast.info(`Terdapat ${groupIds.length} tipe SK berbeda. Output akan berupa ZIP berisi ${groupIds.length} file kolektif.`)
                         folder?.file(fileName, finalOut)
                     } else {
                         saveAs(finalOut, fileName)

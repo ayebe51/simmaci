@@ -8,6 +8,7 @@ import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { useQuery } from "@tanstack/react-query"
 import { skApi, headmasterApi, authApi, settingApi } from "@/lib/api"
+import { getSkVerificationUrl } from "@/utils/verification"
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater"
@@ -77,7 +78,7 @@ export default function MySkPage() {
       const base64 = res.value.split(";base64,")[1] || res.value
       const content = atob(base64)
 
-      const verificationUrl = `${window.location.origin}/verify/sk/${sk.nomor_sk}`
+      const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
       const renderData = {

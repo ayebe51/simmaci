@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\DataAuditController;
 use App\Http\Controllers\Api\ApprovalHistoryController;
 use App\Http\Controllers\Api\TeacherMutationController;
 use App\Http\Controllers\Api\SkTemplateController;
+use App\Http\Controllers\Api\SkVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,10 @@ Route::prefix('auth')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 });
+
+// ── Public SK Verification ──
+Route::get('verify/sk/{nomor}', [SkVerificationController::class, 'verifyBySk'])
+    ->where('nomor', '.*');
 
 // ── PPDB Public Registration ──
 Route::prefix('ppdb')->group(function () {

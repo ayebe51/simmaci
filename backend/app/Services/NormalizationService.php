@@ -48,6 +48,7 @@ class NormalizationService
         'SSI'       => 'S.Si.',
         'SKOM'      => 'S.Kom.',
         'SIP'       => 'S.IP.',
+        'SIPUST'    => 'S.I.Pust.',
         'SPSI'      => 'S.Psi.',
         'ST'        => 'S.T.',
         'SHUM'      => 'S.Hum.',

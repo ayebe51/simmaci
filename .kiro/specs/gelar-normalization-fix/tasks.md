@@ -62,3 +62,26 @@
   - Run full test suite: `php artisan test --filter=NormalizationServiceTest`
   - Ensure all tests pass, ask the user if questions arise.
   - Verify no regressions in existing functionality
+
+- [x] 5. Add S.I.Pust. (SIPUST) degree normalization
+
+  - [x] 5.1 Implement the fix
+    - Add `'SIPUST' => 'S.I.Pust.'` to DEGREE_MAP in NormalizationService.php (Sarjana Ilmu Perpustakaan)
+    - Place it in the Sarjana (S1) section alongside other S-prefix degrees
+    - Ensure proper ordering in DEGREE_MAP (longer keys before shorter ones via getDegreeMap())
+    - _Bug_Condition: isBugCondition(input) where input contains SIPUST or S.I.Pust._
+    - _Expected_Behavior: normalizeTeacherName returns name with "S.I.Pust." in canonical format_
+    - _Preservation: All existing degree normalizations must continue to work_
+    - _Requirements: 2.4, 3.1, 3.2, 3.3, 3.4, 3.5_
+
+  - [x] 5.2 Write and run bug condition test for S.I.Pust.
+    - Test that normalizeTeacherName("Dewi SIPUST") returns "DEWI, S.I.Pust."
+    - Test that normalizeTeacherName("Dewi S.I.Pust.") returns "DEWI, S.I.Pust."
+    - Test that normalizeTeacherName("Ahmad S.I.Pust. M.Pd.") returns "AHMAD, S.I.Pust., M.Pd."
+    - Run tests and verify they PASS after fix
+    - _Requirements: 2.4_
+
+  - [x] 5.3 Verify preservation tests still pass
+    - Re-run full test suite: `php artisan test --filter=NormalizationServiceTest`
+    - Confirm all existing tests still pass (no regressions)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_

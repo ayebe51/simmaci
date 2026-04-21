@@ -22,6 +22,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { skApi, authApi, settingApi } from "@/lib/api";
+import { getSkVerificationUrl } from "@/utils/verification";
 import {
   Dialog,
   DialogContent,
@@ -135,7 +136,7 @@ export default function SkRevisionListPage() {
       const content = atob(base64);
 
       // 2. Generate QR
-      const verificationUrl = `${window.location.origin}/verify/sk/${skDoc.nomor_sk}`;
+      const verificationUrl = getSkVerificationUrl(skDoc.nomor_sk);
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
 
       // 3. Document Data Mapping (Standardized)

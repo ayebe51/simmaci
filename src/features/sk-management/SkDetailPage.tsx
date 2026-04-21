@@ -24,6 +24,7 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { skApi, settingApi, authApi } from "@/lib/api";
+import { getSkVerificationUrl } from "@/utils/verification";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -158,7 +159,7 @@ export default function SkDetailPage() {
       const content = atob(realData);
 
       // Generate QR
-      const verificationUrl = `${window.location.origin}/verify/sk/${skDoc.nomor_sk}`;
+      const verificationUrl = getSkVerificationUrl(skDoc.nomor_sk);
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
 
       const pzip = new PizZip(content);

@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { skApi } from "@/lib/api"
+import { getSkVerificationUrl } from "@/utils/verification"
 import QRCode from "react-qr-code"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Printer, Loader2 } from "lucide-react"
@@ -30,7 +31,7 @@ export default function SkPrintPage() {
 
     if (!sk) return <div className="p-10 text-center font-bold text-red-500 uppercase tracking-widest">Data tidak ditemukan</div>
 
-    const verificationUrl = `${window.location.origin}/verify/sk/${sk.nomor_sk}`
+    const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
 
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8 print:bg-white print:py-0">

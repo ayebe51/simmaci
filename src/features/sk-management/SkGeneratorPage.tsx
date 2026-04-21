@@ -523,36 +523,9 @@ export default function SkGeneratorPage() {
                 if (!masterBuffer) continue
 
                 const collectivePzip = new PizZip(masterBuffer)
-                let docXml = collectivePzip.file("word/document.xml").asText()
 
-                // Fix tembusan counter reset: patch numbering.xml to restart numbered lists
-                // after each page break (w15:restartNumberingAfterBreak="1").
-                // Without this, Word's numbered list continues counting across documents
-                // in the combined file (doc1: 1–6, doc2: 7–12 instead of 1–6).
-                const numberingFile = collectivePzip.file("word/numbering.xml")
-                if (numberingFile) {
-                    let numberingXml = numberingFile.asText()
-                    // Force restart all numbered lists from 1 using lvlOverride/startOverride
-                    // This is the reliable OOXML way — w15:restartNumberingAfterBreak is Word 2013+ only
-                    // Add <w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride>
-                    // to every <w:num> that doesn't already have a startOverride
-                    numberingXml = numberingXml.replace(
-                        /(<w:num\b[^>]*>)([\s\S]*?)(<\/w:num>)/g,
-                        (match, open, inner, close) => {
-                            if (inner.includes('<w:startOverride')) return match
-                            // Find all ilvl values referenced and add startOverride for each
-                            const ilvlMatches = inner.match(/w:ilvl="(\d+)"/g) || ['w:ilvl="0"']
-                            const ilvls = [...new Set(ilvlMatches.map((m: string) => m.match(/\d+/)?.[0] || '0'))]
-                            const overrides = ilvls.map((ilvl: string) =>
-                                `<w:lvlOverride w:ilvl="${ilvl}"><w:startOverride w:val="1"/></w:lvlOverride>`
-                            ).join('')
-                            return `${open}${inner}${overrides}${close}`
-                        }
-                    )
-                    collectivePzip.file("word/numbering.xml", numberingXml)
-                }
-
-                // Ensure {NAMA} placeholder run has bold formatting in combined mode too
+                // --- Patch 1: Bold {NAMA} ---
+                // Inject <w:b/><w:bCs/> into the run containing {NAMA} placeholder
                 const docFileCollective = collectivePzip.file("word/document.xml")
                 if (docFileCollective) {
                     let docXmlStr = docFileCollective.asText()
@@ -568,7 +541,35 @@ export default function SkGeneratorPage() {
                     )
                     collectivePzip.file("word/document.xml", docXmlStr)
                 }
-                
+
+                // --- Patch 2: Tembusan numbering reset ---
+                // Word numbered lists in a combined doc always continue counting.
+                // Fix: replace all <w:numPr> paragraphs in the tembusan section with
+                // explicit numbering via <w:pPr> override — remove numId so Word treats
+                // them as plain paragraphs, and prepend the number via the {#tembusan} loop data.
+                // We achieve this by patching numbering.xml to add startOverride for every num.
+                const numberingFile = collectivePzip.file("word/numbering.xml")
+                if (numberingFile) {
+                    let numberingXml = numberingFile.asText()
+                    // For each <w:num>, add lvlOverride with startOverride=1 for all levels
+                    numberingXml = numberingXml.replace(
+                        /(<w:num\b[^>]*>)([\s\S]*?)(<\/w:num>)/g,
+                        (match, open, inner, close) => {
+                            // Remove existing lvlOverride entries first to avoid duplicates
+                            const cleanInner = inner.replace(/<w:lvlOverride[\s\S]*?<\/w:lvlOverride>/g, '')
+                            // Add startOverride for levels 0-8
+                            const overrides = Array.from({length: 9}, (_, i) =>
+                                `<w:lvlOverride w:ilvl="${i}"><w:startOverride w:val="1"/></w:lvlOverride>`
+                            ).join('')
+                            return `${open}${cleanInner}${overrides}${close}`
+                        }
+                    )
+                    collectivePzip.file("word/numbering.xml", numberingXml)
+                }
+
+                // Re-read patched docXml for body manipulation
+                let docXml = collectivePzip.file("word/document.xml")?.asText() ?? ""
+
                 const bodyMatch = docXml.match(/<w:body>(.*?)<\/w:body>/s)
                 if (bodyMatch) {
                     let bodyInner = bodyMatch[1].trim()

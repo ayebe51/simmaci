@@ -424,7 +424,18 @@ export default function SkGeneratorPage() {
                 "KECAMATAN": identity.kecamatan || "-",
                 "qrcode": qrCodeData,
                 "image": qrCodeData,
-                "PERIODE": periodeStr
+                "PERIODE": periodeStr,
+                // Array tembusan dengan nomor eksplisit — dipakai jika template menggunakan
+                // {#tembusan}{nomor}. {isi}{/tembusan} (plain paragraf, bukan numbered list Word)
+                // Ini satu-satunya cara agar nomor tembusan selalu reset ke 1 di mode gabung
+                "tembusan": [
+                    { nomor: 1, isi: "LP Ma'arif NU PWNU Jawa Tengah" },
+                    { nomor: 2, isi: "Pengurus Cabang NU Kabupaten Cilacap" },
+                    { nomor: 3, isi: `Pimpinan MWC LP Ma'arif NU ${identity.kecamatan || ""}`.trim() },
+                    { nomor: 4, isi: `Kepala ${identity.unit_kerja || ""}`.trim() },
+                    { nomor: 5, isi: `DP3MNU ${identity.unit_kerja || ""}`.trim() },
+                    { nomor: 6, isi: "Arsip" },
+                ]
             }
 
             if (combineInOneFile) {

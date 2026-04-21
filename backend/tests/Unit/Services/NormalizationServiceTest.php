@@ -438,6 +438,45 @@ class NormalizationServiceTest extends TestCase
 
     /**
      * @test
+     * @group bug-condition-exploration
+     *
+     * Bug Condition Exploration Test for missing S.I.Pust. degree recognition.
+     * This test validates that SIPUST / S.I.Pust. is correctly normalized.
+     *
+     * **Validates: Requirement 2.4**
+     *
+     * Bug Condition: S.I.Pust. (Sarjana Ilmu Perpustakaan) was not in DEGREE_MAP,
+     * causing the degree to be treated as part of the name rather than a recognized degree.
+     */
+    public function it_normalizes_sipust_degree_correctly(): void
+    {
+        // Test Case 1: SIPUST (no dots) — raw abbreviation as commonly entered
+        $result = $this->service->normalizeTeacherName('Dewi SIPUST');
+        $this->assertEquals(
+            'DEWI, S.I.Pust.',
+            $result,
+            "SIPUST should be recognized and normalized to canonical S.I.Pust."
+        );
+
+        // Test Case 2: S.I.Pust. (with dots) — already formatted input
+        $result = $this->service->normalizeTeacherName('Dewi S.I.Pust.');
+        $this->assertEquals(
+            'DEWI, S.I.Pust.',
+            $result,
+            "S.I.Pust. should be preserved in canonical format"
+        );
+
+        // Test Case 3: Combined with another degree
+        $result = $this->service->normalizeTeacherName('Ahmad S.I.Pust. M.Pd.');
+        $this->assertEquals(
+            'AHMAD, S.I.Pust., M.Pd.',
+            $result,
+            "S.I.Pust. combined with M.Pd. should both be recognized"
+        );
+    }
+
+    /**
+     * @test
      * @group degree-recognition
      */
     public function it_recognizes_all_supported_academic_degrees(): void

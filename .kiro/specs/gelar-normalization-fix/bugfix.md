@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationService. Gelar S.Pd.SD. (Sarjana Pendidikan untuk SD), A.Md. (Ahli Madya), dan A.Ma. (Ahli Madya) tidak dikenali atau salah diformat, menyebabkan data guru menjadi tidak konsisten.
+Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationService. Gelar S.Pd.SD. (Sarjana Pendidikan untuk SD), A.Md. (Ahli Madya), A.Ma. (Ahli Madya), dan S.I.Pust. (Sarjana Ilmu Perpustakaan) tidak dikenali atau salah diformat, menyebabkan data guru menjadi tidak konsisten.
 
 ## Bug Analysis
 
@@ -14,6 +14,8 @@ Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationServi
 
 1.3 WHEN normalizing "A.Ma." in certain input formats THEN the system may not recognize it correctly due to parsing order issues
 
+1.4 WHEN normalizing "SIPUST" or "S.I.Pust." THEN the system does not recognize it as a degree and fails to normalize it to "S.I.Pust."
+
 ### Expected Behavior (Correct)
 
 2.1 WHEN normalizing "S.Pd.SD." THEN the system SHALL preserve it as "S.Pd.SD."
@@ -21,6 +23,8 @@ Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationServi
 2.2 WHEN normalizing "A.Md." THEN the system SHALL preserve it as "A.Md."
 
 2.3 WHEN normalizing "A.Ma." THEN the system SHALL preserve it as "A.Ma."
+
+2.4 WHEN normalizing "SIPUST" or "S.I.Pust." THEN the system SHALL normalize it to "S.I.Pust."
 
 ### Unchanged Behavior (Regression Prevention)
 

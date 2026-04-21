@@ -433,7 +433,7 @@ export default function SkGeneratorPage() {
                     { nomor: 2, isi: "Pengurus Cabang NU Kabupaten Cilacap" },
                     { nomor: 3, isi: `Pimpinan MWC LP Ma'arif NU ${identity.kecamatan || ""}`.trim() },
                     { nomor: 4, isi: `Kepala ${identity.unit_kerja || ""}`.trim() },
-                    { nomor: 5, isi: `DP3MNU ${identity.unit_kerja || ""}`.trim() },
+                    { nomor: 5, isi: `BP3MNU ${identity.unit_kerja || ""}`.trim() },
                     { nomor: 6, isi: "Arsip" },
                 ]
             }

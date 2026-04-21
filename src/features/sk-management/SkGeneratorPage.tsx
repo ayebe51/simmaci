@@ -435,6 +435,44 @@ export default function SkGeneratorPage() {
                 allItemsByGroup[templateId].push(renderData)
             } else {
                 const pzip = new PizZip(cached.binary)
+
+                // Reset numbered list counters in numbering.xml so tembusan always starts from 1
+                // Without this, Word's numbering state carries over between documents in the same batch
+                const numberingFile = pzip.file("word/numbering.xml")
+                if (numberingFile) {
+                    let numberingXml = numberingFile.asText()
+                    // Remove any override start values so numbering restarts from the abstractNum default (1)
+                    numberingXml = numberingXml.replace(/<w:startOverride[^/]*/g, '<w:startOverride w:val="1"')
+                    // Also patch lvlOverride to force restart
+                    numberingXml = numberingXml.replace(
+                        /(<w:lvlOverride\b[^>]*>)(?![\s\S]*?<w:startOverride)/g,
+                        '$1<w:startOverride w:val="1"/>'
+                    )
+                    pzip.file("word/numbering.xml", numberingXml)
+                }
+
+                // Ensure {NAMA} placeholder run has bold formatting (<w:b/> and <w:bCs/>)
+                // This fixes templates where {NAMA} was written without bold formatting applied
+                const docFile = pzip.file("word/document.xml")
+                if (docFile) {
+                    let docXmlStr = docFile.asText()
+                    // Find runs containing {NAMA} (with optional spaces) and add <w:b/><w:bCs/> if missing
+                    docXmlStr = docXmlStr.replace(
+                        /(<w:r\b[^>]*>)((?:(?!<\/w:r>)[\s\S])*?\{[\s]*NAMA[\s]*\}[\s\S]*?<\/w:r>)/g,
+                        (match, openTag, rest) => {
+                            // If already has <w:b/> or <w:b w:val, skip
+                            if (rest.includes('<w:b/>') || rest.includes('<w:b w:val')) return match
+                            // Add <w:rPr> with bold if no <w:rPr> exists
+                            if (!rest.includes('<w:rPr>') && !rest.includes('<w:rPr ')) {
+                                return `${openTag}<w:rPr><w:b/><w:bCs/></w:rPr>${rest}`
+                            }
+                            // Inject <w:b/><w:bCs/> inside existing <w:rPr>
+                            return match.replace(/<w:rPr([\s\S]*?)>/, '<w:rPr$1><w:b/><w:bCs/>')
+                        }
+                    )
+                    pzip.file("word/document.xml", docXmlStr)
+                }
+
                 const doc = new Docxtemplater(pzip, {
                     paragraphLoop: true,
                     linebreaks: true,

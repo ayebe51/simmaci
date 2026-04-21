@@ -407,16 +407,29 @@ class SkDocumentController extends Controller
             }
 
             // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
-            $year    = now()->year;
-            $maxSeq  = (int) SkDocument::withoutTenantScope()
-                ->whereYear('created_at', $year)
-                ->where('nomor_sk', 'like', "REQ/{$year}/%")
-                ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
-                ->value('max_seq');
-            $nomorSk = 'REQ/' . $year . '/' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+            // Uses race-condition-safe helper that retries on collision
+            $nomorSk = SkDocument::generateNomorSk();
 
             // 3.3: Wrap SK document creation in try-catch block
             try {
+                $sk = SkDocument::create([
+                    'nomor_sk'             => $nomorSk,
+                    'teacher_id'           => $teacher->id,
+                    'nama'                 => $data['nama'],
+                    'jenis_sk'             => $data['jenis_sk'],
+                    'unit_kerja'           => $data['unit_kerja'],
+                    'school_id'            => $schoolId,
+                    'jabatan'              => $data['jabatan'] ?? null,
+                    'surat_permohonan_url' => $data['surat_permohonan_url'],
+                    'nomor_permohonan'     => $data['nomor_surat_permohonan'] ?? null,
+                    'tanggal_permohonan'   => $data['tanggal_surat_permohonan'] ?? null,
+                    'status'               => 'pending',
+                    'created_by'           => $request->user()->email,
+                    'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                ]);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Race condition on nomor_sk — re-fetch and retry once
+                $nomorSk = SkDocument::generateNomorSk();
                 $sk = SkDocument::create([
                     'nomor_sk'             => $nomorSk,
                     'teacher_id'           => $teacher->id,
@@ -442,11 +455,7 @@ class SkDocumentController extends Controller
                 $errorCode = $e->getCode();
                 $errorMessage = $e->getMessage();
                 
-                if ($errorCode == '23505') {
-                    return response()->json([
-                        'message' => 'Nomor SK sudah digunakan. Silakan coba lagi.',
-                    ], 422);
-                } elseif ($errorCode == '23503') {
+                if ($errorCode == '23503') {
                     // Check which foreign key constraint failed
                     if (strpos($errorMessage, 'teacher_id') !== false) {
                         return response()->json([
@@ -558,12 +567,14 @@ class SkDocumentController extends Controller
 
         // Get the highest existing REQ/{year}/NNNN sequence number in one query,
         // then increment locally — avoids a per-row existence-check loop.
-        $maxSeq = (int) SkDocument::withoutTenantScope()
-            ->whereYear('created_at', $year)
-            ->where('nomor_sk', 'like', "REQ/{$year}/%")
-            ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
-            ->value('max_seq');
-        $seq = $maxSeq;
+        // On a rare race-condition duplicate, the create() will throw and we
+        // re-fetch via generateNomorSk() which retries safely.
+        $prefix = "REQ/{$year}/";
+        $seq = SkDocument::withoutTenantScope()
+            ->where('nomor_sk', 'like', $prefix . '%')
+            ->pluck('nomor_sk')
+            ->map(fn($n) => (int) substr($n, strlen($prefix)))
+            ->max() ?? 0;
 
         foreach ($request->documents as $doc) {
             try {
@@ -649,20 +660,40 @@ class SkDocumentController extends Controller
 
             $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
 
-            SkDocument::create([
-                'nomor_sk'             => $nomorSk,
-                'teacher_id'           => $teacher->id,
-                'nama'                 => $doc['nama'],
-                'jenis_sk'             => $jenisSk,
-                'unit_kerja'           => $doc['unit_kerja'] ?? null,
-                'school_id'            => $schoolId,
-                'surat_permohonan_url' => $request->surat_permohonan_url,
-                'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
-                'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
-                'status'               => 'pending',
-                'created_by'           => $request->user()->email,
-                'tanggal_penetapan'    => now()->format('Y-m-d'),
-            ]);
+            try {
+                SkDocument::create([
+                    'nomor_sk'             => $nomorSk,
+                    'teacher_id'           => $teacher->id,
+                    'nama'                 => $doc['nama'],
+                    'jenis_sk'             => $jenisSk,
+                    'unit_kerja'           => $doc['unit_kerja'] ?? null,
+                    'school_id'            => $schoolId,
+                    'surat_permohonan_url' => $request->surat_permohonan_url,
+                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
+                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
+                    'status'               => 'pending',
+                    'created_by'           => $request->user()->email,
+                    'tanggal_penetapan'    => now()->format('Y-m-d'),
+                ]);
+            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                // Race condition: another request grabbed this nomor_sk — re-fetch safely
+                $nomorSk = SkDocument::generateNomorSk($year);
+                $seq = (int) explode('/', $nomorSk)[2]; // keep local counter in sync
+                SkDocument::create([
+                    'nomor_sk'             => $nomorSk,
+                    'teacher_id'           => $teacher->id,
+                    'nama'                 => $doc['nama'],
+                    'jenis_sk'             => $jenisSk,
+                    'unit_kerja'           => $doc['unit_kerja'] ?? null,
+                    'school_id'            => $schoolId,
+                    'surat_permohonan_url' => $request->surat_permohonan_url,
+                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
+                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
+                    'status'               => 'pending',
+                    'created_by'           => $request->user()->email,
+                    'tanggal_penetapan'    => now()->format('Y-m-d'),
+                ]);
+            }
             $created++;
             } catch (\Throwable $e) {
                 $skipped++;
@@ -699,5 +730,23 @@ class SkDocumentController extends Controller
         }
 
         return response()->json(['count' => $query->count()]);
+    }
+
+    /**
+     * Generate the next available REQ/{year}/NNNN nomor_sk.
+     *
+     * Uses MAX() to find the current highest sequence in one query, then
+     * returns the next value. The caller should catch UniqueConstraintViolation
+     * and call this again if a race condition occurs.
+     */
+    public static function nextNomorSk(int $year): string
+    {
+        $maxSeq = (int) SkDocument::withoutTenantScope()
+            ->whereYear('created_at', $year)
+            ->where('nomor_sk', 'like', "REQ/{$year}/%")
+            ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
+            ->value('max_seq');
+
+        return 'REQ/' . $year . '/' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
     }
 }

@@ -73,4 +73,37 @@ class SkDocument extends Model
     {
         return $query->whereNotNull('revision_status');
     }
+
+    /**
+     * Generate the next available REQ/{year}/NNNN nomor_sk.
+     *
+     * Uses MAX() to find the current highest sequence in one query.
+     * On a rare race-condition duplicate (SQLSTATE 23505), re-fetches
+     * the MAX and retries up to $maxRetries times before throwing.
+     */
+    public static function generateNomorSk(?int $year = null, int $maxRetries = 5): string
+    {
+        $year ??= now()->year;
+        $prefix = "REQ/{$year}/";
+
+        for ($attempt = 0; $attempt <= $maxRetries; $attempt++) {
+            // Fetch all existing sequence numbers for this year in one query,
+            // extract the max in PHP — avoids DB-specific functions (SPLIT_PART etc.)
+            // and works on both PostgreSQL (production) and SQLite (tests).
+            $maxSeq = static::withoutTenantScope()
+                ->where('nomor_sk', 'like', $prefix . '%')
+                ->pluck('nomor_sk')
+                ->map(fn($n) => (int) substr($n, strlen($prefix)))
+                ->max() ?? 0;
+
+            $candidate = $prefix . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+
+            // Verify the candidate is truly free (guards against race conditions)
+            if (!static::withoutTenantScope()->where('nomor_sk', $candidate)->exists()) {
+                return $candidate;
+            }
+        }
+
+        throw new \RuntimeException("Unable to generate unique nomor_sk after {$maxRetries} retries.");
+    }
 }

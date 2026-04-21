@@ -61,6 +61,25 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
         foreach ($this->documents as $index => $doc) {
             try {
+                // PNS auto-rejection: SK for PNS is issued by the government, not LP Ma'arif NU
+                if ($this->isPns($doc)) {
+                    $seq++;
+                    $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                    SkDocument::create([
+                        'nomor_sk'         => $nomorSk,
+                        'nama'             => $doc['nama'],
+                        'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'PNS',
+                        'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                        'school_id'        => $this->userSchoolId,
+                        'status'           => 'rejected',
+                        'rejection_reason' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
+                        'created_by'       => $this->userEmail,
+                        'tanggal_penetapan'=> now()->format('Y-m-d'),
+                    ]);
+                    $skipped++;
+                    continue;
+                }
+
                 // Normalize school name and teacher name before processing
                 $doc['unit_kerja'] = $normalizationService->normalizeSchoolName($doc['unit_kerja'] ?? null);
                 $doc['nama'] = $normalizationService->normalizeTeacherName($doc['nama']);
@@ -222,5 +241,25 @@ class ProcessBulkSkSubmission implements ShouldQueue
             'error' => $exception->getMessage(),
             'trace' => $exception->getTraceAsString(),
         ]);
+    }
+
+    /**
+     * Detects whether a submission document belongs to a PNS/ASN civil servant.
+     *
+     * Detection criteria (either is sufficient):
+     *   1. status_kepegawaian or status field contains "pns" or "asn" (case-insensitive)
+     *   2. nip field contains exactly 18 digits (standard Indonesian PNS NIP format)
+     *
+     * SK for PNS is issued by the government, not by LP Ma'arif NU.
+     * PNS submissions must be rejected at intake to prevent erroneous SK issuance.
+     */
+    private function isPns(array $doc): bool
+    {
+        $status = strtolower($doc['status_kepegawaian'] ?? $doc['status'] ?? '');
+        $nip    = preg_replace('/\D/', '', $doc['nip'] ?? '');
+
+        return str_contains($status, 'pns')
+            || str_contains($status, 'asn')
+            || strlen($nip) === 18;
     }
 }

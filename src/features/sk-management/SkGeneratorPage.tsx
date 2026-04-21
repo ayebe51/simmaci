@@ -54,6 +54,21 @@ interface TeacherCandidate {
     [key: string]: any; 
 }
 
+interface FailedSyncItem {
+    id: number
+    nama: string
+    nomorSk: string
+    syncPayload: {
+        nomor_sk: string
+        status: string
+        tanggal_penetapan: string
+        tahun_ajaran: string
+        file_url: string
+    }
+    teacherId?: number
+    errorMsg: string
+}
+
 // Helper: Convert Base64 DataURL to ArrayBuffer (Required by ImageModule)
 function base64DataURLToArrayBuffer(dataURL: string) {
   const base64Regex = /^data:image\/(png|jpg|svg|svg\+xml);base64,/;
@@ -95,6 +110,8 @@ export default function SkGeneratorPage() {
   const [page, setPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [isGenerating, setIsGenerating] = useState(false)
+  const [failedSyncItems, setFailedSyncItems] = useState<FailedSyncItem[]>([])
+  const [isRetrying, setIsRetrying] = useState(false)
   
   // Settings States
   const [nomorMulai, setNomorMulai] = useState("0001")
@@ -173,6 +190,7 @@ export default function SkGeneratorPage() {
     }
 
     setIsGenerating(true)
+    const pendingFailedSync: FailedSyncItem[] = []
     try {
         const selectedTeachers = (candidatesData?.data || []).filter((t: any) => selectedIds.has(t.id))
         const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
@@ -219,22 +237,43 @@ export default function SkGeneratorPage() {
             const t = selectedTeachers[i]
             const teacher = t.teacher || {}
             
-            // 1. Determine Template - Prioritize status, fallback to jenis_sk
-            const teacherStatus = (teacher.status || "").toLowerCase();
+            // 1. Determine Template
+            // Status source: sk_document.status_kepegawaian takes priority over teacher.status
+            const statusRaw = (t.status_kepegawaian || teacher.status || "").toLowerCase()
             const jenis = (t.jenis_sk || "").toLowerCase()
-            
+            const pendidikan = (t.pendidikan_terakhir || teacher.pendidikan_terakhir || "").toLowerCase()
+
+            const isGty   = statusRaw.includes("gty") || statusRaw.includes("tetap yayasan") ||
+                            jenis.includes("gty")     || jenis.includes("tetap yayasan")
+            const isKamad = statusRaw.includes("kamad") || statusRaw.includes("kepala") ||
+                            jenis.includes("kamad")     || jenis.includes("kepala")
+            const isGtt   = statusRaw.includes("gtt") || statusRaw.includes("tidak tetap") ||
+                            jenis.includes("gtt")     || jenis.includes("tidak tetap")
+            const isEmpty = statusRaw === "" && jenis === ""
+
+            // Pendidikan di bawah S1: SMA/MA, D1, D2, D3 — bukan S1/S2/S3/D4
+            const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
+            const isBelowS1 = pendidikan !== "" && !PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
+
             let templateId = "sk_template_tendik" // Default
-            
-            if (teacherStatus.includes("gty") || teacherStatus.includes("tetap yayasan") || 
-                jenis.includes("gty") || jenis.includes("tetap yayasan")) {
+
+            if (isGty || isKamad) {
+                // Kamad is GTY — SK massal for Kamad uses GTY template
                 templateId = "sk_template_gty"
-            } else if (teacherStatus.includes("gtt") || teacherStatus.includes("tidak tetap") || 
-                       jenis.includes("gtt") || jenis.includes("tidak tetap") || 
-                       jenis.includes("tidak tetap") || teacherStatus.includes("guru")) {
+            } else if (isGtt) {
                 templateId = "sk_template_gtt"
-            } else if (teacherStatus.includes("kamad") || teacherStatus.includes("kepala") || 
-                       jenis.includes("kamad") || jenis.includes("kepala")) {
-                templateId = "sk_template_kamad"
+            } else if (isEmpty) {
+                // Fallback: use TMT to determine GTY vs GTT
+                // TMT >= 2 years → GTY, TMT < 2 years or empty → GTT (safe default)
+                const tmtForTemplate = t.tmt || teacher.tmt
+                const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanVal) : 0
+                templateId = periodeForTemplate >= 2 ? "sk_template_gty" : "sk_template_gtt"
+            } else if (isBelowS1) {
+                // Unrecognized status + pendidikan below S1 → Tendik
+                templateId = "sk_template_tendik"
+            } else {
+                // Unrecognized status + pendidikan S1 or above → GTT (safe default)
+                templateId = "sk_template_gtt"
             }
             
             // 2. Fetch Template if not cached
@@ -280,7 +319,7 @@ export default function SkGeneratorPage() {
 
             const generatedNomor = nomorFormat
                 .replace(/{NOMOR}/g, seqStr)
-                .replace(/{PERIODE}/g, templateId !== "sk_template_kamad" ? periodeStr : "")
+                .replace(/{PERIODE}/g, periodeStr)
                 .replace(/{BULAN}/g, String(dateObj.getMonth() + 1))
                 .replace(/{BL_ROMA}/g, mmRoma)
                 .replace(/{TAHUN}/g, String(yyyy))
@@ -385,7 +424,7 @@ export default function SkGeneratorPage() {
                 "KECAMATAN": identity.kecamatan || "-",
                 "qrcode": qrCodeData,
                 "image": qrCodeData,
-                "PERIODE": templateId !== "sk_template_kamad" ? periodeStr : ""
+                "PERIODE": periodeStr
             }
 
             if (combineInOneFile) {
@@ -413,19 +452,29 @@ export default function SkGeneratorPage() {
             }
 
             // Sync to Backend
+            const syncPayload = {
+                nomor_sk: generatedNomor,
+                status: "approved",
+                tanggal_penetapan: formatDateIndo(tanggalPenetapan),
+                tahun_ajaran: tahunAjaran,
+                file_url: combineInOneFile ? "Generated via Bulk (Collective Group)" : "Generated via Bulk (ZIP)"
+            }
             try {
-                await updateSkMutation.mutateAsync({
-                    id: t.id,
-                    data: {
-                        nomor_sk: generatedNomor,
-                        status: "approved",
-                        tanggal_penetapan: formatDateIndo(tanggalPenetapan),
-                        tahun_ajaran: tahunAjaran,
-                        file_url: combineInOneFile ? "Generated via Bulk (Collective Group)" : "Generated via Bulk (ZIP)"
-                    }
-                })
+                await updateSkMutation.mutateAsync({ id: t.id, data: syncPayload })
                 if (t.teacher_id) await markVerifiedMutation.mutateAsync(t.teacher_id)
-            } catch (err) {}
+            } catch (err: any) {
+                // SK sudah tercetak tapi gagal tersimpan — kumpulkan untuk retry di akhir
+                const errMsg = err?.response?.data?.message || err?.message || "Network error"
+                console.error(`[SK Generator] Sync backend gagal untuk ${generatedNomor}:`, err)
+                pendingFailedSync.push({
+                    id: t.id,
+                    nama: teacher.nama || t.nama || "?",
+                    nomorSk: generatedNomor,
+                    syncPayload,
+                    teacherId: t.teacher_id,
+                    errorMsg: errMsg,
+                })
+            }
         }
 
         if (combineInOneFile) {
@@ -436,6 +485,27 @@ export default function SkGeneratorPage() {
                 if (!masterBuffer) continue
 
                 const collectivePzip = new PizZip(masterBuffer)
+                let docXml = collectivePzip.file("word/document.xml").asText()
+
+                // Fix tembusan counter reset: patch numbering.xml to restart numbered lists
+                // after each page break (w15:restartNumberingAfterBreak="1").
+                // Without this, Word's numbered list continues counting across documents
+                // in the combined file (doc1: 1–6, doc2: 7–12 instead of 1–6).
+                const numberingFile = collectivePzip.file("word/numbering.xml")
+                if (numberingFile) {
+                    let numberingXml = numberingFile.asText()
+                    // Set restartNumberingAfterBreak="1" on all abstractNum elements
+                    numberingXml = numberingXml.replace(
+                        /(<w:abstractNum\b[^>]*?)w15:restartNumberingAfterBreak="0"/g,
+                        '$1w15:restartNumberingAfterBreak="1"'
+                    )
+                    // Also handle cases where the attribute is missing — add it
+                    numberingXml = numberingXml.replace(
+                        /(<w:abstractNum\b(?![^>]*w15:restartNumberingAfterBreak)[^>]*)>/g,
+                        '$1 w15:restartNumberingAfterBreak="1">'
+                    )
+                    collectivePzip.file("word/numbering.xml", numberingXml)
+                }
                 let docXml = collectivePzip.file("word/document.xml").asText()
                 
                 const bodyMatch = docXml.match(/<w:body>(.*?)<\/w:body>/s)
@@ -494,11 +564,40 @@ export default function SkGeneratorPage() {
         toast.success("Berhasil generate SK.")
         queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
         setSelectedIds(new Set())
+        // Tampilkan dialog retry jika ada SK yang gagal sync ke database
+        if (pendingFailedSync.length > 0) {
+            setFailedSyncItems(pendingFailedSync)
+        }
     } catch (error: any) {
         console.error(error)
         toast.error("Gagal generate SK: " + (error.message || "Unknown error"))
     } finally {
         setIsGenerating(false)
+    }
+  }
+
+  // Retry sync untuk SK yang gagal tersimpan ke database
+  const handleRetrySync = async () => {
+    if (failedSyncItems.length === 0) return
+    setIsRetrying(true)
+    const stillFailed: FailedSyncItem[] = []
+    for (const item of failedSyncItems) {
+        try {
+            await updateSkMutation.mutateAsync({ id: item.id, data: item.syncPayload })
+            if (item.teacherId) await markVerifiedMutation.mutateAsync(item.teacherId)
+        } catch (err: any) {
+            const errMsg = err?.response?.data?.message || err?.message || "Network error"
+            stillFailed.push({ ...item, errorMsg: errMsg })
+        }
+    }
+    setIsRetrying(false)
+    if (stillFailed.length === 0) {
+        toast.success("Semua SK berhasil disinkronkan ke database.")
+        setFailedSyncItems([])
+        queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
+    } else {
+        setFailedSyncItems(stillFailed)
+        toast.error(`${stillFailed.length} SK masih gagal sync. Coba lagi atau catat manual.`)
     }
   }
 
@@ -647,6 +746,50 @@ export default function SkGeneratorPage() {
       <div className="fixed bottom-4 right-4 text-[8px] font-black text-slate-300 uppercase tracking-widest pointer-events-none opacity-50">
           Simmaci Engine v1.1 - Final Data Patch
       </div>
+
+      {/* Dialog: Retry Sync untuk SK yang gagal tersimpan ke database */}
+      <Dialog open={failedSyncItems.length > 0} onOpenChange={(open) => { if (!open && !isRetrying) setFailedSyncItems([]) }}>
+        <DialogContent className="max-w-lg rounded-[2rem] p-8 border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-amber-600 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              {failedSyncItems.length} SK Gagal Tersimpan
+            </DialogTitle>
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              SK berhasil dicetak tapi belum tercatat di database arsip
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2 max-h-64 overflow-y-auto">
+            {failedSyncItems.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-800 truncate">{item.nama}</p>
+                  <p className="text-[10px] font-bold text-slate-500 font-mono mt-0.5">{item.nomorSk}</p>
+                  <p className="text-[10px] text-amber-600 mt-0.5">{item.errorMsg}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setFailedSyncItems([])}
+              disabled={isRetrying}
+              className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400"
+            >
+              Tutup
+            </Button>
+            <Button
+              onClick={handleRetrySync}
+              disabled={isRetrying}
+              className="h-12 px-8 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-amber-100"
+            >
+              {isRetrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              Retry Sync ({failedSyncItems.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

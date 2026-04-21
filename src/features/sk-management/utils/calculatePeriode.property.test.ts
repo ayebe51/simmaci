@@ -30,11 +30,12 @@ const N_VALUES = [0, 1, 2, 5, 10, 20, 26, 30]
 describe('calculatePeriode — property tests', () => {
   /**
    * Property 1: Simetri Tepat Satu Tahun
-   * Jika tanggalCetak tepat N tahun setelah TMT (hari & bulan sama), hasil = N.
+   * Jika tanggalCetak berada di tahun TMT + N (berapapun bulan/harinya), hasil = N.
+   * Karena hanya selisih tahun yang diperhitungkan.
    *
    * **Validates: Requirements 2.4, 2.6**
    */
-  it('Property 1: Simetri Tepat Satu Tahun — cetak tepat N tahun setelah TMT → N', () => {
+  it('Property 1: Simetri Tepat Satu Tahun — cetak di tahun TMT+N → N', () => {
     for (const tmtYear of TMT_YEARS) {
       for (const month of MONTHS) {
         for (const day of DAYS) {
@@ -94,13 +95,14 @@ describe('calculatePeriode — property tests', () => {
   })
 
   /**
-   * Property 3: Floor — hasil ≤ selisih tahun kalender (cetak.year - tmt.year)
+   * Property 3: Hasil = selisih tahun kalender (cetak.year - tmt.year)
+   * Karena bulan dan hari diabaikan, hasil selalu persis sama dengan selisih tahun.
    * Properti ini hanya berlaku ketika cetak.year ≥ tmt.year (kasus normal).
    * Ketika cetak lebih awal dari TMT, hasil di-clamp ke 0 oleh Math.max (Property 4).
    *
    * **Validates: Requirements 2.6**
    */
-  it('Property 3: Floor — hasil ≤ selisih tahun kalender', () => {
+  it('Property 3: Hasil = selisih tahun kalender', () => {
     const cetakDates = [
       makeDate(2010, 3, 15),
       makeDate(2015, 7, 1),
@@ -119,11 +121,11 @@ describe('calculatePeriode — property tests', () => {
 
           for (const cetak of cetakDates) {
             const calendarDiff = cetak.getFullYear() - tmtYear
-            // Properti floor hanya bermakna ketika cetak tidak lebih awal dari TMT
+            // Properti hanya bermakna ketika cetak tidak lebih awal dari TMT
             if (calendarDiff < 0) continue
 
             const result = calculatePeriode(tmt, cetak)
-            expect(result, `TMT=${tmt}, cetak=${cetak.toISOString()}`).toBeLessThanOrEqual(calendarDiff)
+            expect(result, `TMT=${tmt}, cetak=${cetak.toISOString()}`).toBe(calendarDiff)
           }
         }
       }

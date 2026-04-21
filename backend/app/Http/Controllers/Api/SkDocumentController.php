@@ -345,6 +345,29 @@ class SkDocumentController extends Controller
                 ], 400);
             }
 
+            // PNS auto-rejection: SK for PNS is issued by the government, not LP Ma'arif NU
+            if ($this->isPns($data)) {
+                $nomorSk = SkDocument::generateNomorSk();
+                $sk = SkDocument::create([
+                    'nomor_sk'             => $nomorSk,
+                    'nama'                 => $data['nama'],
+                    'jenis_sk'             => $data['jenis_sk'],
+                    'unit_kerja'           => $data['unit_kerja'],
+                    'school_id'            => $request->user()->role === 'operator'
+                                                ? $request->user()->school_id
+                                                : (School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->value('id')),
+                    'surat_permohonan_url' => $data['surat_permohonan_url'],
+                    'status'               => 'rejected',
+                    'rejection_reason'     => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
+                    'created_by'           => $request->user()->email,
+                    'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                ]);
+                return response()->json([
+                    'message' => 'Pengajuan ditolak: PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
+                    'sk'      => $sk,
+                ], 422);
+            }
+
             // Case-insensitive school lookup with normalized name
             // Use database-agnostic case-insensitive comparison
             $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->first();
@@ -578,6 +601,24 @@ class SkDocumentController extends Controller
 
         foreach ($request->documents as $doc) {
             try {
+            // PNS auto-rejection: SK for PNS is issued by the government, not LP Ma'arif NU
+            if ($this->isPns($doc)) {
+                $seq++;
+                $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                SkDocument::create([
+                    'nomor_sk'         => $nomorSk,
+                    'nama'             => $doc['nama'],
+                    'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'PNS',
+                    'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                    'school_id'        => $request->user()->role === 'operator' ? $request->user()->school_id : null,
+                    'status'           => 'rejected',
+                    'rejection_reason' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
+                    'created_by'       => $request->user()->email,
+                    'tanggal_penetapan'=> now()->format('Y-m-d'),
+                ]);
+                $skipped++;
+                continue;
+            }
             // Normalize school name and teacher name before processing
             $originalUnitKerja = $doc['unit_kerja'] ?? null;
             $originalNama = $doc['nama'];
@@ -748,5 +789,25 @@ class SkDocumentController extends Controller
             ->value('max_seq');
 
         return 'REQ/' . $year . '/' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Detects whether a submission document belongs to a PNS/ASN civil servant.
+     *
+     * Detection criteria (either is sufficient):
+     *   1. status_kepegawaian or status field contains "pns" or "asn" (case-insensitive)
+     *   2. nip field contains exactly 18 digits (standard Indonesian PNS NIP format)
+     *
+     * SK for PNS is issued by the government, not by LP Ma'arif NU.
+     * PNS submissions must be rejected at intake to prevent erroneous SK issuance.
+     */
+    private function isPns(array $doc): bool
+    {
+        $status = strtolower($doc['status_kepegawaian'] ?? $doc['status'] ?? '');
+        $nip    = preg_replace('/\D/', '', $doc['nip'] ?? '');
+
+        return str_contains($status, 'pns')
+            || str_contains($status, 'asn')
+            || strlen($nip) === 18;
     }
 }

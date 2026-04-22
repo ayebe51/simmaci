@@ -133,12 +133,22 @@ services:
       CORS_ALLOWED_ORIGINS: https://simmaci.com
     networks:
       - simmaci-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/index.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`api.simmaci.com`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=80"
+      - "traefik.http.services.backend.loadbalancer.serversTransport=backend-transport"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.idleConnTimeout=60s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=60s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=60s"
 
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:

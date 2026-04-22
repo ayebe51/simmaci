@@ -260,20 +260,15 @@ export default function SkGeneratorPage() {
             if (isGty || isKamad) {
                 // Kamad is GTY — SK massal for Kamad uses GTY template
                 templateId = "sk_template_gty"
-            } else if (isGtt) {
-                templateId = "sk_template_gtt"
-            } else if (isEmpty) {
-                // Fallback: use TMT to determine GTY vs GTT
-                // TMT >= 2 years → GTY, TMT < 2 years or empty → GTT (safe default)
+            } else if (isGtt || isEmpty || (!isGty && !isKamad && !isBelowS1)) {
+                // GTT status, empty status, or unrecognized status:
+                // TMT always overrides — TMT >= 2 years → GTY, TMT < 2 years → GTT
                 const tmtForTemplate = t.tmt || teacher.tmt
                 const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanVal) : 0
                 templateId = periodeForTemplate >= 2 ? "sk_template_gty" : "sk_template_gtt"
             } else if (isBelowS1) {
                 // Unrecognized status + pendidikan below S1 → Tendik
                 templateId = "sk_template_tendik"
-            } else {
-                // Unrecognized status + pendidikan S1 or above → GTT (safe default)
-                templateId = "sk_template_gtt"
             }
             
             // 2. Fetch Template if not cached

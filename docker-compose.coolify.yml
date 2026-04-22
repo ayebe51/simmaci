@@ -59,6 +59,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=simmaci-network"
+      # MinIO API (port 9000)
+      - "traefik.http.routers.minio-api.rule=Host(`minio.simmaci.com`)"
+      - "traefik.http.routers.minio-api.entrypoints=websecure"
+      - "traefik.http.routers.minio-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
+      - "traefik.http.services.minio-api.loadbalancer.server.scheme=http"
+      # MinIO Console (port 9001)
+      - "traefik.http.routers.minio-console.rule=Host(`minio-console.simmaci.com`)"
+      - "traefik.http.routers.minio-console.entrypoints=websecure"
+      - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
+      - "traefik.http.services.minio-console.loadbalancer.server.scheme=http"
 
   # ── MinIO bucket setup (runs once) ────────────────────────
   createbuckets:
@@ -145,7 +160,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
-        VITE_STORAGE_URL: https://simmaci.com/simmaci-storage
+        VITE_STORAGE_URL: https://minio.simmaci.com/simmaci-storage
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     container_name: simmaci-frontend
     restart: unless-stopped
@@ -164,6 +179,12 @@ services:
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      # MinIO proxy via frontend
+      - "traefik.http.routers.minio.rule=Host(`minio.simmaci.com`)"
+      - "traefik.http.routers.minio.entrypoints=websecure"
+      - "traefik.http.routers.minio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.minio.loadbalancer.server.port=9000"
+      - "traefik.http.middlewares.minio-stripprefix.stripprefix.prefixes=/minio"
 
 networks:
   simmaci-network:

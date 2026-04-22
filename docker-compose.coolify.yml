@@ -101,11 +101,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       APP_NAME: "SIM Maarif"
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: ${APP_URL:-https://api.yourdomain.com}
+      APP_URL: https://api.simmaci.com
       APP_KEY: ${APP_KEY}
       DB_CONNECTION: pgsql
       DB_HOST: db
@@ -126,10 +128,16 @@ services:
       AWS_ENDPOINT: ${MINIO_PUBLIC_URL}
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       LOG_CHANNEL: stderr
-      SANCTUM_STATEFUL_DOMAINS: ${FRONTEND_DOMAIN:-yourdomain.com}
-      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:-https://yourdomain.com}
+      SANCTUM_STATEFUL_DOMAINS: simmaci.com
+      CORS_ALLOWED_ORIGINS: https://simmaci.com
     networks:
       - simmaci-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.simmaci.com`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=80"
 
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:
@@ -137,22 +145,25 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # VITE_API_URL: relative /api works because nginx proxies /api → backend
         VITE_API_URL: /api
-        VITE_STORAGE_URL: /storage
+        VITE_STORAGE_URL: ${MINIO_PUBLIC_URL}/simmaci-storage
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     container_name: simmaci-frontend
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      # nginx entrypoint uses this to proxy /api → backend container
       BACKEND_URL: http://backend
-    # No ports exposed — Coolify's Traefik handles routing via domain labels
     expose:
       - "80"
     networks:
       - simmaci-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`simmaci.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
 networks:
   simmaci-network:

@@ -129,7 +129,18 @@ class SkTemplateService
         }
 
         if ($template->disk === 's3') {
-            return $disk->temporaryUrl($template->file_path, now()->addMinutes(60));
+            $url = $disk->temporaryUrl($template->file_path, now()->addMinutes(60));
+
+            // MinIO in Docker uses internal hostname (e.g. minio:9000) which is not
+            // accessible from the browser. Replace with the public-facing URL if configured.
+            $minioPublicUrl = config('filesystems.disks.s3.url');
+            $minioEndpoint  = config('filesystems.disks.s3.endpoint');
+
+            if ($minioPublicUrl && $minioEndpoint) {
+                $url = str_replace(rtrim($minioEndpoint, '/'), rtrim($minioPublicUrl, '/'), $url);
+            }
+
+            return $url;
         }
 
         return $disk->url($template->file_path);

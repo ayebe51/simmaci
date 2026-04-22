@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\ApprovalHistoryController;
 use App\Http\Controllers\Api\TeacherMutationController;
 use App\Http\Controllers\Api\SkTemplateController;
 use App\Http\Controllers\Api\SkVerificationController;
+use App\Http\Controllers\Api\MinioProxyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,6 +74,9 @@ Route::prefix('ppdb')->group(function () {
     Route::post('register',        [StudentController::class, 'ppdbRegister']);
     Route::post('upload-document', [FileUploadController::class, 'upload']);
 });
+
+// ── Public Routes ──
+Route::get('minio/{path?}', [MinioProxyController::class, 'proxy'])->where('path', '.*');
 
 // ── Protected Routes ──
 Route::middleware('auth:sanctum')->group(function () {

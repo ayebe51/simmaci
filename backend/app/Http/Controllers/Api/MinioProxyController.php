@@ -10,25 +10,22 @@ class MinioProxyController extends Controller
 {
     /**
      * Proxy MinIO requests through backend
-     * GET /api/minio/*
+     * GET /api/minio
+     * GET /api/minio/{path}
      */
-    public function proxy(Request $request)
+    public function proxy(Request $request, $path = null)
     {
         try {
-            // Get the path after /api/minio/
-            $path = $request->path();
-            $path = str_replace('api/minio/', '', $path);
-
-            // If path is empty, return MinIO health check
+            // If no path provided, return health check
             if (empty($path)) {
-                return response()->json(['status' => 'ok']);
+                return response()->json(['status' => 'ok', 'message' => 'MinIO proxy is working']);
             }
 
             // Check if file exists in MinIO
             $disk = Storage::disk('s3');
             
             if (!$disk->exists($path)) {
-                return response()->json(['error' => 'File not found'], 404);
+                return response()->json(['error' => 'File not found', 'path' => $path], 404);
             }
 
             // Get file content
@@ -40,7 +37,11 @@ class MinioProxyController extends Controller
                 'Content-Disposition' => 'inline; filename="' . basename($path) . '"',
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
     }
 }

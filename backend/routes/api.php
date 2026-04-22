@@ -76,7 +76,9 @@ Route::prefix('ppdb')->group(function () {
 });
 
 // ── Public Routes ──
-Route::get('minio/{path?}', [MinioProxyController::class, 'proxy'])->where('path', '.*');
+// MinIO proxy - accessible at /api/minio/*
+Route::get('minio', [MinioProxyController::class, 'proxy']);
+Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*');
 
 // ── Protected Routes ──
 Route::middleware('auth:sanctum')->group(function () {

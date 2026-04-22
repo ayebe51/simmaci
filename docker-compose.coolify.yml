@@ -125,7 +125,8 @@ services:
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: simmaci-storage
-      AWS_ENDPOINT: ${MINIO_PUBLIC_URL}
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: ${MINIO_PUBLIC_URL}
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       LOG_CHANNEL: stderr
       SANCTUM_STATEFUL_DOMAINS: simmaci.com

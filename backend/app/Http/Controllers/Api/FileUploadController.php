@@ -26,14 +26,27 @@ class FileUploadController extends Controller
         $folder = $request->folder ?? 'uploads';
 
         $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs($folder, $filename, $disk);
+        
+        try {
+            $path = $file->storeAs($folder, $filename, $disk);
+            
+            if (!$path) {
+                return response()->json([
+                    'error' => 'Failed to store file. Check storage configuration.'
+                ], 500);
+            }
 
-        return response()->json([
-            'url' => Storage::disk($disk)->url($path),
-            'path' => $path,
-            'disk' => $disk,
-            'filename' => $file->getClientOriginalName()
-        ]);
+            return response()->json([
+                'url' => Storage::disk($disk)->url($path),
+                'path' => $path,
+                'disk' => $disk,
+                'filename' => $file->getClientOriginalName()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Upload failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

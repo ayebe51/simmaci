@@ -123,8 +123,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost/index.php"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`api.simmaci.com`)"
@@ -132,9 +132,11 @@ services:
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=80"
       - "traefik.http.services.backend.loadbalancer.serversTransport=backend-transport"
-      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.idleConnTimeout=60s"
-      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=60s"
-      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=60s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.idleConnTimeout=120s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=120s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=120s"
+      - "traefik.http.routers.backend.middlewares=backend-timeout"
+      - "traefik.http.middlewares.backend-timeout.forwardauth.authResponseHeaders=X-Auth-User"
 
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:

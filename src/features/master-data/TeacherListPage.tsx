@@ -340,7 +340,7 @@ export default function TeacherListPage() {
                                     )}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-sm font-medium text-slate-700 max-w-[130px] truncate">
-                                    {item.unit_kerja || "Unknown"}
+                                    {item.unit_kerja || <span className="text-slate-300 italic text-xs">—</span>}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-right">
                                     <div className="flex gap-1 items-center justify-end">

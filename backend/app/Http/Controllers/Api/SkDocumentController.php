@@ -220,6 +220,7 @@ class SkDocumentController extends Controller
 
             $sk->update([
                 'status' => $request->status,
+                'rejection_reason' => $request->rejection_reason,
             ]);
 
             // If it's a revision approval, apply the suggested data

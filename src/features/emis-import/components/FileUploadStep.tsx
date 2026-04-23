@@ -67,7 +67,19 @@ export default function FileUploadStep({
                 const workbook = XLSX.read(data, { type: 'binary' })
                 const sheetName = workbook.SheetNames[0]
                 const sheet = workbook.Sheets[sheetName]
-                jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, unknown>[]
+                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, unknown>[]
+
+                // Strip leading apostrophe from all string values (Excel adds ' prefix to
+                // force text format on numeric fields like NUPTK, NIK, NISN, phone numbers)
+                jsonData = rawData.map(row => {
+                    const cleaned: Record<string, unknown> = {}
+                    for (const [key, value] of Object.entries(row)) {
+                        cleaned[key] = typeof value === 'string' && value.startsWith("'")
+                            ? value.replace(/^'+/, '')
+                            : value
+                    }
+                    return cleaned
+                })
             }
             
             if (jsonData.length > 0) {

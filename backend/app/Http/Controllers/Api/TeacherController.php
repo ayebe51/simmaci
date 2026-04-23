@@ -275,7 +275,12 @@ class TeacherController extends Controller
 
                 // Parse Satminkal (unit_kerja)
                 foreach($normalizedRow as $k => $v) {
-                    if (str_contains($k, 'satminkal') || str_contains($k, 'unit_kerja')) {
+                    if (str_contains($k, 'satminkal') || str_contains($k, 'unit_kerja')
+                        || str_contains($k, 'nama_sekolah') || str_contains($k, 'nama_madrasah')
+                        || str_contains($k, 'nama_lembaga') || str_contains($k, 'tempat_tugas')
+                        || str_contains($k, 'asal_sekolah') || str_contains($k, 'instansi')
+                        || $k === 'lembaga' || $k === 'madrasah' || $k === 'sekolah'
+                    ) {
                         $normalizedRow['unit_kerja'] = $v;
                         break;
                     }

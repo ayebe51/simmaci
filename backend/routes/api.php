@@ -77,13 +77,13 @@ Route::prefix('ppdb')->group(function () {
 
 // ── Public Routes ──
 // MinIO proxy - accessible at /api/minio/*
-Route::get('minio', [MinioProxyController::class, 'proxy']);
-Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*');
+Route::get('minio', [MinioProxyController::class, 'proxy'])->name('minio.proxy');
+Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*')->name('minio.proxy.path');
 
 // Test route untuk debug
 Route::get('test-minio', function() {
     return response()->json(['status' => 'ok', 'message' => 'MinIO proxy test endpoint']);
-});
+})->name('test.minio');
 
 // ── Protected Routes ──
 Route::middleware('auth:sanctum')->group(function () {

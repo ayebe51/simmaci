@@ -357,22 +357,32 @@ class NormalizationService
      *   "FATIMAHMPD"  → "FATIMAH MPD"   (M.Pd attached)
      *   "HASANSPD"    → "HASAN SPD"     (S.Pd attached)
      *
-     * Strategy: for each token, try to find the longest known degree key that
-     * is a suffix of the uppercased token (after stripping dots). If found and
-     * the remaining prefix is non-empty (≥ 2 chars), split them.
+     * Only degree keys with ≥ 3 characters are used to avoid false positives
+     * on short keys (SH, ST, SE, MM, MT) that could match common name endings.
+     * Token must be pure alpha (no dots/commas) and total length ≥ 6.
+     * Name part must be ≥ 3 characters after splitting.
      */
     protected function splitAttachedDegrees(string $name): string
     {
+        $minKeyLen = 3; // avoid false positives from short keys like SH, ST, SE
+
         $map    = $this->getDegreeMap(); // sorted longest-first
         $tokens = preg_split('/\s+/', trim($name));
         $result = [];
 
         foreach ($tokens as $token) {
-            // Only try to split tokens that look like pure alpha (no dots/commas)
-            // and are long enough to contain both a name part and a degree part.
-            $upper = mb_strtoupper(preg_replace('/[^a-zA-Z]/', '', $token), 'UTF-8');
+            // Only process tokens that are pure alpha (no dots/commas = not already formatted)
+            $stripped = preg_replace('/[^a-zA-Z]/', '', $token);
+            if ($stripped !== $token) {
+                // Token contains dots/commas — already formatted degree, leave as-is
+                $result[] = $token;
+                continue;
+            }
 
-            if (strlen($upper) < 4) {
+            $upper = mb_strtoupper($stripped, 'UTF-8');
+
+            // Minimum total: name part (≥3) + degree key (≥3) = 6
+            if (strlen($upper) < 6) {
                 $result[] = $token;
                 continue;
             }
@@ -380,16 +390,17 @@ class NormalizationService
             $split = false;
             foreach ($map as $key => $canonical) {
                 $keyLen  = strlen($key);
+
+                if ($keyLen < $minKeyLen) continue;
+
                 $nameLen = strlen($upper) - $keyLen;
 
-                if ($nameLen < 2) continue; // name part too short
+                if ($nameLen < 3) continue; // name part too short
 
                 if (substr($upper, -$keyLen) === $key) {
-                    // Found a degree suffix — split it off
-                    $namePart   = substr($upper, 0, $nameLen);
-                    $result[]   = $namePart;
-                    $result[]   = $key;
-                    $split      = true;
+                    $result[] = substr($upper, 0, $nameLen);
+                    $result[] = $key;
+                    $split    = true;
                     break;
                 }
             }

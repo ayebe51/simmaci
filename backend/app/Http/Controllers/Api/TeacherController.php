@@ -523,6 +523,20 @@ class TeacherController extends Controller
                 }
 
                 $savePayload = array_merge(array_filter($dataToSave, fn($v) => $v !== null && $v !== ''), ['school_id' => $schoolId]);
+
+                // Pastikan unit_kerja dari fallback operator selalu masuk ke payload,
+                // tidak ikut dibuang oleh array_filter di atas
+                if (empty($savePayload['unit_kerja']) && !empty($normalizedRow['unit_kerja'])) {
+                    $savePayload['unit_kerja'] = $normalizedRow['unit_kerja'];
+                }
+
+                // Fallback terakhir: ambil dari nama sekolah berdasarkan school_id
+                if (empty($savePayload['unit_kerja']) && $schoolId) {
+                    $fallbackSchool = School::find($schoolId);
+                    if ($fallbackSchool) {
+                        $savePayload['unit_kerja'] = $fallbackSchool->nama;
+                    }
+                }
                 $teacher = null;
                 if ($nuptk) {
                     $teacher = Teacher::withoutTenantScope()->where('nuptk', $nuptk)->first();

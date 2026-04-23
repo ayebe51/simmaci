@@ -19,21 +19,21 @@ interface SoftPageHeaderProps {
 
 export default function SoftPageHeader({ title, description, actions, className }: SoftPageHeaderProps) {
   return (
-    <div className={cn("flex flex-col gap-4 md:flex-row md:items-center md:justify-between", className)}>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
-        {description && <p className="text-sm text-gray-500">{description}</p>}
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="min-w-0">
+        <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate">{title}</h1>
+        {description && <p className="text-xs text-gray-500 mt-0.5 truncate">{description}</p>}
       </div>
       
       {actions && actions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           {actions.map((action, idx) => (
              <Button 
                 key={idx}
                 variant={action.variant as any}
                 onClick={action.onClick}
                 size="sm"
-                className="gap-2 shadow-sm"
+                className="gap-1.5 shadow-sm text-xs h-8 px-3"
              >
                 {action.icon}
                 {action.label}

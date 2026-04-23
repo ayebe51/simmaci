@@ -285,14 +285,14 @@ export default function TeacherListPage() {
             <Table>
                 <TableHeader className="bg-emerald-50/50">
                     <TableRow className="border-b-0 hover:bg-transparent">
-                        <TableHead className="w-[40px] pl-6 rounded-tl-xl text-emerald-800"><Checkbox className="border-emerald-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white" /></TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Nomor Induk</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Nama</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800 text-center">Status</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800 text-center">Sertifikasi</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800 text-center">PDPKPNU</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Satminkal</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800 text-right pr-6 rounded-tr-xl">Aksi</TableHead>
+                        <TableHead className="w-[36px] pl-4 rounded-tl-xl text-emerald-800"><Checkbox className="border-emerald-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white" /></TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800">Nomor Induk</TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800">Nama</TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800 text-center">Status</TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800 text-center">Sertifikasi</TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800 text-center">PDPKPNU</TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800">Satminkal</TableHead>
+                        <TableHead className="py-3 px-3 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -303,52 +303,51 @@ export default function TeacherListPage() {
                     ) : (
                         teachers.map((item: Teacher) => (
                             <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                <TableCell className="pl-6">
+                                <TableCell className="pl-4">
                                     <Checkbox 
                                         className="border-slate-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-none"
                                         checked={selectedTeacherIds.has(item.id)}
                                         onCheckedChange={() => toggleSelection(item.id)}
                                     />
                                 </TableCell>
-                                <TableCell className="px-6 py-4">
-                                    <div className="font-bold text-slate-800">{item.nuptk || "-"}</div>
+                                <TableCell className="px-3 py-2.5">
+                                    <div className="font-bold text-slate-800 text-sm">{item.nuptk || "-"}</div>
                                     <div className="text-xs font-semibold text-slate-400 mt-0.5">{item.nip || "-"}</div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4">
-                                    <div className="font-semibold text-slate-800">{item.nama}</div>
-                                    <div className="text-xs text-slate-500 mt-0.5 max-w-[200px] truncate">{item.mapel || ""}</div>
+                                <TableCell className="px-3 py-2.5">
+                                    <div className="font-semibold text-slate-800 text-sm">{item.nama}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5 max-w-[180px] truncate">{item.mapel || ""}</div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-center">
-                                    <Badge variant="outline" className={`rounded-xl px-3 py-1 font-bold tracking-wide border-0 ${item.status === 'GTY' ? 'bg-emerald-500 text-white shadow-sm' : item.status === 'PNS' ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
+                                <TableCell className="px-3 py-2.5 text-center">
+                                    <Badge variant="outline" className={`rounded-xl px-2 py-0.5 text-xs font-bold tracking-wide border-0 ${item.status === 'GTY' ? 'bg-emerald-500 text-white shadow-sm' : item.status === 'PNS' ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600'}`}>
                                         {item.status || "GTY"}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-center">
+                                <TableCell className="px-3 py-2.5 text-center">
                                     {item.is_certified ? (
-                                        <div className="inline-flex items-center justify-center gap-1.5 text-xs font-medium text-emerald-600">
-                                            <Check className="h-3.5 w-3.5 border border-emerald-600 rounded-full p-[1px]" /> Sertifikasi
+                                        <div className="inline-flex items-center justify-center gap-1 text-xs font-medium text-emerald-600">
+                                            <Check className="h-3 w-3 border border-emerald-600 rounded-full p-[1px]" /> Sertifikasi
                                         </div>
                                     ) : (
-                                        <Badge variant="outline" className="rounded-xl px-3 py-1 font-bold tracking-wide border-0 bg-slate-100 text-slate-600">Honorer</Badge>
+                                        <Badge variant="outline" className="rounded-xl px-2 py-0.5 text-xs font-bold tracking-wide border-0 bg-slate-100 text-slate-600">Honorer</Badge>
                                     )}
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-center">
+                                <TableCell className="px-3 py-2.5 text-center">
                                     {item.pdpkpnu ? (
                                         <Check className="h-4 w-4 text-emerald-500 mx-auto" strokeWidth={3} />
                                     ) : (
                                         <X className="h-4 w-4 text-rose-300 mx-auto" strokeWidth={3} />
                                     )}
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-sm font-medium text-slate-700 max-w-[150px] truncate">
+                                <TableCell className="px-3 py-2.5 text-sm font-medium text-slate-700 max-w-[130px] truncate">
                                     {item.unit_kerja || "Unknown"}
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-right pr-6">
-                                    <div className="flex flex-col gap-2 items-end justify-center">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
-
+                                <TableCell className="px-3 py-2.5 text-right">
+                                    <div className="flex gap-1 items-center justify-end">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
                                             if(confirm(`Hapus guru ${item.nama}?`)) deleteMutation.mutate(item.id)
-                                        }}><Trash2 className="h-4 w-4" /></Button>
+                                        }}><Trash2 className="h-3.5 w-3.5" /></Button>
                                     </div>
                                 </TableCell>
                             </TableRow>

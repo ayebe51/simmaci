@@ -258,13 +258,13 @@ export default function SchoolListPage() {
             <Table>
                 <TableHeader className="bg-emerald-50/50">
                     <TableRow className="border-b-0 hover:bg-transparent">
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800 rounded-tl-xl">NSM</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Nama Sekolah</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Kecamatan</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Kepala Sekolah</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">No. HP</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800">Status</TableHead>
-                        <TableHead className="py-4 px-6 font-bold text-emerald-800 text-right pr-8 rounded-tr-xl">Aksi</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800 rounded-tl-xl">NSM</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Nama Sekolah</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Kecamatan</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Kepala Sekolah</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">No. HP</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Status</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,34 +275,34 @@ export default function SchoolListPage() {
                     ) : (
                         schools.map((item: School) => (
                             <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                <TableCell className="px-6 py-4 font-semibold text-slate-700">{item.nsm}</TableCell>
-                                <TableCell className="px-6 py-4">
-                                    <div className="font-bold text-slate-900">{item.nama}</div>
-                                    <div className="text-xs text-slate-400 mt-1 flex items-start gap-1 max-w-[250px]">
+                                <TableCell className="px-4 py-3 font-semibold text-slate-700 text-sm">{item.nsm}</TableCell>
+                                <TableCell className="px-4 py-3">
+                                    <div className="font-bold text-slate-900 text-sm">{item.nama}</div>
+                                    <div className="text-xs text-slate-400 mt-0.5 flex items-start gap-1 max-w-[220px]">
                                         <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
                                         <span className="truncate">{item.alamat || '-'}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-slate-600">{item.kecamatan}</TableCell>
-                                <TableCell className="px-6 py-4 text-sm text-slate-600">{item.kepala_madrasah}</TableCell>
-                                <TableCell className="px-6 py-4 text-sm text-slate-600 font-medium">{item.telepon || '-'}</TableCell>
-                                <TableCell className="px-6 py-4">
-                                    <Badge variant="outline" className="rounded-lg bg-slate-50 text-slate-600 border-slate-200 font-medium px-2 py-1">
+                                <TableCell className="px-4 py-3 text-sm text-slate-600">{item.kecamatan}</TableCell>
+                                <TableCell className="px-4 py-3 text-sm text-slate-600">{item.kepala_madrasah}</TableCell>
+                                <TableCell className="px-4 py-3 text-sm text-slate-600 font-medium">{item.telepon || '-'}</TableCell>
+                                <TableCell className="px-4 py-3">
+                                    <Badge variant="outline" className="rounded-lg bg-slate-50 text-slate-600 border-slate-200 font-medium px-2 py-0.5 text-xs">
                                         {item.status_jamiyyah}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="px-6 py-4 text-right pr-8">
-                                    <div className="flex flex-col gap-2 items-end justify-center">
+                                <TableCell className="px-4 py-3 text-right">
+                                    <div className="flex gap-1 items-center justify-end">
                                         <Link to={`/dashboard/master/schools/${item.id}`}>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"><Eye className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"><Eye className="h-3.5 w-3.5" /></Button>
                                         </Link>
                                         {isSuperAdmin && (
                                             <>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Generate Akun" onClick={() => handleGenerateSingle(item)}><KeyRound className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Generate Akun" onClick={() => handleGenerateSingle(item)}><KeyRound className="h-3.5 w-3.5" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
                                                     if(confirm(`Yakin ingin menghapus ${item.nama}?`)) deleteMutation.mutate(item.id)
-                                                }}><Trash2 className="h-4 w-4" /></Button>
+                                                }}><Trash2 className="h-3.5 w-3.5" /></Button>
                                             </>
                                         )}
                                     </div>

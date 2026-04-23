@@ -40,7 +40,8 @@ interface AppShellProps {
 }
 
 export default function AppShell({ children }: AppShellProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Default tutup di layar kecil (< lg / 1024px), buka di layar besar
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024)
   const location = useLocation()
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
@@ -133,7 +134,7 @@ export default function AppShell({ children }: AppShellProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col glass backdrop-blur-2xl border-r border-white/40 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static print:hidden",
-          sidebarOpen ? "w-72 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:w-[0px] md:overflow-hidden"
+          sidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:overflow-hidden"
         )}
       >
         {/* Sidebar Header */}

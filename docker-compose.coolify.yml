@@ -112,7 +112,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: simmaci-storage
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://api.simmaci.com/api/minio
+      AWS_URL: https://simmaci.com/api/minio
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       LOG_CHANNEL: stderr
       SANCTUM_STATEFUL_DOMAINS: simmaci.com
@@ -145,7 +145,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api
-        VITE_STORAGE_URL: https://api.simmaci.com/api/minio
+        VITE_STORAGE_URL: https://simmaci.com/api/minio
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
     container_name: simmaci-frontend
     restart: unless-stopped

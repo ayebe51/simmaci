@@ -254,6 +254,10 @@ class NormalizationService
     {
         $map = $this->getDegreeMap();
 
+        // Pre-process: split degrees that are attached to the name without separator.
+        // e.g. "MAFTUHSAG" → "MAFTUH SAG", "AHMADSPDI" → "AHMAD SPDI"
+        $fullName = $this->splitAttachedDegrees($fullName);
+
         // Pre-process: merge split compound degrees that span two tokens.
         // e.g. "S.Pd. SD" / "S.Pd SD" / "SPD SD" → "S.Pd.SD"
         // This handles the common data-entry pattern where S.Pd.SD. is written
@@ -341,6 +345,61 @@ class NormalizationService
             'prefix_degrees' => $prefixDegrees,
             'suffix_degrees' => $suffixDegrees,
         ];
+    }
+
+    /**
+     * Split degrees that are attached directly to the last name token without
+     * any separator (space, comma, or dot).
+     *
+     * Common patterns from messy Excel data:
+     *   "MAFTUHSAG"   → "MAFTUH SAG"    (S.Ag attached)
+     *   "AHMADSPDI"   → "AHMAD SPDI"    (S.Pd.I attached)
+     *   "FATIMAHMPD"  → "FATIMAH MPD"   (M.Pd attached)
+     *   "HASANSPD"    → "HASAN SPD"     (S.Pd attached)
+     *
+     * Strategy: for each token, try to find the longest known degree key that
+     * is a suffix of the uppercased token (after stripping dots). If found and
+     * the remaining prefix is non-empty (≥ 2 chars), split them.
+     */
+    protected function splitAttachedDegrees(string $name): string
+    {
+        $map    = $this->getDegreeMap(); // sorted longest-first
+        $tokens = preg_split('/\s+/', trim($name));
+        $result = [];
+
+        foreach ($tokens as $token) {
+            // Only try to split tokens that look like pure alpha (no dots/commas)
+            // and are long enough to contain both a name part and a degree part.
+            $upper = mb_strtoupper(preg_replace('/[^a-zA-Z]/', '', $token), 'UTF-8');
+
+            if (strlen($upper) < 4) {
+                $result[] = $token;
+                continue;
+            }
+
+            $split = false;
+            foreach ($map as $key => $canonical) {
+                $keyLen  = strlen($key);
+                $nameLen = strlen($upper) - $keyLen;
+
+                if ($nameLen < 2) continue; // name part too short
+
+                if (substr($upper, -$keyLen) === $key) {
+                    // Found a degree suffix — split it off
+                    $namePart   = substr($upper, 0, $nameLen);
+                    $result[]   = $namePart;
+                    $result[]   = $key;
+                    $split      = true;
+                    break;
+                }
+            }
+
+            if (!$split) {
+                $result[] = $token;
+            }
+        }
+
+        return implode(' ', $result);
     }
 
     /**

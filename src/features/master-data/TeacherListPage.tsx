@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle, Hash } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
@@ -345,27 +345,7 @@ export default function TeacherListPage() {
                                 <TableCell className="px-6 py-4 text-right pr-6">
                                     <div className="flex flex-col gap-2 items-end justify-center">
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-4 w-4" /></Button>
-                                        {!isOperator && !item.nomor_induk_maarif && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                                                title="Generate NIM"
-                                                onClick={async () => {
-                                                    if (!confirm(`Generate NIM untuk ${item.nama}?`)) return
-                                                    try {
-                                                        const res = await teacherApi.generateNim(item.id)
-                                                        toast.success(res.message || `NIM berhasil: ${res.nim}`)
-                                                        queryClient.invalidateQueries({ queryKey: ['teachers'] })
-                                                    } catch (e: any) {
-                                                        toast.error(e.response?.data?.message || 'Gagal generate NIM')
-                                                    }
-                                                }}
-                                            >
-                                                <Hash className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-500 hover:text-purple-700 hover:bg-purple-50" onClick={() => toast.info('Reset password belum tersedia')}><KeyRound className="h-4 w-4" /></Button>
+
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
                                             if(confirm(`Hapus guru ${item.nama}?`)) deleteMutation.mutate(item.id)
                                         }}><Trash2 className="h-4 w-4" /></Button>

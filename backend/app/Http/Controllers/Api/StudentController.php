@@ -117,9 +117,9 @@ class StudentController extends Controller
                     
                     // Try to catch common aliases found in typical EMIS/Dapodik/Custom sheets
                     if (str_contains($key, 'nisn') || str_contains($key, 'n_i_s_n') || str_contains($key, 'induk_siswa_nasional')) {
-                        $dataToSave['nisn'] = $value;
+                        $dataToSave['nisn'] = ltrim(trim((string)$value), "'");
                     } elseif (str_contains($key, 'nik') || str_contains($key, 'n_i_k') || str_contains($key, 'induk_kependudukan')) {
-                        $dataToSave['nik'] = $value;
+                        $dataToSave['nik'] = ltrim(trim((string)$value), "'");
                     } elseif ((str_contains($key, 'nama') || $key === 'siswa' || $key === 'santri') && !str_contains($key, 'sekolah') && !str_contains($key, 'ayah') && !str_contains($key, 'ibu') && !str_contains($key, 'wali') && !str_contains($key, 'panggilan')) {
                         $dataToSave['nama'] = $value;
                     } elseif (str_contains($key, 'rombel') || str_contains($key, 'kelas') || str_contains($key, 'tingkat')) {
@@ -150,7 +150,7 @@ class StudentController extends Controller
                     } elseif (str_contains($key, 'wali')) {
                         $dataToSave['nama_wali'] = $value;
                     } elseif (str_contains($key, 'hp') || str_contains($key, 'telepon') || str_contains($key, 'ponsel') || str_contains($key, 'kontak') || str_contains($key, 'telp') || str_contains($key, 'wa_')) {
-                        $dataToSave['nomor_telepon'] = $value;
+                        $dataToSave['nomor_telepon'] = ltrim(trim((string)$value), "'");
                     } elseif (str_contains($key, 'alamat') || str_contains($key, 'jalan') || str_contains($key, 'domisili')) {
                         $dataToSave['alamat'] = $value;
                     } elseif (str_contains($key, 'sekolah') || str_contains($key, 'lembaga') || str_contains($key, 'asal') || str_contains($key, 'instansi')) {
@@ -185,7 +185,7 @@ class StudentController extends Controller
                 \Illuminate\Support\Facades\Log::info("Import Row $index processed. Final mapping:", $dataToSave);
 
                 $nisn = $dataToSave['nisn'] ?? null;
-                $nisn = $nisn ? trim((string)$nisn) : null;
+                $nisn = $nisn ? ltrim(trim((string)$nisn), "'") : null;
 
                 // Fallback for NISN from NIS if NISN is missing
                 if (!$nisn && isset($normalizedRow['nis'])) {

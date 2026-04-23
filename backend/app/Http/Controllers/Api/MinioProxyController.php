@@ -21,6 +21,12 @@ class MinioProxyController extends Controller
                 return response()->json(['status' => 'ok', 'message' => 'MinIO proxy is working']);
             }
 
+            // Strip bucket name prefix if present (e.g. "simmaci-storage/sk-templates/..." -> "sk-templates/...")
+            $bucket = config('filesystems.disks.s3.bucket', 'simmaci-storage');
+            if (str_starts_with($path, $bucket . '/')) {
+                $path = substr($path, strlen($bucket) + 1);
+            }
+
             // Check if file exists in MinIO
             $disk = Storage::disk('s3');
             

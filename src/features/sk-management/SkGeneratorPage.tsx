@@ -121,10 +121,8 @@ export default function SkGeneratorPage() {
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
   const [combineInOneFile, setCombineInOneFile] = useState(false)
   const [tahunAjaran, setTahunAjaran] = useState(() => {
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = now.getMonth() + 1 // 1–12
-    return m >= 7 ? `${y}/${y + 1}` : `${y - 1}/${y}`
+    const y = new Date().getFullYear()
+    return `${y}/${y + 1}`
   })
 
   const [defaultKecamatan, setDefaultKecamatan] = useState("")

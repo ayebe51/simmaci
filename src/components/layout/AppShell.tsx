@@ -262,10 +262,8 @@ export default function AppShell({ children }: AppShellProps) {
              <div className="h-8 w-[1px] bg-slate-200 mx-2" />
              <span className="text-[11px] font-bold text-emerald-800/60 uppercase tracking-widest bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
                {(() => {
-                 const now = new Date()
-                 const year = now.getFullYear()
-                 const month = now.getMonth() + 1
-                 return month >= 7 ? `${year}/${year + 1}` : `${year - 1}/${year}`
+                 const year = new Date().getFullYear()
+                 return `${year}/${year + 1}`
                })()}
              </span>
           </div>

@@ -80,6 +80,11 @@ Route::prefix('ppdb')->group(function () {
 Route::get('minio', [MinioProxyController::class, 'proxy']);
 Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*');
 
+// Test route untuk debug
+Route::get('test-minio', function() {
+    return response()->json(['status' => 'ok', 'message' => 'MinIO proxy test endpoint']);
+});
+
 // ── Protected Routes ──
 Route::middleware('auth:sanctum')->group(function () {
     // Auth

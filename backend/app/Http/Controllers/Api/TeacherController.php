@@ -250,7 +250,7 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                $normalizedRow['nomor_induk_maarif'] = $nim ? trim((string)$nim) : null;
+                $normalizedRow['nomor_induk_maarif'] = $nim ? ltrim(trim((string)$nim), "'") : null;
 
                 // Parse NUPTK
                 $nuptk = null;
@@ -260,7 +260,7 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                $nuptk = $nuptk ? trim((string)$nuptk) : null;
+                $nuptk = $nuptk ? ltrim(trim((string)$nuptk), "'") : null;
                 $normalizedRow['nuptk'] = $nuptk;
 
                 // Parse NIP (Pegawai/NIY)
@@ -271,7 +271,7 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                $normalizedRow['nip'] = $nip ? trim((string)$nip) : null;
+                $normalizedRow['nip'] = $nip ? ltrim(trim((string)$nip), "'") : null;
 
                 // Parse Satminkal (unit_kerja)
                 foreach($normalizedRow as $k => $v) {
@@ -308,7 +308,7 @@ class TeacherController extends Controller
                 // Parse No HP
                 foreach($normalizedRow as $k => $v) {
                     if (str_contains($k, 'no_hp') || str_contains($k, 'nomor_hp')) {
-                        $normalizedRow['phone_number'] = $v;
+                        $normalizedRow['phone_number'] = ltrim(trim((string)$v), "'");
                         break;
                     }
                 }

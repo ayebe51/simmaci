@@ -138,12 +138,12 @@ services:
       - "traefik.http.routers.backend-api.rule=Host(`simmaci.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend-api.entrypoints=websecure"
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
-      # Service config
+      # Service config with increased timeouts
       - "traefik.http.services.backend.loadbalancer.server.port=80"
       - "traefik.http.services.backend.loadbalancer.serversTransport=backend-transport"
-      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.idleConnTimeout=120s"
-      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=120s"
-      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=120s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.idleConnTimeout=300s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=300s"
+      - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=300s"
       - "traefik.http.routers.backend.middlewares=backend-timeout"
       - "traefik.http.middlewares.backend-timeout.forwardauth.authResponseHeaders=X-Auth-User"
 

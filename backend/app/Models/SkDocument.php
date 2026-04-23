@@ -18,7 +18,7 @@ class SkDocument extends Model
         'status', 'file_url', 'surat_permohonan_url', 'qr_code',
         'tahun_ajaran', 'revision_status', 'revision_reason', 'revision_data',
         'created_by', 'archived_at', 'archived_by', 'archive_reason',
-        'nomor_permohonan', 'tanggal_permohonan'
+        'nomor_permohonan', 'tanggal_permohonan', 'rejection_reason'
     ];
 
     protected function casts(): array

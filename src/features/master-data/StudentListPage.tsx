@@ -12,6 +12,7 @@ import {
 import { Plus, Search, Trash2, Edit, Download, FileSpreadsheet, Loader2, GraduationCap, ArrowUpDown } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
@@ -103,6 +104,8 @@ export default function StudentListPage() {
   const [formData, setFormData] = useState<Partial<Student>>({})
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isTransitionModalOpen, setIsTransitionModalOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<Student | null>(null)
+  const [confirmBatchAction, setConfirmBatchAction] = useState<{ type: 'promote' | 'graduate', label: string } | null>(null)
 
   const handleSave = async () => {
     if (!formData.nama) { toast.error("Nama wajib diisi!"); return }
@@ -236,9 +239,7 @@ export default function StudentListPage() {
                                         <button className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => { setFormData(item); setIsAddOpen(true) }}>
                                             <Edit className="h-4 w-4" />
                                         </button>
-                                        <button className="text-slate-600 hover:text-red-500 transition-colors" onClick={() => {
-                                            if(confirm("Hapus siswa ini?")) deleteMutation.mutate(item.id)
-                                        }}>
+                                        <button className="text-slate-600 hover:text-red-500 transition-colors" onClick={() => setConfirmDelete(item)}>
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
@@ -300,15 +301,11 @@ export default function StudentListPage() {
             <div className="py-6 text-center space-y-4">
                 <p className="text-sm text-slate-600">Pilih aksi yang ingin dilakukan untuk seluruh siswa aktif di sekolah ini.</p>
                 <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => {
-                        if(confirm("Proses naik kelas seluruh siswa?")) batchTransitionMutation.mutate('promote')
-                    }} disabled={batchTransitionMutation.isPending}>
+                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setConfirmBatchAction({ type: 'promote', label: 'Proses naik kelas seluruh siswa?' })} disabled={batchTransitionMutation.isPending}>
                         <ArrowUpDown className="h-6 w-6 text-blue-500" />
                         <span>Naik Kelas</span>
                     </Button>
-                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => {
-                        if(confirm("Luluskan seluruh siswa aktif?")) batchTransitionMutation.mutate('graduate')
-                    }} disabled={batchTransitionMutation.isPending}>
+                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setConfirmBatchAction({ type: 'graduate', label: 'Luluskan seluruh siswa aktif?' })} disabled={batchTransitionMutation.isPending}>
                         <GraduationCap className="h-6 w-6 text-orange-500" />
                         <span>Luluskan</span>
                     </Button>
@@ -454,6 +451,33 @@ export default function StudentListPage() {
             </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* ── Confirm Delete Single Student ── */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}
+        title="Hapus Siswa"
+        description={`Yakin ingin menghapus ${confirmDelete?.nama}? Data yang dihapus tidak dapat dikembalikan.`}
+        confirmText="Hapus"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDelete) deleteMutation.mutate(confirmDelete.id)
+          setConfirmDelete(null)
+        }}
+      />
+      
+      {/* ── Confirm Batch Action ── */}
+      <ConfirmDialog
+        open={!!confirmBatchAction}
+        onOpenChange={(open) => { if (!open) setConfirmBatchAction(null) }}
+        title={confirmBatchAction?.type === 'promote' ? 'Naik Kelas Massal' : 'Kelulusan Massal'}
+        description={confirmBatchAction?.label || ''}
+        confirmText="Ya, Lanjutkan"
+        onConfirm={() => {
+          if (confirmBatchAction) batchTransitionMutation.mutate(confirmBatchAction.type)
+          setConfirmBatchAction(null)
+        }}
+      />
     </div>
   )
 }

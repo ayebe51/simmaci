@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import * as XLSX from "xlsx"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
@@ -37,6 +38,7 @@ export default function UserListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
+  const [confirmDelete, setConfirmDelete] = useState<any>(null)
   
   // 🔥 REST API QUERIES
   const { data: usersRes, isLoading, refetch } = useQuery({
@@ -90,7 +92,6 @@ export default function UserListPage() {
   }
 
   const handleDelete = async (user: any) => {
-    if (!confirm(`Hapus akses untuk ${user.name}?`)) return
     try {
         await userApi.delete(user.id)
         toast.success("User dinonaktifkan")
@@ -205,7 +206,7 @@ export default function UserListPage() {
                                 <div className="flex justify-end gap-2">
                                     <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="h-10 w-10 rounded-xl hover:bg-blue-50 text-blue-600"><Edit className="w-4 h-4" /></Button>
                                     {u.role !== 'super_admin' && (
-                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(u)} className="h-10 w-10 rounded-xl hover:bg-rose-50 text-rose-600"><Trash2 className="w-4 h-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(u)} className="h-10 w-10 rounded-xl hover:bg-rose-50 text-rose-600"><Trash2 className="w-4 h-4" /></Button>
                                     )}
                                 </div>
                             </TableCell>
@@ -269,6 +270,20 @@ export default function UserListPage() {
               </DialogFooter>
           </DialogContent>
       </Dialog>
+      
+      {/* ── Confirm Delete User ── */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}
+        title="Hapus Akses User"
+        description={`Yakin ingin menghapus akses untuk ${confirmDelete?.name}? User tidak akan bisa login lagi.`}
+        confirmText="Hapus"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDelete) handleDelete(confirmDelete)
+          setConfirmDelete(null)
+        }}
+      />
     </div>
   )
 }

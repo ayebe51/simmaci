@@ -212,10 +212,13 @@ class NormalizeData extends Command
                         $originalName = $teacher->nama;
                         $originalUnit = $teacher->unit_kerja;
                         $originalTempatLahir = $teacher->tempat_lahir;
+                        $originalStatus = $teacher->status;
                         
                         $normalizedName = $this->normalizationService->normalizeTeacherName($originalName);
                         $normalizedUnit = $this->normalizationService->normalizeSchoolName($originalUnit);
                         $normalizedTempatLahir = $this->normalizationService->normalizePlaceOfBirth($originalTempatLahir);
+                        $tmt = $teacher->tmt ? \Carbon\Carbon::parse($teacher->tmt) : null;
+                        $normalizedStatus = $this->normalizationService->normalizeEmploymentStatus($originalStatus, $tmt);
 
                         $changes = [];
                         $logChanges = [];
@@ -250,6 +253,16 @@ class NormalizeData extends Command
                                 'normalized' => $normalizedTempatLahir
                             ];
                         }
+                        if ($originalStatus !== $normalizedStatus) {
+                            $changes['status'] = $normalizedStatus;
+                            $logChanges[] = [
+                                'table' => 'teachers',
+                                'record_id' => $teacher->id,
+                                'field' => 'status',
+                                'original' => $originalStatus,
+                                'normalized' => $normalizedStatus
+                            ];
+                        }
 
                         if (!empty($changes)) {
                             if (!$isDryRun) {
@@ -261,6 +274,9 @@ class NormalizeData extends Command
                                 }
                                 if (isset($changes['unit_kerja'])) {
                                     $this->line("  [{$teacher->id}] Unit: {$originalUnit} → {$normalizedUnit}");
+                                }
+                                if (isset($changes['status'])) {
+                                    $this->line("  [{$teacher->id}] Status: {$originalStatus} → {$normalizedStatus}");
                                 }
                             }
                             $updated++;

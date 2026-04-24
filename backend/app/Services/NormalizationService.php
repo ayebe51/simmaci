@@ -468,4 +468,61 @@ class NormalizationService
         $clean = preg_replace('/[\s.,]+/', '', $raw);
         return mb_strtoupper($clean, 'UTF-8');
     }
+
+    /**
+     * Normalize teacher employment status to one of the four valid values:
+     * GTY, GTT, Tendik, PNS.
+     *
+     * Rules:
+     * - 'Aktif'               → GTY if TMT ≥ 2 years ago, otherwise GTT
+     * - 'GTTY'                → GTT  (typo/variant)
+     * - 'Guru Tetap Yayasan'  → GTY
+     * - 'Guru Tidak Tetap'    → GTT
+     * - 'Kepala Madrasah'     → GTY
+     * - 'Tenaga Kependidikan' → Tendik
+     * - Already valid values  → returned as-is
+     * - Unknown values        → GTT (safe fallback)
+     *
+     * @param  string|null          $status  Raw status value
+     * @param  \Carbon\Carbon|null  $tmt     TMT date (used only for 'Aktif' resolution)
+     * @return string|null
+     */
+    public function normalizeEmploymentStatus(?string $status, ?\Carbon\Carbon $tmt = null): ?string
+    {
+        if ($status === null || trim($status) === '') {
+            return $status;
+        }
+
+        $valid = ['GTY', 'GTT', 'Tendik', 'PNS'];
+        $trimmed = trim($status);
+
+        // Already a valid value — return as-is (case-sensitive match)
+        if (in_array($trimmed, $valid, true)) {
+            return $trimmed;
+        }
+
+        $upper = mb_strtoupper($trimmed, 'UTF-8');
+
+        return match (true) {
+            $upper === 'AKTIF'                                    => $this->resolveAktif($tmt),
+            in_array($upper, ['GTTY', 'GURU TIDAK TETAP'], true) => 'GTT',
+            in_array($upper, ['GURU TETAP YAYASAN', 'KEPALA MADRASAH'], true) => 'GTY',
+            in_array($upper, ['TENAGA KEPENDIDIKAN', 'TENDIK'], true) => 'Tendik',
+            $upper === 'PNS'                                      => 'PNS',
+            default                                               => 'GTT', // safe fallback
+        };
+    }
+
+    /**
+     * Resolve 'Aktif' status based on TMT date.
+     * GTY if TMT is ≥ 2 years ago, GTT otherwise (including when TMT is null).
+     */
+    private function resolveAktif(?\Carbon\Carbon $tmt): string
+    {
+        if ($tmt === null) {
+            return 'GTT';
+        }
+
+        return $tmt->diffInYears(\Carbon\Carbon::now()) >= 2 ? 'GTY' : 'GTT';
+    }
 }

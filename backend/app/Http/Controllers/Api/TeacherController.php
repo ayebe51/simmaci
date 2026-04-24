@@ -501,6 +501,12 @@ class TeacherController extends Controller
                     $dataToSave['tempat_lahir'] = $this->normalizationService->normalizePlaceOfBirth($dataToSave['tempat_lahir']);
                 }
 
+                // Normalize employment status to one of: GTY, GTT, Tendik, PNS
+                if (isset($dataToSave['status'])) {
+                    $tmtForStatus = isset($dataToSave['tmt']) ? \Carbon\Carbon::parse($dataToSave['tmt']) : null;
+                    $dataToSave['status'] = $this->normalizationService->normalizeEmploymentStatus($dataToSave['status'], $tmtForStatus);
+                }
+
                 // Track normalization changes for this teacher
                 $normalizationChanges = [];
                 if ($originalNama !== $dataToSave['nama']) {
@@ -593,6 +599,56 @@ class TeacherController extends Controller
             'created' => $created, 
             'errors' => $errors,
             'summary' => "Berhasil: $created, Gagal: " . count($errors)
+        ]);
+    }
+
+    /**
+     * GET /api/teachers/nim/generate
+     * Preview the next NIM that would be generated. Does NOT save anything.
+     * Format: 1134XXXXX (prefix "1134" = Cilacap code + 5-digit zero-padded sequence)
+     *
+     * Feature: nim-generator-sk, Property 1: NIM generate = MAX sequence + 1
+     */
+    public function previewNim(): JsonResponse
+    {
+        $driver = \DB::connection()->getDriverName();
+
+        // Query globally (across all tenants) for the highest NIM matching the 1134XXXXX format.
+        // The ORDER BY uses a numeric cast so that "113400139" > "113400050" (not lexicographic).
+        $query = Teacher::withoutTenantScope()
+            ->where('nomor_induk_maarif', 'like', '1134%')
+            ->whereRaw("LENGTH(nomor_induk_maarif) = 9");
+
+        if ($driver === 'pgsql') {
+            // PostgreSQL: use regex to ensure purely numeric and cast to BIGINT for ordering
+            $query->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
+                  ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC");
+        } else {
+            // SQLite (tests) / other: filter non-numeric via GLOB and order as integer
+            $query->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'")
+                  ->orderByRaw("CAST(nomor_induk_maarif AS INTEGER) DESC");
+        }
+
+        $lastNim = $query->value('nomor_induk_maarif');
+
+        if ($lastNim) {
+            $lastSeq = (int) substr($lastNim, 4); // extract 5-digit sequence
+            $newSeq  = $lastSeq + 1;
+        } else {
+            $newSeq = 1;
+        }
+
+        $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+
+        // Handle gaps: ensure the candidate NIM is not already taken
+        while (Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nextNim)->exists()) {
+            $newSeq++;
+            $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+        }
+
+        return $this->successResponse([
+            'nim'         => $nextNim,
+            'current_max' => $lastNim,
         ]);
     }
 

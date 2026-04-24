@@ -648,7 +648,7 @@ class SkDocumentController extends Controller
 
             // Build teacher data — only include fields that are explicitly provided in the
             // uploaded Excel row. Fields absent from the file must NOT overwrite existing
-            // database values (e.g. status, is_certified, is_verified).
+            // database values (e.g. status, is_certified, is_verified, pdpkpnu).
             $teacherData = ['nama' => $doc['nama'], 'school_id' => $schoolId];
 
             foreach ([
@@ -659,6 +659,12 @@ class SkDocumentController extends Controller
                 if (isset($doc[$field]) && $doc[$field] !== '' && $doc[$field] !== null) {
                     $teacherData[$field] = $doc[$field];
                 }
+            }
+
+            // Normalize employment status if provided
+            if (isset($teacherData['status'])) {
+                $tmtForStatus = isset($teacherData['tmt']) ? \Carbon\Carbon::parse($teacherData['tmt']) : null;
+                $teacherData['status'] = $this->normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus);
             }
 
             // Sync NIP ↔ NIM only when one side is provided and the other is missing

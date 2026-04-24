@@ -65,6 +65,15 @@ export default function StudentListPage() {
   const isOperator = user?.role === "operator"
   const isSuperAdmin = user?.role === "super_admin"
 
+  const [filterSchoolId, setFilterSchoolId] = useState<number | null>(null)
+
+  // Load schools for super_admin filter
+  const { data: schoolsRes } = useQuery({
+    queryKey: ['schools-light'],
+    queryFn: () => import('@/lib/api').then(m => m.schoolApi.list({ per_page: 500 })),
+    enabled: isSuperAdmin,
+  })
+
   // 🔥 REST API QUERY
   const { data: studentsData, isLoading } = useQuery({
     queryKey: ['students', currentPage, searchTerm, statusFilter],
@@ -90,12 +99,15 @@ export default function StudentListPage() {
 
   const batchTransitionMutation = useMutation({
     mutationFn: (action: 'promote' | 'graduate') => studentApi.batchTransition({
-        school_id: user?.school_id,
+        school_id: isSuperAdmin ? (filterSchoolId ?? undefined) : user?.school_id,
         action
     }),
     onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: ['students'] })
         toast.success(`Berhasil memproses ${res.count} siswa`)
+    },
+    onError: (err: any) => {
+        toast.error(err.response?.data?.message || 'Gagal memproses siswa')
     }
   })
 
@@ -160,6 +172,23 @@ export default function StudentListPage() {
                         <SelectItem value="Keluar">Keluar</SelectItem>
                     </SelectContent>
                 </Select>
+
+                {isSuperAdmin && (
+                    <Select
+                        value={filterSchoolId?.toString() ?? "all"}
+                        onValueChange={(v) => setFilterSchoolId(v === "all" ? null : Number(v))}
+                    >
+                        <SelectTrigger className="w-full sm:w-[200px] rounded-xl">
+                            <SelectValue placeholder="Semua Sekolah" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Sekolah</SelectItem>
+                            {(Array.isArray(schoolsRes) ? schoolsRes : schoolsRes?.data ?? []).map((s: any) => (
+                                <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -471,7 +500,11 @@ export default function StudentListPage() {
         open={!!confirmBatchAction}
         onOpenChange={(open) => { if (!open) setConfirmBatchAction(null) }}
         title={confirmBatchAction?.type === 'promote' ? 'Naik Kelas Massal' : 'Kelulusan Massal'}
-        description={confirmBatchAction?.label || ''}
+        description={
+          isSuperAdmin && !filterSchoolId
+            ? 'Aksi ini akan memproses SEMUA siswa aktif di seluruh sekolah. Pilih sekolah terlebih dahulu jika ingin membatasi.'
+            : confirmBatchAction?.label || ''
+        }
         confirmText="Ya, Lanjutkan"
         onConfirm={() => {
           if (confirmBatchAction) batchTransitionMutation.mutate(confirmBatchAction.type)

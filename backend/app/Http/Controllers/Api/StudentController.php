@@ -264,13 +264,24 @@ class StudentController extends Controller
     public function batchTransition(Request $request): JsonResponse
     {
         $request->validate([
-            'school_id' => 'required|exists:schools,id',
+            'school_id' => 'nullable|exists:schools,id',
             'action' => 'required|in:promote,graduate',
         ]);
 
-        $students = Student::where('school_id', $request->school_id)
-            ->where('status', 'Aktif')
-            ->get();
+        $user = $request->user();
+
+        // Operator must be scoped to their own school
+        $schoolId = $request->school_id;
+        if ($user->role === 'operator') {
+            $schoolId = $user->school_id;
+        }
+
+        $query = Student::query()->where('status', 'Aktif');
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        $students = $query->get();
 
         $count = 0;
         foreach ($students as $student) {

@@ -123,11 +123,15 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         
         Route::post('teachers/import', [TeacherController::class, 'import']);
+        // NIM routes must be registered before apiResource to avoid {teacher} wildcard conflict
+        Route::get('teachers/nim/generate', [TeacherController::class, 'previewNim']);
+        Route::patch('teachers/{teacher}/nim', [TeacherController::class, 'updateNim']);
         Route::apiResource('teachers', TeacherController::class);
 
 
         // Students
         Route::post('students/import', [StudentController::class, 'import']);
+        Route::post('students/batch-transition', [StudentController::class, 'batchTransition']);
         Route::apiResource('students', StudentController::class);
 
         // SK Documents — specific routes MUST come before apiResource

@@ -364,7 +364,16 @@ class NormalizationService
      */
     protected function splitAttachedDegrees(string $name): string
     {
-        $minKeyLen = 3; // avoid false positives from short keys like SH, ST, SE
+        // Minimum key length for split detection.
+        // Short keys like DR, DRA, SH, ST, SE are excluded because they appear
+        // too frequently as substrings inside real Indonesian names
+        // (e.g. LEANDRA, CANDRA, INDRA, SANDRA → false positives with DRA/DR).
+        $minKeyLen = 4;
+
+        // Keys explicitly excluded from split detection due to high false-positive rate
+        // as name substrings. These are still handled correctly when they appear as
+        // separate tokens (e.g. "AHMAD DR" or "SITI, Dra.").
+        $excludeFromSplit = ['DR', 'DRA', 'SH', 'ST', 'SE', 'SM', 'MM', 'MT', 'ME', 'MH'];
 
         $map    = $this->getDegreeMap(); // sorted longest-first
         $tokens = preg_split('/\s+/', trim($name));
@@ -381,21 +390,22 @@ class NormalizationService
 
             $upper = mb_strtoupper($stripped, 'UTF-8');
 
-            // Minimum total: name part (≥3) + degree key (≥3) = 6
-            if (strlen($upper) < 6) {
+            // Minimum total: name part (≥4) + degree key (≥4) = 8
+            if (strlen($upper) < 8) {
                 $result[] = $token;
                 continue;
             }
 
             $split = false;
             foreach ($map as $key => $canonical) {
-                $keyLen  = strlen($key);
+                $keyLen = strlen($key);
 
                 if ($keyLen < $minKeyLen) continue;
+                if (in_array($key, $excludeFromSplit, true)) continue;
 
                 $nameLen = strlen($upper) - $keyLen;
 
-                if ($nameLen < 3) continue; // name part too short
+                if ($nameLen < 4) continue; // name part too short
 
                 if (substr($upper, -$keyLen) === $key) {
                     $result[] = substr($upper, 0, $nameLen);

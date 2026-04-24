@@ -217,7 +217,23 @@ class NormalizeData extends Command
                         $normalizedName = $this->normalizationService->normalizeTeacherName($originalName);
                         $normalizedUnit = $this->normalizationService->normalizeSchoolName($originalUnit);
                         $normalizedTempatLahir = $this->normalizationService->normalizePlaceOfBirth($originalTempatLahir);
-                        $tmt = $teacher->tmt ? \Carbon\Carbon::parse($teacher->tmt) : null;
+                        $tmt = null;
+                        if ($teacher->tmt) {
+                            try {
+                                $tmtStr = trim((string) $teacher->tmt);
+                                // Translate Indonesian month names to English for Carbon
+                                $indoMonths = [
+                                    'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
+                                    'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
+                                    'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
+                                    'nopember' => 'november', 'november' => 'november', 'desember' => 'december',
+                                ];
+                                $tmtStr = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tmtStr);
+                                $tmt = \Carbon\Carbon::parse($tmtStr);
+                            } catch (\Exception $e) {
+                                $tmt = null;
+                            }
+                        }
                         $normalizedStatus = $this->normalizationService->normalizeEmploymentStatus($originalStatus, $tmt);
 
                         $changes = [];

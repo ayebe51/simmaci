@@ -13,6 +13,7 @@ import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, L
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
@@ -93,6 +94,7 @@ export default function SchoolListPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [generateTarget, setGenerateTarget] = useState<School | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<School | null>(null)
 
   const openAdd = () => {
     setIsEditMode(false)
@@ -300,9 +302,7 @@ export default function SchoolListPage() {
                                             <>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Generate Akun" onClick={() => handleGenerateSingle(item)}><KeyRound className="h-3.5 w-3.5" /></Button>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
-                                                    if(confirm(`Yakin ingin menghapus ${item.nama}?`)) deleteMutation.mutate(item.id)
-                                                }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                             </>
                                         )}
                                     </div>
@@ -527,6 +527,20 @@ export default function SchoolListPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* ── Confirm Delete Single School ── */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}
+        title="Hapus Sekolah"
+        description={`Yakin ingin menghapus ${confirmDelete?.nama}? Data yang dihapus tidak dapat dikembalikan.`}
+        confirmText="Hapus"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDelete) deleteMutation.mutate(confirmDelete.id)
+          setConfirmDelete(null)
+        }}
+      />
     </div>
   )
 }

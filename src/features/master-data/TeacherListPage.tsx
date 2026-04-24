@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Label } from "@/components/ui/label"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { teacherApi, schoolApi } from "@/lib/api"
@@ -119,6 +120,7 @@ export default function TeacherListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<Teacher | null>(null)
 
   // Account Generation States
   const [isGenerateOpen, setIsGenerateOpen] = useState(false)
@@ -345,9 +347,7 @@ export default function TeacherListPage() {
                                 <TableCell className="px-3 py-2.5 text-right">
                                     <div className="flex gap-1 items-center justify-end">
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => {
-                                            if(confirm(`Hapus guru ${item.nama}?`)) deleteMutation.mutate(item.id)
-                                        }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -672,6 +672,20 @@ export default function TeacherListPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* ── Confirm Delete Single Teacher ── */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}
+        title="Hapus Guru"
+        description={`Yakin ingin menghapus ${confirmDelete?.nama}? Data yang dihapus tidak dapat dikembalikan.`}
+        confirmText="Hapus"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDelete) deleteMutation.mutate(confirmDelete.id)
+          setConfirmDelete(null)
+        }}
+      />
     </div>
   )
 }

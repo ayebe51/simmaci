@@ -646,24 +646,22 @@ class SkDocumentController extends Controller
                 $schoolId = $schoolCache[$doc['unit_kerja']];
             }
 
-            // Upsert Teacher with normalized data
-            $teacherData = [
-                'nama'                => $doc['nama'],
-                'nuptk'               => $doc['nuptk'] ?? null,
-                'nip'                 => $doc['nip'] ?? null,
-                'nomor_induk_maarif'  => $doc['nomor_induk_maarif'] ?? null,
-                'unit_kerja'          => $doc['unit_kerja'] ?? null,
-                'school_id'           => $schoolId,
-                'tempat_lahir'        => $doc['tempat_lahir'] ?? null,
-                'tanggal_lahir'       => $doc['tanggal_lahir'] ?? null,
-                'pendidikan_terakhir' => $doc['pendidikan_terakhir'] ?? null,
-                'tmt'                 => $doc['tmt'] ?? null,
-                'kecamatan'           => $doc['kecamatan'] ?? null,
-                'status'              => $doc['status'] ?? 'Draft',
-                'is_verified'         => false,
-            ];
+            // Build teacher data — only include fields that are explicitly provided in the
+            // uploaded Excel row. Fields absent from the file must NOT overwrite existing
+            // database values (e.g. status, is_certified, is_verified).
+            $teacherData = ['nama' => $doc['nama'], 'school_id' => $schoolId];
 
-            // If NIP is empty but NIM is provided, or vice versa - and they represent the same concept for this user
+            foreach ([
+                'nuptk', 'nip', 'nomor_induk_maarif', 'unit_kerja',
+                'tempat_lahir', 'tanggal_lahir', 'pendidikan_terakhir',
+                'tmt', 'kecamatan', 'status',
+            ] as $field) {
+                if (isset($doc[$field]) && $doc[$field] !== '' && $doc[$field] !== null) {
+                    $teacherData[$field] = $doc[$field];
+                }
+            }
+
+            // Sync NIP ↔ NIM only when one side is provided and the other is missing
             if (empty($teacherData['nip']) && !empty($teacherData['nomor_induk_maarif'])) {
                 $teacherData['nip'] = $teacherData['nomor_induk_maarif'];
             }
@@ -675,7 +673,7 @@ class SkDocumentController extends Controller
             if (!empty($teacherData['nuptk'])) {
                 $teacher = Teacher::where('nuptk', $teacherData['nuptk'])->first();
             }
-            
+
             if (!$teacher && !empty($teacherData['nip'])) {
                 $teacher = Teacher::where('nip', $teacherData['nip'])->first();
             }
@@ -683,7 +681,7 @@ class SkDocumentController extends Controller
             if (!$teacher && !empty($teacherData['nomor_induk_maarif'])) {
                 $teacher = Teacher::where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])->first();
             }
-            
+
             if (!$teacher) {
                 $teacher = Teacher::where('nama', $teacherData['nama'])
                     ->where('school_id', $schoolId)
@@ -691,9 +689,11 @@ class SkDocumentController extends Controller
             }
 
             if ($teacher) {
+                // Only update fields that were present in the uploaded file
                 $teacher->update($teacherData);
             } else {
-                $teacher = Teacher::create($teacherData);
+                // New teacher: apply safe defaults for required fields not in the file
+                $teacher = Teacher::create(array_merge(['status' => 'Draft', 'is_verified' => false], $teacherData));
             }
 
             // Auto-generate unique nomor_sk: increment local counter, no per-row DB loop

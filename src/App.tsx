@@ -19,6 +19,7 @@ import SettingsPage from "./features/settings/SettingsPage"
 import HeadmasterExpiryPage from "./features/monitoring/HeadmasterExpiryPage"
 import ReportPage from "./features/reports/ReportPage"
 import SkReportPageSimple from "./features/reports/SkReportPageSimple"
+import SkReportGroupedPage from "./features/reports/SkReportGroupedPage"
 import KtaGeneratorPage from "./features/kta/KtaGeneratorPage"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
 import EventsPage from "./features/events/EventsPage"
@@ -115,6 +116,11 @@ export default function App() {
                         <Route path="reports/sk" element={
                           <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
                             <SkReportPageSimple />
+                          </ErrorBoundary>
+                        } />
+                        <Route path="reports/sk-grouped" element={
+                          <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
+                            <SkReportGroupedPage />
                           </ErrorBoundary>
                         } />
                         <Route path="reports" element={<ReportPage />} />

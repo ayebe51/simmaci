@@ -63,6 +63,7 @@ export default function HeadmasterSubmissionPage() {
     queryKey: ['teachers-all', teacherSearch],
     queryFn: () => {
       const params: any = { 
+        is_certified: true,  // Only show certified teachers (sudah sertifikasi)
         per_page: 100 
       }
       // Only add search if not empty
@@ -191,7 +192,7 @@ export default function HeadmasterSubmissionPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             
              <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pilih Calon Kepala Guru Tetap</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pilih Calon Kepala (Guru Bersertifikat)</Label>
               <Popover open={openTeacher} onOpenChange={setOpenTeacher}>
                 <PopoverTrigger asChild>
                   <Button
@@ -225,7 +226,7 @@ export default function HeadmasterSubmissionPage() {
                           </div>
                         ) : teachers.length === 0 ? (
                           <div className="p-8 text-center text-slate-400 text-xs">
-                            {teacherSearch ? 'Tidak ada guru yang cocok' : 'Tidak ada data guru'}
+                            {teacherSearch ? 'Tidak ada guru yang cocok' : 'Tidak ada guru bersertifikat'}
                           </div>
                         ) : (
                           teachers.map((teacher: any) => (

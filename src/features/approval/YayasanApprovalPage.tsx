@@ -116,16 +116,51 @@ export default function YayasanApprovalPage() {
         const verificationUrl = getSkVerificationUrl(item.id);
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
 
-        // 3. Prepare Data
+        // 3. Format dates
+        const tglPenetapan = tanggalPenetapan || new Date().toISOString().split('T')[0]
+        const datePenetapan = new Date(tglPenetapan)
+        const formatDateIndo = (dateStr: string) => {
+            if (!dateStr) return "-"
+            const d = new Date(dateStr)
+            const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+        }
+
+        // 4. Build nomor SK with format
+        const bulanRomawi = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+        const bulan = String(datePenetapan.getMonth() + 1).padStart(2, '0')
+        const bulanRoma = bulanRomawi[datePenetapan.getMonth()]
+        const tahun = datePenetapan.getFullYear()
+        
+        let nomorSk = nomorFormat
+            .replace(/{NOMOR}/g, nomorStart)
+            .replace(/{BULAN}/g, bulan)
+            .replace(/{BL_ROMA}/g, bulanRoma)
+            .replace(/{TAHUN}/g, String(tahun))
+
+        // 5. Prepare Data - LENGKAP sesuai template
         const docData = {
             qrcode: qrDataUrl,
             NAMA: item.teacher?.nama || "",
             NIP: item.teacher?.nip || "-",
-            UNIT_KERJA: item.school?.nama || "",
+            "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${item.teacher?.tanggal_lahir ? formatDateIndo(item.teacher.tanggal_lahir) : "-"}`,
+            "NOMOR INDUK MA'ARIF": item.teacher?.nomor_induk_maarif || item.teacher?.nuptk || "-",
+            PENDIDIKAN: item.teacher?.pendidikan_terakhir || "-",
+            "UNIT KERJA": item.school?.nama || "",
+            TMT: item.teacher?.tmt ? formatDateIndo(item.teacher.tmt) : "-", // TMT GURU (kapan mulai mengajar)
+            "TMT GURU": item.teacher?.tmt ? formatDateIndo(item.teacher.tmt) : "-", // Alias untuk TMT
+            "TANGGAL MULAI TUGAS": item.teacher?.tmt ? formatDateIndo(item.teacher.tmt) : "-", // Alias untuk TMT
+            "TMT KEPALA": formatDateIndo(item.start_date), // TMT sebagai Kepala (jika diperlukan di template lain)
             JABATAN: "Kepala Madrasah",
             MASA_BHAKTI: `${new Date(item.start_date).getFullYear()} - ${new Date(item.end_date).getFullYear()}`,
-            TANGGAL_PENETAPAN: tanggalPenetapan || new Date().toLocaleDateString("id-ID"),
-            NOMOR_SK: `${nomorStart}/...`, // etc
+            "TANGGAL PENETAPAN": formatDateIndo(tglPenetapan),
+            NOMOR: nomorSk,
+            BULAN: bulan,
+            BL_ROMA: bulanRoma,
+            TAHUN: String(tahun),
+            KECAMATAN: item.school?.kecamatan || "Cilacap",
+            "NOMOR SURAT PERMOHONAN": item.surat_permohonan_number || "-",
+            "TANGGAL SURAT PERMOHONAN": item.surat_permohonan_date ? formatDateIndo(item.surat_permohonan_date) : "-",
             KABUPATEN: "Cilacap",
             TAHUN_AJARAN: tahunAjaran
         }

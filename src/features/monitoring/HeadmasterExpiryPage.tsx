@@ -43,7 +43,7 @@ export default function HeadmasterExpiryPage() {
                 <div className="flex flex-col gap-2">
                     <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Monitoring Masa Jabatan</h1>
                     <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                        Peringatan Dini Kepala Madrasah dengan masa bhakti <span className="text-blue-600">Terbatas (~1 Tahun)</span>
+                        Peringatan Dini Kepala Madrasah dengan masa bhakti <span className="text-blue-600">≤ 6 Bulan (180 Hari)</span>
                     </p>
                 </div>
                 <Button onClick={handleDownloadExcel} disabled={!headmasters.length} className="h-14 px-10 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100">

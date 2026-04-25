@@ -14,7 +14,8 @@ class HeadmasterTenure extends Model
     protected $fillable = [
         'teacher_id', 'teacher_name', 'school_id', 'school_name',
         'periode', 'start_date', 'end_date', 'status',
-        'nomor_sk', 'sk_url', 'approved_by', 'approved_at', 'created_by',
+        'nomor_sk', 'sk_url', 'surat_permohonan_number', 'surat_permohonan_date', 
+        'keterangan', 'approved_by', 'approved_at', 'created_by',
     ];
 
     protected function casts(): array

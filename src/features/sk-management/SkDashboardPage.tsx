@@ -201,9 +201,9 @@ export default function SkDashboardPage() {
                         </SelectTrigger>
                         <SelectContent className="rounded-xl text-sm">
                             <SelectItem value="all">Semua Jenis</SelectItem>
-                            <SelectItem value="SK Kepala Madrasah">SK Kamad</SelectItem>
                             <SelectItem value="SK Guru Tetap Yayasan">SK GTY</SelectItem>
                             <SelectItem value="SK Guru Tidak Tetap">SK GTT</SelectItem>
+                            <SelectItem value="SK Tenaga Kependidikan">SK Tendik</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

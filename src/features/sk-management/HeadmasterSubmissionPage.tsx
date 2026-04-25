@@ -63,7 +63,6 @@ export default function HeadmasterSubmissionPage() {
     queryKey: ['teachers-all', teacherSearch],
     queryFn: () => {
       const params: any = { 
-        is_verified: true, 
         per_page: 100 
       }
       // Only add search if not empty

@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState } from "react"
 import { useQuery, useMutation } from "@tanstack/react-query"
-import { teacherApi, schoolApi, headmasterApi, mediaApi } from "@/lib/api"
+import { teacherApi, schoolApi, headmasterApi, mediaApi, authApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
   Popover,
@@ -41,6 +41,11 @@ export default function HeadmasterSubmissionPage() {
   const [schoolSearch, setSchoolSearch] = useState("") 
   const [teacherSearch, setTeacherSearch] = useState("")
 
+  // Get current user
+  const user = authApi.getStoredUser()
+  const isOperator = user?.role === 'operator'
+  const userSchoolId = user?.school_id
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
@@ -68,7 +73,15 @@ export default function HeadmasterSubmissionPage() {
     queryFn: () => schoolApi.list({ 
       search: schoolSearch || undefined, 
       per_page: 100 
-    })
+    }),
+    enabled: !isOperator // Only fetch schools for admin yayasan
+  })
+
+  // Get user's school data for operator
+  const { data: userSchoolData } = useQuery({
+    queryKey: ['user-school', userSchoolId],
+    queryFn: () => schoolApi.get(userSchoolId!),
+    enabled: isOperator && !!userSchoolId
   })
   
   const teachers = teachersData?.data || []
@@ -78,6 +91,7 @@ export default function HeadmasterSubmissionPage() {
     resolver: zodResolver(headmasterSchema),
     defaultValues: {
       periode: "1",
+      school_id: isOperator && userSchoolId ? userSchoolId.toString() : undefined
     }
   })
 
@@ -115,7 +129,14 @@ export default function HeadmasterSubmissionPage() {
         }
 
         const selectedTeacher = teachers.find((t: any) => t.id.toString() === data.teacher_id)
-        const selectedSchool = schools.find((s: any) => s.id.toString() === data.school_id)
+        
+        // For operator, use user's school; for admin, use selected school
+        let selectedSchool
+        if (isOperator && userSchoolData) {
+            selectedSchool = userSchoolData
+        } else {
+            selectedSchool = schools.find((s: any) => s.id.toString() === data.school_id)
+        }
 
         const startDate = new Date(data.tmt)
         const endDate = new Date(startDate)
@@ -217,52 +238,60 @@ export default function HeadmasterSubmissionPage() {
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Madrasah Tujuan (Tempat Menjabat)</Label>
-              <Popover open={openSchool} onOpenChange={setOpenSchool}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-12 justify-between rounded-xl border-slate-200 font-bold px-4",
-                      !form.watch("school_id") && "text-slate-400"
-                    )}
-                  >
-                    {form.watch("school_id")
-                      ? schools.find((s: any) => s.id.toString() === form.watch("school_id"))?.nama
-                      : "Pilih Madrasah..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[500px] p-0" align="start">
-                  <div className="flex flex-col border rounded-xl bg-white shadow-xl overflow-hidden">
-                    <div className="p-4 border-b">
-                      <Input
-                         placeholder="Cari madrasah..."
-                         className="h-10 rounded-lg bg-slate-50 border-0 focus:ring-emerald-500 font-bold"
-                         value={schoolSearch}
-                         onChange={(e) => setSchoolSearch(e.target.value)}
-                      />
+              {isOperator ? (
+                // For operator: show read-only field with their school
+                <div className="h-12 rounded-xl border-slate-200 border bg-slate-50 px-4 flex items-center font-bold text-slate-700">
+                  {userSchoolData?.nama || "Loading..."}
+                </div>
+              ) : (
+                // For admin yayasan: show dropdown
+                <Popover open={openSchool} onOpenChange={setOpenSchool}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-12 justify-between rounded-xl border-slate-200 font-bold px-4",
+                        !form.watch("school_id") && "text-slate-400"
+                      )}
+                    >
+                      {form.watch("school_id")
+                        ? schools.find((s: any) => s.id.toString() === form.watch("school_id"))?.nama
+                        : "Pilih Madrasah..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[500px] p-0" align="start">
+                    <div className="flex flex-col border rounded-xl bg-white shadow-xl overflow-hidden">
+                      <div className="p-4 border-b">
+                        <Input
+                          placeholder="Cari madrasah..."
+                          className="h-10 rounded-lg bg-slate-50 border-0 focus:ring-emerald-500 font-bold"
+                          value={schoolSearch}
+                          onChange={(e) => setSchoolSearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                          {schools.map((school: any) => (
+                            <div
+                              key={school.id}
+                              className={cn(
+                                "relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-800 transition-colors",
+                                school.id.toString() === form.watch("school_id") && "bg-emerald-50 text-emerald-900"
+                              )}
+                              onClick={() => {
+                                form.setValue("school_id", school.id.toString());
+                                setOpenSchool(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", school.id.toString() === form.watch("school_id") ? "opacity-100" : "opacity-0")} />
+                              {school.nama}
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                        {schools.map((school: any) => (
-                          <div
-                            key={school.id}
-                            className={cn(
-                              "relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-800 transition-colors",
-                              school.id.toString() === form.watch("school_id") && "bg-emerald-50 text-emerald-900"
-                            )}
-                            onClick={() => {
-                               form.setValue("school_id", school.id.toString());
-                               setOpenSchool(false);
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", school.id.toString() === form.watch("school_id") ? "opacity-100" : "opacity-0")} />
-                            {school.nama}
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                  </PopoverContent>
+                </Popover>
+              )}
                {form.formState.errors.school_id && <p className="text-red-500 text-[10px] font-bold uppercase mt-1">{form.formState.errors.school_id.message}</p>}
             </div>
 

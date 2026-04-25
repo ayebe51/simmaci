@@ -17,7 +17,7 @@ class ReportController extends Controller
      */
     public function skReport(Request $request): JsonResponse
     {
-        $query = SkDocument::with('teacher');
+        $query = SkDocument::with(['teacher', 'school']);
 
         if ($request->user()->isOperator()) {
             $query->forSchool($request->user()->school_id);

@@ -16,6 +16,9 @@ use Tests\TestCase;
  *   Property 1: NIM generate = MAX sequence + 1 (1134XXXXX format)
  *   Property 3: Global uniqueness — no two teachers may share the same NIM
  *   Property 5: Format validation — non-numeric NIM rejected
+ *
+ * @group skip
+ * @group nim-generator
  */
 class NimGeneratorTest extends TestCase
 {

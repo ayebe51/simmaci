@@ -94,15 +94,37 @@ class SchoolController extends Controller
 
     public function update(Request $request, School $school): JsonResponse
     {
-        $school->update($request->only([
-            'nsm', 'npsn', 'nama', 'alamat', 'provinsi', 'kabupaten',
-            'kecamatan', 'kelurahan', 'telepon', 'email',
-            'kepala_madrasah', 'akreditasi', 'status_jamiyyah', 'npsm_nu',
-            'kepala_nim', 'kepala_nuptk', 'kepala_whatsapp',
-            'kepala_jabatan_mulai', 'kepala_jabatan_selesai'
-        ]));
+        // Validate only the fields that are being updated
+        $validated = $request->validate([
+            'nsm' => 'nullable|string|unique:schools,nsm,' . $school->id,
+            'npsn' => 'nullable|string|unique:schools,npsn,' . $school->id,
+            'nama' => 'nullable|string|max:255',
+            'alamat' => 'nullable|string',
+            'provinsi' => 'nullable|string',
+            'kabupaten' => 'nullable|string',
+            'kecamatan' => 'nullable|string',
+            'kelurahan' => 'nullable|string',
+            'telepon' => 'nullable|string',
+            'email' => 'nullable|email',
+            'kepala_madrasah' => 'nullable|string',
+            'akreditasi' => 'nullable|string',
+            'status_jamiyyah' => 'nullable|string',
+            'npsm_nu' => 'nullable|string|unique:schools,npsm_nu,' . $school->id,
+            'kepala_nim' => 'nullable|string',
+            'kepala_nuptk' => 'nullable|string',
+            'kepala_whatsapp' => 'nullable|string',
+            'kepala_jabatan_mulai' => 'nullable|date',
+            'kepala_jabatan_selesai' => 'nullable|date',
+        ]);
 
-        return response()->json($school);
+        // Only update fields that are present in the request
+        $updateData = array_filter($validated, fn($value) => $value !== null);
+        
+        if (!empty($updateData)) {
+            $school->update($updateData);
+        }
+
+        return response()->json($school->fresh());
     }
 
     public function destroy(School $school): JsonResponse

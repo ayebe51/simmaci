@@ -59,13 +59,19 @@ export default function HeadmasterSubmissionPage() {
   }
 
   // 🔥 REST API QUERIES
-  const { data: teachersData } = useQuery({
+  const { data: teachersData, isLoading: isLoadingTeachers } = useQuery({
     queryKey: ['teachers-all', teacherSearch],
-    queryFn: () => teacherApi.list({ 
-      search: teacherSearch || undefined, 
-      is_verified: true, 
-      per_page: 100 
-    })
+    queryFn: () => {
+      const params: any = { 
+        is_verified: true, 
+        per_page: 100 
+      }
+      // Only add search if not empty
+      if (teacherSearch && teacherSearch.trim()) {
+        params.search = teacherSearch
+      }
+      return teacherApi.list(params)
+    }
   })
 
   const { data: schoolsData } = useQuery({
@@ -213,22 +219,33 @@ export default function HeadmasterSubmissionPage() {
                       />
                     </div>
                     <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                        {teachers.map((teacher: any) => (
-                          <div
-                            key={teacher.id}
-                            className={cn(
-                              "relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-800 transition-colors",
-                              teacher.id.toString() === form.watch("teacher_id") && "bg-emerald-50 text-emerald-900"
-                            )}
-                            onClick={() => {
-                               form.setValue("teacher_id", teacher.id.toString())
-                               setOpenTeacher(false)
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", teacher.id.toString() === form.watch("teacher_id") ? "opacity-100" : "opacity-0")} />
-                            {teacher.nama} <span className="ml-2 opacity-40 text-xs">— {teacher.unit_kerja}</span>
+                        {isLoadingTeachers ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                            Memuat data guru...
                           </div>
-                        ))}
+                        ) : teachers.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 text-xs">
+                            {teacherSearch ? 'Tidak ada guru yang cocok' : 'Tidak ada data guru'}
+                          </div>
+                        ) : (
+                          teachers.map((teacher: any) => (
+                            <div
+                              key={teacher.id}
+                              className={cn(
+                                "relative flex cursor-pointer select-none items-center rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-emerald-50 hover:text-emerald-800 transition-colors",
+                                teacher.id.toString() === form.watch("teacher_id") && "bg-emerald-50 text-emerald-900"
+                              )}
+                              onClick={() => {
+                                 form.setValue("teacher_id", teacher.id.toString())
+                                 setOpenTeacher(false)
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", teacher.id.toString() === form.watch("teacher_id") ? "opacity-100" : "opacity-0")} />
+                              {teacher.nama} <span className="ml-2 opacity-40 text-xs">— {teacher.unit_kerja}</span>
+                            </div>
+                          ))
+                        )}
                     </div>
                   </div>
                 </PopoverContent>

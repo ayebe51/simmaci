@@ -84,7 +84,8 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Revisi Data SK", href: "/dashboard/sk-revisions", icon: FileEdit },
         { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
 
-        { label: "Laporan SK", href: "/dashboard/reports/sk", icon: FileBarChart },
+        { label: "Laporan SK (Detail)", href: "/dashboard/reports/sk", icon: FileBarChart },
+        { label: "Laporan SK (Per Sekolah)", href: "/dashboard/reports/sk-grouped", icon: FileBarChart },
         { label: "Digital KTA", href: "/dashboard/kta", icon: CreditCard },
         { label: "Kartu Pelajar", href: "/dashboard/student-card", icon: CreditCard },
       ]

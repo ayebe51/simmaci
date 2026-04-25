@@ -7,7 +7,7 @@ Fitur ini menambahkan kemampuan untuk mengelola NIM (Nomor Induk Mengajar / `nom
 ### Konteks Teknis Penting
 
 - Kolom NIM di database adalah `nomor_induk_maarif` pada tabel `teachers` (bukan kolom `nim` terpisah)
-- Backend sudah memiliki method `generateNim` di `TeacherController`, namun menggunakan format `1134XXXXX` (prefix Cilacap hardcoded) — perlu direfactor ke format sequential murni sesuai requirements
+- Backend sudah memiliki method `generateNim` di `TeacherController` dengan format `1134XXXXX` (prefix `1134` = kode Cilacap + 5 digit sequence) — format ini **dipertahankan** dan digunakan oleh fitur baru
 - `UniqueForTenant` rule saat ini scope per-tenant untuk operator; NIM harus divalidasi secara **global** (lintas semua tenant)
 - `HasTenantScope` trait auto-apply `where school_id = ?` — query NIM global harus menggunakan `withoutTenantScope()`
 - Frontend sudah memiliki `teacherApi.generateNim` di `src/lib/api.ts` (menggunakan `POST`) — perlu disesuaikan
@@ -132,13 +132,28 @@ Preview NIM berikutnya yang akan di-generate. **Tidak menyimpan apapun.**
 
 **Logic:**
 ```php
-$maxNim = Teacher::withoutTenantScope()
-    ->whereNotNull('nomor_induk_maarif')
-    ->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")  // hanya angka murni
+// Format: 1134XXXXX — prefix "1134" (kode Cilacap) + 5 digit sequence
+$lastNim = Teacher::withoutTenantScope()
+    ->where('nomor_induk_maarif', 'like', '1134%')
+    ->whereRaw("LENGTH(nomor_induk_maarif) = 9")
+    ->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
     ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC")
     ->value('nomor_induk_maarif');
 
-$nextNim = $maxNim ? (string)((int)$maxNim + 1) : "1";
+if ($lastNim) {
+    $lastSeq = (int) substr($lastNim, 4); // ambil 5 digit terakhir
+    $newSeq  = $lastSeq + 1;
+} else {
+    $newSeq = 1;
+}
+
+$nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+
+// Ensure uniqueness (handle gaps)
+while (Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nextNim)->exists()) {
+    $newSeq++;
+    $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+}
 ```
 
 #### 2. `PATCH /api/teachers/{id}/nim`
@@ -333,9 +348,9 @@ interface UpdateNimResponse {
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system — essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property 1: NIM yang di-generate selalu MAX + 1
+### Property 1: NIM yang di-generate selalu mengikuti sequence `1134XXXXX`
 
-*For any* set of existing NIMs di database, NIM yang di-generate oleh `GET /api/teachers/nim/generate` harus selalu sama dengan nilai numerik terbesar yang ada ditambah 1. Jika database kosong, NIM pertama harus "1".
+*For any* set of existing NIMs berformat `1134XXXXX` di database, NIM yang di-generate oleh `GET /api/teachers/nim/generate` harus selalu berupa `1134` + (sequence terbesar + 1, zero-padded 5 digit). Jika belum ada NIM berformat ini, NIM pertama harus `"113400001"`.
 
 **Validates: Requirements 2.2, 7.4, 11.3**
 
@@ -351,9 +366,9 @@ interface UpdateNimResponse {
 
 **Validates: Requirements 4.1, 4.3, 11.1**
 
-### Property 4: Format NIM — hanya angka murni tanpa leading zeros
+### Property 4: Format NIM — `1134` + 5 digit sequence dengan leading zeros
 
-*For any* NIM yang di-generate secara otomatis, string tersebut harus: (a) hanya mengandung karakter digit `[0-9]`, (b) tidak memiliki leading zeros (kecuali NIM = "0" yang tidak valid), (c) merepresentasikan bilangan bulat positif.
+*For any* NIM yang di-generate secara otomatis, string tersebut harus: (a) panjang tepat 9 karakter, (b) diawali dengan `"1134"`, (c) diikuti tepat 5 digit angka dengan zero-padding (contoh: `"113400001"`, `"113400139"`).
 
 **Validates: Requirements 7.1, 7.6**
 
@@ -437,11 +452,11 @@ public function test_generated_nim_is_max_plus_one(array $existingNims, string $
 public static function nimDataProvider(): array
 {
     return [
-        'empty database' => [[], '1'],
-        'single nim' => [['100'], '101'],
-        'multiple nims' => [['100', '50', '200', '150'], '201'],
-        'large nim' => [['113400139'], '113400140'],
-        'non-sequential nims' => [['1', '999', '500'], '1000'],
+        'empty database' => [[], '113400001'],
+        'single nim' => [['113400001'], '113400002'],
+        'multiple nims' => [['113400001', '113400050', '113400139'], '113400140'],
+        'large sequence' => [['113499999'], '113400001'],  // overflow — edge case
+        'non-sequential nims' => [['113400001', '113400999', '113400500'], '113401000'],
     ];
 }
 ```

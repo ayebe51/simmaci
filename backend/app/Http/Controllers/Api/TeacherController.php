@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Teacher\StoreTeacherRequest;
+use App\Http\Requests\Teacher\UpdateNimRequest;
 use App\Http\Requests\Teacher\UpdateTeacherRequest;
 use App\Models\ActivityLog;
 use App\Models\School;
@@ -650,6 +651,68 @@ class TeacherController extends Controller
             'nim'         => $nextNim,
             'current_max' => $lastNim,
         ]);
+    }
+
+    /**
+     * PATCH /api/teachers/{id}/nim
+     * Save a NIM to a teacher record. Validates global uniqueness across all tenants.
+     *
+     * Feature: nim-generator-sk, Property 3: Global uniqueness — no two teachers may share the same NIM
+     * Feature: nim-generator-sk, Property 5: Format validation — non-numeric NIM rejected
+     */
+    public function updateNim(UpdateNimRequest $request, Teacher $teacher): JsonResponse
+    {
+        $this->authorize('update', $teacher);
+
+        $nim = $request->validated()['nim'];
+
+        // Global uniqueness check — bypass tenant scope to check across ALL schools
+        $duplicate = Teacher::withoutTenantScope()
+            ->where('nomor_induk_maarif', $nim)
+            ->where('id', '!=', $teacher->id)
+            ->with('school')
+            ->first();
+
+        if ($duplicate) {
+            $sekolah = $duplicate->school?->nama ?? 'Sekolah tidak diketahui';
+            return $this->errorResponse(
+                'NIM sudah digunakan oleh guru lain.',
+                [
+                    'nim' => ["NIM {$nim} sudah digunakan oleh {$duplicate->nama} ({$sekolah})."],
+                ],
+                422
+            );
+        }
+
+        $oldNim = $teacher->nomor_induk_maarif;
+
+        $teacher->nomor_induk_maarif = $nim;
+        $teacher->save();
+
+        // Activity log
+        ActivityLog::create([
+            'description' => "Update NIM guru: {$teacher->nama} → {$nim}",
+            'event'       => 'update_nim',
+            'log_name'    => 'master',
+            'subject_id'  => $teacher->id,
+            'subject_type' => get_class($teacher),
+            'causer_id'   => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id'   => $teacher->school_id,
+            'properties'  => [
+                'old_nim' => $oldNim,
+                'new_nim' => $nim,
+            ],
+        ]);
+
+        return $this->successResponse(
+            [
+                'id'                  => $teacher->id,
+                'nama'                => $teacher->nama,
+                'nomor_induk_maarif'  => $teacher->nomor_induk_maarif,
+            ],
+            'NIM berhasil disimpan.'
+        );
     }
 
     /**

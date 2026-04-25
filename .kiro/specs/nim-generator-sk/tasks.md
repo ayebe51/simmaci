@@ -37,9 +37,9 @@
   - [x] 5.4 Setelah `onSuccess` dari NimDialog, invalidate TanStack Query cache (`queryClient.invalidateQueries`) dan lanjutkan generate
   - [x] 5.5 Render `<NimDialog>` di JSX `SkGeneratorPage` dengan props yang sesuai
 
-- [ ] 6. Property-Based Tests
-  - [ ] 6.1 Tulis PHPUnit data provider test untuk Property 1 (NIM generate = MAX sequence + 1)
-  - [ ] 6.2 Tulis PHPUnit test untuk Property 3 (global uniqueness lintas tenant)
-  - [ ] 6.3 Tulis PHPUnit data provider test untuk Property 5 (format validation — berbagai input non-numerik)
-  - [ ] 6.4 Tulis Vitest + fast-check test untuk Property 6 (NimDialog selalu render data teacher yang benar)
-  - [ ] 6.5 Tulis Vitest + fast-check test untuk Property 5 frontend (input non-numerik ditolak sebelum submit)
+- [x] 6. Property-Based Tests
+  - [x] 6.1 Tulis PHPUnit data provider test untuk Property 1 (NIM generate = MAX sequence + 1)
+  - [x] 6.2 Tulis PHPUnit test untuk Property 3 (global uniqueness lintas tenant)
+  - [x] 6.3 Tulis PHPUnit data provider test untuk Property 5 (format validation — berbagai input non-numerik)
+  - [x] 6.4 Tulis Vitest + fast-check test untuk Property 6 (NimDialog selalu render data teacher yang benar)
+  - [x] 6.5 Tulis Vitest + fast-check test untuk Property 5 frontend (input non-numerik ditolak sebelum submit)

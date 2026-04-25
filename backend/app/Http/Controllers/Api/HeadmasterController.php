@@ -43,6 +43,9 @@ class HeadmasterController extends Controller
             'start_date' => 'required|string',
             'end_date' => 'required|string',
             'nomor_sk' => 'nullable|string',
+            'surat_permohonan_number' => 'nullable|string',
+            'surat_permohonan_date' => 'nullable|string',
+            'keterangan' => 'nullable|string',
         ]);
 
         $data['status'] = 'pending';
@@ -66,7 +69,7 @@ class HeadmasterController extends Controller
 
     public function expiring(Request $request): JsonResponse
     {
-        $limit = strtotime('+90 days');
+        $limit = strtotime('+180 days'); // 6 bulan sebelum berakhir
         $user = $request->user();
 
         // 1. Data from formal tenures (SK)
@@ -77,7 +80,7 @@ class HeadmasterController extends Controller
 
         $tenures = $tenureQuery->get()->filter(function ($t) {
             $end = strtotime($t->end_date);
-            return $end && $end <= strtotime('+90 days');
+            return $end && $end <= strtotime('+180 days'); // 6 bulan
         });
 
         // 2. Data from School Profiles (Manual detect)

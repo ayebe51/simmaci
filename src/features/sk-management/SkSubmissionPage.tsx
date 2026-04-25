@@ -195,12 +195,14 @@ export default function SkSubmissionPage() {
                                 <SelectValue placeholder="Pilih Jenis SK" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
-                                <SelectItem value="SK Kepala Madrasah">SK Kepala Madrasah</SelectItem>
                                 <SelectItem value="SK Guru Tetap Yayasan">SK Guru Tetap Yayasan (GTY)</SelectItem>
                                 <SelectItem value="SK Guru Tidak Tetap">SK Guru Tidak Tetap (GTT)</SelectItem>
                                 <SelectItem value="SK Tenaga Kependidikan">SK Tenaga Kependidikan</SelectItem>
                             </SelectContent>
                         </Select>
+                        <p className="text-[9px] text-slate-400 font-medium italic">
+                            Untuk SK Kepala Madrasah, gunakan menu "Pengajuan Kepala" di Manajemen SDM
+                        </p>
                     </div>
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Jenis Pengajuan</Label>

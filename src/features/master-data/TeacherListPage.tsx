@@ -372,13 +372,13 @@ export default function TeacherListPage() {
             <DialogHeader><DialogTitle className="text-xl font-bold text-slate-800">{isEditMode ? 'Edit' : 'Tambah'} Guru Manual</DialogTitle></DialogHeader>
             <div className="py-6 overflow-y-auto max-h-[75vh] px-2 -mx-2 space-y-6">
                 
-                {/* Upload Foto Placeholder */}
+                {/* Upload Foto */}
                 <div className="flex justify-center mb-8">
-                    <div className="w-32 h-40 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 relative group overflow-hidden transition-colors hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer">
-                        <ImagePlus className="h-8 w-8 mb-2 text-slate-300 group-hover:text-emerald-400" strokeWidth={1.5} />
-                        <div className="text-[10px] font-medium tracking-wide">Upload Foto</div>
-                        <div className="absolute -bottom-10 left-0 right-0 py-2 bg-white/90 backdrop-blur text-[8px] text-center text-slate-500 group-hover:bottom-0 transition-all">Format: JPG/PNG.<br/>Max 2MB (3:4)</div>
-                    </div>
+                    <TeacherPhotoUpload
+                        photoId={formData.photoId}
+                        onPhotoUploaded={(url) => setFormData({...formData, photoId: url})}
+                        onRemovePhoto={() => setFormData({...formData, photoId: undefined})}
+                    />
                 </div>
 
                 <div className="space-y-4">

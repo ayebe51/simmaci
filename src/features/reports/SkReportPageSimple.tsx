@@ -36,6 +36,10 @@ export default function SkReportPageSimple() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [openSchool, setOpenSchool] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(20)
 
   // 🔥 REST API QUERIES
   const { data: schoolsData } = useQuery({
@@ -55,6 +59,26 @@ export default function SkReportPageSimple() {
   })
 
   const schools = useMemo(() => schoolsData?.data || [], [schoolsData])
+
+  // Pagination logic
+  const paginatedData = useMemo(() => {
+    if (!reportData?.data) return []
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return reportData.data.slice(startIndex, endIndex)
+  }, [reportData?.data, currentPage, itemsPerPage])
+
+  const totalPages = useMemo(() => {
+    if (!reportData?.data) return 0
+    return Math.ceil(reportData.data.length / itemsPerPage)
+  }, [reportData?.data, itemsPerPage])
+
+  const totalItems = reportData?.data?.length || 0
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = () => {
+    setCurrentPage(1)
+  }
 
   const handlePrint = () => window.print()
 
@@ -100,15 +124,15 @@ export default function SkReportPageSimple() {
           <CardContent className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">Dimulai Dari</Label>
-                <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
+                <Input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); handleFilterChange() }} className="h-12 rounded-xl border-slate-200 font-bold" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">Sampai Dengan</Label>
-                <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
+                <Input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); handleFilterChange() }} className="h-12 rounded-xl border-slate-200 font-bold" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">Status Produk</Label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <Select value={selectedStatus} onValueChange={(val) => { setSelectedStatus(val); handleFilterChange() }}>
                   <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold italic">
                     <SelectValue placeholder="Semua Status" />
                   </SelectTrigger>
@@ -134,11 +158,11 @@ export default function SkReportPageSimple() {
                         <div className="bg-white">
                             <Input placeholder="Cari madrasah..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="border-0 rounded-none h-14 px-6 focus-visible:ring-0 font-bold bg-slate-50" />
                             <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                                <div onClick={() => { setSelectedSchool("all"); setOpenSchool(false) }} className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100 ${selectedSchool === 'all' ? 'bg-blue-50 text-blue-600' : ''}`}>
+                                <div onClick={() => { setSelectedSchool("all"); setOpenSchool(false); handleFilterChange() }} className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100 ${selectedSchool === 'all' ? 'bg-blue-50 text-blue-600' : ''}`}>
                                     <Check className={`mr-2 h-4 w-4 ${selectedSchool === 'all' ? 'opacity-100' : 'opacity-0'}`} /> Semua Sekolah
                                 </div>
                                 {schools.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase())).map(s => (
-                                    <div key={s.id} onClick={() => { setSelectedSchool(s.id.toString()); setOpenSchool(false) }} className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100 ${selectedSchool === s.id.toString() ? 'bg-blue-50 text-blue-600' : ''}`}>
+                                    <div key={s.id} onClick={() => { setSelectedSchool(s.id.toString()); setOpenSchool(false); handleFilterChange() }} className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100 ${selectedSchool === s.id.toString() ? 'bg-blue-50 text-blue-600' : ''}`}>
                                         <Check className={`mr-2 h-4 w-4 ${selectedSchool === s.id.toString() ? 'opacity-100' : 'opacity-0'}`} /> {s.nama}
                                     </div>
                                 ))}
@@ -220,6 +244,65 @@ export default function SkReportPageSimple() {
             </div>
 
             <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+               <div className="p-6 border-b bg-slate-50/50 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                      Menampilkan {paginatedData.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} data
+                    </span>
+                    <Select value={itemsPerPage.toString()} onValueChange={(val) => { setItemsPerPage(Number(val)); setCurrentPage(1) }}>
+                      <SelectTrigger className="h-9 w-[100px] rounded-lg border-slate-200 text-xs font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10 / hal</SelectItem>
+                        <SelectItem value="20">20 / hal</SelectItem>
+                        <SelectItem value="50">50 / hal</SelectItem>
+                        <SelectItem value="100">100 / hal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="h-9 px-3 rounded-lg text-xs font-bold"
+                    >
+                      Awal
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="h-9 px-3 rounded-lg text-xs font-bold"
+                    >
+                      ‹ Prev
+                    </Button>
+                    <span className="text-xs font-bold text-slate-600 px-3">
+                      Hal {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="h-9 px-3 rounded-lg text-xs font-bold"
+                    >
+                      Next ›
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="h-9 px-3 rounded-lg text-xs font-bold"
+                    >
+                      Akhir
+                    </Button>
+                  </div>
+               </div>
                <div className="overflow-x-auto">
                  <table className="w-full text-left">
                    <thead className="bg-slate-50 border-b border-slate-100">
@@ -233,9 +316,9 @@ export default function SkReportPageSimple() {
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-50">
-                     {reportData.data.map((row: any, i: number) => (
+                     {paginatedData.map((row: any, i: number) => (
                         <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-6 text-center font-bold text-slate-400 text-xs">{i+1}</td>
+                          <td className="p-6 text-center font-bold text-slate-400 text-xs">{((currentPage - 1) * itemsPerPage) + i + 1}</td>
                           <td className="p-6 font-mono text-xs font-bold text-slate-600">{row.nomor_sk || '--/--/--'}</td>
                           <td className="p-6">
                              <div className="font-black text-slate-800 text-sm tracking-tight">{row.nama}</div>

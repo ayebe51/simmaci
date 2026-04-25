@@ -56,12 +56,19 @@ export default function HeadmasterSubmissionPage() {
   // 🔥 REST API QUERIES
   const { data: teachersData } = useQuery({
     queryKey: ['teachers-all', teacherSearch],
-    queryFn: () => teacherApi.list({ search: teacherSearch, is_verified: true, per_page: 50 })
+    queryFn: () => teacherApi.list({ 
+      search: teacherSearch || undefined, 
+      is_verified: true, 
+      per_page: 100 
+    })
   })
 
   const { data: schoolsData } = useQuery({
     queryKey: ['schools-all', schoolSearch],
-    queryFn: () => schoolApi.list({ search: schoolSearch, per_page: 50 })
+    queryFn: () => schoolApi.list({ 
+      search: schoolSearch || undefined, 
+      per_page: 100 
+    })
   })
   
   const teachers = teachersData?.data || []

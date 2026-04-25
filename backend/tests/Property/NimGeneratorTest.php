@@ -17,7 +17,6 @@ use Tests\TestCase;
  *   Property 3: Global uniqueness — no two teachers may share the same NIM
  *   Property 5: Format validation — non-numeric NIM rejected
  *
- * @group skip
  * @group nim-generator
  */
 class NimGeneratorTest extends TestCase

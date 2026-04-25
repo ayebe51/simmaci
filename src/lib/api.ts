@@ -398,9 +398,7 @@ export const reportApi = {
   teacherRekap: {
     list: (params?: Record<string, any>) => apiClient.get('/reports/teachers', { params }).then((r) => r.data),
   },
-  skReport: {
-    list: (params?: Record<string, any>) => apiClient.get('/reports/sk', { params }).then((r) => r.data),
-  },
+  skReport: (params?: Record<string, any>) => apiClient.get('/reports/sk', { params }).then((r) => r.data),
   summary: () => apiClient.get('/reports/summary').then((r) => r.data),
 };
 

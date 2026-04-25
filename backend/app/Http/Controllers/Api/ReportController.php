@@ -32,10 +32,33 @@ class ReportController extends Controller
 
         $sks = $query->orderByDesc('created_at')->get();
 
-        return response()->json([
+        // Group by status and get counts
+        $byStatus = $sks->groupBy('status')->map->count();
+        
+        // Transform response structure to match frontend expectations
+        $summary = [
             'total' => $sks->count(),
-            'by_status' => $sks->groupBy('status')->map->count(),
-            'by_jenis' => $sks->groupBy('jenis_sk')->map->count(),
+            'approved' => $byStatus->get('approved', 0),
+            'pending' => $byStatus->get('pending', 0),
+            'rejected' => $byStatus->get('rejected', 0),
+            'draft' => $byStatus->get('draft', 0),
+        ];
+
+        // Group by jenis_sk with case-insensitive grouping and lowercase keys
+        $byJenis = $sks->groupBy(function ($item) {
+            return strtolower($item->jenis_sk ?? '');
+        })->map->count();
+
+        $byType = [
+            'gty' => $byJenis->get('gty', 0),
+            'gtt' => $byJenis->get('gtt', 0),
+            'kamad' => $byJenis->get('kamad', 0),
+            'tendik' => $byJenis->get('tendik', 0),
+        ];
+
+        return response()->json([
+            'summary' => $summary,
+            'byType' => $byType,
             'data' => $sks,
         ]);
     }

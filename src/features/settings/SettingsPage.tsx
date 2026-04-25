@@ -110,13 +110,9 @@ export default function SettingsPage() {
       <Tabs defaultValue={isAdmin ? "template" : "security"} value={activeTab} onValueChange={setActiveTab} className="space-y-10">
         <TabsList className="flex h-auto w-full justify-start gap-4 bg-transparent p-0">
            {isAdmin && (
-             <>
-               <TabsTrigger value="template" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Template SK</TabsTrigger>
-               <TabsTrigger value="signer" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Penandatangan</TabsTrigger>
-             </>
+             <TabsTrigger value="template" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Template SK</TabsTrigger>
            )}
            <TabsTrigger value="security" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Keamanan</TabsTrigger>
-           <TabsTrigger value="profil" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Profil Unit</TabsTrigger>
         </TabsList>
 
         <TabsContent value="template" className="space-y-6">
@@ -134,35 +130,6 @@ export default function SettingsPage() {
                         <p className="text-[10px] text-blue-600 font-bold uppercase mt-1 leading-relaxed max-w-2xl">
                             Syntax Word: {'{{NAMA}}, {{NIP}}, {{UNIT_KERJA}}, {{JABATAN}}, {{MASA_BHAKTI}}, {{TANGGAL_PENETAPAN}}, {{qrcode}}'}
                         </p>
-                    </div>
-                </div>
-            </Card>
-        </TabsContent>
-
-        <TabsContent value="signer">
-            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] p-10 overflow-hidden">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                    <div className="space-y-6">
-                        <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest italic">Otoritas 01: Ketua</h3>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400">Nama Lengkap</Label>
-                            <Input defaultValue={settingsMap?.signer_ketua_name?.value} onBlur={e => handleSaveGeneral({signer_ketua_name: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400">NIY / NIP</Label>
-                            <Input defaultValue={settingsMap?.signer_ketua_nip?.value} onBlur={e => handleSaveGeneral({signer_ketua_nip: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
-                        </div>
-                    </div>
-                    <div className="space-y-6">
-                        <h3 className="font-black uppercase text-xs text-slate-400 tracking-widest italic">Otoritas 02: Sekretaris</h3>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400">Nama Lengkap</Label>
-                            <Input defaultValue={settingsMap?.signer_sekretaris_name?.value} onBlur={e => handleSaveGeneral({signer_sekretaris_name: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase text-slate-400">NIY / NIP</Label>
-                            <Input defaultValue={settingsMap?.signer_sekretaris_nip?.value} onBlur={e => handleSaveGeneral({signer_sekretaris_nip: e.target.value})} className="h-14 rounded-2xl border-slate-200 font-bold" />
-                        </div>
                     </div>
                 </div>
             </Card>

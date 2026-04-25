@@ -154,6 +154,22 @@ export const teacherApi = {
     apiClient.post('/teachers/generate-accounts', { teacher_ids: teacherIds }).then((r) => r.data),
   export: (params?: Record<string, any>) =>
     apiClient.get('/teachers/export', { params, responseType: 'blob' }).then((r) => r.data),
+
+  /**
+   * Preview NIM berikutnya yang akan di-generate (tidak menyimpan).
+   * Returns { nim: string; current_max: string | null }
+   * Feature: nim-generator-sk
+   */
+  previewNim: (): Promise<{ nim: string; current_max: string | null }> =>
+    apiClient.get('/teachers/nim/generate').then((r) => r.data),
+
+  /**
+   * Simpan NIM ke teacher record. Validasi global uniqueness dilakukan di backend.
+   * Returns teacher object dengan nomor_induk_maarif yang sudah diupdate.
+   * Feature: nim-generator-sk
+   */
+  updateNim: (teacherId: number, nim: string): Promise<{ id: number; nama: string; nomor_induk_maarif: string }> =>
+    apiClient.patch(`/teachers/${teacherId}/nim`, { nim }).then((r) => r.data),
 };
 
 

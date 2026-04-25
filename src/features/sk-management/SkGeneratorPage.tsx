@@ -32,6 +32,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { NimDialog } from "@/features/sk-management/components/NimDialog"
+import type { TeacherForNim } from "@/features/sk-management/components/NimDialog"
 
 // --- TYPES ---
 interface TeacherCandidate {
@@ -51,6 +53,7 @@ interface TeacherCandidate {
     mapel?: string;
     kecamatan?: string;
     status_kepegawaian?: string;
+    nomor_induk_maarif?: string;
     [key: string]: any; 
 }
 
@@ -112,6 +115,10 @@ export default function SkGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [failedSyncItems, setFailedSyncItems] = useState<FailedSyncItem[]>([])
   const [isRetrying, setIsRetrying] = useState(false)
+
+  // NIM Dialog state — shown when a selected teacher has no nomor_induk_maarif
+  const [nimDialogTeacher, setNimDialogTeacher] = useState<TeacherForNim | null>(null)
+  const [pendingGenerateAfterNim, setPendingGenerateAfterNim] = useState(false)
   
   // Settings States
   const [nomorMulai, setNomorMulai] = useState("0001")
@@ -184,6 +191,26 @@ export default function SkGeneratorPage() {
   const handleGenerate = async () => {
     if (selectedIds.size === 0) {
         toast.warning("Pilih minimal satu data guru.")
+        return
+    }
+
+    // Cek apakah ada guru terpilih yang belum memiliki nomor_induk_maarif
+    const selectedTeachersForNimCheck = (candidatesData?.data || []).filter((t: any) => selectedIds.has(t.id))
+    const teacherWithoutNim = selectedTeachersForNimCheck.find((t: any) => {
+        const nim = t.nomor_induk_maarif || t.teacher?.nomor_induk_maarif
+        return !nim || nim.trim() === ""
+    })
+
+    if (teacherWithoutNim) {
+        // Buka NimDialog untuk guru pertama yang tidak punya NIM
+        const teacher = teacherWithoutNim.teacher || {}
+        setNimDialogTeacher({
+            id: teacherWithoutNim.teacher_id || teacher.id || teacherWithoutNim.id,
+            nama: teacherWithoutNim.nama || teacher.nama,
+            unit_kerja: teacherWithoutNim.unit_kerja || teacher.unit_kerja,
+            nomor_induk_maarif: teacherWithoutNim.nomor_induk_maarif || teacher.nomor_induk_maarif,
+        })
+        setPendingGenerateAfterNim(true)
         return
     }
 
@@ -642,6 +669,24 @@ export default function SkGeneratorPage() {
     }
   }
 
+  // Handler setelah NIM berhasil disimpan via NimDialog
+  const handleNimSuccess = (updatedTeacher: TeacherForNim) => {
+    // 1. Invalidate TanStack Query cache agar data guru terupdate
+    queryClient.invalidateQueries({ queryKey: ['teachers'] })
+    queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
+    // 2. Tutup dialog
+    setNimDialogTeacher(null)
+    // 3. Jika ada pending generate, lanjutkan generate setelah cache diperbarui
+    if (pendingGenerateAfterNim) {
+      setPendingGenerateAfterNim(false)
+      // Trigger generate kembali — data guru sudah terupdate di cache
+      // Gunakan setTimeout agar invalidateQueries sempat diproses
+      setTimeout(() => {
+        handleGenerate()
+      }, 300)
+    }
+  }
+
   // Retry sync untuk SK yang gagal tersimpan ke database
   const handleRetrySync = async () => {
     if (failedSyncItems.length === 0) return
@@ -812,6 +857,19 @@ export default function SkGeneratorPage() {
       <div className="fixed bottom-4 right-4 text-[8px] font-black text-slate-300 uppercase tracking-widest pointer-events-none opacity-50">
           Simmaci Engine v1.1 - Final Data Patch
       </div>
+
+      {/* Dialog: NIM — muncul ketika guru terpilih belum memiliki nomor_induk_maarif */}
+      {nimDialogTeacher && (
+        <NimDialog
+          teacher={nimDialogTeacher}
+          open={!!nimDialogTeacher}
+          onSuccess={handleNimSuccess}
+          onCancel={() => {
+            setNimDialogTeacher(null)
+            setPendingGenerateAfterNim(false)
+          }}
+        />
+      )}
 
       {/* Dialog: Retry Sync untuk SK yang gagal tersimpan ke database */}
       <Dialog open={failedSyncItems.length > 0} onOpenChange={(open) => { if (!open && !isRetrying) setFailedSyncItems([]) }}>

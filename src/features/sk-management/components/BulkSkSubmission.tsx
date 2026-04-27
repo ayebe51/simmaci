@@ -46,6 +46,7 @@ export function BulkSkSubmission() {
 
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
+  const [rejectedList, setRejectedList] = useState<{ nama: string; alasan: string }[]>([])
 
   // Mapping Configuration
     const HEADER_MAP: Record<string, string[]> = {
@@ -168,7 +169,19 @@ export function BulkSkSubmission() {
       } else {
         // Small batch processed immediately
         setSuccessCount(res.count || res.created || 0)
+        setRejectedList(res.rejected || [])
         setShowSuccessModal(true)
+
+        // Show detail for rejected/skipped entries
+        if (res.skipped > 0 && res.rejected?.length > 0) {
+          const names = (res.rejected as { nama: string; alasan: string }[])
+            .map(r => `• ${r.nama}: ${r.alasan}`)
+            .join('\n')
+          toast.warning(
+            `${res.skipped} pengajuan otomatis ditolak:\n${names}`,
+            { duration: 10000, style: { whiteSpace: 'pre-line' } }
+          )
+        }
       }
     },
     onError: (err: any) => {
@@ -358,6 +371,21 @@ export function BulkSkSubmission() {
               Berhasil mengirim pengajuan SK untuk {successCount} orang. Mohon tunggu verifikasi dari Admin LP Ma'arif.
             </DialogDescription>
           </DialogHeader>
+          {rejectedList.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+              <p className="text-[10px] font-black uppercase text-amber-700 tracking-widest">
+                {rejectedList.length} Pengajuan Otomatis Ditolak
+              </p>
+              <ul className="space-y-1.5">
+                {rejectedList.map((r, i) => (
+                  <li key={i} className="text-xs text-amber-800">
+                    <span className="font-bold">{r.nama}</span>
+                    <span className="text-amber-600"> — {r.alasan}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <DialogFooter className="mt-6">
             <Button onClick={() => navigate("/dashboard/sk")} className="w-full h-12 rounded-xl bg-slate-900 text-white font-bold uppercase text-xs tracking-widest">
               Kembali ke Dashboard

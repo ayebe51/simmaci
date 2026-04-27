@@ -584,10 +584,11 @@ class SkDocumentController extends Controller
      */
     private function processBulkRequestSync(Request $request): JsonResponse
     {
-        $created     = 0;
-        $skipped     = 0;
-        $schoolCache = [];
-        $year        = now()->year;
+        $created      = 0;
+        $skipped      = 0;
+        $rejectedRows = []; // detail guru yang ditolak (PNS) atau error
+        $schoolCache  = [];
+        $year         = now()->year;
 
         // Get the highest existing REQ/{year}/NNNN sequence number in one query,
         // then increment locally — avoids a per-row existence-check loop.
@@ -618,6 +619,10 @@ class SkDocumentController extends Controller
                     'tanggal_penetapan'=> now()->format('Y-m-d'),
                 ]);
                 $skipped++;
+                $rejectedRows[] = [
+                    'nama'   => $doc['nama'] ?? 'unknown',
+                    'alasan' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
+                ];
                 continue;
             }
             // Normalize school name and teacher name before processing
@@ -745,6 +750,10 @@ class SkDocumentController extends Controller
             $created++;
             } catch (\Throwable $e) {
                 $skipped++;
+                $rejectedRows[] = [
+                    'nama'   => $doc['nama'] ?? 'unknown',
+                    'alasan' => 'Gagal diproses: ' . $e->getMessage(),
+                ];
                 \Illuminate\Support\Facades\Log::warning('bulkRequest: skip row', [
                     'nama'  => $doc['nama'] ?? 'unknown',
                     'error' => $e->getMessage(),
@@ -752,14 +761,22 @@ class SkDocumentController extends Controller
             }
         }
 
-        ActivityLog::log(
-            description: "Bulk Pengajuan SK: {$created} permohonan dibuat",
-            event: 'bulk_sk_request',
-            logName: 'sk',
-            causer: $request->user()
-        );
+        ActivityLog::create([
+            'description' => "Bulk Pengajuan SK: {$created} permohonan dibuat" . ($skipped > 0 ? ", {$skipped} dilewati" : ''),
+            'event'       => 'bulk_sk_request',
+            'log_name'    => 'sk',
+            'causer_id'   => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id'   => $request->user()->school_id,
+            'properties'  => ['rejected' => $rejectedRows],
+        ]);
 
-        return response()->json(['count' => $created, 'skipped' => $skipped, 'success' => true]);
+        return response()->json([
+            'success'  => true,
+            'count'    => $created,
+            'skipped'  => $skipped,
+            'rejected' => $rejectedRows,
+        ]);
     }
 
 

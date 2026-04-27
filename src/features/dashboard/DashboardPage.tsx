@@ -17,6 +17,7 @@ import { dashboardApi } from "@/lib/api"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { DashboardCharts } from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
+import { SchoolStatisticsCards } from "./components/SchoolStatisticsCards"
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -189,6 +190,11 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* SCHOOL STATISTICS CARDS */}
+      <div className="mt-8">
+        <SchoolStatisticsCards />
       </div>
 
        <DashboardCharts data={chartsData} loading={isLoadingCharts} />

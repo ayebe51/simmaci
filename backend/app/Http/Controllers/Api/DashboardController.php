@@ -317,11 +317,14 @@ class DashboardController extends Controller
             // super_admin and admin_yayasan see all schools (no additional filtering)
             
             // Get affiliation statistics with aggregation
+            // Handles variations: "Jama'ah", "Jama'ah (Afiliasi)", "Afiliasi",
+            //                     "Jam'iyyah", "Jamiyyah", "JAM'IYYAH", etc.
             $affiliationStats = (clone $query)
                 ->selectRaw("
                     CASE
-                        WHEN LOWER(status_jamiyyah) IN ('jama''ah', 'afiliasi') THEN 'jamaah'
-                        WHEN LOWER(status_jamiyyah) = 'jam''iyyah' THEN 'jamiyyah'
+                        WHEN LOWER(status_jamiyyah) LIKE '%jama%ah%'
+                          OR LOWER(status_jamiyyah) LIKE '%afiliasi%' THEN 'jamaah'
+                        WHEN LOWER(status_jamiyyah) LIKE '%jam%iyyah%' THEN 'jamiyyah'
                         ELSE 'undefined'
                     END as category,
                     COUNT(*) as count

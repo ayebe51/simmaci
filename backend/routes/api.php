@@ -111,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('dashboard')->group(function () {
             Route::get('stats',            [DashboardController::class, 'stats']);
             Route::get('school-stats',     [DashboardController::class, 'schoolStats']);
+            Route::get('school-statistics', [DashboardController::class, 'getSchoolStatistics']);
             Route::get('charts',           [DashboardController::class, 'charts']);
             Route::get('sk-statistics',    [DashboardController::class, 'skStatistics']);
             Route::get('sk-trend',         [DashboardController::class, 'skTrend']);

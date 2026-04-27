@@ -298,6 +298,89 @@ class DashboardController extends Controller
         return $event ?? $logName ?? 'Aktivitas';
     }
 
+    /**
+     * GET /api/dashboard/school-statistics
+     * Returns school statistics by affiliation and jenjang
+     */
+    public function getSchoolStatistics(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            
+            // Build base query with tenant scoping
+            $query = School::query();
+            
+            // Apply tenant scoping: operators see only their school
+            if ($user->role === 'operator' && $user->school_id) {
+                $query->where('id', $user->school_id);
+            }
+            // super_admin and admin_yayasan see all schools (no additional filtering)
+            
+            // Get affiliation statistics with aggregation
+            $affiliationStats = (clone $query)
+                ->selectRaw("
+                    CASE
+                        WHEN LOWER(status_jamiyyah) IN ('jama''ah', 'afiliasi') THEN 'jamaah'
+                        WHEN LOWER(status_jamiyyah) = 'jam''iyyah' THEN 'jamiyyah'
+                        ELSE 'undefined'
+                    END as category,
+                    COUNT(*) as count
+                ")
+                ->groupBy('category')
+                ->pluck('count', 'category');
+            
+            // Get jenjang statistics with aggregation
+            $jenjangStats = (clone $query)
+                ->selectRaw("
+                    CASE
+                        WHEN LOWER(jenjang) LIKE '%mi%' OR LOWER(jenjang) LIKE '%sd%' THEN 'mi_sd'
+                        WHEN LOWER(jenjang) LIKE '%mts%' OR LOWER(jenjang) LIKE '%smp%' THEN 'mts_smp'
+                        WHEN LOWER(jenjang) LIKE '%ma%' OR LOWER(jenjang) LIKE '%sma%' OR LOWER(jenjang) LIKE '%smk%' THEN 'ma_sma_smk'
+                        WHEN jenjang IS NULL OR jenjang = '' THEN 'undefined'
+                        ELSE 'lainnya'
+                    END as category,
+                    COUNT(*) as count
+                ")
+                ->groupBy('category')
+                ->pluck('count', 'category');
+            
+            // Get total count
+            $total = $query->count();
+            
+            // Format response with all categories (including zero values)
+            $response = [
+                'affiliation' => [
+                    'jamaah' => (int)($affiliationStats['jamaah'] ?? 0),
+                    'jamiyyah' => (int)($affiliationStats['jamiyyah'] ?? 0),
+                    'undefined' => (int)($affiliationStats['undefined'] ?? 0),
+                ],
+                'jenjang' => [
+                    'mi_sd' => (int)($jenjangStats['mi_sd'] ?? 0),
+                    'mts_smp' => (int)($jenjangStats['mts_smp'] ?? 0),
+                    'ma_sma_smk' => (int)($jenjangStats['ma_sma_smk'] ?? 0),
+                    'lainnya' => (int)($jenjangStats['lainnya'] ?? 0),
+                    'undefined' => (int)($jenjangStats['undefined'] ?? 0),
+                ],
+                'total' => $total,
+            ];
+            
+            return $this->successResponse($response, 'Statistik sekolah berhasil diambil');
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to get school statistics', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return $this->errorResponse(
+                'Gagal mengambil statistik sekolah',
+                $e->getMessage(),
+                500
+            );
+        }
+    }
+
     private function determineTeacherStatus($teacher): string
     {
         $status = strtolower($teacher->status ?? '');

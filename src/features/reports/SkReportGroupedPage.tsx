@@ -18,6 +18,44 @@ export default function SkReportGroupedPage() {
   const [endDate, setEndDate] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
 
+  // Helper function to extract kecamatan from school name
+  const extractKecamatanFromName = (unitKerja: string): string => {
+    if (!unitKerja) return 'Tidak Diketahui'
+    
+    // Common patterns in school names
+    const patterns = [
+      /Majenang/i,
+      /Panisian/i,
+      /Cilacap/i,
+      /Gandrungmanis/i,
+      /Kroya/i,
+      /Kawunganten/i,
+      /Kesugihan/i,
+      /Adipala/i,
+      /Binangun/i,
+      /Nusawungu/i,
+      /Jeruklegi/i,
+      /Bantarsari/i,
+      /Dayeuhluhur/i,
+      /Wanareja/i,
+      /Sidareja/i,
+      /Karangpucung/i,
+      /Cimanggu/i,
+      /Cipari/i,
+      /Patikraja/i,
+      /Kedungreja/i,
+      /Sampang/i,
+      /Kampung Laut/i
+    ]
+    
+    for (const pattern of patterns) {
+      const match = unitKerja.match(pattern)
+      if (match) return match[0]
+    }
+    
+    return 'Tidak Diketahui'
+  }
+
   // 🔥 REST API QUERIES
   const { data: reportData, isLoading } = useQuery({
     queryKey: ['sk-report-simple', startDate, endDate, selectedStatus],
@@ -33,12 +71,14 @@ export default function SkReportGroupedPage() {
     if (!reportData?.data) return []
     
     const grouped = reportData.data.reduce((acc: any, item: any) => {
-      const key = `${item.unit_kerja}|${item.kecamatan || 'Tidak Diketahui'}`
+      // Get kecamatan from school relation or unit_kerja
+      const kecamatan = item.school?.kecamatan || item.kecamatan || extractKecamatanFromName(item.unit_kerja)
+      const key = `${item.unit_kerja}|${kecamatan}`
       
       if (!acc[key]) {
         acc[key] = {
           unit_kerja: item.unit_kerja,
-          kecamatan: item.kecamatan || 'Tidak Diketahui',
+          kecamatan: kecamatan,
           total: 0,
           gty: 0,
           gtt: 0,

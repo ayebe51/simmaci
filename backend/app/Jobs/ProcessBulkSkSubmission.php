@@ -46,6 +46,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
         $created = 0;
         $skipped = 0;
+        $rejectedRows = []; // detail guru yang ditolak (PNS) atau error
         $errors = [];
         $schoolCache = [];
         $year = now()->year;
@@ -77,6 +78,10 @@ class ProcessBulkSkSubmission implements ShouldQueue
                         'tanggal_penetapan'=> now()->format('Y-m-d'),
                     ]);
                     $skipped++;
+                    $rejectedRows[] = [
+                        'nama'   => $doc['nama'] ?? 'unknown',
+                        'alasan' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
+                    ];
                     continue;
                 }
 
@@ -201,6 +206,10 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 }
             } catch (\Throwable $e) {
                 $skipped++;
+                $rejectedRows[] = [
+                    'nama'   => $doc['nama'] ?? 'unknown',
+                    'alasan' => 'Gagal diproses: ' . $e->getMessage(),
+                ];
                 $errors[] = [
                     'row' => $index + 1,
                     'nama' => $doc['nama'] ?? 'unknown',
@@ -218,13 +227,15 @@ class ProcessBulkSkSubmission implements ShouldQueue
         // Create activity log
         try {
             $user = User::find($this->userId);
-            ActivityLog::log(
-                description: "Bulk Pengajuan SK: {$created} permohonan dibuat, {$skipped} dilewati",
-                event: 'bulk_sk_request',
-                logName: 'sk',
-                causer: $user,
-                schoolId: $this->userSchoolId
-            );
+            ActivityLog::create([
+                'description' => "Bulk Pengajuan SK: {$created} permohonan dibuat" . ($skipped > 0 ? ", {$skipped} dilewati" : ''),
+                'event'       => 'bulk_sk_request',
+                'log_name'    => 'sk',
+                'causer_id'   => $this->userId,
+                'causer_type' => User::class,
+                'school_id'   => $this->userSchoolId,
+                'properties'  => ['rejected' => $rejectedRows],
+            ]);
         } catch (\Exception $e) {
             Log::error('ProcessBulkSkSubmission: Failed to create activity log', ['error' => $e->getMessage()]);
         }

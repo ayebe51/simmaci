@@ -161,20 +161,37 @@ export default function SkGeneratorPage() {
   })
 
   // 2. Last SK Number for Auto-Increment
+  // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
   const { data: lastSkData } = useQuery({
     queryKey: ['last-sk-number'],
-    queryFn: () => skApi.list({ per_page: 1 })
+    queryFn: () => skApi.list({ per_page: 100, status: 'approved' })
   })
 
   useEffect(() => {
-    if (lastSkData?.data?.[0]?.nomor_sk) {
-        // Regex to match the starting sequence of the SK number (e.g., REQ/2026/0001 -> 0001)
-        // Or specific formats like 0001/PC.L/...
-        const match = lastSkData.data[0].nomor_sk.match(/^(\d+)/) || lastSkData.data[0].nomor_sk.match(/REQ\/\d+\/(\d+)/);
-        if (match) {
-            const next = String(parseInt(match[1]) + 1).padStart(4, '0');
-            setNomorMulai(next);
+    if (lastSkData?.data && lastSkData.data.length > 0) {
+        // Only consider SK numbers that start with digits (e.g., 0001/PC.L/...)
+        // Ignore REQ/YYYY/XXXX format which are pending requests, not generated SKs
+        const generatedSks = lastSkData.data
+            .map((sk: any) => sk.nomor_sk)
+            .filter((nomor: string) => nomor && /^\d+/.test(nomor))
+
+        if (generatedSks.length > 0) {
+            const maxNum = generatedSks.reduce((max: number, nomor: string) => {
+                const match = nomor.match(/^(\d+)/)
+                if (match) {
+                    const num = parseInt(match[1])
+                    return num > max ? num : max
+                }
+                return max
+            }, 0)
+
+            if (maxNum > 0) {
+                const next = String(maxNum + 1).padStart(4, '0')
+                setNomorMulai(next)
+            }
+            // If no generated SKs found, keep default "0001"
         }
+        // If no approved SKs with digit-format nomor exist, keep default "0001"
     }
   }, [lastSkData])
 

@@ -12,12 +12,14 @@ import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { toast } from "sonner"
+import { Eye, EyeOff } from "lucide-react"
 // 🔥 REST API AUTH
 import { authApi } from "@/lib/api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,13 +91,23 @@ export default function LoginPage() {
                   Lupa Password?
                 </a>
               </div>
+              <div className="relative">
               <Input 
                 id="password" 
-                type="password" 
+                type={showPassword ? "text" : "password"}
                 required 
                 placeholder="***" 
-                className="bg-white/10 border-white/20 text-white placeholder:text-emerald-100/50 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-400"
+                className="bg-white/10 border-white/20 text-white placeholder:text-emerald-100/50 focus-visible:ring-emerald-500/50 focus-visible:border-emerald-400 pr-10"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-100/60 hover:text-white transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 pb-8 px-6">

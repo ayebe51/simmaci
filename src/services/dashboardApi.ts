@@ -39,7 +39,9 @@ export const dashboardApi = {
    */
   getSchoolStatistics: async (): Promise<SchoolStatisticsData> => {
     try {
-      const response = await apiClient.get('/dashboard/school-statistics');
+      const response = await apiClient.get('/dashboard/school-statistics', {
+        timeout: 10000, // 10 second timeout
+      });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch school statistics:', error);

@@ -85,3 +85,35 @@
     - Re-run full test suite: `php artisan test --filter=NormalizationServiceTest`
     - Confirm all existing tests still pass (no regressions)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 6. Add A.Ma.Pd.SD. (AMAPDSD) degree normalization
+
+  - [x] 6.1 Write bug condition exploration test
+    - **Property 1: Bug Condition** - Missing A.Ma.Pd.SD. Recognition
+    - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+    - **DO NOT attempt to fix the test or the code when it fails**
+    - Test that normalizeTeacherName("Ahmad A.Ma.Pd.SD.") returns "AHMAD, A.Ma.Pd.SD." (will fail on unfixed code)
+    - Run test on UNFIXED code and document the counterexample (e.g., "AHMAD, AMAPDSD" or "AHMAD, A.Ma.")
+    - Mark task complete when test is written, run, and failure is documented
+    - _Requirements: 1.5_
+
+  - [x] 6.2 Implement the fix
+    - Add `'AMAPDSD' => 'A.Ma.Pd.SD.'` to DEGREE_MAP in NormalizationService.php
+    - **CRITICAL**: Place this entry BEFORE `'AMA' => 'A.Ma.'` so the longer key matches first
+    - Verify ordering: AMAPDSD, AMAPUST, AMAPD must all appear before AMA in the map
+    - _Bug_Condition: isBugCondition(input) where input contains AMAPDSD or A.Ma.Pd.SD._
+    - _Expected_Behavior: normalizeTeacherName returns name with "A.Ma.Pd.SD." in canonical format_
+    - _Preservation: A.Ma. standalone and all other existing degree normalizations must continue to work_
+    - _Requirements: 2.5, 3.6_
+
+  - [x] 6.3 Verify bug condition test now passes
+    - **IMPORTANT**: Re-run the SAME test from task 6.1 - do NOT write a new test
+    - Run bug condition exploration test from step 6.1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.5_
+
+  - [x] 6.4 Verify preservation tests still pass
+    - Run full test suite: `php artisan test --filter=NormalizationServiceTest`
+    - Specifically verify A.Ma. standalone still normalizes correctly (regression prevention for 3.6)
+    - **EXPECTED OUTCOME**: All tests PASS (confirms no regressions)
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_

@@ -11,9 +11,9 @@ export function SchoolStatisticsCards() {
     queryKey: ['school-statistics'],
     queryFn: () => dashboardApi.getSchoolStatistics(),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1, // Reduce retry from 2 to 1
   });
 
   // Show error toast if request fails

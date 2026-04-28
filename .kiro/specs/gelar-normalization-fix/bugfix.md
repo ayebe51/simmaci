@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationService. Gelar S.Pd.SD. (Sarjana Pendidikan untuk SD), A.Md. (Ahli Madya), A.Ma. (Ahli Madya), dan S.I.Pust. (Sarjana Ilmu Perpustakaan) tidak dikenali atau salah diformat, menyebabkan data guru menjadi tidak konsisten.
+Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationService. Gelar S.Pd.SD. (Sarjana Pendidikan untuk SD), A.Md. (Ahli Madya), A.Ma. (Ahli Madya), S.I.Pust. (Sarjana Ilmu Perpustakaan), dan A.Ma.Pd.SD. (Ahli Madya Pendidikan Sekolah Dasar) tidak dikenali atau salah diformat, menyebabkan data guru menjadi tidak konsisten.
 
 ## Bug Analysis
 
@@ -16,6 +16,8 @@ Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationServi
 
 1.4 WHEN normalizing "SIPUST" or "S.I.Pust." THEN the system does not recognize it as a degree and fails to normalize it to "S.I.Pust."
 
+1.5 WHEN normalizing "A.Ma.Pd.SD." THEN the system returns "AMAPDSD" instead of preserving "A.Ma.Pd.SD."
+
 ### Expected Behavior (Correct)
 
 2.1 WHEN normalizing "S.Pd.SD." THEN the system SHALL preserve it as "S.Pd.SD."
@@ -25,6 +27,8 @@ Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationServi
 2.3 WHEN normalizing "A.Ma." THEN the system SHALL preserve it as "A.Ma."
 
 2.4 WHEN normalizing "SIPUST" or "S.I.Pust." THEN the system SHALL normalize it to "S.I.Pust."
+
+2.5 WHEN normalizing "A.Ma.Pd.SD." THEN the system SHALL preserve it as "A.Ma.Pd.SD."
 
 ### Unchanged Behavior (Regression Prevention)
 
@@ -37,3 +41,5 @@ Gelar akademik tertentu tidak dinormalisasi dengan benar oleh NormalizationServi
 3.4 WHEN normalizing teacher names with multiple degrees THEN the system SHALL CONTINUE TO separate degrees with ", "
 
 3.5 WHEN normalizing "A.Ma.Pust." and "A.Ma.Pd." THEN the system SHALL CONTINUE TO normalize them correctly
+
+3.6 WHEN normalizing "A.Ma." (standalone, without SD suffix) THEN the system SHALL CONTINUE TO normalize it correctly

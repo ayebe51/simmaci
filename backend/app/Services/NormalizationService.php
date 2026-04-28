@@ -71,6 +71,7 @@ class NormalizationService
         // ── Diploma ───────────────────────────────────────────────────────
         'AMAPUST'   => 'A.Ma.Pust.',
         'AMAPD'     => 'A.Ma.Pd.',
+        'AMAPDSD'   => 'A.Ma.Pd.SD.',
         'AMA'       => 'A.Ma.',
         'AMDKOM'    => 'A.Md.Kom.',
         'AMDTI'     => 'A.Md.T.I.',
@@ -448,6 +449,9 @@ class NormalizationService
 
         // A.Ma. Pd → A.Ma.Pd  (Ahli Madya Pendidikan)
         $name = preg_replace('/\bA\.?\s*Ma\.?\s+Pd\.?\b/i', 'A.Ma.Pd', $name);
+
+        // A.Ma.Pd. SD → A.Ma.Pd.SD  (Ahli Madya Pendidikan Sekolah Dasar)
+        $name = preg_replace('/\bA\.?\s*Ma\.?\s*Pd\.?\s+SD\.?\b/i', 'A.Ma.Pd.SD', $name);
 
         // A.Ma. Pust → A.Ma.Pust  (Ahli Madya Pustakawan)
         $name = preg_replace('/\bA\.?\s*Ma\.?\s+Pust\.?\b/i', 'A.Ma.Pust', $name);

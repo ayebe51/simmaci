@@ -694,6 +694,32 @@ class NormalizationServiceTest extends TestCase
 
     /**
      * @test
+     * @group bug-condition-exploration
+     *
+     * Bug Condition Exploration Test for missing A.Ma.Pd.SD. degree recognition.
+     * This test is EXPECTED TO FAIL on unfixed code - failure confirms the bug exists.
+     *
+     * **Validates: Requirement 1.5**
+     *
+     * Bug Condition: A.Ma.Pd.SD. (Ahli Madya Pendidikan Sekolah Dasar) is not in DEGREE_MAP,
+     * causing the degree to be unrecognized or incorrectly truncated to "A.Ma." because
+     * the AMA key matches before AMAPDSD.
+     */
+    public function it_normalizes_amapdsd_degree_correctly(): void
+    {
+        // Test Case 1: A.Ma.Pd.SD. (with dots) — canonical format input
+        // Expected: "AHMAD, A.Ma.Pd.SD."
+        // Bug: Will fail because AMAPDSD key is not in DEGREE_MAP
+        $result = $this->service->normalizeTeacherName('Ahmad A.Ma.Pd.SD.');
+        $this->assertEquals(
+            'AHMAD, A.Ma.Pd.SD.',
+            $result,
+            "A.Ma.Pd.SD. should be recognized and preserved in canonical format"
+        );
+    }
+
+    /**
+     * @test
      * @group preservation
      * 
      * Preservation Property Test for A.Ma.Pust. and A.Ma.Pd. degrees.

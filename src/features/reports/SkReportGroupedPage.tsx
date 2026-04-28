@@ -158,14 +158,53 @@ export default function SkReportGroupedPage() {
   return (
     <div className="min-h-screen bg-slate-50/30 pb-20 relative font-sans">
       <style>{`
-        @media print { 
-          .no-print { display: none !important; } 
-          .print-only { display: block !important; } 
-          table { width: 100%; border-collapse: collapse; font-size: 11px; } 
-          th, td { border: 1px solid #ddd; padding: 6px; } 
-          th { background-color: #f8fafc; }
-        } 
+        @media print {
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { margin: 0; padding: 0; }
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          .print-page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 15mm 20mm;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11pt;
+            color: #000;
+          }
+          .print-header { text-align: center; margin-bottom: 6mm; }
+          .print-header h1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 2mm 0; }
+          .print-header h2 { font-size: 12pt; font-weight: 700; text-transform: uppercase; margin: 0 0 2mm 0; }
+          .print-header p { font-size: 10pt; font-style: italic; margin: 0; }
+          .print-divider { border: none; border-top: 3px double #000; margin: 4mm 0; }
+          .print-table { width: 100%; border-collapse: collapse; margin-top: 4mm; font-size: 10pt; }
+          .print-table th {
+            border: 1px solid #000;
+            padding: 3mm 4mm;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 9pt;
+            background-color: #f0f0f0 !important;
+          }
+          .print-table td { border: 1px solid #000; padding: 2.5mm 4mm; vertical-align: middle; }
+          .print-table td.center { text-align: center; }
+          .print-table td.right { text-align: right; }
+          .print-table tr.total-row td {
+            font-weight: 900;
+            font-size: 11pt;
+            background-color: #f0f0f0 !important;
+          }
+          .print-table tr.total-row td.jumlah { font-size: 13pt; text-align: center; }
+          .print-footer { margin-top: 12mm; display: flex !important; justify-content: space-between; align-items: flex-start; }
+          .print-footer .signer { text-align: center; min-width: 60mm; }
+          .print-footer .signer p { margin: 0; font-size: 10pt; }
+          .print-footer .signer .title { font-weight: 700; text-transform: uppercase; font-size: 9pt; margin-top: 1mm; }
+          .print-footer .signer .name { font-weight: 900; text-decoration: underline; text-transform: uppercase; margin-top: 18mm; font-size: 10pt; }
+          @page { size: A4 portrait; margin: 0; }
+        }
         .print-only { display: none; }
+        .print-page { width: 100%; }
       `}</style>
       
       <div className="no-print bg-white border-b px-10 py-6 flex items-center justify-between">
@@ -218,13 +257,61 @@ export default function SkReportGroupedPage() {
             </div>
         ) : (
           <>
-            <div className="print-only text-center py-10">
-                <h2 className="text-xl font-black uppercase">Rekapitulasi Pengajuan SK Per Sekolah</h2>
-                <h3 className="text-sm font-bold text-slate-500 uppercase">LP Ma'arif NU Cilacap</h3>
-                <p className="text-xs font-medium mt-2 italic">Periode: {startDate || 'Awal'} s/d {endDate || 'Sekarang'}</p>
-                <div className="border-b-2 border-slate-200 mt-6" />
+            {/* ── PRINT LAYOUT ── */}
+            <div className="print-only print-page">
+              <div className="print-header">
+                <h1>Rekapitulasi Pengajuan SK Per Sekolah</h1>
+                <h2>LP Ma'arif NU Cilacap</h2>
+                <p>Periode: {startDate ? new Date(startDate).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : 'Awal'} s/d {endDate ? new Date(endDate).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : 'Sekarang'}</p>
+              </div>
+              <hr className="print-divider" />
+
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th style={{width:'6%'}}>NO</th>
+                    <th style={{width:'14%'}}>TANGGAL</th>
+                    <th style={{width:'18%'}}>KECAMATAN</th>
+                    <th style={{width:'42%'}}>UNIT KERJA</th>
+                    <th style={{width:'20%'}}>JUMLAH GURU</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupedData.map((row: any, i: number) => (
+                    <tr key={i}>
+                      <td className="center">{i + 1}</td>
+                      <td className="center">
+                        {new Date(row.tanggal_awal).toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'})}
+                      </td>
+                      <td>{row.kecamatan}</td>
+                      <td style={{fontWeight: 700}}>{row.unit_kerja}</td>
+                      <td className="center" style={{fontSize:'13pt', fontWeight:900}}>{row.total}</td>
+                    </tr>
+                  ))}
+                  <tr className="total-row">
+                    <td colSpan={4} className="right" style={{paddingRight:'6mm', fontWeight:900, textTransform:'uppercase', letterSpacing:'0.5px'}}>
+                      Total Keseluruhan:
+                    </td>
+                    <td className="jumlah">{groupedData.reduce((sum: number, item: any) => sum + item.total, 0)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="print-footer">
+                <div className="signer">
+                  <p>Mengetahui,</p>
+                  <p className="title">Ketua PC LP Ma'arif NU</p>
+                  <p className="name">ALI SODIQIN, S.Ag., M.Pd.I</p>
+                </div>
+                <div className="signer">
+                  <p>Cilacap, {new Date().toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'})}</p>
+                  <p className="title">Sekretaris</p>
+                  <p className="name">NGADINO, S.Pd.I</p>
+                </div>
+              </div>
             </div>
 
+            {/* ── SCREEN LAYOUT ── */}
             <div className="no-print grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                {[
                  { label: 'Total Sekolah', val: groupedData.length, color: 'text-slate-900', bg: 'bg-white' },
@@ -239,7 +326,7 @@ export default function SkReportGroupedPage() {
                ))}
             </div>
 
-            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+            <Card className="no-print border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
                <div className="overflow-x-auto">
                  <table className="w-full text-left">
                    <thead className="bg-slate-50 border-b border-slate-100">
@@ -249,7 +336,7 @@ export default function SkReportGroupedPage() {
                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Kecamatan</th>
                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Unit Kerja</th>
                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Jumlah Guru</th>
-                       <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center no-print">Detail</th>
+                       <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Detail</th>
                      </tr>
                    </thead>
                    <tbody className="divide-y divide-slate-50">
@@ -268,7 +355,7 @@ export default function SkReportGroupedPage() {
                                {row.total}
                              </span>
                           </td>
-                          <td className="p-6 text-center no-print">
+                          <td className="p-6 text-center">
                              <div className="flex gap-2 justify-center text-[10px] font-bold">
                                {row.gty > 0 && <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">GTY: {row.gty}</span>}
                                {row.gtt > 0 && <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">GTT: {row.gtt}</span>}
@@ -288,27 +375,12 @@ export default function SkReportGroupedPage() {
                        <td className="p-6 text-center text-2xl text-blue-600">
                          {groupedData.reduce((sum: number, item: any) => sum + item.total, 0)}
                        </td>
-                       <td className="p-6 no-print"></td>
+                       <td className="p-6"></td>
                      </tr>
                    </tbody>
                  </table>
                </div>
             </Card>
-
-            <div className="print-only mt-10 flex justify-between px-10">
-                <div className="text-left">
-                    <p className="text-xs font-bold">Mengetahui,</p>
-                    <p className="text-[10px] uppercase font-black mt-1">Ketua PC LP Ma'arif NU</p>
-                    <div className="h-20" />
-                    <p className="text-xs font-black underline uppercase">ALI SODIQIN, S.Ag., M.Pd.I</p>
-                </div>
-                <div className="text-center">
-                    <p className="text-xs font-bold">Cilacap, {new Date().toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'})}</p>
-                    <p className="text-[10px] uppercase font-black mt-1">Sekretaris</p>
-                    <div className="h-20" />
-                    <p className="text-xs font-black underline uppercase">NGADINO, S.Pd.I</p>
-                </div>
-            </div>
           </>
         )}
       </div>

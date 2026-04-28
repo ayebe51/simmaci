@@ -262,7 +262,9 @@ export default function SkReportGroupedPage() {
               <div className="print-header">
                 <h1>Rekapitulasi Pengajuan SK Per Sekolah</h1>
                 <h2>LP Ma'arif NU Cilacap</h2>
-                <p>Periode: {startDate ? new Date(startDate).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : 'Awal'} s/d {endDate ? new Date(endDate).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : 'Sekarang'}</p>
+                {(startDate || endDate) && (
+                  <p>Periode: {startDate ? new Date(startDate).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : 'Awal'} s/d {endDate ? new Date(endDate).toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}) : 'Sekarang'}</p>
+                )}
               </div>
               <hr className="print-divider" />
 

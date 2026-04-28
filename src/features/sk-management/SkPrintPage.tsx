@@ -7,6 +7,23 @@ import QRCode from "react-qr-code"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Printer, Loader2 } from "lucide-react"
 
+function parseIndonesianDate(dateStr: string | null | undefined): Date | null {
+    if (!dateStr) return null
+    const months: Record<string, number> = {
+        Januari: 0, Februari: 1, Maret: 2, April: 3, Mei: 4, Juni: 5,
+        Juli: 6, Agustus: 7, September: 8, Oktober: 9, November: 10, Desember: 11
+    }
+    // Try "D Bulan YYYY" format (e.g. "1 Juli 2026")
+    const m = dateStr.match(/^(\d{1,2})\s+(\w+)\s+(\d{4})$/)
+    if (m) {
+        const month = months[m[2]]
+        if (month !== undefined) return new Date(parseInt(m[3]), month, parseInt(m[1]))
+    }
+    // Fallback to native parse
+    const d = new Date(dateStr)
+    return isNaN(d.getTime()) ? null : d
+}
+
 export default function SkPrintPage() {
     const { id } = useParams()
     const navigate = useNavigate()
@@ -145,7 +162,7 @@ export default function SkPrintPage() {
                                 </tbody>
                             </table>
                             <p className="indent-0 text-justify">
-                                Terhitung mulai tanggal <span className="font-bold">{new Date(sk.tanggal_penetapan || sk.created_at).toLocaleDateString('id-ID')}</span> diangkat kembali sebagai {sk.jenis_sk} pada {sk.unit_kerja}, diberikan hak-hak sesuai dengan ketentuan yang berlaku.
+                                Terhitung mulai tanggal <span className="font-bold">{(parseIndonesianDate(sk.tanggal_penetapan) || new Date(sk.created_at)).toLocaleDateString('id-ID')}</span> diangkat kembali sebagai {sk.jenis_sk} pada {sk.unit_kerja}, diberikan hak-hak sesuai dengan ketentuan yang berlaku.
                             </p>
                          </div>
                     </div>
@@ -163,7 +180,7 @@ export default function SkPrintPage() {
                             <div className="flex">
                                 <div className="w-24 text-[11px] font-bold">Pada Tanggal</div>
                                 <div className="w-4 text-[11px]">:</div>
-                                <div className="text-[11px]">{new Date(sk.tanggal_penetapan || sk.created_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</div>
+                                <div className="text-[11px]">{(parseIndonesianDate(sk.tanggal_penetapan) || new Date(sk.created_at)).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</div>
                             </div>
                         </div>
                      </div>

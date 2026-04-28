@@ -22,6 +22,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi } from "@/lib/api"
 import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
 import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
+import { deriveStartDate, deriveEndDate, deriveTahunAjaran, getCurrentSkYear } from "@/features/sk-management/utils/skDateUtils"
 import { getSkVerificationUrl } from "@/utils/verification"
 import { toast } from "sonner"
 import {
@@ -123,14 +124,21 @@ export default function SkGeneratorPage() {
   // Settings States
   const [nomorMulai, setNomorMulai] = useState("0001")
   const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{PERIODE}/{BULAN}/{TAHUN}")
-  const [tanggalPenetapan, setTanggalPenetapan] = useState(() => new Date().toISOString().split('T')[0])
+  const [tahunSk, setTahunSk] = useState(() => getCurrentSkYear())
+  // Derived values — always consistent with tahunSk
+  const tanggalPenetapan = deriveStartDate(tahunSk).toISOString().split('T')[0]
+  const tahunAjaran = deriveTahunAjaran(tahunSk)
+
+  const handleTahunSkChange = (value: string) => {
+    const parsed = parseInt(value)
+    if (!isNaN(parsed) && parsed > 0) {
+      setTahunSk(parsed)
+    }
+  }
+
   const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
   const [combineInOneFile, setCombineInOneFile] = useState(false)
-  const [tahunAjaran, setTahunAjaran] = useState(() => {
-    const y = new Date().getFullYear()
-    return `${y}/${y + 1}`
-  })
 
   const [defaultKecamatan, setDefaultKecamatan] = useState("")
 
@@ -424,9 +432,7 @@ export default function SkGeneratorPage() {
             const birthDateStr = identity.tanggal_lahir || "-"
             const tempatTglLahir = (identity.tempat_lahir || "") + (birthDateStr !== "-" ? ", " + birthDateStr : "")
 
-            const tglBerakhirVal = new Date(tglPenetapanVal)
-            tglBerakhirVal.setFullYear(tglBerakhirVal.getFullYear() + 1)
-            tglBerakhirVal.setDate(tglBerakhirVal.getDate() - 1)
+            const tglBerakhirVal = deriveEndDate(tahunSk)
 
             const renderData: any = {
                 ...teacher,
@@ -765,7 +771,26 @@ export default function SkGeneratorPage() {
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tahun Ajaran</label>
-                    <Input value={tahunAjaran} onChange={e => setTahunAjaran(e.target.value)} className="h-11 rounded-xl bg-white border-slate-200" />
+                    <Input value={tahunAjaran} readOnly className="h-11 rounded-xl bg-white border-slate-200" />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tahun SK</label>
+                    <Input
+                        type="number"
+                        value={tahunSk}
+                        onChange={e => handleTahunSkChange(e.target.value)}
+                        className="h-11 rounded-xl bg-white border-slate-200"
+                        min={1900}
+                        max={2100}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Penetapan</label>
+                    <Input value={tanggalPenetapan} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Berakhir</label>
+                    <Input value={deriveEndDate(tahunSk).toISOString().split('T')[0]} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
                 </div>
                 <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Output</label>

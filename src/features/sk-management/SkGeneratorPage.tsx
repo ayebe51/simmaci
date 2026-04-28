@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Eye, Trash2, AlertCircle } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
+import { createPortal } from "react-dom"
 import JSZip from "jszip"
 import PizZip from "pizzip"
 import Docxtemplater from "docxtemplater"
@@ -884,8 +885,8 @@ export default function SkGeneratorPage() {
         </CardContent>
       </Card>
 
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-[2rem] px-8 py-5 flex items-center gap-6 z-50 shadow-2xl animate-in slide-in-from-bottom-10">
+      {selectedIds.size > 0 && createPortal(
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-[2rem] px-8 py-5 flex items-center gap-6 z-[9999] shadow-2xl animate-in slide-in-from-bottom-10">
             <div className="flex items-center gap-3 border-r border-slate-700 pr-6">
                 <div className="bg-blue-600 h-8 w-8 rounded-full flex items-center justify-center text-xs font-black">{selectedIds.size}</div>
                 <span className="text-sm font-black uppercase tracking-widest text-slate-300">Item Terpilih</span>
@@ -894,11 +895,15 @@ export default function SkGeneratorPage() {
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
                 Generate & Terbitkan SK
             </Button>
-        </div>
+        </div>,
+        document.body
       )}
-      <div className="fixed bottom-4 right-4 text-[8px] font-black text-slate-300 uppercase tracking-widest pointer-events-none opacity-50">
+      {createPortal(
+        <div className="fixed bottom-4 right-4 text-[8px] font-black text-slate-300 uppercase tracking-widest pointer-events-none opacity-50">
           Simmaci Engine v1.1 - Final Data Patch
-      </div>
+        </div>,
+        document.body
+      )}
 
       {/* Dialog: NIM — muncul ketika guru terpilih belum memiliki nomor_induk_maarif */}
       {nimDialogTeacher && (

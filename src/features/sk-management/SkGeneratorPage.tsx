@@ -126,8 +126,11 @@ export default function SkGeneratorPage() {
   const [nomorMulai, setNomorMulai] = useState("0001")
   const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/24.29/{PERIODE}/{BULAN}/{TAHUN}")
   const [tahunSk, setTahunSk] = useState(() => getCurrentSkYear())
+  const [isInsidentil, setIsInsidentil] = useState(false)
   // Derived values — always consistent with tahunSk
-  const tanggalPenetapan = deriveStartDate(tahunSk).toISOString().split('T')[0]
+  // Mode normal: penetapan = 1 Juli tahunSk, berakhir = 30 Juni tahunSk+1
+  // Mode insidentil: penetapan = tanggal_permohonan + 1 hari (per guru), berakhir = 30 Juni tahun ajaran berjalan
+  const tanggalPenetapan = isInsidentil ? "" : deriveStartDate(tahunSk).toISOString().split('T')[0]
   const tahunAjaran = deriveTahunAjaran(tahunSk)
 
   const handleTahunSkChange = (value: string) => {
@@ -282,11 +285,32 @@ export default function SkGeneratorPage() {
         const zip = new JSZip()
         const folder = zip.folder("SK_Generated")
 
-        const tglPenetapanVal = tanggalPenetapan ? new Date(tanggalPenetapan) : new Date()
+        // Mode normal: satu tanggal penetapan untuk semua guru (1 Juli tahunSk)
+        // Mode insidentil: tanggal penetapan per guru = tanggal_permohonan + 1 hari
+        const tglPenetapanVal = isInsidentil ? null : (tanggalPenetapan ? new Date(tanggalPenetapan) : new Date())
 
         for (let i = 0; i < selectedTeachers.length; i++) {
             const t = selectedTeachers[i]
             const teacher = t.teacher || {}
+
+            // Hitung tanggal penetapan & berakhir per guru (sebelum template selection karena dipakai calculatePeriode)
+            let tglPenetapanPerGuru: Date
+            let tglBerakhirVal: Date
+            if (isInsidentil) {
+                const tglPermohonanRaw = t.tanggal_permohonan || t.tanggal_surat_permohonan || teacher.tanggal_permohonan || tanggalSuratMasuk
+                const tglPermohonan = tglPermohonanRaw ? new Date(tglPermohonanRaw) : new Date()
+                tglPenetapanPerGuru = new Date(tglPermohonan)
+                tglPenetapanPerGuru.setDate(tglPenetapanPerGuru.getDate() + 1)
+                // Berakhir = 30 Juni tahun ajaran berjalan
+                // Bulan >= Juli → tahun ajaran baru → berakhir Juni tahun depan; < Juli → berakhir Juni tahun ini
+                const tglMonth = tglPenetapanPerGuru.getMonth()
+                const tglYear = tglPenetapanPerGuru.getFullYear()
+                tglBerakhirVal = tglMonth >= 6 ? deriveEndDate(tglYear) : deriveEndDate(tglYear - 1)
+            } else {
+                tglPenetapanPerGuru = tglPenetapanVal!
+                tglBerakhirVal = deriveEndDate(tahunSk)
+            }
+            const tanggalPenetapanPerGuru = tglPenetapanPerGuru.toISOString().split('T')[0]
             
             // 1. Determine Template
             // Status source: sk_document.status_kepegawaian takes priority over teacher.status
@@ -315,7 +339,7 @@ export default function SkGeneratorPage() {
                 // GTT status, empty status, or unrecognized status:
                 // TMT always overrides — TMT >= 2 years → GTY, TMT < 2 years → GTT
                 const tmtForTemplate = t.tmt || teacher.tmt
-                const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanVal) : 0
+                const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanPerGuru) : 0
                 templateId = periodeForTemplate >= 2 ? "sk_template_gty" : "sk_template_gtt"
             } else if (isBelowS1) {
                 // Unrecognized status + pendidikan below S1 → Tendik
@@ -360,7 +384,7 @@ export default function SkGeneratorPage() {
                 toast.warning(`Guru "${teacher.nama || t.nama}" dilewati: field TMT kosong.`)
                 continue
             }
-            const periodeValue = calculatePeriode(tmtRaw, tglPenetapanVal)
+            const periodeValue = calculatePeriode(tmtRaw, tglPenetapanPerGuru)
             const periodeStr = String(periodeValue)
 
             const generatedNomor = nomorFormat
@@ -433,8 +457,6 @@ export default function SkGeneratorPage() {
             const birthDateStr = identity.tanggal_lahir || "-"
             const tempatTglLahir = (identity.tempat_lahir || "") + (birthDateStr !== "-" ? ", " + birthDateStr : "")
 
-            const tglBerakhirVal = deriveEndDate(tahunSk)
-
             const renderData: any = {
                 ...teacher,
                 ...t,
@@ -459,9 +481,9 @@ export default function SkGeneratorPage() {
                 "TANGGAL MULAI TUGAS": identity.tmt,
                 "TANGGAL_MULAI_TUGAS": identity.tmt,
                 "tanggal_mulai_tugas": identity.tmt,
-                "TANGGAL PENETAPAN": formatDateIndo(tanggalPenetapan),
+                "TANGGAL PENETAPAN": formatDateIndo(tanggalPenetapanPerGuru),
                 "TAHUN PELAJARAN": tahunAjaran,
-                "TANGGAL LENGKAP": formatDateIndo(tanggalPenetapan),
+                "TANGGAL LENGKAP": formatDateIndo(tanggalPenetapanPerGuru),
                 "TANGGAL_BERAKHIR": formatDateIndo(tglBerakhirVal.toISOString()),
                 "NOMOR SURAT PERMOHONAN": t.nomor_permohonan || t.nomor_surat_permohonan || teacher.nomor_permohonan || nomorSuratMasuk || "-",
                 "TANGGAL SURAT PERMOHONAN": formatDateIndo(t.tanggal_permohonan || t.tanggal_surat_permohonan || teacher.tanggal_permohonan || tanggalSuratMasuk),
@@ -548,7 +570,7 @@ export default function SkGeneratorPage() {
             const syncPayload = {
                 nomor_sk: generatedNomor,
                 status: "approved",
-                tanggal_penetapan: formatDateIndo(tanggalPenetapan),
+                tanggal_penetapan: formatDateIndo(tanggalPenetapanPerGuru),
                 tahun_ajaran: tahunAjaran,
                 file_url: combineInOneFile ? "Generated via Bulk (Collective Group)" : "Generated via Bulk (ZIP)"
             }
@@ -787,11 +809,30 @@ export default function SkGeneratorPage() {
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Penetapan</label>
-                    <Input value={tanggalPenetapan} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
+                    {isInsidentil
+                        ? <div className="h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold flex items-center px-3">Per guru: tanggal permohonan + 1 hari</div>
+                        : <Input value={tanggalPenetapan} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
+                    }
                 </div>
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Berakhir</label>
-                    <Input value={deriveEndDate(tahunSk).toISOString().split('T')[0]} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
+                    {isInsidentil
+                        ? <div className="h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold flex items-center px-3">30 Juni tahun ajaran berjalan (per guru)</div>
+                        : <Input value={deriveEndDate(tahunSk).toISOString().split('T')[0]} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
+                    }
+                </div>
+                <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Mode SK</label>
+                    <div className="flex items-center space-x-2 h-11">
+                        <Checkbox 
+                            id="insidentil" 
+                            checked={isInsidentil} 
+                            onCheckedChange={(val) => setIsInsidentil(!!val)} 
+                        />
+                        <label htmlFor="insidentil" className="text-xs font-bold text-slate-600 cursor-pointer select-none">
+                            Insidentil (tanggal penetapan = tanggal permohonan + 1 hari)
+                        </label>
+                    </div>
                 </div>
                 <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 block">Output</label>

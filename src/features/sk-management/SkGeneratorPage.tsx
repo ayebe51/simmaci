@@ -490,6 +490,8 @@ export default function SkGeneratorPage() {
                 "TANGGAL_BERAKHIR": formatDateIndo(tglBerakhirVal.toISOString()),
                 "NOMOR SURAT PERMOHONAN": t.nomor_permohonan || t.nomor_surat_permohonan || teacher.nomor_permohonan || nomorSuratMasuk || "-",
                 "TANGGAL SURAT PERMOHONAN": formatDateIndo(t.tanggal_permohonan || t.tanggal_surat_permohonan || teacher.tanggal_permohonan || tanggalSuratMasuk),
+                "NOMOR SURAT REKOMENDASI": t.nomor_surat_rekomendasi || teacher.nomor_surat_rekomendasi || "-",
+                "TANGGAL SURAT REKOMENDASI": formatDateIndo(t.tanggal_surat_rekomendasi || teacher.tanggal_surat_rekomendasi),
                 "KECAMATAN": identity.kecamatan || "-",
                 "qrcode": qrCodeData,
                 "image": qrCodeData,

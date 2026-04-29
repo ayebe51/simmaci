@@ -176,7 +176,10 @@ class ProcessBulkSkSubmission implements ShouldQueue
                             'UTF-8'
                         );
                         if ($bareName !== '') {
-                            $teacher = Teacher::whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                            $teacher = Teacher::where(function ($q) use ($bareName) {
+                                    $q->whereRaw("UPPER(nama) = ?", [$bareName])
+                                      ->orWhereRaw("UPPER(nama) LIKE ?", [$bareName . ',%']);
+                                })
                                 ->where('school_id', $schoolId)
                                 ->first();
                         }

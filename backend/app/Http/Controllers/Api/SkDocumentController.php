@@ -413,7 +413,10 @@ class SkDocumentController extends Controller
                         'UTF-8'
                     );
                     if ($bareName !== '') {
-                        $teacher = Teacher::whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                        $teacher = Teacher::where(function ($q) use ($bareName) {
+                                $q->whereRaw("UPPER(nama) = ?", [$bareName])
+                                  ->orWhereRaw("UPPER(nama) LIKE ?", [$bareName . ',%']);
+                            })
                             ->where('school_id', $schoolId)
                             ->first();
                     }
@@ -761,7 +764,10 @@ class SkDocumentController extends Controller
                         'UTF-8'
                     );
                     if ($bareName !== '') {
-                        $teacher = Teacher::whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                        $teacher = Teacher::where(function ($q) use ($bareName) {
+                                $q->whereRaw("UPPER(nama) = ?", [$bareName])
+                                  ->orWhereRaw("UPPER(nama) LIKE ?", [$bareName . ',%']);
+                            })
                             ->where('school_id', $schoolId)
                             ->first();
                     }
@@ -875,11 +881,12 @@ class SkDocumentController extends Controller
      */
     public static function nextNomorSk(int $year): string
     {
-        $maxSeq = (int) SkDocument::withoutTenantScope()
+        $maxSeq = SkDocument::withoutTenantScope()
             ->whereYear('created_at', $year)
             ->where('nomor_sk', 'like', "REQ/{$year}/%")
-            ->selectRaw("MAX(CAST(SPLIT_PART(nomor_sk, '/', 3) AS INTEGER)) as max_seq")
-            ->value('max_seq');
+            ->pluck('nomor_sk')
+            ->map(fn($n) => (int) substr($n, strlen("REQ/{$year}/")))
+            ->max() ?? 0;
 
         return 'REQ/' . $year . '/' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
     }

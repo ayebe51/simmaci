@@ -79,6 +79,7 @@ class SkDocumentResource extends Resource
                     }),
             ])
             ->filters([
+                Tables\Filters\TrashedFilter::make(),
                 Tables\Filters\SelectFilter::make('status')
                     ->options(['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', 'active' => 'Active']),
                 Tables\Filters\SelectFilter::make('jenis_sk')->label('Jenis')
@@ -107,8 +108,14 @@ class SkDocumentResource extends Resource
                     ->visible(fn(SkDocument $record) => in_array($record->status, ['draft', 'pending']))
                     ->requiresConfirmation()
                     ->action(fn(SkDocument $record) => $record->update(['status' => 'rejected'])),
+                Tables\Actions\ForceDeleteAction::make(),
             ])
-            ->bulkActions([Tables\Actions\BulkActionGroup::make([Tables\Actions\DeleteBulkAction::make()])])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                ]),
+            ])
             ->defaultSort('created_at', 'desc');
     }
 
@@ -119,5 +126,13 @@ class SkDocumentResource extends Resource
             'create' => Pages\CreateSkDocument::route('/create'),
             'edit' => Pages\EditSkDocument::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                \Illuminate\Database\Eloquent\SoftDeletingScope::class,
+            ]);
     }
 }

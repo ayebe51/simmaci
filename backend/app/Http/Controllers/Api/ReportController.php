@@ -32,28 +32,37 @@ class ReportController extends Controller
 
         $sks = $query->orderByDesc('created_at')->get();
 
-        // Group by status and get counts
-        $byStatus = $sks->groupBy('status')->map->count();
-        
-        // Transform response structure to match frontend expectations
+        // Normalize status to canonical values for counting
+        // approved/active/Approved/Active → approved
+        // rejected/Rejected → rejected
+        // pending → pending
+        // draft → draft
+        $approvedCount  = $sks->filter(fn($s) => in_array(strtolower($s->status), ['approved', 'active']))->count();
+        $pendingCount   = $sks->filter(fn($s) => strtolower($s->status) === 'pending')->count();
+        $rejectedCount  = $sks->filter(fn($s) => strtolower($s->status) === 'rejected')->count();
+        $draftCount     = $sks->filter(fn($s) => strtolower($s->status) === 'draft')->count();
+
         $summary = [
-            'total' => $sks->count(),
-            'approved' => $byStatus->get('approved', 0),
-            'pending' => $byStatus->get('pending', 0),
-            'rejected' => $byStatus->get('rejected', 0),
-            'draft' => $byStatus->get('draft', 0),
+            'total'    => $sks->count(),
+            'approved' => $approvedCount,
+            'pending'  => $pendingCount,
+            'rejected' => $rejectedCount,
+            'draft'    => $draftCount,
         ];
 
-        // Group by jenis_sk with case-insensitive grouping and lowercase keys
+        // Group by jenis_sk — normalize to lowercase and strip "sk " prefix for matching
+        // e.g. "SK GTY" → "gty", "SK GTT" → "gtt", "SK Tendik" → "tendik"
         $byJenis = $sks->groupBy(function ($item) {
-            return strtolower($item->jenis_sk ?? '');
+            $raw = strtolower(trim($item->jenis_sk ?? ''));
+            // Strip leading "sk " prefix
+            return preg_replace('/^sk\s+/', '', $raw);
         })->map->count();
 
         $byType = [
-            'gty' => $byJenis->get('gty', 0),
-            'gtt' => $byJenis->get('gtt', 0),
-            'kamad' => $byJenis->get('kamad', 0),
-            'tendik' => $byJenis->get('tendik', 0),
+            'gty'    => $byJenis->get('gty', 0),
+            'gtt'    => $byJenis->get('gtt', 0),
+            'kamad'  => $byJenis->filter(fn($v, $k) => str_contains($k, 'kamad') || str_contains($k, 'kepala'))->sum(),
+            'tendik' => $byJenis->filter(fn($v, $k) => str_contains($k, 'tendik'))->sum(),
         ];
 
         return response()->json([

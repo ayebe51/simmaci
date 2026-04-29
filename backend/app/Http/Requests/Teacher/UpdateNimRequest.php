@@ -14,7 +14,9 @@ class UpdateNimRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nim' => ['required', 'string', 'regex:/^\d+$/'],
+            // Accept digits-only OR formatted with dots/dashes (e.g. "113.403.283")
+            // Normalization (strip non-digits) happens in the controller before saving.
+            'nim' => ['required', 'string', 'regex:/^[\d.\-\s]+$/'],
         ];
     }
 
@@ -23,7 +25,7 @@ class UpdateNimRequest extends FormRequest
         return [
             'nim.required' => 'NIM wajib diisi.',
             'nim.string'   => 'NIM harus berupa string.',
-            'nim.regex'    => 'NIM harus berupa angka.',
+            'nim.regex'    => 'NIM hanya boleh berisi angka (boleh menggunakan titik atau tanda hubung sebagai pemisah).',
         ];
     }
 }

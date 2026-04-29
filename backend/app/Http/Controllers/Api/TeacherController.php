@@ -268,7 +268,13 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                $normalizedRow['nomor_induk_maarif'] = $nim ? $this->normalizationService->normalizeNim((string)$nim) : null;
+                // Normalize NIM — strip dots, dashes, spaces, apostrophes
+                $nimNormalized = $nim ? $this->normalizationService->normalizeNim((string)$nim) : null;
+                // If the "NIM" value is non-numeric text (e.g. "Non PNS", "PNS"), discard it
+                if ($nimNormalized !== null && !ctype_digit($nimNormalized)) {
+                    $nimNormalized = null;
+                }
+                $normalizedRow['nomor_induk_maarif'] = $nimNormalized;
 
                 // Parse NUPTK
                 $nuptk = null;
@@ -278,7 +284,19 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                $nuptk = $nuptk ? ltrim(trim((string)$nuptk), "'") : null;
+                // Strip apostrophe and whitespace from NUPTK
+                $nuptk = $nuptk ? ltrim(trim((string)$nuptk), "' ") : null;
+                // If NUPTK looks like a NIM (9 digits, starts with 1134), move it to nomor_induk_maarif
+                if ($nuptk !== null && preg_match('/^1134\d{5}$/', $nuptk)) {
+                    if (empty($normalizedRow['nomor_induk_maarif'])) {
+                        $normalizedRow['nomor_induk_maarif'] = $nuptk;
+                    }
+                    $nuptk = null; // clear from NUPTK field
+                }
+                // NUPTK must be numeric-only (16 digits typically); discard non-numeric values
+                if ($nuptk !== null && !ctype_digit($nuptk)) {
+                    $nuptk = null;
+                }
                 $normalizedRow['nuptk'] = $nuptk;
 
                 // Parse NIP (Pegawai/NIY)

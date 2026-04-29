@@ -31,10 +31,15 @@ class NormalizeNim extends Command
         $errors  = 0;
 
         // Only process teachers whose NIM contains non-digit characters
-        Teacher::withoutTenantScope()
-            ->whereNotNull('nomor_induk_maarif')
-            ->whereRaw("nomor_induk_maarif ~ '[^0-9]'") // PostgreSQL: has non-digit chars
-            ->chunkById($chunk, function ($teachers) use ($dryRun, &$fixed, &$skipped, &$errors) {
+        $driver = \DB::connection()->getDriverName();
+        $query = Teacher::withoutTenantScope()->whereNotNull('nomor_induk_maarif');
+
+        if ($driver === 'pgsql') {
+            $query->whereRaw("nomor_induk_maarif ~ '[^0-9]'"); // has non-digit chars
+        } else {
+            $query->whereRaw("nomor_induk_maarif GLOB '*[^0-9]*'"); // SQLite
+        }
+        $query->chunkById($chunk, function ($teachers) use ($dryRun, &$fixed, &$skipped, &$errors) {
                 foreach ($teachers as $teacher) {
                     $original   = $teacher->nomor_induk_maarif;
                     $normalized = $this->normalizationService->normalizeNim($original);

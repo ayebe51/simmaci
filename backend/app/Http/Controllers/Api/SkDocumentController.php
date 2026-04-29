@@ -105,12 +105,17 @@ class SkDocumentController extends Controller
     public function update(Request $request, SkDocument $skDocument): JsonResponse
     {
         try {
+            $request->validate([
+                'ijazah_url' => 'nullable|string|max:500',
+            ]);
+
             $oldStatus = $skDocument->status;
 
             $skDocument->update($request->only([
                 'nomor_sk', 'jenis_sk', 'teacher_id', 'nama', 'jabatan',
                 'unit_kerja', 'tanggal_penetapan', 'status', 'file_url', 'qr_code',
                 'revision_status', 'revision_reason', 'revision_data',
+                'ijazah_url',
             ]));
 
             ActivityLog::log(

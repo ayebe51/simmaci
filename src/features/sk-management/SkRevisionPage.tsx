@@ -3,12 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Loader2, Save, User } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi } from "@/lib/api"
+import IjazahUploadField from "@/features/sk-management/components/IjazahUploadField"
+import { detectGelarChange } from "@/features/sk-management/utils/detectGelarChange"
 
 export default function SkRevisionPage() {
     const navigate = useNavigate()
@@ -33,6 +35,9 @@ export default function SkRevisionPage() {
 
     const [isSubmitting, setIsSubmitting] = useState(false)
     
+    // Ijazah upload state
+    const [ijazahUrl, setIjazahUrl] = useState<string | null>(null)
+
     // Form state
     const [formData, setFormData] = useState({
         nama: "",
@@ -45,22 +50,46 @@ export default function SkRevisionPage() {
         reason: ""
     })
 
+    // Original values from database (for change detection)
+    const [originalData, setOriginalData] = useState({
+        nama: "",
+        pendidikan_terakhir: "",
+    })
+
     // Pre-fill data when skDoc loads
     useEffect(() => {
         if (skDoc) {
             const teacher: any = skDoc.teacher || {}
+            const nama = skDoc.nama || ""
+            const pendidikan = teacher.pendidikan_terakhir || ""
+
             setFormData({
-                nama: skDoc.nama || "",
+                nama,
                 tempat_lahir: teacher.tempat_lahir || "",
                 tanggal_lahir: teacher.tanggal_lahir ? teacher.tanggal_lahir.split('T')[0] : "",
                 nip: teacher.nip || "",
-                pendidikan_terakhir: teacher.pendidikan_terakhir || "",
+                pendidikan_terakhir: pendidikan,
                 unit_kerja: skDoc.unit_kerja || "",
                 tmt: teacher.tmt ? teacher.tmt.split('T')[0] : "",
                 reason: ""
             })
+
+            setOriginalData({
+                nama,
+                pendidikan_terakhir: pendidikan,
+            })
         }
     }, [skDoc])
+
+    // Reactively compute gelar/pendidikan change flags
+    const { isGelarChange, isPendidikanChange } = useMemo(() => {
+        return detectGelarChange(
+            formData.nama,
+            originalData.nama,
+            formData.pendidikan_terakhir,
+            originalData.pendidikan_terakhir
+        )
+    }, [formData.nama, formData.pendidikan_terakhir, originalData.nama, originalData.pendidikan_terakhir])
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target
@@ -72,6 +101,12 @@ export default function SkRevisionPage() {
         
         if (!formData.reason.trim()) {
             toast.error("Alasan revisi wajib diisi!")
+            return
+        }
+
+        // Validate: ijazah is required when gelar changes
+        if ((isGelarChange || isPendidikanChange) && !ijazahUrl) {
+            toast.error("Scan ijazah wajib dilampirkan untuk perubahan gelar.")
             return
         }
 
@@ -87,11 +122,18 @@ export default function SkRevisionPage() {
                 tmt: formData.tmt,
             }
 
-            await requestRevisionMutation.mutateAsync({
+            const payload: Record<string, any> = {
                 revision_status: 'revision_pending',
                 revision_reason: formData.reason,
                 revision_data: proposedData
-            })
+            }
+
+            // Include ijazah_url in payload only if it was uploaded
+            if (ijazahUrl) {
+                payload.ijazah_url = ijazahUrl
+            }
+
+            await requestRevisionMutation.mutateAsync(payload)
         } catch (error) {
             console.error(error)
         } finally {
@@ -107,6 +149,8 @@ export default function SkRevisionPage() {
     }
 
     if (!skDoc) return null
+
+    const schoolId = skDoc.school_id ?? skDoc.school?.id ?? null
 
     return (
         <div className="max-w-3xl mx-auto space-y-6 pb-20">
@@ -166,6 +210,18 @@ export default function SkRevisionPage() {
                             <div className="md:col-span-2 space-y-3">
                                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Unit Kerja / Madrasah</Label>
                                 <Input id="unit_kerja" value={formData.unit_kerja} onChange={handleInputChange} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-amber-500 font-bold opacity-80" />
+                            </div>
+
+                            {/* Ijazah Upload Field — placed below pendidikan_terakhir */}
+                            <div className="md:col-span-2">
+                                <IjazahUploadField
+                                    value={ijazahUrl}
+                                    onChange={setIjazahUrl}
+                                    isGelarChange={isGelarChange}
+                                    isPendidikanChange={isPendidikanChange}
+                                    schoolId={schoolId}
+                                    disabled={isSubmitting}
+                                />
                             </div>
                         </div>
 

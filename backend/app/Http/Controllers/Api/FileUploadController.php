@@ -15,11 +15,25 @@ class FileUploadController extends Controller
      */
     public function upload(Request $request): JsonResponse
     {
+        // Validate folder and disk first
         $request->validate([
-            'file' => 'required|file|max:10240', // 10MB limit
             'folder' => 'nullable|string',
-            'disk' => 'nullable|string|in:local,public,s3'
+            'disk' => 'nullable|string|in:local,public,s3',
         ]);
+
+        // Conditional validation: ijazah folder requires PDF only, max 5MB
+        if ($request->folder && str_starts_with($request->folder, 'ijazah')) {
+            $request->validate([
+                'file' => 'required|file|mimes:pdf|max:5120',
+            ], [
+                'file.mimes' => 'File ijazah harus berformat PDF.',
+                'file.max' => 'Ukuran file ijazah maksimal 5 MB.',
+            ]);
+        } else {
+            $request->validate([
+                'file' => 'required|file|max:10240', // 10MB limit for other folders
+            ]);
+        }
 
         $file = $request->file('file');
         $disk = $request->disk ?? (env('AWS_ACCESS_KEY_ID') ? 's3' : 'public');

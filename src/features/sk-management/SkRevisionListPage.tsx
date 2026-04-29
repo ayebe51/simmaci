@@ -379,6 +379,28 @@ export default function SkRevisionListPage() {
                <p className="text-sm font-bold text-slate-700 italic">"{selectedItem?.revision_reason || 'Tidak ada alasan.'}"</p>
             </div>
 
+            {/* Dokumen Pendukung — Ijazah */}
+            <div className="bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-200">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                Dokumen Pendukung
+              </h4>
+              {selectedItem?.ijazah_url ? (
+                <a
+                  href={`/api/minio/${selectedItem.ijazah_url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Lihat Ijazah
+                </a>
+              ) : (
+                <p className="text-xs font-medium text-slate-400 italic">Tidak ada ijazah dilampirkan.</p>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-10">
               <div className="space-y-6">
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b pb-3">Data Saat Ini (Lama)</h4>

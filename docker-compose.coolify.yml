@@ -144,8 +144,6 @@ services:
       - "traefik.http.serversTransports.backend-transport.respondingTimeouts.idleConnTimeout=300s"
       - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=300s"
       - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=300s"
-      - "traefik.http.routers.backend.middlewares=backend-timeout"
-      - "traefik.http.middlewares.backend-timeout.forwardauth.authResponseHeaders=X-Auth-User"
 
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:

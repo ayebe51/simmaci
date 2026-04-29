@@ -747,4 +747,148 @@ class NormalizationServiceTest extends TestCase
             );
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // parseIndonesianDate
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_returns_iso_date_unchanged(): void
+    {
+        $this->assertSame('1990-05-12', $this->service->parseIndonesianDate('1990-05-12'));
+        $this->assertSame('2024-02-20', $this->service->parseIndonesianDate('2024-02-20'));
+        $this->assertSame('2000-01-01', $this->service->parseIndonesianDate('2000-01-01'));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_parses_yyyy_slash_mm_slash_dd(): void
+    {
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('2020/12/13'));
+        $this->assertSame('2024-02-05', $this->service->parseIndonesianDate('2024/2/5'));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_parses_indonesian_long_month_names(): void
+    {
+        $cases = [
+            '13 Desember 2020'  => '2020-12-13',
+            '20 Februari 2024'  => '2024-02-20',
+            '1 Januari 2000'    => '2000-01-01',
+            '31 Maret 1990'     => '1990-03-31',
+            '15 April 2015'     => '2015-04-15',
+            '10 Mei 2010'       => '2010-05-10',
+            '5 Juni 2018'       => '2018-06-05',
+            '17 Juli 2019'      => '2019-07-17',
+            '8 Agustus 2022'    => '2022-08-08',
+            '25 September 2021' => '2021-09-25',
+            '3 Oktober 2017'    => '2017-10-03',
+            '11 November 2016'  => '2016-11-11',
+        ];
+
+        foreach ($cases as $input => $expected) {
+            $this->assertSame($expected, $this->service->parseIndonesianDate($input),
+                "Failed for: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_parses_indonesian_short_month_names(): void
+    {
+        $cases = [
+            '13 Des 2020' => '2020-12-13',
+            '20 Feb 2024' => '2024-02-20',
+            '1 Jan 2000'  => '2000-01-01',
+            '5 Mar 2015'  => '2015-03-05',
+            '7 Apr 2010'  => '2010-04-07',
+            '9 Jun 2018'  => '2018-06-09',
+            '2 Jul 2019'  => '2019-07-02',
+            '8 Agu 2022'  => '2022-08-08',
+            '8 Ags 2022'  => '2022-08-08',
+            '4 Sep 2021'  => '2021-09-04',
+            '3 Okt 2017'  => '2017-10-03',
+            '1 Nov 2016'  => '2016-11-01',
+        ];
+
+        foreach ($cases as $input => $expected) {
+            $this->assertSame($expected, $this->service->parseIndonesianDate($input),
+                "Failed for: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_parses_dd_dash_mm_dash_yyyy(): void
+    {
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('13-12-2020'));
+        $this->assertSame('2000-01-01', $this->service->parseIndonesianDate('01-01-2000'));
+        $this->assertSame('2015-03-05', $this->service->parseIndonesianDate('5-3-2015'));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_parses_dd_slash_mm_slash_yyyy(): void
+    {
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('13/12/2020'));
+        $this->assertSame('2000-01-01', $this->service->parseIndonesianDate('01/01/2000'));
+        $this->assertSame('2015-03-05', $this->service->parseIndonesianDate('5/3/2015'));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_parses_dd_dot_mm_dot_yyyy(): void
+    {
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('13.12.2020'));
+        $this->assertSame('2000-01-01', $this->service->parseIndonesianDate('01.01.2000'));
+        $this->assertSame('2015-03-05', $this->service->parseIndonesianDate('5.3.2015'));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_is_case_insensitive_for_month_names(): void
+    {
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('13 desember 2020'));
+        $this->assertSame('2024-02-20', $this->service->parseIndonesianDate('20 FEBRUARI 2024'));
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('13 DES 2020'));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_trims_whitespace_before_parsing(): void
+    {
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('  13 Desember 2020  '));
+        $this->assertSame('2020-12-13', $this->service->parseIndonesianDate('  13-12-2020  '));
+    }
+
+    /**
+     * @test
+     * @group date-parsing
+     */
+    public function it_returns_null_for_empty_or_null_input(): void
+    {
+        $this->assertNull($this->service->parseIndonesianDate(null));
+        $this->assertNull($this->service->parseIndonesianDate(''));
+        $this->assertNull($this->service->parseIndonesianDate('   '));
+    }
 }

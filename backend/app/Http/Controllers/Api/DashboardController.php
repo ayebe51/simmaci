@@ -146,12 +146,27 @@ class DashboardController extends Controller
         if ($schoolId) $unitQuery->where('school_id', $schoolId);
         $unitMap = $unitQuery->groupBy('unit_kerja')->orderByDesc('jumlah')->limit(8)->get();
 
-        // Group by status
+        // Group by status — normalize raw values to canonical labels before grouping
         $statusQuery = Teacher::withoutTenantScope()
-            ->selectRaw("COALESCE(NULLIF(status, ''), 'GTT') as name, COUNT(*) as value")
+            ->selectRaw("
+                CASE
+                    WHEN LOWER(COALESCE(status, '')) IN ('pns', 'asn') OR LOWER(COALESCE(status, '')) LIKE 'pns %' OR LOWER(COALESCE(status, '')) LIKE 'asn %' THEN 'PNS'
+                    WHEN LOWER(COALESCE(status, '')) IN ('gty', 'guru tetap yayasan', 'kepala madrasah') THEN 'GTY'
+                    WHEN LOWER(COALESCE(status, '')) IN ('tendik', 'tenaga kependidikan', 'administrasi', 'tata usaha') THEN 'Tendik'
+                    ELSE 'GTT'
+                END as name,
+                COUNT(*) as value
+            ")
             ->where('is_active', true);
         if ($schoolId) $statusQuery->where('school_id', $schoolId);
-        $statusMap = $statusQuery->groupBy('status')->get();
+        $statusMap = $statusQuery->groupByRaw("
+            CASE
+                WHEN LOWER(COALESCE(status, '')) IN ('pns', 'asn') OR LOWER(COALESCE(status, '')) LIKE 'pns %' OR LOWER(COALESCE(status, '')) LIKE 'asn %' THEN 'PNS'
+                WHEN LOWER(COALESCE(status, '')) IN ('gty', 'guru tetap yayasan', 'kepala madrasah') THEN 'GTY'
+                WHEN LOWER(COALESCE(status, '')) IN ('tendik', 'tenaga kependidikan', 'administrasi', 'tata usaha') THEN 'Tendik'
+                ELSE 'GTT'
+            END
+        ")->get();
 
         // Certification counts
         $certBase = Teacher::withoutTenantScope()->where('is_active', true);

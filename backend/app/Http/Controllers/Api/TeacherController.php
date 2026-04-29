@@ -481,18 +481,25 @@ class TeacherController extends Controller
                     }
 
                     if (!$isSarjana) {
+                        // Non-sarjana → Tendik, regardless of what the file says
                         $normalizedRow['status'] = 'Tendik';
-                    } else if ($tmtDate) {
-                        // Jika sarjana -> Cek TMT >= 2 Tahun
+                    } elseif ($tmtDate) {
+                        // Sarjana + TMT ada → hitung lama pengabdian
                         $diffYears = $tmtDate->diffInYears(\Carbon\Carbon::now());
                         $normalizedRow['status'] = ($diffYears >= 2) ? 'GTY' : 'GTT';
                     } else {
-                        // Jika sarjana tapi TMT kosong, pastikan Status tidak boleh "Honorer"
+                        // Sarjana tapi TMT kosong → normalisasi nilai dari file, atau GTY sebagai fallback
                         $currentStatus = $normalizedRow['status'] ?? null;
                         if (!$currentStatus || strtolower((string)$currentStatus) === 'honorer') {
-                            $normalizedRow['status'] = 'GTY'; // Fallback default
+                            $normalizedRow['status'] = 'GTY';
                         }
+                        // Nilai lain dari file (misal "GTT", "Honorer") akan dinormalisasi
+                        // oleh normalizeEmploymentStatus di bawah
                     }
+                } elseif (isset($normalizedRow['status']) && $tmtDate) {
+                    // Tidak ada kolom pendidikan, tapi ada status + TMT dari file
+                    // Biarkan normalizeEmploymentStatus yang menangani di bawah
+                    // (tidak perlu override di sini)
                 }
 
                 // Filter row to only include allowed fields

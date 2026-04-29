@@ -530,12 +530,21 @@ class NormalizationService
 
         $upper = mb_strtoupper($trimmed, 'UTF-8');
 
+        // Expanded mapping for common Excel values
         return match (true) {
             $upper === 'AKTIF'                                    => $this->resolveAktif($tmt),
             in_array($upper, ['GTTY', 'GURU TIDAK TETAP'], true) => 'GTT',
-            in_array($upper, ['GURU TETAP YAYASAN', 'KEPALA MADRASAH'], true) => 'GTY',
+            in_array($upper, ['GURU TETAP YAYASAN', 'KEPALA MADRASAH', 'KEPALA SEKOLAH'], true) => 'GTY',
             in_array($upper, ['TENAGA KEPENDIDIKAN', 'TENDIK'], true) => 'Tendik',
             $upper === 'PNS'                                      => 'PNS',
+            // Common Excel values
+            str_contains($upper, 'HONORER')                       => 'GTT', // "Honorer" → GTT
+            str_contains($upper, 'GTK NON PNS')                   => 'GTT', // "GTK Non PNS" → GTT
+            str_contains($upper, 'NON PNS')                       => 'GTT', // "Non PNS" → GTT
+            str_contains($upper, 'KONTRAK')                       => 'GTT', // "Kontrak" → GTT
+            str_contains($upper, 'TIDAK TETAP')                   => 'GTT', // "Tidak Tetap" → GTT
+            str_contains($upper, 'TETAP')                         => 'GTY', // "Tetap" → GTY (after "Tidak Tetap" check)
+            str_contains($upper, 'YAYASAN')                       => 'GTY', // "Yayasan" → GTY
             default                                               => 'GTT', // safe fallback
         };
     }

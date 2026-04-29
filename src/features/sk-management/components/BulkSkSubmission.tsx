@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
+import { parseIndonesianDate } from "@/features/sk-management/utils/skDateUtils"
 
 export function BulkSkSubmission() {
   const navigate = useNavigate()
@@ -136,8 +137,12 @@ export function BulkSkSubmission() {
             let val = row[idx]
             if (key.includes('tanggal') || key === 'tmt') {
                if (typeof val === 'number') {
+                  // Excel serial date number → ISO string
                   const d = new Date((val - 25569) * 86400 * 1000)
                   val = d.toISOString().split('T')[0]
+               } else if (typeof val === 'string' && val.trim()) {
+                  // Normalize Indonesian month names to English before parsing
+                  val = parseIndonesianDate(val.trim())
                }
             }
             obj[key] = val

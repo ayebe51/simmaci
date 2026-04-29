@@ -396,8 +396,17 @@ export const eventApi = {
 
 export const reportApi = {
   teacherRekap: {
-    list: (params?: Record<string, any>) => apiClient.get('/reports/teachers', { params }).then((r) => r.data),
+    list: (params?: Record<string, any>) => apiClient.get('/reports/teacher', { params }).then((r) => r.data),
   },
+  teacherReport: (params?: {
+    search?: string;
+    status?: string;
+    kecamatan?: string;
+    is_certified?: string;
+    is_active?: string;
+    school_id?: number;
+    per_page?: number;
+  }) => apiClient.get('/reports/teacher', { params }).then((r) => r.data),
   skReport: (params?: Record<string, any>) => apiClient.get('/reports/sk', { params }).then((r) => r.data),
   summary: () => apiClient.get('/reports/summary').then((r) => r.data),
 };

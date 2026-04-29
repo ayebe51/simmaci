@@ -280,7 +280,7 @@ export default function SkSubmissionPage() {
                                 <SelectValue placeholder="Pilih Pendidikan" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
-                                {["SMA/MA", "D3", "S1", "S2", "S3"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                                {["S3", "S2", "S1", "D4", "D3", "D2", "D1", "SMA/MA", "SMP"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>

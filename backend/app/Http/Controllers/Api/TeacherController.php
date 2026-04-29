@@ -76,6 +76,11 @@ class TeacherController extends Controller
         $originalNama = $data['nama'];
         $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
 
+        // Normalize NIM — strip dots, dashes, spaces (e.g. "113.403.283" → "113403283")
+        if (isset($data['nomor_induk_maarif'])) {
+            $data['nomor_induk_maarif'] = $this->normalizationService->normalizeNim($data['nomor_induk_maarif']);
+        }
+
         // Normalize unit_kerja if present
         $originalUnitKerja = $data['unit_kerja'] ?? null;
         if (isset($data['unit_kerja'])) {
@@ -157,6 +162,18 @@ class TeacherController extends Controller
                 $normalizationChanges['nama'] = [
                     'original' => $originalNama,
                     'normalized' => $data['nama']
+                ];
+            }
+        }
+
+        // Normalize NIM — strip dots, dashes, spaces (e.g. "113.403.283" → "113403283")
+        if (isset($data['nomor_induk_maarif'])) {
+            $originalNim = $data['nomor_induk_maarif'];
+            $data['nomor_induk_maarif'] = $this->normalizationService->normalizeNim($data['nomor_induk_maarif']);
+            if ($originalNim !== $data['nomor_induk_maarif']) {
+                $normalizationChanges['nomor_induk_maarif'] = [
+                    'original'   => $originalNim,
+                    'normalized' => $data['nomor_induk_maarif'],
                 ];
             }
         }
@@ -251,7 +268,7 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                $normalizedRow['nomor_induk_maarif'] = $nim ? ltrim(trim((string)$nim), "'") : null;
+                $normalizedRow['nomor_induk_maarif'] = $nim ? $this->normalizationService->normalizeNim((string)$nim) : null;
 
                 // Parse NUPTK
                 $nuptk = null;
@@ -664,7 +681,8 @@ class TeacherController extends Controller
     {
         $this->authorize('update', $teacher);
 
-        $nim = $request->validated()['nim'];
+        // Normalize NIM before validation — strip dots, dashes, spaces
+        $nim = $this->normalizationService->normalizeNim($request->validated()['nim']) ?? $request->validated()['nim'];
 
         // Global uniqueness check — bypass tenant scope to check across ALL schools
         $duplicate = Teacher::withoutTenantScope()

@@ -617,4 +617,28 @@ class NormalizationService
 
         return $tmt->diffInYears(\Carbon\Carbon::now()) >= 2 ? 'GTY' : 'GTT';
     }
+
+    /**
+     * Normalize a NIM (Nomor Induk Maarif) to digits-only format.
+     *
+     * Accepts formats like:
+     *   "113.403.283"  → "113403283"
+     *   "113-403-283"  → "113403283"
+     *   " 113403283 "  → "113403283"
+     *   "'113403283"   → "113403283"
+     *   "113403283"    → "113403283"  (already clean)
+     *
+     * Returns null if the input is null/empty or contains no digits.
+     */
+    public function normalizeNim(?string $nim): ?string
+    {
+        if ($nim === null || trim($nim) === '') {
+            return null;
+        }
+
+        // Strip leading apostrophe (Excel artifact), then remove all non-digit characters
+        $cleaned = preg_replace('/[^0-9]/', '', ltrim(trim($nim), "'"));
+
+        return $cleaned !== '' ? $cleaned : null;
+    }
 }

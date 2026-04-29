@@ -380,11 +380,12 @@ export default function SkGeneratorPage() {
             const seqStr = String(currentSeq).padStart(4, '0')
 
             const tmtRaw = t.tmt || teacher.tmt
-            if (!tmtRaw) {
+            if (!tmtRaw && !isInsidentil) {
                 toast.warning(`Guru "${teacher.nama || t.nama}" dilewati: field TMT kosong.`)
                 continue
             }
-            const periodeValue = calculatePeriode(tmtRaw, tglPenetapanPerGuru)
+            // Mode insidentil: TMT = tanggal penetapan (guru baru), periode = 0
+            const periodeValue = tmtRaw ? calculatePeriode(tmtRaw, tglPenetapanPerGuru) : 0
             const periodeStr = String(periodeValue)
 
             const generatedNomor = nomorFormat
@@ -448,8 +449,10 @@ export default function SkGeneratorPage() {
                 tanggal_lahir: formatDateIndo(t.tanggal_lahir || teacher.tanggal_lahir),
                 pendidikan_terakhir: t.pendidikan_terakhir || teacher.pendidikan_terakhir,
                 unit_kerja: t.unit_kerja || teacher.unit_kerja,
-                tmt: formatDateIndo(t.tmt || teacher.tmt),
-                tanggal_mulai_tugas: formatDateIndo(t.tmt || teacher.tmt),
+                // Mode insidentil: TMT = tanggal penetapan (hari pertama bertugas = 1 hari setelah surat permohonan)
+                // Mode normal: TMT dari data guru di database
+                tmt: isInsidentil ? formatDateIndo(tanggalPenetapanPerGuru) : formatDateIndo(t.tmt || teacher.tmt),
+                tanggal_mulai_tugas: isInsidentil ? formatDateIndo(tanggalPenetapanPerGuru) : formatDateIndo(t.tmt || teacher.tmt),
                 nomor_induk_maarif: t.nomor_induk_maarif || teacher.nomor_induk_maarif || t.nip || teacher.nip || "-",
                 kecamatan: t.kecamatan || teacher.kecamatan || defaultKecamatan
             }

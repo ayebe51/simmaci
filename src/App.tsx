@@ -47,6 +47,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 
 import { PageTransition } from "./components/common/PageTransition"
+import { usePwaUpdate } from "./hooks/usePwaUpdate"
 
 // Attendance Module
 import QrScannerPage from "./features/attendance/QrScannerPage"
@@ -73,6 +74,7 @@ if (typeof window !== 'undefined') {
 
 export default function App() {
   console.log("App Rendering...");
+  usePwaUpdate()
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

@@ -89,6 +89,10 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 $doc['unit_kerja'] = $normalizationService->normalizeSchoolName($doc['unit_kerja'] ?? null);
                 $doc['nama'] = $normalizationService->normalizeTeacherName($doc['nama']);
 
+                // Enrich name with degrees from Teacher record if the submitted name lacks them.
+                $schoolIdForEnrich = $this->userRole === 'operator' ? $this->userSchoolId : null;
+                $doc['nama'] = $normalizationService->enrichNameFromTeacher($doc['nama'], $schoolIdForEnrich);
+
                 $schoolId = null;
 
                 // Force user's school if operator
@@ -164,6 +168,19 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     $teacher = Teacher::where('nama', $teacherData['nama'])
                         ->where('school_id', $schoolId)
                         ->first();
+
+                    // Fallback: bare-name match (handles degree mismatch between file and DB)
+                    if (!$teacher) {
+                        $bareName = mb_strtoupper(
+                            trim($normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']),
+                            'UTF-8'
+                        );
+                        if ($bareName !== '') {
+                            $teacher = Teacher::whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                                ->where('school_id', $schoolId)
+                                ->first();
+                        }
+                    }
                 }
 
                 if ($teacher) {

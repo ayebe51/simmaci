@@ -253,6 +253,17 @@ class NormalizationService
      *
      * @return array{name: string, prefix_degrees: string[], suffix_degrees: string[]}
      */
+    /**
+     * Public wrapper for parseAcademicDegrees — allows callers outside the service
+     * to extract the bare name and degree components from a full teacher name.
+     *
+     * @return array{name: string, prefix_degrees: string[], suffix_degrees: string[]}
+     */
+    public function parseAcademicDegreesPublic(string $fullName): array
+    {
+        return $this->parseAcademicDegrees($fullName);
+    }
+
     protected function parseAcademicDegrees(string $fullName): array
     {
         $map = $this->getDegreeMap();
@@ -616,6 +627,93 @@ class NormalizationService
         }
 
         return $tmt->diffInYears(\Carbon\Carbon::now()) >= 2 ? 'GTY' : 'GTT';
+    }
+
+    /**
+     * Enrich a teacher name from the SK submission with the canonical name
+     * (including academic degrees) stored in the Teacher database.
+     *
+     * Resolution rule — the name with MORE degrees wins:
+     *   - If the DB record has degrees but the input doesn't  → use DB name.
+     *   - If the input has degrees but the DB record doesn't  → use input name
+     *     (and the caller is responsible for updating the Teacher record).
+     *   - If both have degrees                               → use input name
+     *     (the freshly submitted document is the authoritative source).
+     *   - If neither has degrees                             → use input name as-is.
+     *
+     * Matching strategy (in order):
+     *   1. Exact match on the already-normalized name — return as-is (fast path).
+     *   2. Strip degrees from the input, then do a case-insensitive lookup on
+     *      the bare name portion of Teacher.nama within the given school.
+     *   3. If still not found, try the same lookup across all schools.
+     *
+     * @param  string       $name      Name as extracted from the document (may be normalized already).
+     * @param  int|null     $schoolId  Preferred school scope for the lookup.
+     * @return string                  Best name with degrees, or the original normalized name.
+     */
+    public function enrichNameFromTeacher(string $name, ?int $schoolId = null): string
+    {
+        if (trim($name) === '') {
+            return $name;
+        }
+
+        // Fast path: exact match already exists in the DB — nothing to enrich.
+        $exact = \App\Models\Teacher::withoutTenantScope()
+            ->where('nama', $name)
+            ->when($schoolId, fn($q) => $q->where('school_id', $schoolId))
+            ->value('nama');
+
+        if ($exact !== null) {
+            return $exact;
+        }
+
+        // Extract the bare name (without degrees) from the input.
+        $parsed      = $this->parseAcademicDegrees($name);
+        $bareName    = mb_strtoupper(trim($parsed['name']), 'UTF-8');
+        $inputHasDegrees = !empty($parsed['suffix_degrees']) || !empty($parsed['prefix_degrees']);
+
+        if ($bareName === '') {
+            return $name;
+        }
+
+        // Look for a teacher whose bare name matches.
+        $find = function (?int $sid) use ($bareName): ?string {
+            return \App\Models\Teacher::withoutTenantScope()
+                ->whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                ->when($sid, fn($q) => $q->where('school_id', $sid))
+                ->orderByDesc('updated_at')
+                ->value('nama');
+        };
+
+        $dbName = null;
+        if ($schoolId) {
+            $dbName = $find($schoolId);
+        }
+        if ($dbName === null) {
+            $dbName = $find(null);
+        }
+
+        // No match in DB — keep the input as-is.
+        if ($dbName === null) {
+            return $name;
+        }
+
+        // Determine which name has degrees.
+        $dbParsed      = $this->parseAcademicDegrees($dbName);
+        $dbHasDegrees  = !empty($dbParsed['suffix_degrees']) || !empty($dbParsed['prefix_degrees']);
+
+        // Input has degrees → it is the more complete source; use it.
+        // DB has degrees but input doesn't → use DB name.
+        // Neither has degrees → use input (no change).
+        if ($inputHasDegrees) {
+            return $name;
+        }
+
+        if ($dbHasDegrees) {
+            return $dbName;
+        }
+
+        return $name;
     }
 
     /**

@@ -183,10 +183,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Notifications
         Route::prefix('notifications')->group(function () {
-            Route::get('/',              [NotificationController::class, 'index']);
-            Route::get('unread-count',   [NotificationController::class, 'unreadCount']);
-            Route::post('{notification}/read', [NotificationController::class, 'markRead']);
-            Route::post('mark-all-read', [NotificationController::class, 'markAllRead']);
+            Route::get('/',                      [NotificationController::class, 'index']);
+            Route::get('unread-count',           [NotificationController::class, 'unreadCount']);
+            Route::patch('{notification}/read',  [NotificationController::class, 'markRead']);
+            Route::post('{notification}/read',   [NotificationController::class, 'markRead']); // backward compat
+            Route::patch('mark-all-read',        [NotificationController::class, 'markAllRead']);
+            Route::post('mark-all-read',         [NotificationController::class, 'markAllRead']); // backward compat
         });
 
         // Settings — GET /settings (list) + GET /settings/{key} (show) + POST /settings (upsert)

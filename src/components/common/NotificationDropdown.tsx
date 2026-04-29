@@ -94,6 +94,9 @@ export function NotificationDropdown() {
 
   const getNotificationIcon = (type: string) => {
     const iconClass = "h-4 w-4"
+    if (type === 'sk_approved') return <FileCheck className={cn(iconClass, "text-emerald-500")} />
+    if (type === 'sk_rejected') return <ShieldAlert className={cn(iconClass, "text-rose-500")} />
+    if (type === 'sk_submitted') return <Zap className={cn(iconClass, "text-blue-500")} />
     if (type.includes("sk_")) return <FileCheck className={cn(iconClass, "text-emerald-500")} />
     if (type.includes("mutation")) return <Zap className={cn(iconClass, "text-blue-500")} />
     return <Bell className={cn(iconClass, "text-slate-400")} />

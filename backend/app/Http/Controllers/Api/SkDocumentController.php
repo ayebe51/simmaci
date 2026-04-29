@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\NotifyAdminsOfSkSubmission;
 use App\Models\ActivityLog;
 use App\Models\Notification;
 use App\Models\School;
@@ -554,19 +555,16 @@ class SkDocumentController extends Controller
                     'properties' => $logProperties,
                 ]);
 
-                // Notify super_admin and admin_yayasan about new SK submission
-                $admins = User::whereIn('role', ['super_admin', 'admin_yayasan'])->get();
-                foreach ($admins as $admin) {
-                    Notification::create([
-                        'user_id'   => $admin->id,
-                        'school_id' => $schoolId,
-                        'type'      => 'sk_submitted',
-                        'title'     => 'Pengajuan SK Baru',
-                        'message'   => "Pengajuan {$data['jenis_sk']} dari {$data['nama']} ({$data['unit_kerja']}) menunggu verifikasi.",
-                        'is_read'   => false,
-                        'metadata'  => ['sk_id' => $sk->id, 'nomor_sk' => $sk->nomor_sk],
-                    ]);
-                }
+                // Dispatch notification to queue — avoids blocking the HTTP response
+                // when there are many admins to notify.
+                NotifyAdminsOfSkSubmission::dispatch(
+                    skId: $sk->id,
+                    nomorSk: $sk->nomor_sk,
+                    jenisSk: $data['jenis_sk'],
+                    nama: $data['nama'],
+                    unitKerja: $data['unit_kerja'],
+                    schoolId: $schoolId
+                );
             } catch (\Exception $e) {
                 \Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id]);
                 // Continue execution - activity log failure should not block the request

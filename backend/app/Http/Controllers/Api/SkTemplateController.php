@@ -9,6 +9,7 @@ use App\Services\SkTemplateService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SkTemplateController extends Controller
 {
@@ -91,7 +92,11 @@ class SkTemplateController extends Controller
      */
     public function download(SkTemplate $skTemplate): JsonResponse
     {
-        $url = $this->service->getDownloadUrl($skTemplate);
+        try {
+            $url = $this->service->getDownloadUrl($skTemplate);
+        } catch (HttpException $e) {
+            return $this->errorResponse('File template tidak ditemukan di storage.', null, 404);
+        }
 
         return $this->successResponse(['url' => $url], 'Berhasil.');
     }
@@ -99,7 +104,7 @@ class SkTemplateController extends Controller
     /**
      * GET /api/sk-templates/active?sk_type=
      * Resolve the active template for a given sk_type.
-     * Returns 404 if no active template exists.
+     * Returns 404 if no active template exists or if the file is missing from storage.
      */
     public function active(Request $request): JsonResponse
     {
@@ -116,7 +121,14 @@ class SkTemplateController extends Controller
         }
 
         $data = $template->only(['id', 'sk_type', 'original_filename', 'is_active', 'uploaded_by', 'created_at', 'updated_at']);
-        $data['file_url'] = $this->service->getDownloadUrl($template);
+
+        try {
+            $data['file_url'] = $this->service->getDownloadUrl($template);
+        } catch (HttpException $e) {
+            // File record exists in DB but the actual file is missing from storage.
+            // Return 404 so the frontend can fall back to the bundled static template.
+            return $this->errorResponse('File template tidak ditemukan di storage.', null, 404);
+        }
 
         return $this->successResponse($data);
     }

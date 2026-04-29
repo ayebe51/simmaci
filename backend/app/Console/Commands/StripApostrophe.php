@@ -71,7 +71,43 @@ class StripApostrophe extends Command
                 }
             });
 
-        $this->info("  → {$fixed} record guru diperbaiki" . ($dryRun ? ' (dry run)' : '') . '.');
+        // Also fix: NIM stored in NUPTK column (9-digit, starts with 1134)
+        $nimInNuptk = 0;
+        Teacher::withoutTenantScope()
+            ->whereNotNull('nuptk')
+            ->whereRaw("nuptk ~ '^1134[0-9]{5}$'") // PostgreSQL regex
+            ->chunkById(200, function ($teachers) use ($dryRun, &$nimInNuptk) {
+                foreach ($teachers as $teacher) {
+                    $this->line("  [NIM-in-NUPTK] Teacher ID {$teacher->id} ({$teacher->nama}): nuptk='{$teacher->nuptk}' → move to nomor_induk_maarif");
+                    if (!$dryRun) {
+                        $nim = $teacher->nuptk;
+                        $teacher->nuptk = null;
+                        if (empty($teacher->nomor_induk_maarif)) {
+                            $teacher->nomor_induk_maarif = $nim;
+                        }
+                        $teacher->saveQuietly();
+                    }
+                    $nimInNuptk++;
+                }
+            });
+
+        // Also fix: non-numeric text in nomor_induk_maarif (e.g. "Non PNS", "PNS")
+        $badNim = 0;
+        Teacher::withoutTenantScope()
+            ->whereNotNull('nomor_induk_maarif')
+            ->whereRaw("nomor_induk_maarif !~ '^[0-9]+$'") // PostgreSQL: not purely numeric
+            ->chunkById(200, function ($teachers) use ($dryRun, &$badNim) {
+                foreach ($teachers as $teacher) {
+                    $this->line("  [Bad NIM] Teacher ID {$teacher->id} ({$teacher->nama}): nomor_induk_maarif='{$teacher->nomor_induk_maarif}' → cleared");
+                    if (!$dryRun) {
+                        $teacher->nomor_induk_maarif = null;
+                        $teacher->saveQuietly();
+                    }
+                    $badNim++;
+                }
+            });
+
+        $this->info("  → {$fixed} apostrop diperbaiki, {$nimInNuptk} NIM dipindah dari NUPTK, {$badNim} NIM tidak valid dibersihkan" . ($dryRun ? ' (dry run)' : '') . '.');
     }
 
     private function processStudents(bool $dryRun): void

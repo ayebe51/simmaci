@@ -272,6 +272,8 @@ export default function TeacherListPage() {
                             <SelectItem value="GTY">GTY</SelectItem>
                             <SelectItem value="GTT">GTT</SelectItem>
                             <SelectItem value="PNS">PNS</SelectItem>
+                            <SelectItem value="PPPK">PPPK</SelectItem>
+                            <SelectItem value="Tendik">Tendik</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -475,6 +477,7 @@ export default function TeacherListPage() {
                                 <SelectItem value="GTT">GTT (Guru Tidak Tetap)</SelectItem>
                                 <SelectItem value="PNS">PNS</SelectItem>
                                 <SelectItem value="PPPK">PPPK</SelectItem>
+                                <SelectItem value="Tendik">Tendik (Tenaga Kependidikan)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

@@ -481,25 +481,31 @@ class TeacherController extends Controller
                     }
 
                     if (!$isSarjana) {
-                        // Non-sarjana → Tendik, regardless of what the file says
+                        // Non-sarjana (D1/D2/D3/SMA/dll) → Tendik
                         $normalizedRow['status'] = 'Tendik';
                     } elseif ($tmtDate) {
                         // Sarjana + TMT ada → hitung lama pengabdian
                         $diffYears = $tmtDate->diffInYears(\Carbon\Carbon::now());
                         $normalizedRow['status'] = ($diffYears >= 2) ? 'GTY' : 'GTT';
                     } else {
-                        // Sarjana tapi TMT kosong → normalisasi nilai dari file, atau GTY sebagai fallback
+                        // Sarjana tapi TMT kosong → pakai status dari file kalau ada,
+                        // fallback GTY kalau tidak ada atau nilainya "Honorer"
                         $currentStatus = $normalizedRow['status'] ?? null;
                         if (!$currentStatus || strtolower((string)$currentStatus) === 'honorer') {
                             $normalizedRow['status'] = 'GTY';
                         }
-                        // Nilai lain dari file (misal "GTT", "Honorer") akan dinormalisasi
-                        // oleh normalizeEmploymentStatus di bawah
+                        // Nilai lain dari file akan dinormalisasi oleh normalizeEmploymentStatus di bawah
                     }
-                } elseif (isset($normalizedRow['status']) && $tmtDate) {
-                    // Tidak ada kolom pendidikan, tapi ada status + TMT dari file
-                    // Biarkan normalizeEmploymentStatus yang menangani di bawah
-                    // (tidak perlu override di sini)
+                } else {
+                    // Tidak ada kolom pendidikan di file — jangan asumsi Tendik.
+                    // Kalau ada status di file → biarkan normalizeEmploymentStatus yang menangani.
+                    // Kalau tidak ada status tapi ada TMT → kalkulasi dari TMT.
+                    $hasStatus = isset($normalizedRow['status']) && trim((string)($normalizedRow['status'] ?? '')) !== '';
+                    if (!$hasStatus && $tmtDate) {
+                        $diffYears = $tmtDate->diffInYears(\Carbon\Carbon::now());
+                        $normalizedRow['status'] = ($diffYears >= 2) ? 'GTY' : 'GTT';
+                    }
+                    // Kalau tidak ada status dan tidak ada TMT → tidak di-set, biarkan null
                 }
 
                 // Filter row to only include allowed fields

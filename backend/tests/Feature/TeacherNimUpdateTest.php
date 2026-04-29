@@ -209,6 +209,10 @@ class TeacherNimUpdateTest extends TestCase
     /**
      * Property 5 — non-numeric NIM returns 422.
      *
+     * Note: Inputs that contain ONLY separator characters (dots, hyphens, spaces)
+     * alongside digits are now NORMALIZED before validation (e.g. "113.403.283" → "113403283").
+     * Only inputs that remain non-numeric AFTER normalization are rejected.
+     *
      * @dataProvider invalidNimFormatProvider
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('invalidNimFormatProvider')]
@@ -228,9 +232,8 @@ class TeacherNimUpdateTest extends TestCase
         return [
             'letters only'          => ['abc'],
             'mixed alphanumeric'    => ['12a3'],
-            'decimal'               => ['12.3'],
-            'space in middle'       => ['12 3'],
-            'hyphen'                => ['12-3'],
+            // Note: 'decimal' (12.3), 'space in middle' (12 3), 'hyphen' (12-3)
+            // are now ACCEPTED and normalized to "123" — they are valid separator formats.
             'hex notation'          => ['0x1F'],
             'plus sign'             => ['+123'],
             'special chars'         => ['#123'],

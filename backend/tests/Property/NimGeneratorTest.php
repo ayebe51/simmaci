@@ -276,9 +276,8 @@ class NimGeneratorTest extends TestCase
         return [
             'letters only'          => ['abc', 'alphabetical string'],
             'mixed alphanumeric'    => ['12a3', 'alphanumeric with letter in middle'],
-            'decimal'               => ['12.3', 'decimal number'],
-            'space in middle'       => ['12 3', 'space in middle'],
-            'hyphen'                => ['12-3', 'hyphenated'],
+            // Note: 'decimal' (12.3), 'space in middle' (12 3), 'hyphen' (12-3),
+            // 'newline', 'tab' are now ACCEPTED and normalized (separator chars stripped).
             'hex notation'          => ['0x1F', 'hexadecimal'],
             'plus sign'             => ['+123', 'with plus sign'],
             'special chars'         => ['#123', 'with hash'],
@@ -289,8 +288,6 @@ class NimGeneratorTest extends TestCase
             'arabic numerals'       => ['١٢٣', 'Arabic-Indic digits'],
             'empty string'          => ['', 'empty string'],
             'mixed special'         => ['12@#3', 'mixed special characters'],
-            'newline'               => ["12\n3", 'with newline'],
-            'tab'                   => ["12\t3", 'with tab'],
         ];
     }
 
@@ -330,8 +327,9 @@ class NimGeneratorTest extends TestCase
             $strings["letter: {$str}"] = [$str];
         }
 
-        // Add special characters (excluding whitespace-only)
-        foreach (['@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '=', '+', '[', ']', '{', '}', '|', '\\', ':', ';', '<', '>', ',', '.', '?', '/', '~', '`'] as $char) {
+        // Add special characters (excluding whitespace-only and separator chars that are normalized)
+        // Note: '-' (hyphen) and '.' (dot) are now ACCEPTED as separators and normalized away.
+        foreach (['@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '=', '+', '[', ']', '{', '}', '|', '\\', ':', ';', '<', '>', ',', '?', '/', '~', '`'] as $char) {
             $strings["special: {$char}"] = [$char . '123'];
         }
 

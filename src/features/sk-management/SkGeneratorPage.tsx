@@ -106,6 +106,30 @@ const toRoman = (num: number): string => {
     return str
 }
 
+/**
+ * Open a surat permohonan PDF in a new tab by fetching it with the auth token
+ * and creating a blob URL. This bypasses browser restrictions on direct URL access.
+ */
+async function openSuratPermohonan(url: string) {
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: Gagal mengambil file`)
+    }
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    window.open(objectUrl, '_blank')
+    // Revoke after a short delay to allow the new tab to load
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
+  } catch (err: any) {
+    // Fallback: open URL directly
+    window.open(url, '_blank')
+  }
+}
+
 export default function SkGeneratorPage() {
   const queryClient = useQueryClient()
   const user = authApi.getStoredUser()
@@ -908,8 +932,8 @@ export default function SkGeneratorPage() {
                                 <TableCell className="text-xs text-slate-500">{t.jabatan || "-"}</TableCell>
                                 <TableCell className="text-right pr-8">
                                     {t.surat_permohonan_url ? (
-                                        <Button variant="ghost" size="sm" asChild className="h-8 text-[10px] font-black uppercase text-blue-600">
-                                            <a href={t.surat_permohonan_url} target="_blank" rel="noreferrer"><Eye className="mr-1 h-3 w-3" /> Lihat PDF</a>
+                                        <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-blue-600" onClick={() => openSuratPermohonan(t.surat_permohonan_url)}>
+                                            <Eye className="mr-1 h-3 w-3" /> Lihat PDF
                                         </Button>
                                     ) : <span className="text-[10px] text-slate-300">N/A</span>}
                                 </TableCell>

@@ -34,6 +34,37 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 
+/**
+ * Download a surat permohonan PDF by fetching it with the auth token,
+ * then triggering a browser download. This avoids issues with direct
+ * URL access (CORS, missing auth headers, browser PDF rendering quirks).
+ */
+async function downloadSuratPermohonan(url: string, nama: string) {
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objectUrl
+    // Derive filename from URL or use teacher name
+    const urlFilename = url.split('/').pop()?.split('?')[0] || ''
+    const ext = urlFilename.includes('.') ? urlFilename.split('.').pop() : 'pdf'
+    a.download = `Surat_Permohonan_${nama.replace(/\s+/g, '_')}.${ext}`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(objectUrl)
+  } catch (err: any) {
+    toast.error('Gagal mengunduh surat permohonan: ' + (err.message || 'Unknown error'))
+  }
+}
+
 export default function SkDashboardPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -295,15 +326,13 @@ export default function SkDashboardPage() {
                           </TableCell>
                           <TableCell className="text-center">
                               {item.surat_permohonan_url ? (
-                                  <a
-                                      href={item.surat_permohonan_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
+                                  <button
+                                      onClick={() => downloadSuratPermohonan(item.surat_permohonan_url, item.nama || 'guru')}
                                       title="Download Surat Permohonan"
                                       className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                                   >
                                       <FileDown className="w-4 h-4" />
-                                  </a>
+                                  </button>
                               ) : (
                                   <span className="text-[10px] text-slate-300 font-bold">-</span>
                               )}

@@ -28,6 +28,8 @@ const headmasterSchema = z.object({
   keterangan: z.string().optional(),
   surat_permohonan_number: z.string().optional(),
   surat_permohonan_date: z.string().optional(),
+  nomor_surat_rekomendasi: z.string().optional(),
+  tanggal_surat_rekomendasi: z.string().optional(),
 })
 
 type HeadmasterForm = z.infer<typeof headmasterSchema>
@@ -160,6 +162,8 @@ export default function HeadmasterSubmissionPage() {
             keterangan: data.keterangan,
             surat_permohonan_number: data.surat_permohonan_number,
             surat_permohonan_date: data.surat_permohonan_date,
+            nomor_surat_rekomendasi: data.nomor_surat_rekomendasi,
+            tanggal_surat_rekomendasi: data.tanggal_surat_rekomendasi,
         };
 
         await submitHeadmaster(payload)
@@ -341,6 +345,17 @@ export default function HeadmasterSubmissionPage() {
                  <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Surat</Label>
                     <Input type="date" {...form.register("surat_permohonan_date")} className="h-12 rounded-xl border-slate-200 font-bold" />
+                 </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+                 <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nomor Surat Rekomendasi</Label>
+                    <Input placeholder="Cth: 012/PC.L/..." {...form.register("nomor_surat_rekomendasi")} className="h-12 rounded-xl border-slate-200 font-bold" />
+                 </div>
+                 <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Surat Rekomendasi</Label>
+                    <Input type="date" {...form.register("tanggal_surat_rekomendasi")} className="h-12 rounded-xl border-slate-200 font-bold" />
                  </div>
             </div>
 

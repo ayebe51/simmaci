@@ -45,6 +45,8 @@ class HeadmasterController extends Controller
             'nomor_sk' => 'nullable|string',
             'surat_permohonan_number' => 'nullable|string',
             'surat_permohonan_date' => 'nullable|string',
+            'nomor_surat_rekomendasi' => 'nullable|string',
+            'tanggal_surat_rekomendasi' => 'nullable|string',
             'keterangan' => 'nullable|string',
         ]);
 

@@ -40,6 +40,9 @@ class MinioProxyController extends Controller
                 return response()->json(['status' => 'ok', 'message' => 'MinIO proxy is working']);
             }
 
+            // URL-decode the path in case it was encoded (e.g. %3D for = in base64 filenames)
+            $path = urldecode($path);
+
             // Strip bucket name prefix if present (e.g. "simmaci-storage/sk-templates/..." -> "sk-templates/...")
             $bucket = config('filesystems.disks.s3.bucket', 'simmaci-storage');
             if (str_starts_with($path, $bucket . '/')) {
@@ -50,6 +53,7 @@ class MinioProxyController extends Controller
             $disk = Storage::disk('s3');
 
             if (!$disk->exists($path)) {
+                \Log::warning('[MinioProxy] File not found', ['path' => $path, 'bucket' => $bucket]);
                 return response()->json(['error' => 'File not found', 'path' => $path], 404);
             }
 
@@ -79,6 +83,12 @@ class MinioProxyController extends Controller
                 'X-Content-Type-Options' => 'nosniff',
             ]);
         } catch (\Exception $e) {
+            \Log::error('[MinioProxy] Exception', [
+                'path'    => $path ?? 'null',
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
             return response()->json([
                 'error' => $e->getMessage(),
                 'file'  => $e->getFile(),

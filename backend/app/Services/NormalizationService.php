@@ -686,9 +686,14 @@ class NormalizationService
         }
 
         // Look for a teacher whose bare name matches.
+        // Use LIKE for SQLite/PostgreSQL compatibility (SPLIT_PART is PostgreSQL-only).
+        // Match: exact bare name OR "BARENAME, degree..."
         $find = function (?int $sid) use ($bareName): ?string {
             return \App\Models\Teacher::withoutTenantScope()
-                ->whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                ->where(function ($q) use ($bareName) {
+                    $q->whereRaw("UPPER(nama) = ?", [$bareName])
+                      ->orWhereRaw("UPPER(nama) LIKE ?", [$bareName . ',%']);
+                })
                 ->when($sid, fn($q) => $q->where('school_id', $sid))
                 ->orderByDesc('updated_at')
                 ->value('nama');

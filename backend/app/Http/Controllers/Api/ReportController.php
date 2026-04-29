@@ -74,30 +74,91 @@ class ReportController extends Controller
 
     /**
      * GET /api/reports/teachers — Teacher summary report
+     *
+     * Query params:
+     *   search        — filter by nama / nuptk / nip
+     *   status        — filter by status (GTY, GTT, PNS, etc.)
+     *   kecamatan     — filter by kecamatan
+     *   is_certified  — filter by certification (1 / 0)
+     *   is_active     — filter by active status (1 / 0, default: all)
+     *   school_id     — filter by school (super_admin only)
      */
     public function teacherReport(Request $request): JsonResponse
     {
         $query = Teacher::with('school');
 
+        // Tenant scoping
         if ($request->user()->isOperator()) {
             $query->forSchool($request->user()->school_id);
+        } elseif ($request->filled('school_id')) {
+            $query->forSchool($request->school_id);
         }
 
-        $teachers = $query->where('is_active', true)->get();
+        // Default: only active teachers unless explicitly requested otherwise
+        if ($request->filled('is_active')) {
+            $query->where('is_active', (bool) $request->is_active);
+        } else {
+            $query->where('is_active', true);
+        }
 
-        $byStatus = $teachers->groupBy('status')->map->count();
+        // Filters
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'ilike', "%{$search}%")
+                  ->orWhere('nuptk', 'ilike', "%{$search}%")
+                  ->orWhere('nip', 'ilike', "%{$search}%")
+                  ->orWhere('nomor_induk_maarif', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('kecamatan')) {
+            $query->where('kecamatan', $request->kecamatan);
+        }
+
+        if ($request->filled('is_certified')) {
+            $query->where('is_certified', (bool) $request->is_certified);
+        }
+
+        $teachers = $query->orderBy('nama')->get();
+
+        // Summary stats (computed from the full unfiltered set for the tenant)
+        $allQuery = Teacher::where('is_active', true);
+        if ($request->user()->isOperator()) {
+            $allQuery->forSchool($request->user()->school_id);
+        } elseif ($request->filled('school_id')) {
+            $allQuery->forSchool($request->school_id);
+        }
+        $allTeachers = $allQuery->get();
+
+        $byStatus = $allTeachers->groupBy('status')->map->count()->sortDesc();
         $byCertification = [
-            'Sudah Sertifikasi' => $teachers->where('is_certified', true)->count(),
-            'Belum Sertifikasi' => $teachers->where('is_certified', false)->count(),
+            'certified'   => $allTeachers->where('is_certified', true)->count(),
+            'uncertified' => $allTeachers->where('is_certified', false)->count(),
         ];
-        $bySchool = $teachers->groupBy(fn($t) => $t->unit_kerja ?? 'Unknown')->map->count()->sortDesc()->take(20);
+        $bySchool = $allTeachers->groupBy(fn($t) => $t->school?->nama ?? $t->unit_kerja ?? 'Unknown')
+            ->map->count()->sortDesc()->take(20);
+
+        // Distinct kecamatan list for filter dropdown
+        $kecamatanList = Teacher::where('is_active', true)
+            ->when($request->user()->isOperator(), fn($q) => $q->forSchool($request->user()->school_id))
+            ->whereNotNull('kecamatan')
+            ->distinct()
+            ->orderBy('kecamatan')
+            ->pluck('kecamatan');
 
         return response()->json([
-            'total' => $teachers->count(),
-            'by_status' => $byStatus,
+            'total'            => $allTeachers->count(),
+            'filtered_total'   => $teachers->count(),
+            'by_status'        => $byStatus,
             'by_certification' => $byCertification,
-            'by_school' => $bySchool,
-            'data' => $teachers,
+            'by_school'        => $bySchool,
+            'kecamatan_list'   => $kecamatanList,
+            'data'             => $teachers,
         ]);
     }
 

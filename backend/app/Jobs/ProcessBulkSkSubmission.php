@@ -124,6 +124,14 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     }
                 }
 
+                // Normalize date fields — convert Indonesian date strings to ISO YYYY-MM-DD
+                foreach (['tanggal_lahir', 'tmt'] as $dateField) {
+                    if (isset($teacherData[$dateField]) && is_string($teacherData[$dateField])) {
+                        $parsed = $normalizationService->parseIndonesianDate($teacherData[$dateField]);
+                        $teacherData[$dateField] = $parsed; // null if unparseable — safer than bad string
+                    }
+                }
+
                 // Normalize employment status if provided
                 if (isset($teacherData['status'])) {
                     $tmtForStatus = isset($teacherData['tmt']) ? \Carbon\Carbon::parse($teacherData['tmt']) : null;
@@ -264,7 +272,9 @@ class ProcessBulkSkSubmission implements ShouldQueue
      * Detects whether a submission document belongs to a PNS/ASN civil servant.
      *
      * Detection criteria (either is sufficient):
-     *   1. status_kepegawaian or status field contains "pns" or "asn" (case-insensitive)
+     *   1. status_kepegawaian or status field is exactly "pns" or "asn" (case-insensitive),
+     *      OR starts with "pns" / "asn" as a whole word (e.g. "PNS Aktif").
+     *      "Non PNS" / "Non-PNS" are explicitly NOT treated as PNS.
      *   2. nip field contains exactly 18 digits (standard Indonesian PNS NIP format)
      *
      * SK for PNS is issued by the government, not by LP Ma'arif NU.
@@ -272,11 +282,13 @@ class ProcessBulkSkSubmission implements ShouldQueue
      */
     private function isPns(array $doc): bool
     {
-        $status = strtolower($doc['status_kepegawaian'] ?? $doc['status'] ?? '');
+        $status = strtolower(trim($doc['status_kepegawaian'] ?? $doc['status'] ?? ''));
         $nip    = preg_replace('/\D/', '', $doc['nip'] ?? '');
 
-        return str_contains($status, 'pns')
-            || str_contains($status, 'asn')
-            || strlen($nip) === 18;
+        // Match "pns" or "asn" as a whole word at the START of the status string.
+        // This correctly rejects "pns", "pns aktif", "asn" but accepts "non pns", "non-pns".
+        $isPnsByStatus = (bool) preg_match('/^(pns|asn)\b/', $status);
+
+        return $isPnsByStatus || strlen($nip) === 18;
     }
 }

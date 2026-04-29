@@ -530,6 +530,82 @@ class NormalizationService
     }
 
     /**
+     * Map nama bulan Indonesia (panjang & singkat) ke nomor bulan.
+     */
+    private const BULAN_MAP = [
+        'januari' => 1,  'februari' => 2,  'maret' => 3,    'april' => 4,
+        'mei'     => 5,  'juni'     => 6,  'juli'  => 7,    'agustus'   => 8,
+        'september' => 9, 'oktober' => 10, 'november' => 11, 'desember' => 12,
+        // Singkat
+        'jan' => 1, 'feb' => 2, 'mar' => 3, 'apr' => 4,
+        'jun' => 6, 'jul' => 7, 'agu' => 8, 'ags' => 8,
+        'sep' => 9, 'okt' => 10, 'nov' => 11, 'des' => 12,
+    ];
+
+    /**
+     * Konversi string tanggal dari berbagai format ke "YYYY-MM-DD".
+     *
+     * Format yang didukung:
+     *   1. "YYYY-MM-DD"       → ISO, dikembalikan apa adanya
+     *   2. "YYYY/MM/DD"       → ISO dengan slash
+     *   3. "DD MMMM YYYY"     → Indonesia panjang  ("13 Desember 2020")
+     *   4. "DD MMM YYYY"      → Indonesia singkat  ("13 Des 2020")
+     *   5. "DD-MM-YYYY"       → numerik dengan dash
+     *   6. "DD/MM/YYYY"       → numerik dengan slash
+     *   7. "DD.MM.YYYY"       → numerik dengan titik
+     *
+     * Jika tidak bisa di-parse, kembalikan null.
+     */
+    public function parseIndonesianDate(?string $val): ?string
+    {
+        if ($val === null || trim($val) === '') {
+            return null;
+        }
+
+        $trimmed = trim($val);
+
+        // 1. Sudah ISO YYYY-MM-DD
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+            return $trimmed;
+        }
+
+        // 2. YYYY/MM/DD
+        if (preg_match('/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/', $trimmed, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+        }
+
+        // 3 & 4. DD MMMM YYYY atau DD MMM YYYY (nama bulan Indonesia)
+        if (preg_match('/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/', $trimmed, $m)) {
+            $monthNum = self::BULAN_MAP[strtolower($m[2])] ?? null;
+            if ($monthNum) {
+                return sprintf('%04d-%02d-%02d', $m[3], $monthNum, $m[1]);
+            }
+        }
+
+        // 5. DD-MM-YYYY
+        if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/', $trimmed, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+        }
+
+        // 6. DD/MM/YYYY
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $trimmed, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+        }
+
+        // 7. DD.MM.YYYY
+        if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $trimmed, $m)) {
+            return sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+        }
+
+        // Fallback: coba Carbon::parse untuk format lain yang dikenali
+        try {
+            return \Carbon\Carbon::parse($trimmed)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
      * Resolve 'Aktif' status based on TMT date.
      * GTY if TMT is ≥ 2 years ago, GTT otherwise (including when TMT is null).
      */

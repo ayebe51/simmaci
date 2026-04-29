@@ -128,8 +128,8 @@ export default function SkGeneratorPage() {
   const [tahunSk, setTahunSk] = useState(() => getCurrentSkYear())
   const [isInsidentil, setIsInsidentil] = useState(false)
   // Derived values — always consistent with tahunSk
-  // Mode normal: penetapan = 1 Juli tahunSk, berakhir = 30 Juni tahunSk+1
-  // Mode insidentil: penetapan = tanggal_permohonan + 1 hari (per guru), berakhir = 30 Juni tahun ajaran berjalan
+  // Mode normal: penetapan = 1 Juli tahunSk, berakhir = 1 Juli tahunSk+1
+  // Mode insidentil: penetapan = tanggal_permohonan + 1 hari (per guru), berakhir = 1 Juli tahun berikutnya
   const tanggalPenetapan = isInsidentil ? "" : deriveStartDate(tahunSk).toISOString().split('T')[0]
   const tahunAjaran = deriveTahunAjaran(tahunSk)
 
@@ -301,8 +301,8 @@ export default function SkGeneratorPage() {
                 const tglPermohonan = tglPermohonanRaw ? new Date(tglPermohonanRaw) : new Date()
                 tglPenetapanPerGuru = new Date(tglPermohonan)
                 tglPenetapanPerGuru.setDate(tglPenetapanPerGuru.getDate() + 1)
-                // Berakhir = 30 Juni tahun ajaran berjalan
-                // Bulan >= Juli → tahun ajaran baru → berakhir Juni tahun depan; < Juli → berakhir Juni tahun ini
+                // Berakhir = 1 Juli tahun berikutnya (tahun ajaran berjalan)
+                // Bulan >= Juli → tahun ajaran baru → berakhir 1 Juli tahun depan; < Juli → berakhir 1 Juli tahun ini
                 const tglMonth = tglPenetapanPerGuru.getMonth()
                 const tglYear = tglPenetapanPerGuru.getFullYear()
                 tglBerakhirVal = tglMonth >= 6 ? deriveEndDate(tglYear) : deriveEndDate(tglYear - 1)
@@ -820,7 +820,7 @@ export default function SkGeneratorPage() {
                 <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Berakhir</label>
                     {isInsidentil
-                        ? <div className="h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold flex items-center px-3">30 Juni tahun ajaran berjalan (per guru)</div>
+                        ? <div className="h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold flex items-center px-3">1 Juli tahun berikutnya (per guru)</div>
                         : <Input value={deriveEndDate(tahunSk).toISOString().split('T')[0]} readOnly className="h-11 rounded-xl bg-slate-50 border-slate-200 text-slate-500" />
                     }
                 </div>

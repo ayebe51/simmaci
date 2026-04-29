@@ -335,7 +335,12 @@ class SkDocumentController extends Controller
             
             $data['unit_kerja'] = $this->normalizationService->normalizeSchoolName($data['unit_kerja']);
             $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
-            
+
+            // Enrich name with degrees from Teacher record if the submitted name lacks them.
+            // e.g. "MAILID" → "MAILID, S.Pd." when the Teacher DB has the full name.
+            $schoolIdForEnrich = $request->user()->role === 'operator' ? $request->user()->school_id : null;
+            $data['nama'] = $this->normalizationService->enrichNameFromTeacher($data['nama'], $schoolIdForEnrich);
+
             // Track normalization changes for activity logging
             $normalizationChanges = [];
             if ($originalUnitKerja !== $data['unit_kerja']) {
@@ -399,7 +404,20 @@ class SkDocumentController extends Controller
             } elseif (!empty($data['nip'])) {
                 $teacher = Teacher::where('nip', $data['nip'])->first();
             } else {
+                // Try exact match first, then fall back to bare-name match
+                // (handles cases where DB has "MAILID" but input is "MAILID, S.Pd." or vice versa)
                 $teacher = Teacher::where('nama', $data['nama'])->where('school_id', $schoolId)->first();
+                if (!$teacher) {
+                    $bareName = mb_strtoupper(
+                        trim($this->normalizationService->parseAcademicDegreesPublic($data['nama'])['name']),
+                        'UTF-8'
+                    );
+                    if ($bareName !== '') {
+                        $teacher = Teacher::whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                            ->where('school_id', $schoolId)
+                            ->first();
+                    }
+                }
             }
 
             // Teacher data with normalized values
@@ -658,6 +676,10 @@ class SkDocumentController extends Controller
             $doc['unit_kerja'] = $this->normalizationService->normalizeSchoolName($doc['unit_kerja'] ?? null);
             $doc['nama'] = $this->normalizationService->normalizeTeacherName($doc['nama']);
 
+            // Enrich name with degrees from Teacher record if the submitted name lacks them.
+            $schoolIdForEnrich = $request->user()->role === 'operator' ? $request->user()->school_id : null;
+            $doc['nama'] = $this->normalizationService->enrichNameFromTeacher($doc['nama'], $schoolIdForEnrich);
+
             $schoolId = null;
             // Force user's school if operator
             if ($request->user()->role === 'operator') {
@@ -731,6 +753,19 @@ class SkDocumentController extends Controller
                 $teacher = Teacher::where('nama', $teacherData['nama'])
                     ->where('school_id', $schoolId)
                     ->first();
+
+                // Fallback: bare-name match (handles degree mismatch between file and DB)
+                if (!$teacher) {
+                    $bareName = mb_strtoupper(
+                        trim($this->normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']),
+                        'UTF-8'
+                    );
+                    if ($bareName !== '') {
+                        $teacher = Teacher::whereRaw("UPPER(SPLIT_PART(nama, ',', 1)) = ?", [$bareName])
+                            ->where('school_id', $schoolId)
+                            ->first();
+                    }
+                }
             }
 
             if ($teacher) {

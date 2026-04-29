@@ -265,14 +265,21 @@ class SkDocumentController extends Controller
             if ($sk->created_by) {
                 $targetUser = User::where('email', $sk->created_by)->first();
                 if ($targetUser) {
+                    $isApproved = $request->status === 'approved';
                     Notification::create([
-                        'user_id' => $targetUser->id,
-                        'type' => $request->status === 'approved' ? 'sk_approved' : 'sk_rejected',
-                        'title' => $request->status === 'approved' ? 'SK Disetujui' : 'SK Ditolak',
-                        'message' => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
-                            ($request->status === 'approved' ? 'disetujui' : 'ditolak') .
-                            ($request->rejection_reason ? ": {$request->rejection_reason}" : ''),
-                        'metadata' => ['sk_id' => $id, 'rejection_reason' => $request->rejection_reason],
+                        'user_id'   => $targetUser->id,
+                        'school_id' => $sk->school_id,
+                        'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
+                        'title'     => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
+                        'message'   => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
+                            ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
+                            ($request->rejection_reason ? " Alasan: {$request->rejection_reason}" : '')),
+                        'is_read'   => false,
+                        'metadata'  => [
+                            'sk_id'           => $sk->id,
+                            'nomor_sk'        => $sk->nomor_sk,
+                            'rejection_reason' => $request->rejection_reason,
+                        ],
                     ]);
                 }
             }
@@ -525,6 +532,20 @@ class SkDocumentController extends Controller
                     'school_id' => $schoolId,
                     'properties' => $logProperties,
                 ]);
+
+                // Notify super_admin and admin_yayasan about new SK submission
+                $admins = User::whereIn('role', ['super_admin', 'admin_yayasan'])->get();
+                foreach ($admins as $admin) {
+                    Notification::create([
+                        'user_id'   => $admin->id,
+                        'school_id' => $schoolId,
+                        'type'      => 'sk_submitted',
+                        'title'     => 'Pengajuan SK Baru',
+                        'message'   => "Pengajuan {$data['jenis_sk']} dari {$data['nama']} ({$data['unit_kerja']}) menunggu verifikasi.",
+                        'is_read'   => false,
+                        'metadata'  => ['sk_id' => $sk->id, 'nomor_sk' => $sk->nomor_sk],
+                    ]);
+                }
             } catch (\Exception $e) {
                 \Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id]);
                 // Continue execution - activity log failure should not block the request

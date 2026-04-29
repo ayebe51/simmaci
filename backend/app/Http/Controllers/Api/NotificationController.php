@@ -15,21 +15,9 @@ class NotificationController extends Controller
         $notifications = $request->user()
             ->notifications()
             ->orderByDesc('created_at')
-            ->paginate(20);
-
-        // Sanitize output to prevent UTF-8 errors
-        $notifications->getCollection()->transform(function ($notification) {
-            $data = $notification->data;
-            if (is_array($data)) {
-                array_walk_recursive($data, function (&$val) {
-                    if (is_string($val)) {
-                        $val = htmlspecialchars_decode(htmlspecialchars($val, ENT_SUBSTITUTE, 'UTF-8'));
-                    }
-                });
-                $notification->data = $data;
-            }
-            return $notification;
-        });
+            ->limit(50)
+            ->get()
+            ->map(fn($n) => $this->formatNotification($n));
 
         return response()->json($notifications);
     }
@@ -43,6 +31,10 @@ class NotificationController extends Controller
 
     public function markRead(Request $request, Notification $notification): JsonResponse
     {
+        // Ensure user can only mark their own notifications
+        if ($notification->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
         $notification->update(['is_read' => true]);
         return response()->json(['success' => true]);
     }
@@ -51,5 +43,39 @@ class NotificationController extends Controller
     {
         $request->user()->notifications()->unread()->update(['is_read' => true]);
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Format notification to match frontend expected structure.
+     * Frontend reads: notif.data.title, notif.data.message, notif.data.link, notif.read_at
+     */
+    private function formatNotification(Notification $n): array
+    {
+        return [
+            'id'         => $n->id,
+            'type'       => $n->type,
+            'read_at'    => $n->is_read ? $n->updated_at->toISOString() : null,
+            'created_at' => $n->created_at->toISOString(),
+            'data'       => [
+                'title'   => $n->title,
+                'message' => $n->message,
+                'link'    => $this->resolveLink($n),
+                'sk_id'   => $n->metadata['sk_id'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Resolve navigation link based on notification type and metadata.
+     */
+    private function resolveLink(Notification $n): string
+    {
+        $skId = $n->metadata['sk_id'] ?? null;
+
+        return match(true) {
+            str_starts_with($n->type, 'sk_') && $skId => "/dashboard/sk/{$skId}",
+            str_starts_with($n->type, 'sk_')          => '/dashboard/sk',
+            default                                    => '/dashboard',
+        };
     }
 }

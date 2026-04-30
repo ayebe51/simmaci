@@ -328,6 +328,11 @@ class SkDocumentController extends Controller
                 'tanggal_surat_permohonan' => 'nullable|string',
                 'tanggal_penetapan' => 'nullable|string',
                 'status_kepegawaian' => 'nullable|string',
+                // Personal data fields — saved to Teacher record for use in SK generation
+                'tempat_lahir' => 'nullable|string',
+                'tanggal_lahir' => 'nullable|string',
+                'pendidikan_terakhir' => 'nullable|string',
+                'tmt' => 'nullable|string',
             ]);
 
             // Normalize school name and teacher name before processing
@@ -435,6 +440,21 @@ class SkDocumentController extends Controller
                 'status' => $data['status_kepegawaian'] ?? 'Draft',
                 'is_verified' => false,
             ];
+
+            // Merge personal data fields only when provided — avoid overwriting existing
+            // Teacher data with empty values (e.g. if operator re-submits without filling them)
+            if (!empty($data['tempat_lahir'])) {
+                $teacherData['tempat_lahir'] = $data['tempat_lahir'];
+            }
+            if (!empty($data['tanggal_lahir'])) {
+                $teacherData['tanggal_lahir'] = $data['tanggal_lahir'];
+            }
+            if (!empty($data['pendidikan_terakhir'])) {
+                $teacherData['pendidikan_terakhir'] = $data['pendidikan_terakhir'];
+            }
+            if (!empty($data['tmt'])) {
+                $teacherData['tmt'] = $data['tmt'];
+            }
 
             // 3.2: Wrap teacher upsert in try-catch block
             try {

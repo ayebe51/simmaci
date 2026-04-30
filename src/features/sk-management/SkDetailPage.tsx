@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ApprovalTimeline } from "@/components/approval/ApprovalTimeline";
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater";
@@ -367,6 +368,21 @@ export default function SkDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Riwayat Aktivitas / Approval History */}
+          <Card className="border-0 shadow-sm rounded-[2.5rem] overflow-hidden">
+            <CardHeader className="p-8 pb-6 bg-slate-50/50 border-b">
+              <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-800">
+                Riwayat Aktivitas
+              </CardTitle>
+              <CardDescription className="text-xs font-medium text-slate-500">
+                Timeline persetujuan dan perubahan status dokumen SK
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-8">
+              <ApprovalTimeline documentId={id!} />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-8">

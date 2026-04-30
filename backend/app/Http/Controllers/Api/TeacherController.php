@@ -206,6 +206,18 @@ class TeacherController extends Controller
 
         $this->teacherService->updateTeacher($teacher, $data);
         
+        // Log activity for teacher update
+        ActivityLog::create([
+            'description' => "Memperbarui data guru: {$teacher->nama}",
+            'event' => 'update_teacher',
+            'log_name' => 'teacher',
+            'subject_id' => $teacher->id,
+            'subject_type' => get_class($teacher),
+            'causer_id' => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id' => $teacher->school_id,
+        ]);
+        
         // Log normalization changes if any occurred
         if (!empty($normalizationChanges)) {
             ActivityLog::create([
@@ -224,10 +236,28 @@ class TeacherController extends Controller
         return $this->successResponse($teacher->fresh(), 'Guru berhasil diperbarui.');
     }
 
-    public function destroy(Teacher $teacher): JsonResponse
+    public function destroy(Request $request, Teacher $teacher): JsonResponse
     {
         $this->authorize('delete', $teacher);
+        
+        $teacherName = $teacher->nama;
+        $teacherId = $teacher->id;
+        $schoolId = $teacher->school_id;
+        
         $teacher->delete();
+
+        // Log activity
+        ActivityLog::create([
+            'description' => "Menghapus guru: {$teacherName}",
+            'event' => 'delete_teacher',
+            'log_name' => 'teacher',
+            'subject_id' => $teacherId,
+            'subject_type' => Teacher::class,
+            'causer_id' => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id' => $schoolId,
+        ]);
+
         return $this->successResponse(null, 'Guru berhasil dihapus.');
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\School;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,7 +90,21 @@ class SchoolController extends Controller
             'jenjang' => 'nullable|string',
         ]);
 
-        return response()->json(School::create($data), 201);
+        $school = School::create($data);
+
+        // Log activity
+        ActivityLog::create([
+            'description' => "Menambahkan sekolah: {$school->nama}",
+            'event' => 'create_school',
+            'log_name' => 'school',
+            'subject_id' => $school->id,
+            'subject_type' => get_class($school),
+            'causer_id' => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id' => $school->id,
+        ]);
+
+        return response()->json($school, 201);
     }
 
     public function update(Request $request, School $school): JsonResponse
@@ -122,14 +137,42 @@ class SchoolController extends Controller
         
         if (!empty($updateData)) {
             $school->update($updateData);
+
+            // Log activity
+            ActivityLog::create([
+                'description' => "Memperbarui data sekolah: {$school->nama}",
+                'event' => 'update_school',
+                'log_name' => 'school',
+                'subject_id' => $school->id,
+                'subject_type' => get_class($school),
+                'causer_id' => $request->user()->id,
+                'causer_type' => get_class($request->user()),
+                'school_id' => $school->id,
+            ]);
         }
 
         return response()->json($school->fresh());
     }
 
-    public function destroy(School $school): JsonResponse
+    public function destroy(Request $request, School $school): JsonResponse
     {
+        $schoolName = $school->nama;
+        $schoolId = $school->id;
+        
         $school->delete();
+
+        // Log activity
+        ActivityLog::create([
+            'description' => "Menghapus sekolah: {$schoolName}",
+            'event' => 'delete_school',
+            'log_name' => 'school',
+            'subject_id' => $schoolId,
+            'subject_type' => School::class,
+            'causer_id' => $request->user()->id,
+            'causer_type' => get_class($request->user()),
+            'school_id' => null, // School sudah dihapus
+        ]);
+
         return response()->json(['success' => true]);
     }
 
@@ -253,8 +296,25 @@ class SchoolController extends Controller
                         $school->update($saveData);
                         $updated++;
                     } else {
-                        School::create($saveData);
+                        $newSchool = School::create($saveData);
                         $created++;
+                        
+                        // Log activity for newly created school
+                        try {
+                            ActivityLog::create([
+                                'description' => "Import sekolah: {$newSchool->nama}",
+                                'event' => 'import_school',
+                                'log_name' => 'school',
+                                'subject_id' => $newSchool->id,
+                                'subject_type' => get_class($newSchool),
+                                'causer_id' => $request->user()->id,
+                                'causer_type' => get_class($request->user()),
+                                'school_id' => $newSchool->id,
+                            ]);
+                        } catch (\Exception $e) {
+                            // Don't fail import if logging fails
+                            Log::warning("Failed to log school import: " . $e->getMessage());
+                        }
                     }
 
                 } catch (\Throwable $e) {

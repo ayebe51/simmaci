@@ -113,20 +113,40 @@ const toRoman = (num: number): string => {
 async function openSuratPermohonan(url: string) {
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch(url, {
+    
+    // Determine the full URL to fetch
+    let fetchUrl = url
+    
+    // If URL is a storage path (not a full URL), use the authenticated file viewer endpoint
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Extract path from storage URL (e.g., "storage/surat_permohonan/abc.pdf" -> "surat_permohonan/abc.pdf")
+      const path = url.replace(/^\/?(storage\/)?/, '')
+      fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    } else if (url.includes('/storage/')) {
+      // If it's a full URL with /storage/, convert to API endpoint
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      const path = url.split('/storage/')[1]
+      fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    }
+    
+    const response = await fetch(fetchUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
+    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: Gagal mengambil file`)
     }
+    
     const blob = await response.blob()
     const objectUrl = URL.createObjectURL(blob)
     window.open(objectUrl, '_blank')
+    
     // Revoke after a short delay to allow the new tab to load
     setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
   } catch (err: any) {
-    // Fallback: open URL directly
-    window.open(url, '_blank')
+    console.error('Error opening surat permohonan:', err)
+    toast.error(`Gagal membuka PDF: ${err.message}`)
   }
 }
 

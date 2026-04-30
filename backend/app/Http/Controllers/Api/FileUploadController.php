@@ -79,4 +79,31 @@ class FileUploadController extends Controller
 
         return response()->json(['error' => 'File not found'], 404);
     }
+
+    /**
+     * GET /api/files/view/{path}
+     * Serve file with authentication
+     */
+    public function view(Request $request, string $path)
+    {
+        // Decode path if it's URL encoded
+        $path = urldecode($path);
+        
+        // Determine disk
+        $disk = $request->query('disk', env('AWS_ACCESS_KEY_ID') ? 's3' : 'public');
+        
+        // Check if file exists
+        if (!Storage::disk($disk)->exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        // Get file content and mime type
+        $file = Storage::disk($disk)->get($path);
+        $mimeType = Storage::disk($disk)->mimeType($path);
+
+        // Return file response
+        return response($file, 200)
+            ->header('Content-Type', $mimeType)
+            ->header('Content-Disposition', 'inline');
+    }
 }

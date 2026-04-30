@@ -88,7 +88,7 @@ export default function SchoolDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Kolom Kiri: Info Utama */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2">
             <Card className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white">
                 <CardContent className="p-6 sm:p-8">
                     <div className="flex items-center gap-3 mb-6">

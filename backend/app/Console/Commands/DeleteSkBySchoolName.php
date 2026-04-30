@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ApprovalHistory;
 use App\Models\School;
 use App\Models\SkDocument;
 use Illuminate\Console\Command;
@@ -40,7 +39,12 @@ class DeleteSkBySchoolName extends Command
             ->whereIn('school_id', $schoolIds)
             ->count();
 
-        $approvalCount = ApprovalHistory::whereIn('school_id', $schoolIds)
+        $skIds = SkDocument::withTrashed()
+            ->whereIn('school_id', $schoolIds)
+            ->pluck('id');
+
+        $approvalCount = DB::table('approval_histories')
+            ->whereIn('document_id', $skIds)
             ->where('document_type', 'sk_document')
             ->count();
 
@@ -64,12 +68,18 @@ class DeleteSkBySchoolName extends Command
 
         // Eksekusi dalam transaksi
         DB::transaction(function () use ($schoolIds, $skCount, $approvalCount) {
-            // 1. Hapus approval history terkait SK dari sekolah ini
-            $deletedApprovals = ApprovalHistory::whereIn('school_id', $schoolIds)
+            // 1. Ambil semua SK ID milik sekolah ini
+            $skIds = SkDocument::withTrashed()
+                ->whereIn('school_id', $schoolIds)
+                ->pluck('id');
+
+            // 2. Hapus approval history berdasarkan document_id
+            $deletedApprovals = DB::table('approval_histories')
+                ->whereIn('document_id', $skIds)
                 ->where('document_type', 'sk_document')
                 ->delete();
 
-            // 2. Hard delete SK (termasuk yang sudah soft-deleted)
+            // 3. Hard delete SK (termasuk yang sudah soft-deleted)
             $deletedSk = SkDocument::withTrashed()
                 ->whereIn('school_id', $schoolIds)
                 ->forceDelete();

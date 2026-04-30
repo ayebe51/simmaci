@@ -47,9 +47,43 @@ class SkDocumentController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
-        return response()->json(
-            $query->orderByDesc('created_at')->orderByDesc('id')->paginate($request->integer('per_page', 25))
+        $paginated = $query->orderByDesc('created_at')->orderByDesc('id')->paginate($request->integer('per_page', 25));
+
+        // Enrich NIM: for items whose teacher has no nomor_induk_maarif,
+        // look up a matching teacher by name (case-insensitive) in the same school.
+        // Done in one batch query to avoid N+1.
+        $items = collect($paginated->items());
+        $missingNimItems = $items->filter(fn($sk) =>
+            empty($sk->teacher?->nomor_induk_maarif) && !empty($sk->nama)
         );
+
+        if ($missingNimItems->isNotEmpty()) {
+            $names = $missingNimItems->pluck('nama')->unique()->values();
+            $schoolIds = $missingNimItems->pluck('school_id')->filter()->unique()->values();
+
+            $teachersByName = Teacher::whereIn('school_id', $schoolIds)
+                ->whereNotNull('nomor_induk_maarif')
+                ->where('nomor_induk_maarif', '!=', '')
+                ->get()
+                ->filter(fn($t) => $names->contains(fn($n) =>
+                    mb_strtolower(trim($n)) === mb_strtolower(trim($t->nama))
+                ))
+                ->keyBy(fn($t) => mb_strtolower(trim($t->nama)));
+
+            foreach ($missingNimItems as $sk) {
+                $key = mb_strtolower(trim($sk->nama));
+                if (isset($teachersByName[$key])) {
+                    // Inject NIM into the teacher relation (or create a minimal object)
+                    if ($sk->teacher) {
+                        $sk->teacher->nomor_induk_maarif = $teachersByName[$key]->nomor_induk_maarif;
+                    } else {
+                        $sk->setRelation('teacher', $teachersByName[$key]);
+                    }
+                }
+            }
+        }
+
+        return response()->json($paginated);
     }
 
     public function show(SkDocument $skDocument): JsonResponse

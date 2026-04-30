@@ -318,6 +318,9 @@ export default function SkDashboardPage() {
                           </TableCell>
                           <TableCell>
                               <div className="font-black text-slate-800 text-sm tracking-tight">{item.nama}</div>
+                              {(item.nomor_induk_maarif || item.teacher?.nomor_induk_maarif) && (
+                                <div className="text-[10px] font-bold text-emerald-600 uppercase">NIM: {item.nomor_induk_maarif || item.teacher?.nomor_induk_maarif}</div>
+                              )}
                               {item.nuptk && <div className="text-[10px] font-bold text-blue-500 uppercase">NUPTK: {item.nuptk}</div>}
                           </TableCell>
                           <TableCell className="font-mono text-xs text-slate-500">{item.nomor_sk || "-"}</TableCell>

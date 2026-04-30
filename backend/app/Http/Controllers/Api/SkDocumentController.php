@@ -163,6 +163,31 @@ class SkDocumentController extends Controller
                 schoolId: $skDocument->school_id
             );
 
+            // Send notification to operator when status changes to approved or rejected
+            $newStatus = $skDocument->status;
+            if ($oldStatus !== $newStatus && in_array($newStatus, ['approved', 'rejected']) && $skDocument->created_by) {
+                $targetUser = User::where('email', $skDocument->created_by)->first();
+                if ($targetUser) {
+                    $isApproved = $newStatus === 'approved';
+                    $rejectionReason = $request->input('rejection_reason') ?? $skDocument->rejection_reason;
+                    Notification::create([
+                        'user_id'   => $targetUser->id,
+                        'school_id' => $skDocument->school_id,
+                        'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
+                        'title'     => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
+                        'message'   => "SK No. {$skDocument->nomor_sk} untuk {$skDocument->nama} telah " .
+                            ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
+                            ($rejectionReason ? " Alasan: {$rejectionReason}" : '')),
+                        'is_read'   => false,
+                        'metadata'  => [
+                            'sk_id'            => $skDocument->id,
+                            'nomor_sk'         => $skDocument->nomor_sk,
+                            'rejection_reason' => $rejectionReason,
+                        ],
+                    ]);
+                }
+            }
+
             return response()->json($skDocument->fresh());
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() == '23505') { // Postgres Unique violation

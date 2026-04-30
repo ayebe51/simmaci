@@ -408,6 +408,12 @@ export const reportApi = {
     per_page?: number;
   }) => apiClient.get('/reports/teacher', { params }).then((r) => r.data),
   skReport: (params?: Record<string, any>) => apiClient.get('/reports/sk', { params }).then((r) => r.data),
+  skPerSekolah: (params?: {
+    start_date?: string;
+    end_date?: string;
+    school_id?: number;
+    jenis_sk?: string;
+  }) => apiClient.get('/reports/sk-per-sekolah', { params }).then((r) => r.data),
   summary: () => apiClient.get('/reports/summary').then((r) => r.data),
 };
 

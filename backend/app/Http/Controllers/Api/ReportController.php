@@ -163,6 +163,101 @@ class ReportController extends Controller
     }
 
     /**
+     * GET /api/reports/sk-per-sekolah — SK submission report grouped per school
+     *
+     * Only includes submissions that are NOT rejected (pending, approved, active, draft).
+     * Intended for the printed PDF report of queued/active SK submissions per school.
+     *
+     * Query params:
+     *   start_date  — filter by created_at (inclusive)
+     *   end_date    — filter by created_at (inclusive, end of day)
+     *   school_id   — filter by specific school (super_admin only)
+     *   jenis_sk    — filter by SK type
+     */
+    public function skPerSekolah(Request $request): JsonResponse
+    {
+        $query = SkDocument::with(['school'])
+            ->whereNotIn('status', ['rejected', 'Rejected']);
+
+        // Tenant scoping
+        if ($request->user()->isOperator()) {
+            $query->forSchool($request->user()->school_id);
+        } elseif ($request->filled('school_id')) {
+            $query->forSchool($request->school_id);
+        }
+
+        if ($request->filled('jenis_sk')) {
+            $query->byJenis($request->jenis_sk);
+        }
+
+        if ($request->filled('start_date')) {
+            $query->where('created_at', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            // Include the full end day
+            $query->where('created_at', '<=', $request->end_date . ' 23:59:59');
+        }
+
+        $sks = $query->orderBy('unit_kerja')->orderByDesc('created_at')->get();
+
+        // Group by school
+        $grouped = $sks->groupBy(fn($sk) => $sk->school_id ?? 0)
+            ->map(function ($items) {
+                $first = $items->first();
+                $school = $first->school;
+
+                $byJenis = $items->groupBy(function ($item) {
+                    $raw = strtolower(trim($item->jenis_sk ?? ''));
+                    return preg_replace('/^sk\s+/', '', $raw);
+                })->map->count();
+
+                return [
+                    'school_id'   => $first->school_id,
+                    'nama_sekolah' => $school?->nama ?? $first->unit_kerja ?? 'Tidak Diketahui',
+                    'kecamatan'   => $school?->kecamatan ?? '-',
+                    'unit_kerja'  => $first->unit_kerja ?? $school?->nama ?? '-',
+                    'total'       => $items->count(),
+                    'pending'     => $items->filter(fn($s) => strtolower($s->status) === 'pending')->count(),
+                    'approved'    => $items->filter(fn($s) => in_array(strtolower($s->status), ['approved', 'active']))->count(),
+                    'draft'       => $items->filter(fn($s) => strtolower($s->status) === 'draft')->count(),
+                    'gty'         => $byJenis->filter(fn($v, $k) => str_contains($k, 'gty') || str_contains($k, 'tetap yayasan'))->sum(),
+                    'gtt'         => $byJenis->filter(fn($v, $k) => str_contains($k, 'gtt') || str_contains($k, 'tidak tetap'))->sum(),
+                    'kamad'       => $byJenis->filter(fn($v, $k) => str_contains($k, 'kamad') || str_contains($k, 'kepala'))->sum(),
+                    'tendik'      => $byJenis->filter(fn($v, $k) => str_contains($k, 'tendik'))->sum(),
+                    'tanggal_awal' => $items->min('created_at'),
+                    'tanggal_akhir' => $items->max('created_at'),
+                    'items'       => $items->map(fn($sk) => [
+                        'id'               => $sk->id,
+                        'nomor_sk'         => $sk->nomor_sk,
+                        'nama'             => $sk->nama,
+                        'jenis_sk'         => $sk->jenis_sk,
+                        'jabatan'          => $sk->jabatan,
+                        'status'           => $sk->status,
+                        'tanggal_penetapan' => $sk->tanggal_penetapan,
+                        'created_at'       => $sk->created_at,
+                    ])->values(),
+                ];
+            })
+            ->values()
+            ->sortBy('nama_sekolah')
+            ->values();
+
+        $summary = [
+            'total_sekolah'   => $grouped->count(),
+            'total_pengajuan' => $sks->count(),
+            'pending'         => $sks->filter(fn($s) => strtolower($s->status) === 'pending')->count(),
+            'approved'        => $sks->filter(fn($s) => in_array(strtolower($s->status), ['approved', 'active']))->count(),
+            'draft'           => $sks->filter(fn($s) => strtolower($s->status) === 'draft')->count(),
+        ];
+
+        return response()->json([
+            'summary' => $summary,
+            'data'    => $grouped,
+        ]);
+    }
+
+    /**
      * GET /api/reports/summary — Overall system summary
      */
     public function summary(): JsonResponse

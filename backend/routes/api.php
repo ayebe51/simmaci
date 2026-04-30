@@ -176,9 +176,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Reports
         Route::prefix('reports')->group(function () {
-            Route::get('sk',      [ReportController::class, 'skReport']);
-            Route::get('teacher', [ReportController::class, 'teacherReport']);
-            Route::get('summary', [ReportController::class, 'summaryReport']);
+            Route::get('sk',             [ReportController::class, 'skReport']);
+            Route::get('sk-per-sekolah', [ReportController::class, 'skPerSekolah']);
+            Route::get('teacher',        [ReportController::class, 'teacherReport']);
+            Route::get('summary',        [ReportController::class, 'summaryReport']);
         });
 
         // Notifications

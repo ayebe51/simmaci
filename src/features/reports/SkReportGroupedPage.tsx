@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { reportApi, schoolApi, authApi } from '@/lib/api'
+import { reportApi, authApi } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Download, Printer, Loader2 } from 'lucide-react'
@@ -16,115 +15,21 @@ export default function SkReportGroupedPage() {
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState('all')
-
-  // Helper function to extract kecamatan from school name
-  const extractKecamatanFromName = (unitKerja: string): string => {
-    if (!unitKerja) return 'Tidak Diketahui'
-    
-    // Common patterns in school names
-    const patterns = [
-      /Majenang/i,
-      /Panisian/i,
-      /Cilacap/i,
-      /Gandrungmanis/i,
-      /Kroya/i,
-      /Kawunganten/i,
-      /Kesugihan/i,
-      /Adipala/i,
-      /Binangun/i,
-      /Nusawungu/i,
-      /Jeruklegi/i,
-      /Bantarsari/i,
-      /Dayeuhluhur/i,
-      /Wanareja/i,
-      /Sidareja/i,
-      /Karangpucung/i,
-      /Cimanggu/i,
-      /Cipari/i,
-      /Patikraja/i,
-      /Kedungreja/i,
-      /Sampang/i,
-      /Kampung Laut/i
-    ]
-    
-    for (const pattern of patterns) {
-      const match = unitKerja.match(pattern)
-      if (match) return match[0]
-    }
-    
-    return 'Tidak Diketahui'
-  }
 
   // 🔥 REST API QUERIES
+  // Menggunakan skPerSekolah yang sudah exclude status 'rejected' di backend
   const { data: reportData, isLoading } = useQuery({
-    queryKey: ['sk-report-simple', startDate, endDate, selectedStatus],
-    queryFn: () => reportApi.skReport({
+    queryKey: ['sk-report-per-sekolah', startDate, endDate],
+    queryFn: () => reportApi.skPerSekolah({
       start_date: startDate || undefined,
       end_date: endDate || undefined,
-      status: selectedStatus !== 'all' ? selectedStatus : undefined
     })
   })
 
-  // Group data by school and kecamatan
+  // Data sudah di-group per sekolah oleh backend — tinggal pakai langsung
   const groupedData = useMemo(() => {
     if (!reportData?.data) return []
-    
-    const grouped = reportData.data.reduce((acc: any, item: any) => {
-      // Get kecamatan from school relation or unit_kerja
-      const kecamatan = item.school?.kecamatan || item.kecamatan || extractKecamatanFromName(item.unit_kerja)
-      const key = `${item.unit_kerja}|${kecamatan}`
-      
-      if (!acc[key]) {
-        acc[key] = {
-          unit_kerja: item.unit_kerja,
-          kecamatan: kecamatan,
-          total: 0,
-          gty: 0,
-          gtt: 0,
-          kamad: 0,
-          tendik: 0,
-          pending: 0,
-          approved: 0,
-          rejected: 0,
-          tanggal_awal: item.created_at,
-          tanggal_akhir: item.created_at
-        }
-      }
-      
-      acc[key].total++
-      
-      // Count by jenis SK
-      const jenis = (item.jenis_sk || '').toLowerCase()
-      if (jenis.includes('gty') || jenis.includes('tetap yayasan')) acc[key].gty++
-      else if (jenis.includes('gtt') || jenis.includes('tidak tetap')) acc[key].gtt++
-      else if (jenis.includes('kepala') || jenis.includes('kamad')) acc[key].kamad++
-      else if (jenis.includes('tendik') || jenis.includes('kependidikan')) acc[key].tendik++
-      
-      // Count by status
-      const status = (item.status || '').toLowerCase()
-      if (status === 'approved') acc[key].approved++
-      else if (status === 'pending') acc[key].pending++
-      else if (status === 'rejected') acc[key].rejected++
-      
-      // Track date range
-      if (new Date(item.created_at) < new Date(acc[key].tanggal_awal)) {
-        acc[key].tanggal_awal = item.created_at
-      }
-      if (new Date(item.created_at) > new Date(acc[key].tanggal_akhir)) {
-        acc[key].tanggal_akhir = item.created_at
-      }
-      
-      return acc
-    }, {})
-    
-    // Convert to array and sort by kecamatan then unit_kerja
-    return Object.values(grouped).sort((a: any, b: any) => {
-      if (a.kecamatan !== b.kecamatan) {
-        return a.kecamatan.localeCompare(b.kecamatan)
-      }
-      return a.unit_kerja.localeCompare(b.unit_kerja)
-    })
+    return reportData.data
   }, [reportData])
 
   const handlePrint = () => window.print()
@@ -145,7 +50,6 @@ export default function SkReportGroupedPage() {
         'Tendik': item.tendik,
         'Disetujui': item.approved,
         'Pending': item.pending,
-        'Ditolak': item.rejected
       })))
       XLSX.utils.book_append_sheet(wb, ws, 'Rekap Per Sekolah')
       XLSX.writeFile(wb, `Rekap_SK_Per_Sekolah_${new Date().toISOString().split('T')[0]}.xlsx`)
@@ -224,7 +128,7 @@ export default function SkReportGroupedPage() {
 
       <div className="container mx-auto p-10 space-y-10">
         <Card className="no-print border-0 shadow-sm bg-white rounded-[2.5rem] overflow-visible">
-          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">Dimulai Dari</Label>
                 <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
@@ -232,20 +136,6 @@ export default function SkReportGroupedPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-slate-400">Sampai Dengan</Label>
                 <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400">Status Produk</Label>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold italic">
-                    <SelectValue placeholder="Semua Status" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="all">Seluruh Status</SelectItem>
-                    <SelectItem value="approved">Diterbitkan (Valid)</SelectItem>
-                    <SelectItem value="pending">Menunggu Review</SelectItem>
-                    <SelectItem value="rejected">Ditolak / Revisi</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
           </CardContent>
         </Card>
@@ -367,7 +257,6 @@ export default function SkReportGroupedPage() {
                              <div className="flex gap-2 justify-center text-[9px] font-bold mt-2">
                                {row.approved > 0 && <span className="text-emerald-600">✓ {row.approved}</span>}
                                {row.pending > 0 && <span className="text-amber-600">⏳ {row.pending}</span>}
-                               {row.rejected > 0 && <span className="text-rose-600">✗ {row.rejected}</span>}
                              </div>
                           </td>
                         </tr>

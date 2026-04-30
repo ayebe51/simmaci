@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\NotifyAdminsOfSkSubmission;
 use App\Models\ActivityLog;
+use App\Models\ApprovalHistory;
 use App\Models\Notification;
 use App\Models\School;
 use App\Models\SkDocument;
@@ -134,6 +135,23 @@ class SkDocumentController extends Controller
             schoolId: $sk->school_id
         );
 
+        // Create approval history for initial submission
+        ApprovalHistory::create([
+            'school_id'         => $sk->school_id,
+            'document_id'       => $sk->id,
+            'document_type'     => 'sk_document',
+            'action'            => 'submit',
+            'from_status'       => null,
+            'to_status'         => $data['status'] ?? 'draft',
+            'performed_by'      => $request->user()->id,
+            'performed_at'      => now(),
+            'comment'           => null,
+            'metadata'          => [
+                'performed_by_name' => $request->user()->name,
+                'performed_by_role' => $request->user()->role,
+            ],
+        ]);
+
         return response()->json($sk, 201);
     }
 
@@ -165,8 +183,8 @@ class SkDocumentController extends Controller
 
             // Send notification to operator when status changes to approved or rejected
             $newStatus = $skDocument->status;
-            if ($oldStatus !== $newStatus && in_array($newStatus, ['approved', 'rejected']) && $skDocument->created_by) {
-                $targetUser = User::where('email', $skDocument->created_by)->first();
+            if ($oldStatus !== $newStatus && in_array($newStatus, ['approved', 'rejected'])) {
+                $targetUser = $this->findSkOperator($skDocument);
                 if ($targetUser) {
                     $isApproved = $newStatus === 'approved';
                     $rejectionReason = $request->input('rejection_reason') ?? $skDocument->rejection_reason;
@@ -186,6 +204,27 @@ class SkDocumentController extends Controller
                         ],
                     ]);
                 }
+            }
+
+            // Create approval history record when status changes to approved or rejected
+            if ($oldStatus !== $newStatus && in_array($newStatus, ['approved', 'rejected'])) {
+                $rejectionReason = $request->input('rejection_reason') ?? $skDocument->rejection_reason;
+                ApprovalHistory::create([
+                    'school_id'         => $skDocument->school_id,
+                    'document_id'       => $skDocument->id,
+                    'document_type'     => 'sk_document',
+                    'action'            => $newStatus === 'approved' ? 'approve' : 'reject',
+                    'from_status'       => $oldStatus,
+                    'to_status'         => $newStatus,
+                    'performed_by'      => $request->user()->id,
+                    'performed_at'      => now(),
+                    'comment'           => $rejectionReason,
+                    'metadata'          => [
+                        'performed_by_name' => $request->user()->name,
+                        'performed_by_role' => $request->user()->role,
+                        'rejection_reason'  => $rejectionReason,
+                    ],
+                ]);
             }
 
             return response()->json($skDocument->fresh());
@@ -322,27 +361,43 @@ class SkDocumentController extends Controller
             }
 
             // Create notification for SK creator
-            if ($sk->created_by) {
-                $targetUser = User::where('email', $sk->created_by)->first();
-                if ($targetUser) {
-                    $isApproved = $request->status === 'approved';
-                    Notification::create([
-                        'user_id'   => $targetUser->id,
-                        'school_id' => $sk->school_id,
-                        'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
-                        'title'     => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
-                        'message'   => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
-                            ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
-                            ($request->rejection_reason ? " Alasan: {$request->rejection_reason}" : '')),
-                        'is_read'   => false,
-                        'metadata'  => [
-                            'sk_id'           => $sk->id,
-                            'nomor_sk'        => $sk->nomor_sk,
-                            'rejection_reason' => $request->rejection_reason,
-                        ],
-                    ]);
-                }
+            $targetUser = $this->findSkOperator($sk);
+            if ($targetUser) {
+                $isApproved = $request->status === 'approved';
+                Notification::create([
+                    'user_id'   => $targetUser->id,
+                    'school_id' => $sk->school_id,
+                    'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
+                    'title'     => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
+                    'message'   => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
+                        ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
+                        ($request->rejection_reason ? " Alasan: {$request->rejection_reason}" : '')),
+                    'is_read'   => false,
+                    'metadata'  => [
+                        'sk_id'           => $sk->id,
+                        'nomor_sk'        => $sk->nomor_sk,
+                        'rejection_reason' => $request->rejection_reason,
+                    ],
+                ]);
             }
+
+            // Create approval history record for batch operations
+            ApprovalHistory::create([
+                'school_id'         => $sk->school_id,
+                'document_id'       => $sk->id,
+                'document_type'     => 'sk_document',
+                'action'            => $request->status === 'approved' ? 'approve' : 'reject',
+                'from_status'       => $sk->getOriginal('status'),
+                'to_status'         => $request->status,
+                'performed_by'      => $user->id,
+                'performed_at'      => now(),
+                'comment'           => $request->rejection_reason,
+                'metadata'          => [
+                    'performed_by_name' => $user->name,
+                    'performed_by_role' => $user->role,
+                    'rejection_reason'  => $request->rejection_reason,
+                ],
+            ]);
         }
 
         ActivityLog::log(
@@ -638,6 +693,23 @@ class SkDocumentController extends Controller
                     'properties' => $logProperties,
                 ]);
 
+                // Create approval history for SK submission
+                ApprovalHistory::create([
+                    'school_id'         => $schoolId,
+                    'document_id'       => $sk->id,
+                    'document_type'     => 'sk_document',
+                    'action'            => 'submit',
+                    'from_status'       => null,
+                    'to_status'         => 'pending',
+                    'performed_by'      => $request->user()->id,
+                    'performed_at'      => now(),
+                    'comment'           => null,
+                    'metadata'          => [
+                        'performed_by_name' => $request->user()->name,
+                        'performed_by_role' => $request->user()->role,
+                    ],
+                ]);
+
                 // Dispatch notification to queue — avoids blocking the HTTP response
                 // when there are many admins to notify.
                 NotifyAdminsOfSkSubmission::dispatch(
@@ -870,7 +942,7 @@ class SkDocumentController extends Controller
             $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
 
             try {
-                SkDocument::create([
+                $sk = SkDocument::create([
                     'nomor_sk'             => $nomorSk,
                     'teacher_id'           => $teacher->id,
                     'nama'                 => $doc['nama'],
@@ -884,11 +956,29 @@ class SkDocumentController extends Controller
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
                 ]);
+
+                // Create approval history for bulk submission
+                ApprovalHistory::create([
+                    'school_id'         => $schoolId,
+                    'document_id'       => $sk->id,
+                    'document_type'     => 'sk_document',
+                    'action'            => 'submit',
+                    'from_status'       => null,
+                    'to_status'         => 'pending',
+                    'performed_by'      => $request->user()->id,
+                    'performed_at'      => now(),
+                    'comment'           => null,
+                    'metadata'          => [
+                        'performed_by_name' => $request->user()->name,
+                        'performed_by_role' => $request->user()->role,
+                        'bulk_submission'   => true,
+                    ],
+                ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                 // Race condition: another request grabbed this nomor_sk — re-fetch safely
                 $nomorSk = SkDocument::generateNomorSk($year);
                 $seq = (int) explode('/', $nomorSk)[2]; // keep local counter in sync
-                SkDocument::create([
+                $sk = SkDocument::create([
                     'nomor_sk'             => $nomorSk,
                     'teacher_id'           => $teacher->id,
                     'nama'                 => $doc['nama'],
@@ -901,6 +991,24 @@ class SkDocumentController extends Controller
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
+                ]);
+
+                // Create approval history for bulk submission (retry case)
+                ApprovalHistory::create([
+                    'school_id'         => $schoolId,
+                    'document_id'       => $sk->id,
+                    'document_type'     => 'sk_document',
+                    'action'            => 'submit',
+                    'from_status'       => null,
+                    'to_status'         => 'pending',
+                    'performed_by'      => $request->user()->id,
+                    'performed_at'      => now(),
+                    'comment'           => null,
+                    'metadata'          => [
+                        'performed_by_name' => $request->user()->name,
+                        'performed_by_role' => $request->user()->role,
+                        'bulk_submission'   => true,
+                    ],
                 ]);
             }
             $created++;
@@ -926,6 +1034,37 @@ class SkDocumentController extends Controller
             'school_id'   => $request->user()->school_id,
             'properties'  => ['rejected' => $rejectedRows],
         ]);
+
+        // Notify admins about the new bulk submission
+        $admins = User::whereIn('role', ['super_admin', 'admin_yayasan'])->get();
+        $operatorSchoolName = $request->user()->school_id
+            ? (School::find($request->user()->school_id)?->nama ?? 'Unknown')
+            : 'Unknown';
+
+        foreach ($admins as $admin) {
+            try {
+                Notification::create([
+                    'user_id'   => $admin->id,
+                    'school_id' => $request->user()->school_id,
+                    'type'      => 'sk_bulk_submitted',
+                    'title'     => '📋 Pengajuan SK Kolektif Baru',
+                    'message'   => "Pengajuan SK kolektif dari {$operatorSchoolName}: {$created} permohonan menunggu verifikasi" .
+                        ($skipped > 0 ? ", {$skipped} dilewati." : '.'),
+                    'is_read'   => false,
+                    'metadata'  => [
+                        'school_id' => $request->user()->school_id,
+                        'total'     => $created + $skipped,
+                        'created'   => $created,
+                        'skipped'   => $skipped,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('processBulkRequestSync: Failed to notify admin', [
+                    'admin_id' => $admin->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'success'  => true,
@@ -970,6 +1109,29 @@ class SkDocumentController extends Controller
             ->max() ?? 0;
 
         return 'REQ/' . $year . '/' . str_pad($maxSeq + 1, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Find the operator user who submitted the SK.
+     * Primary: lookup by email in created_by field.
+     * Fallback: find active operator for the same school.
+     */
+    private function findSkOperator(SkDocument $sk): ?User
+    {
+        // Primary: lookup by email stored in created_by
+        if (!empty($sk->created_by)) {
+            $user = User::where('email', $sk->created_by)->first();
+            if ($user) return $user;
+        }
+
+        // Fallback: find active operator for the same school
+        if ($sk->school_id) {
+            return User::where('role', 'operator')
+                ->where('school_id', $sk->school_id)
+                ->first();
+        }
+
+        return null;
     }
 
     /**

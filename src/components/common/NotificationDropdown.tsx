@@ -42,10 +42,17 @@ export function NotificationDropdown() {
     // Mark as read if unread
     if (!notif.read_at) {
       try {
+        // Optimistic update: decrement badge immediately
+        queryClient.setQueryData(['notifications-unread-count'], (old: any) => ({
+          count: Math.max(0, (old?.count ?? 0) - 1)
+        }))
+
         await notificationApi.markRead(notif.id)
         queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
         queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
       } catch (error) {
+        // Rollback: refetch dari server jika optimistic update gagal
+        queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
         console.error("Failed to mark as read:", error)
       }
     }
@@ -83,12 +90,17 @@ export function NotificationDropdown() {
 
   const handleMarkAllRead = async () => {
     try {
+      // Optimistic update: clear badge immediately
+      queryClient.setQueryData(['notifications-unread-count'], { count: 0 })
+
       await notificationApi.markAllRead()
       queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
       toast.success("Semua notifikasi ditandai sudah dibaca")
     } catch (error) {
-      toast.error("Gagal sinkronisasi status baca")
+      // Rollback: refetch dari server jika optimistic update gagal
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
+      toast.error("Gagal menandai semua notifikasi sebagai dibaca")
     }
   }
 

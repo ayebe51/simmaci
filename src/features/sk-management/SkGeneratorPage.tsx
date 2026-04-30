@@ -748,19 +748,40 @@ export default function SkGeneratorPage() {
 
   // Handler setelah NIM berhasil disimpan via NimDialog
   const handleNimSuccess = (updatedTeacher: TeacherForNim) => {
-    // 1. Invalidate TanStack Query cache agar data guru terupdate
+    // 1. Patch cache secara optimistic — inject NIM langsung ke data yang ada
+    //    agar handleGenerate() membaca NIM yang sudah tersimpan tanpa menunggu refetch
+    queryClient.setQueryData(
+      ['sk-candidates-generator', searchTerm, page],
+      (old: any) => {
+        if (!old?.data) return old
+        return {
+          ...old,
+          data: old.data.map((item: any) => {
+            const teacherId = item.teacher_id || item.teacher?.id || item.id
+            if (teacherId !== updatedTeacher.id) return item
+            // Update nomor_induk_maarif di item dan di relasi teacher
+            return {
+              ...item,
+              nomor_induk_maarif: updatedTeacher.nomor_induk_maarif,
+              teacher: item.teacher
+                ? { ...item.teacher, nomor_induk_maarif: updatedTeacher.nomor_induk_maarif }
+                : item.teacher,
+            }
+          }),
+        }
+      }
+    )
+    // 2. Invalidate di background untuk sinkronisasi penuh
     queryClient.invalidateQueries({ queryKey: ['teachers'] })
     queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
-    // 2. Tutup dialog
+    // 3. Tutup dialog
     setNimDialogTeacher(null)
-    // 3. Jika ada pending generate, lanjutkan generate setelah cache diperbarui
+    // 4. Jika ada pending generate, lanjutkan — data sudah di-patch optimistically
     if (pendingGenerateAfterNim) {
       setPendingGenerateAfterNim(false)
-      // Trigger generate kembali — data guru sudah terupdate di cache
-      // Gunakan setTimeout agar invalidateQueries sempat diproses
       setTimeout(() => {
         handleGenerate()
-      }, 300)
+      }, 50)
     }
   }
 

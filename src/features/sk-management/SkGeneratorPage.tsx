@@ -955,7 +955,7 @@ export default function SkGeneratorPage() {
         </CardContent>
       </Card>
 
-      {selectedIds.size > 0 && createPortal(
+      {selectedIds.size > 0 && !nimDialogTeacher && createPortal(
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-[2rem] px-8 py-5 flex items-center gap-6 z-[9999] shadow-2xl animate-in slide-in-from-bottom-10">
             <div className="flex items-center gap-3 border-r border-slate-700 pr-6">
                 <div className="bg-blue-600 h-8 w-8 rounded-full flex items-center justify-center text-xs font-black">{selectedIds.size}</div>

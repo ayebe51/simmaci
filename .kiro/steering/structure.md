@@ -89,7 +89,7 @@ app/
 **Conventions:**
 - All API controllers use the `ApiResponse` trait for consistent response shape: `{ success, message, data }`
 - Models that are tenant-scoped use `HasTenantScope` + `AuditLogTrait` traits
-- All models use `SoftDeletes`
+- All models use `SoftDeletes` (see `tech.md`)
 - Validation lives in dedicated `FormRequest` classes under `Http/Requests/{Resource}/`
 - Tenant-aware uniqueness uses the `UniqueForTenant` custom rule
 - Business logic belongs in `Services/`, not controllers
@@ -104,6 +104,7 @@ app/
 
 - Every tenant-scoped model has a `school_id` foreign key
 - `HasTenantScope` trait auto-applies `where school_id = ?` for operators
-- Super admins bypass scoping and see all data
+- Super admins (`super_admin`) and `admin_yayasan` bypass scoping and see all data
+- `operator` role is always scoped to their own school only
 - `UniqueForTenant` rule enforces uniqueness within a tenant's scope
 - `TenantScope` middleware sets `app.current_school_id` PostgreSQL variable for RLS policies

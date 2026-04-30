@@ -20,7 +20,7 @@
 ## Backend
 - **Framework**: Laravel 12 (PHP ^8.2)
 - **Database**: PostgreSQL 16
-- **ORM**: Eloquent with SoftDeletes
+- **ORM**: Eloquent with SoftDeletes (all models use soft deletes by default)
 - **Auth**: Laravel Sanctum (token-based, single-device — old tokens revoked on login)
 - **Admin Panel**: Filament v3
 - **Queue**: Database driver (jobs in `app/Jobs/`)

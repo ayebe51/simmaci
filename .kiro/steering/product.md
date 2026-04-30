@@ -24,7 +24,7 @@ Digitize administrative processes across a network of schools (madrasah), coveri
 - `operator` — scoped to their own school only (`school_id`), manages data for their unit
 
 ## Multi-Tenancy Model
-Each school is a tenant. Operators are scoped to their `school_id`. Super admins and admin yayasan have broader access. Tenant isolation is enforced at the middleware and query level via `HasTenantScope` trait and PostgreSQL RLS.
+Each school is a tenant. Operators are scoped to their `school_id`. Super admins and admin yayasan have broader access. See `structure.md` for the technical implementation details.
 
 ## Language Context
 The application domain uses Indonesian language for field names, messages, and UI labels (e.g., `nama`, `sekolah`, `guru`, `siswa`, `jabatan`). Backend validation messages and API responses are in Indonesian.

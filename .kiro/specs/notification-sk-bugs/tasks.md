@@ -200,42 +200,42 @@ Perbaikan tiga bug pada sistem notifikasi SK yang menyebabkan admin dan operator
     - _Requirements: 2.4, 2.5_
 
 - [-] 5. Preservation Testing — Verifikasi perilaku yang tidak berubah
-  - [~] 5.1 Tulis preservation test untuk pengajuan individual
+  - [ ] 5.1 Tulis preservation test untuk pengajuan individual
     - Tambahkan test di `backend/tests/Unit/SkDocumentNotificationTest.php`
     - Panggil `submitRequest()` dengan data valid
     - Assert bahwa `NotifyAdminsOfSkSubmission` job di-dispatch dengan tipe `sk_submitted`
     - Assert bahwa job TIDAK di-dispatch dengan tipe `sk_bulk_submitted`
     - _Requirements: 3.1_
 
-  - [~] 5.2 Tulis preservation test untuk jalur queue bulk (>3 dokumen)
+  - [ ] 5.2 Tulis preservation test untuk jalur queue bulk (>3 dokumen)
     - Tambahkan test di `backend/tests/Unit/SkDocumentNotificationTest.php`
     - Panggil `bulkRequest()` dengan 4 dokumen
     - Assert bahwa `ProcessBulkSkSubmission` job di-dispatch (bukan diproses sinkron)
     - Assert bahwa `processBulkRequestSync` TIDAK dipanggil
     - _Requirements: 3.2_
 
-  - [~] 5.3 Tulis preservation test untuk notifikasi dengan created_by valid
+  - [ ] 5.3 Tulis preservation test untuk notifikasi dengan created_by valid
     - Tambahkan test di `backend/tests/Unit/SkDocumentNotificationTest.php`
     - SK dengan `created_by = 'valid@email.com'` yang ada di DB
     - Ubah status ke `approved` via `update()`
     - Assert notifikasi terkirim ke user dengan email tersebut (bukan ke operator fallback)
     - _Requirements: 3.1_
 
-  - [~] 5.4 Tulis preservation test untuk polling dan badge display
+  - [ ] 5.4 Tulis preservation test untuk polling dan badge display
     - Tambahkan test di `src/components/common/NotificationDropdown.test.tsx`
     - Assert bahwa `refetchInterval: 30000` masih dikonfigurasi pada query `notifications-unread-count`
     - Assert bahwa badge menampilkan "9+" ketika `unreadCount > 9`
     - Assert bahwa badge tidak muncul ketika `unreadCount = 0`
     - _Requirements: 3.5, 3.6_
 
-- [~] 6. Checkpoint — Jalankan semua test dan verifikasi
-  - [~] 6.1 Jalankan backend unit tests
+- [ ] 6. Checkpoint — Jalankan semua test dan verifikasi
+  - [ ] 6.1 Jalankan backend unit tests
     - Dari direktori `backend/`, jalankan: `php artisan test --filter=SkDocumentNotificationTest`
     - Semua test harus PASS
     - Tidak ada regresi pada test lain: `php artisan test`
     - _Requirements: semua_
 
-  - [~] 6.2 Jalankan frontend tests
+  - [ ] 6.2 Jalankan frontend tests
     - Dari root direktori, jalankan: `npm run test -- --run`
     - Semua test di `NotificationDropdown.test.tsx` harus PASS
     - Tidak ada regresi pada test lain

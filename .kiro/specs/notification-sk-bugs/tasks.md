@@ -151,7 +151,7 @@ Perbaikan tiga bug pada sistem notifikasi SK yang menyebabkan admin dan operator
     - Jalankan test — harus PASS setelah fix diterapkan
     - _Requirements: 2.3_
 
-- [-] 4. Fix Bug 3 — Optimistic update badge unread count
+- [x] 4. Fix Bug 3 — Optimistic update badge unread count
   - [x] 4.1 Tambahkan optimistic update di `handleNotificationClick`
     - Buka `src/components/common/NotificationDropdown.tsx`
     - Temukan `handleNotificationClick` callback (sekitar baris 42)
@@ -191,7 +191,7 @@ Perbaikan tiga bug pada sistem notifikasi SK yang menyebabkan admin dan operator
       ```
     - _Requirements: 2.5_
 
-  - [-] 4.3 Tulis fix-checking test untuk Bug 3
+  - [x] 4.3 Tulis fix-checking test untuk Bug 3
     - Tambahkan test di `src/components/common/NotificationDropdown.test.tsx`
     - Test A: Render dengan `unreadCount = 3`, simulasikan klik notifikasi, assert badge langsung menampilkan `2` (sebelum API call selesai)
     - Test B: Render dengan `unreadCount = 5`, simulasikan klik "Read All", assert badge langsung menampilkan `0`
@@ -199,7 +199,7 @@ Perbaikan tiga bug pada sistem notifikasi SK yang menyebabkan admin dan operator
     - Jalankan test — harus PASS setelah fix diterapkan
     - _Requirements: 2.4, 2.5_
 
-- [~] 5. Preservation Testing — Verifikasi perilaku yang tidak berubah
+- [-] 5. Preservation Testing — Verifikasi perilaku yang tidak berubah
   - [~] 5.1 Tulis preservation test untuk pengajuan individual
     - Tambahkan test di `backend/tests/Unit/SkDocumentNotificationTest.php`
     - Panggil `submitRequest()` dengan data valid

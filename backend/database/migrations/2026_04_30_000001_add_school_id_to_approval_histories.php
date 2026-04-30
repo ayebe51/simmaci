@@ -19,15 +19,31 @@ return new class extends Migration
             $table->index('school_id');
         });
 
-        // Backfill school_id dari sk_documents berdasarkan document_id
-        DB::statement("
-            UPDATE approval_histories ah
-            SET school_id = sd.school_id
-            FROM sk_documents sd
-            WHERE ah.document_id::bigint = sd.id
-              AND ah.document_type = 'sk_document'
-              AND sd.school_id IS NOT NULL
-        ");
+        // Backfill school_id dari sk_documents berdasarkan document_id.
+        // Dilewati jika tabel kosong (environment test/fresh install).
+        // Di production dengan data existing, jalankan manual via tinker jika perlu:
+        //   DB::unprepared("UPDATE approval_histories SET school_id = (SELECT sd.school_id FROM sk_documents sd WHERE sd.id = approval_histories.document_id::bigint LIMIT 1) WHERE document_type = 'sk_document' AND school_id IS NULL");
+        if (DB::getDriverName() === 'pgsql') {
+            $hasData = DB::table('approval_histories')
+                ->where('document_type', 'sk_document')
+                ->whereNull('school_id')
+                ->exists();
+
+            if ($hasData) {
+                DB::unprepared("
+                    UPDATE approval_histories
+                    SET school_id = (
+                        SELECT sd.school_id
+                        FROM sk_documents sd
+                        WHERE sd.id = approval_histories.document_id::bigint
+                          AND sd.school_id IS NOT NULL
+                        LIMIT 1
+                    )
+                    WHERE document_type = 'sk_document'
+                      AND school_id IS NULL
+                ");
+            }
+        }
     }
 
     public function down(): void

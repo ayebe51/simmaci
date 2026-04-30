@@ -367,6 +367,7 @@ class SkDocumentController extends Controller
                 'tanggal_lahir' => 'nullable|string',
                 'pendidikan_terakhir' => 'nullable|string',
                 'tmt' => 'nullable|string',
+                'nomor_induk_maarif' => 'nullable|string|max:20',
             ]);
 
             // Normalize school name and teacher name before processing
@@ -488,6 +489,9 @@ class SkDocumentController extends Controller
             }
             if (!empty($data['tmt'])) {
                 $teacherData['tmt'] = $data['tmt'];
+            }
+            if (!empty($data['nomor_induk_maarif'])) {
+                $teacherData['nomor_induk_maarif'] = $data['nomor_induk_maarif'];
             }
 
             // 3.2: Wrap teacher upsert in try-catch block

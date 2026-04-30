@@ -24,6 +24,7 @@ type SkFormValues = {
   nama: string
   nuptk?: string
   nip?: string
+  nomor_induk_maarif?: string
   jabatan: string
   unit_kerja: string
   keterangan?: string
@@ -56,6 +57,7 @@ export default function SkSubmissionPage() {
     nama: z.string().min(3, "Nama wajib diisi minimal 3 karakter"),
     nuptk: z.string().optional(),
     nip: z.string().optional(),
+    nomor_induk_maarif: z.string().max(20, "NIM maksimal 20 karakter").regex(/^\d*$/, "NIM hanya boleh berisi angka").optional(),
     jabatan: z.string().min(1, "Jabatan wajib diisi"),
     unit_kerja: isSuperAdmin 
       ? z.string().min(1, "Unit Kerja wajib diisi")
@@ -140,6 +142,7 @@ export default function SkSubmissionPage() {
         nama: data.nama,
         nuptk: data.nuptk || undefined,
         nip: data.nip || undefined,
+        nomor_induk_maarif: data.nomor_induk_maarif || undefined,
         jenis_sk: data.jenisSk,
         unit_kerja: unitKerja,
         jabatan: data.jabatan,
@@ -237,6 +240,13 @@ export default function SkSubmissionPage() {
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tempat Lahir</Label>
                         <Input placeholder="Kota Kelahiran" {...form.register("tempat_lahir")} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500" />
+                    </div>
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NIM (Nomor Induk Maarif)</Label>
+                        <Input placeholder="Cth: 113400139" {...form.register("nomor_induk_maarif")} className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-blue-500 font-mono" maxLength={20} />
+                        {form.formState.errors.nomor_induk_maarif && (
+                          <p className="text-xs text-red-500 font-medium">{form.formState.errors.nomor_induk_maarif.message}</p>
+                        )}
                     </div>
                     <div className="space-y-3">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tanggal Lahir</Label>

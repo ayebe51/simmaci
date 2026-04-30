@@ -226,6 +226,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // File Upload
     Route::post('files/upload', [FileUploadController::class, 'upload']);
     Route::delete('files',      [FileUploadController::class, 'delete']);
+    Route::get('files/view/{path}', [FileUploadController::class, 'view'])->where('path', '.*');
 
     // Data Audit
     Route::post('data-audit/health-check', [DataAuditController::class, 'runHealthCheck']);

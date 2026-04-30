@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\Notification;
 use App\Models\School;
 use App\Models\Teacher;
 use App\Models\SkDocument;
@@ -273,6 +274,63 @@ class ProcessBulkSkSubmission implements ShouldQueue
             'skipped' => $skipped,
             'errors' => $errors,
         ]);
+
+        // Notify admins about the new bulk submission
+        $admins = User::whereIn('role', ['super_admin', 'admin_yayasan'])->get();
+        $operatorSchoolName = $this->userSchoolId
+            ? (School::find($this->userSchoolId)?->nama ?? 'Unknown')
+            : 'Unknown';
+
+        foreach ($admins as $admin) {
+            try {
+                Notification::create([
+                    'user_id'   => $admin->id,
+                    'school_id' => $this->userSchoolId,
+                    'type'      => 'sk_bulk_submitted',
+                    'title'     => '📋 Pengajuan SK Kolektif Baru',
+                    'message'   => "Pengajuan SK kolektif dari {$operatorSchoolName}: {$created} permohonan menunggu verifikasi" .
+                        ($skipped > 0 ? ", {$skipped} dilewati." : '.'),
+                    'is_read'   => false,
+                    'metadata'  => [
+                        'school_id'   => $this->userSchoolId,
+                        'total'       => $created + $skipped,
+                        'created'     => $created,
+                        'skipped'     => $skipped,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                Log::error('ProcessBulkSkSubmission: Failed to notify admin', [
+                    'admin_id' => $admin->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Notify the operator that their bulk submission has been processed
+        try {
+            $operator = User::find($this->userId);
+            if ($operator) {
+                Notification::create([
+                    'user_id'   => $operator->id,
+                    'school_id' => $this->userSchoolId,
+                    'type'      => 'sk_bulk_completed',
+                    'title'     => '✅ Pengajuan SK Kolektif Selesai',
+                    'message'   => "{$created} pengajuan SK kolektif berhasil dikirim dan menunggu verifikasi" .
+                        ($skipped > 0 ? ", {$skipped} dilewati (PNS/error)." : '.'),
+                    'is_read'   => false,
+                    'metadata'  => [
+                        'total'   => $created + $skipped,
+                        'created' => $created,
+                        'skipped' => $skipped,
+                    ],
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('ProcessBulkSkSubmission: Failed to notify operator', [
+                'user_id' => $this->userId,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -16,12 +16,12 @@ export function deriveStartDate(year: number): Date {
 }
 
 /**
- * Mengembalikan tanggal berakhir SK: 1 Juli tahun berikutnya.
+ * Mengembalikan tanggal berakhir SK: 30 Juni tahun berikutnya.
  * Menggunakan setUTCFullYear — bukan +365 hari — agar benar di tahun kabisat dan tahun 0–99.
  */
 export function deriveEndDate(year: number): Date {
   const d = new Date(0)
-  d.setUTCFullYear(year + 1, 6, 1) // bulan 6 = Juli (0-indexed), tanggal 1
+  d.setUTCFullYear(year + 1, 5, 30) // bulan 5 = Juni (0-indexed), tanggal 30
   d.setUTCHours(0, 0, 0, 0)
   return d
 }

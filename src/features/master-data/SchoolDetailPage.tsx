@@ -197,28 +197,30 @@ export default function SchoolDetailPage() {
         <div className="space-y-6">
             <Card className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white">
                 <CardContent className="p-6 sm:p-8">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-5">Kepemimpinan</h3>
-                    <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5 rounded-xl border border-slate-200/60 mb-5 hover:shadow-md transition-all">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20">
-                            <User className="w-6 h-6 text-white" />
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Kepemimpinan</h3>
+                    <div className="space-y-3 mb-6">
+                        <div className="flex items-center gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5 rounded-xl border border-slate-200/60 hover:shadow-md transition-all">
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20">
+                                <User className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="font-black text-slate-900 text-sm truncate">{school.kepala_madrasah || 'Belum diisi'}</div>
+                                <div className="text-xs font-semibold text-slate-500 mt-1">Kepala Madrasah</div>
+                            </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="font-black text-slate-900 text-sm truncate">{school.kepala_madrasah || 'Belum diisi'}</div>
-                            <div className="text-xs font-semibold text-slate-500 mt-1">Kepala Madrasah</div>
+
+                        <div className="flex items-center gap-3 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5 rounded-xl border border-slate-200/60 hover:shadow-md transition-all">
+                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0 text-white shadow-lg shadow-green-500/20">
+                                <Phone className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">No. Telepon / HP</div>
+                                <div className="font-black text-slate-900 mt-1 truncate">{school.telepon || '-'}</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-gradient-to-br from-slate-50 to-slate-100/50 p-5 rounded-xl border border-slate-200/60 hover:shadow-md transition-all">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0 text-white shadow-lg shadow-green-500/20">
-                            <Phone className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">No. Telepon / HP</div>
-                            <div className="font-black text-slate-900 mt-1 truncate">{school.telepon || '-'}</div>
-                        </div>
-                    </div>
-
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-8 mb-5">Status & Izin</h3>
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Status & Izin</h3>
                     <div className="space-y-3">
                         <div className="flex justify-between items-center bg-gradient-to-br from-slate-50 to-slate-100/50 p-5 rounded-xl border border-slate-200/60 hover:shadow-md transition-all">
                             <span className="text-sm font-bold text-slate-700">Terakreditasi</span>

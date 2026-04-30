@@ -141,6 +141,7 @@ export default function SkGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [failedSyncItems, setFailedSyncItems] = useState<FailedSyncItem[]>([])
   const [isRetrying, setIsRetrying] = useState(false)
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending')
 
   // NIM Dialog state — shown when a selected teacher has no nomor_induk_maarif
   const [nimDialogTeacher, setNimDialogTeacher] = useState<TeacherForNim | null>(null)
@@ -185,16 +186,32 @@ export default function SkGeneratorPage() {
 
   // 🔥 REST API QUERIES
   
-  // 1. SK Request Candidates (Pending SkDocuments)
+  // 1. SK Request Candidates (Pending or Approved but not yet printed)
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
-    queryKey: ['sk-candidates-generator', searchTerm, page],
+    queryKey: ['sk-candidates-generator', searchTerm, page, activeTab],
     queryFn: () => skApi.list({
-      status: 'pending',
+      status: activeTab,
       search: searchTerm,
       page: page,
       per_page: 10
     })
   })
+
+  // Filter approved SK to only show those without file_url (not yet printed)
+  const filteredCandidates = useMemo(() => {
+    if (activeTab === 'approved') {
+      return {
+        ...candidatesData,
+        data: (candidatesData?.data || []).filter((sk: any) => 
+          !sk.file_url || 
+          sk.file_url === '' || 
+          sk.file_url === 'Generated via Bulk (Collective Group)' ||
+          sk.file_url === 'Generated via Bulk (ZIP)'
+        )
+      }
+    }
+    return candidatesData
+  }, [candidatesData, activeTab])
 
   // 2. Last SK Number for Auto-Increment
   // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
@@ -248,7 +265,7 @@ export default function SkGeneratorPage() {
     }
 
     // Cek apakah ada guru terpilih yang belum memiliki nomor_induk_maarif
-    const selectedTeachersForNimCheck = (candidatesData?.data || []).filter((t: any) => selectedIds.has(t.id))
+    const selectedTeachersForNimCheck = (filteredCandidates?.data || []).filter((t: any) => selectedIds.has(t.id))
     const teacherWithoutNim = selectedTeachersForNimCheck.find((t: any) => {
         const nim = t.nomor_induk_maarif || t.teacher?.nomor_induk_maarif
         return !nim || nim.trim() === ""
@@ -270,7 +287,7 @@ export default function SkGeneratorPage() {
     setIsGenerating(true)
     const pendingFailedSync: FailedSyncItem[] = []
     try {
-        const selectedTeachers = (candidatesData?.data || []).filter((t: any) => selectedIds.has(t.id))
+        const selectedTeachers = (filteredCandidates?.data || []).filter((t: any) => selectedIds.has(t.id))
         const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
         const dateObj = new Date()
         const dd = String(dateObj.getDate()).padStart(2, '0')
@@ -911,14 +928,48 @@ export default function SkGeneratorPage() {
                 </div>
             </div>
 
+            {/* Tab Switcher */}
+            <div className="px-8 pt-6 pb-0 flex gap-2 border-b border-slate-100">
+                <button
+                    onClick={() => {
+                        setActiveTab('pending')
+                        setSelectedIds(new Set())
+                        setPage(1)
+                    }}
+                    className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-t-lg transition-all ${
+                        activeTab === 'pending'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                >
+                    <AlertCircle className="inline h-3 w-3 mr-1" />
+                    Antrean Draft ({candidatesData?.data?.length || 0})
+                </button>
+                <button
+                    onClick={() => {
+                        setActiveTab('approved')
+                        setSelectedIds(new Set())
+                        setPage(1)
+                    }}
+                    className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-t-lg transition-all ${
+                        activeTab === 'approved'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                >
+                    <CheckCircle className="inline h-3 w-3 mr-1" />
+                    Disetujui Belum Tercetak ({filteredCandidates?.data?.length || 0})
+                </button>
+            </div>
+
             <Table>
                 <TableHeader className="bg-slate-50/50">
                     <TableRow className="hover:bg-transparent border-slate-100">
                         <TableHead className="w-12 pl-8">
                             <Checkbox 
-                                checked={candidatesData?.data?.length > 0 && selectedIds.size === candidatesData.data.length}
+                                checked={filteredCandidates?.data?.length > 0 && selectedIds.size === filteredCandidates.data.length}
                                 onCheckedChange={(c) => {
-                                    if(c) setSelectedIds(new Set(candidatesData.data.map((t: any) => t.id)))
+                                    if(c) setSelectedIds(new Set(filteredCandidates.data.map((t: any) => t.id)))
                                     else setSelectedIds(new Set())
                                 }}
                             />
@@ -933,10 +984,12 @@ export default function SkGeneratorPage() {
                 <TableBody>
                     {isCandidatesLoading ? (
                         <TableRow><TableCell colSpan={6} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
-                    ) : candidatesData?.data?.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Tidak ada antrean calon SK</TableCell></TableRow>
+                    ) : filteredCandidates?.data?.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">
+                            {activeTab === 'pending' ? 'Tidak ada antrean calon SK' : 'Semua SK yang disetujui sudah tercetak'}
+                        </TableCell></TableRow>
                     ) : (
-                        candidatesData.data.map((t: any) => (
+                        filteredCandidates.data.map((t: any) => (
                             <TableRow key={t.id} className="hover:bg-slate-50/50 border-slate-50">
                                 <TableCell className="pl-8">
                                     <Checkbox 
@@ -966,12 +1019,12 @@ export default function SkGeneratorPage() {
                 </TableBody>
             </Table>
 
-            {!isCandidatesLoading && candidatesData?.total > 0 && (
+            {!isCandidatesLoading && filteredCandidates?.total > 0 && (
                 <div className="p-8 bg-slate-50/50 flex items-center justify-between border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total {candidatesData.total} Kandidat</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total {filteredCandidates.total} Kandidat</span>
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-xl h-9 px-4">Sebelumnya</Button>
-                        <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(candidatesData.total / 10)} className="rounded-xl h-9 px-4">Berikutnya</Button>
+                        <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(filteredCandidates.total / 10)} className="rounded-xl h-9 px-4">Berikutnya</Button>
                     </div>
                 </div>
             )}

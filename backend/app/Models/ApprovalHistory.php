@@ -16,6 +16,11 @@ class ApprovalHistory extends Model
         'performed_at', 'comment', 'metadata',
     ];
 
+    public function school()
+    {
+        return $this->belongsTo(\App\Models\School::class);
+    }
+
     protected function casts(): array
     {
         return ['performed_at' => 'datetime', 'metadata' => 'array'];

@@ -89,7 +89,7 @@ export default function SchoolDetailPage() {
         
         {/* Kolom Kiri: Info Utama */}
         <div className="lg:col-span-2">
-            <Card className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white">
+            <Card className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white h-full">
                 <CardContent className="p-6 sm:p-8">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -140,7 +140,7 @@ export default function SchoolDetailPage() {
 
         {/* Kolom Kanan: Info Kepemimpinan & Status */}
         <div className="space-y-6">
-            <Card className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white">
+            <Card className="border border-slate-200/60 shadow-sm rounded-2xl overflow-hidden bg-white h-full">
                 <CardContent className="p-6 sm:p-8">
                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Kepemimpinan</h3>
                     <div className="space-y-3 mb-6">

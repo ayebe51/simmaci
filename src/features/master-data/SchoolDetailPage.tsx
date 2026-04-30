@@ -239,7 +239,6 @@ export default function SchoolDetailPage() {
                         {activePercentage}% Kehadiran
                     </div>
                 </div>
-            </div>
       </div>
 
       {/* Daftar Guru & Tenaga Kependidikan */}

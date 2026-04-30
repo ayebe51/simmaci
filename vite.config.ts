@@ -18,7 +18,10 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         clientsClaim: true,
-        skipWaiting: true,
+        // skipWaiting intentionally omitted — with registerType: 'prompt', the new SW
+        // must wait in the "installed" state until the user confirms the reload.
+        // Setting skipWaiting: true here would activate the SW immediately, making
+        // updateServiceWorker(true) a no-op and breaking the "Muat Ulang" button.
         navigateFallbackDenylist: [/^\/.*\.xlsx$/]
       },
     }),

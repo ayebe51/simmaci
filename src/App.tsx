@@ -36,6 +36,7 @@ import VerifySkPage from "./features/verification/VerifySkPage"
 
 import MutationPage from "./features/mutations/MutationPage"
 import SchoolProfilePage from "./features/schools/SchoolProfilePage"
+import AdminSchoolManagementPage from "./features/schools/AdminSchoolManagementPage"
 import ChangePasswordPage from "./features/auth/ChangePasswordPage"
 import DataAuditPage from '@/features/master-data/DataAuditPage';
 import StudentCardPage from "./features/kta/StudentCardPage"
@@ -102,6 +103,7 @@ export default function App() {
                         <Route path="master/teachers" element={<TeacherListPage />} />
                         <Route path="users" element={<UserListPage />} />
                         <Route path="school/profile" element={<SchoolProfilePage />} />
+                        <Route path="admin/schools" element={<AdminSchoolManagementPage />} />
                         <Route path="sk" element={<SkDashboardPage />} />
                         <Route path="sk/new" element={<SkSubmissionPage />} />
                         <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />

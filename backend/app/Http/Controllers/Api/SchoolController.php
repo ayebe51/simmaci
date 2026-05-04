@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\School;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SchoolController extends Controller
@@ -109,6 +110,16 @@ class SchoolController extends Controller
 
     public function update(Request $request, School $school): JsonResponse
     {
+        // Authorization check: operators can only update their own school
+        $user = $request->user();
+        
+        if ($user->role === 'operator' && $user->school_id !== $school->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk mengubah data sekolah ini'
+            ], 403);
+        }
+        
         // Validate only the fields that are being updated
         $validated = $request->validate([
             'nsm' => 'nullable|string|unique:schools,nsm,' . $school->id,
@@ -121,34 +132,37 @@ class SchoolController extends Controller
             'kelurahan' => 'nullable|string',
             'telepon' => 'nullable|string',
             'email' => 'nullable|email',
-            'kepala_madrasah' => 'nullable|string',
+            'kepala_madrasah' => 'nullable|string|max:255',
             'akreditasi' => 'nullable|string',
             'status_jamiyyah' => 'nullable|string',
             'npsm_nu' => 'nullable|string|unique:schools,npsm_nu,' . $school->id,
-            'kepala_nim' => 'nullable|string',
-            'kepala_nuptk' => 'nullable|string',
-            'kepala_whatsapp' => 'nullable|string',
+            'kepala_nim' => 'nullable|string|max:50',
+            'kepala_nuptk' => 'nullable|string|max:50',
+            'kepala_whatsapp' => 'nullable|string|max:20',
             'kepala_jabatan_mulai' => 'nullable|date',
-            'kepala_jabatan_selesai' => 'nullable|date',
+            'kepala_jabatan_selesai' => 'nullable|date|after_or_equal:kepala_jabatan_mulai',
         ]);
 
         // Only update fields that are present in the request
         $updateData = array_filter($validated, fn($value) => $value !== null);
         
         if (!empty($updateData)) {
-            $school->update($updateData);
+            // Use database transaction to ensure atomicity
+            \DB::transaction(function () use ($school, $updateData, $user) {
+                $school->update($updateData);
 
-            // Log activity
-            ActivityLog::create([
-                'description' => "Memperbarui data sekolah: {$school->nama}",
-                'event' => 'update_school',
-                'log_name' => 'school',
-                'subject_id' => $school->id,
-                'subject_type' => get_class($school),
-                'causer_id' => $request->user()->id,
-                'causer_type' => get_class($request->user()),
-                'school_id' => $school->id,
-            ]);
+                // Log activity
+                ActivityLog::create([
+                    'description' => "Memperbarui data sekolah: {$school->nama}",
+                    'event' => 'update_school',
+                    'log_name' => 'school',
+                    'subject_id' => $school->id,
+                    'subject_type' => get_class($school),
+                    'causer_id' => $user->id,
+                    'causer_type' => get_class($user),
+                    'school_id' => $school->id,
+                ]);
+            });
         }
 
         return response()->json($school->fresh());

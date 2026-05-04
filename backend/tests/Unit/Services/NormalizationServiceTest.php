@@ -388,6 +388,71 @@ class NormalizationServiceTest extends TestCase
 
     /**
      * @test
+     * @group attached-degrees
+     */
+    public function it_splits_attached_three_character_degrees(): void
+    {
+        // Test 3-character degrees that are commonly attached to names
+        $testCases = [
+            'MAFTUHSAG'     => 'MAFTUH, S.Ag.',      // S.Ag. (Sarjana Agama)
+            'FATIMAHMPD'    => 'FATIMAH, M.Pd.',     // M.Pd. (Magister Pendidikan)
+            'HASANSPD'      => 'HASAN, S.Pd.',       // S.Pd. (Sarjana Pendidikan)
+            'AHMADMAG'      => 'AHMAD, M.Ag.',       // M.Ag. (Magister Agama)
+            'SITIMSI'       => 'SITI, M.Si.',        // M.Si. (Magister Sains)
+            'ALISSPD'       => 'ALIS, S.Pd.',        // S.Pd. with 4-char name
+            'RAHMASAG'      => 'RAHMA, S.Ag.',       // S.Ag. with 5-char name
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Failed to split attached degree for: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group attached-degrees
+     */
+    public function it_does_not_split_names_that_look_like_degrees(): void
+    {
+        // Names that end with degree-like patterns but should NOT be split
+        $testCases = [
+            'LEANDRA'  => 'LEANDRA',   // Ends with DRA but it's a name
+            'SANDRA'   => 'SANDRA',    // Ends with DRA but it's a name
+            'INDRA'    => 'INDRA',     // Too short (< 7 chars)
+            'CANDRA'   => 'CANDRA',    // Ends with DRA but it's a name
+            'AHMAD'    => 'AHMAD',     // Too short
+            'SITI'     => 'SITI',      // Too short
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Incorrectly split name: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group attached-degrees
+     */
+    public function it_splits_attached_four_plus_character_degrees(): void
+    {
+        // Test 4+ character degrees that are attached to names
+        $testCases = [
+            'AHMADSPDI'      => 'AHMAD, S.Pd.I',       // S.Pd.I (4 chars)
+            'HASANAMAPDSD'   => 'HASAN, A.Ma.Pd.SD.',  // AMAPDSD (7 chars)
+            'FATIMAHSPDSD'   => 'FATIMAH, S.Pd.SD.',   // SPDSD (5 chars)
+            'SITIAMAPDSD'    => 'SITI, A.Ma.Pd.SD.',   // AMAPDSD (7 chars)
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Failed to split attached degree for: {$input}");
+        }
+    }
+
+    /**
+     * @test
      * @group idempotence
      */
     public function it_maintains_idempotence_for_school_names(): void

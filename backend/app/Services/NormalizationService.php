@@ -372,23 +372,27 @@ class NormalizationService
      *   "FATIMAHMPD"  → "FATIMAH MPD"   (M.Pd attached)
      *   "HASANSPD"    → "HASAN SPD"     (S.Pd attached)
      *
-     * Only degree keys with ≥ 3 characters are used to avoid false positives
-     * on short keys (SH, ST, SE, MM, MT) that could match common name endings.
-     * Token must be pure alpha (no dots/commas) and total length ≥ 6.
-     * Name part must be ≥ 3 characters after splitting.
+     * Strategy:
+     * - Try 4+ character degrees first (safer, less false positives)
+     * - Then try 3-character degrees from whitelist (common degrees like SAG, SPD, MPD)
+     * - Exclude 2-character degrees (too many false positives)
+     * - Name part must be ≥ 4 characters after splitting
      */
     protected function splitAttachedDegrees(string $name): string
     {
-        // Minimum key length for split detection.
-        // Short keys like DR, DRA, SH, ST, SE are excluded because they appear
-        // too frequently as substrings inside real Indonesian names
-        // (e.g. LEANDRA, CANDRA, INDRA, SANDRA → false positives with DRA/DR).
-        $minKeyLen = 4;
+        // 3-character degree keys that are safe to split (common academic degrees)
+        // These are whitelisted because they're very common in Indonesian academic context
+        $safeThreeCharKeys = [
+            'SAG', 'SPD', 'MPD', 'SSY', 'SSI', 'SIP', 'SKM', 'SGZ', 'SAK', 'SPT',
+            'MAG', 'MSI', 'MIP', 'MKM', 'MAK', 'MKN', 'MSN', 'MDS',
+            'PHD', 'AMA', 'AMD', 'DII', 'DIV', 'SAN', 'SOS', 'FIL', 'STH', 'SEI',
+            'SHI', 'SKI', 'SPI', 'SST', 'MHI', 'MKI', 'MPI', 'MST', 'MBA', 'MPA',
+        ];
 
         // Keys explicitly excluded from split detection due to high false-positive rate
         // as name substrings. These are still handled correctly when they appear as
         // separate tokens (e.g. "AHMAD DR" or "SITI, Dra.").
-        $excludeFromSplit = ['DR', 'DRA', 'SH', 'ST', 'SE', 'SM', 'MM', 'MT', 'ME', 'MH'];
+        $excludeFromSplit = ['DR', 'DRA', 'SH', 'ST', 'SE', 'SM', 'MM', 'MT', 'ME', 'MH', 'LC', 'NS'];
 
         $map    = $this->getDegreeMap(); // sorted longest-first
         $tokens = preg_split('/\s+/', trim($name));
@@ -405,22 +409,31 @@ class NormalizationService
 
             $upper = mb_strtoupper($stripped, 'UTF-8');
 
-            // Minimum total: name part (≥4) + degree key (≥4) = 8
-            if (strlen($upper) < 8) {
+            // Minimum total: name part (≥4) + degree key (≥3) = 7
+            if (strlen($upper) < 7) {
                 $result[] = $token;
                 continue;
             }
 
             $split = false;
+            
+            // Try to match degrees from longest to shortest
             foreach ($map as $key => $canonical) {
                 $keyLen = strlen($key);
 
-                if ($keyLen < $minKeyLen) continue;
+                // Skip excluded keys
                 if (in_array($key, $excludeFromSplit, true)) continue;
+
+                // For 3-character keys, only allow whitelisted ones
+                if ($keyLen === 3 && !in_array($key, $safeThreeCharKeys, true)) continue;
+
+                // Skip 2-character or shorter keys (too risky)
+                if ($keyLen < 3) continue;
 
                 $nameLen = strlen($upper) - $keyLen;
 
-                if ($nameLen < 4) continue; // name part too short
+                // Name part must be at least 4 characters
+                if ($nameLen < 4) continue;
 
                 if (substr($upper, -$keyLen) === $key) {
                     $result[] = substr($upper, 0, $nameLen);

@@ -152,6 +152,9 @@ class SchoolController extends Controller
             }
         }
         
+        // Filter out null values - only update fields with actual data
+        $updateData = array_filter($updateData, fn($value) => !is_null($value));
+        
         if (!empty($updateData)) {
             // Use database transaction to ensure atomicity
             \DB::transaction(function () use ($school, $updateData, $user) {

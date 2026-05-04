@@ -75,7 +75,7 @@ export default function AdminSchoolManagementPage() {
   ].sort()
 
   // Fetch schools list with pagination and filters
-  const { data: schoolsData, isLoading, refetch } = useQuery({
+  const { data: schoolsData, isLoading } = useQuery({
     queryKey: ['admin-schools', currentPage, debouncedSearchTerm, filterKecamatan],
     queryFn: () => schoolApi.paginate({
       page: currentPage,
@@ -107,9 +107,8 @@ export default function AdminSchoolManagementPage() {
     setSelectedSchool(school)
   }
 
-  // Handle form success - refresh list and return to list view
+  // Handle form success - return to list view (React Query will auto-refresh via invalidation)
   const handleFormSuccess = () => {
-    refetch()
     setSelectedSchool(null)
   }
 

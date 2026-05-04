@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { schoolApi, School } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,6 +57,8 @@ export default function HeadmasterProfileForm({
   onCancel,
   isAdminMode = false,
 }: HeadmasterProfileFormProps) {
+  const queryClient = useQueryClient()
+  
   const {
     register,
     handleSubmit,
@@ -93,6 +95,15 @@ export default function HeadmasterProfileForm({
     },
     onSuccess: (updated) => {
       toast.success("Profil kepala madrasah berhasil diperbarui!")
+      
+      // Invalidate and refetch school list queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['admin-schools'] })
+      
+      // Invalidate school detail query if it exists
+      queryClient.invalidateQueries({ queryKey: ['school', school.id] })
+      
+      // Invalidate school profile query for operators
+      queryClient.invalidateQueries({ queryKey: ['school-profile'] })
       
       // Update form with fresh data from server
       if (updated) {
@@ -254,17 +265,19 @@ export default function HeadmasterProfileForm({
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="h-14 px-8 rounded-2xl font-black uppercase text-xs tracking-widest"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Batal
-            </Button>
+            {isAdminMode && (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="h-14 px-8 rounded-2xl font-black uppercase text-xs tracking-widest"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Batal
+              </Button>
+            )}
             <Button
               type="submit"
               size="lg"

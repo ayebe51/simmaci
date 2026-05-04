@@ -1,24 +1,21 @@
 import { useState, useEffect } from "react"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { schoolApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Save, Building2, User, Loader2, Briefcase, Phone, Calendar } from "lucide-react"
+import { Save, Building2, Loader2 } from "lucide-react"
+import HeadmasterProfileForm from "./components/HeadmasterProfileForm"
 
 export default function SchoolProfilePage() {
+  const queryClient = useQueryClient()
+  
   const [formData, setFormData] = useState({
     alamat: "",
     telepon: "",
     email: "",
-    kepala_madrasah: "",
-    kepala_nim: "",
-    kepala_nuptk: "",
-    kepala_whatsapp: "",
-    kepala_jabatan_mulai: "",
-    kepala_jabatan_selesai: "",
     akreditasi: "",
     npsn: "",
     npsmnu: "",
@@ -27,7 +24,7 @@ export default function SchoolProfilePage() {
   })
 
   // 🔥 REST API QUERY
-  const { data: school, isLoading, refetch } = useQuery({
+  const { data: school, isLoading } = useQuery({
     queryKey: ['school-profile-me'],
     queryFn: () => schoolApi.profile()
   })
@@ -38,12 +35,6 @@ export default function SchoolProfilePage() {
         alamat: school.alamat || "",
         telepon: school.telepon || "",
         email: school.email || "",
-        kepala_madrasah: school.kepala_madrasah || "",
-        kepala_nim: school.kepala_nim || "",
-        kepala_nuptk: school.kepala_nuptk || "",
-        kepala_whatsapp: school.kepala_whatsapp || "",
-        kepala_jabatan_mulai: school.kepala_jabatan_mulai || "",
-        kepala_jabatan_selesai: school.kepala_jabatan_selesai || "",
         akreditasi: school.akreditasi || "",
         npsn: school.npsn || "",
         npsmnu: school.npsm_nu || "",
@@ -66,18 +57,18 @@ export default function SchoolProfilePage() {
     },
     onSuccess: (updated) => {
       toast.success("Profil sekolah berhasil diperbarui!")
+      
+      // Invalidate queries to trigger automatic refetch
+      queryClient.invalidateQueries({ queryKey: ['school-profile-me'] })
+      queryClient.invalidateQueries({ queryKey: ['school-profile'] })
+      queryClient.invalidateQueries({ queryKey: ['school', school.id] })
+      
       // Update form directly from response to ensure UI reflects saved data
       if (updated) {
         setFormData({
           alamat: updated.alamat || "",
           telepon: updated.telepon || "",
           email: updated.email || "",
-          kepala_madrasah: updated.kepala_madrasah || "",
-          kepala_nim: updated.kepala_nim || "",
-          kepala_nuptk: updated.kepala_nuptk || "",
-          kepala_whatsapp: updated.kepala_whatsapp || "",
-          kepala_jabatan_mulai: updated.kepala_jabatan_mulai || "",
-          kepala_jabatan_selesai: updated.kepala_jabatan_selesai || "",
           akreditasi: updated.akreditasi || "",
           npsn: updated.npsn || "",
           npsmnu: updated.npsm_nu || "",
@@ -85,7 +76,6 @@ export default function SchoolProfilePage() {
           nsm: updated.nsm || ""
         })
       }
-      refetch()
     },
     onError: (err: any) => toast.error("Gagal update: " + (err.response?.data?.message || err.message))
   })
@@ -178,42 +168,13 @@ export default function SchoolProfilePage() {
             </Card>
         </div>
         
-        {/* Profil Kepala Madrasah (New Card) */}
-        <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden border-l-4 border-l-blue-600">
-           <CardHeader className="p-10 border-b bg-blue-50/30">
-                <CardTitle className="text-lg font-black text-blue-900 uppercase tracking-tight flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600"><User className="h-5 w-5" /></div>
-                  Profil Kepala Madrasah
-                </CardTitle>
-                <CardDescription className="text-xs font-medium text-blue-600/60">Informasi personal dan masa bakti pimpinan lembaga.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-2 lg:col-span-1">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Lengkap (Tanpa Gelar)</Label>
-                    <Input name="kepala_madrasah" value={formData.kepala_madrasah} onChange={handleChange} placeholder="Nama Lengkap" className="h-12 rounded-xl border-slate-200 font-bold" />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NIM (Nomor Induk Ma'arif)</Label>
-                    <Input name="kepala_nim" value={formData.kepala_nim} onChange={handleChange} placeholder="No Induk" className="h-12 rounded-xl border-slate-200 font-bold" />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">NUPTK</Label>
-                    <Input name="kepala_nuptk" value={formData.kepala_nuptk} onChange={handleChange} placeholder="NUPTK" className="h-12 rounded-xl border-slate-200 font-bold" />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Phone className="h-3 w-3" /> WhatsApp Kepala</Label>
-                    <Input name="kepala_whatsapp" value={formData.kepala_whatsapp} onChange={handleChange} placeholder="08..." className="h-12 rounded-xl border-slate-200 font-bold" />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Calendar className="h-3 w-3" /> Jabatan Mulai</Label>
-                    <Input type="date" name="kepala_jabatan_mulai" value={formData.kepala_jabatan_mulai} onChange={handleChange} className="h-12 rounded-xl border-slate-200 font-bold" />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Calendar className="h-3 w-3" /> Jabatan Selesai</Label>
-                    <Input type="date" name="kepala_jabatan_selesai" value={formData.kepala_jabatan_selesai} onChange={handleChange} className="h-12 rounded-xl border-slate-200 font-bold" />
-                </div>
-            </CardContent>
-        </Card>
+        {/* Profil Kepala Madrasah - Using Reusable Component */}
+        <HeadmasterProfileForm
+          school={school}
+          onSuccess={() => {}}
+          onCancel={() => {}}
+          isAdminMode={false}
+        />
 
         {/* Alamat & Kontak (Full Width) */}
         <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">

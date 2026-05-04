@@ -72,6 +72,7 @@ export default function AppShell({ children }: AppShellProps) {
           href: userRole === "operator" ? "/dashboard/school/profile" : "/dashboard/master/schools", 
           icon: School 
         },
+        { label: "Kelola Sekolah", href: "/dashboard/admin/schools", icon: School, adminOnly: true },
         { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
         { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
       ]
@@ -163,7 +164,7 @@ export default function AppShell({ children }: AppShellProps) {
                   const adminOnlyLabels = [
                     "Manajemen User", "Health Data", "Event / Lomba", 
                     "Generator SK", "Approval Yayasan", "Monitoring Kepala", 
-                    "Persetujuan NUPTK", "Laporan Guru", "Laporan SK"
+                    "Persetujuan NUPTK", "Laporan Guru", "Laporan SK", "Kelola Sekolah"
                   ];
                   const superAdminOnlyLabels = ["Template SK"];
 

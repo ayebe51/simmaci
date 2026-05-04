@@ -130,21 +130,21 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Use ProtectedLayout wrapper for authentication
     - _Requirements: 1.1, 1.2, 1.3_
   
-  - [~] 4.2 Update navigation menu for admin users
+  - [x] 4.2 Update navigation menu for admin users
     - Add "Kelola Sekolah" menu item for super_admin and admin_yayasan
     - Hide menu item from operator role
     - Use role-based conditional rendering
     - _Requirements: 1.1, 1.2_
 
-- [ ] 5. Refactor existing SchoolProfilePage to use HeadmasterProfileForm
-  - [~] 5.1 Extract form logic from SchoolProfilePage into HeadmasterProfileForm
+- [x] 5. Refactor existing SchoolProfilePage to use HeadmasterProfileForm
+  - [x] 5.1 Extract form logic from SchoolProfilePage into HeadmasterProfileForm
     - Remove duplicate form code from SchoolProfilePage
     - Import and use HeadmasterProfileForm component
     - Pass school data and callbacks as props
     - Maintain existing operator functionality
     - _Requirements: 5.3_
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Run backend PHPUnit tests (`php artisan test`)
   - Run frontend unit tests if implemented
   - Manually test admin user can update any school
@@ -162,16 +162,16 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Use apiClient from `src/lib/api.ts`
     - _Requirements: 6.1, 6.2, 6.4_
 
-- [ ] 8. Implement data refresh after successful update
-  - [~] 8.1 Implement optimistic updates with React Query
+- [x] 8. Implement data refresh after successful update
+  - [x] 8.1 Implement optimistic updates with React Query
     - Use React Query mutation for school updates
     - Invalidate school list query after successful update
     - Invalidate school detail query after successful update
     - Display updated data immediately in UI
     - _Requirements: 7.3, 8.1_
 
-- [ ] 9. Write integration tests for end-to-end workflow
-  - [~] 9.1 Write backend integration tests
+- [x] 9. Write integration tests for end-to-end workflow
+  - [x] 9.1 Write backend integration tests
     - Test admin can complete full update workflow
     - Test operator can update own school profile
     - Test update flow with database transaction
@@ -179,7 +179,7 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Test no activity log created on failed update
     - _Requirements: 4.1, 4.2, 4.3, 7.1, 7.2_
   
-  - [~] 9.2 Write E2E tests with Playwright
+  - [x] 9.2 Write E2E tests with Playwright
     - Test admin can search and update headmaster profile
     - Test validation error displays for invalid date range
     - Test operator cannot access other schools
@@ -187,7 +187,7 @@ This implementation plan breaks down the feature into discrete coding tasks that
     - Test loading states display correctly
     - _Requirements: 1.1, 1.3, 3.5, 8.1, 8.4_
 
-- [ ] 10. Final checkpoint and manual testing
+- [x] 10. Final checkpoint and manual testing
   - Verify super admin can view all schools in the list
   - Verify admin yayasan can view all schools in the list
   - Verify operator only sees their own school

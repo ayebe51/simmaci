@@ -73,6 +73,7 @@ class NormalizationService
         'AMAPD'     => 'A.Ma.Pd.',
         'AMAPDSD'   => 'A.Ma.Pd.SD.',
         'AMA'       => 'A.Ma.',
+        'AMDPUST'   => 'A.Md.Pust.',
         'AMDKOM'    => 'A.Md.Kom.',
         'AMDTI'     => 'A.Md.T.I.',
         'AMDKEB'    => 'Amd.Keb.',

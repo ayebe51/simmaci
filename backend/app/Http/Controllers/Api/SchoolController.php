@@ -143,8 +143,14 @@ class SchoolController extends Controller
             'kepala_jabatan_selesai' => 'nullable|date|after_or_equal:kepala_jabatan_mulai',
         ]);
 
-        // Only update fields that are present in the request
-        $updateData = array_filter($validated, fn($value) => $value !== null);
+        // Only update fields that are actually present in the request
+        // Filter out fields that weren't sent in the request at all
+        $updateData = [];
+        foreach ($validated as $key => $value) {
+            if ($request->has($key)) {
+                $updateData[$key] = $value;
+            }
+        }
         
         if (!empty($updateData)) {
             // Use database transaction to ensure atomicity
@@ -165,7 +171,11 @@ class SchoolController extends Controller
             });
         }
 
-        return response()->json($school->fresh());
+        return response()->json([
+            'success' => true,
+            'message' => 'Data sekolah berhasil diperbarui',
+            'data' => $school->fresh()
+        ]);
     }
 
     public function destroy(Request $request, School $school): JsonResponse

@@ -138,6 +138,7 @@ class NormalizationServiceTest extends TestCase
             'AHMAD S SOS I'       => 'AHMAD, S.Sos.I',
             'Ahmad S.Sos.I'       => 'AHMAD, S.Sos.I',
             'BUDI A MA PUST'      => 'BUDI, A.Ma.Pust.',
+            'DEWI A MD PUST'      => 'DEWI, A.Md.Pust.',
             'Nur Hidayah Amd Keb' => 'NUR HIDAYAH, Amd.Keb.',
             'WAHYU S E I'         => 'WAHYU, S.E.I',
             'Hasan LC'            => 'HASAN, Lc.',

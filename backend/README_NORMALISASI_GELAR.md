@@ -38,6 +38,10 @@ app(App\Services\NormalizationService::class)->normalizeTeacherName('dr. ahmad s
 | **[QUICK_REFERENCE_NORMALISASI.md](QUICK_REFERENCE_NORMALISASI.md)** | 📋 Cheat sheet & quick commands |
 | **[NORMALISASI_GELAR.md](NORMALISASI_GELAR.md)** | 📚 Dokumentasi lengkap semua fitur |
 | **[TINKER_EXAMPLES.md](TINKER_EXAMPLES.md)** | 💻 Contoh penggunaan via tinker |
+| **[TINKER_COMMANDS.md](TINKER_COMMANDS.md)** | 📝 Command lengkap untuk tinker |
+| **[TINKER_ONE_LINERS.md](TINKER_ONE_LINERS.md)** | ⚡ One-liner commands (copy-paste) |
+| **[PRODUCTION_NORMALIZATION.md](PRODUCTION_NORMALIZATION.md)** | 🔒 Production guide (step-by-step) |
+| **[DEV_QUICK_COMMANDS.txt](DEV_QUICK_COMMANDS.txt)** | 🚀 Development quick commands |
 
 ## 🚀 Fitur Utama
 

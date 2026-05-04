@@ -1,0 +1,135 @@
+# Development Quick Commands
+# Copy-paste langsung ke tinker untuk testing
+
+# ============================================
+# SETUP (Copy ini dulu)
+# ============================================
+use App\Models\Teacher; use App\Models\SkDocument; use App\Models\HeadmasterTenure; use App\Services\NormalizationService; $service = app(NormalizationService::class);
+
+
+# ============================================
+# TEST SINGLE NAME
+# ============================================
+$service->normalizeTeacherName('MAFTUHSAG');
+$service->normalizeTeacherName('FATIMAHMPD');
+$service->normalizeTeacherName('dr. ahmad fauzi s.pd');
+
+
+# ============================================
+# PREVIEW 10 TEACHERS
+# ============================================
+Teacher::limit(10)->get()->each(fn($t) => print("ID {$t->id}: '{$t->nama}' → '" . $service->normalizeTeacherName($t->nama) . "'\n"));
+
+
+# ============================================
+# COUNT YANG PERLU UPDATE
+# ============================================
+Teacher::get()->filter(fn($t) => $t->nama !== $service->normalizeTeacherName($t->nama))->count();
+
+
+# ============================================
+# UPDATE 1 TEACHER BY ID
+# ============================================
+$t = Teacher::find(1); $t->update(['nama' => $service->normalizeTeacherName($t->nama)]); echo "Updated: {$t->nama}\n";
+
+
+# ============================================
+# UPDATE SEMUA TEACHER (DEVELOPMENT ONLY!)
+# ============================================
+$updated = 0; Teacher::chunk(100, function($teachers) use ($service, &$updated) { foreach ($teachers as $t) { $n = $service->normalizeTeacherName($t->nama); if ($t->nama !== $n) { $t->update(['nama' => $n]); $updated++; echo "ID {$t->id}: '{$t->nama}' → '{$n}'\n"; } } }); echo "Total: {$updated}\n";
+
+
+# ============================================
+# UPDATE BY SCHOOL ID
+# ============================================
+$schoolId = 1; $updated = 0; Teacher::where('school_id', $schoolId)->chunk(100, function($teachers) use ($service, &$updated) { foreach ($teachers as $t) { $n = $service->normalizeTeacherName($t->nama); if ($t->nama !== $n) { $t->update(['nama' => $n]); $updated++; } } }); echo "Updated: {$updated}\n";
+
+
+# ============================================
+# FIND GELAR MENEMPEL (NO SPACES)
+# ============================================
+Teacher::whereRaw("nama = UPPER(nama)")->whereRaw("nama NOT LIKE '% %'")->whereRaw("LENGTH(nama) > 8")->limit(10)->get()->each(fn($t) => print("ID {$t->id}: '{$t->nama}' → '" . $service->normalizeTeacherName($t->nama) . "'\n"));
+
+
+# ============================================
+# UPDATE GELAR MENEMPEL SAJA
+# ============================================
+$updated = 0; Teacher::whereRaw("nama = UPPER(nama)")->whereRaw("nama NOT LIKE '% %'")->whereRaw("LENGTH(nama) > 8")->chunk(100, function($teachers) use ($service, &$updated) { foreach ($teachers as $t) { $n = $service->normalizeTeacherName($t->nama); if ($t->nama !== $n) { $t->update(['nama' => $n]); $updated++; echo "ID {$t->id}: '{$t->nama}' → '{$n}'\n"; } } }); echo "Total: {$updated}\n";
+
+
+# ============================================
+# FIND NAMA DENGAN "SAG"
+# ============================================
+Teacher::where('nama', 'LIKE', '%SAG%')->limit(10)->get()->each(fn($t) => print("ID {$t->id}: {$t->nama}\n"));
+
+
+# ============================================
+# UPDATE NAMA DENGAN "SAG"
+# ============================================
+$updated = 0; Teacher::where('nama', 'LIKE', '%SAG%')->chunk(100, function($teachers) use ($service, &$updated) { foreach ($teachers as $t) { $n = $service->normalizeTeacherName($t->nama); if ($t->nama !== $n) { $t->update(['nama' => $n]); $updated++; echo "ID {$t->id}: '{$t->nama}' → '{$n}'\n'; } } }); echo "Updated: {$updated}\n";
+
+
+# ============================================
+# PARSE DEGREES (BREAKDOWN)
+# ============================================
+$service->parseAcademicDegreesPublic('dr. ahmad fauzi s.pd m.ag');
+
+
+# ============================================
+# TEST MULTIPLE NAMES
+# ============================================
+collect(['MAFTUHSAG', 'FATIMAHMPD', 'HASANSPD', 'dr. ahmad s.pd'])->each(fn($n) => print("'{$n}' → '" . $service->normalizeTeacherName($n) . "'\n"));
+
+
+# ============================================
+# BACKUP TO JSON
+# ============================================
+$backup = Teacher::pluck('nama', 'id')->toArray(); file_put_contents('teacher_backup_' . date('YmdHis') . '.json', json_encode($backup, JSON_PRETTY_PRINT)); echo "Backed up " . count($backup) . " teachers\n";
+
+
+# ============================================
+# RESTORE FROM JSON
+# ============================================
+$backup = json_decode(file_get_contents('teacher_backup_20260504123456.json'), true); $restored = 0; foreach ($backup as $id => $nama) { $t = Teacher::find($id); if ($t && $t->nama !== $nama) { $t->update(['nama' => $nama]); $restored++; } } echo "Restored: {$restored}\n";
+
+
+# ============================================
+# STATISTICS
+# ============================================
+$total = Teacher::count(); $needsUpdate = Teacher::get()->filter(fn($t) => $t->nama !== $service->normalizeTeacherName($t->nama))->count(); echo "Total: {$total}, Needs update: {$needsUpdate}, OK: " . ($total - $needsUpdate) . "\n";
+
+
+# ============================================
+# UPDATE SK DOCUMENT
+# ============================================
+$updated = 0; SkDocument::chunk(100, function($docs) use ($service, &$updated) { foreach ($docs as $d) { $n = $service->normalizeTeacherName($d->nama); if ($d->nama !== $n) { $d->update(['nama' => $n]); $updated++; } } }); echo "Updated: {$updated}\n";
+
+
+# ============================================
+# UPDATE HEADMASTER TENURE
+# ============================================
+$updated = 0; HeadmasterTenure::chunk(100, function($tenures) use ($service, &$updated) { foreach ($tenures as $t) { $n = $service->normalizeTeacherName($t->teacher_name); if ($t->teacher_name !== $n) { $t->update(['teacher_name' => $n]); $updated++; } } }); echo "Updated: {$updated}\n";
+
+
+# ============================================
+# UPDATE ALL MODELS (HATI-HATI!)
+# ============================================
+$stats = ['teacher' => 0, 'sk' => 0, 'tenure' => 0]; Teacher::chunk(100, function($ts) use ($service, &$stats) { foreach ($ts as $t) { $n = $service->normalizeTeacherName($t->nama); if ($t->nama !== $n) { $t->update(['nama' => $n]); $stats['teacher']++; } } }); SkDocument::chunk(100, function($docs) use ($service, &$stats) { foreach ($docs as $d) { $n = $service->normalizeTeacherName($d->nama); if ($d->nama !== $n) { $d->update(['nama' => $n]); $stats['sk']++; } } }); HeadmasterTenure::chunk(100, function($tenures) use ($service, &$stats) { foreach ($tenures as $t) { $n = $service->normalizeTeacherName($t->teacher_name); if ($t->teacher_name !== $n) { $t->update(['teacher_name' => $n]); $stats['tenure']++; } } }); print_r($stats);
+
+
+# ============================================
+# CLEAR CACHE
+# ============================================
+\Artisan::call('cache:clear'); echo "Cache cleared\n";
+
+
+# ============================================
+# MEMORY INFO
+# ============================================
+echo "Memory: " . round(memory_get_usage() / 1024 / 1024, 2) . " MB\n";
+
+
+# ============================================
+# SET MEMORY LIMIT
+# ============================================
+ini_set('memory_limit', '512M'); echo "Memory limit set to 512M\n";

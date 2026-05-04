@@ -43,7 +43,8 @@ interface TeacherCandidate {
     nama: string;
     nip?: string;
     nuptk?: string;
-    jabatan?: string;
+    nomor_permohonan?: string;
+    tanggal_permohonan?: string;
     unit_kerja?: string;
     status?: string;
     tmt?: string;
@@ -997,15 +998,16 @@ export default function SkGeneratorPage() {
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Lengkap</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jenis SK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Unit Kerja</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jabatan</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nomor Surat Permohonan</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Tanggal Surat Permohonan</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-right pr-8">Surat Permohonan</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isCandidatesLoading ? (
-                        <TableRow><TableCell colSpan={6} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
                     ) : filteredCandidates?.data?.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">
+                        <TableRow><TableCell colSpan={7} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">
                             {activeTab === 'pending' ? 'Tidak ada antrean calon SK' : 'Semua SK yang disetujui sudah tercetak'}
                         </TableCell></TableRow>
                     ) : (
@@ -1025,7 +1027,10 @@ export default function SkGeneratorPage() {
                                 <TableCell className="font-bold text-slate-800 text-sm">{t.nama}</TableCell>
                                 <TableCell className="text-xs text-slate-500 font-medium">{t.jenis_sk || "-"}</TableCell>
                                 <TableCell className="text-xs text-slate-600 font-bold">{t.unit_kerja || "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500">{t.jabatan || "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500">{t.nomor_permohonan || "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500">
+                                    {t.tanggal_permohonan ? new Date(t.tanggal_permohonan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
+                                </TableCell>
                                 <TableCell className="text-right pr-8">
                                     {t.surat_permohonan_url ? (
                                         <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-blue-600" onClick={() => openSuratPermohonan(t.surat_permohonan_url)}>

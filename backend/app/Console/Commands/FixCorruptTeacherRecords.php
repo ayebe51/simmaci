@@ -29,6 +29,7 @@ class FixCorruptTeacherRecords extends Command
         $fixedCount = 0;
         $unfixableCount = 0;
         $alreadyCorrectCount = 0;
+        $unfixableTeachers = [];
 
         foreach ($corruptTeachers as $teacher) {
             $currentSchool = School::find($teacher->school_id);
@@ -51,6 +52,7 @@ class FixCorruptTeacherRecords extends Command
                 $this->line("  school_id: {$oldSchoolId} → {$matchedSchool->id} ({$matchedSchool->nama})");
             } else {
                 $unfixableCount++;
+                $unfixableTeachers[] = $teacher;
             }
         }
 
@@ -61,7 +63,15 @@ class FixCorruptTeacherRecords extends Command
         $this->info("Total processed: " . ($fixedCount + $alreadyCorrectCount + $unfixableCount));
 
         if ($unfixableCount > 0) {
-            $this->warn("\nNote: {$unfixableCount} teachers could not be auto-fixed. These may need manual review.");
+            $this->warn("\n=== Unfixable Teachers (Manual Review Needed) ===");
+            foreach ($unfixableTeachers as $teacher) {
+                $currentSchool = School::find($teacher->school_id);
+                $this->line("ID: {$teacher->id} | {$teacher->nama}");
+                $this->line("  NUPTK: {$teacher->nuptk}");
+                $this->line("  Unit Kerja: {$teacher->unit_kerja}");
+                $this->line("  Current School ID: {$teacher->school_id} ({$currentSchool?->nama ?? 'DELETED'})");
+                $this->line("");
+            }
         }
 
         return 0;

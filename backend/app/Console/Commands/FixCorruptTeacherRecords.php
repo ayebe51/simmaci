@@ -14,11 +14,9 @@ class FixCorruptTeacherRecords extends Command
     {
         $this->info('Starting auto-fix for corrupt teacher records...');
 
-        // Get all schools
         $schools = School::all();
         $this->info("Found {$schools->count()} schools in system");
 
-        // Get all corrupt teachers (those with mismatched unit_kerja and school_id)
         $corruptTeachers = \App\Models\Teacher::withoutTenantScope()
             ->whereNotNull('unit_kerja')
             ->select('id', 'nama', 'unit_kerja', 'school_id')
@@ -34,13 +32,11 @@ class FixCorruptTeacherRecords extends Command
         foreach ($corruptTeachers as $teacher) {
             $currentSchool = School::find($teacher->school_id);
             
-            // Check if teacher's unit_kerja matches their current school
             if ($this->schoolNameMatches($teacher->unit_kerja, $currentSchool->nama)) {
                 $alreadyCorrectCount++;
                 continue;
             }
 
-            // Try to find matching school by unit_kerja
             $matchedSchool = $this->findMatchingSchool($teacher->unit_kerja, $schools);
 
             if ($matchedSchool) {
@@ -66,10 +62,11 @@ class FixCorruptTeacherRecords extends Command
             $this->warn("\n=== Unfixable Teachers (Manual Review Needed) ===");
             foreach ($unfixableTeachers as $teacher) {
                 $currentSchool = School::find($teacher->school_id);
+                $schoolName = $currentSchool ? $currentSchool->nama : 'DELETED';
                 $this->line("ID: {$teacher->id} | {$teacher->nama}");
                 $this->line("  NUPTK: {$teacher->nuptk}");
                 $this->line("  Unit Kerja: {$teacher->unit_kerja}");
-                $this->line("  Current School ID: {$teacher->school_id} ({$currentSchool?->nama ?? 'DELETED'})");
+                $this->line("  Current School ID: {$teacher->school_id} ({$schoolName})");
                 $this->line("");
             }
         }
@@ -77,20 +74,15 @@ class FixCorruptTeacherRecords extends Command
         return 0;
     }
 
-    /**
-     * Check if unit_kerja name matches school name
-     */
     private function schoolNameMatches(string $unitKerja, string $schoolName): bool
     {
         $unitKerjaLower = strtolower($unitKerja);
         $schoolNameLower = strtolower($schoolName);
 
-        // Exact match
         if ($unitKerjaLower === $schoolNameLower) {
             return true;
         }
 
-        // Partial match (school name is contained in unit_kerja or vice versa)
         if (strpos($unitKerjaLower, $schoolNameLower) !== false || 
             strpos($schoolNameLower, $unitKerjaLower) !== false) {
             return true;
@@ -99,10 +91,7 @@ class FixCorruptTeacherRecords extends Command
         return false;
     }
 
-    /**
-     * Find matching school by unit_kerja using fuzzy matching
-     */
-    private function findMatchingSchool(string $unitKerja, $schools): ?School
+    private function findMatchingSchool(string $unitKerja, $schools)
     {
         $unitKerjaLower = strtolower($unitKerja);
         $bestMatch = null;
@@ -111,12 +100,10 @@ class FixCorruptTeacherRecords extends Command
         foreach ($schools as $school) {
             $schoolNameLower = strtolower($school->nama);
             
-            // Exact match - highest priority
             if ($unitKerjaLower === $schoolNameLower) {
                 return $school;
             }
 
-            // Check if school name is contained in unit_kerja
             if (strpos($unitKerjaLower, $schoolNameLower) !== false) {
                 $score = strlen($schoolNameLower) / strlen($unitKerjaLower);
                 if ($score > $bestScore) {
@@ -125,7 +112,6 @@ class FixCorruptTeacherRecords extends Command
                 }
             }
 
-            // Check if unit_kerja is contained in school name
             if (strpos($schoolNameLower, $unitKerjaLower) !== false) {
                 $score = strlen($unitKerjaLower) / strlen($schoolNameLower);
                 if ($score > $bestScore) {
@@ -134,19 +120,16 @@ class FixCorruptTeacherRecords extends Command
                 }
             }
 
-            // Levenshtein distance for fuzzy matching
             $distance = levenshtein($unitKerjaLower, $schoolNameLower);
             $maxLen = max(strlen($unitKerjaLower), strlen($schoolNameLower));
             $similarity = 1 - ($distance / $maxLen);
 
-            // If similarity is high enough (>70%), consider it a match
             if ($similarity > 0.7 && $similarity > $bestScore) {
                 $bestScore = $similarity;
                 $bestMatch = $school;
             }
         }
 
-        // Only return match if score is reasonably high
         return ($bestScore > 0.6) ? $bestMatch : null;
     }
 }

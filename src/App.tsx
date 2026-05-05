@@ -59,6 +59,7 @@ import SubjectsPage from "./features/attendance/SubjectsPage"
 import ClassesPage from "./features/attendance/ClassesPage"
 import LessonSchedulePage from "./features/attendance/LessonSchedulePage"
 import AttendanceSettingsPage from "./features/attendance/AttendanceSettingsPage"
+import PublicScannerPage from "./features/attendance/PublicScannerPage"
 
 // Create a client
 const queryClient = new QueryClient()
@@ -86,6 +87,9 @@ export default function App() {
           <Route path="/verify/sk/:nomor" element={<VerifySkPage />} />
           <Route path="/verify/teacher/:nuptk" element={<VerifyTeacherPage />} />
           <Route path="/verify/student/:nisn" element={<VerifyStudentPage />} />
+          
+          {/* Public Attendance Scanner — accessible without login */}
+          <Route path="/scan" element={<PublicScannerPage />} />
           
           {/* Protected Routes Wrapper */}
           <Route

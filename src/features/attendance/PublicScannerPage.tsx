@@ -1,0 +1,632 @@
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Html5Qrcode } from "html5-qrcode";
+import {
+  ShieldCheck, UserCheck, GraduationCap, ScanLine, Save,
+  ChevronLeft, ChevronRight, Camera, CheckCircle2, XCircle,
+  Clock, ArrowLeft, Loader2, LogOut,
+} from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { publicAttendanceApi } from "@/lib/api";
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+type Screen = "login" | "mode" | "manual" | "scanner";
+
+interface Session {
+  schoolId: number;
+  schoolName: string;
+  pin: string;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  Hadir: "bg-emerald-500 text-white border-emerald-500",
+  Sakit: "bg-yellow-400 text-white border-yellow-400",
+  Izin:  "bg-blue-500 text-white border-blue-500",
+  Alpa:  "bg-red-500 text-white border-red-500",
+};
+
+const STATUS_OUTLINE: Record<string, string> = {
+  Hadir: "border-emerald-300 text-emerald-700 hover:bg-emerald-50",
+  Sakit: "border-yellow-300 text-yellow-700 hover:bg-yellow-50",
+  Izin:  "border-blue-300 text-blue-700 hover:bg-blue-50",
+  Alpa:  "border-red-300 text-red-700 hover:bg-red-50",
+};
+
+// ── Login Screen ───────────────────────────────────────────────────────────
+
+function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
+  const [schoolId, setSchoolId] = useState("");
+  const [pin, setPin] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const { data: schools = [], isLoading: loadingSchools } = useQuery({
+    queryKey: ["public-schools"],
+    queryFn: publicAttendanceApi.schools,
+  });
+
+  const handleSubmit = async () => {
+    if (!schoolId || !pin) {
+      toast.error("Pilih sekolah dan masukkan PIN");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await publicAttendanceApi.verifyPin(Number(schoolId), pin);
+      if (res.success) {
+        toast.success(`Selamat datang di ${res.school_name}`);
+        onSuccess({ schoolId: Number(schoolId), schoolName: res.school_name, pin });
+      } else {
+        toast.error(res.message || "PIN salah");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Gagal verifikasi PIN");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm bg-white border-0 shadow-2xl rounded-3xl overflow-hidden">
+        <CardHeader className="text-center space-y-3 pb-2 pt-8">
+          <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center">
+            <ShieldCheck className="h-8 w-8 text-emerald-600" />
+          </div>
+          <CardTitle className="text-xl font-black text-slate-800">Absensi Sekolah</CardTitle>
+          <p className="text-xs text-slate-400 px-4">Masukkan PIN yang diberikan operator sekolah</p>
+        </CardHeader>
+        <CardContent className="space-y-4 p-6">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Sekolah</label>
+            <Select value={schoolId} onValueChange={setSchoolId} disabled={loadingSchools}>
+              <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-0">
+                <SelectValue placeholder={loadingSchools ? "Memuat..." : "Pilih sekolah..."} />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl max-h-60">
+                {schools.map((s: any) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>
+                    <span className="font-medium">{s.nama}</span>
+                    {s.jenjang && <span className="text-slate-400 text-xs ml-1">({s.jenjang})</span>}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PIN Scanner</label>
+            <Input
+              type="password"
+              placeholder="••••••"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              className="h-12 text-center text-2xl tracking-[0.5em] font-mono rounded-xl bg-slate-50 border-0"
+              maxLength={8}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            />
+          </div>
+
+          <Button
+            onClick={handleSubmit}
+            disabled={!schoolId || !pin || loading}
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl mt-2"
+          >
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Masuk →"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── Mode Selection ─────────────────────────────────────────────────────────
+
+function ModeScreen({
+  session,
+  onSelect,
+  onLogout,
+}: {
+  session: Session;
+  onSelect: (mode: "manual" | "scanner") => void;
+  onLogout: () => void;
+}) {
+  return (
+    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-4">
+        <div className="text-center mb-8">
+          <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">Sekolah</p>
+          <h1 className="text-2xl font-black text-white">{session.schoolName}</h1>
+          <p className="text-slate-500 text-sm mt-1">Pilih cara absensi</p>
+        </div>
+
+        {/* Manual Input */}
+        <button
+          onClick={() => onSelect("manual")}
+          className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-emerald-600/60"
+        >
+          <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+            <GraduationCap className="h-7 w-7 text-white" />
+          </div>
+          <div className="text-left">
+            <h3 className="text-lg font-black text-white">Absensi Manual</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Tandai hadir/sakit/izin per siswa</p>
+          </div>
+        </button>
+
+        {/* QR Scanner */}
+        <button
+          onClick={() => onSelect("scanner")}
+          className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-blue-600/60"
+        >
+          <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+            <ScanLine className="h-7 w-7 text-white" />
+          </div>
+          <div className="text-left">
+            <h3 className="text-lg font-black text-white">Scan QR Guru</h3>
+            <p className="text-slate-400 text-xs mt-0.5">Scan KTA guru untuk absensi masuk</p>
+          </div>
+        </button>
+
+        <button
+          onClick={onLogout}
+          className="w-full text-slate-600 hover:text-slate-400 text-xs font-bold uppercase tracking-widest mt-4 flex items-center justify-center gap-2 transition"
+        >
+          <LogOut className="h-3.5 w-3.5" /> Keluar
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Manual Attendance Screen ───────────────────────────────────────────────
+
+function ManualScreen({ session, onBack }: { session: Session; onBack: () => void }) {
+  const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
+  const [selectedJamKe, setSelectedJamKe] = useState<number | undefined>();
+  const [statuses, setStatuses] = useState<Record<number, string>>({});
+
+  const { data: classes = [] } = useQuery({
+    queryKey: ["pub-classes", session.schoolId],
+    queryFn: () => publicAttendanceApi.classes(session.schoolId),
+  });
+
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["pub-subjects", session.schoolId],
+    queryFn: () => publicAttendanceApi.subjects(session.schoolId),
+  });
+
+  const { data: schedules = [] } = useQuery({
+    queryKey: ["pub-schedules", session.schoolId],
+    queryFn: () => publicAttendanceApi.schedules(session.schoolId),
+  });
+
+  const selectedClass = classes.find((c: any) => c.id === Number(selectedClassId));
+
+  const { data: students = [], isLoading: loadingStudents } = useQuery({
+    queryKey: ["pub-students", session.schoolId, selectedClassId],
+    queryFn: () => publicAttendanceApi.students(session.schoolId, Number(selectedClassId)),
+    enabled: !!selectedClassId,
+  });
+
+  // Load existing attendance
+  const { data: existingLog } = useQuery({
+    queryKey: ["pub-log", session.schoolId, selectedClassId, selectedSubjectId, selectedDate],
+    queryFn: () =>
+      publicAttendanceApi.studentLogShow(
+        session.schoolId,
+        Number(selectedClassId),
+        Number(selectedSubjectId),
+        selectedDate
+      ),
+    enabled: !!selectedClassId && !!selectedSubjectId && !!selectedDate,
+  });
+
+  useEffect(() => {
+    if (existingLog?.logs?.length) {
+      const s: Record<number, string> = {};
+      existingLog.logs.forEach((l: any) => { s[l.student_id] = l.status; });
+      setStatuses(s);
+    } else {
+      setStatuses({});
+    }
+  }, [existingLog]);
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => publicAttendanceApi.studentLogStore(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pub-log"] });
+      toast.success("Absensi berhasil disimpan!");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Gagal menyimpan absensi");
+    },
+  });
+
+  const handleSave = () => {
+    if (!selectedClassId || !selectedSubjectId) {
+      toast.warning("Pilih kelas dan mata pelajaran terlebih dahulu");
+      return;
+    }
+    const logs = Object.entries(statuses).map(([id, status]) => ({
+      student_id: Number(id),
+      status,
+    }));
+    if (logs.length === 0) {
+      toast.warning("Belum ada siswa yang ditandai");
+      return;
+    }
+    saveMutation.mutate({
+      school_id: session.schoolId,
+      pin: session.pin,
+      class_id: Number(selectedClassId),
+      subject_id: Number(selectedSubjectId),
+      tanggal: selectedDate,
+      jam_ke: selectedJamKe,
+      logs,
+    });
+  };
+
+  const navigateDate = (d: number) => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() + d);
+    setSelectedDate(date.toISOString().split("T")[0]);
+  };
+
+  const markedCount = Object.keys(statuses).length;
+  const totalCount = students.length;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-white border-b shadow-sm px-4 py-3 flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={onBack} className="rounded-xl h-9 w-9">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-black text-slate-800 text-base leading-tight truncate">Absensi Siswa</h1>
+          <p className="text-xs text-slate-400 truncate">{session.schoolName}</p>
+        </div>
+        {markedCount > 0 && (
+          <Badge className="bg-emerald-100 text-emerald-700 text-xs">
+            {markedCount}/{totalCount}
+          </Badge>
+        )}
+      </div>
+
+      <div className="p-4 space-y-4 max-w-lg mx-auto pb-32">
+        {/* Filters */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardContent className="p-4 space-y-3">
+            {/* Date */}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={() => navigateDate(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-9 rounded-xl text-sm flex-1"
+              />
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={() => navigateDate(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Class */}
+            <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+              <SelectTrigger className="h-10 rounded-xl text-sm">
+                <SelectValue placeholder="Pilih kelas..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {classes.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id.toString()}>{c.nama}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Subject */}
+            <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+              <SelectTrigger className="h-10 rounded-xl text-sm">
+                <SelectValue placeholder="Pilih mata pelajaran..." />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {subjects.map((s: any) => (
+                  <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Jam ke (optional) */}
+            {schedules.length > 0 && (
+              <Select
+                value={selectedJamKe?.toString() ?? ""}
+                onValueChange={(v) => setSelectedJamKe(v ? Number(v) : undefined)}
+              >
+                <SelectTrigger className="h-10 rounded-xl text-sm">
+                  <SelectValue placeholder="Jam pelajaran (opsional)..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {schedules.map((s: any) => (
+                    <SelectItem key={s.id} value={s.jam_ke.toString()}>
+                      Jam ke-{s.jam_ke} ({s.jam_mulai?.substring(0, 5)} – {s.jam_selesai?.substring(0, 5)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Student List */}
+        {selectedClassId && selectedSubjectId ? (
+          loadingStudents ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            </div>
+          ) : students.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">
+              <GraduationCap className="h-10 w-10 mx-auto opacity-20 mb-2" />
+              <p className="text-sm">Tidak ada siswa di kelas {selectedClass?.nama}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {students.map((student: any, i: number) => {
+                const currentStatus = statuses[student.id];
+                return (
+                  <Card key={student.id} className="border-0 shadow-sm rounded-2xl overflow-hidden">
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3 mb-2.5">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                          {i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-800 text-sm leading-tight truncate">{student.nama}</p>
+                          <p className="text-[10px] text-slate-400 font-mono">{student.nisn || "—"}</p>
+                        </div>
+                        {currentStatus && (
+                          <Badge className={`text-[10px] px-2 ${STATUS_COLORS[currentStatus]}`}>
+                            {currentStatus}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {["Hadir", "Sakit", "Izin", "Alpa"].map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setStatuses((prev) => ({ ...prev, [student.id]: s }))}
+                            className={`h-9 rounded-xl text-xs font-bold border-2 transition-all active:scale-95 ${
+                              currentStatus === s
+                                ? STATUS_COLORS[s]
+                                : `bg-white ${STATUS_OUTLINE[s]}`
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          <div className="text-center py-12 text-slate-400">
+            <GraduationCap className="h-10 w-10 mx-auto opacity-20 mb-2" />
+            <p className="text-sm">Pilih kelas dan mata pelajaran</p>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky Save Button */}
+      {selectedClassId && selectedSubjectId && students.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg">
+          <div className="max-w-lg mx-auto">
+            <Button
+              onClick={handleSave}
+              disabled={saveMutation.isPending || markedCount === 0}
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl text-base"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <Save className="h-5 w-5 mr-2" />
+              )}
+              Simpan Absensi ({markedCount}/{totalCount} siswa)
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── QR Scanner Screen ──────────────────────────────────────────────────────
+
+function ScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [scanning, setScanning] = useState(false);
+  const [scanResults, setScanResults] = useState<Array<{ name: string; time: string }>>([]);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const cooldownRef = useRef(false);
+
+  const startScanner = async () => {
+    try {
+      const scanner = new Html5Qrcode("pub-qr-reader");
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: { width: 260, height: 260 } },
+        async (code) => {
+          if (cooldownRef.current) return;
+          cooldownRef.current = true;
+          setTimeout(() => { cooldownRef.current = false; }, 2500);
+
+          try {
+            const res = await publicAttendanceApi.qrScan(session.schoolId, session.pin, code, "teacher");
+            if (res.success) {
+              toast.success(res.message);
+              setScanResults((prev) => [
+                { name: res.user_name || code, time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) },
+                ...prev,
+              ]);
+            } else {
+              toast.error(res.message || "Gagal memproses QR");
+            }
+          } catch (err: any) {
+            toast.error(err.response?.data?.message || "Guru tidak ditemukan");
+          }
+        },
+        () => {}
+      );
+      setScanning(true);
+    } catch {
+      toast.error("Gagal membuka kamera. Izinkan akses kamera di browser.");
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try { await scannerRef.current.stop(); } catch {}
+      scannerRef.current = null;
+    }
+    setScanning(false);
+  };
+
+  useEffect(() => () => { scannerRef.current?.stop().catch(() => {}); }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center gap-3">
+        <Button
+          variant="ghost" size="icon"
+          onClick={async () => { await stopScanner(); onBack(); }}
+          className="text-white hover:bg-slate-800 rounded-xl h-9 w-9"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1">
+          <h2 className="font-black text-base">SCAN QR GURU</h2>
+          <p className="text-slate-400 text-xs">{session.schoolName}</p>
+        </div>
+        <div className="bg-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-mono text-emerald-400 text-sm">
+          <Clock className="h-3.5 w-3.5" />
+          {new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4 max-w-sm mx-auto">
+        {/* Camera */}
+        <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl">
+          <div id="pub-qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
+          {!scanning && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-700">
+                <Camera className="h-9 w-9 text-slate-600" />
+              </div>
+              <p className="text-slate-500 text-sm">Kamera siap</p>
+            </div>
+          )}
+          {scanning && (
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="w-56 h-56 border-2 border-emerald-500/40 rounded-2xl relative">
+                <div className="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-emerald-500 rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-emerald-500 rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-emerald-500 rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-emerald-500 rounded-br-xl" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Toggle Button */}
+        <Button
+          onClick={scanning ? stopScanner : startScanner}
+          className={`w-full h-14 text-lg font-black rounded-2xl transition-all active:scale-95 ${
+            scanning ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
+          }`}
+        >
+          {scanning ? (
+            <><XCircle className="mr-2 h-6 w-6" /> Berhenti</>
+          ) : (
+            <><ScanLine className="mr-2 h-6 w-6" /> Mulai Scan</>
+          )}
+        </Button>
+
+        {/* Results */}
+        {scanResults.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              Tercatat hari ini ({scanResults.length})
+            </p>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {scanResults.map((r, i) => (
+                <div key={i} className="flex items-center justify-between bg-slate-900 rounded-xl px-4 py-3 border border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 font-bold text-xs">
+                      {r.name.charAt(0)}
+                    </div>
+                    <span className="text-white font-semibold text-sm">{r.name}</span>
+                  </div>
+                  <span className="text-slate-500 font-mono text-xs">{r.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────
+
+export default function PublicScannerPage() {
+  const [screen, setScreen] = useState<Screen>("login");
+  const [session, setSession] = useState<Session | null>(null);
+
+  const handleLogin = (s: Session) => {
+    setSession(s);
+    setScreen("mode");
+  };
+
+  const handleLogout = () => {
+    setSession(null);
+    setScreen("login");
+  };
+
+  if (screen === "login" || !session) {
+    return <LoginScreen onSuccess={handleLogin} />;
+  }
+
+  if (screen === "mode") {
+    return (
+      <ModeScreen
+        session={session}
+        onSelect={(mode) => setScreen(mode)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (screen === "manual") {
+    return <ManualScreen session={session} onBack={() => setScreen("mode")} />;
+  }
+
+  if (screen === "scanner") {
+    return <ScannerScreen session={session} onBack={() => setScreen("mode")} />;
+  }
+
+  return null;
+}

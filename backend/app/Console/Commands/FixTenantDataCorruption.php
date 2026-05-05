@@ -15,10 +15,12 @@ class FixTenantDataCorruption extends Command
     {
         $this->info('Starting tenant data corruption fix...');
 
-        // Step 1: Find all schools with their NSM
+        // Step 1: Find all schools
         $this->info("\n=== Step 1: Finding schools ===");
-        $alMadinah = School::where('nama', 'ilike', '%Al Madinah%')
-            ->where('nama', 'ilike', '%Kroya%')
+        
+        // Find MA Al Madinah Kroya (exclude MTs Plus)
+        $alMadinah = School::where('nama', 'ilike', '%MA Al Madinah%')
+            ->where('nama', 'not ilike', '%MTs%')
             ->first();
 
         if (!$alMadinah) {
@@ -28,6 +30,17 @@ class FixTenantDataCorruption extends Command
 
         $this->info("Found: MA Al Madinah Kroya (ID: {$alMadinah->id}, NSM: {$alMadinah->nsm})");
 
+        // Find MTs Plus Al Madinah Kroya
+        $mtsAlMadinah = School::where('nama', 'ilike', '%MTs Plus Al Madinah%')->first();
+
+        if (!$mtsAlMadinah) {
+            $this->error('MTs Plus Al Madinah Kroya not found!');
+            return 1;
+        }
+
+        $this->info("Found: MTs Plus Al Madinah Kroya (ID: {$mtsAlMadinah->id}, NSM: {$mtsAlMadinah->nsm})");
+
+        // Find MI Nurul Huda Serang
         $miNurulHuda = School::where('nama', 'ilike', '%Nurul Huda%')
             ->where('nama', 'ilike', '%Serang%')
             ->first();
@@ -42,36 +55,58 @@ class FixTenantDataCorruption extends Command
         // Step 2: Fix user accounts
         $this->info("\n=== Step 2: Fixing user accounts ===");
 
+        // Find correct schools first
+        $maAlMadinah = School::where('nama', 'ilike', '%MA Al Madinah%')->where('nama', 'not ilike', '%MTs%')->first();
+        $mtsAlMadinah = School::where('nama', 'ilike', '%MTs Plus Al Madinah%')->first();
+
+        if (!$maAlMadinah) {
+            $this->error('MA Al Madinah Kroya not found!');
+            return 1;
+        }
+
+        if (!$mtsAlMadinah) {
+            $this->error('MTs Plus Al Madinah Kroya not found!');
+            return 1;
+        }
+
+        $this->info("Correct schools identified:");
+        $this->info("  - MA Al Madinah Kroya: ID={$maAlMadinah->id}, NSM={$maAlMadinah->nsm}");
+        $this->info("  - MTs Plus Al Madinah Kroya: ID={$mtsAlMadinah->id}, NSM={$mtsAlMadinah->nsm}");
+
         // Fix MA Al Madinah Kroya user (NSM stored in email column)
         $alMadinahUser = User::where('email', '131233010035@simmaci.com')->first();
         if ($alMadinahUser) {
             $oldSchoolId = $alMadinahUser->school_id;
-            $alMadinahUser->update(['school_id' => $alMadinah->id]);
-            $this->info("✓ Updated user 'MA Al Madinah Kroya': school_id {$oldSchoolId} → {$alMadinah->id}");
+            $alMadinahUser->update(['school_id' => $maAlMadinah->id]);
+            $this->info("✓ Updated user 'MA Al Madinah Kroya': school_id {$oldSchoolId} → {$maAlMadinah->id}");
         } else {
             $this->warn("User with NSM 131233010035 not found");
         }
 
-        // Verify MI Nurul Huda Serang user (NSM stored in email column)
-        $miNurulHudaUser = User::where('email', '111233010130@simmaci.com')->first();
-        if ($miNurulHudaUser) {
-            if ($miNurulHudaUser->school_id === $miNurulHuda->id) {
-                $this->info("✓ User 'MI Nurul Huda Serang' already correct (school_id: {$miNurulHuda->id})");
+        // Verify MTs Plus Al Madinah Kroya user (NSM stored in email column)
+        $mtsUser = User::where('email', '121233010067@simmaci.com')->first();
+        if ($mtsUser) {
+            if ($mtsUser->school_id === $mtsAlMadinah->id) {
+                $this->info("✓ User 'MTs Plus Al Madinah Kroya' already correct (school_id: {$mtsAlMadinah->id})");
             } else {
-                $oldSchoolId = $miNurulHudaUser->school_id;
-                $miNurulHudaUser->update(['school_id' => $miNurulHuda->id]);
-                $this->info("✓ Updated user 'MI Nurul Huda Serang': school_id {$oldSchoolId} → {$miNurulHuda->id}");
+                $oldSchoolId = $mtsUser->school_id;
+                $mtsUser->update(['school_id' => $mtsAlMadinah->id]);
+                $this->info("✓ Updated user 'MTs Plus Al Madinah Kroya': school_id {$oldSchoolId} → {$mtsAlMadinah->id}");
             }
         } else {
-            $this->warn("User with NSM 111233010130 not found");
+            $this->warn("User with NSM 121233010067 not found");
         }
+
+        // Update references for Step 3
+        $alMadinah = $maAlMadinah;
+        $miNurulHuda = $mtsAlMadinah;
 
         // Step 3: Find and auto-fix corrupt teacher records
         $this->info("\n=== Step 3: Checking for corrupt teacher records ===");
 
-        // Find teachers with unit_kerja = "MA Al Madinah Kroya" but school_id != 144
+        // Find teachers with unit_kerja = "MA Al Madinah Kroya" but school_id != 187
         $alMadinahTeachers = \App\Models\Teacher::withoutTenantScope()
-            ->where('school_id', $miNurulHuda->id)
+            ->where('school_id', '!=', $alMadinah->id)
             ->where('unit_kerja', 'ilike', '%Al Madinah%')
             ->whereNotNull('unit_kerja')
             ->select('id', 'nama', 'unit_kerja', 'school_id')
@@ -80,26 +115,35 @@ class FixTenantDataCorruption extends Command
         if ($alMadinahTeachers->count() > 0) {
             $this->info("Found {$alMadinahTeachers->count()} teachers with unit_kerja='MA Al Madinah Kroya' but wrong school_id:");
             foreach ($alMadinahTeachers as $teacher) {
+                $oldSchoolId = $teacher->school_id;
                 $teacher->update(['school_id' => $alMadinah->id]);
-                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$miNurulHuda->id} → {$alMadinah->id}");
+                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$oldSchoolId} → {$alMadinah->id}");
             }
         }
 
-        // Find other corrupt teachers
+        // Find teachers with unit_kerja = "MTs Plus Al Madinah" but school_id != 144
+        $mtsTeachers = \App\Models\Teacher::withoutTenantScope()
+            ->where('school_id', '!=', $miNurulHuda->id)
+            ->where('unit_kerja', 'ilike', '%MTs Plus%')
+            ->whereNotNull('unit_kerja')
+            ->select('id', 'nama', 'unit_kerja', 'school_id')
+            ->get();
+
+        if ($mtsTeachers->count() > 0) {
+            $this->info("Found {$mtsTeachers->count()} teachers with unit_kerja='MTs Plus Al Madinah' but wrong school_id:");
+            foreach ($mtsTeachers as $teacher) {
+                $oldSchoolId = $teacher->school_id;
+                $teacher->update(['school_id' => $miNurulHuda->id]);
+                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$oldSchoolId} → {$miNurulHuda->id}");
+            }
+        }
+
+        // Find other corrupt teachers that need manual review
         $otherCorruptTeachers = \App\Models\Teacher::withoutTenantScope()
-            ->where(function ($query) use ($alMadinah, $miNurulHuda) {
-                // Teachers in Al Madinah school but with unit_kerja from other schools
-                $query->where('school_id', $alMadinah->id)
-                    ->where('unit_kerja', 'not ilike', '%Al Madinah%')
-                    ->whereNotNull('unit_kerja');
-            })
-            ->orWhere(function ($query) use ($alMadinah, $miNurulHuda) {
-                // Teachers in Nurul Huda school but with unit_kerja from other schools
-                $query->where('school_id', $miNurulHuda->id)
-                    ->where('unit_kerja', 'not ilike', '%Nurul Huda%')
-                    ->where('unit_kerja', 'not ilike', '%Al Madinah%')
-                    ->whereNotNull('unit_kerja');
-            })
+            ->where('unit_kerja', 'not ilike', '%Al Madinah%')
+            ->where('unit_kerja', 'not ilike', '%MTs Plus%')
+            ->where('unit_kerja', 'not ilike', '%Nurul Huda%')
+            ->whereNotNull('unit_kerja')
             ->select('id', 'nama', 'unit_kerja', 'school_id')
             ->get();
 

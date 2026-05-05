@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\TeacherMutationController;
 use App\Http\Controllers\Api\SkTemplateController;
 use App\Http\Controllers\Api\SkVerificationController;
 use App\Http\Controllers\Api\MinioProxyController;
+use App\Http\Controllers\Api\PublicAttendanceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -79,6 +80,19 @@ Route::prefix('ppdb')->group(function () {
 // MinIO proxy - accessible at /api/minio/*
 Route::get('minio', [MinioProxyController::class, 'proxy'])->name('minio.proxy');
 Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*')->name('minio.proxy.path');
+
+// ── Public Attendance (Scanner Standalone — PIN protected, no auth token) ──
+Route::prefix('public/attendance')->group(function () {
+    Route::get('schools',      [PublicAttendanceController::class, 'schools']);
+    Route::post('verify-pin',  [PublicAttendanceController::class, 'verifyPin']);
+    Route::get('classes',      [PublicAttendanceController::class, 'classes']);
+    Route::get('subjects',     [PublicAttendanceController::class, 'subjects']);
+    Route::get('schedules',    [PublicAttendanceController::class, 'schedules']);
+    Route::get('students',     [PublicAttendanceController::class, 'students']);
+    Route::get('student-log',  [PublicAttendanceController::class, 'studentLogShow']);
+    Route::post('student-log', [PublicAttendanceController::class, 'studentLogStore']);
+    Route::post('qr-scan',     [PublicAttendanceController::class, 'qrScan']);
+});
 
 // Test route untuk debug
 Route::get('test-minio', function() {

@@ -339,7 +339,46 @@ export const attendanceApi = {
   verifyPin: (pin: string) => apiClient.post('/attendance/verify-pin', { pin }).then((r) => r.data),
 };
 
-// ── Headmasters API ──
+// ── Public Attendance API (no auth token — PIN protected) ──
+// Used by standalone /scan page accessible by teachers without login
+
+export const publicAttendanceApi = {
+  schools: () =>
+    axios.get(`${API_BASE_URL}/public/attendance/schools`).then((r) => r.data),
+
+  verifyPin: (schoolId: number, pin: string) =>
+    axios.post(`${API_BASE_URL}/public/attendance/verify-pin`, { school_id: schoolId, pin }).then((r) => r.data),
+
+  classes: (schoolId: number) =>
+    axios.get(`${API_BASE_URL}/public/attendance/classes`, { params: { school_id: schoolId } }).then((r) => r.data),
+
+  subjects: (schoolId: number) =>
+    axios.get(`${API_BASE_URL}/public/attendance/subjects`, { params: { school_id: schoolId } }).then((r) => r.data),
+
+  schedules: (schoolId: number) =>
+    axios.get(`${API_BASE_URL}/public/attendance/schedules`, { params: { school_id: schoolId } }).then((r) => r.data),
+
+  students: (schoolId: number, classId: number) =>
+    axios.get(`${API_BASE_URL}/public/attendance/students`, { params: { school_id: schoolId, class_id: classId } }).then((r) => r.data),
+
+  studentLogShow: (schoolId: number, classId: number, subjectId: number, tanggal: string) =>
+    axios.get(`${API_BASE_URL}/public/attendance/student-log`, {
+      params: { school_id: schoolId, class_id: classId, subject_id: subjectId, tanggal },
+    }).then((r) => r.data),
+
+  studentLogStore: (data: {
+    school_id: number;
+    pin: string;
+    class_id: number;
+    subject_id: number;
+    tanggal: string;
+    jam_ke?: number;
+    logs: Array<{ student_id: number; status: string }>;
+  }) => axios.post(`${API_BASE_URL}/public/attendance/student-log`, data).then((r) => r.data),
+
+  qrScan: (schoolId: number, pin: string, code: string, type: 'teacher' | 'student') =>
+    axios.post(`${API_BASE_URL}/public/attendance/qr-scan`, { school_id: schoolId, pin, code, type }).then((r) => r.data),
+};
 
 export const headmasterApi = {
   list: (params?: Record<string, any>) => apiClient.get('/headmasters', { params }).then((r) => r.data),

@@ -19,7 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { attendanceApi, teacherApi, schoolApi } from "@/lib/api";
+import { attendanceApi, publicAttendanceApi } from "@/lib/api";
 import { useGeolocation } from "@/hooks/useGeolocation";
 
 type ScanMode = "select" | "guru" | "siswa";
@@ -37,7 +37,6 @@ export default function QrScannerPage() {
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [selectedJamKe, setSelectedJamKe] = useState("");
-  const [selectedTeacherId, setSelectedTeacherId] = useState("");
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanCooldownRef = useRef(false);
@@ -46,45 +45,36 @@ export default function QrScannerPage() {
   const geolocation = useGeolocation();
 
   // 🔥 REST API QUERIES
-  const { data: schools = [] } = useQuery({ queryKey: ['schools'], queryFn: schoolApi.list });
+  const { data: schools = [] } = useQuery({ queryKey: ['public-schools'], queryFn: publicAttendanceApi.schools });
   
+  const schoolIdNum = schoolId ? Number(schoolId) : 0;
+
   const { data: classes = [] } = useQuery({ 
-      queryKey: ['classes', schoolId], 
-      queryFn: () => attendanceApi.classList(),
+      queryKey: ['public-classes', schoolId], 
+      queryFn: () => publicAttendanceApi.classes(schoolIdNum),
       enabled: !!schoolId 
   });
   
   const { data: subjects = [] } = useQuery({ 
-      queryKey: ['subjects', schoolId], 
-      queryFn: () => attendanceApi.subjectList(),
+      queryKey: ['public-subjects', schoolId], 
+      queryFn: () => publicAttendanceApi.subjects(schoolIdNum),
       enabled: !!schoolId 
   });
   
   const { data: lessonSlots = [] } = useQuery({ 
-      queryKey: ['lesson-schedules', schoolId], 
-      queryFn: () => attendanceApi.scheduleList(),
-      enabled: !!schoolId 
-  });
-  
-  const { data: teachersData } = useQuery({ 
-      queryKey: ['teachers', schoolId], 
-      queryFn: () => teacherApi.list({ per_page: 100 }),
+      queryKey: ['public-lesson-schedules', schoolId], 
+      queryFn: () => publicAttendanceApi.schedules(schoolIdNum),
       enabled: !!schoolId 
   });
 
   const qrScanMutation = useMutation({
-    queryFn: ({ code, type }: { code: string; type: 'teacher' | 'student' }) => {
-      // Add geolocation if available
-      const latitude = geolocation.latitude ?? undefined;
-      const longitude = geolocation.longitude ?? undefined;
-      
-      return attendanceApi.qrScan(code, type, latitude, longitude);
-    },
+    queryFn: ({ code, type }: { code: string; type: 'teacher' | 'student' }) =>
+      publicAttendanceApi.qrScan(schoolIdNum, pin, code, type),
     onSuccess: (data) => {
         if (data.success) {
             toast.success(data.message || "Absensi tercatat");
             setScanResults((prev) => [
-                { name: data.user_name || "Unknown", status: data.attendance_status || "Hadir", time: new Date().toLocaleTimeString("id-ID") },
+                { name: data.user_name || "Tercatat", status: data.attendance_status || "Hadir", time: new Date().toLocaleTimeString("id-ID") },
                 ...prev,
             ]);
         } else {
@@ -95,8 +85,6 @@ export default function QrScannerPage() {
         toast.error(err.response?.data?.message || "Kesalahan sistem");
     }
   });
-
-  const teachers = teachersData?.data || [];
 
   // Show geolocation status
   useEffect(() => {
@@ -113,8 +101,7 @@ export default function QrScannerPage() {
     }
     
     try {
-      // Validate PIN via backend
-      const result = await attendanceApi.verifyPin(pin);
+      const result = await publicAttendanceApi.verifyPin(Number(schoolId), pin);
       if (result.success) {
         setAuthState("authenticated");
         toast.success("PIN diterima! Silakan pilih mode absensi.");
@@ -322,12 +309,10 @@ export default function QrScannerPage() {
             <CardContent className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Nama Guru Pembuat</label>
-                <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
-                  <SelectTrigger className="bg-slate-900 border-0 h-11 rounded-xl"><SelectValue placeholder="Pilih guru..." /></SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-700 text-white rounded-xl">
-                    {teachers.map((t: any) => <SelectItem key={t.id} value={t.id.toString()}>{t.nama}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="Nama guru (opsional)"
+                  className="bg-slate-900 border-0 h-11 rounded-xl text-white placeholder:text-slate-600"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">

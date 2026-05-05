@@ -9,7 +9,8 @@ import { Html5Qrcode } from "html5-qrcode";
 import {
   ShieldCheck, UserCheck, GraduationCap, ScanLine, Save,
   ChevronLeft, ChevronRight, Camera, CheckCircle2, XCircle,
-  Clock, ArrowLeft, Loader2, LogOut, Download,
+  Clock, ArrowLeft, Loader2, LogOut, Download, ExternalLink,
+  BookOpen, School, ClipboardList, BarChart2, Settings,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { publicAttendanceApi } from "@/lib/api";
@@ -246,6 +247,34 @@ function ModeScreen({
         >
           <LogOut className="h-3.5 w-3.5" /> Keluar
         </button>
+
+        {/* Dashboard Links */}
+        <div className="mt-6 border-t border-slate-800 pt-5 space-y-2">
+          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center mb-3">Kelola dari Dashboard</p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Mata Pelajaran", icon: BookOpen, href: "/dashboard/attendance/subjects" },
+              { label: "Kelas / Rombel", icon: School, href: "/dashboard/attendance/classes" },
+              { label: "Jadwal Jam", icon: ClipboardList, href: "/dashboard/attendance/schedule" },
+              { label: "Laporan Absensi", icon: BarChart2, href: "/dashboard/attendance/report" },
+              { label: "Absensi Guru", icon: UserCheck, href: "/dashboard/attendance/teacher" },
+              { label: "Pengaturan", icon: Settings, href: "/dashboard/attendance/settings" },
+            ].map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-slate-800/60 hover:bg-slate-700 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white transition-all group"
+              >
+                <link.icon className="h-3.5 w-3.5 text-slate-500 group-hover:text-emerald-400 shrink-0" />
+                <span className="truncate">{link.label}</span>
+                <ExternalLink className="h-2.5 w-2.5 text-slate-600 ml-auto shrink-0" />
+              </a>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-700 text-center pt-1">Butuh login operator untuk mengakses</p>
+        </div>
       </div>
     </div>
   );

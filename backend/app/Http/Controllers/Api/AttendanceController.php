@@ -239,6 +239,13 @@ class AttendanceController extends Controller
         return response()->json($subject->fresh());
     }
 
+    public function subjectDestroy(Subject $subject): JsonResponse
+    {
+        $subject->delete();
+
+        return response()->json(['success' => true, 'message' => 'Mata pelajaran dihapus']);
+    }
+
     // ── Classes CRUD ──
 
     public function classIndex(Request $request): JsonResponse

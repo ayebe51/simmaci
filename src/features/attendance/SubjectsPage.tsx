@@ -36,6 +36,17 @@ export default function SubjectsPage() {
     }
   });
 
+  const deleteMutation = useMutation({
+    queryFn: (id: number) => attendanceApi.subjectDelete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['subjects'] });
+      toast.success("Mata pelajaran dihapus!");
+    },
+    onError: () => {
+      toast.error("Gagal menghapus mata pelajaran.");
+    }
+  });
+
   const [newNama, setNewNama] = useState("");
   const [newKode, setNewKode] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
@@ -112,7 +123,7 @@ export default function SubjectsPage() {
                           <Button size="sm" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-blue-600 rounded-full" onClick={() => { setEditId(s.id); setEditNama(s.nama); setEditKode(s.kode || ""); }}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-600 rounded-full">
+                          <Button size="sm" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-red-600 rounded-full" onClick={() => deleteMutation.mutate(s.id)} disabled={deleteMutation.isPending}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>

@@ -37,7 +37,7 @@ export default function TeacherAttendancePage() {
   });
 
   const recordMutation = useMutation({
-    queryFn: (data: any) => attendanceApi.teacherStore(data),
+    mutationFn: (data: any) => attendanceApi.teacherStore(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance', 'teacher', selectedDate] });
       toast.success("Status absensi diperbarui");
@@ -45,7 +45,7 @@ export default function TeacherAttendancePage() {
   });
 
   const teachers = teachersData?.data || [];
-  const attendance = attendanceData || [];
+  const attendance = attendanceData?.data || [];
 
   const getAttendance = (teacherId: number) => {
     return attendance.find((a: any) => a.teacher_id === teacherId);

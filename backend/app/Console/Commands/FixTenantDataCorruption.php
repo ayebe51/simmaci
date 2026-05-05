@@ -66,10 +66,27 @@ class FixTenantDataCorruption extends Command
             $this->warn("User with NSM 111233010130 not found");
         }
 
-        // Step 3: Find and report corrupt teacher records
+        // Step 3: Find and auto-fix corrupt teacher records
         $this->info("\n=== Step 3: Checking for corrupt teacher records ===");
 
-        $corruptTeachers = \App\Models\Teacher::withoutTenantScope()
+        // Find teachers with unit_kerja = "MA Al Madinah Kroya" but school_id != 144
+        $alMadinahTeachers = \App\Models\Teacher::withoutTenantScope()
+            ->where('school_id', $miNurulHuda->id)
+            ->where('unit_kerja', 'ilike', '%Al Madinah%')
+            ->whereNotNull('unit_kerja')
+            ->select('id', 'nama', 'unit_kerja', 'school_id')
+            ->get();
+
+        if ($alMadinahTeachers->count() > 0) {
+            $this->info("Found {$alMadinahTeachers->count()} teachers with unit_kerja='MA Al Madinah Kroya' but wrong school_id:");
+            foreach ($alMadinahTeachers as $teacher) {
+                $teacher->update(['school_id' => $alMadinah->id]);
+                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$miNurulHuda->id} → {$alMadinah->id}");
+            }
+        }
+
+        // Find other corrupt teachers
+        $otherCorruptTeachers = \App\Models\Teacher::withoutTenantScope()
             ->where(function ($query) use ($alMadinah, $miNurulHuda) {
                 // Teachers in Al Madinah school but with unit_kerja from other schools
                 $query->where('school_id', $alMadinah->id)
@@ -80,20 +97,21 @@ class FixTenantDataCorruption extends Command
                 // Teachers in Nurul Huda school but with unit_kerja from other schools
                 $query->where('school_id', $miNurulHuda->id)
                     ->where('unit_kerja', 'not ilike', '%Nurul Huda%')
+                    ->where('unit_kerja', 'not ilike', '%Al Madinah%')
                     ->whereNotNull('unit_kerja');
             })
             ->select('id', 'nama', 'unit_kerja', 'school_id')
             ->get();
 
-        if ($corruptTeachers->count() > 0) {
-            $this->warn("Found {$corruptTeachers->count()} corrupt teacher records:");
-            foreach ($corruptTeachers as $teacher) {
+        if ($otherCorruptTeachers->count() > 0) {
+            $this->warn("\nFound {$otherCorruptTeachers->count()} other corrupt teacher records that need manual review:");
+            foreach ($otherCorruptTeachers as $teacher) {
                 $school = School::find($teacher->school_id);
                 $this->line("  - ID: {$teacher->id} | Nama: {$teacher->nama} | Unit Kerja: {$teacher->unit_kerja} | School: {$school->nama}");
             }
             $this->warn("\nThese teachers need manual review and correction.");
         } else {
-            $this->info("✓ No corrupt teacher records found");
+            $this->info("✓ No other corrupt teacher records found");
         }
 
         $this->info("\n=== Fix completed ===");

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { attendanceApi, teacherApi, schoolApi } from "@/lib/api";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 type ScanMode = "select" | "guru" | "siswa";
 type AuthState = "pin" | "authenticated";
@@ -40,6 +41,9 @@ export default function QrScannerPage() {
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanCooldownRef = useRef(false);
+
+  // Geolocation tracking
+  const geolocation = useGeolocation();
 
   // 🔥 REST API QUERIES
   const { data: schools = [] } = useQuery({ queryKey: ['schools'], queryFn: schoolApi.list });
@@ -69,7 +73,13 @@ export default function QrScannerPage() {
   });
 
   const qrScanMutation = useMutation({
-    queryFn: (qrCode: string) => attendanceApi.qrScan(qrCode),
+    queryFn: ({ code, type }: { code: string; type: 'teacher' | 'student' }) => {
+      // Add geolocation if available
+      const latitude = geolocation.latitude ?? undefined;
+      const longitude = geolocation.longitude ?? undefined;
+      
+      return attendanceApi.qrScan(code, type, latitude, longitude);
+    },
     onSuccess: (data) => {
         if (data.success) {
             toast.success(data.message || "Absensi tercatat");
@@ -88,16 +98,32 @@ export default function QrScannerPage() {
 
   const teachers = teachersData?.data || [];
 
+  // Show geolocation status
+  useEffect(() => {
+    if (geolocation.error) {
+      toast.warning(geolocation.error);
+    }
+  }, [geolocation.error]);
+
   // PIN verification
-  const handlePinSubmit = () => {
+  const handlePinSubmit = async () => {
     if (!schoolId || !pin) {
       toast.error("Pilih sekolah dan masukkan PIN");
       return;
     }
-    // Simple PIN check - usually validated via API, but we'll assume it's okay for now
-    // or we can add a verifyPin method to attendanceApi
-    setAuthState("authenticated");
-    toast.success("PIN diterima! Silakan pilih mode absensi.");
+    
+    try {
+      // Validate PIN via backend
+      const result = await attendanceApi.verifyPin(pin);
+      if (result.success) {
+        setAuthState("authenticated");
+        toast.success("PIN diterima! Silakan pilih mode absensi.");
+      } else {
+        toast.error(result.message || "PIN salah!");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Gagal memvalidasi PIN");
+    }
   };
 
   // Start QR Scanner
@@ -118,7 +144,10 @@ export default function QrScannerPage() {
           scanCooldownRef.current = true;
           setTimeout(() => { scanCooldownRef.current = false; }, 2500);
 
-          qrScanMutation.mutate(decodedText);
+          qrScanMutation.mutate({ 
+            code: decodedText, 
+            type: mode === 'guru' ? 'teacher' : 'student' 
+          });
         },
         () => {} // Ignore frame errors
       );

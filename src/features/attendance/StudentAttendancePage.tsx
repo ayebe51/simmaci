@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { GraduationCap, Save, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { attendanceApi, studentApi } from "@/lib/api";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 const statusColors: Record<string, string> = {
   Hadir: "bg-emerald-100 text-emerald-700",
@@ -23,6 +24,9 @@ export default function StudentAttendancePage() {
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [studentStatuses, setStudentStatuses] = useState<Record<number, string>>({});
+
+  // 🌍 Geolocation hook
+  const geolocation = useGeolocation();
 
   // 🔥 REST API QUERIES
   const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: attendanceApi.classList });
@@ -58,13 +62,24 @@ export default function StudentAttendancePage() {
     if (existingRecords.length > 0) {
       const statuses: Record<number, string> = {};
       existingRecords.forEach((r: any) => {
-        statuses[r.student_id] = r.status;
+        // Parse logs JSON field
+        const logs = r.logs || [];
+        logs.forEach((log: any) => {
+          statuses[log.student_id] = log.status;
+        });
       });
       setStudentStatuses(statuses);
     } else {
       setStudentStatuses({});
     }
   }, [existingRecords]);
+
+  // Show geolocation error warning
+  useEffect(() => {
+    if (geolocation.error) {
+      toast.warning(geolocation.error);
+    }
+  }, [geolocation.error]);
 
   const handleStatusChange = (studentId: number, status: string) => {
     setStudentStatuses((prev) => ({ ...prev, [studentId]: status }));
@@ -73,12 +88,22 @@ export default function StudentAttendancePage() {
   const handleSaveBulk = async () => {
     if (!selectedClassId || !selectedSubjectId) return;
     
-    const records = Object.entries(studentStatuses).map(([studentId, status]) => ({
-      student_id: Number(studentId),
-      status,
-    }));
+    const logs = Object.entries(studentStatuses).map(([studentId, status]) => {
+      const logEntry: any = {
+        student_id: Number(studentId),
+        status,
+      };
 
-    if (records.length === 0) {
+      // Add geolocation if available
+      if (geolocation.latitude && geolocation.longitude) {
+        logEntry.latitude = geolocation.latitude;
+        logEntry.longitude = geolocation.longitude;
+      }
+
+      return logEntry;
+    });
+
+    if (logs.length === 0) {
       toast.warning("Belum ada data yang diisi");
       return;
     }
@@ -87,7 +112,7 @@ export default function StudentAttendancePage() {
       class_id: Number(selectedClassId),
       subject_id: Number(selectedSubjectId),
       tanggal: selectedDate,
-      records,
+      logs,
     });
   };
 

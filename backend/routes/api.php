@@ -160,6 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('student-log',    [AttendanceController::class, 'studentLogIndex']);
             Route::post('student-log',   [AttendanceController::class, 'studentLogStore']);
             Route::post('qr-scan',       [AttendanceController::class, 'qrScan']);
+            Route::post('verify-pin',    [AttendanceController::class, 'verifyPin']);
             Route::get('subjects',       [AttendanceController::class, 'subjectIndex']);
             Route::post('subjects',      [AttendanceController::class, 'subjectStore']);
             Route::put('subjects/{subject}', [AttendanceController::class, 'subjectUpdate']);

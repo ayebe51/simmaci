@@ -309,25 +309,34 @@ export const mediaApi = {
 export const attendanceApi = {
   teacherIndex: (params?: Record<string, any>) => apiClient.get('/attendance/teacher', { params }).then((r) => r.data),
   teacherStore: (data: any) => apiClient.post('/attendance/teacher', data).then((r) => r.data),
-  studentLogIndex: (params?: Record<string, any>) => apiClient.get('/attendance/student-logs', { params }).then((r) => r.data),
-  studentLogStore: (data: any) => apiClient.post('/attendance/student-logs', data).then((r) => r.data),
-  qrScan: (qrCode: string) => apiClient.post('/attendance/qr-scan', { qr_code: qrCode }).then((r) => r.data),
+  studentLogIndex: (params?: Record<string, any>) => apiClient.get('/attendance/student-log', { params }).then((r) => r.data),
+  studentLogStore: (data: any) => apiClient.post('/attendance/student-log', data).then((r) => r.data),
+  qrScan: (code: string, type: 'teacher' | 'student', latitude?: number, longitude?: number) => {
+    const payload: any = { code, type };
+    if (latitude !== undefined && longitude !== undefined) {
+      payload.latitude = latitude;
+      payload.longitude = longitude;
+    }
+    return apiClient.post('/attendance/qr-scan', payload).then((r) => r.data);
+  },
   studentReport: (params?: Record<string, any>) => apiClient.get('/attendance/student-report', { params }).then((r) => r.data),
   settingsShow: () => apiClient.get('/attendance/settings').then((r) => r.data),
-  settingsUpdate: (data: any) => apiClient.post('/attendance/settings', data).then((r) => r.data),
-  checkWaConnection: () => apiClient.post('/attendance/check-wa').then((r) => r.data),
+  settingsUpdate: (data: any) => apiClient.put('/attendance/settings', data).then((r) => r.data),
+  checkWaConnection: () => apiClient.get('/attendance/check-wa').then((r) => r.data),
   
   // Master Attendance Data
-  subjectList: () => apiClient.get('/subjects').then((r) => r.data),
-  subjectStore: (data: any) => apiClient.post('/subjects', data).then((r) => r.data),
-  subjectUpdate: (id: number, data: any) => apiClient.put(`/subjects/${id}`, data).then((r) => r.data),
+  subjectList: () => apiClient.get('/attendance/subjects').then((r) => r.data),
+  subjectStore: (data: any) => apiClient.post('/attendance/subjects', data).then((r) => r.data),
+  subjectUpdate: (id: number, data: any) => apiClient.put(`/attendance/subjects/${id}`, data).then((r) => r.data),
   
-  classList: () => apiClient.get('/classes').then((r) => r.data),
-  classStore: (data: any) => apiClient.post('/classes', data).then((r) => r.data),
-  classUpdate: (id: number, data: any) => apiClient.put(`/classes/${id}`, data).then((r) => r.data),
+  classList: () => apiClient.get('/attendance/classes').then((r) => r.data),
+  classStore: (data: any) => apiClient.post('/attendance/classes', data).then((r) => r.data),
+  classUpdate: (id: number, data: any) => apiClient.put(`/attendance/classes/${id}`, data).then((r) => r.data),
   
-  scheduleList: (params?: Record<string, any>) => apiClient.get('/lesson-schedules', { params }).then((r) => r.data),
-  scheduleStore: (data: any) => apiClient.post('/lesson-schedules', data).then((r) => r.data),
+  scheduleList: (params?: Record<string, any>) => apiClient.get('/attendance/schedules', { params }).then((r) => r.data),
+  scheduleStore: (data: any) => apiClient.post('/attendance/schedules', data).then((r) => r.data),
+  
+  verifyPin: (pin: string) => apiClient.post('/attendance/verify-pin', { pin }).then((r) => r.data),
 };
 
 // ── Headmasters API ──

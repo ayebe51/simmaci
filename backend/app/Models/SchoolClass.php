@@ -2,11 +2,12 @@
 namespace App\Models;
 use App\Traits\AuditLogTrait;
 use App\Traits\HasTenantScope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SchoolClass extends Model
 {
-    use HasTenantScope, AuditLogTrait;
+    use HasFactory, HasTenantScope, AuditLogTrait;
 
     protected $table = 'classes';
     protected $fillable = ['nama', 'tingkat', 'tahun_ajaran', 'wali_kelas_id', 'school_id', 'is_active'];

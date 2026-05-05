@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare, Activity, Loader2 } from "lucide-react";
+import { Shield, QrCode, UserCheck, GraduationCap, Save, RefreshCw, Copy, Eye, EyeOff, MessageSquare, Activity, Loader2, MapPin, Navigation } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { attendanceApi } from "@/lib/api";
 
@@ -33,6 +33,10 @@ export default function AttendanceSettingsPage() {
     qr_scan_aktif: false,
     gowa_url: "",
     gowa_device_id: "",
+    geolocation_enabled: false,
+    school_latitude: null as number | null,
+    school_longitude: null as number | null,
+    geofence_radius_meters: 100,
   });
 
   const [showPin, setShowPin] = useState(false);
@@ -46,6 +50,10 @@ export default function AttendanceSettingsPage() {
         qr_scan_aktif: !!settings.qr_scan_aktif,
         gowa_url: settings.gowa_url || "",
         gowa_device_id: settings.gowa_device_id || "",
+        geolocation_enabled: !!settings.geolocation_enabled,
+        school_latitude: settings.school_latitude || null,
+        school_longitude: settings.school_longitude || null,
+        geofence_radius_meters: settings.geofence_radius_meters || 100,
       });
     }
   }, [settings]);
@@ -80,6 +88,48 @@ export default function AttendanceSettingsPage() {
         setWaStatus("offline");
         toast.error("Gagal cek koneksi: " + e.message);
     }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation tidak didukung oleh browser Anda");
+      return;
+    }
+
+    toast.info("Mengambil lokasi Anda...");
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormState({
+          ...formState,
+          school_latitude: position.coords.latitude,
+          school_longitude: position.coords.longitude,
+        });
+        toast.success("Koordinat berhasil diambil dari lokasi Anda!");
+      },
+      (error) => {
+        let errorMessage = "Gagal mendapatkan lokasi";
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Izin akses lokasi ditolak. Aktifkan GPS dan izinkan akses lokasi.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Informasi lokasi tidak tersedia";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Timeout mendapatkan lokasi";
+            break;
+        }
+        
+        toast.error(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   };
 
   if (isLoading) return <div className="h-96 flex items-center justify-center"><Loader2 className="animate-spin text-emerald-500" /></div>;
@@ -214,6 +264,92 @@ export default function AttendanceSettingsPage() {
                 className="font-mono text-sm rounded-xl h-11"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden md:col-span-2">
+          <CardHeader className="pb-3 bg-slate-50/50">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-red-600" />
+              Geolocation & Geofencing
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label className="text-sm text-slate-600">Aktifkan tracking lokasi GPS</Label>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  Rekam koordinat GPS setiap kali absensi dilakukan untuk validasi lokasi
+                </p>
+              </div>
+              <Switch 
+                checked={formState.geolocation_enabled} 
+                onCheckedChange={(v) => setFormState({...formState, geolocation_enabled: v})} 
+              />
+            </div>
+            
+            {formState.geolocation_enabled && (
+              <>
+                <div className="border-t pt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Koordinat Sekolah</Label>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleUseCurrentLocation}
+                      className="h-8 text-xs rounded-lg"
+                    >
+                      <Navigation className="h-3 w-3 mr-1.5" />
+                      Gunakan Lokasi Saat Ini
+                    </Button>
+                  </div>
+                  
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Latitude</Label>
+                      <Input
+                        type="number"
+                        step="0.000001"
+                        placeholder="-7.123456"
+                        value={formState.school_latitude || ''}
+                        onChange={(e) => setFormState({...formState, school_latitude: e.target.value ? parseFloat(e.target.value) : null})}
+                        className="font-mono text-sm rounded-xl h-11"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Longitude</Label>
+                      <Input
+                        type="number"
+                        step="0.000001"
+                        placeholder="109.123456"
+                        value={formState.school_longitude || ''}
+                        onChange={(e) => setFormState({...formState, school_longitude: e.target.value ? parseFloat(e.target.value) : null})}
+                        className="font-mono text-sm rounded-xl h-11"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4 space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Radius Geofencing (meter)</Label>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="number"
+                      min="10"
+                      max="1000"
+                      step="10"
+                      value={formState.geofence_radius_meters}
+                      onChange={(e) => setFormState({...formState, geofence_radius_meters: parseInt(e.target.value) || 100})}
+                      className="font-mono text-sm rounded-xl h-11 w-32"
+                    />
+                    <p className="text-xs text-slate-500 flex-1">
+                      Absensi hanya diterima jika user berada dalam radius <strong>{formState.geofence_radius_meters}m</strong> dari koordinat sekolah
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

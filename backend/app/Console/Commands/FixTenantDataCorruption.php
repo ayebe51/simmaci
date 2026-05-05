@@ -42,8 +42,8 @@ class FixTenantDataCorruption extends Command
         // Step 2: Fix user accounts
         $this->info("\n=== Step 2: Fixing user accounts ===");
 
-        // Fix MA Al Madinah Kroya user
-        $alMadinahUser = User::where('username', '131233010035')->first();
+        // Fix MA Al Madinah Kroya user (NSM stored in email column)
+        $alMadinahUser = User::where('email', '131233010035@simmaci.com')->first();
         if ($alMadinahUser) {
             $oldSchoolId = $alMadinahUser->school_id;
             $alMadinahUser->update(['school_id' => $alMadinah->id]);
@@ -52,8 +52,8 @@ class FixTenantDataCorruption extends Command
             $this->warn("User with NSM 131233010035 not found");
         }
 
-        // Verify MI Nurul Huda Serang user
-        $miNurulHudaUser = User::where('username', '111233010130')->first();
+        // Verify MI Nurul Huda Serang user (NSM stored in email column)
+        $miNurulHudaUser = User::where('email', '111233010130@simmaci.com')->first();
         if ($miNurulHudaUser) {
             if ($miNurulHudaUser->school_id === $miNurulHuda->id) {
                 $this->info("✓ User 'MI Nurul Huda Serang' already correct (school_id: {$miNurulHuda->id})");

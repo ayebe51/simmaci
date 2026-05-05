@@ -39,10 +39,17 @@ class TeacherController extends Controller
         }
 
         // --- Tenant Isolation ---
+        // TenantScope global scope already handles this automatically via HasTenantScope trait.
+        // The manual check below is a defense-in-depth layer only for super_admin cross-school queries.
+        // Operators CANNOT override their school_id via request parameter.
         $user = $request->user();
-        if ($user->role === 'operator' && $user->school_id) {
-            $query->where('school_id', $user->school_id);
+        if (! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            // Operator: enforce their school_id, ignore any school_id in request
+            if ($user->school_id) {
+                $query->where('school_id', $user->school_id);
+            }
         } elseif ($request->school_id) {
+            // Super admin / admin yayasan: allow filtering by school_id
             $query->where('school_id', $request->school_id);
         }
 

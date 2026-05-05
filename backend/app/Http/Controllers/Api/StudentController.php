@@ -25,9 +25,12 @@ class StudentController extends Controller
         }
 
         // --- Tenant Isolation ---
+        // Operators CANNOT override their school_id via request parameter.
         $user = $request->user();
-        if ($user->role === 'operator' && $user->school_id) {
-            $query->where('school_id', $user->school_id);
+        if (! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($user->school_id) {
+                $query->where('school_id', $user->school_id);
+            }
         } elseif ($request->school_id) {
             $query->where('school_id', $request->school_id);
         }

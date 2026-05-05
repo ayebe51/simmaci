@@ -339,8 +339,17 @@ class AttendanceController extends Controller
         $subjectId = $request->subject_id;
         $bulan = $request->bulan;
 
+        // Get class with null check
+        $class = SchoolClass::find($classId);
+        if (! $class) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Class not found',
+            ], 404);
+        }
+
         $students = Student::where('school_id', $schoolId)
-            ->where('kelas', SchoolClass::find($classId)->nama)
+            ->where('kelas', $class->nama)
             ->get();
 
         $logs = StudentAttendanceLog::where('school_id', $schoolId)
@@ -362,7 +371,7 @@ class AttendanceController extends Controller
         return response()->json([
             'students' => $students,
             'matrix' => (object) $matrix,
-            'class_name' => SchoolClass::find($classId)->nama,
+            'class_name' => $class->nama,
         ]);
     }
 

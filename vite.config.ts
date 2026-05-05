@@ -15,6 +15,42 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
+      includeAssets: ['logo-icon.png', 'logo-maarif-hijau.png'],
+      manifest: {
+        name: 'SIMMACI - Absensi Sekolah',
+        short_name: 'Absensi',
+        description: 'Sistem Absensi Guru & Siswa LP Ma\'arif NU Cilacap',
+        theme_color: '#059669',
+        background_color: '#0f172a',
+        display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/scan',
+        icons: [
+          {
+            src: 'logo-icon.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+          {
+            src: 'logo-icon.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+        shortcuts: [
+          {
+            name: 'Scanner Absensi',
+            short_name: 'Scanner',
+            description: 'Buka halaman scanner absensi',
+            url: '/scan',
+            icons: [{ src: 'logo-icon.png', sizes: '192x192' }],
+          },
+        ],
+        categories: ['education', 'productivity'],
+      },
       workbox: {
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         clientsClaim: true,
@@ -22,7 +58,19 @@ export default defineConfig({
         // must wait in the "installed" state until the user confirms the reload.
         // Setting skipWaiting: true here would activate the SW immediately, making
         // updateServiceWorker(true) a no-op and breaking the "Muat Ulang" button.
-        navigateFallbackDenylist: [/^\/.*\.xlsx$/]
+        navigateFallbackDenylist: [/^\/.*\.xlsx$/],
+        runtimeCaching: [
+          {
+            // Cache public attendance API responses for offline resilience
+            urlPattern: /\/api\/public\/attendance\/(schools|classes|subjects|schedules|students)/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'public-attendance-api',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 }, // 1 hour
+              networkTimeoutSeconds: 5,
+            },
+          },
+        ],
       },
     }),
   ],

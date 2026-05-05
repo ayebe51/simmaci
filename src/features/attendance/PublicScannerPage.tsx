@@ -9,10 +9,47 @@ import { Html5Qrcode } from "html5-qrcode";
 import {
   ShieldCheck, UserCheck, GraduationCap, ScanLine, Save,
   ChevronLeft, ChevronRight, Camera, CheckCircle2, XCircle,
-  Clock, ArrowLeft, Loader2, LogOut,
+  Clock, ArrowLeft, Loader2, LogOut, Download,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { publicAttendanceApi } from "@/lib/api";
+
+// ── PWA Install Hook ───────────────────────────────────────────────────────
+
+function useInstallPrompt() {
+  const [prompt, setPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if already installed (standalone mode)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstalled(true);
+      return;
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setIsInstalled(true));
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const install = async () => {
+    if (!prompt) return;
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === 'accepted') {
+      setPrompt(null);
+      setIsInstalled(true);
+    }
+  };
+
+  return { canInstall: !!prompt && !isInstalled, isInstalled, install };
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +81,7 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
   const [schoolId, setSchoolId] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
+  const { canInstall, isInstalled, install } = useInstallPrompt();
 
   const { data: schools = [], isLoading: loadingSchools } = useQuery({
     queryKey: ["public-schools"],
@@ -73,54 +111,83 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm bg-white border-0 shadow-2xl rounded-3xl overflow-hidden">
-        <CardHeader className="text-center space-y-3 pb-2 pt-8">
-          <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center">
-            <ShieldCheck className="h-8 w-8 text-emerald-600" />
-          </div>
-          <CardTitle className="text-xl font-black text-slate-800">Absensi Sekolah</CardTitle>
-          <p className="text-xs text-slate-400 px-4">Masukkan PIN yang diberikan operator sekolah</p>
-        </CardHeader>
-        <CardContent className="space-y-4 p-6">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Sekolah</label>
-            <Select value={schoolId} onValueChange={setSchoolId} disabled={loadingSchools}>
-              <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-0">
-                <SelectValue placeholder={loadingSchools ? "Memuat..." : "Pilih sekolah..."} />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl max-h-60">
-                {schools.map((s: any) => (
-                  <SelectItem key={s.id} value={s.id.toString()}>
-                    <span className="font-medium">{s.nama}</span>
-                    {s.jenjang && <span className="text-slate-400 text-xs ml-1">({s.jenjang})</span>}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PIN Scanner</label>
-            <Input
-              type="password"
-              placeholder="••••••"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              className="h-12 text-center text-2xl tracking-[0.5em] font-mono rounded-xl bg-slate-50 border-0"
-              maxLength={8}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            />
-          </div>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!schoolId || !pin || loading}
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl mt-2"
+      <div className="w-full max-w-sm space-y-3">
+        {/* Install Banner */}
+        {canInstall && (
+          <button
+            onClick={install}
+            className="w-full bg-emerald-600/20 border border-emerald-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 text-left hover:bg-emerald-600/30 transition"
           >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Masuk →"}
-          </Button>
-        </CardContent>
-      </Card>
+            <Download className="h-5 w-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="text-emerald-300 text-sm font-bold">Install sebagai App</p>
+              <p className="text-emerald-500 text-xs">Tambahkan ke layar utama HP Anda</p>
+            </div>
+          </button>
+        )}
+        {isInstalled && (
+          <div className="w-full bg-emerald-600/10 border border-emerald-500/20 rounded-2xl px-4 py-2 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            <p className="text-emerald-400 text-xs font-medium">App sudah terinstall ✓</p>
+          </div>
+        )}
+
+        <Card className="bg-white border-0 shadow-2xl rounded-3xl overflow-hidden">
+          <CardHeader className="text-center space-y-3 pb-2 pt-8">
+            <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center">
+              <ShieldCheck className="h-8 w-8 text-emerald-600" />
+            </div>
+            <CardTitle className="text-xl font-black text-slate-800">Absensi Sekolah</CardTitle>
+            <p className="text-xs text-slate-400 px-4">Masukkan PIN yang diberikan operator sekolah</p>
+          </CardHeader>
+          <CardContent className="space-y-4 p-6">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Sekolah</label>
+              <Select value={schoolId} onValueChange={setSchoolId} disabled={loadingSchools}>
+                <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-0">
+                  <SelectValue placeholder={loadingSchools ? "Memuat..." : "Pilih sekolah..."} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl max-h-60">
+                  {schools.map((s: any) => (
+                    <SelectItem key={s.id} value={s.id.toString()}>
+                      <span className="font-medium">{s.nama}</span>
+                      {s.jenjang && <span className="text-slate-400 text-xs ml-1">({s.jenjang})</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PIN Scanner</label>
+              <Input
+                type="password"
+                placeholder="••••••"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                className="h-12 text-center text-2xl tracking-[0.5em] font-mono rounded-xl bg-slate-50 border-0"
+                maxLength={8}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              />
+            </div>
+
+            <Button
+              onClick={handleSubmit}
+              disabled={!schoolId || !pin || loading}
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl mt-2"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Masuk →"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* iOS install hint */}
+        {!canInstall && !isInstalled && (
+          <p className="text-center text-slate-600 text-xs px-4">
+            Di iPhone: tap <strong className="text-slate-400">Share</strong> → <strong className="text-slate-400">Add to Home Screen</strong> untuk install
+          </p>
+        )}
+      </div>
     </div>
   );
 }

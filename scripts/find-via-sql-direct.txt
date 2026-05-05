@@ -1,0 +1,48 @@
+# ═══════════════════════════════════════════════════════════
+# QUERY VIA PostgreSQL LANGSUNG (Paling Mudah!)
+# ═══════════════════════════════════════════════════════════
+
+# STEP 1: Masuk ke PostgreSQL
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 psql -U sim_user -d sim_maarif
+
+# Atau jika ada container database terpisah:
+# docker exec -it simmaci-db psql -U sim_user -d sim_maarif
+
+# ───────────────────────────────────────────────────────────
+# STEP 2: Jalankan Query Ini
+# ───────────────────────────────────────────────────────────
+
+-- Lihat semua nilai unik status_jamiyyah
+SELECT 
+    COALESCE(status_jamiyyah, '(NULL/kosong)') as status,
+    COUNT(*) as jumlah
+FROM schools
+WHERE deleted_at IS NULL
+GROUP BY status_jamiyyah
+ORDER BY status_jamiyyah;
+
+-- Cari sekolah dengan status "undefined"
+SELECT 
+    id,
+    nama,
+    npsn,
+    COALESCE(status_jamiyyah, '(NULL/kosong)') as status_jamiyyah,
+    jenjang,
+    kecamatan
+FROM schools
+WHERE deleted_at IS NULL
+  AND CASE
+        WHEN LOWER(status_jamiyyah) LIKE '%jama%ah%'
+          OR LOWER(status_jamiyyah) LIKE '%afiliasi%' THEN 'jamaah'
+        WHEN LOWER(status_jamiyyah) LIKE '%jam%iyyah%' THEN 'jamiyyah'
+        ELSE 'undefined'
+      END = 'undefined'
+ORDER BY nama;
+
+# ───────────────────────────────────────────────────────────
+# STEP 3: Keluar dari psql
+# ───────────────────────────────────────────────────────────
+
+\q
+
+# ═══════════════════════════════════════════════════════════

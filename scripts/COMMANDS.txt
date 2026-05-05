@@ -1,0 +1,81 @@
+# ═══════════════════════════════════════════════════════════
+# COMMAND UNTUK MENCARI SEKOLAH "TIDAK TERDEFINISI"
+# ═══════════════════════════════════════════════════════════
+
+# Container name:
+backend-yam0yy9a6l424v8j89hv7pqr-025135358293
+
+# ───────────────────────────────────────────────────────────
+# STEP 1: SSH ke Server Production
+# ───────────────────────────────────────────────────────────
+
+# Ganti dengan kredensial Anda:
+ssh root@YOUR_SERVER_IP
+
+# Atau jika port bukan 22:
+ssh -p 2222 root@YOUR_SERVER_IP
+
+# ───────────────────────────────────────────────────────────
+# STEP 2: Cek Container Berjalan
+# ───────────────────────────────────────────────────────────
+
+docker ps | grep backend
+
+# ───────────────────────────────────────────────────────────
+# STEP 3: Jalankan Command (COPY COMMAND INI!)
+# ───────────────────────────────────────────────────────────
+
+docker exec backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan school:find-undefined-jamiyyah
+
+# ───────────────────────────────────────────────────────────
+# ALTERNATIF: Masuk ke Container Dulu
+# ───────────────────────────────────────────────────────────
+
+# Masuk ke container:
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 bash
+
+# Jalankan command:
+php artisan school:find-undefined-jamiyyah
+
+# Keluar dari container:
+exit
+
+# ───────────────────────────────────────────────────────────
+# BONUS: Command Lainnya yang Berguna
+# ───────────────────────────────────────────────────────────
+
+# Lihat semua container:
+docker ps
+
+# Lihat log container:
+docker logs backend-yam0yy9a6l424v8j89hv7pqr-025135358293
+
+# Restart container (jika perlu):
+docker restart backend-yam0yy9a6l424v8j89hv7pqr-025135358293
+
+# Cek status database:
+docker exec backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan migrate:status
+
+# Jalankan tinker (interactive PHP):
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker
+
+# ───────────────────────────────────────────────────────────
+# SETELAH MENEMUKAN 4 SEKOLAH
+# ───────────────────────────────────────────────────────────
+
+# Update via SQL (ganti ID sesuai hasil):
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker
+
+# Kemudian di tinker:
+School::whereIn('id', [123, 124, 125, 126])->update(['status_jamiyyah' => 'Jama\'ah']);
+
+# Atau update satu per satu:
+School::find(123)->update(['status_jamiyyah' => 'Jama\'ah']);
+School::find(124)->update(['status_jamiyyah' => 'Jam\'iyyah']);
+
+# Keluar dari tinker:
+exit
+
+# ═══════════════════════════════════════════════════════════
+# SELESAI!
+# ═══════════════════════════════════════════════════════════

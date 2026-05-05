@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Clock, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { teacherApi, attendanceApi } from "@/lib/api";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 const statusColors: Record<string, string> = {
   Hadir: "bg-emerald-100 text-emerald-700",
@@ -22,6 +23,7 @@ const statusColors: Record<string, string> = {
 export default function TeacherAttendancePage() {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const geolocation = useGeolocation();
 
   // 🔥 REST API QUERIES
   const { data: teachersData, isLoading: isLoadingTeachers } = useQuery({
@@ -51,12 +53,21 @@ export default function TeacherAttendancePage() {
 
   const handleStatusChange = async (teacherId: number, status: string) => {
     const jamMasuk = status === "Hadir" ? new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) : undefined;
-    recordMutation.mutate({
+    
+    const payload: any = {
       teacher_id: teacherId,
       tanggal: selectedDate,
       status,
       jam_masuk: jamMasuk
-    });
+    };
+
+    // Add geolocation if available
+    if (geolocation.latitude && geolocation.longitude) {
+      payload.latitude = geolocation.latitude;
+      payload.longitude = geolocation.longitude;
+    }
+
+    recordMutation.mutate(payload);
   };
 
   const navigateDate = (days: number) => {
@@ -64,6 +75,13 @@ export default function TeacherAttendancePage() {
     date.setDate(date.getDate() + days);
     setSelectedDate(date.toISOString().split("T")[0]);
   };
+
+  // Show geolocation status
+  useEffect(() => {
+    if (geolocation.error) {
+      toast.warning(geolocation.error);
+    }
+  }, [geolocation.error]);
 
   const summary = {
     hadir: attendance.filter((a: any) => a.status === "Hadir").length,

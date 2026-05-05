@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
 use App\Models\LessonSchedule;
 use App\Models\SchoolClass;
+use App\Models\Student;
 use App\Models\StudentAttendanceLog;
 use App\Models\Subject;
+use App\Models\Teacher;
 use App\Models\TeacherAttendance;
+use GuzzleHttp\Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -41,9 +44,36 @@ class AttendanceController extends Controller
             'status' => 'required|string|in:Hadir,Sakit,Izin,Alpha',
             'keterangan' => 'nullable|string',
             'scanned_by' => 'nullable|string',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         $data['school_id'] = $request->user()->school_id;
+
+        // Geofencing validation
+        if (isset($data['latitude']) && isset($data['longitude'])) {
+            $settings = AttendanceSetting::where('school_id', $data['school_id'])->first();
+
+            if ($settings && $settings->geolocation_enabled && $settings->school_latitude && $settings->school_longitude) {
+                $distance = $this->calculateDistance(
+                    $data['latitude'],
+                    $data['longitude'],
+                    $settings->school_latitude,
+                    $settings->school_longitude
+                );
+
+                $data['location_verified'] = $distance <= $settings->geofence_radius_meters;
+
+                if (! $data['location_verified']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Lokasi Anda berada '.round($distance)."m dari sekolah. Maksimal radius: {$settings->geofence_radius_meters}m",
+                        'distance' => round($distance),
+                        'max_radius' => $settings->geofence_radius_meters,
+                    ], 422);
+                }
+            }
+        }
 
         $attendance = TeacherAttendance::updateOrCreate(
             ['teacher_id' => $data['teacher_id'], 'tanggal' => $data['tanggal']],
@@ -81,9 +111,36 @@ class AttendanceController extends Controller
             'tanggal' => 'required|date',
             'jam_ke' => 'nullable|integer',
             'logs' => 'required|array',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         $data['school_id'] = $request->user()->school_id;
+
+        // Geofencing validation
+        if (isset($data['latitude']) && isset($data['longitude'])) {
+            $settings = AttendanceSetting::where('school_id', $data['school_id'])->first();
+
+            if ($settings && $settings->geolocation_enabled && $settings->school_latitude && $settings->school_longitude) {
+                $distance = $this->calculateDistance(
+                    $data['latitude'],
+                    $data['longitude'],
+                    $settings->school_latitude,
+                    $settings->school_longitude
+                );
+
+                $data['location_verified'] = $distance <= $settings->geofence_radius_meters;
+
+                if (! $data['location_verified']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Lokasi Anda berada '.round($distance)."m dari sekolah. Maksimal radius: {$settings->geofence_radius_meters}m",
+                        'distance' => round($distance),
+                        'max_radius' => $settings->geofence_radius_meters,
+                    ], 422);
+                }
+            }
+        }
 
         $log = StudentAttendanceLog::updateOrCreate(
             [
@@ -112,7 +169,7 @@ class AttendanceController extends Controller
         $time = now()->format('H:i');
 
         if ($request->type === 'teacher') {
-            $teacher = \App\Models\Teacher::where('nuptk', $request->code)
+            $teacher = Teacher::where('nuptk', $request->code)
                 ->orWhere('id', $request->code)
                 ->first();
 
@@ -166,6 +223,7 @@ class AttendanceController extends Controller
     public function subjectUpdate(Request $request, Subject $subject): JsonResponse
     {
         $subject->update($request->only(['nama', 'kode', 'is_active']));
+
         return response()->json($subject->fresh());
     }
 
@@ -199,6 +257,7 @@ class AttendanceController extends Controller
     public function classUpdate(Request $request, SchoolClass $class): JsonResponse
     {
         $class->update($request->only(['nama', 'tingkat', 'tahun_ajaran', 'wali_kelas_id', 'is_active']));
+
         return response()->json($class->fresh());
     }
 
@@ -280,8 +339,8 @@ class AttendanceController extends Controller
         $subjectId = $request->subject_id;
         $bulan = $request->bulan;
 
-        $students = \App\Models\Student::where('school_id', $schoolId)
-            ->where('kelas', \App\Models\SchoolClass::find($classId)->nama)
+        $students = Student::where('school_id', $schoolId)
+            ->where('kelas', SchoolClass::find($classId)->nama)
             ->get();
 
         $logs = StudentAttendanceLog::where('school_id', $schoolId)
@@ -302,36 +361,93 @@ class AttendanceController extends Controller
 
         return response()->json([
             'students' => $students,
-            'matrix' => (object)$matrix,
-            'class_name' => \App\Models\SchoolClass::find($classId)->nama,
+            'matrix' => (object) $matrix,
+            'class_name' => SchoolClass::find($classId)->nama,
         ]);
     }
 
     public function checkWaConnection(Request $request): JsonResponse
     {
         $settings = AttendanceSetting::where('school_id', $request->user()->school_id)->first();
-        if (!$settings || !$settings->gowa_url) {
+        if (! $settings || ! $settings->gowa_url) {
             return response()->json(['success' => false, 'message' => 'GoWA URL belum dikonfigurasi'], 400);
         }
 
         try {
             // Real check would be an HTTP call to GoWA server
             // For now, we simulate a check to the configured URL
-            $client = new \GuzzleHttp\Client(['timeout' => 5]);
-            $response = $client->get($settings->gowa_url . '/health'); // Typical health check
-            
+            $client = new Client(['timeout' => 5]);
+            $response = $client->get($settings->gowa_url.'/health'); // Typical health check
+
             return response()->json([
                 'success' => true,
                 'status' => $response->getStatusCode() === 200 ? 'online' : 'offline',
-                'details' => $response->getBody()->getContents()
+                'details' => $response->getBody()->getContents(),
             ]);
         } catch (\Throwable $e) {
             // If it fails, we still return a success response with status offline to prevent 500
             return response()->json([
                 'success' => false,
                 'status' => 'offline',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ]);
         }
+    }
+
+    // ── PIN Verification ──
+
+    public function verifyPin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'pin' => 'required|string',
+        ]);
+
+        $settings = AttendanceSetting::where('school_id', $request->user()->school_id)->first();
+
+        if (! $settings || ! $settings->scanner_pin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'PIN scanner belum dikonfigurasi',
+            ], 400);
+        }
+
+        if ($request->pin === $settings->scanner_pin) {
+            return response()->json([
+                'success' => true,
+                'message' => 'PIN valid',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'PIN salah',
+        ], 401);
+    }
+
+    // ── Geolocation Helper ──
+
+    /**
+     * Calculate distance between two GPS coordinates using Haversine formula
+     *
+     * @param  float  $lat1  Latitude of first point
+     * @param  float  $lon1  Longitude of first point
+     * @param  float  $lat2  Latitude of second point
+     * @param  float  $lon2  Longitude of second point
+     * @return float Distance in meters
+     */
+    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371000; // Earth radius in meters
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+            sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c; // Returns distance in meters
     }
 }

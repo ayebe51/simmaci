@@ -2,11 +2,12 @@
 namespace App\Models;
 use App\Traits\AuditLogTrait;
 use App\Traits\HasTenantScope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class StudentAttendanceLog extends Model
 {
-    use HasTenantScope, AuditLogTrait;
+    use HasFactory, HasTenantScope, AuditLogTrait;
 
     protected $fillable = ['school_id','class_id','subject_id','tanggal','jam_ke','logs'];
     protected function casts(): array { return ['logs' => 'array', 'tanggal' => 'date']; }

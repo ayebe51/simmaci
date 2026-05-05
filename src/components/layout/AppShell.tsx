@@ -95,9 +95,13 @@ export default function AppShell({ children }: AppShellProps) {
     ...(!isSuperAdmin ? [{
       title: "Absensi",
       items: [
+        { label: "Absensi Guru", href: "/dashboard/attendance/teacher", icon: UserCheck },
+        { label: "Absensi Siswa", href: "/dashboard/attendance/student", icon: GraduationCap },
+        { label: "Scanner QR", href: "/dashboard/attendance/scanner", icon: ScanLine },
         { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
         { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
         { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
+        { label: "Laporan Absensi", href: "/dashboard/attendance/report", icon: FileBarChart },
         { label: "Pengaturan Absensi", href: "/dashboard/attendance/settings", icon: Settings },
       ]
     }] : []),

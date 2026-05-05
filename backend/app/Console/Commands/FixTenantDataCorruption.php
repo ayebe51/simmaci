@@ -97,17 +97,14 @@ class FixTenantDataCorruption extends Command
             $this->warn("User with NSM 121233010067 not found");
         }
 
-        // Update references for Step 3
-        $alMadinah = $maAlMadinah;
-        $miNurulHuda = $mtsAlMadinah;
-
         // Step 3: Find and auto-fix corrupt teacher records
         $this->info("\n=== Step 3: Checking for corrupt teacher records ===");
 
         // Find teachers with unit_kerja = "MA Al Madinah Kroya" but school_id != 187
         $alMadinahTeachers = \App\Models\Teacher::withoutTenantScope()
-            ->where('school_id', '!=', $alMadinah->id)
+            ->where('school_id', '!=', $maAlMadinah->id)
             ->where('unit_kerja', 'ilike', '%Al Madinah%')
+            ->where('unit_kerja', 'not ilike', '%MTs%')
             ->whereNotNull('unit_kerja')
             ->select('id', 'nama', 'unit_kerja', 'school_id')
             ->get();
@@ -116,14 +113,14 @@ class FixTenantDataCorruption extends Command
             $this->info("Found {$alMadinahTeachers->count()} teachers with unit_kerja='MA Al Madinah Kroya' but wrong school_id:");
             foreach ($alMadinahTeachers as $teacher) {
                 $oldSchoolId = $teacher->school_id;
-                $teacher->update(['school_id' => $alMadinah->id]);
-                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$oldSchoolId} → {$alMadinah->id}");
+                $teacher->update(['school_id' => $maAlMadinah->id]);
+                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$oldSchoolId} → {$maAlMadinah->id}");
             }
         }
 
         // Find teachers with unit_kerja = "MTs Plus Al Madinah" but school_id != 144
         $mtsTeachers = \App\Models\Teacher::withoutTenantScope()
-            ->where('school_id', '!=', $miNurulHuda->id)
+            ->where('school_id', '!=', $mtsAlMadinah->id)
             ->where('unit_kerja', 'ilike', '%MTs Plus%')
             ->whereNotNull('unit_kerja')
             ->select('id', 'nama', 'unit_kerja', 'school_id')
@@ -133,8 +130,8 @@ class FixTenantDataCorruption extends Command
             $this->info("Found {$mtsTeachers->count()} teachers with unit_kerja='MTs Plus Al Madinah' but wrong school_id:");
             foreach ($mtsTeachers as $teacher) {
                 $oldSchoolId = $teacher->school_id;
-                $teacher->update(['school_id' => $miNurulHuda->id]);
-                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$oldSchoolId} → {$miNurulHuda->id}");
+                $teacher->update(['school_id' => $mtsAlMadinah->id]);
+                $this->line("  ✓ Fixed ID: {$teacher->id} | Nama: {$teacher->nama} | school_id: {$oldSchoolId} → {$mtsAlMadinah->id}");
             }
         }
 

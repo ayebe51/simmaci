@@ -76,7 +76,11 @@ class AttendanceController extends Controller
         }
 
         $attendance = TeacherAttendance::updateOrCreate(
-            ['teacher_id' => $data['teacher_id'], 'tanggal' => $data['tanggal']],
+            [
+                'teacher_id' => $data['teacher_id'],
+                'tanggal' => $data['tanggal'],
+                'school_id' => $data['school_id'],
+            ],
             $data
         );
 
@@ -178,7 +182,11 @@ class AttendanceController extends Controller
             }
 
             $attendance = TeacherAttendance::updateOrCreate(
-                ['teacher_id' => $teacher->id, 'tanggal' => $today],
+                [
+                    'teacher_id' => $teacher->id,
+                    'tanggal' => $today,
+                    'school_id' => $schoolId,
+                ],
                 [
                     'school_id' => $schoolId,
                     'jam_masuk' => $time,
@@ -329,8 +337,8 @@ class AttendanceController extends Controller
     public function studentReport(Request $request): JsonResponse
     {
         $request->validate([
-            'class_id' => 'required|exists:classes,id',
-            'subject_id' => 'required|exists:subjects,id',
+            'class_id' => 'required|integer',
+            'subject_id' => 'required|integer',
             'bulan' => 'required|string', // YYYY-MM
         ]);
 
@@ -339,12 +347,27 @@ class AttendanceController extends Controller
         $subjectId = $request->subject_id;
         $bulan = $request->bulan;
 
-        // Get class with null check
-        $class = SchoolClass::find($classId);
+        // Get class with null check and school validation
+        $class = SchoolClass::where('id', $classId)
+            ->where('school_id', $schoolId)
+            ->first();
+            
         if (! $class) {
             return response()->json([
                 'success' => false,
-                'message' => 'Class not found',
+                'message' => 'Class not found or not accessible',
+            ], 404);
+        }
+
+        // Get subject with school validation
+        $subject = Subject::where('id', $subjectId)
+            ->where('school_id', $schoolId)
+            ->first();
+            
+        if (! $subject) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Subject not found or not accessible',
             ], 404);
         }
 

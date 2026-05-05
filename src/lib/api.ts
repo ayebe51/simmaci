@@ -328,6 +328,7 @@ export const attendanceApi = {
   subjectList: () => apiClient.get('/attendance/subjects').then((r) => r.data),
   subjectStore: (data: any) => apiClient.post('/attendance/subjects', data).then((r) => r.data),
   subjectUpdate: (id: number, data: any) => apiClient.put(`/attendance/subjects/${id}`, data).then((r) => r.data),
+  subjectDelete: (id: number) => apiClient.delete(`/attendance/subjects/${id}`).then((r) => r.data),
   
   classList: () => apiClient.get('/attendance/classes').then((r) => r.data),
   classStore: (data: any) => apiClient.post('/attendance/classes', data).then((r) => r.data),

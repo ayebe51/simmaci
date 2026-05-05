@@ -97,7 +97,7 @@ export default function AppShell({ children }: AppShellProps) {
       items: [
         { label: "Absensi Guru", href: "/dashboard/attendance/teacher", icon: UserCheck },
         { label: "Absensi Siswa", href: "/dashboard/attendance/student", icon: GraduationCap },
-        { label: "Scanner QR", href: "/dashboard/attendance/scanner", icon: ScanLine },
+        { label: "Buka Scanner Publik", href: "/scan", icon: ScanLine, external: true },
         { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
         { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
         { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
@@ -198,6 +198,22 @@ export default function AppShell({ children }: AppShellProps) {
                   <CollapsibleContent className="space-y-1 pt-1 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
                     {visibleItems.map((item, index) => {
                       const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard')
+
+                      if ((item as any).external) {
+                        return (
+                          <a
+                            key={index}
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 text-slate-500 hover:bg-emerald-50/50 hover:text-emerald-800"
+                          >
+                            <item.icon className="h-4.5 w-4.5 text-emerald-600/70" />
+                            {item.label}
+                            <span className="ml-auto text-[9px] font-bold text-emerald-600/50 uppercase tracking-wider">↗</span>
+                          </a>
+                        )
+                      }
 
                       return (
                         <Link

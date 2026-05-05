@@ -178,6 +178,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('subjects',       [AttendanceController::class, 'subjectIndex']);
             Route::post('subjects',      [AttendanceController::class, 'subjectStore']);
             Route::put('subjects/{subject}', [AttendanceController::class, 'subjectUpdate']);
+            Route::delete('subjects/{subject}', [AttendanceController::class, 'subjectDestroy']);
             Route::get('classes',        [AttendanceController::class, 'classIndex']);
             Route::post('classes',       [AttendanceController::class, 'classStore']);
             Route::put('classes/{class}', [AttendanceController::class, 'classUpdate']);

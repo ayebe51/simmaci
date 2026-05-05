@@ -46,12 +46,12 @@ export default function StudentAttendancePage() {
         class_id: selectedClassId, 
         subject_id: selectedSubjectId, 
         tanggal: selectedDate 
-    }),
+    }).then((r: any) => r?.data || []),
     enabled: !!selectedClassId && !!selectedSubjectId && !!selectedDate
   });
 
   const recordBulkMutation = useMutation({
-    queryFn: (data: any) => attendanceApi.studentLogStore(data),
+    mutationFn: (data: any) => attendanceApi.studentLogStore(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance', 'students'] });
       toast.success("Absensi siswa berhasil disimpan!");

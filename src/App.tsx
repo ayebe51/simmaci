@@ -146,9 +146,8 @@ export default function App() {
                         <Route path="mutations" element={<MutationPage />} />
 
                         {/* Attendance Module */}
-                        <Route path="attendance/scanner" element={<QrScannerPage />} />
-                        <Route path="attendance/teachers" element={<TeacherAttendancePage />} />
-                        <Route path="attendance/students" element={<StudentAttendancePage />} />
+                        <Route path="attendance/teacher" element={<TeacherAttendancePage />} />
+                        <Route path="attendance/student" element={<StudentAttendancePage />} />
                         <Route path="attendance/report" element={<StudentAttendanceReportPage />} />
                         <Route path="attendance/subjects" element={<SubjectsPage />} />
                         <Route path="attendance/classes" element={<ClassesPage />} />

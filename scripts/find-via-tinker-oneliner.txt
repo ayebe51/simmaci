@@ -1,0 +1,11 @@
+# ═══════════════════════════════════════════════════════════
+# ONE-LINER COMMAND (Copy-Paste Langsung di SSH)
+# ═══════════════════════════════════════════════════════════
+
+# Cara 1: Lihat semua nilai unik status_jamiyyah
+docker exec backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker --execute="DB::table('schools')->whereNull('deleted_at')->select('status_jamiyyah')->distinct()->get()->each(function(\$s) { \$status = \$s->status_jamiyyah ?: '(NULL)'; \$count = DB::table('schools')->whereNull('deleted_at')->where('status_jamiyyah', \$s->status_jamiyyah)->count(); echo \"\$status: \$count sekolah\n\"; });"
+
+# Cara 2: Cari sekolah dengan status "undefined"
+docker exec backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker --execute="\$schools = DB::table('schools')->whereNull('deleted_at')->whereRaw(\"CASE WHEN LOWER(status_jamiyyah) LIKE '%jama%ah%' OR LOWER(status_jamiyyah) LIKE '%afiliasi%' THEN 'jamaah' WHEN LOWER(status_jamiyyah) LIKE '%jam%iyyah%' THEN 'jamiyyah' ELSE 'undefined' END = 'undefined'\")->select('id', 'nama', 'npsn', 'status_jamiyyah', 'jenjang', 'kecamatan')->get(); echo \"Ditemukan: \" . \$schools->count() . \" sekolah\n\n\"; \$schools->each(function(\$s) { echo \"ID: {\$s->id} | Nama: {\$s->nama} | NPSN: {\$s->npsn} | Status: \" . (\$s->status_jamiyyah ?: '(NULL)') . \" | Jenjang: {\$s->jenjang} | Kecamatan: {\$s->kecamatan}\n\"; });"
+
+# ═══════════════════════════════════════════════════════════

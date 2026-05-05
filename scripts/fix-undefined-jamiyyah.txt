@@ -1,0 +1,71 @@
+# ═══════════════════════════════════════════════════════════
+# FIX 4 SEKOLAH DENGAN STATUS JAMIYYAH TIDAK TERDEFINISI
+# ═══════════════════════════════════════════════════════════
+
+# HASIL PENCARIAN:
+# ID 37  - MI Ma'arif NU 03 Karangkemiri → Jam'iyyah
+# ID 32  - MI Ya Bakii Kesugihan 01 → Jama'ah
+# ID 77  - MI Pp El-Bayan Padangsari Majenang → Jama'ah
+# ID 108 - MI Modern Darul Ulum → Jama'ah
+
+# ───────────────────────────────────────────────────────────
+# METODE 1: Via Tinker (RECOMMENDED)
+# ───────────────────────────────────────────────────────────
+
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker
+
+# Kemudian copy-paste command ini di Tinker:
+
+// Update ID 37 → Jam'iyyah
+DB::table('schools')->where('id', 37)->update(['status_jamiyyah' => 'Jam\'iyyah', 'updated_at' => now()]);
+
+// Update ID 32, 77, 108 → Jama'ah
+DB::table('schools')->whereIn('id', [32, 77, 108])->update(['status_jamiyyah' => 'Jama\'ah', 'updated_at' => now()]);
+
+// Verifikasi hasil update
+echo "=== Verifikasi Update ===\n";
+DB::table('schools')->whereIn('id', [32, 37, 77, 108])->select('id', 'nama', 'status_jamiyyah')->get()->each(function($s) {
+    echo "ID {$s->id}: {$s->nama} → {$s->status_jamiyyah}\n";
+});
+
+exit
+
+# ───────────────────────────────────────────────────────────
+# METODE 2: Via PostgreSQL
+# ───────────────────────────────────────────────────────────
+
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 psql -U sim_user -d sim_maarif
+
+# Kemudian jalankan SQL ini:
+
+-- Update ID 37 → Jam'iyyah
+UPDATE schools 
+SET status_jamiyyah = 'Jam''iyyah', updated_at = NOW() 
+WHERE id = 37;
+
+-- Update ID 32, 77, 108 → Jama'ah
+UPDATE schools 
+SET status_jamiyyah = 'Jama''ah', updated_at = NOW() 
+WHERE id IN (32, 77, 108);
+
+-- Verifikasi hasil
+SELECT id, nama, status_jamiyyah 
+FROM schools 
+WHERE id IN (32, 37, 77, 108)
+ORDER BY id;
+
+\q
+
+# ───────────────────────────────────────────────────────────
+# METODE 3: One-Liner (Paling Cepat)
+# ───────────────────────────────────────────────────────────
+
+# Update semua sekaligus
+docker exec backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker --execute="DB::table('schools')->where('id', 37)->update(['status_jamiyyah' => 'Jam\'iyyah', 'updated_at' => now()]); DB::table('schools')->whereIn('id', [32, 77, 108])->update(['status_jamiyyah' => 'Jama\'ah', 'updated_at' => now()]); echo \"Update selesai!\n\";"
+
+# Verifikasi
+docker exec backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker --execute="DB::table('schools')->whereIn('id', [32, 37, 77, 108])->select('id', 'nama', 'status_jamiyyah')->get()->each(function(\$s) { echo \"ID {\$s->id}: {\$s->nama} → {\$s->status_jamiyyah}\n\"; });"
+
+# ═══════════════════════════════════════════════════════════
+# SELESAI!
+# ═══════════════════════════════════════════════════════════

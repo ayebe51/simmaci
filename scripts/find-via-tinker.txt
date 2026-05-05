@@ -1,0 +1,51 @@
+# ═══════════════════════════════════════════════════════════
+# MENCARI SEKOLAH VIA TINKER (Tanpa Deploy)
+# ═══════════════════════════════════════════════════════════
+
+# STEP 1: Masuk ke Tinker
+docker exec -it backend-yam0yy9a6l424v8j89hv7pqr-025135358293 php artisan tinker
+
+# ───────────────────────────────────────────────────────────
+# STEP 2: Copy-Paste Command Ini di Tinker
+# ───────────────────────────────────────────────────────────
+
+# Lihat semua nilai unik status_jamiyyah
+echo "=== Nilai Unik Status Jamiyyah ===\n";
+DB::table('schools')->whereNull('deleted_at')->select('status_jamiyyah')->distinct()->get()->each(function($s) {
+    $status = $s->status_jamiyyah ?: '(NULL/kosong)';
+    $count = DB::table('schools')->whereNull('deleted_at')->where('status_jamiyyah', $s->status_jamiyyah)->count();
+    echo "{$status}: {$count} sekolah\n";
+});
+
+# Cari sekolah dengan status "undefined"
+echo "\n=== Sekolah dengan Status Tidak Terdefinisi ===\n";
+$schools = DB::table('schools')->whereNull('deleted_at')->whereRaw("
+    CASE
+        WHEN LOWER(status_jamiyyah) LIKE '%jama%ah%'
+          OR LOWER(status_jamiyyah) LIKE '%afiliasi%' THEN 'jamaah'
+        WHEN LOWER(status_jamiyyah) LIKE '%jam%iyyah%' THEN 'jamiyyah'
+        ELSE 'undefined'
+    END = 'undefined'
+")->select('id', 'nama', 'npsn', 'status_jamiyyah', 'jenjang', 'kecamatan')->get();
+
+echo "Ditemukan: " . $schools->count() . " sekolah\n\n";
+
+$schools->each(function($s) {
+    echo "─────────────────────────────────────────\n";
+    echo "ID           : {$s->id}\n";
+    echo "Nama         : {$s->nama}\n";
+    echo "NPSN         : {$s->npsn}\n";
+    echo "Jenjang      : {$s->jenjang}\n";
+    echo "Kecamatan    : {$s->kecamatan}\n";
+    echo "Status Jamiyyah: " . ($s->status_jamiyyah ?: '(NULL/kosong)') . "\n\n";
+});
+
+# ───────────────────────────────────────────────────────────
+# STEP 3: Keluar dari Tinker
+# ───────────────────────────────────────────────────────────
+
+exit
+
+# ═══════════════════════════════════════════════════════════
+# SELESAI!
+# ═══════════════════════════════════════════════════════════

@@ -571,6 +571,9 @@ class AttendanceApiPreservationTest extends TestCase
      * Property-Based Test: UpdateOrCreate Behavior
      * 
      * For ANY teacher and date combination, posting twice SHALL update not duplicate
+     * 
+     * IMPORTANT: This test verifies the ACTUAL behavior after fix.
+     * The fix adds school_id to updateOrCreate unique constraint.
      */
     public function test_teacher_attendance_update_or_create_prevents_duplicates(): void
     {
@@ -596,7 +599,7 @@ class AttendanceApiPreservationTest extends TestCase
         // Assert: UpdateOrCreate should return same ID (no duplicates)
         $this->assertEquals($id1, $id2, 'UpdateOrCreate should return same ID');
         
-        // Verify only one record exists
+        // Verify only one record exists for this teacher/date/school combination
         $count = TeacherAttendance::withoutGlobalScopes()
             ->where('teacher_id', $this->teacher1->id)
             ->where('school_id', $this->school1->id)
@@ -605,13 +608,14 @@ class AttendanceApiPreservationTest extends TestCase
         
         $this->assertEquals(1, $count, 'Should have exactly 1 record (no duplicates)');
         
-        // Verify status was updated
+        // Verify status was updated to the latest value
         $attendance = TeacherAttendance::withoutGlobalScopes()
             ->where('teacher_id', $this->teacher1->id)
             ->where('school_id', $this->school1->id)
             ->whereDate('tanggal', '2024-01-15')
             ->first();
         
+        $this->assertNotNull($attendance, 'Attendance record should exist');
         $this->assertEquals('Sakit', $attendance->status, 'Status should be updated to Sakit');
     }
 
@@ -619,6 +623,9 @@ class AttendanceApiPreservationTest extends TestCase
      * Property-Based Test: Student Log UpdateOrCreate Behavior
      * 
      * For ANY class/subject/date combination, posting twice SHALL update not duplicate
+     * 
+     * IMPORTANT: This test verifies the ACTUAL behavior after fix.
+     * StudentLogStore already includes school_id in updateOrCreate.
      */
     public function test_student_log_update_or_create_prevents_duplicates(): void
     {
@@ -651,7 +658,7 @@ class AttendanceApiPreservationTest extends TestCase
         // Assert: UpdateOrCreate should return same ID (no duplicates)
         $this->assertEquals($id1, $id2, 'UpdateOrCreate should return same ID');
         
-        // Verify only one record exists
+        // Verify only one record exists for this class/subject/date/school combination
         $count = StudentAttendanceLog::withoutGlobalScopes()
             ->where('class_id', $this->class1->id)
             ->where('subject_id', $this->subject1->id)
@@ -669,6 +676,7 @@ class AttendanceApiPreservationTest extends TestCase
             ->whereDate('tanggal', '2024-01-15')
             ->first();
         
+        $this->assertNotNull($log, 'Log record should exist');
         $this->assertCount(2, $log->logs, 'Logs should be updated to 2 entries');
     }
 }

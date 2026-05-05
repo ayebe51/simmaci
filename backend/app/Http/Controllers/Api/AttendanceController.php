@@ -49,6 +49,8 @@ class AttendanceController extends Controller
         ]);
 
         $data['school_id'] = $request->user()->school_id;
+        // Normalize tanggal to Y-m-d string to ensure consistent updateOrCreate matching
+        $data['tanggal'] = \Carbon\Carbon::parse($data['tanggal'])->toDateString();
 
         // Geofencing validation
         if (isset($data['latitude']) && isset($data['longitude'])) {
@@ -120,6 +122,8 @@ class AttendanceController extends Controller
         ]);
 
         $data['school_id'] = $request->user()->school_id;
+        // Normalize tanggal to Y-m-d string to ensure consistent updateOrCreate matching
+        $data['tanggal'] = \Carbon\Carbon::parse($data['tanggal'])->toDateString();
 
         // Geofencing validation
         if (isset($data['latitude']) && isset($data['longitude'])) {
@@ -347,8 +351,9 @@ class AttendanceController extends Controller
         $subjectId = $request->subject_id;
         $bulan = $request->bulan;
 
-        // Get class with null check and school validation
-        $class = SchoolClass::where('id', $classId)
+        // Get class with null check and school validation (bypass global scope for explicit check)
+        $class = SchoolClass::withoutGlobalScopes()
+            ->where('id', $classId)
             ->where('school_id', $schoolId)
             ->first();
             
@@ -359,8 +364,9 @@ class AttendanceController extends Controller
             ], 404);
         }
 
-        // Get subject with school validation
-        $subject = Subject::where('id', $subjectId)
+        // Get subject with school validation (bypass global scope for explicit check)
+        $subject = Subject::withoutGlobalScopes()
+            ->where('id', $subjectId)
             ->where('school_id', $schoolId)
             ->first();
             
@@ -386,7 +392,9 @@ class AttendanceController extends Controller
             foreach ($log->logs ?? [] as $entry) {
                 $studentId = $entry['student_id'] ?? null;
                 if ($studentId) {
-                    $matrix[$studentId][$log->tanggal] = $entry['status'] ?? 'Alpha';
+                    // Cast tanggal to string since it's a Carbon date cast
+                    $tanggalKey = $log->getRawOriginal('tanggal') ?? \Carbon\Carbon::parse($log->tanggal)->toDateString();
+                    $matrix[$studentId][$tanggalKey] = $entry['status'] ?? 'Alpha';
                 }
             }
         }

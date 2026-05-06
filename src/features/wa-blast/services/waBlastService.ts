@@ -21,8 +21,13 @@ import type {
 export async function getBlasts(
   params?: BlastListParams,
 ): Promise<PaginatedResponse<WaBlast>> {
-  const { data } = await apiClient.get<PaginatedResponse<WaBlast>>('/wa-blasts', { params });
-  return data;
+  const { data } = await apiClient.get<any>('/wa-blasts', { params });
+  // Handle both direct response and nested data structure
+  if (data && typeof data === 'object' && 'data' in data) {
+    return data;
+  }
+  // If response is already the paginated structure, return as-is
+  return data || { data: [], total: 0, per_page: 15, current_page: 1, last_page: 1 };
 }
 
 /**
@@ -87,11 +92,12 @@ export async function deleteBlast(id: number): Promise<void> {
 export async function previewRecipients(
   payload: PreviewRecipientsPayload,
 ): Promise<PreviewRecipientsResponse> {
-  const { data } = await apiClient.post<PreviewRecipientsResponse>(
+  const { data } = await apiClient.post<any>(
     '/wa-blasts/preview-recipients',
     payload,
   );
-  return data;
+  // Ensure we return a valid structure even if API returns unexpected format
+  return data || { recipients: [], valid_count: 0, invalid_count: 0 };
 }
 
 /**

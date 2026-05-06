@@ -51,29 +51,19 @@ export default function SkSubmissionPage() {
   const isSuperAdmin = ["super_admin", "admin_yayasan"].includes(user?.role)
 
   // Template surat permohonan untuk didownload
-  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
   const { data: suratPermohonanTemplate } = useQuery({
     queryKey: ['sk-template-surat-permohonan'],
     queryFn: () => skTemplateApi.getActiveSuratPermohonan(),
     retry: false,
   })
 
-  const handleDownloadTemplate = async () => {
-    if (!suratPermohonanTemplate?.data?.id) {
+  const handleDownloadTemplate = () => {
+    const fileUrl = suratPermohonanTemplate?.data?.file_url
+    if (!fileUrl) {
       toast.error("Template surat permohonan belum tersedia. Hubungi administrator.")
       return
     }
-    setIsDownloadingTemplate(true)
-    try {
-      const res = await skTemplateApi.downloadUrl(suratPermohonanTemplate.data.id)
-      const url = res?.data?.url ?? res?.url ?? res
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
-      else toast.error("URL unduhan tidak tersedia")
-    } catch {
-      toast.error("Gagal mengunduh template surat permohonan")
-    } finally {
-      setIsDownloadingTemplate(false)
-    }
+    window.open(fileUrl, '_blank', 'noopener,noreferrer')
   }
 
   // Create schema with dynamic validation based on user role
@@ -216,14 +206,10 @@ export default function SkSubmissionPage() {
           variant="outline"
           size="sm"
           onClick={handleDownloadTemplate}
-          disabled={isDownloadingTemplate || !suratPermohonanTemplate?.data}
+          disabled={!suratPermohonanTemplate?.data}
           className="shrink-0 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 font-black uppercase tracking-widest text-[10px] h-9 px-4 disabled:opacity-40"
         >
-          {isDownloadingTemplate ? (
-            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-          ) : (
-            <Download className="mr-2 h-3 w-3" />
-          )}
+          <Download className="mr-2 h-3 w-3" />
           {suratPermohonanTemplate?.data ? "Unduh Template" : "Belum Tersedia"}
         </Button>
       </div>

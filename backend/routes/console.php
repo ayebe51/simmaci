@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Schedule warmup command every 5 minutes to prevent cold start
 Schedule::command('app:warmup')->everyFiveMinutes();
+
+// Process scheduled WA blasts every minute
+Schedule::command('wa-blast:process-scheduled')->everyMinute();

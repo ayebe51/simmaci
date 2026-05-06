@@ -51,7 +51,7 @@ export default function SkSubmissionPage() {
   const isSuperAdmin = ["super_admin", "admin_yayasan"].includes(user?.role)
 
   // Template surat permohonan untuk didownload
-  const { data: suratPermohonanTemplate } = useQuery({
+  const { data: suratPermohonanTemplate, isLoading: isLoadingTemplate, error: templateError } = useQuery({
     queryKey: ['sk-template-surat-permohonan'],
     queryFn: () => skTemplateApi.getActiveSuratPermohonan(),
     retry: false,
@@ -60,10 +60,11 @@ export default function SkSubmissionPage() {
   const handleDownloadTemplate = () => {
     const fileUrl = suratPermohonanTemplate?.data?.file_url
     if (!fileUrl) {
-      toast.error("Template surat permohonan belum tersedia. Hubungi administrator.")
+      toast.error("Template surat permohonan belum tersedia. Hubungi administrator untuk mengaktifkan template.")
       return
     }
     window.open(fileUrl, '_blank', 'noopener,noreferrer')
+    toast.success("Template berhasil diunduh")
   }
 
   // Create schema with dynamic validation based on user role
@@ -199,18 +200,28 @@ export default function SkSubmissionPage() {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-black text-amber-900 uppercase tracking-wide">Template Surat Permohonan SK</p>
           <p className="text-xs text-amber-700 mt-0.5">
-            Unduh template resmi, isi sesuai data, lalu upload kembali di formulir di bawah.
+            {isLoadingTemplate 
+              ? "Memuat template..." 
+              : templateError 
+                ? "Template belum tersedia. Hubungi administrator untuk mengaktifkan template."
+                : "Unduh template resmi, isi sesuai data, lalu upload kembali di formulir di bawah."
+            }
           </p>
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={handleDownloadTemplate}
-          disabled={!suratPermohonanTemplate?.data}
+          disabled={!suratPermohonanTemplate?.data || isLoadingTemplate}
           className="shrink-0 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 font-black uppercase tracking-widest text-[10px] h-9 px-4 disabled:opacity-40"
         >
           <Download className="mr-2 h-3 w-3" />
-          {suratPermohonanTemplate?.data ? "Unduh Template" : "Belum Tersedia"}
+          {isLoadingTemplate 
+            ? "Memuat..." 
+            : suratPermohonanTemplate?.data 
+              ? "Unduh Template" 
+              : "Belum Tersedia"
+          }
         </Button>
       </div>
 

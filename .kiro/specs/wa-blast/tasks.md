@@ -8,73 +8,73 @@ Daftar tugas implementasi fitur WA Blast — pengiriman pesan WhatsApp massal me
 
 ## Tasks
 
-- [ ] 1. Database migrations dan Eloquent models
-  - [ ] 1.1 Buat migration untuk tabel `wa_blasts` dengan semua kolom, index, dan foreign key sesuai design — termasuk kolom `jenjang_filter JSONB` untuk menyimpan filter jenjang yang dipilih
-  - [ ] 1.2 Buat migration untuk tabel `wa_blast_recipients` dengan index pada `wa_blast_id`, `delivery_status`, dan `phone_number`
-  - [ ] 1.3 Buat migration untuk tabel `wa_blast_templates` dengan unique index case-insensitive pada `name` (partial index `WHERE deleted_at IS NULL`)
-  - [ ] 1.4 Buat migration untuk tabel `wa_blast_configs` (singleton, tanpa soft deletes)
-  - [ ] 1.5 Buat Eloquent model `WaBlast` dengan traits `SoftDeletes` dan `AuditLogTrait`, relasi `hasMany(WaBlastRecipient)`, `belongsTo(User, 'created_by')`, `belongsTo(WaBlast, 'parent_blast_id')`, dan casts untuk `school_ids`, `jenjang_filter`, `scheduled_at`, `sent_at`, `completed_at`
-  - [ ] 1.6 Buat Eloquent model `WaBlastRecipient` dengan trait `SoftDeletes` dan relasi `belongsTo(WaBlast)`
-  - [ ] 1.7 Buat Eloquent model `WaBlastTemplate` dengan trait `SoftDeletes` dan relasi `belongsTo(User, 'created_by')`
-  - [ ] 1.8 Buat Eloquent model `WaBlastConfig` tanpa `SoftDeletes`, dengan method helper `getDecryptedToken(): string`
+- [x] 1. Database migrations dan Eloquent models
+  - [x] 1.1 Buat migration untuk tabel `wa_blasts` dengan semua kolom, index, dan foreign key sesuai design — termasuk kolom `jenjang_filter JSONB` untuk menyimpan filter jenjang yang dipilih
+  - [x] 1.2 Buat migration untuk tabel `wa_blast_recipients` dengan index pada `wa_blast_id`, `delivery_status`, dan `phone_number`
+  - [x] 1.3 Buat migration untuk tabel `wa_blast_templates` dengan unique index case-insensitive pada `name` (partial index `WHERE deleted_at IS NULL`)
+  - [x] 1.4 Buat migration untuk tabel `wa_blast_configs` (singleton, tanpa soft deletes)
+  - [x] 1.5 Buat Eloquent model `WaBlast` dengan traits `SoftDeletes` dan `AuditLogTrait`, relasi `hasMany(WaBlastRecipient)`, `belongsTo(User, 'created_by')`, `belongsTo(WaBlast, 'parent_blast_id')`, dan casts untuk `school_ids`, `jenjang_filter`, `scheduled_at`, `sent_at`, `completed_at`
+  - [x] 1.6 Buat Eloquent model `WaBlastRecipient` dengan trait `SoftDeletes` dan relasi `belongsTo(WaBlast)`
+  - [x] 1.7 Buat Eloquent model `WaBlastTemplate` dengan trait `SoftDeletes` dan relasi `belongsTo(User, 'created_by')`
+  - [x] 1.8 Buat Eloquent model `WaBlastConfig` tanpa `SoftDeletes`, dengan method helper `getDecryptedToken(): string`
 
-- [ ] 2. Repository layer
-  - [ ] 2.1 Buat interface `WaBlastRepositoryInterface` dengan method: `paginate(array $filters)`, `findById(int $id)`, `create(array $data)`, `updateStatus(int $id, string $status, array $extra = [])`, `delete(int $id)`
-  - [ ] 2.2 Implementasi `WaBlastRepository` yang mengimplementasi interface di atas, dengan filter berdasarkan `blast_status` dan rentang tanggal `created_at`
-  - [ ] 2.3 Buat interface `WaBlastRecipientRepositoryInterface` dengan method: `createMany(int $blastId, array $recipients)`, `findByBlast(int $blastId)`, `updateDeliveryStatus(int $recipientId, string $status, ?string $errorMessage, ?Carbon $sentAt)`, `countByStatus(int $blastId)`, `findFailedByBlast(int $blastId)`
-  - [ ] 2.4 Implementasi `WaBlastRecipientRepository`
-  - [ ] 2.5 Buat interface `WaBlastTemplateRepositoryInterface` dengan method: `all()`, `findById(int $id)`, `create(array $data)`, `update(int $id, array $data)`, `delete(int $id)`, `existsByName(string $name, ?int $excludeId = null): bool`
-  - [ ] 2.6 Implementasi `WaBlastTemplateRepository` dengan pengecekan uniqueness nama case-insensitive
-  - [ ] 2.7 Buat interface `WaBlastConfigRepositoryInterface` dengan method: `get(): ?WaBlastConfig`, `save(array $data): WaBlastConfig`
-  - [ ] 2.8 Implementasi `WaBlastConfigRepository` (upsert singleton)
-  - [ ] 2.9 Daftarkan semua binding repository di `AppServiceProvider`
+- [x] 2. Repository layer
+  - [x] 2.1 Buat interface `WaBlastRepositoryInterface` dengan method: `paginate(array $filters)`, `findById(int $id)`, `create(array $data)`, `updateStatus(int $id, string $status, array $extra = [])`, `delete(int $id)`
+  - [x] 2.2 Implementasi `WaBlastRepository` yang mengimplementasi interface di atas, dengan filter berdasarkan `blast_status` dan rentang tanggal `created_at`
+  - [x] 2.3 Buat interface `WaBlastRecipientRepositoryInterface` dengan method: `createMany(int $blastId, array $recipients)`, `findByBlast(int $blastId)`, `updateDeliveryStatus(int $recipientId, string $status, ?string $errorMessage, ?Carbon $sentAt)`, `countByStatus(int $blastId)`, `findFailedByBlast(int $blastId)`
+  - [x] 2.4 Implementasi `WaBlastRecipientRepository`
+  - [x] 2.5 Buat interface `WaBlastTemplateRepositoryInterface` dengan method: `all()`, `findById(int $id)`, `create(array $data)`, `update(int $id, array $data)`, `delete(int $id)`, `existsByName(string $name, ?int $excludeId = null): bool`
+  - [x] 2.6 Implementasi `WaBlastTemplateRepository` dengan pengecekan uniqueness nama case-insensitive
+  - [x] 2.7 Buat interface `WaBlastConfigRepositoryInterface` dengan method: `get(): ?WaBlastConfig`, `save(array $data): WaBlastConfig`
+  - [x] 2.8 Implementasi `WaBlastConfigRepository` (upsert singleton)
+  - [x] 2.9 Daftarkan semua binding repository di `AppServiceProvider`
 
-- [ ] 3. Core services — normalisasi, kompilasi penerima, dan konfigurasi
-  - [ ] 3.1 Buat `PhoneNormalizerService` dengan method `normalize(string $phone): string` yang menghapus spasi/tanda hubung, mengganti awalan `0` → `62`, menghapus `+` dari `+62`, dan method `isValid(string $normalizedPhone): bool` yang memvalidasi pola `^62[0-9]{9,13}$`
-  - [ ] 3.2 Buat `RecipientCompilerService` dengan method `compile(string $category, array $schoolIds, array $jenjang, array $excludedPhones): array` yang query `schools.kepala_whatsapp` dan/atau `teachers.phone_number` (filter `is_active = true`), dengan filter `WHERE schools.jenjang IN (...)` jika `$jenjang` tidak kosong, normalisasi nomor, deduplication, dan tandai nomor tidak valid sebagai `invalid_number`
-  - [ ] 3.3 Buat `WaBlastConfigService` dengan method `get(): ?WaBlastConfig`, `save(array $data): WaBlastConfig` (enkripsi token dengan `encrypt()`), `getDecryptedToken(): string`
-  - [ ] 3.4 Buat `GoWaGatewayService` dengan method `sendText(string $to, string $message, WaBlastConfig $config): array`, `sendFile(string $to, string $message, string $filePath, WaBlastConfig $config): array`, `testConnection(WaBlastConfig $config): array` — menggunakan Laravel HTTP Client dengan timeout 30 detik
+- [x] 3. Core services — normalisasi, kompilasi penerima, dan konfigurasi
+  - [x] 3.1 Buat `PhoneNormalizerService` dengan method `normalize(string $phone): string` yang menghapus spasi/tanda hubung, mengganti awalan `0` → `62`, menghapus `+` dari `+62`, dan method `isValid(string $normalizedPhone): bool` yang memvalidasi pola `^62[0-9]{9,13}$`
+  - [x] 3.2 Buat `RecipientCompilerService` dengan method `compile(string $category, array $schoolIds, array $jenjang, array $excludedPhones): array` yang query `schools.kepala_whatsapp` dan/atau `teachers.phone_number` (filter `is_active = true`), dengan filter `WHERE schools.jenjang IN (...)` jika `$jenjang` tidak kosong, normalisasi nomor, deduplication, dan tandai nomor tidak valid sebagai `invalid_number`
+  - [x] 3.3 Buat `WaBlastConfigService` dengan method `get(): ?WaBlastConfig`, `save(array $data): WaBlastConfig` (enkripsi token dengan `encrypt()`), `getDecryptedToken(): string`
+  - [x] 3.4 Buat `GoWaGatewayService` dengan method `sendText(string $to, string $message, WaBlastConfig $config): array`, `sendFile(string $to, string $message, string $filePath, WaBlastConfig $config): array`, `testConnection(WaBlastConfig $config): array` — menggunakan Laravel HTTP Client dengan timeout 30 detik
 
 - [ ] 4. Property-based tests untuk core services
-  - [ ] 4.1 Install library `eris/eris` via composer: `composer require --dev eris/eris`
-  - [ ] 4.2 Buat `PhoneNormalizerServiceTest` dengan property test Property 1: untuk setiap awalan `0`, `+62`, `62` dengan panjang digit 9–13, hasil normalisasi harus cocok pola `^62[0-9]{9,13}$` (min 100 iterasi)
-  - [ ] 4.3 Buat property test Property 2 di `PhoneNormalizerServiceTest`: untuk string yang tidak bisa menjadi nomor valid setelah normalisasi, `isValid()` harus mengembalikan `false`
-  - [ ] 4.4 Buat `RecipientCompilerServiceTest` dengan property test Property 3: untuk daftar nomor dengan duplikat, hasil `compile()` tidak boleh mengandung nomor yang sama lebih dari sekali per blast
-  - [ ] 4.5 Buat property test Property 7 di `RecipientCompilerServiceTest`: kategori `kepala_sekolah` hanya menghasilkan data dari `schools`, kategori `gtk` hanya dari `teachers` dengan `is_active = true`; filter jenjang `MI` hanya menghasilkan sekolah dengan `jenjang = 'MI'`
+  - [x] 4.1 Install library `eris/eris` via composer: `composer require --dev eris/eris`
+  - [x] 4.2 Buat `PhoneNormalizerServiceTest` dengan property test Property 1: untuk setiap awalan `0`, `+62`, `62` dengan panjang digit 9–13, hasil normalisasi harus cocok pola `^62[0-9]{9,13}$` (min 100 iterasi)
+  - [x] 4.3 Buat property test Property 2 di `PhoneNormalizerServiceTest`: untuk string yang tidak bisa menjadi nomor valid setelah normalisasi, `isValid()` harus mengembalikan `false`
+  - [x] 4.4 Buat `RecipientCompilerServiceTest` dengan property test Property 3: untuk daftar nomor dengan duplikat, hasil `compile()` tidak boleh mengandung nomor yang sama lebih dari sekali per blast
+  - [x] 4.5 Buat property test Property 7 di `RecipientCompilerServiceTest`: kategori `kepala_sekolah` hanya menghasilkan data dari `schools`, kategori `gtk` hanya dari `teachers` dengan `is_active = true`; filter jenjang `MI` hanya menghasilkan sekolah dengan `jenjang = 'MI'`
 
-- [ ] 5. WaBlastService dan WaBlastTemplateService
-  - [ ] 5.1 Buat `WaBlastTemplateService` dengan method `list(): Collection`, `create(array $data): WaBlastTemplate`, `update(int $id, array $data): WaBlastTemplate`, `delete(int $id): void` — validasi uniqueness nama via repository
-  - [ ] 5.2 Buat `WaBlastService` dengan method `previewRecipients(string $category, array $schoolIds): array` yang mengembalikan daftar penerima beserta jumlah valid/invalid
-  - [ ] 5.3 Implementasi `WaBlastService::createBlast(array $data, int $userId): WaBlast` yang: kompilasi recipients, validasi max per sesi, validasi daily limit, simpan `WaBlast` + `WaBlastRecipient[]`, upload PDF ke storage jika ada, dispatch `SendBlastJob` jika segera atau set status `scheduled` jika terjadwal
-  - [ ] 5.4 Implementasi `WaBlastService::retryBlast(int $blastId, int $userId): WaBlast` yang membuat blast baru dari recipient `failed` dengan referensi `parent_blast_id`
-  - [ ] 5.5 Implementasi `WaBlastService::cancelBlast(int $blastId): void` yang hanya mengizinkan pembatalan blast berstatus `scheduled` atau `draft`
-  - [ ] 5.6 Implementasi `WaBlastService::getProgress(int $blastId): array` yang mengembalikan `blast_status`, `total_count`, `sent_count`, `failed_count`, `pending_count`, `invalid_count`
-  - [ ] 5.7 Buat `WaBlastServiceTest` dengan property test Property 4: untuk jumlah recipient > `max_recipients_per_session`, `createBlast()` harus throw `ValidationException`
+- [x] 5. WaBlastService dan WaBlastTemplateService
+  - [x] 5.1 Buat `WaBlastTemplateService` dengan method `list(): Collection`, `create(array $data): WaBlastTemplate`, `update(int $id, array $data): WaBlastTemplate`, `delete(int $id): void` — validasi uniqueness nama via repository
+  - [x] 5.2 Buat `WaBlastService` dengan method `previewRecipients(string $category, array $schoolIds): array` yang mengembalikan daftar penerima beserta jumlah valid/invalid
+  - [x] 5.3 Implementasi `WaBlastService::createBlast(array $data, int $userId): WaBlast` yang: kompilasi recipients, validasi max per sesi, validasi daily limit, simpan `WaBlast` + `WaBlastRecipient[]`, upload PDF ke storage jika ada, dispatch `SendBlastJob` jika segera atau set status `scheduled` jika terjadwal
+  - [x] 5.4 Implementasi `WaBlastService::retryBlast(int $blastId, int $userId): WaBlast` yang membuat blast baru dari recipient `failed` dengan referensi `parent_blast_id`
+  - [x] 5.5 Implementasi `WaBlastService::cancelBlast(int $blastId): void` yang hanya mengizinkan pembatalan blast berstatus `scheduled` atau `draft`
+  - [x] 5.6 Implementasi `WaBlastService::getProgress(int $blastId): array` yang mengembalikan `blast_status`, `total_count`, `sent_count`, `failed_count`, `pending_count`, `invalid_count`
+  - [x] 5.7 Buat `WaBlastServiceTest` dengan property test Property 4: untuk jumlah recipient > `max_recipients_per_session`, `createBlast()` harus throw `ValidationException`
 
-- [ ] 6. SendBlastJob dan ProcessScheduledBlastsCommand
-  - [ ] 6.1 Buat `SendBlastJob` yang implements `ShouldQueue` dengan `tries = 1`, method `handle()` yang: load konfigurasi Go-WA, iterasi setiap recipient `pending`, substitusi variabel `{{nama}}` dan `{{nama_sekolah}}`, kirim via `GoWaGatewayService` (text atau file), update `delivery_status`, sleep 2 detik, update `blast_status` → `completed` atau `failed` setelah semua recipient diproses
-  - [ ] 6.2 Implementasi penanganan timeout Go-WA di `SendBlastJob`: jika `GoWaGatewayService` throw exception timeout, set blast `failed` dengan pesan "Go-WA Gateway tidak dapat dihubungi." dan hentikan pengiriman
-  - [ ] 6.3 Implementasi substitusi template variabel di `SendBlastJob` sebagai method private `substituteVariables(string $template, string $nama, string $namaSekolah): string`
-  - [ ] 6.4 Buat `ProcessScheduledBlastsCommand` (`php artisan wa-blast:process-scheduled`) yang query `WaBlast` dengan `blast_status = scheduled` dan `scheduled_at <= now()`, lalu dispatch `SendBlastJob` untuk setiap blast dan update status ke `sending`
-  - [ ] 6.5 Daftarkan `ProcessScheduledBlastsCommand` di `app/Console/Kernel.php` untuk dijalankan setiap menit via `$schedule->command(...)->everyMinute()`
-  - [ ] 6.6 Buat `SendBlastJobTest` dengan property test Property 5: untuk setiap kombinasi `nama` dan `namaSekolah` yang tidak kosong, hasil `substituteVariables()` harus mengandung nilai aktual dan tidak mengandung placeholder `{{nama}}` atau `{{nama_sekolah}}`
+- [x] 6. SendBlastJob dan ProcessScheduledBlastsCommand
+  - [x] 6.1 Buat `SendBlastJob` yang implements `ShouldQueue` dengan `tries = 1`, method `handle()` yang: load konfigurasi Go-WA, iterasi setiap recipient `pending`, substitusi variabel `{{nama}}` dan `{{nama_sekolah}}`, kirim via `GoWaGatewayService` (text atau file), update `delivery_status`, sleep 2 detik, update `blast_status` → `completed` atau `failed` setelah semua recipient diproses
+  - [x] 6.2 Implementasi penanganan timeout Go-WA di `SendBlastJob`: jika `GoWaGatewayService` throw exception timeout, set blast `failed` dengan pesan "Go-WA Gateway tidak dapat dihubungi." dan hentikan pengiriman
+  - [x] 6.3 Implementasi substitusi template variabel di `SendBlastJob` sebagai method private `substituteVariables(string $template, string $nama, string $namaSekolah): string`
+  - [x] 6.4 Buat `ProcessScheduledBlastsCommand` (`php artisan wa-blast:process-scheduled`) yang query `WaBlast` dengan `blast_status = scheduled` dan `scheduled_at <= now()`, lalu dispatch `SendBlastJob` untuk setiap blast dan update status ke `sending`
+  - [x] 6.5 Daftarkan `ProcessScheduledBlastsCommand` di `app/Console/Kernel.php` untuk dijalankan setiap menit via `$schedule->command(...)->everyMinute()`
+  - [x] 6.6 Buat `SendBlastJobTest` dengan property test Property 5: untuk setiap kombinasi `nama` dan `namaSekolah` yang tidak kosong, hasil `substituteVariables()` harus mengandung nilai aktual dan tidak mengandung placeholder `{{nama}}` atau `{{nama_sekolah}}`
 
-- [ ] 7. Form Requests dan Controllers backend
-  - [ ] 7.1 Buat `StoreWaBlastRequest` dengan validasi: `title` required string max 255, `recipient_category` required in `[kepala_sekolah, gtk, both]`, `jenjang` nullable array of strings in `[MI, MTs, MA]`, `school_ids` nullable array of integers, `message_body` required string max 4096, `attachment` nullable file mimes:pdf max:10240, `scheduled_at` nullable date after:now, `excluded_phone_numbers` nullable array
-  - [ ] 7.2 Buat `PreviewRecipientsRequest` dengan validasi: `recipient_category` required in `[kepala_sekolah, gtk, both]`, `jenjang` nullable array of strings in `[MI, MTs, MA]`, `school_ids` nullable array of integers
-  - [ ] 7.3 Buat `StoreWaBlastTemplateRequest` dengan validasi: `name` required string max 255, `body` required string
-  - [ ] 7.4 Buat `UpdateWaBlastTemplateRequest` (sama dengan Store, tapi `name` unique check exclude current ID)
-  - [ ] 7.5 Buat `StoreWaBlastConfigRequest` dengan validasi: `api_url` required url max 500, `api_token` required string, `sender_number` required string regex `^62[0-9]{9,13}$`, `max_recipients_per_session` required integer min:1 max:1000, `max_daily_messages` required integer min:1 max:5000
-  - [ ] 7.6 Buat `WaBlastController` dengan method: `index` (list paginated + filter), `store` (buat blast), `show` (detail), `destroy` (batalkan), `previewRecipients`, `retry`, `progress` — semua menggunakan trait `ApiResponse`
-  - [ ] 7.7 Buat `WaBlastTemplateController` dengan method CRUD lengkap: `index`, `store`, `show`, `update`, `destroy`
-  - [ ] 7.8 Buat `WaBlastConfigController` dengan method: `show` (token ditampilkan sebagai `***`), `store` (enkripsi token), `testConnection`
-  - [ ] 7.9 Daftarkan semua route di `routes/api.php` dalam group `auth:sanctum` + `role:super_admin,admin_yayasan`, dengan endpoint konfigurasi dalam sub-group `role:super_admin`
+- [x] 7. Form Requests dan Controllers backend
+  - [x] 7.1 Buat `StoreWaBlastRequest` dengan validasi: `title` required string max 255, `recipient_category` required in `[kepala_sekolah, gtk, both]`, `jenjang` nullable array of strings in `[MI, MTs, MA]`, `school_ids` nullable array of integers, `message_body` required string max 4096, `attachment` nullable file mimes:pdf max:10240, `scheduled_at` nullable date after:now, `excluded_phone_numbers` nullable array
+  - [x] 7.2 Buat `PreviewRecipientsRequest` dengan validasi: `recipient_category` required in `[kepala_sekolah, gtk, both]`, `jenjang` nullable array of strings in `[MI, MTs, MA]`, `school_ids` nullable array of integers
+  - [x] 7.3 Buat `StoreWaBlastTemplateRequest` dengan validasi: `name` required string max 255, `body` required string
+  - [x] 7.4 Buat `UpdateWaBlastTemplateRequest` (sama dengan Store, tapi `name` unique check exclude current ID)
+  - [x] 7.5 Buat `StoreWaBlastConfigRequest` dengan validasi: `api_url` required url max 500, `api_token` required string, `sender_number` required string regex `^62[0-9]{9,13}$`, `max_recipients_per_session` required integer min:1 max:1000, `max_daily_messages` required integer min:1 max:5000
+  - [x] 7.6 Buat `WaBlastController` dengan method: `index` (list paginated + filter), `store` (buat blast), `show` (detail), `destroy` (batalkan), `previewRecipients`, `retry`, `progress` — semua menggunakan trait `ApiResponse`
+  - [x] 7.7 Buat `WaBlastTemplateController` dengan method CRUD lengkap: `index`, `store`, `show`, `update`, `destroy`
+  - [x] 7.8 Buat `WaBlastConfigController` dengan method: `show` (token ditampilkan sebagai `***`), `store` (enkripsi token), `testConnection`
+  - [x] 7.9 Daftarkan semua route di `routes/api.php` dalam group `auth:sanctum` + `role:super_admin,admin_yayasan`, dengan endpoint konfigurasi dalam sub-group `role:super_admin`
 
-- [ ] 8. Integration tests backend
-  - [ ] 8.1 Buat `WaBlastControllerTest` yang test: create blast (segera dan terjadwal), preview recipients, retry, cancel, progress endpoint, validasi 422 untuk input invalid, 403 untuk role operator
-  - [ ] 8.2 Buat `WaBlastTemplateControllerTest` yang test: CRUD template, uniqueness constraint nama, 403 untuk role operator
-  - [ ] 8.3 Buat `WaBlastConfigControllerTest` yang test: simpan konfigurasi (token terenkripsi di DB), show (token masked), test connection (mock `GoWaGatewayService`), 403 untuk role `admin_yayasan`
-  - [ ] 8.4 Buat `SendBlastJobIntegrationTest` yang test end-to-end job dengan mock `GoWaGatewayService`: semua recipient berhasil → status `completed`, sebagian gagal → status `completed` dengan `failed_count` > 0, semua gagal → status `failed`, timeout gateway → status `failed` dengan pesan error
+- [x] 8. Integration tests backend
+  - [x] 8.1 Buat `WaBlastControllerTest` yang test: create blast (segera dan terjadwal), preview recipients, retry, cancel, progress endpoint, validasi 422 untuk input invalid, 403 untuk role operator
+  - [x] 8.2 Buat `WaBlastTemplateControllerTest` yang test: CRUD template, uniqueness constraint nama, 403 untuk role operator
+  - [x] 8.3 Buat `WaBlastConfigControllerTest` yang test: simpan konfigurasi (token terenkripsi di DB), show (token masked), test connection (mock `GoWaGatewayService`), 403 untuk role `admin_yayasan`
+  - [x] 8.4 Buat `SendBlastJobIntegrationTest` yang test end-to-end job dengan mock `GoWaGatewayService`: semua recipient berhasil → status `completed`, sebagian gagal → status `completed` dengan `failed_count` > 0, semua gagal → status `failed`, timeout gateway → status `failed` dengan pesan error
 
 - [ ] 9. Frontend — types, services, dan hooks
   - [ ] 9.1 Buat `src/features/wa-blast/types/waBlast.types.ts` dengan interfaces: `WaBlast`, `WaBlastRecipient`, `WaBlastTemplate`, `WaBlastConfig`, `RecipientPreview`, dan enums `BlastStatus` (`draft | scheduled | sending | completed | failed`), `DeliveryStatus` (`pending | sent | failed | invalid_number`)

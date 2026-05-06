@@ -24,6 +24,9 @@ use App\Http\Controllers\Api\SkTemplateController;
 use App\Http\Controllers\Api\SkVerificationController;
 use App\Http\Controllers\Api\MinioProxyController;
 use App\Http\Controllers\Api\PublicAttendanceController;
+use App\Http\Controllers\Api\WaBlastController;
+use App\Http\Controllers\Api\WaBlastConfigController;
+use App\Http\Controllers\Api\WaBlastTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -246,4 +249,30 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Data Audit
     Route::post('data-audit/health-check', [DataAuditController::class, 'runHealthCheck']);
+
+    // ── WA Blast (super_admin + admin_yayasan only) ──
+    Route::middleware('role:super_admin,admin_yayasan')->group(function () {
+        // Blast sessions — preview-recipients must come before {id} wildcard
+        Route::post('wa-blasts/preview-recipients', [WaBlastController::class, 'previewRecipients']);
+        Route::get('wa-blasts', [WaBlastController::class, 'index']);
+        Route::post('wa-blasts', [WaBlastController::class, 'store']);
+        Route::get('wa-blasts/{id}', [WaBlastController::class, 'show']);
+        Route::delete('wa-blasts/{id}', [WaBlastController::class, 'destroy']);
+        Route::post('wa-blasts/{id}/retry', [WaBlastController::class, 'retry']);
+        Route::get('wa-blasts/{id}/progress', [WaBlastController::class, 'progress']);
+
+        // Message templates
+        Route::get('wa-blast-templates', [WaBlastTemplateController::class, 'index']);
+        Route::post('wa-blast-templates', [WaBlastTemplateController::class, 'store']);
+        Route::get('wa-blast-templates/{id}', [WaBlastTemplateController::class, 'show']);
+        Route::put('wa-blast-templates/{id}', [WaBlastTemplateController::class, 'update']);
+        Route::delete('wa-blast-templates/{id}', [WaBlastTemplateController::class, 'destroy']);
+
+        // Go-WA configuration — super_admin only
+        Route::middleware('role:super_admin')->group(function () {
+            Route::get('wa-blast-config', [WaBlastConfigController::class, 'show']);
+            Route::post('wa-blast-config', [WaBlastConfigController::class, 'store']);
+            Route::post('wa-blast-config/test', [WaBlastConfigController::class, 'testConnection']);
+        });
+    });
 });

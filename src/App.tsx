@@ -61,6 +61,13 @@ import LessonSchedulePage from "./features/attendance/LessonSchedulePage"
 import AttendanceSettingsPage from "./features/attendance/AttendanceSettingsPage"
 import PublicScannerPage from "./features/attendance/PublicScannerPage"
 
+// WA Blast Module
+import WaBlastListPage from "./features/wa-blast/WaBlastListPage"
+import WaBlastCreatePage from "./features/wa-blast/WaBlastCreatePage"
+import WaBlastDetailPage from "./features/wa-blast/WaBlastDetailPage"
+import WaBlastTemplatePage from "./features/wa-blast/WaBlastTemplatePage"
+import { WaBlastConfigPage } from "./features/wa-blast/pages/WaBlastConfigPage"
+
 // Create a client
 const queryClient = new QueryClient()
 
@@ -153,6 +160,13 @@ export default function App() {
                         <Route path="attendance/classes" element={<ClassesPage />} />
                         <Route path="attendance/schedule" element={<LessonSchedulePage />} />
                         <Route path="attendance/settings" element={<AttendanceSettingsPage />} />
+
+                        {/* WA Blast Module */}
+                        <Route path="wa-blast" element={<WaBlastListPage />} />
+                        <Route path="wa-blast/create" element={<WaBlastCreatePage />} />
+                        <Route path="wa-blast/:id" element={<WaBlastDetailPage />} />
+                        <Route path="wa-blast/templates" element={<WaBlastTemplatePage />} />
+                        <Route path="wa-blast/config" element={<WaBlastConfigPage />} />
                       </Routes>
                       </PageTransition>
                     </GlobalErrorBoundary>

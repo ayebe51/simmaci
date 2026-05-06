@@ -39,6 +39,7 @@ export default function UserListPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
+  const [confirmForceDelete, setConfirmForceDelete] = useState<any>(null)
   
   // 🔥 REST API QUERIES
   const { data: usersRes, isLoading, refetch } = useQuery({
@@ -98,6 +99,16 @@ export default function UserListPage() {
         refetch()
     } catch (err: any) {
         toast.error("Gagal menghapus")
+    }
+  }
+
+  const handleForceDelete = async (user: any) => {
+    try {
+        await userApi.forceDelete(user.id)
+        toast.success("User berhasil dihapus permanent")
+        refetch()
+    } catch (err: any) {
+        toast.error(err.response?.data?.message || "Gagal menghapus permanent")
     }
   }
 
@@ -206,7 +217,10 @@ export default function UserListPage() {
                                 <div className="flex justify-end gap-2">
                                     <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="h-10 w-10 rounded-xl hover:bg-blue-50 text-blue-600"><Edit className="w-4 h-4" /></Button>
                                     {u.role !== 'super_admin' && (
-                                        <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(u)} className="h-10 w-10 rounded-xl hover:bg-rose-50 text-rose-600"><Trash2 className="w-4 h-4" /></Button>
+                                        <>
+                                            <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(u)} className="h-10 w-10 rounded-xl hover:bg-rose-50 text-rose-600" title="Nonaktifkan"><UserX className="w-4 h-4" /></Button>
+                                            <Button variant="ghost" size="icon" onClick={() => setConfirmForceDelete(u)} className="h-10 w-10 rounded-xl hover:bg-red-100 text-red-700" title="Hapus Permanent"><Trash2 className="w-4 h-4" /></Button>
+                                        </>
                                     )}
                                 </div>
                             </TableCell>
@@ -282,6 +296,32 @@ export default function UserListPage() {
         onConfirm={() => {
           if (confirmDelete) handleDelete(confirmDelete)
           setConfirmDelete(null)
+        }}
+      />
+
+      {/* ── Confirm Force Delete User ── */}
+      <ConfirmDialog
+        open={!!confirmForceDelete}
+        onOpenChange={(open) => { if (!open) setConfirmForceDelete(null) }}
+        title="⚠️ Hapus Permanent User"
+        description={
+          <div className="space-y-2">
+            <p className="font-semibold text-red-600">
+              PERINGATAN: Tindakan ini tidak dapat dibatalkan!
+            </p>
+            <p>
+              User <strong>{confirmForceDelete?.name}</strong> ({confirmForceDelete?.email}) akan dihapus secara PERMANENT dari database beserta semua data terkait (notifikasi, token, dll).
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Gunakan opsi "Nonaktifkan" jika Anda hanya ingin menonaktifkan akses user.
+            </p>
+          </div>
+        }
+        confirmText="Ya, Hapus Permanent"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmForceDelete) handleForceDelete(confirmForceDelete)
+          setConfirmForceDelete(null)
         }}
       />
     </div>

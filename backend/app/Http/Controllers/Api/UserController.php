@@ -52,4 +52,27 @@ class UserController extends Controller
         $user->update(['is_active' => false]);
         return response()->json(['success' => true]);
     }
+
+    public function forceDestroy(User $user): JsonResponse
+    {
+        // Prevent deleting super_admin
+        if ($user->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat menghapus super admin'
+            ], 403);
+        }
+
+        // Delete related data first
+        $user->notifications()->delete();
+        $user->tokens()->delete();
+
+        // Permanently delete user
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User berhasil dihapus permanent'
+        ]);
+    }
 }

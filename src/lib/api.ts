@@ -260,6 +260,7 @@ export const userApi = {
   get: (id: number) => apiClient.get(`/users/${id}`).then((r) => r.data),
   update: (id: number, data: any) => apiClient.put(`/users/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/users/${id}`).then((r) => r.data),
+  forceDelete: (id: number) => apiClient.delete(`/users/${id}/force`).then((r) => r.data),
 };
 
 // ── Notifications API ──

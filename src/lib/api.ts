@@ -492,4 +492,7 @@ export const skTemplateApi = {
 
   getActive: (skType: string) =>
     apiClient.get('/sk-templates/active', { params: { sk_type: skType } }).then((r) => r.data),
+
+  getActiveSuratPermohonan: () =>
+    apiClient.get('/sk-templates/active', { params: { sk_type: 'surat_permohonan' } }).then((r) => r.data),
 };

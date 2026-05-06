@@ -17,9 +17,10 @@ class SkTemplateService
      */
     public function store(UploadedFile $file, string $skType, User $uploader): SkTemplate
     {
-        $disk     = $this->resolveDisk();
-        $filename = Str::uuid() . '.docx';
-        $path     = 'sk-templates/' . $filename;
+        $disk      = $this->resolveDisk();
+        $extension = $file->getClientOriginalExtension() ?: 'docx';
+        $filename  = Str::uuid() . '.' . $extension;
+        $path      = 'sk-templates/' . $filename;
 
         Storage::disk($disk)->putFileAs('sk-templates', $file, $filename);
 

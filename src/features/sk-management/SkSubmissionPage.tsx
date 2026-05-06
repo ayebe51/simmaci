@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save, FileText, Upload, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, FileText, Upload, Loader2, Download } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
 import { SchoolAutocomplete } from "./components/SchoolAutocomplete"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { skApi, mediaApi, authApi, schoolApi } from "@/lib/api"
+import { skApi, mediaApi, authApi, schoolApi, skTemplateApi } from "@/lib/api"
 
 type SkFormValues = {
   jenisSk: string
@@ -49,6 +49,32 @@ export default function SkSubmissionPage() {
   const user = authApi.getStoredUser()
   const isOperator = user?.role === "operator"
   const isSuperAdmin = ["super_admin", "admin_yayasan"].includes(user?.role)
+
+  // Template surat permohonan untuk didownload
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false)
+  const { data: suratPermohonanTemplate } = useQuery({
+    queryKey: ['sk-template-surat-permohonan'],
+    queryFn: () => skTemplateApi.getActiveSuratPermohonan(),
+    retry: false,
+  })
+
+  const handleDownloadTemplate = async () => {
+    if (!suratPermohonanTemplate?.data?.id) {
+      toast.error("Template surat permohonan belum tersedia. Hubungi administrator.")
+      return
+    }
+    setIsDownloadingTemplate(true)
+    try {
+      const res = await skTemplateApi.downloadUrl(suratPermohonanTemplate.data.id)
+      const url = res?.data?.url ?? res?.url ?? res
+      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+      else toast.error("URL unduhan tidak tersedia")
+    } catch {
+      toast.error("Gagal mengunduh template surat permohonan")
+    } finally {
+      setIsDownloadingTemplate(false)
+    }
+  }
 
   // Create schema with dynamic validation based on user role
   const skSchema = z.object({
@@ -173,6 +199,33 @@ export default function SkSubmissionPage() {
               <h1 className="text-3xl font-black tracking-tight text-blue-900 uppercase">Pengajuan SK Baru</h1>
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Pusat Layanan Digital LP Ma'arif NU Cilacap</p>
           </div>
+      </div>
+
+      {/* Banner download template surat permohonan */}
+      <div className="flex items-center gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+          <FileText className="h-5 w-5 text-amber-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-black text-amber-900 uppercase tracking-wide">Template Surat Permohonan SK</p>
+          <p className="text-xs text-amber-700 mt-0.5">
+            Unduh template resmi, isi sesuai data, lalu upload kembali di formulir di bawah.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownloadTemplate}
+          disabled={isDownloadingTemplate || !suratPermohonanTemplate?.data}
+          className="shrink-0 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 font-black uppercase tracking-widest text-[10px] h-9 px-4 disabled:opacity-40"
+        >
+          {isDownloadingTemplate ? (
+            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-3 w-3" />
+          )}
+          {suratPermohonanTemplate?.data ? "Unduh Template" : "Belum Tersedia"}
+        </Button>
       </div>
 
       <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">

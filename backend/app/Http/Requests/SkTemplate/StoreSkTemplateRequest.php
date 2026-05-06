@@ -14,8 +14,8 @@ class StoreSkTemplateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file'    => 'required|file|mimes:docx|max:10240',
-            'sk_type' => 'required|string|in:gty,gtt,kamad,tendik',
+            'file'    => 'required|file|mimes:docx,doc,pdf|max:10240',
+            'sk_type' => 'required|string|in:gty,gtt,kamad,tendik,surat_permohonan',
         ];
     }
 
@@ -24,12 +24,12 @@ class StoreSkTemplateRequest extends FormRequest
         return [
             'file.required' => 'File template wajib diunggah.',
             'file.file'     => 'Upload harus berupa file.',
-            'file.mimes'    => 'File template harus berformat .docx.',
+            'file.mimes'    => 'File template harus berformat .docx, .doc, atau .pdf.',
             'file.max'      => 'Ukuran file template maksimal 10 MB.',
 
             'sk_type.required' => 'Jenis SK wajib dipilih.',
             'sk_type.string'   => 'Jenis SK harus berupa teks.',
-            'sk_type.in'       => 'Jenis SK tidak valid. Pilihan yang tersedia: gty, gtt, kamad, tendik.',
+            'sk_type.in'       => 'Jenis SK tidak valid. Pilihan yang tersedia: gty, gtt, kamad, tendik, surat_permohonan.',
         ];
     }
 }

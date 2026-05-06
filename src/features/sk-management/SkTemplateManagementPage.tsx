@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Upload, FileText, Loader2, CheckCircle2, Download, Trash2,
-  Zap, FileUp, LayoutTemplate,
+  Zap, FileUp, LayoutTemplate, FileDown, FilePlus,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
@@ -46,9 +46,12 @@ interface SkTemplate {
 const uploadFormSchema = z.object({
   file: z
     .instanceof(File, { message: 'Pilih file terlebih dahulu' })
-    .refine((f) => f.name.toLowerCase().endsWith('.docx'), 'File harus berformat .docx')
+    .refine(
+      (f) => /\.(docx?|pdf)$/i.test(f.name),
+      'File harus berformat .docx, .doc, atau .pdf'
+    )
     .refine((f) => f.size <= 10 * 1024 * 1024, 'Ukuran file maksimal 10 MB'),
-  sk_type: z.enum(['gty', 'gtt', 'kamad', 'tendik'], {
+  sk_type: z.enum(['gty', 'gtt', 'kamad', 'tendik', 'surat_permohonan'], {
     required_error: 'Pilih jenis SK',
   }),
 })
@@ -117,7 +120,7 @@ function UploadForm({ onSuccess }: { onSuccess: () => void }) {
           Unggah Template Baru
         </CardTitle>
         <CardDescription className="text-xs text-slate-400">
-          Format .docx, maksimal 10 MB
+          Format .docx / .doc / .pdf, maksimal 10 MB
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -150,7 +153,7 @@ function UploadForm({ onSuccess }: { onSuccess: () => void }) {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".docx"
+                  accept=".docx,.doc,.pdf"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0]
@@ -183,6 +186,9 @@ function UploadForm({ onSuccess }: { onSuccess: () => void }) {
                         {t.label} — {t.fullLabel}
                       </SelectItem>
                     ))}
+                    <SelectItem value="surat_permohonan">
+                      Surat Permohonan — Template Pengajuan SK
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -374,6 +380,204 @@ function SkTypeSection({
   )
 }
 
+// ── Surat Permohonan Section ───────────────────────────────────────────────
+
+function SuratPermohonanSection() {
+  const queryClient = useQueryClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<SkTemplate | null>(null)
+
+  const { data: templates = [], isLoading } = useQuery<SkTemplate[]>({
+    queryKey: ['sk-templates', 'surat_permohonan'],
+    queryFn: () => skTemplateApi.list({ sk_type: 'surat_permohonan' }),
+  })
+
+  const activeTemplate = templates.find((t) => t.is_active) ?? templates[0] ?? null
+
+  const uploadMutation = useMutation({
+    mutationFn: ({ file }: { file: File }) =>
+      skTemplateApi.upload(file, 'surat_permohonan'),
+    onSuccess: async (data) => {
+      // Auto-activate after upload
+      await skTemplateApi.activate(data.data?.id ?? data.id)
+      toast.success('Template surat permohonan berhasil diunggah dan diaktifkan')
+      queryClient.invalidateQueries({ queryKey: ['sk-templates'] })
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Gagal mengunggah template')
+    },
+    onSettled: () => setIsUploading(false),
+  })
+
+  const downloadMutation = useMutation({
+    mutationFn: (template: SkTemplate) => skTemplateApi.downloadUrl(template.id),
+    onMutate: () => setIsDownloading(true),
+    onSuccess: (data) => {
+      const url = data?.data?.url ?? data?.url ?? data
+      if (url) window.open(url, '_blank', 'noopener,noreferrer')
+      else toast.error('URL unduhan tidak tersedia')
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Gagal mendapatkan URL unduhan')
+    },
+    onSettled: () => setIsDownloading(false),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (template: SkTemplate) => skTemplateApi.delete(template.id),
+    onSuccess: () => {
+      toast.success('Template surat permohonan dihapus')
+      queryClient.invalidateQueries({ queryKey: ['sk-templates'] })
+      setDeleteTarget(null)
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Gagal menghapus template')
+    },
+  })
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!/\.(docx?|pdf)$/i.test(file.name)) {
+      toast.error('File harus berformat .docx, .doc, atau .pdf')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal 10 MB')
+      return
+    }
+    setIsUploading(true)
+    uploadMutation.mutate({ file })
+  }
+
+  return (
+    <>
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden border-l-4 border-l-amber-400">
+        <CardHeader className="pb-3 bg-gradient-to-r from-amber-50 to-white border-b border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-slate-700 flex items-center gap-2">
+                <FilePlus className="h-4 w-4 text-amber-500" />
+                Template Surat Permohonan SK
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-400 mt-0.5">
+                File contoh yang dapat diunduh operator/guru sebagai panduan pengajuan SK
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="rounded-xl border-amber-200 text-amber-700 hover:bg-amber-50 font-black uppercase tracking-widest text-[10px] h-9 px-4"
+            >
+              {isUploading ? (
+                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-3 w-3" />
+              )}
+              {activeTemplate ? 'Ganti File' : 'Upload File'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".docx,.doc,.pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-slate-400 py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs font-bold uppercase tracking-widest">Memuat...</span>
+            </div>
+          ) : activeTemplate ? (
+            <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-amber-50 border border-amber-100">
+              <FileText className="h-5 w-5 text-amber-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-slate-700 truncate">
+                  {activeTemplate.original_filename}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Diunggah oleh {activeTemplate.uploaded_by} · {formatDate(activeTemplate.created_at)}
+                </p>
+              </div>
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border shrink-0 text-[10px] font-black uppercase tracking-widest">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> Aktif
+              </Badge>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => downloadMutation.mutate(activeTemplate)}
+                disabled={isDownloading}
+                className="h-8 px-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                title="Unduh"
+              >
+                {isDownloading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3" />
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setDeleteTarget(activeTemplate)}
+                className="h-8 px-2 text-red-400 hover:text-red-600 hover:bg-red-50"
+                title="Hapus"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-amber-200 rounded-xl bg-amber-50/50 cursor-pointer hover:bg-amber-50 transition-colors"
+            >
+              <FileDown className="h-8 w-8 text-amber-300 mb-2" />
+              <p className="text-xs font-black uppercase tracking-widest text-amber-400">
+                Belum ada template — klik untuk upload
+              </p>
+              <p className="text-[10px] text-slate-400 mt-1">Format .docx, .doc, atau .pdf · Maks 10 MB</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-black text-slate-800">Hapus Template Surat Permohonan?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500">
+              File{' '}
+              <span className="font-semibold text-slate-700">
+                "{deleteTarget?.original_filename}"
+              </span>{' '}
+              akan dihapus. Operator tidak akan bisa mengunduh template ini lagi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl font-bold">Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+            >
+              {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function SkTemplateManagementPage() {
@@ -459,6 +663,9 @@ export default function SkTemplateManagementPage() {
         icon={<LayoutTemplate className="h-7 w-7 text-white" />}
         gradient="from-blue-600 via-blue-700 to-indigo-800"
       />
+
+      {/* Template Surat Permohonan — full width */}
+      <SuratPermohonanSection />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upload form — left column */}

@@ -37,9 +37,11 @@ export function RecipientSelector({
       setLoading(true);
       try {
         const data = await schoolApi.list();
-        setSchools(data);
+        // Ensure data is an array
+        setSchools(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to fetch schools:", error);
+        setSchools([]); // Set empty array on error
       } finally {
         setLoading(false);
       }

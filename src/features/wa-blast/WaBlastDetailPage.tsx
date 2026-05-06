@@ -16,7 +16,7 @@ import { BlastProgressBar } from "./components/BlastProgressBar"
 import { RecipientDetailTable } from "./components/RecipientDetailTable"
 import { useWaBlast } from "./hooks/useWaBlast"
 import { useWaBlastProgress } from "./hooks/useWaBlastProgress"
-import { waBlastService } from "./services/waBlastService"
+import { deleteBlast, retryBlast } from "./services/waBlastService"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { toast } from "sonner"
@@ -39,7 +39,7 @@ export default function WaBlastDetailPage() {
   const handleCancel = async () => {
     setIsProcessing(true)
     try {
-      await waBlastService.deleteBlast(Number(id))
+      await deleteBlast(Number(id))
       toast.success("Blast berhasil dibatalkan")
       navigate("/dashboard/wa-blast")
     } catch (error: any) {
@@ -51,9 +51,9 @@ export default function WaBlastDetailPage() {
   const handleRetry = async () => {
     setIsProcessing(true)
     try {
-      const result = await waBlastService.retryBlast(Number(id))
+      const result = await retryBlast(Number(id))
       toast.success("Blast retry berhasil dibuat!")
-      navigate(`/dashboard/wa-blast/${result.data.id}`)
+      navigate(`/dashboard/wa-blast/${result.id}`)
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Gagal membuat retry blast")
       setIsProcessing(false)

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { BrowserRouter } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import WaBlastCreatePage from "../WaBlastCreatePage"
-import { waBlastService } from "../services/waBlastService"
+import * as waBlastService from "../services/waBlastService"
 import { waBlastConfigService } from "../services/waBlastConfigService"
 import { toast } from "sonner"
 

@@ -232,8 +232,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // NOTE: /sk-templates/active must be registered before the {skTemplate} wildcard routes
     Route::get('sk-templates', [SkTemplateController::class, 'index']);
     Route::get('sk-templates/active', [SkTemplateController::class, 'active']);
-    Route::get('sk-templates/{skTemplate}/download', [SkTemplateController::class, 'download']);
     Route::middleware('role:super_admin')->group(function () {
+        Route::get('sk-templates/{skTemplate}/download', [SkTemplateController::class, 'download']);
         Route::post('sk-templates', [SkTemplateController::class, 'store']);
         Route::post('sk-templates/{skTemplate}/activate', [SkTemplateController::class, 'activate']);
         Route::delete('sk-templates/{skTemplate}', [SkTemplateController::class, 'destroy']);

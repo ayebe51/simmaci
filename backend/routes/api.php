@@ -228,6 +228,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Users (admin-level, no tenant isolation)
     Route::middleware('role:super_admin')->group(function () {
+        Route::delete('users/{user}/force', [UserController::class, 'forceDestroy']);
         Route::apiResource('users', UserController::class);
     });
 

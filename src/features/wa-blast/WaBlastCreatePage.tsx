@@ -22,7 +22,7 @@ import { AttachmentUploader } from "./components/AttachmentUploader"
 import { ScheduleSelector } from "./components/ScheduleSelector"
 import { useRecipientPreview } from "./hooks/useRecipientPreview"
 import { useWaBlastConfig } from "./hooks/useWaBlastConfig"
-import { waBlastService } from "./services/waBlastService"
+import { createBlast } from "./services/waBlastService"
 import { toast } from "sonner"
 
 export default function WaBlastCreatePage() {
@@ -103,34 +103,23 @@ export default function WaBlastCreatePage() {
     setShowConfirmDialog(false)
 
     try {
-      const formData = new FormData()
-      formData.append("title", title)
-      formData.append("recipient_category", recipientCategory)
-      if (jenjang.length > 0) {
-        formData.append("jenjang", JSON.stringify(jenjang))
-      }
-      if (schoolIds.length > 0) {
-        formData.append("school_ids", JSON.stringify(schoolIds))
-      }
-      formData.append("message_body", messageBody)
-      if (attachment) {
-        formData.append("attachment", attachment)
-      }
-      if (scheduledAt) {
-        formData.append("scheduled_at", scheduledAt)
-      }
-      if (excludedPhones.length > 0) {
-        formData.append("excluded_phone_numbers", JSON.stringify(excludedPhones))
-      }
-
-      const result = await waBlastService.createBlast(formData)
+      const result = await createBlast({
+        title,
+        recipient_category: recipientCategory,
+        jenjang: jenjang.length > 0 ? jenjang : undefined,
+        school_ids: schoolIds.length > 0 ? schoolIds : undefined,
+        message_body: messageBody,
+        attachment: attachment || undefined,
+        scheduled_at: scheduledAt || undefined,
+        excluded_phone_numbers: excludedPhones.length > 0 ? excludedPhones : undefined,
+      })
       
       toast.success(
         scheduledAt
           ? "Blast berhasil dijadwalkan!"
           : "Blast sedang dikirim di latar belakang!"
       )
-      navigate(`/dashboard/wa-blast/${result.data.id}`)
+      navigate(`/dashboard/wa-blast/${result.id}`)
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Gagal membuat blast")
       setIsSubmitting(false)

@@ -67,10 +67,11 @@ export default function WaBlastCreatePage() {
 
   const handleRemoveRecipient = (phone: string) => {
     setExcludedPhones((prev) => [...prev, phone])
-    if (previewData && previewData.recipients && Array.isArray(previewData.recipients)) {
+    if (previewData?.recipients && Array.isArray(previewData.recipients)) {
+      const filteredRecipients = previewData.recipients.filter((r: any) => r.phone_number !== phone)
       setPreviewData({
         ...previewData,
-        recipients: previewData.recipients.filter((r: any) => r.phone_number !== phone),
+        recipients: filteredRecipients,
         valid_count: Math.max(0, (previewData.valid_count || 0) - 1),
       })
     }
@@ -205,10 +206,8 @@ export default function WaBlastCreatePage() {
           </CardHeader>
           <CardContent>
             <RecipientPreviewTable
-              recipients={previewData.recipients}
-              validCount={previewData.valid_count}
-              invalidCount={previewData.invalid_count}
-              onRemove={handleRemoveRecipient}
+              recipients={previewData.recipients || []}
+              onRemoveRecipient={handleRemoveRecipient}
             />
           </CardContent>
         </Card>

@@ -1,46 +1,47 @@
 import { useState } from "react";
-import { Search, FileText } from "lucide-react";
+import { Search, FileText, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useWaBlastTemplates } from "../hooks/useWaBlastTemplates";
 import type { WaBlastTemplate } from "../types/waBlast.types";
 
 interface TemplatePickerModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  templates: WaBlastTemplate[];
-  onSelectTemplate: (template: WaBlastTemplate) => void;
-  loading?: boolean;
+  onSelect: (templateBody: string) => void;
 }
 
-export function TemplatePickerModal({
-  open,
-  onOpenChange,
-  templates,
-  onSelectTemplate,
-  loading = false,
-}: TemplatePickerModalProps) {
+export function TemplatePickerModal({ onSelect }: TemplatePickerModalProps) {
+  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: templates, isLoading } = useWaBlastTemplates();
 
-  const filteredTemplates = templates.filter((template) =>
+  const safeTemplates = Array.isArray(templates) ? templates : [];
+  const filteredTemplates = safeTemplates.filter((template) =>
     template.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSelectTemplate = (template: WaBlastTemplate) => {
-    onSelectTemplate(template);
-    onOpenChange(false);
+    onSelect(template.body);
+    setOpen(false);
     setSearchQuery("");
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <FileText className="h-4 w-4 mr-2" />
+          Gunakan Template
+        </Button>
+      </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Pilih Template Pesan</DialogTitle>
@@ -63,7 +64,7 @@ export function TemplatePickerModal({
 
           {/* Template List */}
           <ScrollArea className="h-[400px] pr-4">
-            {loading ? (
+            {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Memuat template...</div>
             ) : filteredTemplates.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
@@ -97,7 +98,7 @@ export function TemplatePickerModal({
           </ScrollArea>
 
           <div className="flex justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => setOpen(false)}>
               Batal
             </Button>
           </div>

@@ -67,11 +67,11 @@ export default function WaBlastCreatePage() {
 
   const handleRemoveRecipient = (phone: string) => {
     setExcludedPhones((prev) => [...prev, phone])
-    if (previewData) {
+    if (previewData && previewData.recipients && Array.isArray(previewData.recipients)) {
       setPreviewData({
         ...previewData,
         recipients: previewData.recipients.filter((r: any) => r.phone_number !== phone),
-        valid_count: previewData.valid_count - 1,
+        valid_count: Math.max(0, (previewData.valid_count || 0) - 1),
       })
     }
   }
@@ -90,7 +90,7 @@ export default function WaBlastCreatePage() {
       toast.error("Isi pesan tidak boleh kosong")
       return
     }
-    if (!previewData || previewData.recipients.length === 0) {
+    if (!previewData || !previewData.recipients || previewData.recipients.length === 0) {
       toast.error("Belum ada penerima. Klik Preview untuk melihat daftar penerima.")
       return
     }

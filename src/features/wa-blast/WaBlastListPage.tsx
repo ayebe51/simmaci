@@ -142,7 +142,7 @@ export default function WaBlastListPage() {
             <div className="p-6 text-center text-red-500">
               Gagal memuat data blast. Silakan coba lagi.
             </div>
-          ) : !data?.data || data.data.length === 0 ? (
+          ) : !data?.data || !Array.isArray(data.data) || data.data.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-slate-500">Belum ada blast session.</p>
               <Link to="/dashboard/wa-blast/create">

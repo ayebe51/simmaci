@@ -14,7 +14,7 @@ export const WA_BLAST_CONFIG_QUERY_KEY = 'wa-blast-config';
  * Note: API token is masked as '***' in the response.
  */
 export function useWaBlastConfig() {
-  return useQuery<WaBlastConfig>({
+  return useQuery<WaBlastConfig | null>({
     queryKey: [WA_BLAST_CONFIG_QUERY_KEY],
     queryFn: getConfig,
     staleTime: 300_000, // 5 minutes

@@ -9,10 +9,19 @@ import type { WaBlastConfig, SaveConfigPayload } from '../types/waBlast.types';
 /**
  * Fetch the current Go-WA Gateway configuration.
  * Note: API token is masked as '***' in the response.
+ * Returns null if config doesn't exist yet (404).
  */
-export async function getConfig(): Promise<WaBlastConfig> {
-  const { data } = await apiClient.get<WaBlastConfig>('/wa-blast-config');
-  return data;
+export async function getConfig(): Promise<WaBlastConfig | null> {
+  try {
+    const { data } = await apiClient.get<WaBlastConfig>('/wa-blast-config');
+    return data;
+  } catch (error: any) {
+    // Return null if config doesn't exist yet (404)
+    if (error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**

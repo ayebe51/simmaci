@@ -27,6 +27,7 @@ import {
   UserCheck,
   Bell,
   LayoutTemplate,
+  MessageSquare,
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -126,6 +127,15 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Template SK", href: "/dashboard/sk-templates", icon: LayoutTemplate },
         { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
       ]
+    },
+    {
+      title: "WA Blast",
+      items: [
+        { label: "Daftar Blast", href: "/dashboard/wa-blast", icon: MessageSquare },
+        { label: "Buat Blast Baru", href: "/dashboard/wa-blast/create", icon: MessageSquare },
+        { label: "Template Pesan", href: "/dashboard/wa-blast/templates", icon: LayoutTemplate },
+        { label: "Konfigurasi Go-WA", href: "/dashboard/wa-blast/config", icon: Settings, superAdminOnly: true },
+      ]
     }
   ]
 
@@ -170,7 +180,13 @@ export default function AppShell({ children }: AppShellProps) {
                     "Generator SK", "Approval Yayasan", "Monitoring Kepala", 
                     "Persetujuan NUPTK", "Laporan Guru", "Laporan SK", "Kelola Sekolah"
                   ];
-                  const superAdminOnlyLabels = ["Template SK"];
+                  const superAdminOnlyLabels = ["Template SK", "Konfigurasi Go-WA"];
+
+                  // WA Blast feature: only super_admin and admin_yayasan
+                  const waBlastLabels = ["Daftar Blast", "Buat Blast Baru", "Template Pesan"];
+                  if (waBlastLabels.includes(item.label)) {
+                      return adminRoles.includes(userRole);
+                  }
 
                   if (superAdminOnlyLabels.includes(item.label)) {
                       return userRole === "super_admin";

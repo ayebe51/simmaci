@@ -76,45 +76,45 @@ Daftar tugas implementasi fitur WA Blast — pengiriman pesan WhatsApp massal me
   - [x] 8.3 Buat `WaBlastConfigControllerTest` yang test: simpan konfigurasi (token terenkripsi di DB), show (token masked), test connection (mock `GoWaGatewayService`), 403 untuk role `admin_yayasan`
   - [x] 8.4 Buat `SendBlastJobIntegrationTest` yang test end-to-end job dengan mock `GoWaGatewayService`: semua recipient berhasil → status `completed`, sebagian gagal → status `completed` dengan `failed_count` > 0, semua gagal → status `failed`, timeout gateway → status `failed` dengan pesan error
 
-- [ ] 9. Frontend — types, services, dan hooks
-  - [ ] 9.1 Buat `src/features/wa-blast/types/waBlast.types.ts` dengan interfaces: `WaBlast`, `WaBlastRecipient`, `WaBlastTemplate`, `WaBlastConfig`, `RecipientPreview`, dan enums `BlastStatus` (`draft | scheduled | sending | completed | failed`), `DeliveryStatus` (`pending | sent | failed | invalid_number`)
-  - [ ] 9.2 Buat `src/features/wa-blast/services/waBlastService.ts` dengan fungsi: `getBlasts(params)`, `createBlast(data)`, `getBlast(id)`, `deleteBlast(id)`, `previewRecipients(data)`, `retryBlast(id)`, `getBlastProgress(id)` — semua via `apiClient`
-  - [ ] 9.3 Buat `src/features/wa-blast/services/waBlastTemplateService.ts` dengan fungsi CRUD: `getTemplates()`, `createTemplate(data)`, `getTemplate(id)`, `updateTemplate(id, data)`, `deleteTemplate(id)`
-  - [ ] 9.4 Buat `src/features/wa-blast/services/waBlastConfigService.ts` dengan fungsi: `getConfig()`, `saveConfig(data)`, `testConnection()`
-  - [ ] 9.5 Buat `src/features/wa-blast/hooks/useWaBlasts.ts` menggunakan TanStack Query dengan filter `status`, `date_from`, `date_to`
-  - [ ] 9.6 Buat `src/features/wa-blast/hooks/useWaBlast.ts` untuk detail satu blast session
-  - [ ] 9.7 Buat `src/features/wa-blast/hooks/useWaBlastProgress.ts` dengan polling setiap 5 detik, aktif hanya ketika `blast_status === 'sending'`
-  - [ ] 9.8 Buat `src/features/wa-blast/hooks/useWaBlastTemplates.ts` dengan query list dan mutations CRUD
-  - [ ] 9.9 Buat `src/features/wa-blast/hooks/useWaBlastConfig.ts` dengan query dan mutation save/test
-  - [ ] 9.10 Buat `src/features/wa-blast/hooks/useRecipientPreview.ts` sebagai TanStack Query mutation
+- [x] 9. Frontend — types, services, dan hooks
+  - [x] 9.1 Buat `src/features/wa-blast/types/waBlast.types.ts` dengan interfaces: `WaBlast`, `WaBlastRecipient`, `WaBlastTemplate`, `WaBlastConfig`, `RecipientPreview`, dan enums `BlastStatus` (`draft | scheduled | sending | completed | failed`), `DeliveryStatus` (`pending | sent | failed | invalid_number`)
+  - [x] 9.2 Buat `src/features/wa-blast/services/waBlastService.ts` dengan fungsi: `getBlasts(params)`, `createBlast(data)`, `getBlast(id)`, `deleteBlast(id)`, `previewRecipients(data)`, `retryBlast(id)`, `getBlastProgress(id)` — semua via `apiClient`
+  - [x] 9.3 Buat `src/features/wa-blast/services/waBlastTemplateService.ts` dengan fungsi CRUD: `getTemplates()`, `createTemplate(data)`, `getTemplate(id)`, `updateTemplate(id, data)`, `deleteTemplate(id)`
+  - [x] 9.4 Buat `src/features/wa-blast/services/waBlastConfigService.ts` dengan fungsi: `getConfig()`, `saveConfig(data)`, `testConnection()`
+  - [x] 9.5 Buat `src/features/wa-blast/hooks/useWaBlasts.ts` menggunakan TanStack Query dengan filter `status`, `date_from`, `date_to`
+  - [x] 9.6 Buat `src/features/wa-blast/hooks/useWaBlast.ts` untuk detail satu blast session
+  - [x] 9.7 Buat `src/features/wa-blast/hooks/useWaBlastProgress.ts` dengan polling setiap 5 detik, aktif hanya ketika `blast_status === 'sending'`
+  - [x] 9.8 Buat `src/features/wa-blast/hooks/useWaBlastTemplates.ts` dengan query list dan mutations CRUD
+  - [x] 9.9 Buat `src/features/wa-blast/hooks/useWaBlastConfig.ts` dengan query dan mutation save/test
+  - [x] 9.10 Buat `src/features/wa-blast/hooks/useRecipientPreview.ts` sebagai TanStack Query mutation
 
-- [ ] 10. Frontend — komponen UI
-  - [ ] 10.1 Buat `BlastStatusBadge.tsx` dan `DeliveryStatusBadge.tsx` dengan warna berbeda per status (menggunakan `class-variance-authority`)
-  - [ ] 10.2 Buat `RecipientSelector.tsx` dengan radio group kategori (Kepala Sekolah / GTK / Keduanya), checkbox group jenjang (MI / MTs / MA / Semua Jenjang), dan multi-select sekolah (atau "Semua Sekolah") — filter jenjang dan sekolah dapat dikombinasikan
-  - [ ] 10.3 Buat `RecipientPreviewTable.tsx` yang menampilkan daftar penerima dengan kolom nama, sekolah, nomor, status valid/invalid, dan tombol hapus per baris; tampilkan ringkasan jumlah valid dan invalid di atas tabel
-  - [ ] 10.4 Buat `MessageComposer.tsx` dengan textarea, counter karakter (maks 4.096), dan tombol sisipkan variabel `{{nama}}` dan `{{nama_sekolah}}`
-  - [ ] 10.5 Buat `TemplatePickerModal.tsx` sebagai modal dengan input pencarian berdasarkan nama template dan daftar template yang dapat dipilih
-  - [ ] 10.6 Buat `AttachmentUploader.tsx` dengan validasi tipe PDF dan ukuran maks 10 MB di sisi client, tampilkan nama file yang dipilih dan tombol hapus
-  - [ ] 10.7 Buat `ScheduleSelector.tsx` dengan toggle "Kirim Sekarang" / "Jadwalkan" dan datetime picker yang muncul saat opsi terjadwal dipilih
-  - [ ] 10.8 Buat `BlastProgressBar.tsx` yang menampilkan progress bar `sent/total` dengan label persentase, menggunakan data dari `useWaBlastProgress`
-  - [ ] 10.9 Buat `RecipientDetailTable.tsx` dengan kolom nama, nama sekolah, nomor WhatsApp, `DeliveryStatusBadge`, dan pesan error (jika ada)
-  - [ ] 10.10 Buat `GoWaConfigForm.tsx` dengan field URL, token (input type password), nomor pengirim, batas per sesi, batas harian, dan tombol "Test Koneksi" yang menampilkan hasil uji
-  - [ ] 10.11 Buat `TemplateForm.tsx` dengan field nama template, textarea isi pesan, keterangan variabel yang tersedia (`{{nama}}`, `{{nama_sekolah}}`), dan validasi client-side
+- [x] 10. Frontend — komponen UI
+  - [x] 10.1 Buat `BlastStatusBadge.tsx` dan `DeliveryStatusBadge.tsx` dengan warna berbeda per status (menggunakan `class-variance-authority`)
+  - [x] 10.2 Buat `RecipientSelector.tsx` dengan radio group kategori (Kepala Sekolah / GTK / Keduanya), checkbox group jenjang (MI / MTs / MA / Semua Jenjang), dan multi-select sekolah (atau "Semua Sekolah") — filter jenjang dan sekolah dapat dikombinasikan
+  - [x] 10.3 Buat `RecipientPreviewTable.tsx` yang menampilkan daftar penerima dengan kolom nama, sekolah, nomor, status valid/invalid, dan tombol hapus per baris; tampilkan ringkasan jumlah valid dan invalid di atas tabel
+  - [x] 10.4 Buat `MessageComposer.tsx` dengan textarea, counter karakter (maks 4.096), dan tombol sisipkan variabel `{{nama}}` dan `{{nama_sekolah}}`
+  - [x] 10.5 Buat `TemplatePickerModal.tsx` sebagai modal dengan input pencarian berdasarkan nama template dan daftar template yang dapat dipilih
+  - [x] 10.6 Buat `AttachmentUploader.tsx` dengan validasi tipe PDF dan ukuran maks 10 MB di sisi client, tampilkan nama file yang dipilih dan tombol hapus
+  - [x] 10.7 Buat `ScheduleSelector.tsx` dengan toggle "Kirim Sekarang" / "Jadwalkan" dan datetime picker yang muncul saat opsi terjadwal dipilih
+  - [x] 10.8 Buat `BlastProgressBar.tsx` yang menampilkan progress bar `sent/total` dengan label persentase, menggunakan data dari `useWaBlastProgress`
+  - [x] 10.9 Buat `RecipientDetailTable.tsx` dengan kolom nama, nama sekolah, nomor WhatsApp, `DeliveryStatusBadge`, dan pesan error (jika ada)
+  - [x] 10.10 Buat `GoWaConfigForm.tsx` dengan field URL, token (input type password), nomor pengirim, batas per sesi, batas harian, dan tombol "Test Koneksi" yang menampilkan hasil uji
+  - [x] 10.11 Buat `TemplateForm.tsx` dengan field nama template, textarea isi pesan, keterangan variabel yang tersedia (`{{nama}}`, `{{nama_sekolah}}`), dan validasi client-side
 
-- [ ] 11. Frontend — halaman
-  - [ ] 11.1 Buat `WaBlastListPage.tsx` dengan tabel daftar blast session (judul, tanggal, total penerima, sent, failed, status), filter status dan rentang tanggal, tombol "Buat Blast Baru", dan link ke detail
-  - [ ] 11.2 Buat `WaBlastCreatePage.tsx` yang mengintegrasikan semua komponen: `RecipientSelector` → `RecipientPreviewTable` (dengan tombol preview), `MessageComposer` + `TemplatePickerModal` + `AttachmentUploader`, `ScheduleSelector`, tombol konfirmasi kirim dengan dialog konfirmasi; tampilkan peringatan jika konfigurasi Go-WA belum diatur
-  - [ ] 11.3 Buat `WaBlastDetailPage.tsx` dengan: header info blast (judul, status, waktu), `BlastProgressBar` (jika status `sending`), isi pesan dan nama lampiran, `RecipientDetailTable`, tombol "Kirim Ulang ke yang Gagal" (jika ada recipient `failed` dan status `completed`), tombol batalkan (jika status `scheduled`)
-  - [ ] 11.4 Buat `WaBlastTemplatePage.tsx` dengan tabel daftar template (nama, cuplikan 100 karakter, tanggal diubah), tombol buat baru, dan aksi edit/hapus per baris menggunakan `TemplateForm` dalam dialog/sheet
-  - [ ] 11.5 Buat `WaBlastConfigPage.tsx` yang hanya dapat diakses `super_admin`, menampilkan `GoWaConfigForm` dengan data konfigurasi yang tersimpan (token dimasking)
-  - [ ] 11.6 Daftarkan semua route WA Blast di React Router (`/wa-blast`, `/wa-blast/create`, `/wa-blast/:id`, `/wa-blast/templates`, `/wa-blast/config`) dengan proteksi role `super_admin` atau `admin_yayasan`
-  - [ ] 11.7 Tambahkan menu WA Blast di sidebar navigasi dengan ikon yang sesuai, hanya tampil untuk role `super_admin` dan `admin_yayasan`
+- [x] 11. Frontend — halaman
+  - [x] 11.1 Buat `WaBlastListPage.tsx` dengan tabel daftar blast session (judul, tanggal, total penerima, sent, failed, status), filter status dan rentang tanggal, tombol "Buat Blast Baru", dan link ke detail
+  - [x] 11.2 Buat `WaBlastCreatePage.tsx` yang mengintegrasikan semua komponen: `RecipientSelector` → `RecipientPreviewTable` (dengan tombol preview), `MessageComposer` + `TemplatePickerModal` + `AttachmentUploader`, `ScheduleSelector`, tombol konfirmasi kirim dengan dialog konfirmasi; tampilkan peringatan jika konfigurasi Go-WA belum diatur
+  - [x] 11.3 Buat `WaBlastDetailPage.tsx` dengan: header info blast (judul, status, waktu), `BlastProgressBar` (jika status `sending`), isi pesan dan nama lampiran, `RecipientDetailTable`, tombol "Kirim Ulang ke yang Gagal" (jika ada recipient `failed` dan status `completed`), tombol batalkan (jika status `scheduled`)
+  - [x] 11.4 Buat `WaBlastTemplatePage.tsx` dengan tabel daftar template (nama, cuplikan 100 karakter, tanggal diubah), tombol buat baru, dan aksi edit/hapus per baris menggunakan `TemplateForm` dalam dialog/sheet
+  - [x] 11.5 Buat `WaBlastConfigPage.tsx` yang hanya dapat diakses `super_admin`, menampilkan `GoWaConfigForm` dengan data konfigurasi yang tersimpan (token dimasking)
+  - [x] 11.6 Daftarkan semua route WA Blast di React Router (`/wa-blast`, `/wa-blast/create`, `/wa-blast/:id`, `/wa-blast/templates`, `/wa-blast/config`) dengan proteksi role `super_admin` atau `admin_yayasan`
+  - [x] 11.7 Tambahkan menu WA Blast di sidebar navigasi dengan ikon yang sesuai, hanya tampil untuk role `super_admin` dan `admin_yayasan`
 
-- [ ] 12. Validasi end-to-end dan pengujian integrasi frontend
-  - [ ] 12.1 Tulis integration test untuk `WaBlastCreatePage` menggunakan React Testing Library: validasi field kosong, preview recipient, pilih template, upload PDF, submit form
-  - [ ] 12.2 Tulis E2E test Playwright untuk alur lengkap: login sebagai `super_admin` → konfigurasi Go-WA → buat blast → konfirmasi → monitoring progres → lihat detail
-  - [ ] 12.3 Verifikasi bahwa role `operator` tidak dapat mengakses halaman WA Blast (redirect atau tampilkan 403)
-  - [ ] 12.4 Verifikasi bahwa role `admin_yayasan` tidak dapat mengakses halaman konfigurasi Go-WA
+- [x] 12. Validasi end-to-end dan pengujian integrasi frontend
+  - [x] 12.1 Tulis integration test untuk `WaBlastCreatePage` menggunakan React Testing Library: validasi field kosong, preview recipient, pilih template, upload PDF, submit form
+  - [x] 12.2 Tulis E2E test Playwright untuk alur lengkap: login sebagai `super_admin` → konfigurasi Go-WA → buat blast → konfirmasi → monitoring progres → lihat detail
+  - [x] 12.3 Verifikasi bahwa role `operator` tidak dapat mengakses halaman WA Blast (redirect atau tampilkan 403)
+  - [x] 12.4 Verifikasi bahwa role `admin_yayasan` tidak dapat mengakses halaman konfigurasi Go-WA
 
-- [ ] 13. Property-based test Property 6 (template round-trip)
-  - [ ] 13.1 Buat `WaBlastTemplateServiceTest` dengan property test Property 6: untuk setiap `name` dan `body` yang valid (tidak kosong, nama unik), setelah `create()` diikuti `findById()`, data yang dikembalikan harus identik dengan data yang disimpan (min 100 iterasi)
+- [x] 13. Property-based test Property 6 (template round-trip)
+  - [x] 13.1 Buat `WaBlastTemplateServiceTest` dengan property test Property 6: untuk setiap `name` dan `body` yang valid (tidak kosong, nama unik), setelah `create()` diikuti `findById()`, data yang dikembalikan harus identik dengan data yang disimpan (min 100 iterasi)

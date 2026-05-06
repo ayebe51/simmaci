@@ -27,13 +27,19 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function WaBlastListPage() {
   const [filters, setFilters] = useState({
-    status: "",
+    status: "all",
     date_from: "",
     date_to: "",
     search: "",
   })
 
-  const { data, isLoading, error } = useWaBlasts(filters)
+  // Transform filters for API - convert "all" to undefined
+  const apiFilters = {
+    ...filters,
+    status: filters.status === "all" ? undefined : filters.status,
+  }
+
+  const { data, isLoading, error } = useWaBlasts(apiFilters)
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -87,7 +93,7 @@ export default function WaBlastListPage() {
                 <SelectValue placeholder="Semua Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Semua Status</SelectItem>
+                <SelectItem value="all">Semua Status</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="scheduled">Terjadwal</SelectItem>
                 <SelectItem value="sending">Mengirim</SelectItem>

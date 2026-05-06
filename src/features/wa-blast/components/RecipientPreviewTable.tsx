@@ -10,10 +10,13 @@ interface RecipientPreviewTableProps {
 }
 
 export function RecipientPreviewTable({ recipients, onRemoveRecipient }: RecipientPreviewTableProps) {
-  const validCount = recipients.filter((r) => r.is_valid).length;
-  const invalidCount = recipients.filter((r) => !r.is_valid).length;
+  // Ensure recipients is always an array
+  const safeRecipients = Array.isArray(recipients) ? recipients : [];
+  
+  const validCount = safeRecipients.filter((r) => r.is_valid).length;
+  const invalidCount = safeRecipients.filter((r) => !r.is_valid).length;
 
-  if (recipients.length === 0) {
+  if (safeRecipients.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         Belum ada penerima. Pilih kategori dan filter untuk melihat daftar penerima.
@@ -27,7 +30,7 @@ export function RecipientPreviewTable({ recipients, onRemoveRecipient }: Recipie
       <div className="flex gap-4 p-4 bg-muted/50 rounded-lg">
         <div>
           <div className="text-sm text-muted-foreground">Total Penerima</div>
-          <div className="text-2xl font-bold">{recipients.length}</div>
+          <div className="text-2xl font-bold">{safeRecipients.length}</div>
         </div>
         <div>
           <div className="text-sm text-muted-foreground">Valid</div>
@@ -52,7 +55,7 @@ export function RecipientPreviewTable({ recipients, onRemoveRecipient }: Recipie
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recipients.map((recipient, index) => (
+            {safeRecipients.map((recipient, index) => (
               <TableRow key={`${recipient.phone_number}-${index}`}>
                 <TableCell className="font-medium">{recipient.recipient_name}</TableCell>
                 <TableCell>{recipient.school_name}</TableCell>

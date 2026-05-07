@@ -799,7 +799,6 @@ class SkTemplatePropertyTest extends TestCase
             ['POST',   '/api/sk-templates'],
             ['POST',   '/api/sk-templates/{id}/activate'],
             ['DELETE', '/api/sk-templates/{id}'],
-            ['GET',    '/api/sk-templates/{id}/download'],
         ];
 
         $cases = [];

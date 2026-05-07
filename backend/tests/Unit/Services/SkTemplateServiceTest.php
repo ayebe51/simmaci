@@ -270,16 +270,20 @@ class SkTemplateServiceTest extends TestCase
         $this->assertIsString($url);
     }
 
-    public function test_get_download_url_throws_404_when_file_missing(): void
+    public function test_get_download_url_returns_url_even_when_file_missing(): void
     {
         $template = SkTemplate::factory()->create([
             'file_path' => 'sk-templates/nonexistent-file.docx',
             'disk'      => 'public',
         ]);
 
-        $this->expectException(HttpException::class);
+        // Should return a URL even if file doesn't exist
+        // Frontend will handle 404 if file is missing
+        $url = $this->service->getDownloadUrl($template);
 
-        $this->service->getDownloadUrl($template);
+        $this->assertIsString($url);
+        $this->assertNotEmpty($url);
+        $this->assertStringContainsString('sk-templates/nonexistent-file.docx', $url);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

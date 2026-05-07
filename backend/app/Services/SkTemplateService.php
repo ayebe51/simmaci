@@ -117,7 +117,14 @@ class SkTemplateService
 
     /**
      * Return a URL to access the template file.
-     * Returns a temporary signed URL for S3, or a direct URL for public disk.
+     *
+     * Strategy:
+     * - If disk is 's3' and AWS_URL points to the backend MinIO proxy (contains '/api/minio'),
+     *   return a proxy URL directly: {APP_URL}/api/minio/{bucket}/{file_path}
+     *   This avoids broken presigned URLs being routed through the proxy.
+     * - If disk is 's3' and AWS_URL is a real public MinIO endpoint, return a presigned URL
+     *   with the internal endpoint replaced by the public URL.
+     * - If disk is 'public', return a plain public URL.
      *
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      */
@@ -128,40 +135,55 @@ class SkTemplateService
         if (! $disk->exists($template->file_path)) {
             \Log::error('SK Template file not found in storage', [
                 'template_id' => $template->id,
-                'file_path' => $template->file_path,
-                'disk' => $template->disk,
-                'sk_type' => $template->sk_type,
+                'file_path'   => $template->file_path,
+                'disk'        => $template->disk,
+                'sk_type'     => $template->sk_type,
             ]);
             abort(404, 'File template tidak ditemukan di storage.');
         }
 
         if ($template->disk === 's3') {
-            $url = $disk->temporaryUrl($template->file_path, now()->addMinutes(60));
-
-            // MinIO in Docker uses internal hostname (e.g. minio:9000) which is not
-            // accessible from the browser. Replace with the public-facing URL if configured.
             $minioPublicUrl = config('filesystems.disks.s3.url');
             $minioEndpoint  = config('filesystems.disks.s3.endpoint');
+            $bucket         = config('filesystems.disks.s3.bucket', 'simmaci-storage');
+
+            // If AWS_URL points to the backend proxy (/api/minio), build a direct proxy URL
+            // instead of a presigned URL — presigned URLs cannot be served through the proxy.
+            if ($minioPublicUrl && str_contains($minioPublicUrl, '/api/minio')) {
+                $proxyBase = rtrim($minioPublicUrl, '/');
+                $proxyUrl  = $proxyBase . '/' . $bucket . '/' . ltrim($template->file_path, '/');
+
+                \Log::info('Generated MinIO proxy URL for SK template', [
+                    'template_id' => $template->id,
+                    'sk_type'     => $template->sk_type,
+                    'url'         => $proxyUrl,
+                ]);
+
+                return $proxyUrl;
+            }
+
+            // Standard presigned URL — replace internal hostname with public-facing URL
+            $url = $disk->temporaryUrl($template->file_path, now()->addMinutes(60));
 
             if ($minioPublicUrl && $minioEndpoint) {
                 $url = str_replace(rtrim($minioEndpoint, '/'), rtrim($minioPublicUrl, '/'), $url);
             }
 
-            \Log::info('Generated S3 download URL for SK template', [
+            \Log::info('Generated S3 presigned URL for SK template', [
                 'template_id' => $template->id,
-                'sk_type' => $template->sk_type,
-                'url' => $url,
+                'sk_type'     => $template->sk_type,
+                'url'         => $url,
             ]);
 
             return $url;
         }
 
         $url = $disk->url($template->file_path);
-        
+
         \Log::info('Generated public disk URL for SK template', [
             'template_id' => $template->id,
-            'sk_type' => $template->sk_type,
-            'url' => $url,
+            'sk_type'     => $template->sk_type,
+            'url'         => $url,
         ]);
 
         return $url;

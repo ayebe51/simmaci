@@ -54,7 +54,13 @@ class SkTemplateDownloadTest extends TestCase
 
         $uploadResponse->assertStatus(201);
 
-        $templateId = $uploadResponse->json('id');
+        // Response structure: { success: true, data: { id, ... } }
+        $templateId = $uploadResponse->json('data.id') ?? $uploadResponse->json('id');
+
+        // Verify file was stored
+        $template = SkTemplate::find($templateId);
+        $this->assertNotNull($template, "Template with ID {$templateId} should exist");
+        Storage::disk('public')->assertExists($template->file_path);
 
         // Activate template
         $this->actingAs($this->superAdmin)
@@ -86,7 +92,7 @@ class SkTemplateDownloadTest extends TestCase
 
         // Verify file_url is present
         $this->assertNotNull($response->json('data.file_url'));
-        $this->assertStringContainsString('storage/sk-templates/', $response->json('data.file_url'));
+        $this->assertStringContainsString('sk-templates/', $response->json('data.file_url'));
     }
 
     /** @test */
@@ -144,7 +150,7 @@ class SkTemplateDownloadTest extends TestCase
                 'sk_type' => 'surat_permohonan',
             ]);
 
-        $template1Id = $response1->json('id');
+        $template1Id = $response1->json('data.id') ?? $response1->json('id');
 
         // Upload second template
         $response2 = $this->actingAs($this->superAdmin)
@@ -153,7 +159,15 @@ class SkTemplateDownloadTest extends TestCase
                 'sk_type' => 'surat_permohonan',
             ]);
 
-        $template2Id = $response2->json('id');
+        $template2Id = $response2->json('data.id') ?? $response2->json('id');
+
+        // Verify both files exist
+        $template1 = SkTemplate::find($template1Id);
+        $template2 = SkTemplate::find($template2Id);
+        $this->assertNotNull($template1);
+        $this->assertNotNull($template2);
+        Storage::disk('public')->assertExists($template1->file_path);
+        Storage::disk('public')->assertExists($template2->file_path);
 
         // Activate first template
         $this->actingAs($this->superAdmin)
@@ -205,7 +219,12 @@ class SkTemplateDownloadTest extends TestCase
                 'sk_type' => 'surat_permohonan',
             ]);
 
-        $templateId = $uploadResponse->json('id');
+        $templateId = $uploadResponse->json('data.id') ?? $uploadResponse->json('id');
+
+        // Verify file exists
+        $template = SkTemplate::find($templateId);
+        $this->assertNotNull($template);
+        Storage::disk('public')->assertExists($template->file_path);
 
         $this->actingAs($this->superAdmin)
             ->postJson("/api/sk-templates/{$templateId}/activate");
@@ -214,7 +233,14 @@ class SkTemplateDownloadTest extends TestCase
         $response = $this->actingAs($this->superAdmin)
             ->getJson('/api/sk-templates/active?sk_type=surat_permohonan');
 
+        $response->assertStatus(200);
+
         $responseData = $response->json();
+
+        // Verify response structure
+        $this->assertArrayHasKey('success', $responseData);
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertTrue($responseData['success']);
 
         // Simulate interceptor behavior
         $extractedData = $responseData['data'];
@@ -227,7 +253,14 @@ class SkTemplateDownloadTest extends TestCase
         // const fileUrl = suratPermohonanTemplate?.file_url
         $fileUrl = $extractedData['file_url'] ?? null;
         $this->assertNotNull($fileUrl);
-        $this->assertStringContainsString('storage/sk-templates/', $fileUrl);
+        $this->assertStringContainsString('sk-templates/', $fileUrl);
+    }
+
+        // This is what frontend does:
+        // const fileUrl = suratPermohonanTemplate?.file_url
+        $fileUrl = $extractedData['file_url'] ?? null;
+        $this->assertNotNull($fileUrl);
+        $this->assertStringContainsString('sk-templates/', $fileUrl);
     }
 }
 

@@ -619,15 +619,18 @@ export default function SkTemplateManagementPage() {
   // ── Download ──
 
   const downloadMutation = useMutation({
-    mutationFn: (template: SkTemplate) => skTemplateApi.downloadUrl(template.id),
+    mutationFn: (template: SkTemplate) => {
+      // Use direct stream URL — endpoint streams file directly without redirect
+      const url = skTemplateApi.getDownloadStreamUrl(template.id)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return Promise.resolve()
+    },
     onMutate: (template) => setDownloadingId(template.id),
-    onSuccess: (data) => {
-      const url = data?.url ?? data
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
-      else toast.error('URL unduhan tidak tersedia')
+    onSuccess: () => {
+      toast.success('Template berhasil diunduh')
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || 'Gagal mendapatkan URL unduhan'
+      const msg = err.response?.data?.message || 'Gagal mengunduh template'
       toast.error(msg)
     },
     onSettled: () => setDownloadingId(null),

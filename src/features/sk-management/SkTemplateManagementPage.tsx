@@ -412,18 +412,46 @@ function SuratPermohonanSection() {
   })
 
   const downloadMutation = useMutation({
-    mutationFn: (template: SkTemplate) => {
-      // Get the direct stream URL and open it
-      const url = skTemplateApi.getDownloadStreamUrl(template.id)
-      window.open(url, '_blank', 'noopener,noreferrer')
-      return Promise.resolve()
+    mutationFn: async (template: SkTemplate) => {
+      const token = localStorage.getItem('auth_token')
+      const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '')
+      const url = `${base}/sk-templates/${template.id}/download`
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`)
+      }
+      
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = `template-${template.id}.docx`
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (match) filename = match[1]
+      }
+      
+      // Create blob and trigger download
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(downloadUrl)
     },
     onMutate: () => setIsDownloading(true),
     onSuccess: () => {
       toast.success('Template berhasil diunduh')
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Gagal mengunduh template')
+      toast.error(err.message || 'Gagal mengunduh template')
     },
     onSettled: () => setIsDownloading(false),
   })

@@ -412,15 +412,18 @@ function SuratPermohonanSection() {
   })
 
   const downloadMutation = useMutation({
-    mutationFn: (template: SkTemplate) => skTemplateApi.downloadUrl(template.id),
+    mutationFn: (template: SkTemplate) => {
+      // Get the direct stream URL and open it
+      const url = skTemplateApi.getDownloadStreamUrl(template.id)
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return Promise.resolve()
+    },
     onMutate: () => setIsDownloading(true),
-    onSuccess: (data) => {
-      const url = data?.data?.url ?? data?.url ?? data
-      if (url) window.open(url, '_blank', 'noopener,noreferrer')
-      else toast.error('URL unduhan tidak tersedia')
+    onSuccess: () => {
+      toast.success('Template berhasil diunduh')
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Gagal mendapatkan URL unduhan')
+      toast.error(err.response?.data?.message || 'Gagal mengunduh template')
     },
     onSettled: () => setIsDownloading(false),
   })

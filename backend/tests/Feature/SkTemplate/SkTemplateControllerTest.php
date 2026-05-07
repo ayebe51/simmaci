@@ -513,22 +513,42 @@ class SkTemplateControllerTest extends TestCase
         $this->assertNotEmpty($response->getContent());
     }
 
-    public function test_download_returns_403_for_operator(): void
+    public function test_download_returns_200_for_operator(): void
     {
-        $template = SkTemplate::factory()->create();
+        $path = 'sk-templates/test-template.docx';
+        Storage::disk('public')->put($path, 'test content');
 
-        $this->actingAs($this->operator)
-            ->getJson("/api/sk-templates/{$template->id}/download")
-            ->assertForbidden();
+        $template = SkTemplate::factory()->create([
+            'file_path' => $path,
+            'disk'      => 'public',
+        ]);
+
+        $response = $this->actingAs($this->operator)
+            ->get("/api/sk-templates/{$template->id}/download");
+
+        $response->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="' . $template->original_filename . '"');
+
+        $this->assertNotEmpty($response->getContent());
     }
 
-    public function test_download_returns_403_for_admin_yayasan(): void
+    public function test_download_returns_200_for_admin_yayasan(): void
     {
-        $template = SkTemplate::factory()->create();
+        $path = 'sk-templates/test-template.docx';
+        Storage::disk('public')->put($path, 'test content');
 
-        $this->actingAs($this->adminYayasan)
-            ->getJson("/api/sk-templates/{$template->id}/download")
-            ->assertForbidden();
+        $template = SkTemplate::factory()->create([
+            'file_path' => $path,
+            'disk'      => 'public',
+        ]);
+
+        $response = $this->actingAs($this->adminYayasan)
+            ->get("/api/sk-templates/{$template->id}/download");
+
+        $response->assertOk()
+            ->assertHeader('Content-Disposition', 'attachment; filename="' . $template->original_filename . '"');
+
+        $this->assertNotEmpty($response->getContent());
     }
 
     /** Requirement 5.2: 404 when file is missing from storage */

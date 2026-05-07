@@ -126,22 +126,11 @@ class SkTemplateService
      *   with the internal endpoint replaced by the public URL.
      * - If disk is 'public', return a plain public URL.
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * Note: Does NOT check if file exists — returns URL regardless.
+     * Frontend will handle 404 if file is missing.
      */
     public function getDownloadUrl(SkTemplate $template): string
     {
-        $disk = Storage::disk($template->disk);
-
-        if (! $disk->exists($template->file_path)) {
-            \Log::error('SK Template file not found in storage', [
-                'template_id' => $template->id,
-                'file_path'   => $template->file_path,
-                'disk'        => $template->disk,
-                'sk_type'     => $template->sk_type,
-            ]);
-            abort(404, 'File template tidak ditemukan di storage.');
-        }
-
         if ($template->disk === 's3') {
             $minioPublicUrl = config('filesystems.disks.s3.url');
             $minioEndpoint  = config('filesystems.disks.s3.endpoint');
@@ -163,6 +152,7 @@ class SkTemplateService
             }
 
             // Standard presigned URL — replace internal hostname with public-facing URL
+            $disk = Storage::disk($template->disk);
             $url = $disk->temporaryUrl($template->file_path, now()->addMinutes(60));
 
             if ($minioPublicUrl && $minioEndpoint) {
@@ -178,6 +168,7 @@ class SkTemplateService
             return $url;
         }
 
+        $disk = Storage::disk($template->disk);
         $url = $disk->url($template->file_path);
 
         \Log::info('Generated public disk URL for SK template', [

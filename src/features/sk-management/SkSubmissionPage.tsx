@@ -58,7 +58,12 @@ export default function SkSubmissionPage() {
   })
 
   const handleDownloadTemplate = () => {
-    const fileUrl = suratPermohonanTemplate?.data?.file_url
+    // Response interceptor already extracts nested 'data', so access directly
+    const fileUrl = suratPermohonanTemplate?.file_url
+    
+    console.log('Template data:', suratPermohonanTemplate)
+    console.log('File URL:', fileUrl)
+    
     if (!fileUrl) {
       toast.error("Template surat permohonan belum tersedia. Hubungi administrator untuk mengaktifkan template.")
       return
@@ -212,13 +217,13 @@ export default function SkSubmissionPage() {
           variant="outline"
           size="sm"
           onClick={handleDownloadTemplate}
-          disabled={!suratPermohonanTemplate?.data || isLoadingTemplate}
+          disabled={!suratPermohonanTemplate?.file_url || isLoadingTemplate}
           className="shrink-0 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 font-black uppercase tracking-widest text-[10px] h-9 px-4 disabled:opacity-40"
         >
           <Download className="mr-2 h-3 w-3" />
           {isLoadingTemplate 
             ? "Memuat..." 
-            : suratPermohonanTemplate?.data 
+            : suratPermohonanTemplate?.file_url 
               ? "Unduh Template" 
               : "Belum Tersedia"
           }

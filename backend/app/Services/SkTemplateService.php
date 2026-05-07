@@ -126,6 +126,12 @@ class SkTemplateService
         $disk = Storage::disk($template->disk);
 
         if (! $disk->exists($template->file_path)) {
+            \Log::error('SK Template file not found in storage', [
+                'template_id' => $template->id,
+                'file_path' => $template->file_path,
+                'disk' => $template->disk,
+                'sk_type' => $template->sk_type,
+            ]);
             abort(404, 'File template tidak ditemukan di storage.');
         }
 
@@ -141,10 +147,24 @@ class SkTemplateService
                 $url = str_replace(rtrim($minioEndpoint, '/'), rtrim($minioPublicUrl, '/'), $url);
             }
 
+            \Log::info('Generated S3 download URL for SK template', [
+                'template_id' => $template->id,
+                'sk_type' => $template->sk_type,
+                'url' => $url,
+            ]);
+
             return $url;
         }
 
-        return $disk->url($template->file_path);
+        $url = $disk->url($template->file_path);
+        
+        \Log::info('Generated public disk URL for SK template', [
+            'template_id' => $template->id,
+            'sk_type' => $template->sk_type,
+            'url' => $url,
+        ]);
+
+        return $url;
     }
 
     /**

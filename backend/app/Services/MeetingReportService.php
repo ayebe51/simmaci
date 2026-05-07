@@ -1,0 +1,418 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Meeting;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Shared\Inches;
+use PhpOffice\PhpWord\Shared\Pt;
+use PhpOffice\PhpWord\Shared\RGBColor;
+
+/**
+ * MeetingReportService
+ *
+ * Generates PDF and Excel reports for meeting attendance.
+ * Uses PHPWord for PDF generation and Maatwebsite Excel for Excel export.
+ */
+class MeetingReportService
+{
+    /**
+     * Generate PDF report for meeting attendance.
+     *
+     * Creates a DOCX file with:
+     * - Header: Logo + "DAFTAR HADIR RAPAT" + meeting details
+     * - Stats table: Total/Hadir/Tidak Hadir/Delegasi/Walk-in
+     * - Attendance table: No | Nama | Jabatan | Instansi | Status | Waktu Check-in | Verifikasi | Keterangan
+     * - Footer: Tanggal cetak + nama admin
+     *
+     * @param Meeting $meeting
+     * @return string Path to generated PDF file
+     */
+    public function generatePdf(Meeting $meeting): string
+    {
+        $phpWord = new PhpWord();
+
+        // Set default font
+        $phpWord->setDefaultFontName('Calibri');
+        $phpWord->setDefaultFontSize(11);
+
+        // Add section
+        $section = $phpWord->addSection();
+
+        // Add header with logo (if exists)
+        $logoPath = storage_path('app/public/logo/lp-maarif-nu-cilacap.png');
+        if (file_exists($logoPath)) {
+            $section->addImage($logoPath, [
+                'width' => Inches(1),
+                'height' => Inches(1),
+                'alignment' => 'center',
+            ]);
+        }
+
+        // Add title
+        $titleStyle = [
+            'bold' => true,
+            'size' => 14,
+            'alignment' => 'center',
+        ];
+        $section->addText('DAFTAR HADIR RAPAT', $titleStyle);
+
+        // Add meeting details
+        $detailsStyle = ['size' => 11, 'alignment' => 'center'];
+        $section->addText("Rapat: {$meeting->title}", $detailsStyle);
+        $section->addText("Tanggal: {$meeting->started_at->format('d-m-Y')}", $detailsStyle);
+        $section->addText("Waktu: {$meeting->started_at->format('H:i')} - {$meeting->ended_at->format('H:i')}", $detailsStyle);
+        $section->addText("Lokasi: {$meeting->location}", $detailsStyle);
+
+        if ($meeting->agenda) {
+            $section->addText("Agenda: {$meeting->agenda}", $detailsStyle);
+        }
+
+        $section->addTextBreak(1);
+
+        // Add statistics table
+        $this->addStatsTable($section, $meeting);
+
+        $section->addTextBreak(1);
+
+        // Add attendance table
+        $this->addAttendanceTable($section, $meeting);
+
+        $section->addTextBreak(2);
+
+        // Add footer
+        $footerStyle = ['size' => 10, 'italic' => true];
+        $section->addText("Tanggal cetak: " . now()->format('d-m-Y H:i:s'), $footerStyle);
+        $section->addText("Dicetak oleh: " . auth()->user()?->name ?? 'Admin', $footerStyle);
+
+        // Save file
+        $filename = "meetings/{$meeting->id}_" . now()->timestamp . '.docx';
+        $path = storage_path("app/reports/{$filename}");
+
+        // Ensure directory exists
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $phpWord->save($path);
+
+        return $path;
+    }
+
+    /**
+     * Generate Excel report for meeting attendance.
+     *
+     * Creates an Excel file with:
+     * - Sheet "Daftar Hadir" with columns: No | Nama | Jabatan | Instansi | Status | Waktu Check-in | Verifikasi | Keterangan
+     *
+     * @param Meeting $meeting
+     * @return string Path to generated Excel file
+     */
+    public function generateExcel(Meeting $meeting): string
+    {
+        $filename = "meetings/{$meeting->id}_" . now()->timestamp . '.xlsx';
+        $path = storage_path("app/reports/{$filename}");
+
+        // Ensure directory exists
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        // Create Excel export
+        $export = new class($meeting) {
+            public function __construct(private Meeting $meeting) {}
+
+            public function collection()
+            {
+                $data = [];
+                $no = 1;
+
+                foreach ($this->meeting->participants as $participant) {
+                    $attendance = $participant->attendance;
+                    $status = $this->getAttendanceStatus($participant);
+                    $checkedInAt = $attendance?->checked_in_at?->format('d-m-Y H:i:s') ?? '-';
+                    $verification = $this->getVerification($attendance);
+                    $notes = $this->getNotes($participant, $attendance);
+
+                    $data[] = [
+                        'No' => $no++,
+                        'Nama' => $participant->name,
+                        'Jabatan' => $participant->jabatan,
+                        'Instansi' => $participant->instansi,
+                        'Status' => $status,
+                        'Waktu Check-in' => $checkedInAt,
+                        'Verifikasi' => $verification,
+                        'Keterangan' => $notes,
+                    ];
+                }
+
+                // Add walk-in attendees
+                $walkIns = $this->meeting->attendances()
+                    ->where('attendance_type', 'qr_umum')
+                    ->whereNull('participant_id')
+                    ->get();
+
+                foreach ($walkIns as $walkIn) {
+                    $data[] = [
+                        'No' => $no++,
+                        'Nama' => $walkIn->walk_in_name,
+                        'Jabatan' => $walkIn->walk_in_jabatan,
+                        'Instansi' => $walkIn->walk_in_instansi,
+                        'Status' => 'Hadir (Walk-in)',
+                        'Waktu Check-in' => $walkIn->checked_in_at->format('d-m-Y H:i:s'),
+                        'Verifikasi' => '✓ Terverifikasi via QR Umum pada ' . $walkIn->checked_in_at->format('d-m-Y H:i:s'),
+                        'Keterangan' => 'Peserta walk-in',
+                    ];
+                }
+
+                return collect($data);
+            }
+
+            private function getAttendanceStatus($participant): string
+            {
+                if (!$participant->attendance) {
+                    return 'Tidak Hadir';
+                }
+
+                if ($participant->attendance->is_delegation) {
+                    return 'Hadir (Delegasi)';
+                }
+
+                return 'Hadir';
+            }
+
+            private function getVerification($attendance): string
+            {
+                if (!$attendance) {
+                    return '-';
+                }
+
+                if ($attendance->attendance_type === 'qr_personal') {
+                    $deviceInfo = $attendance->device_info ? json_encode($attendance->device_info) : 'N/A';
+                    return '✓ Terverifikasi via QR Personal pada ' . $attendance->checked_in_at->format('d-m-Y H:i:s');
+                }
+
+                if ($attendance->attendance_type === 'manual') {
+                    $adminName = $attendance->checkedInByAdmin?->name ?? 'Admin';
+                    return "✓ Check-in Manual oleh {$adminName} pada " . $attendance->checked_in_at->format('d-m-Y H:i:s');
+                }
+
+                return '✓ Terverifikasi via QR Umum pada ' . $attendance->checked_in_at->format('d-m-Y H:i:s');
+            }
+
+            private function getNotes($participant, $attendance): string
+            {
+                if (!$attendance) {
+                    return '-';
+                }
+
+                if ($attendance->is_delegation) {
+                    $delegatedFor = $attendance->delegatedForParticipant?->name ?? 'Unknown';
+                    return "Mewakili: {$delegatedFor}";
+                }
+
+                return '-';
+            }
+        };
+
+        Excel::store($export, $path, 'local');
+
+        return $path;
+    }
+
+    /**
+     * Add statistics table to PDF section.
+     *
+     * @param \PhpOffice\PhpWord\Element\Section $section
+     * @param Meeting $meeting
+     */
+    private function addStatsTable($section, Meeting $meeting): void
+    {
+        $stats = $this->calculateStats($meeting);
+
+        $table = $section->addTable(['borderSize' => 6, 'borderColor' => '000000']);
+        $table->addRow();
+        $table->addCell(2000)->addText('Statistik', ['bold' => true]);
+        $table->addCell(2000)->addText('Jumlah', ['bold' => true]);
+        $table->addCell(2000)->addText('Persentase', ['bold' => true]);
+
+        $table->addRow();
+        $table->addCell(2000)->addText('Total Peserta');
+        $table->addCell(2000)->addText((string) $stats['total']);
+        $table->addCell(2000)->addText('100%');
+
+        $table->addRow();
+        $table->addCell(2000)->addText('Hadir');
+        $table->addCell(2000)->addText((string) $stats['present']);
+        $table->addCell(2000)->addText($stats['total'] > 0 ? round(($stats['present'] / $stats['total']) * 100, 1) . '%' : '0%');
+
+        $table->addRow();
+        $table->addCell(2000)->addText('Tidak Hadir');
+        $table->addCell(2000)->addText((string) $stats['absent']);
+        $table->addCell(2000)->addText($stats['total'] > 0 ? round(($stats['absent'] / $stats['total']) * 100, 1) . '%' : '0%');
+
+        $table->addRow();
+        $table->addCell(2000)->addText('Delegasi');
+        $table->addCell(2000)->addText((string) $stats['delegation']);
+        $table->addCell(2000)->addText($stats['total'] > 0 ? round(($stats['delegation'] / $stats['total']) * 100, 1) . '%' : '0%');
+
+        $table->addRow();
+        $table->addCell(2000)->addText('Walk-in');
+        $table->addCell(2000)->addText((string) $stats['walk_in']);
+        $table->addCell(2000)->addText('-');
+    }
+
+    /**
+     * Add attendance table to PDF section.
+     *
+     * @param \PhpOffice\PhpWord\Element\Section $section
+     * @param Meeting $meeting
+     */
+    private function addAttendanceTable($section, Meeting $meeting): void
+    {
+        $table = $section->addTable(['borderSize' => 6, 'borderColor' => '000000']);
+
+        // Header row
+        $table->addRow();
+        $headerCells = ['No', 'Nama', 'Jabatan', 'Instansi', 'Status', 'Waktu Check-in', 'Verifikasi', 'Keterangan'];
+        foreach ($headerCells as $header) {
+            $table->addCell(1200)->addText($header, ['bold' => true]);
+        }
+
+        // Data rows
+        $no = 1;
+
+        foreach ($meeting->participants as $participant) {
+            $attendance = $participant->attendance;
+            $status = $this->getAttendanceStatus($participant);
+            $checkedInAt = $attendance?->checked_in_at?->format('d-m-Y H:i:s') ?? '-';
+            $verification = $this->getVerification($attendance);
+            $notes = $this->getNotes($participant, $attendance);
+
+            $table->addRow();
+            $table->addCell(1200)->addText((string) $no++);
+            $table->addCell(1200)->addText($participant->name);
+            $table->addCell(1200)->addText($participant->jabatan);
+            $table->addCell(1200)->addText($participant->instansi);
+            $table->addCell(1200)->addText($status);
+            $table->addCell(1200)->addText($checkedInAt);
+            $table->addCell(1200)->addText($verification);
+            $table->addCell(1200)->addText($notes);
+        }
+
+        // Add walk-in attendees
+        $walkIns = $meeting->attendances()
+            ->where('attendance_type', 'qr_umum')
+            ->whereNull('participant_id')
+            ->get();
+
+        foreach ($walkIns as $walkIn) {
+            $table->addRow();
+            $table->addCell(1200)->addText((string) $no++);
+            $table->addCell(1200)->addText($walkIn->walk_in_name);
+            $table->addCell(1200)->addText($walkIn->walk_in_jabatan);
+            $table->addCell(1200)->addText($walkIn->walk_in_instansi);
+            $table->addCell(1200)->addText('Hadir (Walk-in)');
+            $table->addCell(1200)->addText($walkIn->checked_in_at->format('d-m-Y H:i:s'));
+            $table->addCell(1200)->addText('✓ Terverifikasi via QR Umum');
+            $table->addCell(1200)->addText('Peserta walk-in');
+        }
+    }
+
+    /**
+     * Calculate attendance statistics.
+     *
+     * @param Meeting $meeting
+     * @return array Statistics with keys: total, present, absent, delegation, walk_in
+     */
+    private function calculateStats(Meeting $meeting): array
+    {
+        $total = $meeting->participants->count();
+        $present = $meeting->attendances()
+            ->where('attendance_type', 'qr_personal')
+            ->where('is_delegation', false)
+            ->count();
+        $delegation = $meeting->attendances()
+            ->where('is_delegation', true)
+            ->count();
+        $walkIn = $meeting->attendances()
+            ->where('attendance_type', 'qr_umum')
+            ->whereNull('participant_id')
+            ->count();
+        $absent = $total - $present - $delegation;
+
+        return [
+            'total' => $total,
+            'present' => $present,
+            'absent' => max(0, $absent),
+            'delegation' => $delegation,
+            'walk_in' => $walkIn,
+        ];
+    }
+
+    /**
+     * Get attendance status for a participant.
+     *
+     * @param $participant
+     * @return string
+     */
+    private function getAttendanceStatus($participant): string
+    {
+        if (!$participant->attendance) {
+            return 'Tidak Hadir';
+        }
+
+        if ($participant->attendance->is_delegation) {
+            return 'Hadir (Delegasi)';
+        }
+
+        return 'Hadir';
+    }
+
+    /**
+     * Get verification text for attendance.
+     *
+     * @param $attendance
+     * @return string
+     */
+    private function getVerification($attendance): string
+    {
+        if (!$attendance) {
+            return '-';
+        }
+
+        if ($attendance->attendance_type === 'qr_personal') {
+            return '✓ Terverifikasi via QR Personal pada ' . $attendance->checked_in_at->format('d-m-Y H:i:s');
+        }
+
+        if ($attendance->attendance_type === 'manual') {
+            $adminName = $attendance->checkedInByAdmin?->name ?? 'Admin';
+            return "✓ Check-in Manual oleh {$adminName} pada " . $attendance->checked_in_at->format('d-m-Y H:i:s');
+        }
+
+        return '✓ Terverifikasi via QR Umum pada ' . $attendance->checked_in_at->format('d-m-Y H:i:s');
+    }
+
+    /**
+     * Get notes for attendance.
+     *
+     * @param $participant
+     * @param $attendance
+     * @return string
+     */
+    private function getNotes($participant, $attendance): string
+    {
+        if (!$attendance) {
+            return '-';
+        }
+
+        if ($attendance->is_delegation) {
+            $delegatedFor = $attendance->delegatedForParticipant?->name ?? 'Unknown';
+            return "Mewakili: {$delegatedFor}";
+        }
+
+        return '-';
+    }
+}

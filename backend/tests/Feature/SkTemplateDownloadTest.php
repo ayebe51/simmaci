@@ -255,12 +255,5 @@ class SkTemplateDownloadTest extends TestCase
         $this->assertNotNull($fileUrl);
         $this->assertStringContainsString('sk-templates/', $fileUrl);
     }
-
-        // This is what frontend does:
-        // const fileUrl = suratPermohonanTemplate?.file_url
-        $fileUrl = $extractedData['file_url'] ?? null;
-        $this->assertNotNull($fileUrl);
-        $this->assertStringContainsString('sk-templates/', $fileUrl);
-    }
 }
 

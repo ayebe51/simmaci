@@ -58,17 +58,14 @@ export default function SkSubmissionPage() {
   })
 
   const handleDownloadTemplate = () => {
-    // Response interceptor already extracts nested 'data', so access directly
-    const fileUrl = suratPermohonanTemplate?.file_url
-    
-    console.log('Template data:', suratPermohonanTemplate)
-    console.log('File URL:', fileUrl)
-    
-    if (!fileUrl) {
+    if (!suratPermohonanTemplate?.id) {
       toast.error("Template surat permohonan belum tersedia. Hubungi administrator untuk mengaktifkan template.")
       return
     }
-    window.open(fileUrl, '_blank', 'noopener,noreferrer')
+    
+    // Use direct stream URL — endpoint streams file directly without redirect
+    const downloadUrl = skTemplateApi.getDownloadStreamUrl(suratPermohonanTemplate.id)
+    window.open(downloadUrl, '_blank', 'noopener,noreferrer')
     toast.success("Template berhasil diunduh")
   }
 

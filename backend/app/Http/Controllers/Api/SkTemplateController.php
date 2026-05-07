@@ -9,6 +9,8 @@ use App\Services\SkTemplateService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class SkTemplateController extends Controller
@@ -88,17 +90,45 @@ class SkTemplateController extends Controller
 
     /**
      * GET /api/sk-templates/{id}/download
-     * Return a signed/direct URL to download the template file.
+     * Stream the template file directly to the browser.
+     * Returns the file as a download attachment (no redirect, no presigned URL).
      */
-    public function download(SkTemplate $skTemplate): JsonResponse
+    public function download(SkTemplate $skTemplate): Response|JsonResponse
     {
-        try {
-            $url = $this->service->getDownloadUrl($skTemplate);
-        } catch (HttpException $e) {
+        $disk = Storage::disk($skTemplate->disk);
+
+        if (! $disk->exists($skTemplate->file_path)) {
+            \Log::error('SK Template file not found in storage for download', [
+                'template_id' => $skTemplate->id,
+                'file_path'   => $skTemplate->file_path,
+                'disk'        => $skTemplate->disk,
+            ]);
             return $this->errorResponse('File template tidak ditemukan di storage.', null, 404);
         }
 
-        return $this->successResponse(['url' => $url], 'Berhasil.');
+        $content  = $disk->get($skTemplate->file_path);
+        $ext      = strtolower(pathinfo($skTemplate->file_path, PATHINFO_EXTENSION));
+        $mimeMap  = [
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'doc'  => 'application/msword',
+            'pdf'  => 'application/pdf',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ];
+        $mimeType = $mimeMap[$ext] ?? 'application/octet-stream';
+        $filename = $skTemplate->original_filename ?: basename($skTemplate->file_path);
+
+        \Log::info('Streaming SK template file for download', [
+            'template_id' => $skTemplate->id,
+            'sk_type'     => $skTemplate->sk_type,
+            'filename'    => $filename,
+        ]);
+
+        return response($content, 200, [
+            'Content-Type'        => $mimeType,
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Length'      => strlen($content),
+            'Cache-Control'       => 'private, no-store',
+        ]);
     }
 
     /**

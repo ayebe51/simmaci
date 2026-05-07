@@ -495,11 +495,11 @@ export const skTemplateApi = {
    * Returns the direct stream URL for a template file.
    * The endpoint streams the file directly — no redirect, no presigned URL.
    * Use this URL with window.open() or an <a> tag to trigger a download.
+   * Note: Token is passed via Authorization header, not query parameter.
    */
   getDownloadStreamUrl: (id: number): string => {
     const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '')
-    const token = localStorage.getItem('auth_token')
-    return `${base}/sk-templates/${id}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`
+    return `${base}/sk-templates/${id}/download`
   },
 
   getActive: (skType: string) =>

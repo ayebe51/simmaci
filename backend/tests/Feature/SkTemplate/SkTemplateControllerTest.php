@@ -504,13 +504,13 @@ class SkTemplateControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin)
-            ->getJson("/api/sk-templates/{$template->id}/download");
+            ->get("/api/sk-templates/{$template->id}/download");
 
         $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['url']]);
+            ->assertHeader('Content-Disposition', 'attachment; filename="' . $template->original_filename . '"')
+            ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 
-        $this->assertNotEmpty($response->json('data.url'));
+        $this->assertNotEmpty($response->getContent());
     }
 
     public function test_download_returns_403_for_operator(): void

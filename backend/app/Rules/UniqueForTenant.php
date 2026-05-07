@@ -19,7 +19,7 @@ class UniqueForTenant implements ValidationRule
      * Run the validation rule.
      *
      * - Operator: check uniqueness within the same school_id
-     * - Super Admin: check uniqueness globally (no school_id filter)
+     * - Super Admin & Admin Yayasan: check uniqueness globally (no school_id filter)
      * - Update: exclude the record being updated via ignoreId
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -35,7 +35,8 @@ class UniqueForTenant implements ValidationRule
             ->whereNull('deleted_at');
 
         // Operator: scope to their school_id
-        if ($user && ! $user->isSuperAdmin() && $user->school_id) {
+        // Super Admin & Admin Yayasan: no scoping (global uniqueness check)
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true) && $user->school_id) {
             $query->where('school_id', $user->school_id);
         }
 

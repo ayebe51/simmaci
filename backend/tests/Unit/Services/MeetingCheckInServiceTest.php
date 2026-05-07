@@ -639,13 +639,19 @@ class MeetingCheckInServiceTest extends TestCase
      *
      * @param string $url
      * @param string $ipAddress
+     * @param array|null $geolocation Optional geolocation data (latitude, longitude)
      * @return \Illuminate\Http\Request
      */
-    private function createMockRequest(string $url, string $ipAddress): \Illuminate\Http\Request
+    private function createMockRequest(string $url, string $ipAddress, ?array $geolocation = null): \Illuminate\Http\Request
     {
         $request = \Illuminate\Http\Request::create($url, 'GET');
         $request->server->set('REMOTE_ADDR', $ipAddress);
         $request->server->set('HTTP_USER_AGENT', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)');
+
+        // Add geolocation data if provided
+        if ($geolocation) {
+            $request->merge($geolocation);
+        }
 
         return $request;
     }

@@ -21,9 +21,6 @@ return new class extends Migration
             $table->timestampTz('started_at');
             $table->timestampTz('ended_at');
 
-            // Status enum: upcoming, ongoing, completed
-            $table->enum('status', ['upcoming', 'ongoing', 'completed'])->default('upcoming');
-
             // Geolocation settings
             $table->boolean('geolocation_enabled')->default(false);
             $table->decimal('latitude', 10, 8)->nullable();
@@ -31,7 +28,7 @@ return new class extends Migration
             $table->integer('geolocation_radius_meters')->nullable();
 
             // QR tokens
-            $table->string('qr_umum_token', 255)->unique();
+            $table->string('qr_umum_token', 255)->unique('idx_qr_umum_token_unique');
 
             // WA Blast references
             $table->foreignId('invitation_blast_id')
@@ -67,7 +64,6 @@ return new class extends Migration
 
         // Add indexes
         DB::statement('CREATE INDEX idx_meetings_created_by ON meetings(created_by)');
-        DB::statement('CREATE INDEX idx_meetings_status ON meetings(status)');
         DB::statement('CREATE INDEX idx_meetings_started_at ON meetings(started_at)');
     }
 

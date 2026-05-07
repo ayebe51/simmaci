@@ -67,8 +67,9 @@ class SkTemplateController extends Controller
      * POST /api/sk-templates/{id}/activate
      * Activate a template, deactivating all others of the same sk_type.
      */
-    public function activate(SkTemplate $skTemplate): JsonResponse
+    public function activate($id): JsonResponse
     {
+        $skTemplate = SkTemplate::findOrFail($id);
         $template = $this->service->activate($skTemplate, request()->user());
 
         return $this->successResponse(
@@ -81,8 +82,9 @@ class SkTemplateController extends Controller
      * DELETE /api/sk-templates/{id}
      * Soft-delete a template (clears active status first if active).
      */
-    public function destroy(SkTemplate $skTemplate): JsonResponse
+    public function destroy($id): JsonResponse
     {
+        $skTemplate = SkTemplate::findOrFail($id);
         $this->service->delete($skTemplate, request()->user());
 
         return $this->successResponse(null, 'Template SK berhasil dihapus.');
@@ -93,8 +95,9 @@ class SkTemplateController extends Controller
      * Stream the template file directly to the browser.
      * Returns the file as a download attachment.
      */
-    public function download(SkTemplate $skTemplate): Response|JsonResponse
+    public function download($id): Response|JsonResponse
     {
+        $skTemplate = SkTemplate::findOrFail($id);
         $disk = Storage::disk($skTemplate->disk);
 
         if (! $disk->exists($skTemplate->file_path)) {

@@ -27,6 +27,9 @@ use App\Http\Controllers\Api\PublicAttendanceController;
 use App\Http\Controllers\Api\WaBlastController;
 use App\Http\Controllers\Api\WaBlastConfigController;
 use App\Http\Controllers\Api\WaBlastTemplateController;
+use App\Http\Controllers\Api\MeetingController;
+use App\Http\Controllers\Api\MeetingCheckInController;
+use App\Http\Controllers\Api\MeetingReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -238,9 +241,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('sk-templates/active', [SkTemplateController::class, 'active']);
     Route::middleware('role:super_admin')->group(function () {
         Route::post('sk-templates', [SkTemplateController::class, 'store']);
-        Route::post('sk-templates/{skTemplate}/activate', [SkTemplateController::class, 'activate']);
-        Route::delete('sk-templates/{skTemplate}', [SkTemplateController::class, 'destroy']);
-        Route::get('sk-templates/{skTemplate}/download', [SkTemplateController::class, 'download']);
+        Route::post('sk-templates/{id}/activate', [SkTemplateController::class, 'activate']);
+        Route::delete('sk-templates/{id}', [SkTemplateController::class, 'destroy']);
+        Route::get('sk-templates/{id}/download', [SkTemplateController::class, 'download']);
     });
 
     // File Upload
@@ -275,5 +278,32 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('wa-blast-config', [WaBlastConfigController::class, 'store']);
             Route::post('wa-blast-config/test', [WaBlastConfigController::class, 'testConnection']);
         });
+
+        // ── Meetings (Rapat Yayasan) ──
+        // List and detail accessible to all authenticated users (operators have read-only access)
+        Route::get('meetings', [MeetingController::class, 'index']);
+        Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
+
+        // Create, update, delete only for super_admin and admin_yayasan
+        Route::post('meetings', [MeetingController::class, 'store']);
+        Route::put('meetings/{meeting}', [MeetingController::class, 'update']);
+        Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy']);
+
+        // Manual check-in and reset
+        Route::post('meetings/{meeting}/participants/{participant}/check-in', [MeetingController::class, 'manualCheckIn']);
+        Route::post('meetings/{meeting}/participants/{participant}/reset-check-in', [MeetingController::class, 'resetCheckIn']);
+        Route::post('meetings/{meeting}/participants/{participant}/regenerate-qr', [MeetingController::class, 'regenerateQr']);
+
+        // Reports
+        Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
+        Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
     });
+});
+
+// ── Public Meeting Check-In Routes (No Auth — Signed URL Protected) ──
+Route::prefix('public/meetings')->group(function () {
+    Route::get('{meeting}/check-in', [MeetingCheckInController::class, 'show'])->name('public.meetings.check-in.show');
+    Route::post('{meeting}/check-in', [MeetingCheckInController::class, 'checkIn'])->name('public.meetings.check-in.store');
+    Route::get('{meeting}/walk-in', [MeetingCheckInController::class, 'show'])->name('public.meetings.walk-in.show');
+    Route::post('{meeting}/walk-in', [MeetingCheckInController::class, 'walkIn'])->name('public.meetings.walk-in.store');
 });

@@ -117,6 +117,7 @@ class SkTemplateController extends Controller
         $template = $this->service->resolveActiveTemplate($skType);
 
         if (! $template) {
+            \Log::warning('No active SK template found', ['sk_type' => $skType]);
             return $this->errorResponse('Tidak ada template aktif untuk jenis SK ini.', null, 404);
         }
 
@@ -124,9 +125,22 @@ class SkTemplateController extends Controller
 
         try {
             $data['file_url'] = $this->service->getDownloadUrl($template);
+            
+            \Log::info('Successfully resolved active SK template', [
+                'sk_type' => $skType,
+                'template_id' => $template->id,
+                'file_url' => $data['file_url'],
+            ]);
         } catch (HttpException $e) {
             // File record exists in DB but the actual file is missing from storage.
             // Return 404 so the frontend can fall back to the bundled static template.
+            \Log::error('SK template file missing from storage', [
+                'sk_type' => $skType,
+                'template_id' => $template->id,
+                'file_path' => $template->file_path,
+                'disk' => $template->disk,
+                'error' => $e->getMessage(),
+            ]);
             return $this->errorResponse('File template tidak ditemukan di storage.', null, 404);
         }
 

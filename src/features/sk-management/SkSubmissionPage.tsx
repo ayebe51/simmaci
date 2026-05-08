@@ -64,30 +64,19 @@ export default function SkSubmissionPage() {
     }
     
     try {
-      const token = localStorage.getItem('auth_token')
-      const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '')
-      const url = `${base}/sk-templates/${suratPermohonanTemplate.id}/download`
+      // Use apiClient with responseType: 'blob' for proper file download
+      const response = await skTemplateApi.downloadUrl(suratPermohonanTemplate.id)
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`)
-      }
-      
-      // Get filename from Content-Disposition header
-      const contentDisposition = response.headers.get('Content-Disposition')
+      // Get filename from response headers or use default
       let filename = `template-surat-permohonan.docx`
+      const contentDisposition = response.headers?.['content-disposition']
       if (contentDisposition) {
         const match = contentDisposition.match(/filename="?([^"]+)"?/)
         if (match) filename = match[1]
       }
       
       // Create blob and trigger download
-      const blob = await response.blob()
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data])
       const downloadUrl = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = downloadUrl
@@ -99,6 +88,7 @@ export default function SkSubmissionPage() {
       
       toast.success("Template berhasil diunduh")
     } catch (error) {
+      console.error('Download template error:', error)
       toast.error(error instanceof Error ? error.message : 'Gagal mengunduh template')
     }
   }

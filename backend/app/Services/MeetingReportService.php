@@ -82,6 +82,16 @@ class MeetingReportService
 
         $section->addTextBreak(2);
 
+        // Add minutes page if available
+        if ($meeting->minutes) {
+            $this->addMinutesPage($phpWord, $meeting);
+        }
+
+        // Add photos page if available
+        if ($meeting->photos()->exists()) {
+            $this->addPhotosPage($phpWord, $meeting);
+        }
+
         // Add footer
         $footerStyle = ['size' => 10, 'italic' => true];
         $section->addText("Tanggal cetak: " . now()->format('d-m-Y H:i:s'), $footerStyle);
@@ -414,5 +424,151 @@ class MeetingReportService
         }
 
         return '-';
+    }
+
+    /**
+     * Add minutes page to PDF.
+     *
+     * Creates a new section with the meeting minutes content.
+     * Renders the HTML content from the rich text editor.
+     *
+     * @param PhpWord $phpWord
+     * @param Meeting $meeting
+     * @return void
+     */
+    private function addMinutesPage(PhpWord $phpWord, Meeting $meeting): void
+    {
+        // Add page break
+        $section = $phpWord->addSection();
+
+        // Add title
+        $titleStyle = [
+            'bold' => true,
+            'size' => 14,
+            'alignment' => 'center',
+        ];
+        $section->addText('NOTULENSI RAPAT', $titleStyle);
+
+        // Add minutes title
+        $subtitleStyle = ['size' => 12, 'bold' => true];
+        $section->addText($meeting->minutes->title, $subtitleStyle);
+
+        $section->addTextBreak(1);
+
+        // Add minutes content
+        // Strip HTML tags and convert to plain text for PHPWord compatibility
+        $content = $meeting->minutes->content;
+        
+        // Convert common HTML tags to plain text
+        $content = preg_replace('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/i', "\n$1\n", $content);
+        $content = preg_replace('/<p[^>]*>(.*?)<\/p>/i', "$1\n", $content);
+        $content = preg_replace('/<br\s*\/?>/i', "\n", $content);
+        $content = preg_replace('/<li[^>]*>(.*?)<\/li>/i', "• $1\n", $content);
+        $content = preg_replace('/<[^>]+>/', '', $content);
+        $content = html_entity_decode($content);
+        $content = trim($content);
+
+        // Add content with word wrapping
+        $contentStyle = ['size' => 11];
+        $section->addText($content, $contentStyle);
+
+        $section->addTextBreak(1);
+
+        // Add metadata
+        $metaStyle = ['size' => 10, 'italic' => true];
+        $section->addText("Dibuat oleh: " . $meeting->minutes->creator?->name ?? 'Admin', $metaStyle);
+        $section->addText("Tanggal: " . $meeting->minutes->created_at->format('d-m-Y H:i:s'), $metaStyle);
+        
+        if ($meeting->minutes->updated_by) {
+            $section->addText("Diperbarui oleh: " . $meeting->minutes->updater?->name ?? 'Admin', $metaStyle);
+            $section->addText("Tanggal update: " . $meeting->minutes->updated_at->format('d-m-Y H:i:s'), $metaStyle);
+        }
+    }
+
+    /**
+     * Add photos page to PDF.
+     *
+     * Creates a new section with thumbnails of all photos uploaded for the meeting.
+     * Displays photos in a grid layout with captions.
+     *
+     * @param PhpWord $phpWord
+     * @param Meeting $meeting
+     * @return void
+     */
+    private function addPhotosPage(PhpWord $phpWord, Meeting $meeting): void
+    {
+        // Add page break
+        $section = $phpWord->addSection();
+
+        // Add title
+        $titleStyle = [
+            'bold' => true,
+            'size' => 14,
+            'alignment' => 'center',
+        ];
+        $section->addText('FOTO KEGIATAN RAPAT', $titleStyle);
+
+        $section->addTextBreak(1);
+
+        // Get all photos
+        $photos = $meeting->photos()->get();
+
+        if ($photos->isEmpty()) {
+            $section->addText('Tidak ada foto untuk rapat ini.', ['italic' => true]);
+            return;
+        }
+
+        // Add photo count
+        $countStyle = ['size' => 11];
+        $section->addText("Total foto: {$photos->count()}", $countStyle);
+
+        $section->addTextBreak(1);
+
+        // Create table for photos (2 columns)
+        $table = $section->addTable(['borderSize' => 6, 'borderColor' => 'CCCCCC']);
+
+        $photoCount = 0;
+        $currentRow = null;
+
+        foreach ($photos as $photo) {
+            // Start new row every 2 photos
+            if ($photoCount % 2 === 0) {
+                $currentRow = $table->addRow();
+            }
+
+            // Get photo URL
+            $photoUrl = $photo->getPhotoUrl();
+
+            // Try to add image if it's accessible
+            try {
+                $cell = $currentRow->addCell(2500);
+                
+                // Add image with max width of 2.5 inches
+                $cell->addImage($photoUrl, [
+                    'width' => Inches(2.5),
+                    'height' => Inches(2),
+                    'alignment' => 'center',
+                ]);
+
+                // Add photo metadata below image
+                $metaStyle = ['size' => 9];
+                $cell->addText("Ukuran: {$photo->width}x{$photo->height}px", $metaStyle);
+                $cell->addText("Diupload: " . $photo->created_at->format('d-m-Y H:i'), $metaStyle);
+                $cell->addText("Oleh: " . $photo->uploader?->name ?? 'Admin', $metaStyle);
+            } catch (\Exception $e) {
+                // If image fails to load, add placeholder text
+                $cell = $currentRow->addCell(2500);
+                $cell->addText("[Foto tidak dapat ditampilkan]", ['italic' => true, 'size' => 9]);
+                $cell->addText($photo->original_filename, ['size' => 9]);
+            }
+
+            $photoCount++;
+        }
+
+        $section->addTextBreak(1);
+
+        // Add footer with photo summary
+        $footerStyle = ['size' => 10, 'italic' => true];
+        $section->addText("Total foto yang diupload: {$photos->count()}", $footerStyle);
     }
 }

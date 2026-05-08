@@ -30,6 +30,8 @@ use App\Http\Controllers\Api\WaBlastTemplateController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\MeetingCheckInController;
 use App\Http\Controllers\Api\MeetingReportController;
+use App\Http\Controllers\Api\MeetingMinutesController;
+use App\Http\Controllers\Api\MeetingPhotoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -297,6 +299,18 @@ Route::middleware('auth:sanctum')->group(function () {
         // Reports
         Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
         Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
+
+        // ── Meeting Minutes (Notulensi) ──
+        Route::get('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
+        Route::post('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'store']);
+        Route::put('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'update']);
+        Route::delete('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'destroy']);
+
+        // ── Meeting Photos (Foto Kegiatan) ──
+        Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
+        Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
+        Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
+        Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
     });
 });
 

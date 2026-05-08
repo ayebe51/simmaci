@@ -236,10 +236,10 @@ Buat migration untuk tabel `meeting_minutes` dan `meeting_photos`.
 
 ### Sub-tasks
 
-- [ ] Buat migration `create_meeting_minutes_table.php`
-- [ ] Buat migration `create_meeting_photos_table.php`
-- [ ] Buat Eloquent model `MeetingMinutes`
-- [ ] Buat Eloquent model `MeetingPhoto`
+- [x] Buat migration `create_meeting_minutes_table.php`
+- [x] Buat migration `create_meeting_photos_table.php`
+- [x] Buat Eloquent model `MeetingMinutes`
+- [x] Buat Eloquent model `MeetingPhoto`
 
 ---
 
@@ -252,10 +252,10 @@ Implementasi service layer untuk notulensi dan foto kegiatan.
 
 ### Sub-tasks
 
-- [ ] Buat `MeetingMinutesService`
-- [ ] Buat `MeetingPhotoService`
-- [ ] Install library `intervention/image` untuk thumbnail generation
-- [ ] Install library `html-purifier` untuk sanitasi HTML notulensi
+- [x] Buat `MeetingMinutesService`
+- [x] Buat `MeetingPhotoService`
+- [x] Install library `intervention/image` untuk thumbnail generation
+- [x] Install library `html-purifier` untuk sanitasi HTML notulensi
 
 ---
 
@@ -268,9 +268,9 @@ Implementasi form validation untuk notulensi dan foto.
 
 ### Sub-tasks
 
-- [ ] Buat `StoreMinutesRequest`
-- [ ] Buat `UpdateMinutesRequest`
-- [ ] Buat `UploadPhotosRequest`
+- [x] Buat `StoreMinutesRequest`
+- [x] Buat `UpdateMinutesRequest`
+- [x] Buat `UploadPhotosRequest`
 
 ---
 
@@ -283,9 +283,9 @@ Implementasi REST API endpoints untuk notulensi dan foto.
 
 ### Sub-tasks
 
-- [ ] Buat `MeetingMinutesController`
-- [ ] Buat `MeetingPhotoController`
-- [ ] Daftarkan routes di `routes/api.php`
+- [x] Buat `MeetingMinutesController`
+- [x] Buat `MeetingPhotoController`
+- [x] Daftarkan routes di `routes/api.php`
 
 ---
 
@@ -298,11 +298,11 @@ Implementasi TypeScript types, API services, dan React hooks.
 
 ### Sub-tasks
 
-- [ ] Update `src/features/meetings/types/meeting.types.ts` dengan types untuk notulensi dan foto
-- [ ] Buat `src/features/meetings/services/meetingMinutesService.ts`
-- [ ] Buat `src/features/meetings/services/meetingPhotoService.ts`
-- [ ] Buat `src/features/meetings/hooks/useMeetingMinutes.ts`
-- [ ] Buat `src/features/meetings/hooks/useMeetingPhotos.ts`
+- [x] Update `src/features/meetings/types/meeting.types.ts` dengan types untuk notulensi dan foto
+- [x] Buat `src/features/meetings/services/meetingMinutesService.ts`
+- [x] Buat `src/features/meetings/services/meetingPhotoService.ts`
+- [x] Buat `src/features/meetings/hooks/useMeetingMinutes.ts`
+- [x] Buat `src/features/meetings/hooks/useMeetingPhotos.ts`
 
 ---
 
@@ -315,10 +315,10 @@ Implementasi UI components untuk notulensi rapat.
 
 ### Sub-tasks
 
-- [ ] Install library `@tiptap/react` untuk rich text editor
-- [ ] Buat `MeetingMinutesEditor.tsx`
-- [ ] Buat `MeetingMinutesView.tsx`
-- [ ] Buat tab Notulensi di `MeetingDetailPage.tsx`
+- [x] Install library `@tiptap/react` untuk rich text editor
+- [x] Buat `MeetingMinutesEditor.tsx`
+- [x] Buat `MeetingMinutesView.tsx`
+- [x] Buat tab Notulensi di `MeetingDetailPage.tsx`
 
 ---
 
@@ -331,10 +331,10 @@ Implementasi UI components untuk foto kegiatan.
 
 ### Sub-tasks
 
-- [ ] Install library `yet-another-react-lightbox` untuk lightbox
-- [ ] Buat `MeetingPhotoGallery.tsx`
-- [ ] Buat `MeetingPhotoUploader.tsx`
-- [ ] Buat tab Foto Kegiatan di `MeetingDetailPage.tsx`
+- [x] Install library `yet-another-react-lightbox` untuk lightbox
+- [x] Buat `MeetingPhotoGallery.tsx`
+- [x] Buat `MeetingPhotoUploader.tsx`
+- [x] Buat tab Foto Kegiatan di `MeetingDetailPage.tsx`
 
 ---
 
@@ -347,10 +347,10 @@ Update `MeetingReportService` untuk include notulensi dan foto di laporan PDF.
 
 ### Sub-tasks
 
-- [ ] Update `MeetingReportService::generatePdf()` untuk tambah halaman notulensi
-- [ ] Update `MeetingReportService::generatePdf()` untuk tambah halaman foto
-- [ ] Buat method `addMinutesPage()` untuk render notulensi di PDF
-- [ ] Buat method `addPhotosPage()` untuk render foto di PDF
+- [x] Update `MeetingReportService::generatePdf()` untuk tambah halaman notulensi
+- [x] Update `MeetingReportService::generatePdf()` untuk tambah halaman foto
+- [x] Buat method `addMinutesPage()` untuk render notulensi di PDF
+- [x] Buat method `addPhotosPage()` untuk render foto di PDF
 
 ---
 
@@ -363,10 +363,10 @@ Implementasi integration tests untuk backend endpoints notulensi dan foto.
 
 ### Sub-tasks
 
-- [ ] Buat `MeetingMinutesControllerTest`
-- [ ] Buat `MeetingPhotoControllerTest`
-- [ ] Test upload foto dengan validasi format dan ukuran
-- [ ] Test download semua foto sebagai ZIP
+- [x] Buat `MeetingMinutesControllerTest`
+- [x] Buat `MeetingPhotoControllerTest`
+- [x] Test upload foto dengan validasi format dan ukuran
+- [x] Test download semua foto sebagai ZIP
 
 ---
 
@@ -379,10 +379,10 @@ Implementasi integration tests untuk frontend.
 
 ### Sub-tasks
 
-- [ ] Buat tests untuk notulensi editor
-- [ ] Buat tests untuk foto gallery
-- [ ] Buat tests untuk upload foto
-- [ ] Buat tests untuk delete foto
+- [x] Buat tests untuk notulensi editor
+- [x] Buat tests untuk foto gallery
+- [x] Buat tests untuk upload foto
+- [x] Buat tests untuk delete foto
 
 ---
 
@@ -395,6 +395,6 @@ Implementasi end-to-end tests dengan Playwright.
 
 ### Sub-tasks
 
-- [ ] Buat E2E test untuk create dan edit notulensi
-- [ ] Buat E2E test untuk upload dan delete foto
-- [ ] Buat E2E test untuk download laporan PDF dengan notulensi dan foto
+- [x] Buat E2E test untuk create dan edit notulensi
+- [x] Buat E2E test untuk upload dan delete foto
+- [x] Buat E2E test untuk download laporan PDF dengan notulensi dan foto

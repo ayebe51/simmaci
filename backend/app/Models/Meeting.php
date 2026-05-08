@@ -38,6 +38,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property-read string $status Computed property: 'upcoming', 'ongoing', or 'completed'
  * @property-read \Illuminate\Database\Eloquent\Collection<MeetingParticipant> $participants
  * @property-read \Illuminate\Database\Eloquent\Collection<MeetingAttendance> $attendances
+ * @property-read MeetingMinutes|null $minutes
+ * @property-read \Illuminate\Database\Eloquent\Collection<MeetingPhoto> $photos
  * @property-read \Illuminate\Database\Eloquent\Collection<School> $schools
  * @property-read User $creator
  * @property-read WaBlast|null $invitationBlast
@@ -94,6 +96,26 @@ class Meeting extends Model
     public function attendances(): HasMany
     {
         return $this->hasMany(MeetingAttendance::class);
+    }
+
+    /**
+     * Get the minutes for this meeting.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function minutes()
+    {
+        return $this->hasOne(MeetingMinutes::class);
+    }
+
+    /**
+     * Get the photos uploaded for this meeting.
+     *
+     * @return HasMany
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(MeetingPhoto::class);
     }
 
     /**

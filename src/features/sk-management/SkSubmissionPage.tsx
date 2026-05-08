@@ -57,16 +57,50 @@ export default function SkSubmissionPage() {
     retry: false,
   })
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
     if (!suratPermohonanTemplate?.id) {
       toast.error("Template surat permohonan belum tersedia. Hubungi administrator untuk mengaktifkan template.")
       return
     }
     
-    // Use direct stream URL — endpoint streams file directly without redirect
-    const downloadUrl = skTemplateApi.getDownloadStreamUrl(suratPermohonanTemplate.id)
-    window.open(downloadUrl, '_blank', 'noopener,noreferrer')
-    toast.success("Template berhasil diunduh")
+    try {
+      const token = localStorage.getItem('auth_token')
+      const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/$/, '')
+      const url = `${base}/sk-templates/${suratPermohonanTemplate.id}/download`
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`)
+      }
+      
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = `template-surat-permohonan.docx`
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (match) filename = match[1]
+      }
+      
+      // Create blob and trigger download
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(downloadUrl)
+      
+      toast.success("Template berhasil diunduh")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gagal mengunduh template')
+    }
   }
 
   // Create schema with dynamic validation based on user role

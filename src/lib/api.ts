@@ -489,7 +489,7 @@ export const skTemplateApi = {
     apiClient.delete(`/sk-templates/${id}`).then((r) => r.data),
 
   downloadUrl: (id: number) =>
-    apiClient.get(`/sk-templates/${id}/download`).then((r) => r.data),
+    apiClient.get(`/sk-templates/${id}/download`, { responseType: 'blob' }).then((r) => r),
 
   /**
    * Returns the direct stream URL for a template file.

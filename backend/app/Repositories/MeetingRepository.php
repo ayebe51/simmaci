@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\Meeting;
 use App\Repositories\Contracts\MeetingRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class MeetingRepository extends BaseRepository implements MeetingRepositoryInterface
@@ -59,9 +60,9 @@ class MeetingRepository extends BaseRepository implements MeetingRepositoryInter
      * Find a meeting by ID with eager loaded relationships.
      *
      * @param int $id
-     * @return Meeting|null
+     * @return Model|null
      */
-    public function findById(int $id): ?Meeting
+    public function findById(int $id): ?Model
     {
         return $this->model
             ->with([
@@ -97,9 +98,9 @@ class MeetingRepository extends BaseRepository implements MeetingRepositoryInter
      * Create a new meeting with relationships.
      *
      * @param array $data
-     * @return Meeting
+     * @return Model
      */
-    public function create(array $data): Meeting
+    public function create(array $data): Model
     {
         return $this->model->create($data);
     }
@@ -107,14 +108,14 @@ class MeetingRepository extends BaseRepository implements MeetingRepositoryInter
     /**
      * Update a meeting.
      *
-     * @param Meeting $meeting
+     * @param Model $model
      * @param array $data
-     * @return Meeting
+     * @return Model
      */
-    public function update(Meeting $meeting, array $data): Meeting
+    public function update(Model $model, array $data): Model
     {
-        $meeting->update($data);
-        return $meeting->fresh([
+        $model->update($data);
+        return $model->fresh([
             'schools',
             'participants',
             'attendances',
@@ -125,11 +126,11 @@ class MeetingRepository extends BaseRepository implements MeetingRepositoryInter
     /**
      * Delete a meeting (soft delete).
      *
-     * @param Meeting $meeting
+     * @param Model $model
      * @return bool
      */
-    public function delete(Meeting $meeting): bool
+    public function delete(Model $model): bool
     {
-        return (bool) $meeting->delete();
+        return (bool) $model->delete();
     }
 }

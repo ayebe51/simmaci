@@ -15,7 +15,7 @@ class SkTemplateSeeder extends Seeder
     public function run(): void
     {
         $disk = 'public';
-        $skTypes = ['gty', 'gtt', 'kamad', 'tendik'];
+        $skTypes = ['gty', 'gtt', 'kamad', 'tendik', 'surat_permohonan'];
 
         foreach ($skTypes as $skType) {
             // Create a minimal DOCX file for testing
@@ -29,7 +29,9 @@ class SkTemplateSeeder extends Seeder
             // Create template record
             SkTemplate::create([
                 'sk_type'           => $skType,
-                'original_filename' => "Template SK {$skType}.docx",
+                'original_filename' => $skType === 'surat_permohonan' 
+                    ? 'Template Surat Permohonan Pengajuan SK.docx'
+                    : "Template SK {$skType}.docx",
                 'file_path'         => $path,
                 'disk'              => $disk,
                 'is_active'         => true,

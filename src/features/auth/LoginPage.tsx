@@ -54,9 +54,8 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
         <CardHeader className="space-y-1 text-center relative z-10 pt-8">
           <div className="mb-4 flex justify-center drop-shadow-lg">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 shadow-inner">
-              {/* Logo placeholder */}
-              <img src="/logo-icon.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-md brightness-0 invert" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl overflow-hidden bg-black/30 backdrop-blur-sm border border-white/30 shadow-inner">
+              <img src="/logo-icon.png" alt="Logo" className="h-14 w-14 object-contain" />
             </div>
           </div>
           <CardTitle className="text-3xl font-extrabold tracking-tight text-white drop-shadow-sm">

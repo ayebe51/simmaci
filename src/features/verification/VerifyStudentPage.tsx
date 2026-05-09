@@ -100,7 +100,7 @@ export default function VerifyStudentPage() {
             </div>
 
             <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center text-center">
-                <img src="/logo-maarif-hijau.png" alt="Logo" className="h-14 w-auto mb-4 grayscale opacity-30" />
+                <img src="/logo-icon.png" alt="Logo" className="h-14 w-auto mb-4 grayscale invert opacity-20" />
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                   SIMMACI CLOUD VERIFICATION<br/>PC LP MA'ARIF NU CILACAP
                 </p>

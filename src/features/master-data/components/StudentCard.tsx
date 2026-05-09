@@ -132,7 +132,7 @@ export default function StudentCard({ student, isBatch }: StudentCardProps) {
             {/* Premium Header */}
             <div className="absolute top-0 left-0 right-0 h-20 bg-white/5 backdrop-blur-xl border-b border-white/10 flex items-center px-6 justify-between z-10">
                 <div className="flex items-center gap-4">
-                    <img src="/logo-maarif-white.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-2xl" />
+                    <img src="/logo-icon.png" alt="Logo" className="h-10 w-auto object-contain drop-shadow-2xl" />
                     <div className="flex flex-col">
                         <h1 className="text-[14px] font-black text-white uppercase tracking-tight italic leading-none mb-1">KARTU TANDA PELAJAR</h1>
                         <h2 className="text-[8px] font-bold text-blue-300 uppercase tracking-widest leading-none">LP MA'ARIF NU CILACAP</h2>

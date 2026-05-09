@@ -61,6 +61,12 @@ import LessonSchedulePage from "./features/attendance/LessonSchedulePage"
 import AttendanceSettingsPage from "./features/attendance/AttendanceSettingsPage"
 import PublicScannerPage from "./features/attendance/PublicScannerPage"
 
+// Meeting Module
+import MeetingListPage from "./features/meetings/pages/MeetingListPage"
+import MeetingCreatePage from "./features/meetings/pages/MeetingCreatePage"
+import { MeetingDetailPage } from "./features/meetings/MeetingDetailPage"
+import MeetingCheckInPage from "./features/meetings/pages/MeetingCheckInPage"
+
 // WA Blast Module
 import WaBlastListPage from "./features/wa-blast/WaBlastListPage"
 import WaBlastCreatePage from "./features/wa-blast/WaBlastCreatePage"
@@ -97,6 +103,9 @@ export default function App() {
           
           {/* Public Attendance Scanner — accessible without login */}
           <Route path="/scan" element={<PublicScannerPage />} />
+
+          {/* Public Meeting Check-In — accessible without login (signed URL protected) */}
+          <Route path="/meetings/:id/check-in" element={<MeetingCheckInPage />} />
           
           {/* Protected Routes Wrapper */}
           <Route
@@ -167,6 +176,11 @@ export default function App() {
                         <Route path="wa-blast/:id" element={<WaBlastDetailPage />} />
                         <Route path="wa-blast/templates" element={<WaBlastTemplatePage />} />
                         <Route path="wa-blast/config" element={<WaBlastConfigPage />} />
+
+                        {/* Meeting Module */}
+                        <Route path="meetings" element={<MeetingListPage />} />
+                        <Route path="meetings/create" element={<MeetingCreatePage />} />
+                        <Route path="meetings/:id" element={<MeetingDetailPage />} />
                       </Routes>
                       </PageTransition>
                     </GlobalErrorBoundary>

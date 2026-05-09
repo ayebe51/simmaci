@@ -156,7 +156,7 @@ export default function AppShell({ children }: AppShellProps) {
         {/* Sidebar Header */}
         <div className="flex h-20 items-center border-b border-slate-100 px-6 bg-gradient-to-r from-emerald-600/5 to-transparent">
           <Link to="/dashboard" className="flex items-center gap-3 font-bold text-xl tracking-tight text-slate-800">
-            <div className="overflow-hidden rounded-xl shadow-sm border border-emerald-100/50 bg-black">
+            <div className="overflow-hidden rounded-xl shadow-sm border border-emerald-100/50">
                 <img src="/logo-icon.png" alt="Logo" className="h-10 w-10 object-contain" />
             </div>
             <div className={cn("flex flex-col justify-center", !sidebarOpen && "hidden")}>

@@ -60,7 +60,7 @@ const schema = z.object({
   location: z.string().min(1, 'Lokasi wajib diisi'),
   started_at: z.string().min(1, 'Waktu mulai wajib diisi'),
   ended_at: z.string().min(1, 'Waktu selesai wajib diisi'),
-  school_ids: z.array(z.number()).min(1, 'Minimal satu sekolah harus dipilih'),
+  school_ids: z.array(z.number()),
   geolocation_enabled: z.boolean(),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
@@ -177,9 +177,9 @@ export default function MeetingCreatePage() {
             </div>
 
             <div>
-              <Label>Sekolah / Lembaga *</Label>
+              <Label>Sekolah / Lembaga <span className="text-slate-400 font-normal">(opsional)</span></Label>
               <p className="text-xs text-slate-500 mb-2">
-                Pilih jenjang untuk memilih semua sekolah, lalu uncheck yang tidak diundang
+                Kosongkan jika rapat hanya untuk PH, staf, atau pihak eksternal. Pilih jenjang untuk bulk-select, lalu uncheck yang tidak diundang.
               </p>
               {schoolsLoading ? (
                 <p className="text-xs text-slate-400">Memuat daftar sekolah...</p>
@@ -188,38 +188,58 @@ export default function MeetingCreatePage() {
                   control={control}
                   name="school_ids"
                   render={({ field }) => {
+                    const allIds = schools.map((s) => s.id);
+
+                    // Collect all unique jenjang values present in data (sorted)
+                    const jenjangList = Array.from(
+                      new Set(schools.map((s) => s.jenjang).filter(Boolean))
+                    ).sort() as string[];
+
                     const byJenjang = (j: string) =>
                       schools.filter((s) => s.jenjang === j).map((s) => s.id);
 
-                    const miIds  = byJenjang('MI');
-                    const mtsIds = byJenjang('MTs');
-                    const maIds  = byJenjang('MA');
-                    const allIds = schools.map((s) => s.id);
+                    // Tile color map — known jenjang get colors, others get slate
+                    const tileColors: Record<string, { num: string; active: string }> = {
+                      MI:  { num: 'text-blue-700',    active: 'border-blue-400 bg-blue-50' },
+                      MTs: { num: 'text-emerald-700', active: 'border-emerald-500 bg-emerald-50' },
+                      MA:  { num: 'text-purple-700',  active: 'border-purple-400 bg-purple-50' },
+                      SD:  { num: 'text-orange-700',  active: 'border-orange-400 bg-orange-50' },
+                      SMP: { num: 'text-cyan-700',    active: 'border-cyan-400 bg-cyan-50' },
+                      SMA: { num: 'text-rose-700',    active: 'border-rose-400 bg-rose-50' },
+                      SMK: { num: 'text-pink-700',    active: 'border-pink-400 bg-pink-50' },
+                    };
+                    const defaultColor = { num: 'text-slate-700', active: 'border-slate-400 bg-slate-50' };
 
-                    // Which tile is "fully active" (all its schools selected, nothing outside)
-                    const isAll = allIds.length > 0 && allIds.every((id) => field.value.includes(id));
-                    const isMi  = miIds.length > 0 && miIds.every((id) => field.value.includes(id))
-                                  && field.value.every((id) => miIds.includes(id));
-                    const isMts = mtsIds.length > 0 && mtsIds.every((id) => field.value.includes(id))
-                                  && field.value.every((id) => mtsIds.includes(id));
-                    const isMa  = maIds.length > 0 && maIds.every((id) => field.value.includes(id))
-                                  && field.value.every((id) => maIds.includes(id));
-                    const activeValue = isAll ? 'all' : isMi ? 'MI' : isMts ? 'MTs' : isMa ? 'MA' : 'custom';
-
-                    const tiles = [
-                      { value: 'all', label: 'Semua',  count: allIds.length,  ids: allIds,  numColor: 'text-slate-700' },
-                      { value: 'MI',  label: 'MI',     count: miIds.length,   ids: miIds,   numColor: 'text-blue-700'  },
-                      { value: 'MTs', label: 'MTs',    count: mtsIds.length,  ids: mtsIds,  numColor: 'text-emerald-700' },
-                      { value: 'MA',  label: 'MA',     count: maIds.length,   ids: maIds,   numColor: 'text-purple-700' },
-                    ].filter((t) => t.count > 0);
-
-                    const jenjangColors: Record<string, string> = {
+                    const badgeColors: Record<string, string> = {
                       MI:  'bg-blue-50 text-blue-700 border-blue-200',
                       MTs: 'bg-emerald-50 text-emerald-700 border-emerald-200',
                       MA:  'bg-purple-50 text-purple-700 border-purple-200',
+                      SD:  'bg-orange-50 text-orange-700 border-orange-200',
+                      SMP: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                      SMA: 'bg-rose-50 text-rose-700 border-rose-200',
+                      SMK: 'bg-pink-50 text-pink-700 border-pink-200',
                     };
 
-                    // Schools visible in the list (filtered by search)
+                    // Is a jenjang tile "fully active" (all its schools selected, nothing outside)
+                    const isJenjangActive = (j: string) => {
+                      const ids = byJenjang(j);
+                      return ids.length > 0
+                        && ids.every((id) => field.value.includes(id))
+                        && field.value.every((id) => ids.includes(id));
+                    };
+                    const isAllActive = allIds.length > 0 && allIds.every((id) => field.value.includes(id));
+
+                    const tiles = [
+                      { value: 'all', label: 'Semua', count: allIds.length, ids: allIds, colors: defaultColor },
+                      ...jenjangList.map((j) => ({
+                        value: j,
+                        label: j,
+                        count: byJenjang(j).length,
+                        ids: byJenjang(j),
+                        colors: tileColors[j] ?? defaultColor,
+                      })),
+                    ];
+
                     const visibleSchools = schoolSearch.trim()
                       ? schools.filter((s) =>
                           s.nama.toLowerCase().includes(schoolSearch.toLowerCase())
@@ -229,50 +249,49 @@ export default function MeetingCreatePage() {
                     return (
                       <div className="space-y-3">
                         {/* Quick-select tiles */}
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="flex flex-wrap gap-2">
                           {tiles.map((tile) => {
-                            const active = activeValue === tile.value;
+                            const active = tile.value === 'all' ? isAllActive : isJenjangActive(tile.value);
                             return (
                               <button
                                 key={tile.value}
                                 type="button"
                                 onClick={() => field.onChange(tile.ids)}
-                                className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all ${
+                                className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-4 py-2.5 min-w-[72px] font-medium transition-all ${
                                   active
-                                    ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                                    ? tile.colors.active + ' shadow-sm'
                                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                 }`}
                               >
-                                <span className={`text-xl font-bold ${active ? 'text-emerald-600' : tile.numColor}`}>
+                                <span className={`text-lg font-bold leading-none ${active ? tile.colors.num : tile.colors.num}`}>
                                   {tile.count}
                                 </span>
-                                <span className={`text-xs ${active ? 'text-emerald-700' : ''}`}>{tile.label}</span>
+                                <span className="text-xs mt-0.5">{tile.label}</span>
                               </button>
                             );
                           })}
+                          {field.value.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => field.onChange([])}
+                              className="flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 border-red-200 bg-red-50 px-4 py-2.5 min-w-[72px] font-medium text-red-600 hover:bg-red-100 transition-all"
+                            >
+                              <span className="text-lg font-bold leading-none">✕</span>
+                              <span className="text-xs mt-0.5">Hapus</span>
+                            </button>
+                          )}
                         </div>
 
-                        {/* Fine-tune list — always visible once schools are loaded */}
+                        {/* Fine-tune list */}
                         <div className="border rounded-lg bg-white overflow-hidden">
-                          {/* List header */}
                           <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b">
                             <span className="text-xs font-medium text-slate-600">
                               {field.value.length > 0
                                 ? `${field.value.length} dari ${schools.length} sekolah dipilih`
-                                : 'Belum ada sekolah dipilih'}
+                                : 'Tidak ada sekolah dipilih — rapat tanpa sekolah'}
                             </span>
-                            {field.value.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={() => field.onChange([])}
-                                className="text-xs text-red-500 hover:text-red-700"
-                              >
-                                Hapus semua
-                              </button>
-                            )}
                           </div>
 
-                          {/* Search */}
                           <div className="px-3 py-2 border-b">
                             <div className="relative">
                               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -295,12 +314,9 @@ export default function MeetingCreatePage() {
                             </div>
                           </div>
 
-                          {/* Checkbox list */}
                           <div className="max-h-52 overflow-y-auto divide-y divide-slate-50">
                             {visibleSchools.length === 0 ? (
-                              <p className="text-xs text-slate-400 text-center py-4">
-                                Tidak ada sekolah ditemukan
-                              </p>
+                              <p className="text-xs text-slate-400 text-center py-4">Tidak ada sekolah ditemukan</p>
                             ) : (
                               visibleSchools.map((school) => {
                                 const checked = field.value.includes(school.id);
@@ -319,20 +335,15 @@ export default function MeetingCreatePage() {
                                         if (e.target.checked) {
                                           field.onChange([...field.value, school.id]);
                                         } else {
-                                          field.onChange(
-                                            field.value.filter((id) => id !== school.id)
-                                          );
+                                          field.onChange(field.value.filter((id) => id !== school.id));
                                         }
                                       }}
                                     />
                                     <span className="flex-1 truncate">{school.nama}</span>
                                     {school.jenjang && (
-                                      <span
-                                        className={`shrink-0 text-xs px-1.5 py-0.5 rounded border font-medium ${
-                                          jenjangColors[school.jenjang] ??
-                                          'bg-slate-100 text-slate-600 border-slate-200'
-                                        }`}
-                                      >
+                                      <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded border font-medium ${
+                                        badgeColors[school.jenjang] ?? 'bg-slate-100 text-slate-600 border-slate-200'
+                                      }`}>
                                         {school.jenjang}
                                       </span>
                                     )}
@@ -346,9 +357,6 @@ export default function MeetingCreatePage() {
                     );
                   }}
                 />
-              )}
-              {errors.school_ids && (
-                <p className="text-xs text-red-500 mt-1">{errors.school_ids.message}</p>
               )}
             </div>
 

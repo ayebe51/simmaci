@@ -256,6 +256,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Data Audit
     Route::post('data-audit/health-check', [DataAuditController::class, 'runHealthCheck']);
 
+    // ── Meetings read-only (all authenticated users, operators see filtered results) ──
+    Route::get('meetings', [MeetingController::class, 'index']);
+    Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
+
     // ── WA Blast (super_admin + admin_yayasan only) ──
     Route::middleware('role:super_admin,admin_yayasan')->group(function () {
         // Blast sessions — preview-recipients must come before {id} wildcard
@@ -281,11 +285,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('wa-blast-config/test', [WaBlastConfigController::class, 'testConnection']);
         });
 
-        // ── Meetings (Rapat Yayasan) ──
-        // List and detail accessible to all authenticated users (operators have read-only access)
-        Route::get('meetings', [MeetingController::class, 'index']);
-        Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
-
+        // ── Meetings write operations (super_admin + admin_yayasan only) ──
         // Create, update, delete only for super_admin and admin_yayasan
         Route::post('meetings', [MeetingController::class, 'store']);
         Route::put('meetings/{meeting}', [MeetingController::class, 'update']);

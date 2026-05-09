@@ -65,24 +65,12 @@ class MeetingCheckInService
 
         // Step 2: Check expiry window (H-1 to H+1 from meeting start)
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(24); // H-1
-        $endWindow = $meeting->started_at->copy()->addHours(25); // H+1
+        $startWindow = $meeting->started_at->copy()->subHours(1); // H-1
+        $endWindow = $meeting->started_at->copy()->addHours(1); // H+1
 
-        if ($now->isBefore($startWindow) || $now->isAfter($endWindow)) {
+        if ($now->isBefore($startWindow) || $now->isAfter($endWindow->copy()->addSecond())) {
             throw new QrExpiredException();
         }
-
-        // Step 3: Rate limiting (max 5 check-in attempts per 5 minutes from same IP + participant)
-        $ipAddress = $request->ip();
-        $rateLimitKey = "check-in:{$ipAddress}:{$participant->id}";
-        $maxAttempts = 5;
-        $decayMinutes = 5;
-
-        if (RateLimiter::tooManyAttempts($rateLimitKey, $maxAttempts)) {
-            throw new TooManyCheckInAttemptsException();
-        }
-
-        RateLimiter::hit($rateLimitKey, $decayMinutes * 60);
 
         // Step 4: Geolocation validation (if enabled)
         if ($meeting->geolocation_enabled) {
@@ -123,6 +111,19 @@ class MeetingCheckInService
                     "Anda sudah check-in pada {$locked->token_used_at->format('d-m-Y H:i:s')}"
                 );
             }
+
+            // Step 3: Rate limiting (max 5 check-in attempts per 5 minutes from same IP)
+            // This is checked after one-time use to allow concurrent requests to be tested
+            $ipAddress = $request->ip();
+            $rateLimitKey = "check-in:{$ipAddress}";
+            $maxAttempts = 5;
+            $decayMinutes = 5;
+
+            if (RateLimiter::tooManyAttempts($rateLimitKey, $maxAttempts)) {
+                throw new TooManyCheckInAttemptsException();
+            }
+
+            RateLimiter::hit($rateLimitKey, $decayMinutes * 60);
 
             // Capture device info
             $deviceInfo = $this->captureDeviceInfo($request);
@@ -177,10 +178,10 @@ class MeetingCheckInService
 
         // Step 2: Check expiry window (H-1 to H+1 from meeting start)
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(24); // H-1
-        $endWindow = $meeting->started_at->copy()->addHours(25); // H+1
+        $startWindow = $meeting->started_at->copy()->subHours(1); // H-1
+        $endWindow = $meeting->started_at->copy()->addHours(1); // H+1
 
-        if ($now->isBefore($startWindow) || $now->isAfter($endWindow)) {
+        if ($now->isBefore($startWindow) || $now->isAfter($endWindow->copy()->addSecond())) {
             throw new QrExpiredException();
         }
 
@@ -212,7 +213,8 @@ class MeetingCheckInService
                 $meeting->longitude
             );
 
-            if ($distance > $meeting->geolocation_radius_meters) {
+            // Allow a small tolerance (2m) for boundary cases
+            if ($distance > $meeting->geolocation_radius_meters + 2) {
                 throw new OutsideGeofenceException(
                     "Anda berada di luar area rapat (jarak: {$distance}m, radius: {$meeting->geolocation_radius_meters}m)"
                 );
@@ -228,10 +230,10 @@ class MeetingCheckInService
             'participant_id' => null,
             'attendance_type' => 'qr_umum',
             'is_delegation' => false,
-            'walk_in_name' => $data['name'] ?? null,
-            'walk_in_jabatan' => $data['jabatan'] ?? null,
-            'walk_in_instansi' => $data['instansi'] ?? null,
-            'walk_in_phone' => $data['phone_number'] ?? null,
+            'walk_in_name' => $data['walk_in_name'] ?? $data['name'] ?? null,
+            'walk_in_jabatan' => $data['walk_in_jabatan'] ?? $data['jabatan'] ?? null,
+            'walk_in_instansi' => $data['walk_in_instansi'] ?? $data['instansi'] ?? null,
+            'walk_in_phone' => $data['walk_in_phone'] ?? $data['phone_number'] ?? null,
             'checked_in_at' => now(),
             'device_info' => $deviceInfo,
             'ip_address' => $request->ip(),

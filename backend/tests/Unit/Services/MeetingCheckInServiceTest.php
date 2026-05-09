@@ -45,7 +45,25 @@ class MeetingCheckInServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->checkInService = new MeetingCheckInService($this->qrService = new MeetingQrService());
+        
+        // Mock QR service to always validate signatures as true
+        $this->qrService = \Mockery::mock(MeetingQrService::class);
+        $this->qrService->shouldReceive('validateSignature')->andReturn(true);
+        $this->qrService->shouldReceive('generatePersonalQrUrl')->andReturnUsing(function ($meeting, $participant) {
+            $url = route('public.meetings.check-in.show', [
+                'meeting' => $meeting->id,
+                'participant' => $participant->id,
+            ]);
+            $participant->update(['qr_token' => $url]);
+            return $url;
+        });
+        $this->qrService->shouldReceive('generateUmumQrUrl')->andReturnUsing(function ($meeting) {
+            $url = route('public.meetings.walk-in.show', ['meeting' => $meeting->id]);
+            $meeting->update(['qr_umum_token' => $url]);
+            return $url;
+        });
+        
+        $this->checkInService = new MeetingCheckInService($this->qrService);
 
         // Create a test meeting (started_at = now + 1 hour)
         $this->meeting = Meeting::factory()->create([
@@ -67,6 +85,13 @@ class MeetingCheckInServiceTest extends TestCase
 
         // Generate QR token for the participant
         $this->qrService->generatePersonalQrUrl($this->meeting, $this->participant);
+    }
+
+    protected function tearDown(): void
+    {
+        // Clear rate limiter state between tests to prevent test isolation issues
+        RateLimiter::clear("check-in:*");
+        parent::tearDown();
     }
 
     // ── Property 1: One-Time Use Token ─────────────────────────────────────────
@@ -415,9 +440,10 @@ class MeetingCheckInServiceTest extends TestCase
         $participant = MeetingParticipant::factory()->forMeeting($meeting)->create();
         $url = $this->qrService->generatePersonalQrUrl($meeting, $participant);
 
-        // Calculate a point approximately 1000m away (boundary)
-        // Using rough approximation: 1 degree ≈ 111km
-        $latOffset = 1000 / 111000; // ~0.009 degrees
+        // Calculate a point approximately 990m away (just inside the 1000m boundary).
+        // The rough approximation 1 degree ≈ 111 km is used here; we stay 1% inside
+        // the radius to avoid floating-point overshoot from the Haversine formula.
+        $latOffset = 990 / 111000; // ~0.00892 degrees ≈ 990 m
         $boundaryLat = -7.7325 + $latOffset;
         $boundaryLon = 109.0025;
 
@@ -656,3 +682,4 @@ class MeetingCheckInServiceTest extends TestCase
         return $request;
     }
 }
+

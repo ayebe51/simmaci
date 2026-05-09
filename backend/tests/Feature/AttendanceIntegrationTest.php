@@ -487,8 +487,6 @@ class AttendanceIntegrationTest extends TestCase
      */
     public function test_geolocation_and_geofencing_workflow(): void
     {
-        $this->markTestSkipped('Geolocation columns not yet added. Will be implemented in Task 8.');
-        
         // Step 1: Configure geofencing settings via API
         $settingsResponse = $this->actingAs($this->operatorSchool1, 'sanctum')
             ->putJson('/api/attendance/settings', [
@@ -609,8 +607,6 @@ class AttendanceIntegrationTest extends TestCase
      */
     public function test_geolocation_disabled_stores_but_does_not_validate(): void
     {
-        $this->markTestSkipped('Geolocation columns not yet added. Will be implemented in Task 8.');
-        
         // Configure settings with geolocation disabled
         $this->actingAs($this->operatorSchool1, 'sanctum')
             ->putJson('/api/attendance/settings', [
@@ -651,8 +647,6 @@ class AttendanceIntegrationTest extends TestCase
      */
     public function test_attendance_without_gps_coordinates_works(): void
     {
-        $this->markTestSkipped('Geolocation columns not yet added. Will be implemented in Task 8.');
-        
         // Configure geofencing
         $this->actingAs($this->operatorSchool1, 'sanctum')
             ->putJson('/api/attendance/settings', [

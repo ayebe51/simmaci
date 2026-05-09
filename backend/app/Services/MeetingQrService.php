@@ -89,7 +89,7 @@ class MeetingQrService
         try {
             // Create a request from the URL for validation
             $request = \Illuminate\Http\Request::create($url, 'GET');
-            return URL::hasValidSignature($request, false);
+            return URL::hasValidSignature($request, true);
         } catch (\Exception $e) {
             return false;
         }

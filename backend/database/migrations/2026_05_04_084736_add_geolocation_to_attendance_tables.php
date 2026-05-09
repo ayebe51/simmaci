@@ -15,12 +15,14 @@ return new class extends Migration
         Schema::table('teacher_attendances', function (Blueprint $table) {
             $table->decimal('latitude', 10, 8)->nullable()->after('scanned_by');
             $table->decimal('longitude', 11, 8)->nullable()->after('latitude');
+            $table->boolean('location_verified')->nullable()->after('longitude');
         });
 
         // Add geolocation columns to student_attendance_logs
         Schema::table('student_attendance_logs', function (Blueprint $table) {
             $table->decimal('latitude', 10, 8)->nullable()->after('logs');
             $table->decimal('longitude', 11, 8)->nullable()->after('latitude');
+            $table->boolean('location_verified')->nullable()->after('longitude');
         });
 
         // Add geofencing settings to attendance_settings
@@ -38,11 +40,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('teacher_attendances', function (Blueprint $table) {
-            $table->dropColumn(['latitude', 'longitude']);
+            $table->dropColumn(['latitude', 'longitude', 'location_verified']);
         });
 
         Schema::table('student_attendance_logs', function (Blueprint $table) {
-            $table->dropColumn(['latitude', 'longitude']);
+            $table->dropColumn(['latitude', 'longitude', 'location_verified']);
         });
 
         Schema::table('attendance_settings', function (Blueprint $table) {

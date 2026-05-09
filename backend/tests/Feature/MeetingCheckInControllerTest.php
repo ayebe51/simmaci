@@ -33,8 +33,8 @@ class MeetingCheckInControllerTest extends TestCase
 
         $this->meeting = Meeting::factory()->create([
             'created_by' => $this->superAdmin->id,
-            'started_at' => now()->addDays(1),
-            'ended_at' => now()->addDays(1)->addHours(2),
+            'started_at' => now()->addMinutes(30), // Within H-1 to H+1 check-in window
+            'ended_at' => now()->addHours(3),
             'geolocation_enabled' => false,
         ]);
 
@@ -155,7 +155,10 @@ class MeetingCheckInControllerTest extends TestCase
         );
 
         $response->assertConflict();
-        $response->assertJsonFragment(['message' => 'Anda sudah check-in pada']);
+        $this->assertStringStartsWith(
+            'Anda sudah check-in pada',
+            $response->json('message')
+        );
     }
 
     /**

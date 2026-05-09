@@ -32,8 +32,8 @@ return new class extends Migration
             $table->string('jabatan', 255);
             $table->string('instansi', 255);
 
-            // Normalized phone number (format: 62xxxxxxxxx)
-            $table->string('phone_number', 20);
+            // Normalized phone number (format: 62xxxxxxxxx) — nullable for external participants
+            $table->string('phone_number', 20)->nullable();
 
             // Signed token for QR_Personal (full signed URL stored)
             $table->text('qr_token')->nullable();

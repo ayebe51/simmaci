@@ -57,9 +57,10 @@ class SchoolController extends Controller
             $query->where('id', $user->school_id);
         }
 
-        $schools = $query->select('id', 'nama', 'kecamatan')
+        $schools = $query->select('id', 'nama', 'kecamatan', 'jenjang')
+            ->orderBy('jenjang')
             ->orderBy('nama')
-            ->limit(50)
+            ->limit(500)
             ->get();
 
         return response()->json($schools);

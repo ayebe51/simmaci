@@ -28,6 +28,8 @@ import {
   Bell,
   LayoutTemplate,
   MessageSquare,
+  CalendarDays,
+  CalendarPlus,
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -136,6 +138,13 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Template Pesan", href: "/dashboard/wa-blast/templates", icon: LayoutTemplate },
         { label: "Konfigurasi Go-WA", href: "/dashboard/wa-blast/config", icon: Settings, superAdminOnly: true },
       ]
+    },
+    {
+      title: "Rapat Yayasan",
+      items: [
+        { label: "Daftar Rapat", href: "/dashboard/meetings", icon: CalendarDays },
+        { label: "Buat Rapat Baru", href: "/dashboard/meetings/create", icon: CalendarPlus, adminOnly: true },
+      ]
     }
   ]
 
@@ -185,6 +194,11 @@ export default function AppShell({ children }: AppShellProps) {
                   // WA Blast feature: only super_admin and admin_yayasan
                   const waBlastLabels = ["Daftar Blast", "Buat Blast Baru", "Template Pesan"];
                   if (waBlastLabels.includes(item.label)) {
+                      return adminRoles.includes(userRole);
+                  }
+
+                  // Rapat Yayasan: semua role bisa lihat daftar, hanya admin yang bisa buat
+                  if (item.label === "Buat Rapat Baru") {
                       return adminRoles.includes(userRole);
                   }
 

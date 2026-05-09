@@ -27,8 +27,8 @@ return new class extends Migration
             $table->decimal('longitude', 11, 8)->nullable();
             $table->integer('geolocation_radius_meters')->nullable();
 
-            // QR tokens
-            $table->string('qr_umum_token', 255)->nullable()->unique('idx_qr_umum_token_unique');
+            // QR tokens — stored as TEXT because signed URLs can exceed 255 chars
+            $table->text('qr_umum_token')->nullable();
 
             // WA Blast references
             $table->foreignId('invitation_blast_id')

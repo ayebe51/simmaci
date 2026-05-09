@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -77,6 +77,7 @@ type FormValues = z.infer<typeof schema>;
 export default function MeetingCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreateMeeting();
+  const [schoolSearch, setSchoolSearch] = useState('');
 
   const { data: schools = [], isLoading: schoolsLoading } = useQuery({
     queryKey: ['schools-autocomplete'],
@@ -177,7 +178,9 @@ export default function MeetingCreatePage() {
 
             <div>
               <Label>Sekolah / Lembaga *</Label>
-              <p className="text-xs text-slate-500 mb-2">Pilih jenjang sekolah yang mengikuti rapat ini</p>
+              <p className="text-xs text-slate-500 mb-2">
+                Pilih jenjang untuk memilih semua sekolah, lalu uncheck yang tidak diundang
+              </p>
               {schoolsLoading ? (
                 <p className="text-xs text-slate-400">Memuat daftar sekolah...</p>
               ) : (
@@ -188,12 +191,12 @@ export default function MeetingCreatePage() {
                     const byJenjang = (j: string) =>
                       schools.filter((s) => s.jenjang === j).map((s) => s.id);
 
-                    const miIds   = byJenjang('MI');
-                    const mtsIds  = byJenjang('MTs');
-                    const maIds   = byJenjang('MA');
-                    const allIds  = schools.map((s) => s.id);
+                    const miIds  = byJenjang('MI');
+                    const mtsIds = byJenjang('MTs');
+                    const maIds  = byJenjang('MA');
+                    const allIds = schools.map((s) => s.id);
 
-                    // Determine which option is currently active
+                    // Which tile is "fully active" (all its schools selected, nothing outside)
                     const isAll = allIds.length > 0 && allIds.every((id) => field.value.includes(id));
                     const isMi  = miIds.length > 0 && miIds.every((id) => field.value.includes(id))
                                   && field.value.every((id) => miIds.includes(id));
@@ -201,46 +204,144 @@ export default function MeetingCreatePage() {
                                   && field.value.every((id) => mtsIds.includes(id));
                     const isMa  = maIds.length > 0 && maIds.every((id) => field.value.includes(id))
                                   && field.value.every((id) => maIds.includes(id));
+                    const activeValue = isAll ? 'all' : isMi ? 'MI' : isMts ? 'MTs' : isMa ? 'MA' : 'custom';
 
-                    const activeValue = isAll ? 'all' : isMi ? 'MI' : isMts ? 'MTs' : isMa ? 'MA' : '';
+                    const tiles = [
+                      { value: 'all', label: 'Semua',  count: allIds.length,  ids: allIds,  numColor: 'text-slate-700' },
+                      { value: 'MI',  label: 'MI',     count: miIds.length,   ids: miIds,   numColor: 'text-blue-700'  },
+                      { value: 'MTs', label: 'MTs',    count: mtsIds.length,  ids: mtsIds,  numColor: 'text-emerald-700' },
+                      { value: 'MA',  label: 'MA',     count: maIds.length,   ids: maIds,   numColor: 'text-purple-700' },
+                    ].filter((t) => t.count > 0);
 
-                    const options = [
-                      { value: 'all', label: `Semua Sekolah`, count: allIds.length, ids: allIds, color: 'text-slate-700' },
-                      { value: 'MI',  label: `MI saja`,       count: miIds.length,  ids: miIds,  color: 'text-blue-700' },
-                      { value: 'MTs', label: `MTs saja`,      count: mtsIds.length, ids: mtsIds, color: 'text-emerald-700' },
-                      { value: 'MA',  label: `MA saja`,       count: maIds.length,  ids: maIds,  color: 'text-purple-700' },
-                    ].filter((o) => o.count > 0);
+                    const jenjangColors: Record<string, string> = {
+                      MI:  'bg-blue-50 text-blue-700 border-blue-200',
+                      MTs: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                      MA:  'bg-purple-50 text-purple-700 border-purple-200',
+                    };
+
+                    // Schools visible in the list (filtered by search)
+                    const visibleSchools = schoolSearch.trim()
+                      ? schools.filter((s) =>
+                          s.nama.toLowerCase().includes(schoolSearch.toLowerCase())
+                        )
+                      : schools;
 
                     return (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
+                        {/* Quick-select tiles */}
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                          {options.map((opt) => {
-                            const active = activeValue === opt.value;
+                          {tiles.map((tile) => {
+                            const active = activeValue === tile.value;
                             return (
                               <button
-                                key={opt.value}
+                                key={tile.value}
                                 type="button"
-                                onClick={() => field.onChange(opt.ids)}
+                                onClick={() => field.onChange(tile.ids)}
                                 className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-all ${
                                   active
-                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                                    ? 'border-emerald-500 bg-emerald-50 shadow-sm'
                                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                                 }`}
                               >
-                                <span className={`text-xl font-bold ${active ? 'text-emerald-600' : opt.color}`}>
-                                  {opt.count}
+                                <span className={`text-xl font-bold ${active ? 'text-emerald-600' : tile.numColor}`}>
+                                  {tile.count}
                                 </span>
-                                <span className="text-xs">{opt.label}</span>
+                                <span className={`text-xs ${active ? 'text-emerald-700' : ''}`}>{tile.label}</span>
                               </button>
                             );
                           })}
                         </div>
 
-                        {field.value.length > 0 && (
-                          <p className="text-xs text-emerald-600 font-medium">
-                            ✓ {field.value.length} sekolah dipilih
-                          </p>
-                        )}
+                        {/* Fine-tune list — always visible once schools are loaded */}
+                        <div className="border rounded-lg bg-white overflow-hidden">
+                          {/* List header */}
+                          <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b">
+                            <span className="text-xs font-medium text-slate-600">
+                              {field.value.length > 0
+                                ? `${field.value.length} dari ${schools.length} sekolah dipilih`
+                                : 'Belum ada sekolah dipilih'}
+                            </span>
+                            {field.value.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => field.onChange([])}
+                                className="text-xs text-red-500 hover:text-red-700"
+                              >
+                                Hapus semua
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Search */}
+                          <div className="px-3 py-2 border-b">
+                            <div className="relative">
+                              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                              <input
+                                type="text"
+                                value={schoolSearch}
+                                onChange={(e) => setSchoolSearch(e.target.value)}
+                                placeholder="Cari nama sekolah..."
+                                className="w-full pl-8 pr-8 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                              />
+                              {schoolSearch && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSchoolSearch('')}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Checkbox list */}
+                          <div className="max-h-52 overflow-y-auto divide-y divide-slate-50">
+                            {visibleSchools.length === 0 ? (
+                              <p className="text-xs text-slate-400 text-center py-4">
+                                Tidak ada sekolah ditemukan
+                              </p>
+                            ) : (
+                              visibleSchools.map((school) => {
+                                const checked = field.value.includes(school.id);
+                                return (
+                                  <label
+                                    key={school.id}
+                                    className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors text-sm ${
+                                      checked ? 'bg-emerald-50' : 'hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="rounded accent-emerald-600 shrink-0"
+                                      checked={checked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          field.onChange([...field.value, school.id]);
+                                        } else {
+                                          field.onChange(
+                                            field.value.filter((id) => id !== school.id)
+                                          );
+                                        }
+                                      }}
+                                    />
+                                    <span className="flex-1 truncate">{school.nama}</span>
+                                    {school.jenjang && (
+                                      <span
+                                        className={`shrink-0 text-xs px-1.5 py-0.5 rounded border font-medium ${
+                                          jenjangColors[school.jenjang] ??
+                                          'bg-slate-100 text-slate-600 border-slate-200'
+                                        }`}
+                                      >
+                                        {school.jenjang}
+                                      </span>
+                                    )}
+                                  </label>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   }}

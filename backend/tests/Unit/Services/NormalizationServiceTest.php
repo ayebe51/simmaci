@@ -814,6 +814,92 @@ class NormalizationServiceTest extends TestCase
         }
     }
 
+    /**
+     * @test
+     * @group degree-recognition
+     */
+    public function it_normalizes_shi_degree_correctly(): void
+    {
+        // S.H.I (Sarjana Hukum Islam)
+        $testCases = [
+            'ahmad shi'         => 'AHMAD, S.H.I',   // raw abbreviation no dots
+            'Ahmad S.H.I'       => 'AHMAD, S.H.I',   // already formatted
+            'siti s.h.i m.h.'   => 'SITI, S.H.I, M.H.',  // combined with M.H.
+            'AHMADSHI'          => 'AHMAD, S.H.I',   // attached to name
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Failed for S.H.I input: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group degree-recognition
+     */
+    public function it_normalizes_spdsi_degree_correctly(): void
+    {
+        // S.Pd.Si. (Sarjana Pendidikan Sains)
+        $testCases = [
+            'ahmad spdsi'        => 'AHMAD, S.Pd.Si.',   // raw abbreviation no dots
+            'Ahmad S.Pd.Si.'     => 'AHMAD, S.Pd.Si.',   // already formatted
+            'siti s.pd.si. m.pd' => 'SITI, S.Pd.Si., M.Pd.',  // combined with M.Pd.
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Failed for S.Pd.Si. input: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group degree-recognition
+     */
+    public function it_normalizes_spdsdi_degree_correctly(): void
+    {
+        // S.Pd.SD.I (Sarjana Pendidikan Sekolah Dasar Islam)
+        $testCases = [
+            'ahmad spdsdi'         => 'AHMAD, S.Pd.SD.I',   // raw abbreviation no dots
+            'Ahmad S.Pd.SD.I'      => 'AHMAD, S.Pd.SD.I',   // already formatted
+            'siti s.pd.sd.i m.pd'  => 'SITI, S.Pd.SD.I, M.Pd.',  // combined with M.Pd.
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Failed for S.Pd.SD.I input: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group degree-recognition
+     */
+    public function it_does_not_confuse_shi_with_sh(): void
+    {
+        // S.H.I must not be confused with S.H. — longer key wins
+        $result = $this->service->normalizeTeacherName('Ahmad S.H.I');
+        $this->assertEquals('AHMAD, S.H.I', $result, 'S.H.I should not be truncated to S.H.');
+
+        $result = $this->service->normalizeTeacherName('Ahmad S.H.');
+        $this->assertEquals('AHMAD, S.H.', $result, 'S.H. should remain S.H. when no I follows');
+    }
+
+    /**
+     * @test
+     * @group degree-recognition
+     */
+    public function it_does_not_confuse_spdsdi_with_spdsd(): void
+    {
+        // S.Pd.SD.I must not be confused with S.Pd.SD. — longer key wins
+        $result = $this->service->normalizeTeacherName('Ahmad S.Pd.SD.I');
+        $this->assertEquals('AHMAD, S.Pd.SD.I', $result, 'S.Pd.SD.I should not be truncated to S.Pd.SD.');
+
+        $result = $this->service->normalizeTeacherName('Ahmad S.Pd.SD.');
+        $this->assertEquals('AHMAD, S.Pd.SD.', $result, 'S.Pd.SD. should remain S.Pd.SD. when no I follows');
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // parseIndonesianDate
     // ─────────────────────────────────────────────────────────────────────────

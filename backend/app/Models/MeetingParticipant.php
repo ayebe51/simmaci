@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name Snapshot of participant name
  * @property string $jabatan Snapshot of participant position/title
  * @property string $instansi Snapshot of participant institution/school
- * @property string $phone_number Normalized phone number (format: 62xxxxxxxxx)
+ * @property string|null $phone_number Normalized phone number (format: 62xxxxxxxxx) — nullable for external participants
  * @property string|null $qr_token Signed token for QR_Personal (full signed URL)
  * @property bool $is_token_used One-time use tracking flag
  * @property \Illuminate\Support\Carbon|null $token_used_at Timestamp when token was used

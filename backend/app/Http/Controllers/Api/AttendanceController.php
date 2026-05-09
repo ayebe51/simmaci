@@ -74,7 +74,13 @@ class AttendanceController extends Controller
                         'max_radius' => $settings->geofence_radius_meters,
                     ], 422);
                 }
+            } else {
+                // Geolocation disabled or not configured — store coordinates but mark as not verified
+                $data['location_verified'] = false;
             }
+        } else {
+            // No GPS coordinates provided — mark as not verified
+            $data['location_verified'] = false;
         }
 
         $attendance = TeacherAttendance::updateOrCreate(
@@ -88,8 +94,6 @@ class AttendanceController extends Controller
 
         return response()->json($attendance, 201);
     }
-
-    // ── Student Attendance (Aggregate Logs) ──
 
     public function studentLogIndex(Request $request): JsonResponse
     {
@@ -170,6 +174,8 @@ class AttendanceController extends Controller
         $request->validate([
             'code' => 'required|string',
             'type' => 'required|in:teacher,student',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         $schoolId = $request->user()->school_id;
@@ -185,18 +191,40 @@ class AttendanceController extends Controller
                 return response()->json(['error' => 'Guru tidak ditemukan'], 404);
             }
 
+            $attendanceData = [
+                'school_id' => $schoolId,
+                'jam_masuk' => $time,
+                'status' => 'Hadir',
+                'scanned_by' => $request->user()->name,
+            ];
+
+            // Store GPS coordinates if provided
+            if ($request->filled('latitude') && $request->filled('longitude')) {
+                $attendanceData['latitude'] = $request->latitude;
+                $attendanceData['longitude'] = $request->longitude;
+
+                // Check geofencing if enabled
+                $settings = AttendanceSetting::where('school_id', $schoolId)->first();
+                if ($settings && $settings->geolocation_enabled && $settings->school_latitude && $settings->school_longitude) {
+                    $distance = $this->calculateDistance(
+                        $request->latitude,
+                        $request->longitude,
+                        $settings->school_latitude,
+                        $settings->school_longitude
+                    );
+                    $attendanceData['location_verified'] = $distance <= $settings->geofence_radius_meters;
+                } else {
+                    $attendanceData['location_verified'] = true;
+                }
+            }
+
             $attendance = TeacherAttendance::updateOrCreate(
                 [
                     'teacher_id' => $teacher->id,
                     'tanggal' => $today,
                     'school_id' => $schoolId,
                 ],
-                [
-                    'school_id' => $schoolId,
-                    'jam_masuk' => $time,
-                    'status' => 'Hadir',
-                    'scanned_by' => $request->user()->name,
-                ]
+                $attendanceData
             );
 
             return response()->json([
@@ -333,6 +361,10 @@ class AttendanceController extends Controller
             'qr_scan_aktif' => 'nullable|boolean',
             'gowa_url' => 'nullable|string',
             'gowa_device_id' => 'nullable|string',
+            'geolocation_enabled' => 'nullable|boolean',
+            'school_latitude' => 'nullable|numeric|between:-90,90',
+            'school_longitude' => 'nullable|numeric|between:-180,180',
+            'geofence_radius_meters' => 'nullable|integer|min:10|max:10000',
         ]);
 
         $settings = AttendanceSetting::updateOrCreate(

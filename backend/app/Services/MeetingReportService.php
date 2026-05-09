@@ -4,8 +4,12 @@ namespace App\Services;
 
 use App\Models\Meeting;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Inches;
 use PhpOffice\PhpWord\Shared\Pt;
 use PhpOffice\PhpWord\Shared\RGBColor;
@@ -14,24 +18,28 @@ use PhpOffice\PhpWord\Shared\RGBColor;
  * MeetingReportService
  *
  * Generates PDF and Excel reports for meeting attendance.
- * Uses PHPWord for PDF generation and Maatwebsite Excel for Excel export.
+ * Uses PHPWord (with DomPDF renderer) for PDF generation and Maatwebsite Excel for Excel export.
  */
 class MeetingReportService
 {
     /**
      * Generate PDF report for meeting attendance.
      *
-     * Creates a DOCX file with:
+     * Creates a PDF file with:
      * - Header: Logo + "DAFTAR HADIR RAPAT" + meeting details
      * - Stats table: Total/Hadir/Tidak Hadir/Delegasi/Walk-in
      * - Attendance table: No | Nama | Jabatan | Instansi | Status | Waktu Check-in | Verifikasi | Keterangan
      * - Footer: Tanggal cetak + nama admin
      *
      * @param Meeting $meeting
-     * @return string Path to generated PDF file
+     * @return string Binary PDF content
      */
     public function generatePdf(Meeting $meeting): string
     {
+        // Configure PHPWord to use DomPDF renderer
+        Settings::setPdfRendererName(Settings::PDF_RENDERER_DOMPDF);
+        Settings::setPdfRendererPath(base_path('vendor/dompdf/dompdf'));
+
         $phpWord = new PhpWord();
 
         // Set default font
@@ -97,18 +105,21 @@ class MeetingReportService
         $section->addText("Tanggal cetak: " . now()->format('d-m-Y H:i:s'), $footerStyle);
         $section->addText("Dicetak oleh: " . auth()->user()?->name ?? 'Admin', $footerStyle);
 
-        // Save file
-        $filename = "meetings/{$meeting->id}_" . now()->timestamp . '.docx';
-        $path = storage_path("app/reports/{$filename}");
+        // Save as PDF to a temporary file and return binary content
+        $tempPath = tempnam(sys_get_temp_dir(), 'meeting_report_') . '.pdf';
 
-        // Ensure directory exists
-        if (!file_exists(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
+        try {
+            $writer = IOFactory::createWriter($phpWord, 'PDF');
+            $writer->save($tempPath);
+
+            $content = file_get_contents($tempPath);
+        } finally {
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
         }
 
-        $phpWord->save($path);
-
-        return $path;
+        return $content;
     }
 
     /**
@@ -118,21 +129,18 @@ class MeetingReportService
      * - Sheet "Daftar Hadir" with columns: No | Nama | Jabatan | Instansi | Status | Waktu Check-in | Verifikasi | Keterangan
      *
      * @param Meeting $meeting
-     * @return string Path to generated Excel file
+     * @return string Binary Excel content
      */
     public function generateExcel(Meeting $meeting): string
     {
-        $filename = "meetings/{$meeting->id}_" . now()->timestamp . '.xlsx';
-        $path = storage_path("app/reports/{$filename}");
-
-        // Ensure directory exists
-        if (!file_exists(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
-        }
-
-        // Create Excel export
-        $export = new class($meeting) {
+        // Create Excel export using proper Maatwebsite Excel interfaces
+        $export = new class($meeting) implements FromCollection, WithHeadings {
             public function __construct(private Meeting $meeting) {}
+
+            public function headings(): array
+            {
+                return ['No', 'Nama', 'Jabatan', 'Instansi', 'Status', 'Waktu Check-in', 'Verifikasi', 'Keterangan'];
+            }
 
             public function collection()
             {
@@ -147,14 +155,14 @@ class MeetingReportService
                     $notes = $this->getNotes($participant, $attendance);
 
                     $data[] = [
-                        'No' => $no++,
-                        'Nama' => $participant->name,
-                        'Jabatan' => $participant->jabatan,
-                        'Instansi' => $participant->instansi,
-                        'Status' => $status,
-                        'Waktu Check-in' => $checkedInAt,
-                        'Verifikasi' => $verification,
-                        'Keterangan' => $notes,
+                        $no++,
+                        $participant->name,
+                        $participant->jabatan,
+                        $participant->instansi,
+                        $status,
+                        $checkedInAt,
+                        $verification,
+                        $notes,
                     ];
                 }
 
@@ -166,14 +174,14 @@ class MeetingReportService
 
                 foreach ($walkIns as $walkIn) {
                     $data[] = [
-                        'No' => $no++,
-                        'Nama' => $walkIn->walk_in_name,
-                        'Jabatan' => $walkIn->walk_in_jabatan,
-                        'Instansi' => $walkIn->walk_in_instansi,
-                        'Status' => 'Hadir (Walk-in)',
-                        'Waktu Check-in' => $walkIn->checked_in_at->format('d-m-Y H:i:s'),
-                        'Verifikasi' => '✓ Terverifikasi via QR Umum pada ' . $walkIn->checked_in_at->format('d-m-Y H:i:s'),
-                        'Keterangan' => 'Peserta walk-in',
+                        $no++,
+                        $walkIn->walk_in_name,
+                        $walkIn->walk_in_jabatan,
+                        $walkIn->walk_in_instansi,
+                        'Hadir (Walk-in)',
+                        $walkIn->checked_in_at->format('d-m-Y H:i:s'),
+                        '✓ Terverifikasi via QR Umum pada ' . $walkIn->checked_in_at->format('d-m-Y H:i:s'),
+                        'Peserta walk-in',
                     ];
                 }
 
@@ -200,7 +208,6 @@ class MeetingReportService
                 }
 
                 if ($attendance->attendance_type === 'qr_personal') {
-                    $deviceInfo = $attendance->device_info ? json_encode($attendance->device_info) : 'N/A';
                     return '✓ Terverifikasi via QR Personal pada ' . $attendance->checked_in_at->format('d-m-Y H:i:s');
                 }
 
@@ -227,9 +234,8 @@ class MeetingReportService
             }
         };
 
-        Excel::store($export, $path, 'local');
-
-        return $path;
+        // Return binary Excel content directly
+        return Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX);
     }
 
     /**

@@ -107,11 +107,6 @@ class MeetingCheckInController extends Controller
     public function checkIn(CheckInRequest $request, Meeting $meeting): JsonResponse
     {
         try {
-            // Validate signed URL signature
-            if (!$request->hasValidSignature()) {
-                return $this->errorResponse('QR Code tidak valid atau telah dimodifikasi.', null, 403);
-            }
-
             $participantId = $request->query('participant');
             if (!$participantId) {
                 return $this->errorResponse('Parameter peserta tidak ditemukan.', null, 400);
@@ -122,12 +117,12 @@ class MeetingCheckInController extends Controller
                 return $this->errorResponse('Peserta tidak ditemukan.', null, 404);
             }
 
-            // Process check-in with all validations
+            // Process check-in with all validations (signature validated inside service)
             $attendance = $this->checkInService->processCheckIn(
                 $meeting,
                 $participant,
-                $request->validated(),
-                $request
+                $request,
+                $request->validated()
             );
 
             return $this->successResponse([
@@ -143,7 +138,7 @@ class MeetingCheckInController extends Controller
             return $this->errorResponse('QR Code sudah tidak berlaku.', null, 410);
         } catch (AlreadyCheckedInException $e) {
             return $this->errorResponse(
-                "Anda sudah check-in pada {$e->getMessage()}",
+                $e->getMessage(),
                 null,
                 409
             );
@@ -180,16 +175,11 @@ class MeetingCheckInController extends Controller
     public function walkIn(WalkInCheckInRequest $request, Meeting $meeting): JsonResponse
     {
         try {
-            // Validate signed URL signature
-            if (!$request->hasValidSignature()) {
-                return $this->errorResponse('QR Code tidak valid atau telah dimodifikasi.', null, 403);
-            }
-
-            // Process walk-in check-in
+            // Process walk-in check-in (signature validated inside service)
             $attendance = $this->checkInService->processWalkIn(
                 $meeting,
-                $request->validated(),
-                $request
+                $request,
+                $request->validated()
             );
 
             return $this->successResponse([

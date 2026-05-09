@@ -288,9 +288,9 @@ export default function VerifySkPage() {
           {/* Footer */}
           <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center text-center">
             <img
-              src="/logo-maarif-hijau.png"
+              src="/logo-icon.png"
               alt="Logo LP Ma'arif NU Cilacap"
-              className="h-14 w-auto mb-4 grayscale opacity-30"
+              className="h-14 w-auto mb-4 grayscale invert opacity-20"
             />
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
               SIMMACI CLOUD VERIFICATION

@@ -32,7 +32,9 @@ class NormalizationService
 
         // ── Sarjana (S1) ──────────────────────────────────────────────────
         'SPDI'      => 'S.Pd.I',
+        'SPDSDI'    => 'S.Pd.SD.I',
         'SPDSD'     => 'S.Pd.SD.',
+        'SPDSI'     => 'S.Pd.Si.',
         'SPD'       => 'S.Pd.',
         'SSOSI'     => 'S.Sos.I',
         'SSOS'      => 'S.Sos.',
@@ -43,6 +45,7 @@ class NormalizationService
         'SSY'       => 'S.Sy.',
         'SAG'       => 'S.Ag.',
         'SH'        => 'S.H.',
+        'SHI'       => 'S.H.I',
         'SEI'       => 'S.E.I',
         'SE'        => 'S.E.',
         'SSI'       => 'S.Si.',

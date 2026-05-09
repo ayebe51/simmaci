@@ -350,15 +350,18 @@ class SchoolApiTest extends TestCase
 
         $schools = $response->json();
 
-        // Should be limited to 50 results
-        $this->assertLessThanOrEqual(50, count($schools));
+        // Limit raised to 500 to support full school list for meeting/blast selection
+        $this->assertLessThanOrEqual(500, count($schools));
 
-        // Should be ordered by nama
+        // Should be ordered by jenjang then nama
         $schoolNames = collect($schools)->pluck('nama')->toArray();
-        $sortedNames = $schoolNames;
-        sort($sortedNames);
+        $sortedNames = collect($schools)
+            ->sortBy([['jenjang', 'asc'], ['nama', 'asc']])
+            ->pluck('nama')
+            ->values()
+            ->toArray();
 
-        $this->assertEquals($sortedNames, $schoolNames, 'Schools should be ordered by nama');
+        $this->assertEquals($sortedNames, $schoolNames, 'Schools should be ordered by jenjang then nama');
     }
 
     /**

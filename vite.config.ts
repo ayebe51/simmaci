@@ -52,7 +52,7 @@ export default defineConfig({
         categories: ['education', 'productivity'],
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
         clientsClaim: true,
         // skipWaiting intentionally omitted — with registerType: 'prompt', the new SW
         // must wait in the "installed" state until the user confirms the reload.
@@ -90,9 +90,40 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select', '@radix-ui/react-tabs'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-ui': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-label',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-scroll-area',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge',
+            'sonner',
+            'cmdk',
+            'lucide-react',
+          ],
           'vendor-charts': ['recharts'],
           'vendor-motion': ['framer-motion'],
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'vendor-docx': ['docxtemplater', 'pizzip', 'mammoth'],
+          'vendor-qr': ['html5-qrcode', 'qrcode.react', 'react-qr-code'],
+          'vendor-sentry': ['@sentry/react'],
+          'vendor-date': ['date-fns'],
+          'vendor-excel': ['xlsx'],
         },
       },
     },

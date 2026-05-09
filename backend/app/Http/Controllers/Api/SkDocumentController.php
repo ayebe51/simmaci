@@ -162,6 +162,18 @@ class SkDocumentController extends Controller
                 'ijazah_url' => 'nullable|string|max:500',
             ]);
 
+            // Operators are not allowed to approve or reject SK documents
+            $newStatus = $request->input('status');
+            if (
+                $newStatus !== null
+                && in_array($newStatus, ['approved', 'rejected'])
+                && $request->user()->role === 'operator'
+            ) {
+                return response()->json([
+                    'message' => 'Anda tidak memiliki izin untuk menyetujui atau menolak pengajuan SK.',
+                ], 403);
+            }
+
             $oldStatus = $skDocument->status;
 
             $skDocument->update($request->only([
@@ -309,6 +321,13 @@ class SkDocumentController extends Controller
      */
     public function batchUpdateStatus(Request $request): JsonResponse
     {
+        // Only super_admin and admin_yayasan can approve or reject SK documents
+        if (! in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki izin untuk menyetujui atau menolak pengajuan SK.',
+            ], 403);
+        }
+
         $request->validate([
             'ids' => 'required|array',
             'ids.*' => 'exists:sk_documents,id',

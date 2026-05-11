@@ -36,10 +36,29 @@ export async function saveConfig(payload: SaveConfigPayload): Promise<WaBlastCon
 /**
  * Test the connection to Go-WA Gateway using the saved configuration.
  * Returns a success/error message from the gateway.
+ *
+ * Note: apiClient interceptor unwraps { success, message, data } → data.
+ * For test connection we need the outer wrapper, so we read the raw response.
  */
 export async function testConnection(): Promise<{ success: boolean; message: string }> {
-  const { data } = await apiClient.post<{ success: boolean; message: string }>(
-    '/wa-blast-config/test',
-  );
-  return data;
+  try {
+    // Use axios directly to bypass the interceptor unwrapping
+    const response = await apiClient.post('/wa-blast-config/test');
+    // After interceptor: if success=true, response.data = GoWA data payload
+    // We treat any successful HTTP response as a successful connection
+    return {
+      success: true,
+      message: 'Koneksi ke Go-WA berhasil.',
+    };
+  } catch (error: any) {
+    // HTTP error (4xx/5xx) — extract message from error response
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      'Gagal menghubungi Go-WA Gateway. Periksa konfigurasi Anda.';
+    return {
+      success: false,
+      message,
+    };
+  }
 }

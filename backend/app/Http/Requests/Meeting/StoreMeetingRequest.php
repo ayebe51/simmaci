@@ -19,8 +19,21 @@ class StoreMeetingRequest extends FormRequest
             'title' => 'required|string|max:255',
             'agenda' => 'nullable|string|max:1000',
             'location' => 'required|string|max:500',
-            'started_at' => 'required|date_format:Y-m-d\TH:i:sP|after:now',
-            'ended_at' => 'required|date_format:Y-m-d\TH:i:sP|after:started_at',
+            'started_at' => ['required', 'date_format:Y-m-d\TH:i:sP'],
+            'ended_at' => ['required', 'date_format:Y-m-d\TH:i:sP', function ($attribute, $value, $fail) {
+                $started = $this->input('started_at');
+                if ($started && $value) {
+                    try {
+                        $startedCarbon = \Carbon\Carbon::parse($started);
+                        $endedCarbon   = \Carbon\Carbon::parse($value);
+                        if ($endedCarbon->lte($startedCarbon)) {
+                            $fail('Waktu selesai rapat harus setelah waktu mulai.');
+                        }
+                    } catch (\Exception $e) {
+                        // Let date_format rule handle invalid formats
+                    }
+                }
+            }],
             'school_ids' => 'nullable|array',
             'school_ids.*' => 'integer|exists:schools,id',
             'geolocation_enabled' => 'required|boolean',

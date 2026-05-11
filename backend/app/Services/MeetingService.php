@@ -334,6 +334,8 @@ class MeetingService
 
     /**
      * Validate meeting date/time constraints.
+     * Note: ended_at > started_at is already validated in StoreMeetingRequest.
+     * This method is kept for programmatic calls (e.g. from tests).
      *
      * @param string|Carbon $startedAt
      * @param string|Carbon $endedAt

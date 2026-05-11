@@ -107,6 +107,7 @@ export function WaBlastConfigPage() {
                     api_url: config.api_url,
                     api_token: config.api_token_encrypted === "***" ? "" : config.api_token_encrypted,
                     sender_number: config.sender_number,
+                    device_id: config.device_id ?? "",
                     max_recipients_per_session: config.max_recipients_per_session,
                     max_daily_messages: config.max_daily_messages,
                   }

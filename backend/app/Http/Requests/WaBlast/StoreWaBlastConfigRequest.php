@@ -17,6 +17,7 @@ class StoreWaBlastConfigRequest extends FormRequest
             'api_url'                    => 'required|url|max:500',
             'api_token'                  => 'required|string',
             'sender_number'              => ['required', 'string', 'regex:/^62[0-9]{9,13}$/'],
+            'device_id'                  => 'nullable|string|max:255',
             'max_recipients_per_session' => 'required|integer|min:1|max:1000',
             'max_daily_messages'         => 'required|integer|min:1|max:5000',
         ];

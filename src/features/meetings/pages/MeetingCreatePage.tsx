@@ -70,7 +70,16 @@ const schema = z.object({
   reminder_timing: z.enum(['H-1', '2_hours', 'custom']).optional(),
   reminder_custom_at: z.string().optional(),
   participants: z.array(participantSchema).min(1, 'Minimal 1 peserta'),
-});
+}).refine(
+  (data) => {
+    if (!data.started_at || !data.ended_at) return true;
+    return new Date(data.ended_at) > new Date(data.started_at);
+  },
+  {
+    message: 'Waktu selesai harus setelah waktu mulai',
+    path: ['ended_at'],
+  }
+);
 
 type FormValues = z.infer<typeof schema>;
 
@@ -133,6 +142,11 @@ export default function MeetingCreatePage() {
 
     createMutation.mutate(payload, {
       onSuccess: (data) => navigate(`/dashboard/meetings/${data.id}`),
+      onError: (error: any) => {
+        const msg = error?.response?.data?.message || error?.response?.data?.errors?.ended_at?.[0] || 'Gagal membuat rapat';
+        // errors will be shown via toast from the hook
+        console.error('Create meeting error:', msg);
+      },
     });
   };
 

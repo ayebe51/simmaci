@@ -22,11 +22,18 @@ export async function getBlasts(
   params?: BlastListParams,
 ): Promise<PaginatedResponse<WaBlast>> {
   const { data } = await apiClient.get<any>('/wa-blasts', { params });
-  // Handle both direct response and nested data structure
-  if (data && typeof data === 'object' && 'data' in data) {
-    return data;
+  // apiClient interceptor unwraps { success, message, data: { items, meta } } → data = { items, meta }
+  // Backend paginatedResponse returns { items: [...], meta: { currentPage, lastPage, perPage, total } }
+  if (data && data.items !== undefined) {
+    return {
+      data: data.items,
+      current_page: data.meta?.currentPage ?? 1,
+      last_page: data.meta?.lastPage ?? 1,
+      per_page: data.meta?.perPage ?? 15,
+      total: data.meta?.total ?? 0,
+    };
   }
-  // If response is already the paginated structure, return as-is
+  // Fallback for unexpected structure
   return data || { data: [], total: 0, per_page: 15, current_page: 1, last_page: 1 };
 }
 

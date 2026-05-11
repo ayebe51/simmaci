@@ -248,7 +248,7 @@ export default function MeetingCreatePage() {
 
                     return (
                       <div className="space-y-3">
-                        {/* Quick-select tiles */}
+                        {/* Quick-select tiles — click to toggle/merge, not replace */}
                         <div className="flex flex-wrap gap-2">
                           {tiles.map((tile) => {
                             const active = tile.value === 'all' ? isAllActive : isJenjangActive(tile.value);
@@ -256,7 +256,23 @@ export default function MeetingCreatePage() {
                               <button
                                 key={tile.value}
                                 type="button"
-                                onClick={() => field.onChange(tile.ids)}
+                                onClick={() => {
+                                  if (tile.value === 'all') {
+                                    // Semua: toggle all
+                                    field.onChange(isAllActive ? [] : allIds);
+                                  } else {
+                                    const jIds = tile.ids;
+                                    const allSelected = jIds.every((id) => field.value.includes(id));
+                                    if (allSelected) {
+                                      // Deselect this jenjang
+                                      field.onChange(field.value.filter((id) => !jIds.includes(id)));
+                                    } else {
+                                      // Merge this jenjang into current selection
+                                      const merged = Array.from(new Set([...field.value, ...jIds]));
+                                      field.onChange(merged);
+                                    }
+                                  }
+                                }}
                                 className={`flex flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-4 py-2.5 min-w-[72px] font-medium transition-all ${
                                   active
                                     ? tile.colors.active + ' shadow-sm'

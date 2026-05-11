@@ -12,7 +12,21 @@ export const meetingPhotoService = {
    */
   getByMeeting: async (meetingId: number): Promise<MeetingPhoto[]> => {
     const response = await apiClient.get(`/meetings/${meetingId}/photos`);
-    return response.data;
+    // Backend returns { photos: [...], count: N }
+    const data = response.data;
+    const photos: any[] = Array.isArray(data) ? data : (data?.photos ?? []);
+    // Normalize backend fields to frontend MeetingPhoto shape
+    return photos.map((p: any) => ({
+      id: p.id,
+      meeting_id: p.meeting_id ?? meetingId,
+      file_path: p.file_path ?? p.photo_url ?? '',
+      thumbnail_path: p.thumbnail_path ?? p.thumbnail_url ?? null,
+      caption: p.caption ?? null,
+      uploaded_by: p.uploaded_by ?? 0,
+      uploaded_by_name: p.uploaded_by_name ?? '',
+      created_at: p.created_at ?? p.uploaded_at ?? '',
+      updated_at: p.updated_at ?? p.uploaded_at ?? '',
+    }));
   },
 
   /**
@@ -30,20 +44,33 @@ export const meetingPhotoService = {
   upload: async (meetingId: number, files: File[], captions?: string[]): Promise<MeetingPhoto[]> => {
     const formData = new FormData();
     
-    files.forEach((file, index) => {
+    files.forEach((file) => {
       formData.append('photos[]', file);
-      if (captions && captions[index]) {
-        formData.append(`captions[${index}]`, captions[index]);
-      }
     });
+    if (captions) {
+      captions.forEach((caption, index) => {
+        if (caption) formData.append(`captions[${index}]`, caption);
+      });
+    }
 
     const response = await apiClient.post(`/meetings/${meetingId}/photos`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 120000, // 2 minutes for large file uploads
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
     });
-    return response.data;
+    // Backend returns { photos: [...], count: N }
+    const data = response.data;
+    const photos: any[] = Array.isArray(data) ? data : (data?.photos ?? []);
+    return photos.map((p: any) => ({
+      id: p.id,
+      meeting_id: meetingId,
+      file_path: p.file_path ?? p.photo_url ?? '',
+      thumbnail_path: p.thumbnail_path ?? p.thumbnail_url ?? null,
+      caption: p.caption ?? null,
+      uploaded_by: p.uploaded_by ?? 0,
+      uploaded_by_name: p.uploaded_by_name ?? '',
+      created_at: p.created_at ?? p.uploaded_at ?? '',
+      updated_at: p.updated_at ?? p.uploaded_at ?? '',
+    }));
   },
 
   /**
@@ -74,16 +101,18 @@ export const meetingPhotoService = {
 
   /**
    * Download all photos as ZIP
+   * Backend route: GET /meetings/{id}/photos/download
    */
   downloadAsZip: async (meetingId: number): Promise<Blob> => {
-    const response = await apiClient.get(`/meetings/${meetingId}/photos/download-zip`, {
+    const response = await apiClient.get(`/meetings/${meetingId}/photos/download`, {
       responseType: 'blob',
     });
     return response.data;
   },
 
   /**
-   * Get photo file URL for display
+   * Get photo file URL for display.
+   * If the path is already a full URL, return as-is.
    */
   getFileUrl: (filePath: string): string => {
     if (!filePath) return '';

@@ -14,6 +14,7 @@ const configSchema = z.object({
   sender_number: z
     .string()
     .regex(/^62[0-9]{9,13}$/, "Nomor harus format 62xxxxxxxxx (9-13 digit)"),
+  device_id: z.string().optional(),
   max_recipients_per_session: z
     .number()
     .int()
@@ -133,6 +134,25 @@ export function GoWaConfigForm({
         )}
         <p className="text-xs text-muted-foreground">
           Format: 62xxxxxxxxx (tanpa tanda + atau spasi)
+        </p>
+      </div>
+
+      {/* Device ID */}
+      <div className="space-y-2">
+        <Label htmlFor="device_id">Device ID (GoWA v8)</Label>
+        <Input
+          id="device_id"
+          type="text"
+          placeholder="Contoh: Maarif Cilacap"
+          {...register("device_id")}
+        />
+        {errors.device_id && (
+          <p className="text-sm text-red-600">{errors.device_id.message}</p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Nama device yang terdaftar di GoWA. Cek di{" "}
+          <code className="bg-muted px-1 rounded">URL-GoWA/app/devices</code>.
+          Kosongkan jika menggunakan GoWA versi lama.
         </p>
       </div>
 

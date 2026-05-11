@@ -47,6 +47,13 @@ class GoWaGatewayService
             $client = $client->withBasicAuth($username, $password);
         }
 
+        // GoWA v8: X-Device-Id header required for device scoping
+        // Falls back to sender_number if device_id not set
+        $deviceId = $config->device_id ?? $config->sender_number ?? null;
+        if (!empty($deviceId)) {
+            $client = $client->withHeaders(['X-Device-Id' => $deviceId]);
+        }
+
         return $client;
     }
 
@@ -62,7 +69,7 @@ class GoWaGatewayService
     {
         try {
             $response = $this->makeClient($config)
-                ->post($config->api_url . '/api/send/message', [
+                ->post($config->api_url . '/send/message', [
                     'phone'   => $to,
                     'message' => $message,
                 ]);
@@ -126,7 +133,7 @@ class GoWaGatewayService
 
             $response = $this->makeClient($config)
                 ->attach('file', $fileContent, basename($filePath))
-                ->post($config->api_url . '/api/send/file', [
+                ->post($config->api_url . '/send/file', [
                     'phone'   => $to,
                     'caption' => $message,
                 ]);

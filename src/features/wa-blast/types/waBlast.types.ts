@@ -76,6 +76,7 @@ export interface WaBlastConfig {
   /** Token is masked as '***' when returned from the API */
   api_token: string;
   sender_number: string;
+  device_id: string | null;
   max_recipients_per_session: number;
   max_daily_messages: number;
   updated_by: number | null;
@@ -143,6 +144,7 @@ export interface SaveConfigPayload {
   api_url: string;
   api_token: string;
   sender_number: string;
+  device_id?: string;
   max_recipients_per_session: number;
   max_daily_messages: number;
 }

@@ -57,7 +57,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function sendText_calls_correct_endpoint_with_basic_auth(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/send/message' => Http::response(['status' => 'ok'], 200),
+            'http://gowa.test:3000/send/message' => Http::response(['status' => 'ok'], 200),
         ]);
 
         $config = $this->makeConfig();
@@ -66,8 +66,8 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertTrue($result['success']);
 
         Http::assertSent(function (Request $request) {
-            // Endpoint must be /api/send/message
-            $this->assertStringEndsWith('/api/send/message', $request->url());
+            // Endpoint must be /send/message (GoWA v8)
+            $this->assertStringEndsWith('/send/message', $request->url());
 
             // Must use Basic Auth header (Authorization: Basic base64(admin:secret))
             $expectedAuth = 'Basic ' . base64_encode('admin:secret');
@@ -88,7 +88,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function sendText_returns_success_false_on_non_2xx_response(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/send/message' => Http::response(['error' => 'bad request'], 400),
+            'http://gowa.test:3000/send/message' => Http::response(['error' => 'bad request'], 400),
         ]);
 
         $result = $this->service->sendText('628123456789', 'Hello', $this->makeConfig());
@@ -114,7 +114,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function sendText_works_without_basic_auth_when_token_is_empty(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/send/message' => Http::response(['status' => 'ok'], 200),
+            'http://gowa.test:3000/send/message' => Http::response(['status' => 'ok'], 200),
         ]);
 
         $config = $this->makeConfig(token: '');
@@ -137,7 +137,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function sendFile_calls_correct_endpoint_with_caption_field(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/send/file' => Http::response(['status' => 'ok'], 200),
+            'http://gowa.test:3000/send/file' => Http::response(['status' => 'ok'], 200),
         ]);
 
         // Mock Storage::get to return fake file content
@@ -150,8 +150,8 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertTrue($result['success']);
 
         Http::assertSent(function (Request $request) {
-            // Endpoint must be /api/send/file
-            $this->assertStringEndsWith('/api/send/file', $request->url());
+            // Endpoint must be /send/file (GoWA v8)
+            $this->assertStringEndsWith('/send/file', $request->url());
 
             // Must use Basic Auth
             $expectedAuth = 'Basic ' . base64_encode('admin:secret');

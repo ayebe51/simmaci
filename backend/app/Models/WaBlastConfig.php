@@ -17,6 +17,7 @@ class WaBlastConfig extends Model
         'api_url',
         'api_token_encrypted',
         'sender_number',
+        'device_id',
         'max_recipients_per_session',
         'max_daily_messages',
         'updated_by',

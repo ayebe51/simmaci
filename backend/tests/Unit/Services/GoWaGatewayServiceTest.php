@@ -191,7 +191,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function testConnection_calls_get_api_user_info(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/user/info' => Http::response(['device' => 'connected'], 200),
+            'http://gowa.test:3000/app/status' => Http::response(['device' => 'connected'], 200),
         ]);
 
         $result = $this->service->testConnection($this->makeConfig());
@@ -202,8 +202,8 @@ class GoWaGatewayServiceTest extends TestCase
             // Must be GET
             $this->assertEquals('GET', $request->method());
 
-            // Endpoint must be /api/user/info
-            $this->assertStringEndsWith('/api/user/info', $request->url());
+            // Endpoint must be /app/status
+            $this->assertStringEndsWith('/app/status', $request->url());
 
             // Must use Basic Auth
             $expectedAuth = 'Basic ' . base64_encode('admin:secret');
@@ -220,7 +220,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function testConnection_returns_descriptive_error_on_401(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/user/info' => Http::response('Unauthorized', 401),
+            'http://gowa.test:3000/app/status' => Http::response('Unauthorized', 401),
         ]);
 
         $result = $this->service->testConnection($this->makeConfig());
@@ -247,7 +247,7 @@ class GoWaGatewayServiceTest extends TestCase
     public function testConnection_returns_failure_on_non_2xx_response(): void
     {
         Http::fake([
-            'http://gowa.test:3000/api/user/info' => Http::response(['error' => 'server error'], 500),
+            'http://gowa.test:3000/app/status' => Http::response(['error' => 'server error'], 500),
         ]);
 
         $result = $this->service->testConnection($this->makeConfig());

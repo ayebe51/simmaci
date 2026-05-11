@@ -26,9 +26,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function WaBlastDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: blast, isLoading, error, refetch } = useWaBlast(Number(id))
+
+  const numericId = Number(id)
+  const isValidId = !!id && !isNaN(numericId) && numericId > 0
+
+  const { data: blast, isLoading, error, refetch } = useWaBlast(isValidId ? numericId : 0)
   const { data: progress } = useWaBlastProgress(
-    Number(id),
+    isValidId ? numericId : 0,
     blast?.blast_status === "sending"
   )
 
@@ -36,10 +40,16 @@ export default function WaBlastDetailPage() {
   const [showRetryDialog, setShowRetryDialog] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // Redirect if id is not a valid number (e.g. navigated to /wa-blast/templates)
+  if (!isValidId) {
+    navigate("/dashboard/wa-blast", { replace: true })
+    return null
+  }
+
   const handleCancel = async () => {
     setIsProcessing(true)
     try {
-      await deleteBlast(Number(id))
+      await deleteBlast(numericId)
       toast.success("Blast berhasil dibatalkan")
       navigate("/dashboard/wa-blast")
     } catch (error: any) {
@@ -51,7 +61,7 @@ export default function WaBlastDetailPage() {
   const handleRetry = async () => {
     setIsProcessing(true)
     try {
-      const result = await retryBlast(Number(id))
+      const result = await retryBlast(numericId)
       toast.success("Blast retry berhasil dibuat!")
       navigate(`/dashboard/wa-blast/${result.id}`)
     } catch (error: any) {
@@ -247,7 +257,7 @@ export default function WaBlastDetailPage() {
           <CardTitle className="text-base">Daftar Penerima</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecipientDetailTable blastId={Number(id)} />
+          <RecipientDetailTable blastId={numericId} />
         </CardContent>
       </Card>
 

@@ -12,6 +12,7 @@ use App\Services\RecipientCompilerService;
 use App\Services\WaBlastConfigService;
 use App\Services\WaBlastService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -416,8 +417,128 @@ class WaBlastServiceTest extends TestCase
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Unit Tests: retryBlast
+    // Unit Tests: createBlast with custom category (meeting invitations)
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * @test
+     * @group custom-category
+     *
+     * When recipient_category is 'custom' and recipients are passed directly,
+     * RecipientCompilerService::compile() must NOT be called.
+     * The provided recipients are used as-is.
+     */
+    public function it_uses_provided_recipients_directly_for_custom_category(): void
+    {
+        Queue::fake();
+        $customRecipients = [
+            [
+                'recipient_name'   => 'Budi Santoso',
+                'school_name'      => 'MI Al-Hidayah',
+                'phone_number'     => '628123456789',
+                'recipient_type'   => 'gtk',
+                'delivery_status'  => 'pending',
+                'message_override' => "Undangan personal untuk Budi\nQR: https://example.com/qr/abc123",
+            ],
+            [
+                'recipient_name'   => 'Siti Rahayu',
+                'school_name'      => 'MTs Nurul Iman',
+                'phone_number'     => '628987654321',
+                'recipient_type'   => 'gtk',
+                'delivery_status'  => 'pending',
+                'message_override' => "Undangan personal untuk Siti\nQR: https://example.com/qr/def456",
+            ],
+        ];
+
+        // Compiler must NOT be called for 'custom' category
+        $compiler = $this->createMock(RecipientCompilerService::class);
+        $compiler->expects($this->never())->method('compile');
+
+        $blast = $this->createMock(WaBlast::class);
+        $blast->method('__get')->willReturnCallback(fn ($name) => match ($name) {
+            'id'               => 42,
+            'blast_status'     => 'sending',
+            'total_recipients' => 2,
+            default            => null,
+        });
+
+        // Return null config → skips all rate limit checks (no DB access needed)
+        $configRepo = $this->createMock(WaBlastConfigRepositoryInterface::class);
+        $configRepo->method('get')->willReturn(null);
+
+        $blastRepo = $this->createMock(WaBlastRepositoryInterface::class);
+        $blastRepo->method('create')->willReturn($blast);
+
+        $recipientRepo = $this->createMock(WaBlastRecipientRepositoryInterface::class);
+        $recipientRepo->method('createMany')->willReturn(new EloquentCollection([]));
+
+        $service = new WaBlastService(
+            $blastRepo,
+            $recipientRepo,
+            $configRepo,
+            $compiler,
+            $this->createMock(WaBlastConfigService::class)
+        );
+
+        $result = $service->createBlast([
+            'title'              => 'Undangan: Rapat Koordinasi',
+            'recipient_category' => 'custom',
+            'message_body'       => 'Pesan default',
+            'recipients'         => $customRecipients,
+        ], userId: 1);
+
+        // Should return the blast without throwing
+        $this->assertNotNull($result);
+    }
+
+    /**
+     * @test
+     * @group custom-category
+     *
+     * When recipient_category is 'custom' but recipients array is empty,
+     * the blast is created with 0 recipients (no exception).
+     */
+    public function it_creates_blast_with_zero_recipients_for_empty_custom_recipients(): void
+    {
+        Queue::fake();
+        $compiler = $this->createMock(RecipientCompilerService::class);
+        $compiler->expects($this->never())->method('compile');
+
+        $blast = $this->createMock(WaBlast::class);
+        $blast->method('__get')->willReturnCallback(fn ($name) => match ($name) {
+            'id'               => 43,
+            'blast_status'     => 'sending',
+            'total_recipients' => 0,
+            default            => null,
+        });
+
+        // Return null config → skips all rate limit checks (no DB access needed)
+        $configRepo = $this->createMock(WaBlastConfigRepositoryInterface::class);
+        $configRepo->method('get')->willReturn(null);
+
+        $blastRepo = $this->createMock(WaBlastRepositoryInterface::class);
+        $blastRepo->method('create')->willReturn($blast);
+
+        $recipientRepo = $this->createMock(WaBlastRecipientRepositoryInterface::class);
+        $recipientRepo->method('createMany')->willReturn(new EloquentCollection([]));
+
+        $service = new WaBlastService(
+            $blastRepo,
+            $recipientRepo,
+            $configRepo,
+            $compiler,
+            $this->createMock(WaBlastConfigService::class)
+        );
+
+        $result = $service->createBlast([
+            'title'              => 'Undangan: Rapat Kosong',
+            'recipient_category' => 'custom',
+            'message_body'       => 'Pesan default',
+            'recipients'         => [],
+        ], userId: 1);
+
+        $this->assertNotNull($result);
+    }
 
     /**
      * @test

@@ -72,13 +72,19 @@ class WaBlastService
     public function createBlast(array $data, int $userId): WaBlast
     {
         // 1. Compile recipients
-        $excludedPhones = $data['excluded_phone_numbers'] ?? [];
-        $recipients = $this->recipientCompiler->compile(
-            $data['recipient_category'],
-            $data['school_ids'] ?? [],
-            $data['jenjang_filter'] ?? [],
-            $excludedPhones
-        );
+        // If 'custom' category, recipients are passed directly (e.g. from meeting invitations).
+        // Otherwise, compile from schools/teachers via RecipientCompilerService.
+        if ($data['recipient_category'] === 'custom' && !empty($data['recipients'])) {
+            $recipients = $data['recipients'];
+        } else {
+            $excludedPhones = $data['excluded_phone_numbers'] ?? [];
+            $recipients = $this->recipientCompiler->compile(
+                $data['recipient_category'],
+                $data['school_ids'] ?? [],
+                $data['jenjang_filter'] ?? [],
+                $excludedPhones
+            );
+        }
 
         // Count only valid (pending) recipients for rate limit check
         $validRecipients = array_filter($recipients, fn ($r) => $r['delivery_status'] === 'pending');

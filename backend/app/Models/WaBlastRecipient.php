@@ -17,6 +17,7 @@ class WaBlastRecipient extends Model
         'school_name',
         'phone_number',
         'recipient_type',
+        'message_override',
         'delivery_status',
         'error_message',
         'sent_at',

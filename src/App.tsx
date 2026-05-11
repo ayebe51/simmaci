@@ -210,9 +210,9 @@ export default function App() {
                           {/* WA Blast Module */}
                           <Route path="wa-blast" element={<WaBlastListPage />} />
                           <Route path="wa-blast/create" element={<WaBlastCreatePage />} />
-                          <Route path="wa-blast/:id" element={<WaBlastDetailPage />} />
                           <Route path="wa-blast/templates" element={<WaBlastTemplatePage />} />
                           <Route path="wa-blast/config" element={<WaBlastConfigPage />} />
+                          <Route path="wa-blast/:id" element={<WaBlastDetailPage />} />
 
                           {/* Meeting Module */}
                           <Route path="meetings" element={<MeetingListPage />} />

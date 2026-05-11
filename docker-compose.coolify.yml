@@ -147,6 +147,90 @@ services:
       - "traefik.http.serversTransports.backend-transport.respondingTimeouts.readTimeout=300s"
       - "traefik.http.serversTransports.backend-transport.respondingTimeouts.writeTimeout=300s"
 
+  # ── Queue Worker (Laravel) ────────────────────────────────
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: simmaci-queue
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--tries=1", "--timeout=3600", "--sleep=3", "--max-jobs=500"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: "SIM Maarif"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://api.simmaci.com
+      APP_KEY: ${APP_KEY}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-sim_maarif}
+      DB_USERNAME: ${DB_USERNAME:-sim_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: simmaci-storage
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://simmaci.com/api/minio
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      LOG_CHANNEL: stderr
+    networks:
+      - simmaci-network
+
+  # ── Scheduler (Laravel) ───────────────────────────────────
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: simmaci-scheduler
+    restart: unless-stopped
+    command: ["/bin/sh", "-c", "while true; do php artisan schedule:run --no-interaction; sleep 60; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_NAME: "SIM Maarif"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: https://api.simmaci.com
+      APP_KEY: ${APP_KEY}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-sim_maarif}
+      DB_USERNAME: ${DB_USERNAME:-sim_user}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: simmaci-storage
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://simmaci.com/api/minio
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      LOG_CHANNEL: stderr
+    networks:
+      - simmaci-network
+
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:
     build:

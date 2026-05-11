@@ -34,7 +34,11 @@ class GoWaGatewayService
     private function makeClient(WaBlastConfig $config): \Illuminate\Http\Client\PendingRequest
     {
         $client = Http::timeout(self::TIMEOUT_SECONDS)
-            ->acceptJson();
+            ->acceptJson()
+            ->withHeaders([
+                // Bypass ngrok browser warning interstitial page
+                'ngrok-skip-browser-warning' => 'true',
+            ]);
 
         $token = $config->getDecryptedToken();
 

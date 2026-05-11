@@ -94,12 +94,17 @@ class SendBlastJob implements ShouldQueue
         $gatewayError = false;
 
         foreach ($recipients as $recipient) {
-            // Substitute template variables in the message body
-            $message = $this->substituteVariables(
-                $blast->message_body,
-                $recipient->recipient_name,
-                $recipient->school_name
-            );
+            // Use per-recipient message_override if set (e.g. meeting invitations with
+            // personal QR links), otherwise substitute template variables in message_body.
+            if (!empty($recipient->message_override)) {
+                $message = $recipient->message_override;
+            } else {
+                $message = $this->substituteVariables(
+                    $blast->message_body,
+                    $recipient->recipient_name,
+                    $recipient->school_name
+                );
+            }
 
             try {
                 // Send via Go-WA Gateway

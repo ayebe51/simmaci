@@ -733,4 +733,37 @@ class PhoneNormalizerServiceTest extends TestCase
                 "Validation failed for normalized: {$normalized}");
         }
     }
+
+    /**
+     * @test
+     * @group real-world
+     *
+     * Nomor yang tersimpan di database mungkin mengandung karakter tersembunyi
+     * atau tanda kurung. Normalisasi harus membersihkan semua karakter non-digit.
+     */
+    public function it_strips_parentheses_dots_and_hidden_characters(): void
+    {
+        $cases = [
+            // Parentheses (common in old-style formatting)
+            ['(0812) 3456-7890', '6281234567890', true],
+            // Dots
+            ['0812.3456.7890', '6281234567890', true],
+            // Already 62 format with parentheses
+            ['6289513788385', '6289513788385', true],
+            // With leading/trailing whitespace
+            ['  6289513788385  ', '6289513788385', true],
+            // Tab character
+            ["0812345678901\t", '62812345678901', true],
+        ];
+
+        foreach ($cases as [$input, $expectedNormalized, $shouldBeValid]) {
+            $normalized = $this->service->normalize($input);
+            $isValid = $this->service->isValid($normalized);
+
+            $this->assertEquals($expectedNormalized, $normalized,
+                "Normalization failed for input: " . json_encode($input));
+            $this->assertEquals($shouldBeValid, $isValid,
+                "Validation failed for normalized: {$normalized}");
+        }
+    }
 }

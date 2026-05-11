@@ -21,8 +21,21 @@ class PhoneNormalizerService
      */
     public function normalize(string $phone): string
     {
-        // Remove spaces and hyphens
-        $phone = str_replace([' ', '-'], '', $phone);
+        // Strip all non-digit characters except leading +
+        // First trim whitespace including unicode whitespace
+        $phone = trim($phone);
+
+        // Remove all non-printable / invisible characters (zero-width space, etc.)
+        $phone = preg_replace('/[\x00-\x1F\x7F\xC2\xA0]/u', '', $phone);
+
+        // Keep only digits and leading +
+        $hasPlus = str_starts_with($phone, '+');
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // Re-add + if it was there (for +62 handling below)
+        if ($hasPlus) {
+            $phone = '+' . $phone;
+        }
 
         // Remove leading + if present
         $phone = ltrim($phone, '+');

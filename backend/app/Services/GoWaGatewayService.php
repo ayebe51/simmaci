@@ -169,7 +169,8 @@ class GoWaGatewayService
     /**
      * Test connection to Go-WA Gateway.
      *
-     * Uses GET /api/user/info — returns device info if connected and authenticated.
+     * Uses GET /app/status — returns device connection status.
+     * Compatible with go-whatsapp-web-multidevice v6+.
      *
      * @param WaBlastConfig $config Go-WA configuration
      * @return array Response array with keys: success, message, data (or error details)
@@ -178,7 +179,7 @@ class GoWaGatewayService
     {
         try {
             $response = $this->makeClient($config)
-                ->get($config->api_url . '/api/user/info');
+                ->get($config->api_url . '/app/status');
 
             if ($response->successful()) {
                 return [

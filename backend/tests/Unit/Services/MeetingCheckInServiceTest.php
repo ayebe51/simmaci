@@ -114,6 +114,7 @@ class MeetingCheckInServiceTest extends TestCase
             'started_at' => now()->subHours(1),
             'ended_at' => now()->addHours(4),
         ]);
+        $this->meeting->refresh();
 
         $this->participant->refresh();
         $url = $this->participant->qr_token;
@@ -166,6 +167,7 @@ class MeetingCheckInServiceTest extends TestCase
             'started_at' => now()->subHours(1),
             'ended_at' => now()->addHours(4),
         ]);
+        $this->meeting->refresh();
 
         // Create two participants
         $participant1 = MeetingParticipant::factory()->forMeeting($this->meeting)->create();
@@ -219,6 +221,7 @@ class MeetingCheckInServiceTest extends TestCase
             'started_at' => now()->subHours(1),
             'ended_at' => now()->addHours(4),
         ]);
+        $this->meeting->refresh();
 
         $this->participant->refresh();
         $url = $this->participant->qr_token;
@@ -269,6 +272,7 @@ class MeetingCheckInServiceTest extends TestCase
             'started_at' => now()->subHours(1),
             'ended_at' => now()->addHours(4),
         ]);
+        $this->meeting->refresh();
 
         $ipAddress = '192.168.1.100';
         $successCount = 0;
@@ -316,6 +320,7 @@ class MeetingCheckInServiceTest extends TestCase
             'started_at' => now()->subHours(1),
             'ended_at' => now()->addHours(4),
         ]);
+        $this->meeting->refresh(); // Sync in-memory object with DB
 
         $ipAddress = '192.168.1.101';
 

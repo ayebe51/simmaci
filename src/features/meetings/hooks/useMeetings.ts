@@ -33,8 +33,15 @@ export const useCreateMeeting = () => {
       toast.success('Rapat berhasil dibuat');
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Gagal membuat rapat';
-      toast.error(message);
+      const data = error.response?.data;
+      // Show validation errors if available (422)
+      if (data?.errors) {
+        const messages = Object.values(data.errors).flat() as string[];
+        messages.forEach((msg) => toast.error(msg));
+      } else {
+        const message = data?.message || 'Gagal membuat rapat';
+        toast.error(message);
+      }
     },
   });
 };

@@ -74,8 +74,8 @@ class WaBlastService
         // 1. Compile recipients
         // If 'custom' category, recipients are passed directly (e.g. from meeting invitations).
         // Otherwise, compile from schools/teachers via RecipientCompilerService.
-        if ($data['recipient_category'] === 'custom' && !empty($data['recipients'])) {
-            $recipients = $data['recipients'];
+        if ($data['recipient_category'] === 'custom') {
+            $recipients = $data['recipients'] ?? [];
         } else {
             $excludedPhones = $data['excluded_phone_numbers'] ?? [];
             $recipients = $this->recipientCompiler->compile(

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FileText, CheckCircle, ShieldAlert, CloudUpload, Loader2, Download, Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { settingApi, authApi, mediaApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -237,7 +237,13 @@ function TemplateCard({ title, settingKey, onUpload, onDelete, data, uploading }
 // ── Scanner PIN Card ───────────────────────────────────────────────────────
 
 function ScannerPinCard({ settingsMap, refetch }: { settingsMap: any; refetch: () => void }) {
-  const [meetingPin, setMeetingPin] = useState(settingsMap?.meeting_scanner_pin ?? "")
+  const [meetingPin, setMeetingPin] = useState(settingsMap?.meeting_scanner_pin?.value ?? "")
+
+  // Sync state when settingsMap loads or changes (e.g. after app update / refetch)
+  useEffect(() => {
+    const pinFromServer = settingsMap?.meeting_scanner_pin?.value ?? ""
+    setMeetingPin(pinFromServer)
+  }, [settingsMap])
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {

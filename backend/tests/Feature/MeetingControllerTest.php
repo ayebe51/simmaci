@@ -476,7 +476,99 @@ class MeetingControllerTest extends TestCase
         $response->assertForbidden();
     }
 
-    // ── Authentication Tests ──────────────────────────────────────────────────
+    // ── participantsFromSchools Tests ────────────────────────────────────────
+
+    /**
+     * Test participantsFromSchools returns headmaster data for selected schools
+     */
+    public function test_participants_from_schools_returns_headmaster_data(): void
+    {
+        // Create schools with kepala_madrasah data
+        $school1 = School::factory()->create([
+            'nama'             => 'MI Al-Hidayah',
+            'jenjang'          => 'MI',
+            'kepala_madrasah'  => 'Budi Santoso',
+            'kepala_whatsapp'  => '628123456789',
+        ]);
+        $school2 = School::factory()->create([
+            'nama'             => 'MTs Nurul Iman',
+            'jenjang'          => 'MTs',
+            'kepala_madrasah'  => 'Siti Rahayu',
+            'kepala_whatsapp'  => '628987654321',
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/meetings/participants-from-schools', [
+                'school_ids' => [$school1->id, $school2->id],
+            ]);
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
+
+        // Verify first participant
+        $names = collect($data)->pluck('name')->toArray();
+        $this->assertContains('Budi Santoso', $names);
+        $this->assertContains('Siti Rahayu', $names);
+
+        // Verify structure
+        $first = collect($data)->firstWhere('name', 'Budi Santoso');
+        $this->assertEquals('headmaster', $first['participant_type']);
+        $this->assertEquals('MI Al-Hidayah', $first['instansi']);
+        $this->assertEquals('Kepala MI', $first['jabatan']);
+        $this->assertEquals('628123456789', $first['phone_number']);
+    }
+
+    /**
+     * Test participantsFromSchools skips schools without kepala_madrasah
+     */
+    public function test_participants_from_schools_skips_schools_without_headmaster(): void
+    {
+        $schoolWithHead = School::factory()->create([
+            'nama'            => 'MI Test',
+            'kepala_madrasah' => 'Ahmad Fauzi',
+            'kepala_whatsapp' => '628111222333',
+        ]);
+        $schoolWithoutHead = School::factory()->create([
+            'nama'            => 'MA Test',
+            'kepala_madrasah' => null,
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/meetings/participants-from-schools', [
+                'school_ids' => [$schoolWithHead->id, $schoolWithoutHead->id],
+            ]);
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals('Ahmad Fauzi', $data[0]['name']);
+    }
+
+    /**
+     * Test participantsFromSchools requires authentication
+     */
+    public function test_participants_from_schools_requires_authentication(): void
+    {
+        $response = $this->postJson('/api/meetings/participants-from-schools', [
+            'school_ids' => [1],
+        ]);
+
+        $response->assertUnauthorized();
+    }
+
+    /**
+     * Test participantsFromSchools validates school_ids
+     */
+    public function test_participants_from_schools_validates_school_ids(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/meetings/participants-from-schools', [
+                'school_ids' => [],
+            ]);
+
+        $response->assertUnprocessable();
+    }
 
     /**
      * Test unauthenticated access is denied

@@ -17,15 +17,12 @@ import {
   MapPin,
   Loader2,
   AlertTriangle,
-  User,
-  Building2,
   QrCode,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -278,98 +275,41 @@ export default function MeetingCheckInPage() {
             </CardContent>
           </Card>
         ) : (
-          /* Personal QR check-in */
+          /* Personal QR check-in — show QR only, panitia must scan */
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <User className="h-4 w-4 text-emerald-600" />
-                Konfirmasi Kehadiran
+                <QrCode className="h-4 w-4 text-emerald-600" />
+                QR Code Kehadiran Anda
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* QR Code for panitia scanner */}
-              <div className="border rounded-xl p-3 bg-slate-50">
-                <button
-                  type="button"
-                  onClick={() => setShowQr(!showQr)}
-                  className="w-full flex items-center justify-between text-sm font-medium text-slate-700"
-                >
-                  <span className="flex items-center gap-2">
-                    <QrCode className="h-4 w-4 text-emerald-600" />
-                    Tampilkan QR Code untuk Panitia
-                  </span>
-                  <span className="text-xs text-slate-400">{showQr ? 'Sembunyikan ▲' : 'Tampilkan ▼'}</span>
-                </button>
-                {showQr && (
-                  <div className="mt-3 flex flex-col items-center gap-2">
-                    <div className="bg-white p-3 rounded-lg border shadow-sm">
-                      <QRCodeSVG
-                        value={currentUrl}
-                        size={200}
-                        level="M"
-                        includeMargin={false}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 text-center">
-                      Tunjukkan QR ini ke panitia untuk di-scan
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200" />
+              <div className="flex flex-col items-center gap-3">
+                <div className="bg-white p-4 rounded-xl border-2 border-emerald-200 shadow-sm">
+                  <QRCodeSVG
+                    value={currentUrl}
+                    size={220}
+                    level="M"
+                    includeMargin={false}
+                  />
                 </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-slate-400">atau konfirmasi sendiri</span>
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-semibold text-slate-700">
+                    Tunjukkan QR ini ke panitia
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Panitia akan men-scan QR code ini untuk mencatat kehadiran Anda
+                  </p>
                 </div>
               </div>
 
-              {/* Delegation option */}
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is_delegation"
-                  checked={isDelegation}
-                  onCheckedChange={(v) => setIsDelegation(!!v)}
-                />
-                <Label htmlFor="is_delegation" className="cursor-pointer text-sm">
-                  Hadir sebagai delegasi (mewakili peserta lain)
-                </Label>
-              </div>
-
-              {isDelegation && meeting.participants && (
-                <div>
-                  <Label className="text-sm">Mewakili peserta</Label>
-                  <Select value={delegatedForId} onValueChange={setDelegatedForId}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Pilih peserta yang diwakili" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {meeting.participants
-                        .filter((p) => String(p.id) !== participantId)
-                        .map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {p.name} — {p.jabatan}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+              {/* Participant info if available */}
+              {meeting.participant && (
+                <div className="bg-emerald-50 rounded-lg p-3 text-sm">
+                  <p className="font-medium text-emerald-800">{meeting.participant.name}</p>
+                  <p className="text-emerald-600 text-xs">{meeting.participant.jabatan} · {meeting.participant.instansi}</p>
                 </div>
               )}
-
-              <Button
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                onClick={handlePersonalCheckIn}
-                disabled={
-                  checkInMutation.isPending ||
-                  (meeting.geolocation_enabled && !coords) ||
-                  (isDelegation && !delegatedForId)
-                }
-              >
-                {checkInMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {isDelegation ? 'Hadir sebagai Delegasi' : 'Konfirmasi Kehadiran Saya'}
-              </Button>
             </CardContent>
           </Card>
         )}

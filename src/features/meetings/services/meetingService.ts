@@ -36,7 +36,16 @@ export const meetingService = {
 
   getById: async (id: number): Promise<Meeting> => {
     const response = await apiClient.get(`/meetings/${id}`);
-    return response.data.data ?? response.data;
+    // Backend show() returns { meeting, attendance_stats }
+    // apiClient interceptor unwraps outer { success, message, data } → data = { meeting, attendance_stats }
+    const d = response.data;
+    if (d && d.meeting) {
+      return {
+        ...d.meeting,
+        attendance_stats: d.attendance_stats ?? d.meeting.attendance_stats,
+      };
+    }
+    return d;
   },
 
   // ── CRUD ──

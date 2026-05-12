@@ -20,7 +20,18 @@ export const meetingService = {
 
   list: async (params?: MeetingListParams): Promise<PaginatedResponse<Meeting>> => {
     const response = await apiClient.get('/meetings', { params });
-    return response.data.data ?? response.data;
+    // apiClient interceptor unwraps { success, message, data: { items, meta } } → data = { items, meta }
+    const d = response.data;
+    if (d && d.items !== undefined) {
+      return {
+        data: d.items,
+        current_page: d.meta?.currentPage ?? 1,
+        last_page: d.meta?.lastPage ?? 1,
+        per_page: d.meta?.perPage ?? 20,
+        total: d.meta?.total ?? 0,
+      };
+    }
+    return d;
   },
 
   getById: async (id: number): Promise<Meeting> => {

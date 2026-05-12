@@ -19,7 +19,9 @@ import {
   AlertTriangle,
   User,
   Building2,
+  QrCode,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,6 +60,8 @@ export default function MeetingCheckInPage() {
   const [isDelegation, setIsDelegation] = useState(false);
   const [delegatedForId, setDelegatedForId] = useState<string>('');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showQr, setShowQr] = useState(false);
+  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const { data: meeting, isLoading, error } = usePublicMeetingInfo(id, queryString);
@@ -283,6 +287,45 @@ export default function MeetingCheckInPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* QR Code for panitia scanner */}
+              <div className="border rounded-xl p-3 bg-slate-50">
+                <button
+                  type="button"
+                  onClick={() => setShowQr(!showQr)}
+                  className="w-full flex items-center justify-between text-sm font-medium text-slate-700"
+                >
+                  <span className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4 text-emerald-600" />
+                    Tampilkan QR Code untuk Panitia
+                  </span>
+                  <span className="text-xs text-slate-400">{showQr ? 'Sembunyikan ▲' : 'Tampilkan ▼'}</span>
+                </button>
+                {showQr && (
+                  <div className="mt-3 flex flex-col items-center gap-2">
+                    <div className="bg-white p-3 rounded-lg border shadow-sm">
+                      <QRCodeSVG
+                        value={currentUrl}
+                        size={200}
+                        level="M"
+                        includeMargin={false}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 text-center">
+                      Tunjukkan QR ini ke panitia untuk di-scan
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-2 text-slate-400">atau konfirmasi sendiri</span>
+                </div>
+              </div>
+
               {/* Delegation option */}
               <div className="flex items-center gap-2">
                 <Checkbox

@@ -503,7 +503,7 @@ class MeetingControllerTest extends TestCase
             ]);
 
         $response->assertOk();
-        $data = $response->json('data');
+        $data = $response->json('data.participants');
         $this->assertCount(2, $data);
 
         // Verify first participant
@@ -517,6 +517,10 @@ class MeetingControllerTest extends TestCase
         $this->assertEquals('MI Al-Hidayah', $first['instansi']);
         $this->assertEquals('Kepala MI', $first['jabatan']);
         $this->assertEquals('628123456789', $first['phone_number']);
+
+        // Verify counts
+        $this->assertEquals(2, $response->json('data.imported_count'));
+        $this->assertEquals(0, $response->json('data.skipped_count'));
     }
 
     /**
@@ -540,9 +544,12 @@ class MeetingControllerTest extends TestCase
             ]);
 
         $response->assertOk();
-        $data = $response->json('data');
+        $data = $response->json('data.participants');
         $this->assertCount(1, $data);
         $this->assertEquals('Ahmad Fauzi', $data[0]['name']);
+
+        // Verify skipped count
+        $this->assertEquals(1, $response->json('data.skipped_count'));
     }
 
     /**

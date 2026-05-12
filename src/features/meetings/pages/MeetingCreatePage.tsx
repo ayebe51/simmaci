@@ -134,18 +134,13 @@ export default function MeetingCreatePage() {
       const { data } = await apiClient.post('/meetings/participants-from-schools', {
         school_ids: watchedSchoolIds,
       });
-      const imported = Array.isArray(data) ? data : [];
+      // Response: { participants: [...], imported_count: N, skipped_count: N }
+      const imported = Array.isArray(data) ? data : (data?.participants ?? []);
+      const skipped = data?.skipped_count ?? 0;
       if (imported.length === 0) {
         toast.warning('Tidak ada data kepala sekolah yang ditemukan. Pastikan data kepala madrasah sudah diisi di master data sekolah (menu Kelola Sekolah → edit sekolah).');
         return;
       }
-      // Replace current participants with imported ones
-      const currentParticipants = fields;
-      // Remove all existing empty participants first
-      const nonEmpty = currentParticipants.filter((_, i) => {
-        const v = (document.querySelector(`[name="participants.${i}.name"]`) as HTMLInputElement)?.value;
-        return v && v.trim() !== '';
-      });
       // Append imported participants
       imported.forEach((p: any) => {
         append({
@@ -157,7 +152,11 @@ export default function MeetingCreatePage() {
           phone_number: p.phone_number,
         });
       });
-      toast.success(`${imported.length} kepala sekolah berhasil diimpor sebagai peserta`);
+      if (skipped > 0) {
+        toast.success(`${imported.length} kepala sekolah berhasil diimpor. ${skipped} sekolah dilewati karena data kepala belum diisi.`);
+      } else {
+        toast.success(`${imported.length} kepala sekolah berhasil diimpor sebagai peserta`);
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Gagal mengimpor peserta');
     } finally {

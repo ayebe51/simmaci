@@ -15,7 +15,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['logo-icon.png', 'logo-maarif-hijau.png'],
+      includeAssets: ['logo-icon-192.png', 'logo-icon-512.png', 'logo-maarif-hijau.png'],
       manifest: {
         name: 'SIMMACI - Absensi Sekolah',
         short_name: 'Absensi',
@@ -28,13 +28,13 @@ export default defineConfig({
         start_url: '/scan',
         icons: [
           {
-            src: 'logo-icon.png',
+            src: 'logo-icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
           },
           {
-            src: 'logo-icon.png',
+            src: 'logo-icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
@@ -46,7 +46,7 @@ export default defineConfig({
             short_name: 'Scanner',
             description: 'Buka halaman scanner absensi',
             url: '/scan',
-            icons: [{ src: 'logo-icon.png', sizes: '192x192' }],
+            icons: [{ src: 'logo-icon-192.png', sizes: '192x192' }],
           },
         ],
         categories: ['education', 'productivity'],

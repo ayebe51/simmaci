@@ -129,7 +129,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
           >
             <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md border-b border-white/10 flex items-center px-4 justify-between z-10">
                 <div className="flex items-center gap-3">
-                    <img src="/logo-icon.png" alt="Logo" className="h-10 w-10 object-contain" />
+                    <img src="/logo-icon-192.png" alt="Logo" className="h-10 w-10 object-contain" />
                     <div className="flex flex-col">
                         <h1 className="text-[12px] font-extrabold text-white uppercase tracking-widest leading-none mb-0.5">
                           {isTeacher ? "KARTU TANDA ANGGOTA" : "KARTU IDENTITAS SISWA"}

@@ -267,6 +267,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Meetings read-only (all authenticated users, operators see filtered results) ──
     Route::get('meetings', [MeetingController::class, 'index']);
     Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
+    Route::post('meetings/participants-from-schools', [MeetingController::class, 'participantsFromSchools']);
 
     // ── Meetings write operations (super_admin + admin_yayasan only) ──
     Route::middleware('role:super_admin,admin_yayasan')->group(function () {

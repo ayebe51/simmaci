@@ -30,6 +30,40 @@ class MeetingController extends Controller
     ) {}
 
     /**
+     * Get headmaster participants from selected school IDs.
+     * Used to auto-populate meeting participants from school data.
+     *
+     * POST /api/meetings/participants-from-schools
+     * Body: { school_ids: number[] }
+     */
+    public function participantsFromSchools(Request $request): JsonResponse
+    {
+        $request->validate([
+            'school_ids'   => 'required|array|min:1',
+            'school_ids.*' => 'integer|exists:schools,id',
+        ]);
+
+        $schools = \App\Models\School::whereIn('id', $request->school_ids)
+            ->whereNotNull('kepala_madrasah')
+            ->where('kepala_madrasah', '!=', '')
+            ->get(['id', 'nama', 'jenjang', 'kepala_madrasah', 'kepala_whatsapp']);
+
+        $participants = $schools->map(function ($school) {
+            return [
+                'participant_type' => 'headmaster',
+                'participant_id'   => null,
+                'name'             => $school->kepala_madrasah,
+                'jabatan'          => 'Kepala ' . ($school->jenjang ?? 'Madrasah'),
+                'instansi'         => $school->nama,
+                'phone_number'     => $school->kepala_whatsapp ?? '',
+                'school_id'        => $school->id,
+            ];
+        });
+
+        return $this->successResponse($participants, 'Data peserta dari sekolah berhasil diambil.');
+    }
+
+    /**
      * Get paginated list of meetings with optional filters.
      *
      * For operators, only shows meetings involving their school.

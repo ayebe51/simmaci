@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,26 +22,24 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useMeeting } from '../hooks/useMeeting';
 import { useUpdateMeeting } from '../hooks/useMeetings';
-import { schoolApi } from '@/lib/api';
+import { schoolApi, apiClient } from '@/lib/api';
 import { UpdateMeetingPayload, ParticipantInput } from '../types/meeting.types';
+import { toast } from 'sonner';
 
 /**
  * Convert a datetime-local string to ISO 8601 with timezone offset.
+ * Uses local timezone offset without parsing through Date() to avoid UTC ambiguity.
  */
 function toBackendDatetime(datetimeLocal: string): string {
   if (!datetimeLocal) return datetimeLocal;
   const withSeconds = datetimeLocal.length === 16 ? `${datetimeLocal}:00` : datetimeLocal;
-  const date = new Date(withSeconds);
+  const now = new Date();
+  const offsetMin = -now.getTimezoneOffset();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const offsetMin = -date.getTimezoneOffset();
   const sign = offsetMin >= 0 ? '+' : '-';
   const absOffset = Math.abs(offsetMin);
   const offsetStr = `${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
-    offsetStr
-  );
+  return `${withSeconds}${offsetStr}`;
 }
 
 /**
@@ -150,6 +148,42 @@ export default function MeetingEditPage() {
   const geoEnabled = watch('geolocation_enabled');
   const sendReminder = watch('send_reminder_wa');
   const reminderTiming = watch('reminder_timing');
+  const watchedSchoolIds = watch('school_ids');
+
+  const [importingParticipants, setImportingParticipants] = useState(false);
+
+  const handleImportFromSchools = async () => {
+    if (!watchedSchoolIds || watchedSchoolIds.length === 0) {
+      toast.error('Pilih sekolah terlebih dahulu');
+      return;
+    }
+    setImportingParticipants(true);
+    try {
+      const { data } = await apiClient.post('/meetings/participants-from-schools', {
+        school_ids: watchedSchoolIds,
+      });
+      const imported = Array.isArray(data) ? data : [];
+      if (imported.length === 0) {
+        toast.warning('Tidak ada data kepala sekolah yang ditemukan untuk sekolah yang dipilih');
+        return;
+      }
+      imported.forEach((p: any) => {
+        append({
+          participant_type: p.participant_type,
+          participant_id: p.participant_id,
+          name: p.name,
+          jabatan: p.jabatan,
+          instansi: p.instansi,
+          phone_number: p.phone_number,
+        });
+      });
+      toast.success(`${imported.length} kepala sekolah berhasil diimpor sebagai peserta`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Gagal mengimpor peserta');
+    } finally {
+      setImportingParticipants(false);
+    }
+  };
 
   const onSubmit = (values: FormValues) => {
     const payload: Partial<UpdateMeetingPayload> = {
@@ -461,10 +495,23 @@ export default function MeetingEditPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Daftar Peserta *</CardTitle>
-              <Button type="button" size="sm" variant="outline"
-                onClick={() => append({ participant_type: 'external', participant_id: null, name: '', jabatan: '', instansi: '', phone_number: '' })}>
-                <Plus className="h-3.5 w-3.5 mr-1.5" />Tambah Peserta
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button" size="sm" variant="outline"
+                  onClick={handleImportFromSchools}
+                  disabled={importingParticipants || !watchedSchoolIds?.length}
+                  className="text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  {importingParticipants
+                    ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    : <Users className="h-3.5 w-3.5 mr-1.5" />}
+                  Import dari Sekolah
+                </Button>
+                <Button type="button" size="sm" variant="outline"
+                  onClick={() => append({ participant_type: 'external', participant_id: null, name: '', jabatan: '', instansi: '', phone_number: '' })}>
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />Tambah Peserta
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

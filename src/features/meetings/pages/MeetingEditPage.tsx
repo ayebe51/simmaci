@@ -81,6 +81,7 @@ const schema = z.object({
   send_reminder_wa: z.boolean(),
   reminder_timing: z.enum(['H-1', '2_hours', 'custom']).optional(),
   reminder_custom_at: z.string().optional(),
+  send_invitation_wa: z.boolean(),
   participants: z.array(participantSchema).min(1, 'Minimal 1 peserta'),
 }).refine(
   (data) => {
@@ -131,6 +132,7 @@ export default function MeetingEditPage() {
           send_reminder_wa: !!meeting.reminder_scheduled_at,
           reminder_timing: 'H-1',
           reminder_custom_at: '',
+          send_invitation_wa: false,
           participants: meeting.participants?.map((p) => ({
             id: p.id,
             participant_type: p.participant_type,
@@ -167,6 +169,8 @@ export default function MeetingEditPage() {
       reminder_custom_at: values.reminder_custom_at
         ? toBackendDatetime(values.reminder_custom_at)
         : undefined,
+      // Only send invitation if explicitly checked (opt-in resend)
+      send_invitation_wa: values.send_invitation_wa || undefined,
     };
 
     // Only include dates if not locked
@@ -406,6 +410,18 @@ export default function MeetingEditPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">Notifikasi WhatsApp</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Controller control={control} name="send_invitation_wa"
+                render={({ field }) => (
+                  <Checkbox id="send_invitation_wa" checked={field.value} onCheckedChange={field.onChange} />
+                )} />
+              <Label htmlFor="send_invitation_wa" className="cursor-pointer">
+                Kirim ulang undangan WA ke semua peserta
+              </Label>
+            </div>
+            <p className="text-xs text-slate-500 pl-6">
+              Centang ini untuk mengirim ulang undangan WA beserta QR code ke semua peserta saat menyimpan.
+            </p>
             <div className="flex items-center gap-2">
               <Controller control={control} name="send_reminder_wa"
                 render={({ field }) => (

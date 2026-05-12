@@ -170,6 +170,12 @@ class MeetingService
                 }
             }
 
+            // 6. Resend invitation WA if requested
+            if (!empty($data['send_invitation_wa'])) {
+                $meeting->load('participants');
+                $this->sendInvitationBlast($meeting);
+            }
+
             return $meeting->fresh([
                 'schools',
                 'participants',

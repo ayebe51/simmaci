@@ -111,13 +111,14 @@ class MeetingCheckInServiceTest extends TestCase
     {
         // Move meeting to "ongoing" state (between started_at and ended_at)
         $this->meeting->update([
-            'started_at' => now()->subHours(1),
+            'started_at' => now()->subMinutes(30),
             'ended_at' => now()->addHours(4),
         ]);
         $this->meeting->refresh();
 
+        // Regenerate QR token with new meeting time
+        $url = $this->qrService->generatePersonalQrUrl($this->meeting, $this->participant);
         $this->participant->refresh();
-        $url = $this->participant->qr_token;
 
         // Create a request from the actual signed URL
         $request = \Illuminate\Http\Request::create($url, 'GET');

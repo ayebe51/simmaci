@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\MeetingCheckInController;
 use App\Http\Controllers\Api\MeetingReportController;
 use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\MeetingPhotoController;
+use App\Http\Controllers\Api\PublicMeetingScannerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -100,6 +101,13 @@ Route::prefix('public/attendance')->group(function () {
     Route::get('student-log',  [PublicAttendanceController::class, 'studentLogShow']);
     Route::post('student-log', [PublicAttendanceController::class, 'studentLogStore']);
     Route::post('qr-scan',     [PublicAttendanceController::class, 'qrScan']);
+});
+
+// ── Public Meeting Scanner (PIN protected, no auth token) ──
+Route::prefix('public/meetings')->group(function () {
+    Route::post('verify-pin', [PublicMeetingScannerController::class, 'verifyPin']);
+    Route::post('scan',       [PublicMeetingScannerController::class, 'scan']);
+    Route::get('active',      [PublicMeetingScannerController::class, 'activeList']);
 });
 
 // Test route untuk debug

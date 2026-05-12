@@ -112,6 +112,9 @@ export default function SettingsPage() {
            {isAdmin && (
              <TabsTrigger value="template" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Template SK</TabsTrigger>
            )}
+           {user?.role === 'super_admin' && (
+             <TabsTrigger value="scanner" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">PIN Scanner</TabsTrigger>
+           )}
            <TabsTrigger value="security" className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 bg-slate-100 text-slate-400">Keamanan</TabsTrigger>
         </TabsList>
 
@@ -133,6 +136,10 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </Card>
+        </TabsContent>
+
+        <TabsContent value="scanner">
+            <ScannerPinCard settingsMap={settingsMap} refetch={refetch} />
         </TabsContent>
 
         <TabsContent value="security">
@@ -225,4 +232,66 @@ function TemplateCard({ title, settingKey, onUpload, onDelete, data, uploading }
             </div>
         </Card>
     )
+}
+
+// ── Scanner PIN Card ───────────────────────────────────────────────────────
+
+function ScannerPinCard({ settingsMap, refetch }: { settingsMap: any; refetch: () => void }) {
+  const [meetingPin, setMeetingPin] = useState(settingsMap?.meeting_scanner_pin ?? "")
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!meetingPin || meetingPin.length < 4) {
+      toast.error("PIN minimal 4 karakter")
+      return
+    }
+    setSaving(true)
+    try {
+      await settingApi.update("meeting_scanner_pin", meetingPin)
+      toast.success("PIN Scanner Rapat berhasil disimpan")
+      refetch()
+    } catch {
+      toast.error("Gagal menyimpan PIN")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] p-10 max-w-2xl">
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-black uppercase italic tracking-tight">PIN Scanner Rapat</h2>
+          <p className="text-slate-400 text-sm mt-1">
+            PIN ini digunakan oleh panitia rapat untuk login ke halaman{" "}
+            <code className="bg-slate-100 px-1 rounded text-xs">/scan</code> dan scan QR peserta rapat.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            PIN Panitia Rapat
+          </Label>
+          <Input
+            type="text"
+            value={meetingPin}
+            onChange={(e) => setMeetingPin(e.target.value)}
+            placeholder="Contoh: 1234"
+            maxLength={8}
+            className="h-12 rounded-xl font-mono text-lg tracking-widest max-w-xs"
+          />
+          <p className="text-xs text-slate-400">4–8 karakter. Bagikan ke panitia rapat saja.</p>
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="h-12 px-8 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-xs tracking-widest"
+        >
+          {saving ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+          Simpan PIN
+        </Button>
+      </div>
+    </Card>
+  )
 }

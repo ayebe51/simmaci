@@ -29,7 +29,8 @@ class MeetingQrService
         $expiresAt = $meeting->started_at->addHours(25); // H+1 from start
 
         // Generate signed URL using Laravel's temporary signed route
-        $url = URL::temporarySignedRoute(
+        // This creates the signature — we then replace the base URL with the frontend URL
+        $backendUrl = URL::temporarySignedRoute(
             'public.meetings.check-in.show',
             $expiresAt,
             [
@@ -37,6 +38,10 @@ class MeetingQrService
                 'participant' => $participant->id,
             ]
         );
+
+        // Replace backend URL with frontend URL so the link opens the React app
+        $frontendUrl = env('FRONTEND_URL', config('app.url'));
+        $url = $this->replaceBaseUrl($backendUrl, $frontendUrl);
 
         // Store token reference in participant for one-time use tracking
         $participant->update([
@@ -60,13 +65,17 @@ class MeetingQrService
         $expiresAt = $meeting->started_at->addHours(25); // H+1 from start
 
         // Generate signed URL using Laravel's temporary signed route
-        $url = URL::temporarySignedRoute(
+        $backendUrl = URL::temporarySignedRoute(
             'public.meetings.walk-in.show',
             $expiresAt,
             [
                 'meeting' => $meeting->id,
             ]
         );
+
+        // Replace backend URL with frontend URL
+        $frontendUrl = env('FRONTEND_URL', config('app.url'));
+        $url = $this->replaceBaseUrl($backendUrl, $frontendUrl);
 
         // Store token reference in meeting for tracking
         $meeting->update([
@@ -79,7 +88,9 @@ class MeetingQrService
     /**
      * Validate a signed URL signature.
      *
-     * Uses Laravel's built-in signature validation to ensure the URL hasn't been tampered with.
+     * Handles both frontend URLs (simmaci.com/meetings/...) and
+     * backend URLs (api.simmaci.com/api/public/meetings/...).
+     * Converts frontend URL back to backend URL for signature validation.
      *
      * @param string $url
      * @return bool True if signature is valid, false otherwise
@@ -87,6 +98,14 @@ class MeetingQrService
     public function validateSignature(string $url): bool
     {
         try {
+            // If URL is a frontend URL, convert back to backend URL for validation
+            $frontendUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/');
+            $backendUrl  = rtrim(config('app.url'), '/');
+
+            if ($frontendUrl !== $backendUrl && str_starts_with($url, $frontendUrl)) {
+                $url = $backendUrl . substr($url, strlen($frontendUrl));
+            }
+
             // Create a request from the URL for validation
             $request = \Illuminate\Http\Request::create($url, 'GET');
             return URL::hasValidSignature($request, true);
@@ -94,4 +113,24 @@ class MeetingQrService
             return false;
         }
     }
-}
+
+    /**
+     * Replace the base URL of a signed URL with the frontend URL.
+     * Preserves the path, query string, and signature.
+     */
+    private function replaceBaseUrl(string $signedUrl, string $frontendBase): string
+    {
+        $backendBase = rtrim(config('app.url'), '/');
+        $frontendBase = rtrim($frontendBase, '/');
+
+        if ($backendBase === $frontendBase) {
+            return $signedUrl;
+        }
+
+        // Replace only the base URL, keep path + query string intact
+        if (str_starts_with($signedUrl, $backendBase)) {
+            return $frontendBase . substr($signedUrl, strlen($backendBase));
+        }
+
+        return $signedUrl;
+    }

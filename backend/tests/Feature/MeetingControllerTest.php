@@ -328,6 +328,109 @@ class MeetingControllerTest extends TestCase
     }
 
     /**
+     * Test admin_yayasan can update a meeting
+     */
+    public function test_admin_yayasan_can_update_meeting(): void
+    {
+        $meeting = Meeting::factory()->create([
+            'created_by' => $this->superAdmin->id,
+            'started_at' => now()->addDays(7),
+        ]);
+
+        $response = $this->actingAs($this->adminYayasan)
+            ->putJson("/api/meetings/{$meeting->id}", ['title' => 'Updated by Yayasan']);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('meetings', ['id' => $meeting->id, 'title' => 'Updated by Yayasan']);
+    }
+
+    /**
+     * Test update meeting with participants replaces participant list
+     */
+    public function test_update_meeting_can_update_participants(): void
+    {
+        $meeting = Meeting::factory()->create([
+            'created_by' => $this->superAdmin->id,
+            'started_at' => now()->addDays(7),
+        ]);
+        MeetingParticipant::factory()->forMeeting($meeting)->create(['name' => 'Old Participant']);
+
+        $data = [
+            'participants' => [
+                [
+                    'participant_type' => 'external',
+                    'name' => 'New Participant',
+                    'jabatan' => 'Kepala Sekolah',
+                    'instansi' => 'MI Test',
+                    'phone_number' => '081234567890',
+                ],
+            ],
+        ];
+
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson("/api/meetings/{$meeting->id}", $data);
+
+        $response->assertOk();
+
+        // Old participant should be soft-deleted, new one added
+        $this->assertSoftDeleted('meeting_participants', [
+            'meeting_id' => $meeting->id,
+            'name' => 'Old Participant',
+        ]);
+        $this->assertDatabaseHas('meeting_participants', [
+            'meeting_id' => $meeting->id,
+            'name' => 'New Participant',
+            'deleted_at' => null,
+        ]);
+    }
+
+    /**
+     * Test started_at and ended_at cannot be changed after meeting has started
+     */
+    public function test_cannot_change_datetime_after_meeting_started(): void
+    {
+        $meeting = Meeting::factory()->create([
+            'created_by' => $this->superAdmin->id,
+            'started_at' => now()->subHours(1), // already started
+            'ended_at' => now()->addHours(3),
+        ]);
+
+        $data = [
+            'started_at' => now()->addDays(1)->format('Y-m-d\TH:i:sP'),
+            'ended_at' => now()->addDays(1)->addHours(2)->format('Y-m-d\TH:i:sP'),
+        ];
+
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson("/api/meetings/{$meeting->id}", $data);
+
+        $response->assertUnprocessable();
+    }
+
+    /**
+     * Test can update title/location even after meeting has started
+     */
+    public function test_can_update_non_datetime_fields_after_meeting_started(): void
+    {
+        $meeting = Meeting::factory()->create([
+            'created_by' => $this->superAdmin->id,
+            'started_at' => now()->subHours(1),
+            'ended_at' => now()->addHours(3),
+        ]);
+
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson("/api/meetings/{$meeting->id}", [
+                'title' => 'Updated Title After Start',
+                'location' => 'New Location',
+            ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('meetings', [
+            'id' => $meeting->id,
+            'title' => 'Updated Title After Start',
+        ]);
+    }
+
+    /**
      * Test operator cannot update a meeting
      */
     public function test_operator_cannot_update_meeting(): void

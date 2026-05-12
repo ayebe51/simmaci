@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock } from 'lucide-react';
+import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useMeetings } from '../hooks/useMeetings';
-import { MeetingStatus, MeetingListParams } from '../types/meeting.types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useMeetings, useDeleteMeeting } from '../hooks/useMeetings';
+import { Meeting, MeetingStatus, MeetingListParams } from '../types/meeting.types';
 
 const statusLabel: Record<MeetingStatus, string> = {
   upcoming: 'Akan Datang',
@@ -54,6 +64,8 @@ export default function MeetingListPage() {
   };
 
   const { data, isLoading, isError } = useMeetings(params);
+  const deleteMutation = useDeleteMeeting();
+  const [deleteTarget, setDeleteTarget] = useState<Meeting | null>(null);
 
   const meetings = data?.data ?? [];
   const lastPage = data?.last_page ?? 1;
@@ -192,11 +204,11 @@ export default function MeetingListPage() {
                     )}
                   </span>
                 </div>
-                <div className="pt-1">
+                <div className="pt-1 flex gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="w-full text-xs"
+                    className="flex-1 text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/dashboard/meetings/${meeting.id}`);
@@ -205,6 +217,19 @@ export default function MeetingListPage() {
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     Lihat Detail
                   </Button>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteTarget(meeting);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -236,6 +261,34 @@ export default function MeetingListPage() {
           </Button>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Rapat</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus rapat{' '}
+              <strong>"{deleteTarget?.title}"</strong>? Semua data peserta dan
+              absensi akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMutation.mutate(deleteTarget.id);
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              Ya, Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

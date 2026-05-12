@@ -164,7 +164,7 @@ export default function MeetingEditPage() {
       });
       const imported = Array.isArray(data) ? data : [];
       if (imported.length === 0) {
-        toast.warning('Tidak ada data kepala sekolah yang ditemukan untuk sekolah yang dipilih');
+        toast.warning('Tidak ada data kepala sekolah yang ditemukan. Pastikan data kepala madrasah sudah diisi di master data sekolah (menu Kelola Sekolah → edit sekolah).');
         return;
       }
       imported.forEach((p: any) => {

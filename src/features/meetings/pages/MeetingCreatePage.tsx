@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,30 +19,32 @@ import {
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { useCreateMeeting } from '../hooks/useMeetings';
-import { schoolApi } from '@/lib/api';
+import { schoolApi, apiClient } from '@/lib/api';
 import { CreateMeetingPayload, ParticipantInput } from '../types/meeting.types';
+import { toast } from 'sonner';
 
 /**
  * Convert a datetime-local string (e.g. "2026-05-09T18:00") to the ISO 8601
  * format with timezone offset that the backend expects: "Y-m-d\TH:i:sP"
  * e.g. "2026-05-09T18:00:00+07:00"
+ *
+ * IMPORTANT: datetime-local input value is always in LOCAL time (no timezone).
+ * We must NOT use new Date() to parse it as that may treat it as UTC in some browsers.
+ * Instead, we manually append the local timezone offset.
  */
 function toBackendDatetime(datetimeLocal: string): string {
   if (!datetimeLocal) return datetimeLocal;
-  // Append seconds if missing (datetime-local may omit them)
+  // Append seconds if missing
   const withSeconds = datetimeLocal.length === 16 ? `${datetimeLocal}:00` : datetimeLocal;
-  const date = new Date(withSeconds);
-  // Format as ISO with local timezone offset
+  // Get local timezone offset from a known date (not from the input string)
+  const now = new Date();
+  const offsetMin = -now.getTimezoneOffset();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const offsetMin = -date.getTimezoneOffset();
   const sign = offsetMin >= 0 ? '+' : '-';
   const absOffset = Math.abs(offsetMin);
   const offsetStr = `${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
-    offsetStr
-  );
+  // Append offset directly to the local datetime string — no Date() parsing
+  return `${withSeconds}${offsetStr}`;
 }
 
 const participantSchema = z.object({
@@ -118,6 +120,50 @@ export default function MeetingCreatePage() {
   const geoEnabled = watch('geolocation_enabled');
   const sendReminder = watch('send_reminder_wa');
   const reminderTiming = watch('reminder_timing');
+  const watchedSchoolIds = watch('school_ids');
+
+  const [importingParticipants, setImportingParticipants] = useState(false);
+
+  const handleImportFromSchools = async () => {
+    if (!watchedSchoolIds || watchedSchoolIds.length === 0) {
+      toast.error('Pilih sekolah terlebih dahulu');
+      return;
+    }
+    setImportingParticipants(true);
+    try {
+      const { data } = await apiClient.post('/meetings/participants-from-schools', {
+        school_ids: watchedSchoolIds,
+      });
+      const imported = Array.isArray(data) ? data : [];
+      if (imported.length === 0) {
+        toast.warning('Tidak ada data kepala sekolah yang ditemukan untuk sekolah yang dipilih');
+        return;
+      }
+      // Replace current participants with imported ones
+      const currentParticipants = fields;
+      // Remove all existing empty participants first
+      const nonEmpty = currentParticipants.filter((_, i) => {
+        const v = (document.querySelector(`[name="participants.${i}.name"]`) as HTMLInputElement)?.value;
+        return v && v.trim() !== '';
+      });
+      // Append imported participants
+      imported.forEach((p: any) => {
+        append({
+          participant_type: p.participant_type,
+          participant_id: p.participant_id,
+          name: p.name,
+          jabatan: p.jabatan,
+          instansi: p.instansi,
+          phone_number: p.phone_number,
+        });
+      });
+      toast.success(`${imported.length} kepala sekolah berhasil diimpor sebagai peserta`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Gagal mengimpor peserta');
+    } finally {
+      setImportingParticipants(false);
+    }
+  };
 
   const onSubmit = (values: FormValues) => {
     const payload: CreateMeetingPayload = {
@@ -516,17 +562,34 @@ export default function MeetingCreatePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Daftar Peserta *</CardTitle>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  append({ participant_type: 'external', participant_id: null, name: '', jabatan: '', instansi: '', phone_number: '' })
-                }
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Tambah Peserta
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleImportFromSchools}
+                  disabled={importingParticipants || !watchedSchoolIds?.length}
+                  className="text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  {importingParticipants ? (
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <Users className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  Import dari Sekolah
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    append({ participant_type: 'external', participant_id: null, name: '', jabatan: '', instansi: '', phone_number: '' })
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Tambah Peserta
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">

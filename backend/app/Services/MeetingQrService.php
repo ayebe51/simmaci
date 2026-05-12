@@ -134,3 +134,4 @@ class MeetingQrService
 
         return $signedUrl;
     }
+}

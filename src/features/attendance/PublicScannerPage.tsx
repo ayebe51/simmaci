@@ -643,7 +643,7 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
       const scanner = new Html5Qrcode("pub-qr-reader");
       scannerRef.current = scanner;
       await scanner.start(
-        { facingMode: "environment" },
+        { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
         { fps: 15, qrbox: { width: 260, height: 260 } },
         async (code) => {
           if (cooldownRef.current) return;
@@ -782,7 +782,7 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
       const scanner = new Html5Qrcode("meeting-qr-reader");
       scannerRef.current = scanner;
       await scanner.start(
-        { facingMode: "environment" },
+        { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
         { fps: 15, qrbox: { width: 260, height: 260 } },
         async (code) => {
           if (cooldownRef.current) return;

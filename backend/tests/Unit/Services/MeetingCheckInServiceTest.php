@@ -357,9 +357,10 @@ class MeetingCheckInServiceTest extends TestCase
     public function test_property_4_geolocation_inside_radius_succeeds(): void
     {
         // Create meeting with geolocation enabled
+        // Use subHours(2) to ensure we're well within the H-1 to H+1 check-in window
         $meeting = Meeting::factory()->create([
             'title' => 'Meeting with Geolocation',
-            'started_at' => now()->subHours(1),
+            'started_at' => now()->subMinutes(30),
             'ended_at' => now()->addHours(4),
             'geolocation_enabled' => true,
             'latitude' => -7.7325,  // Cilacap coordinates
@@ -397,7 +398,7 @@ class MeetingCheckInServiceTest extends TestCase
         // Create meeting with geolocation enabled
         $meeting = Meeting::factory()->create([
             'title' => 'Meeting with Geolocation',
-            'started_at' => now()->subHours(1),
+            'started_at' => now()->subMinutes(30),
             'ended_at' => now()->addHours(4),
             'geolocation_enabled' => true,
             'latitude' => -7.7325,  // Cilacap coordinates
@@ -434,7 +435,7 @@ class MeetingCheckInServiceTest extends TestCase
         // Create meeting with geolocation enabled
         $meeting = Meeting::factory()->create([
             'title' => 'Meeting with Geolocation',
-            'started_at' => now()->subHours(1),
+            'started_at' => now()->subMinutes(30),
             'ended_at' => now()->addHours(4),
             'geolocation_enabled' => true,
             'latitude' => -7.7325,

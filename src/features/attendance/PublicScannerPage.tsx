@@ -639,34 +639,41 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
   const cooldownRef = useRef(false);
 
   const startScanner = async () => {
+    const onScan = async (code: string) => {
+      if (cooldownRef.current) return;
+      cooldownRef.current = true;
+      setTimeout(() => { cooldownRef.current = false; }, 2500);
+      try {
+        const res = await publicAttendanceApi.qrScan(session.schoolId, session.pin, code, "teacher");
+        if (res.success) {
+          toast.success(res.message);
+          setScanResults((prev) => [
+            { name: res.user_name || code, time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) },
+            ...prev,
+          ]);
+        } else {
+          toast.error(res.message || "Gagal memproses QR");
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Guru tidak ditemukan");
+      }
+    };
+
+    const config = { fps: 15, qrbox: { width: 260, height: 260 } };
+
     try {
       const scanner = new Html5Qrcode("pub-qr-reader");
       scannerRef.current = scanner;
-      await scanner.start(
-        { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
-        { fps: 15, qrbox: { width: 260, height: 260 } },
-        async (code) => {
-          if (cooldownRef.current) return;
-          cooldownRef.current = true;
-          setTimeout(() => { cooldownRef.current = false; }, 2500);
-
-          try {
-            const res = await publicAttendanceApi.qrScan(session.schoolId, session.pin, code, "teacher");
-            if (res.success) {
-              toast.success(res.message);
-              setScanResults((prev) => [
-                { name: res.user_name || code, time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) },
-                ...prev,
-              ]);
-            } else {
-              toast.error(res.message || "Gagal memproses QR");
-            }
-          } catch (err: any) {
-            toast.error(err.response?.data?.message || "Guru tidak ditemukan");
-          }
-        },
-        () => {}
-      );
+      // Try with resolution cap first (prevents Android bitmap OOM)
+      try {
+        await scanner.start(
+          { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
+          config, onScan, () => {}
+        );
+      } catch {
+        // Fallback: some Android WebViews reject combined constraints — retry with facingMode only
+        await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
+      }
       setScanning(true);
     } catch {
       toast.error("Gagal membuka kamera. Izinkan akses kamera di browser.");
@@ -778,58 +785,64 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
   const cooldownRef = useRef(false);
 
   const startScanner = async () => {
+    const onScan = async (code: string) => {
+      if (cooldownRef.current) return;
+      cooldownRef.current = true;
+      setTimeout(() => { cooldownRef.current = false; }, 3000);
+      try {
+        const res = await publicMeetingApi.scan(session.pin, code);
+        if (res.success || res.code === 'SUCCESS') {
+          const d = res.data ?? res;
+          toast.success(res.message || `Check-in ${d.participant_name} berhasil`);
+          setScanResults((prev) => [{
+            name: d.participant_name ?? 'Peserta',
+            jabatan: d.jabatan ?? '',
+            instansi: d.instansi ?? '',
+            time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+            status: 'success',
+            message: res.message ?? 'Berhasil',
+          }, ...prev.slice(0, 19)]);
+        } else {
+          toast.error(res.message || "Gagal memproses QR");
+          setScanResults((prev) => [{
+            name: '—', jabatan: '', instansi: '',
+            time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+            status: 'error',
+            message: res.message ?? 'Gagal',
+          }, ...prev.slice(0, 19)]);
+        }
+      } catch (err: any) {
+        const msg = err.response?.data?.message || "QR tidak valid atau sudah digunakan";
+        const status = err.response?.status;
+        if (status === 409) {
+          toast.info(msg);
+        } else {
+          toast.error(msg);
+        }
+        setScanResults((prev) => [{
+          name: '—', jabatan: '', instansi: '',
+          time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          status: 'error',
+          message: msg,
+        }, ...prev.slice(0, 19)]);
+      }
+    };
+
+    const config = { fps: 15, qrbox: { width: 260, height: 260 } };
+
     try {
       const scanner = new Html5Qrcode("meeting-qr-reader");
       scannerRef.current = scanner;
-      await scanner.start(
-        { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
-        { fps: 15, qrbox: { width: 260, height: 260 } },
-        async (code) => {
-          if (cooldownRef.current) return;
-          cooldownRef.current = true;
-          setTimeout(() => { cooldownRef.current = false; }, 3000);
-
-          try {
-            const res = await publicMeetingApi.scan(session.pin, code);
-            if (res.success || res.code === 'SUCCESS') {
-              const d = res.data ?? res;
-              toast.success(res.message || `Check-in ${d.participant_name} berhasil`);
-              setScanResults((prev) => [{
-                name: d.participant_name ?? 'Peserta',
-                jabatan: d.jabatan ?? '',
-                instansi: d.instansi ?? '',
-                time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-                status: 'success',
-                message: res.message ?? 'Berhasil',
-              }, ...prev.slice(0, 19)]);
-            } else {
-              toast.error(res.message || "Gagal memproses QR");
-              setScanResults((prev) => [{
-                name: '—', jabatan: '', instansi: '',
-                time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-                status: 'error',
-                message: res.message ?? 'Gagal',
-              }, ...prev.slice(0, 19)]);
-            }
-          } catch (err: any) {
-            const msg = err.response?.data?.message || "QR tidak valid atau sudah digunakan";
-            const status = err.response?.status;
-            // 409 = already checked in — show as info not error
-            if (status === 409) {
-              toast.info(msg);
-            } else {
-              toast.error(msg);
-            }
-            setScanResults((prev) => [{
-              name: '—', jabatan: '', instansi: '',
-              time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-              status: 'error',
-              message: msg,
-            }, ...prev.slice(0, 19)]);
-          }
-        },
-        () => {}
-      );
+      // Try with resolution cap first (prevents Android bitmap OOM)
+      try {
+        await scanner.start(
+          { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
+          config, onScan, () => {}
+        );
+      } catch {
+        // Fallback: some Android WebViews reject combined constraints — retry with facingMode only
+        await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
+      }
       setScanning(true);
     } catch {
       toast.error("Gagal membuka kamera. Izinkan akses kamera di browser.");

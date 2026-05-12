@@ -91,6 +91,7 @@ const PublicScannerPage = lazy(() => import("./features/attendance/PublicScanner
 // ── Meetings ──────────────────────────────────────────────────────────────────
 const MeetingListPage = lazy(() => import("./features/meetings/pages/MeetingListPage"))
 const MeetingCreatePage = lazy(() => import("./features/meetings/pages/MeetingCreatePage"))
+const MeetingEditPage = lazy(() => import("./features/meetings/pages/MeetingEditPage"))
 const MeetingDetailPage = lazy(() => import("./features/meetings/MeetingDetailPage").then(m => ({ default: m.MeetingDetailPage })))
 const MeetingCheckInPage = lazy(() => import("./features/meetings/pages/MeetingCheckInPage"))
 
@@ -217,6 +218,7 @@ export default function App() {
                           {/* Meeting Module */}
                           <Route path="meetings" element={<MeetingListPage />} />
                           <Route path="meetings/create" element={<MeetingCreatePage />} />
+                          <Route path="meetings/:id/edit" element={<MeetingEditPage />} />
                           <Route path="meetings/:id" element={<MeetingDetailPage />} />
                         </Routes>
                       </PageTransition>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock, Trash2 } from 'lucide-react';
+import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -218,17 +218,30 @@ export default function MeetingListPage() {
                     Lihat Detail
                   </Button>
                   {isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget(meeting);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs text-blue-600 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dashboard/meetings/${meeting.id}/edit`);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(meeting);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
                   )}
                 </div>
               </CardContent>

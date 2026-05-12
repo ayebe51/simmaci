@@ -260,6 +260,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('meetings', [MeetingController::class, 'index']);
     Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
 
+    // ── Meetings write operations (super_admin + admin_yayasan only) ──
+    Route::middleware('role:super_admin,admin_yayasan')->group(function () {
+        Route::post('meetings', [MeetingController::class, 'store']);
+        Route::put('meetings/{meeting}', [MeetingController::class, 'update']);
+        Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy']);
+        Route::post('meetings/{meeting}/participants/{participant}/check-in', [MeetingController::class, 'manualCheckIn']);
+        Route::post('meetings/{meeting}/participants/{participant}/reset-check-in', [MeetingController::class, 'resetCheckIn']);
+        Route::post('meetings/{meeting}/participants/{participant}/regenerate-qr', [MeetingController::class, 'regenerateQr']);
+    });
+
     // ── WA Blast (super_admin + admin_yayasan only) ──
     Route::middleware('role:super_admin,admin_yayasan')->group(function () {
         // Blast sessions — preview-recipients must come before {id} wildcard
@@ -284,17 +294,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('wa-blast-config', [WaBlastConfigController::class, 'store']);
             Route::post('wa-blast-config/test', [WaBlastConfigController::class, 'testConnection']);
         });
-
-        // ── Meetings write operations (super_admin + admin_yayasan only) ──
-        // Create, update, delete only for super_admin and admin_yayasan
-        Route::post('meetings', [MeetingController::class, 'store']);
-        Route::put('meetings/{meeting}', [MeetingController::class, 'update']);
-        Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy']);
-
-        // Manual check-in and reset
-        Route::post('meetings/{meeting}/participants/{participant}/check-in', [MeetingController::class, 'manualCheckIn']);
-        Route::post('meetings/{meeting}/participants/{participant}/reset-check-in', [MeetingController::class, 'resetCheckIn']);
-        Route::post('meetings/{meeting}/participants/{participant}/regenerate-qr', [MeetingController::class, 'regenerateQr']);
 
         // Reports
         Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);

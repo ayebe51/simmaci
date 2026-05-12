@@ -99,6 +99,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_URL: https://api.simmaci.com
+      FRONTEND_URL: https://simmaci.com
       APP_KEY: ${APP_KEY}
       DB_CONNECTION: pgsql
       DB_HOST: db
@@ -165,6 +166,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_URL: https://api.simmaci.com
+      FRONTEND_URL: https://simmaci.com
       APP_KEY: ${APP_KEY}
       DB_CONNECTION: pgsql
       DB_HOST: db
@@ -207,6 +209,7 @@ services:
       APP_ENV: production
       APP_DEBUG: "false"
       APP_URL: https://api.simmaci.com
+      FRONTEND_URL: https://simmaci.com
       APP_KEY: ${APP_KEY}
       DB_CONNECTION: pgsql
       DB_HOST: db

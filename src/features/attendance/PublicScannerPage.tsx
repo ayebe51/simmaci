@@ -11,9 +11,28 @@ import {
   ChevronLeft, ChevronRight, Camera, CheckCircle2, XCircle,
   Clock, ArrowLeft, Loader2, LogOut, Download, ExternalLink,
   BookOpen, School, ClipboardList, BarChart2, Settings,
+  CalendarDays, Users,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { publicAttendanceApi } from "@/lib/api";
+import { publicAttendanceApi, API_URL } from "@/lib/api";
+import axios from "axios";
+
+// ── Public Meeting Scanner API ─────────────────────────────────────────────
+
+const publicMeetingApi = {
+  verifyPin: async (pin: string) => {
+    const res = await axios.post(`${API_URL}/public/meetings/verify-pin`, { pin });
+    return res.data;
+  },
+  activeList: async (pin: string) => {
+    const res = await axios.get(`${API_URL}/public/meetings/active`, { params: { pin } });
+    return res.data?.data ?? res.data;
+  },
+  scan: async (pin: string, qrUrl: string) => {
+    const res = await axios.post(`${API_URL}/public/meetings/scan`, { pin, qr_url: qrUrl });
+    return res.data;
+  },
+};
 
 // ── PWA Install Hook ───────────────────────────────────────────────────────
 
@@ -54,12 +73,14 @@ function useInstallPrompt() {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Screen = "login" | "mode" | "manual" | "scanner";
+type Screen = "login" | "mode" | "manual" | "scanner" | "meeting-scanner";
+type LoginMode = "operator" | "yayasan";
 
 interface Session {
   schoolId: number;
   schoolName: string;
   pin: string;
+  loginMode: LoginMode;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -79,6 +100,7 @@ const STATUS_OUTLINE: Record<string, string> = {
 // ── Login Screen ───────────────────────────────────────────────────────────
 
 function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
+  const [loginMode, setLoginMode] = useState<LoginMode>("operator");
   const [schoolId, setSchoolId] = useState("");
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
@@ -90,23 +112,39 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
   });
 
   const handleSubmit = async () => {
-    if (!schoolId || !pin) {
-      toast.error("Pilih sekolah dan masukkan PIN");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await publicAttendanceApi.verifyPin(Number(schoolId), pin);
-      if (res.success) {
-        toast.success(`Selamat datang di ${res.school_name}`);
-        onSuccess({ schoolId: Number(schoolId), schoolName: res.school_name, pin });
-      } else {
-        toast.error(res.message || "PIN salah");
+    if (loginMode === "operator") {
+      if (!schoolId || !pin) { toast.error("Pilih sekolah dan masukkan PIN"); return; }
+      setLoading(true);
+      try {
+        const res = await publicAttendanceApi.verifyPin(Number(schoolId), pin);
+        if (res.success) {
+          toast.success(`Selamat datang di ${res.school_name}`);
+          onSuccess({ schoolId: Number(schoolId), schoolName: res.school_name, pin, loginMode: "operator" });
+        } else {
+          toast.error(res.message || "PIN salah");
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Gagal verifikasi PIN");
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Gagal verifikasi PIN");
-    } finally {
-      setLoading(false);
+    } else {
+      // Yayasan mode — verify meeting scanner PIN
+      if (!pin) { toast.error("Masukkan PIN Panitia Rapat"); return; }
+      setLoading(true);
+      try {
+        const res = await publicMeetingApi.verifyPin(pin);
+        if (res.success) {
+          toast.success("Selamat datang, Panitia Rapat");
+          onSuccess({ schoolId: 0, schoolName: "LP Ma'arif NU Cilacap", pin, loginMode: "yayasan" });
+        } else {
+          toast.error(res.message || "PIN salah");
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "PIN salah atau belum dikonfigurasi");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -115,10 +153,8 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
       <div className="w-full max-w-sm space-y-3">
         {/* Install Banner */}
         {canInstall && (
-          <button
-            onClick={install}
-            className="w-full bg-emerald-600/20 border border-emerald-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 text-left hover:bg-emerald-600/30 transition"
-          >
+          <button onClick={install}
+            className="w-full bg-emerald-600/20 border border-emerald-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 text-left hover:bg-emerald-600/30 transition">
             <Download className="h-5 w-5 text-emerald-400 shrink-0" />
             <div>
               <p className="text-emerald-300 text-sm font-bold">Install sebagai App</p>
@@ -138,29 +174,57 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
             <div className="mx-auto w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center">
               <ShieldCheck className="h-8 w-8 text-emerald-600" />
             </div>
-            <CardTitle className="text-xl font-black text-slate-800">Absensi Sekolah</CardTitle>
-            <p className="text-xs text-slate-400 px-4">Masukkan PIN yang diberikan operator sekolah</p>
+            <CardTitle className="text-xl font-black text-slate-800">Scanner SIMMACI</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-6">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Sekolah</label>
-              <Select value={schoolId} onValueChange={setSchoolId} disabled={loadingSchools}>
-                <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-0">
-                  <SelectValue placeholder={loadingSchools ? "Memuat..." : "Pilih sekolah..."} />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl max-h-60">
-                  {schools.map((s: any) => (
-                    <SelectItem key={s.id} value={s.id.toString()}>
-                      <span className="font-medium">{s.nama}</span>
-                      {s.jenjang && <span className="text-slate-400 text-xs ml-1">({s.jenjang})</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Mode toggle */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+              <button
+                onClick={() => { setLoginMode("operator"); setPin(""); }}
+                className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === "operator" ? "bg-white shadow text-emerald-700" : "text-slate-500"}`}
+              >
+                <School className="h-3.5 w-3.5 inline mr-1" />
+                Operator Sekolah
+              </button>
+              <button
+                onClick={() => { setLoginMode("yayasan"); setPin(""); setSchoolId(""); }}
+                className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === "yayasan" ? "bg-white shadow text-purple-700" : "text-slate-500"}`}
+              >
+                <CalendarDays className="h-3.5 w-3.5 inline mr-1" />
+                Panitia Rapat
+              </button>
             </div>
 
+            {loginMode === "operator" && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Unit Sekolah</label>
+                <Select value={schoolId} onValueChange={setSchoolId} disabled={loadingSchools}>
+                  <SelectTrigger className="h-11 rounded-xl bg-slate-50 border-0">
+                    <SelectValue placeholder={loadingSchools ? "Memuat..." : "Pilih sekolah..."} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl max-h-60">
+                    {schools.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id.toString()}>
+                        <span className="font-medium">{s.nama}</span>
+                        {s.jenjang && <span className="text-slate-400 text-xs ml-1">({s.jenjang})</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {loginMode === "yayasan" && (
+              <div className="p-3 bg-purple-50 rounded-xl text-xs text-purple-700">
+                <CalendarDays className="h-3.5 w-3.5 inline mr-1" />
+                Mode Panitia Rapat — untuk scan QR peserta rapat yayasan
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PIN Scanner</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {loginMode === "operator" ? "PIN Scanner" : "PIN Panitia Rapat"}
+              </label>
               <Input
                 type="password"
                 placeholder="••••••"
@@ -174,15 +238,14 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
 
             <Button
               onClick={handleSubmit}
-              disabled={!schoolId || !pin || loading}
-              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl mt-2"
+              disabled={(loginMode === "operator" ? !schoolId : false) || !pin || loading}
+              className={`w-full h-12 font-bold rounded-xl mt-2 ${loginMode === "yayasan" ? "bg-purple-600 hover:bg-purple-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Masuk →"}
             </Button>
           </CardContent>
         </Card>
 
-        {/* iOS install hint */}
         {!canInstall && !isInstalled && (
           <p className="text-center text-slate-600 text-xs px-4">
             Di iPhone: tap <strong className="text-slate-400">Share</strong> → <strong className="text-slate-400">Add to Home Screen</strong> untuk install
@@ -201,45 +264,68 @@ function ModeScreen({
   onLogout,
 }: {
   session: Session;
-  onSelect: (mode: "manual" | "scanner") => void;
+  onSelect: (mode: "manual" | "scanner" | "meeting-scanner") => void;
   onLogout: () => void;
 }) {
+  const isYayasan = session.loginMode === "yayasan";
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-4">
         <div className="text-center mb-8">
-          <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">Sekolah</p>
+          <p className="text-slate-400 text-xs uppercase tracking-widest mb-1">
+            {isYayasan ? "Panitia Rapat" : "Sekolah"}
+          </p>
           <h1 className="text-2xl font-black text-white">{session.schoolName}</h1>
           <p className="text-slate-500 text-sm mt-1">Pilih cara absensi</p>
         </div>
 
-        {/* Manual Input */}
-        <button
-          onClick={() => onSelect("manual")}
-          className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-emerald-600/60"
-        >
-          <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-            <GraduationCap className="h-7 w-7 text-white" />
-          </div>
-          <div className="text-left">
-            <h3 className="text-lg font-black text-white">Absensi Manual</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Tandai hadir/sakit/izin per siswa</p>
-          </div>
-        </button>
+        {/* Yayasan: hanya scanner rapat */}
+        {isYayasan && (
+          <button
+            onClick={() => onSelect("meeting-scanner")}
+            className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-purple-600/60"
+          >
+            <div className="w-14 h-14 bg-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+              <CalendarDays className="h-7 w-7 text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-lg font-black text-white">Scanner Rapat</h3>
+              <p className="text-slate-400 text-xs mt-0.5">Scan QR peserta rapat yayasan</p>
+            </div>
+          </button>
+        )}
 
-        {/* QR Scanner */}
-        <button
-          onClick={() => onSelect("scanner")}
-          className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-blue-600/60"
-        >
-          <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-            <ScanLine className="h-7 w-7 text-white" />
-          </div>
-          <div className="text-left">
-            <h3 className="text-lg font-black text-white">Scan QR Guru</h3>
-            <p className="text-slate-400 text-xs mt-0.5">Scan KTA guru untuk absensi masuk</p>
-          </div>
-        </button>
+        {/* Operator: absensi manual + scan QR guru */}
+        {!isYayasan && (
+          <>
+            <button
+              onClick={() => onSelect("manual")}
+              className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-emerald-600/60"
+            >
+              <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                <GraduationCap className="h-7 w-7 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-black text-white">Absensi Manual</h3>
+                <p className="text-slate-400 text-xs mt-0.5">Tandai hadir/sakit/izin per siswa</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => onSelect("scanner")}
+              className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-blue-600/60"
+            >
+              <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                <ScanLine className="h-7 w-7 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-black text-white">Scan QR Guru</h3>
+                <p className="text-slate-400 text-xs mt-0.5">Scan KTA guru untuk absensi masuk</p>
+              </div>
+            </button>
+          </>
+        )}
 
         <button
           onClick={onLogout}
@@ -248,33 +334,30 @@ function ModeScreen({
           <LogOut className="h-3.5 w-3.5" /> Keluar
         </button>
 
-        {/* Dashboard Links */}
-        <div className="mt-6 border-t border-slate-800 pt-5 space-y-2">
-          <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center mb-3">Kelola dari Dashboard</p>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: "Mata Pelajaran", icon: BookOpen, href: "/dashboard/attendance/subjects" },
-              { label: "Kelas / Rombel", icon: School, href: "/dashboard/attendance/classes" },
-              { label: "Jadwal Jam", icon: ClipboardList, href: "/dashboard/attendance/schedule" },
-              { label: "Laporan Absensi", icon: BarChart2, href: "/dashboard/attendance/report" },
-              { label: "Absensi Guru", icon: UserCheck, href: "/dashboard/attendance/teacher" },
-              { label: "Pengaturan", icon: Settings, href: "/dashboard/attendance/settings" },
-            ].map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 bg-slate-800/60 hover:bg-slate-700 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white transition-all group"
-              >
-                <link.icon className="h-3.5 w-3.5 text-slate-500 group-hover:text-emerald-400 shrink-0" />
-                <span className="truncate">{link.label}</span>
-                <ExternalLink className="h-2.5 w-2.5 text-slate-600 ml-auto shrink-0" />
-              </a>
-            ))}
+        {/* Dashboard Links — operator only */}
+        {!isYayasan && (
+          <div className="mt-6 border-t border-slate-800 pt-5 space-y-2">
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center mb-3">Kelola dari Dashboard</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Mata Pelajaran", icon: BookOpen, href: "/dashboard/attendance/subjects" },
+                { label: "Kelas / Rombel", icon: School, href: "/dashboard/attendance/classes" },
+                { label: "Jadwal Jam", icon: ClipboardList, href: "/dashboard/attendance/schedule" },
+                { label: "Laporan Absensi", icon: BarChart2, href: "/dashboard/attendance/report" },
+                { label: "Absensi Guru", icon: UserCheck, href: "/dashboard/attendance/teacher" },
+                { label: "Pengaturan", icon: Settings, href: "/dashboard/attendance/settings" },
+              ].map((link) => (
+                <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 bg-slate-800/60 hover:bg-slate-700 border border-slate-700 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white transition-all group">
+                  <link.icon className="h-3.5 w-3.5 text-slate-500 group-hover:text-emerald-400 shrink-0" />
+                  <span className="truncate">{link.label}</span>
+                  <ExternalLink className="h-2.5 w-2.5 text-slate-600 ml-auto shrink-0" />
+                </a>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-700 text-center pt-1">Butuh login operator untuk mengakses</p>
           </div>
-          <p className="text-[10px] text-slate-700 text-center pt-1">Butuh login operator untuk mengakses</p>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -686,6 +769,183 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
   );
 }
 
+// ── Meeting Scanner Screen ─────────────────────────────────────────────────
+
+function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [scanning, setScanning] = useState(false);
+  const [scanResults, setScanResults] = useState<Array<{ name: string; jabatan: string; instansi: string; time: string; status: 'success' | 'error'; message: string }>>([]);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const cooldownRef = useRef(false);
+
+  const startScanner = async () => {
+    try {
+      const scanner = new Html5Qrcode("meeting-qr-reader");
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: { width: 260, height: 260 } },
+        async (code) => {
+          if (cooldownRef.current) return;
+          cooldownRef.current = true;
+          setTimeout(() => { cooldownRef.current = false; }, 3000);
+
+          try {
+            const res = await publicMeetingApi.scan(session.pin, code);
+            if (res.success || res.code === 'SUCCESS') {
+              const d = res.data ?? res;
+              toast.success(res.message || `Check-in ${d.participant_name} berhasil`);
+              setScanResults((prev) => [{
+                name: d.participant_name ?? 'Peserta',
+                jabatan: d.jabatan ?? '',
+                instansi: d.instansi ?? '',
+                time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                status: 'success',
+                message: res.message ?? 'Berhasil',
+              }, ...prev.slice(0, 19)]);
+            } else {
+              toast.error(res.message || "Gagal memproses QR");
+              setScanResults((prev) => [{
+                name: '—', jabatan: '', instansi: '',
+                time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                status: 'error',
+                message: res.message ?? 'Gagal',
+              }, ...prev.slice(0, 19)]);
+            }
+          } catch (err: any) {
+            const msg = err.response?.data?.message || "QR tidak valid atau sudah digunakan";
+            const status = err.response?.status;
+            // 409 = already checked in — show as info not error
+            if (status === 409) {
+              toast.info(msg);
+            } else {
+              toast.error(msg);
+            }
+            setScanResults((prev) => [{
+              name: '—', jabatan: '', instansi: '',
+              time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+              status: 'error',
+              message: msg,
+            }, ...prev.slice(0, 19)]);
+          }
+        },
+        () => {}
+      );
+      setScanning(true);
+    } catch {
+      toast.error("Gagal membuka kamera. Izinkan akses kamera di browser.");
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try { await scannerRef.current.stop(); } catch {}
+      scannerRef.current = null;
+    }
+    setScanning(false);
+  };
+
+  useEffect(() => () => { scannerRef.current?.stop().catch(() => {}); }, []);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center gap-3">
+        <Button variant="ghost" size="icon"
+          onClick={async () => { await stopScanner(); onBack(); }}
+          className="text-white hover:bg-slate-800 rounded-xl h-9 w-9">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1">
+          <h2 className="font-black text-base">SCAN QR PESERTA RAPAT</h2>
+          <p className="text-slate-400 text-xs">LP Ma'arif NU Cilacap</p>
+        </div>
+        <div className="bg-purple-900/50 px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-mono text-purple-300 text-sm">
+          <Clock className="h-3.5 w-3.5" />
+          {new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4 max-w-sm mx-auto">
+        {/* Instructions */}
+        <div className="bg-purple-900/30 border border-purple-800/50 rounded-2xl p-3 text-xs text-purple-300">
+          <p className="font-bold mb-1">Cara penggunaan:</p>
+          <p>Minta peserta menunjukkan QR code dari WA undangan mereka, lalu arahkan kamera ke QR tersebut.</p>
+        </div>
+
+        {/* Camera */}
+        <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl">
+          <div id="meeting-qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
+          {!scanning && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-700">
+                <Camera className="h-9 w-9 text-slate-600" />
+              </div>
+              <p className="text-slate-500 text-sm">Kamera siap</p>
+            </div>
+          )}
+          {scanning && (
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="w-56 h-56 border-2 border-purple-500/40 rounded-2xl relative">
+                <div className="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-purple-500 rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-purple-500 rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-purple-500 rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-purple-500 rounded-br-xl" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Toggle Button */}
+        <Button
+          onClick={scanning ? stopScanner : startScanner}
+          className={`w-full h-14 text-lg font-black rounded-2xl transition-all active:scale-95 ${
+            scanning ? "bg-red-600 hover:bg-red-700" : "bg-purple-600 hover:bg-purple-700"
+          }`}
+        >
+          {scanning ? (
+            <><XCircle className="mr-2 h-6 w-6" /> Berhenti</>
+          ) : (
+            <><ScanLine className="mr-2 h-6 w-6" /> Mulai Scan</>
+          )}
+        </Button>
+
+        {/* Results */}
+        {scanResults.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+              <Users className="h-3.5 w-3.5 text-purple-500" />
+              Riwayat Scan ({scanResults.length})
+            </p>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {scanResults.map((r, i) => (
+                <div key={i} className={`flex items-start justify-between rounded-xl px-4 py-3 border ${
+                  r.status === 'success'
+                    ? 'bg-slate-900 border-slate-800'
+                    : 'bg-red-950/30 border-red-900/50'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                      r.status === 'success' ? 'bg-purple-500/20 text-purple-400' : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {r.status === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm">{r.name}</p>
+                      {r.jabatan && <p className="text-slate-400 text-xs">{r.jabatan} · {r.instansi}</p>}
+                      {r.status === 'error' && <p className="text-red-400 text-xs mt-0.5">{r.message}</p>}
+                    </div>
+                  </div>
+                  <span className="text-slate-500 font-mono text-xs shrink-0 ml-2">{r.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function PublicScannerPage() {
@@ -694,7 +954,12 @@ export default function PublicScannerPage() {
 
   const handleLogin = (s: Session) => {
     setSession(s);
-    setScreen("mode");
+    // Yayasan goes directly to meeting scanner, operator goes to mode selection
+    if (s.loginMode === "yayasan") {
+      setScreen("meeting-scanner");
+    } else {
+      setScreen("mode");
+    }
   };
 
   const handleLogout = () => {
@@ -722,6 +987,21 @@ export default function PublicScannerPage() {
 
   if (screen === "scanner") {
     return <ScannerScreen session={session} onBack={() => setScreen("mode")} />;
+  }
+
+  if (screen === "meeting-scanner") {
+    return (
+      <MeetingScannerScreen
+        session={session}
+        onBack={() => {
+          if (session.loginMode === "yayasan") {
+            handleLogout();
+          } else {
+            setScreen("mode");
+          }
+        }}
+      />
+    );
   }
 
   return null;

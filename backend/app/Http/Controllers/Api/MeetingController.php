@@ -60,7 +60,13 @@ class MeetingController extends Controller
             ];
         });
 
-        return $this->successResponse($participants, 'Data peserta dari sekolah berhasil diambil.');
+        $skippedCount = count($request->school_ids) - $schools->count();
+
+        return $this->successResponse([
+            'participants'  => $participants,
+            'imported_count' => $participants->count(),
+            'skipped_count'  => $skippedCount,
+        ], 'Data peserta dari sekolah berhasil diambil.');
     }
 
     /**

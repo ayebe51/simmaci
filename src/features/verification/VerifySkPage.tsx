@@ -288,7 +288,7 @@ export default function VerifySkPage() {
           {/* Footer */}
           <div className="mt-10 pt-8 border-t border-slate-100 flex flex-col items-center text-center">
             <img
-              src="/logo-icon.png"
+              src="/logo-icon-192.png"
               alt="Logo LP Ma'arif NU Cilacap"
               className="h-14 w-auto mb-4 grayscale invert opacity-20"
             />

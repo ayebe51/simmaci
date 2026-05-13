@@ -129,6 +129,8 @@ class MeetingQrService
             $frontendBase = rtrim(env('FRONTEND_URL', ''), '/');
             $backendBase  = rtrim(config('app.url'), '/');
 
+            $originalUrl = $url;
+
             // If URL is a frontend URL, convert back to backend URL for validation
             if (!empty($frontendBase) && str_starts_with($url, $frontendBase)) {
                 $parsed = parse_url($url);
@@ -142,7 +144,19 @@ class MeetingQrService
 
             // Create a request from the URL for validation
             $request = \Illuminate\Http\Request::create($url, 'GET');
-            return URL::hasValidSignature($request, true);
+            $result = URL::hasValidSignature($request, true);
+
+            if (!$result) {
+                \Log::warning('MeetingQrService::validateSignature failed', [
+                    'original_url'  => $originalUrl,
+                    'converted_url' => $url,
+                    'frontend_base' => $frontendBase,
+                    'backend_base'  => $backendBase,
+                    'app_key_set'   => !empty(config('app.key')),
+                ]);
+            }
+
+            return $result;
         } catch (\Exception $e) {
             return false;
         }

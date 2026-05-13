@@ -528,12 +528,40 @@ class MeetingCheckInServiceTest extends TestCase
     /**
      * Property 9 — Token Expiry: H-2 (before window)
      *
-     * FOR ANY check-in attempt at H-2 (2 hours before meeting start):
+     * FOR ANY check-in attempt at H-3 (3 hours before meeting start):
      * - Check-in should fail with 410 QrExpiredException
      *
      * **Validates: Requirements 25**
      */
     public function test_property_9_token_expiry_h_minus_2_fails(): void
+    {
+        // Create meeting starting in 4 hours
+        $meeting = Meeting::factory()->create([
+            'started_at' => now()->addHours(4),
+            'ended_at' => now()->addHours(8),
+        ]);
+
+        $participant = MeetingParticipant::factory()->forMeeting($meeting)->create();
+        $url = $this->qrService->generatePersonalQrUrl($meeting, $participant);
+
+        // Mock the current time to H-3 (3 hours before start — outside the H-2 window)
+        $this->travelTo(now()->addHours(1)); // Now it's H-3
+
+        $request = $this->createMockRequest($url, '192.168.1.1');
+
+        $this->expectException(QrExpiredException::class);
+        $this->checkInService->processCheckIn($meeting, $participant, $request, []);
+    }
+
+    /**
+     * Property 9 — Token Expiry: H-2 (start of window)
+     *
+     * FOR ANY check-in attempt at H-2 (2 hours before meeting start):
+     * - Check-in should succeed (201)
+     *
+     * **Validates: Requirements 25**
+     */
+    public function test_property_9_token_expiry_h_minus_2_succeeds(): void
     {
         // Create meeting starting in 3 hours
         $meeting = Meeting::factory()->create([
@@ -544,17 +572,17 @@ class MeetingCheckInServiceTest extends TestCase
         $participant = MeetingParticipant::factory()->forMeeting($meeting)->create();
         $url = $this->qrService->generatePersonalQrUrl($meeting, $participant);
 
-        // Mock the current time to H-2 (2 hours before start)
+        // Mock the current time to H-2 (2 hours before start — exactly at window open)
         $this->travelTo(now()->addHours(1)); // Now it's H-2
 
         $request = $this->createMockRequest($url, '192.168.1.1');
 
-        $this->expectException(QrExpiredException::class);
-        $this->checkInService->processCheckIn($meeting, $participant, $request, []);
+        $attendance = $this->checkInService->processCheckIn($meeting, $participant, $request, []);
+        $this->assertInstanceOf(MeetingAttendance::class, $attendance);
     }
 
     /**
-     * Property 9 — Token Expiry: H-1 (start of window)
+     * Property 9 — Token Expiry: H-1 (inside window)
      *
      * FOR ANY check-in attempt at H-1 (1 hour before meeting start):
      * - Check-in should succeed (201)

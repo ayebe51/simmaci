@@ -159,7 +159,9 @@ class PublicMeetingScannerController extends Controller
         // Validate the signed URL signature — use MeetingQrService to handle
         // frontend URL → backend URL conversion before validating.
         if (!$this->qrService->validateSignature($qrUrl)) {
-            return $this->errorResponse('QR Code tidak valid atau sudah kadaluarsa.', null, 403);
+            return $this->errorResponse('QR Code tidak valid atau sudah kadaluarsa.', [
+                'debug' => 'signature_invalid | url=' . substr($qrUrl, 0, 80),
+            ], 403);
         }
 
         // Build a fake request from the QR URL for passing to processCheckIn()

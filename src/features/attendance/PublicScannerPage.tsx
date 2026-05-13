@@ -630,15 +630,68 @@ function ManualScreen({ session, onBack }: { session: Session; onBack: () => voi
   );
 }
 
+// ── Camera Error Helper ────────────────────────────────────────────────────
+
+function getCameraErrorMessage(err: unknown): { title: string; detail: string } {
+  const name = (err as any)?.name ?? "";
+  const message = (err as any)?.message ?? "";
+
+  if (!window.isSecureContext) {
+    return {
+      title: "Koneksi tidak aman (HTTP)",
+      detail: "Akses kamera hanya diizinkan di HTTPS. Hubungi admin untuk mengaktifkan HTTPS.",
+    };
+  }
+  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+    return {
+      title: "Izin kamera ditolak",
+      detail: "Buka pengaturan browser → izinkan akses kamera untuk situs ini, lalu muat ulang halaman.",
+    };
+  }
+  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+    return {
+      title: "Kamera tidak ditemukan",
+      detail: "Perangkat ini tidak memiliki kamera yang dapat diakses.",
+    };
+  }
+  if (name === "NotReadableError" || name === "TrackStartError") {
+    return {
+      title: "Kamera sedang digunakan",
+      detail: "Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.",
+    };
+  }
+  if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
+    return {
+      title: "Kamera tidak kompatibel",
+      detail: "Kamera belakang tidak tersedia. Coba gunakan browser lain.",
+    };
+  }
+  return {
+    title: "Gagal membuka kamera",
+    detail: message || "Pastikan izin kamera sudah diberikan dan coba lagi.",
+  };
+}
+
 // ── QR Scanner Screen ──────────────────────────────────────────────────────
 
 function ScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
   const [scanning, setScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<{ title: string; detail: string } | null>(null);
   const [scanResults, setScanResults] = useState<Array<{ name: string; time: string }>>([]);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cooldownRef = useRef(false);
 
   const startScanner = async () => {
+    setCameraError(null);
+
+    // Guard: camera API requires a secure context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      const err = getCameraErrorMessage(null);
+      setCameraError(err);
+      toast.error(err.title);
+      return;
+    }
+
     const onScan = async (code: string) => {
       if (cooldownRef.current) return;
       cooldownRef.current = true;
@@ -675,8 +728,15 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
         await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
       }
       setScanning(true);
-    } catch {
-      toast.error("Gagal membuka kamera. Izinkan akses kamera di browser.");
+    } catch (err: unknown) {
+      const errInfo = getCameraErrorMessage(err);
+      setCameraError(errInfo);
+      toast.error(errInfo.title);
+      // Clean up scanner instance if it was created
+      if (scannerRef.current) {
+        try { await scannerRef.current.stop(); } catch {}
+        scannerRef.current = null;
+      }
     }
   };
 
@@ -715,12 +775,23 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
         {/* Camera */}
         <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl">
           <div id="pub-qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
-          {!scanning && (
+          {!scanning && !cameraError && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-700">
                 <Camera className="h-9 w-9 text-slate-600" />
               </div>
               <p className="text-slate-500 text-sm">Kamera siap</p>
+            </div>
+          )}
+          {!scanning && cameraError && (
+            <div className="flex flex-col items-center justify-center py-10 px-5 gap-3 text-center">
+              <div className="w-16 h-16 bg-red-950/50 rounded-2xl flex items-center justify-center border-2 border-red-800/50">
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <div>
+                <p className="text-red-400 font-bold text-sm">{cameraError.title}</p>
+                <p className="text-slate-500 text-xs mt-1 leading-relaxed">{cameraError.detail}</p>
+              </div>
             </div>
           )}
           {scanning && (
@@ -744,6 +815,8 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
         >
           {scanning ? (
             <><XCircle className="mr-2 h-6 w-6" /> Berhenti</>
+          ) : cameraError ? (
+            <><Camera className="mr-2 h-6 w-6" /> Coba Lagi</>
           ) : (
             <><ScanLine className="mr-2 h-6 w-6" /> Mulai Scan</>
           )}
@@ -780,11 +853,22 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
 
 function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
   const [scanning, setScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<{ title: string; detail: string } | null>(null);
   const [scanResults, setScanResults] = useState<Array<{ name: string; jabatan: string; instansi: string; time: string; status: 'success' | 'error'; message: string }>>([]);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cooldownRef = useRef(false);
 
   const startScanner = async () => {
+    setCameraError(null);
+
+    // Guard: camera API requires a secure context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      const err = getCameraErrorMessage(null);
+      setCameraError(err);
+      toast.error(err.title);
+      return;
+    }
+
     const onScan = async (code: string) => {
       if (cooldownRef.current) return;
       cooldownRef.current = true;
@@ -844,8 +928,15 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
         await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
       }
       setScanning(true);
-    } catch {
-      toast.error("Gagal membuka kamera. Izinkan akses kamera di browser.");
+    } catch (err: unknown) {
+      const errInfo = getCameraErrorMessage(err);
+      setCameraError(errInfo);
+      toast.error(errInfo.title);
+      // Clean up scanner instance if it was created
+      if (scannerRef.current) {
+        try { await scannerRef.current.stop(); } catch {}
+        scannerRef.current = null;
+      }
     }
   };
 
@@ -888,12 +979,23 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
         {/* Camera */}
         <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl">
           <div id="meeting-qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
-          {!scanning && (
+          {!scanning && !cameraError && (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-700">
                 <Camera className="h-9 w-9 text-slate-600" />
               </div>
               <p className="text-slate-500 text-sm">Kamera siap</p>
+            </div>
+          )}
+          {!scanning && cameraError && (
+            <div className="flex flex-col items-center justify-center py-10 px-5 gap-3 text-center">
+              <div className="w-16 h-16 bg-red-950/50 rounded-2xl flex items-center justify-center border-2 border-red-800/50">
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <div>
+                <p className="text-red-400 font-bold text-sm">{cameraError.title}</p>
+                <p className="text-slate-500 text-xs mt-1 leading-relaxed">{cameraError.detail}</p>
+              </div>
             </div>
           )}
           {scanning && (
@@ -917,6 +1019,8 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
         >
           {scanning ? (
             <><XCircle className="mr-2 h-6 w-6" /> Berhenti</>
+          ) : cameraError ? (
+            <><Camera className="mr-2 h-6 w-6" /> Coba Lagi</>
           ) : (
             <><ScanLine className="mr-2 h-6 w-6" /> Mulai Scan</>
           )}

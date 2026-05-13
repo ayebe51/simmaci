@@ -29,7 +29,6 @@ class MeetingQrService
         $expiresAt = $meeting->started_at->addHours(25); // H+1 from start
 
         // Generate signed URL using Laravel's temporary signed route
-        // This creates the signature — we then replace the base URL with the frontend URL
         $backendUrl = URL::temporarySignedRoute(
             'public.meetings.check-in.show',
             $expiresAt,
@@ -39,9 +38,9 @@ class MeetingQrService
             ]
         );
 
-        // Replace backend URL with frontend URL so the link opens the React app
-        $frontendUrl = env('FRONTEND_URL', config('app.url'));
-        $url = $this->replaceBaseUrl($backendUrl, $frontendUrl);
+        // Build frontend URL: replace backend base with FRONTEND_URL
+        // Extract only the path + query from the signed URL, prepend frontend base
+        $url = $this->buildFrontendUrl($backendUrl);
 
         // Store token reference in participant for one-time use tracking
         $participant->update([
@@ -73,9 +72,8 @@ class MeetingQrService
             ]
         );
 
-        // Replace backend URL with frontend URL
-        $frontendUrl = env('FRONTEND_URL', config('app.url'));
-        $url = $this->replaceBaseUrl($backendUrl, $frontendUrl);
+        // Build frontend URL
+        $url = $this->buildFrontendUrl($backendUrl);
 
         // Store token reference in meeting for tracking
         $meeting->update([
@@ -86,24 +84,60 @@ class MeetingQrService
     }
 
     /**
+     * Build a frontend URL from a backend signed URL.
+     *
+     * Extracts the path + query string from the backend signed URL,
+     * then prepends the FRONTEND_URL. This is robust regardless of
+     * what APP_URL is set to in the backend.
+     *
+     * Example:
+     *   backend: https://api.simmaci.com/api/public/meetings/8/check-in?expires=...&signature=...
+     *   frontend: https://simmaci.com/meetings/8/check-in?expires=...&signature=...
+     */
+    private function buildFrontendUrl(string $backendSignedUrl): string
+    {
+        $frontendBase = rtrim(env('FRONTEND_URL', ''), '/');
+
+        // If FRONTEND_URL not set, return as-is
+        if (empty($frontendBase)) {
+            return $backendSignedUrl;
+        }
+
+        // Parse the backend URL to get path + query
+        $parsed = parse_url($backendSignedUrl);
+        $path   = $parsed['path'] ?? '';
+        $query  = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+
+        // The backend route path is /api/public/meetings/{id}/check-in
+        // The frontend route path is /meetings/{id}/check-in
+        // Strip the /api/public prefix
+        $frontendPath = preg_replace('#^/api/public#', '', $path);
+
+        return $frontendBase . $frontendPath . $query;
+    }
+
+    /**
      * Validate a signed URL signature.
      *
      * Handles both frontend URLs (simmaci.com/meetings/...) and
      * backend URLs (api.simmaci.com/api/public/meetings/...).
      * Converts frontend URL back to backend URL for signature validation.
-     *
-     * @param string $url
-     * @return bool True if signature is valid, false otherwise
      */
     public function validateSignature(string $url): bool
     {
         try {
-            // If URL is a frontend URL, convert back to backend URL for validation
-            $frontendUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/');
-            $backendUrl  = rtrim(config('app.url'), '/');
+            $frontendBase = rtrim(env('FRONTEND_URL', ''), '/');
+            $backendBase  = rtrim(config('app.url'), '/');
 
-            if ($frontendUrl !== $backendUrl && str_starts_with($url, $frontendUrl)) {
-                $url = $backendUrl . substr($url, strlen($frontendUrl));
+            // If URL is a frontend URL, convert back to backend URL for validation
+            if (!empty($frontendBase) && str_starts_with($url, $frontendBase)) {
+                $parsed = parse_url($url);
+                $path   = $parsed['path'] ?? '';
+                $query  = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+
+                // Restore /api/public prefix
+                $backendPath = '/api/public' . $path;
+                $url = $backendBase . $backendPath . $query;
             }
 
             // Create a request from the URL for validation
@@ -112,26 +146,5 @@ class MeetingQrService
         } catch (\Exception $e) {
             return false;
         }
-    }
-
-    /**
-     * Replace the base URL of a signed URL with the frontend URL.
-     * Preserves the path, query string, and signature.
-     */
-    private function replaceBaseUrl(string $signedUrl, string $frontendBase): string
-    {
-        $backendBase = rtrim(config('app.url'), '/');
-        $frontendBase = rtrim($frontendBase, '/');
-
-        if ($backendBase === $frontendBase) {
-            return $signedUrl;
-        }
-
-        // Replace only the base URL, keep path + query string intact
-        if (str_starts_with($signedUrl, $backendBase)) {
-            return $frontendBase . substr($signedUrl, strlen($backendBase));
-        }
-
-        return $signedUrl;
     }
 }

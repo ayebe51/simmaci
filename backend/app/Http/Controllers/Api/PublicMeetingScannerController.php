@@ -125,6 +125,10 @@ class PublicMeetingScannerController extends Controller
 
         $qrUrl = $request->qr_url;
 
+        \Log::info('MeetingScanner::scan received', [
+            'qr_url' => $qrUrl,
+        ]);
+
         // Parse the signed URL to extract meeting ID and participant ID
         $parsed = parse_url($qrUrl);
         if (!$parsed) {

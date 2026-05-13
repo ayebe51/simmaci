@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeCameraScanConfig } from "html5-qrcode";
 import {
   ShieldCheck, UserCheck, GraduationCap, ScanLine, Save,
   ChevronLeft, ChevronRight, Camera, CheckCircle2, XCircle,
@@ -634,7 +634,7 @@ function ManualScreen({ session, onBack }: { session: Session; onBack: () => voi
 
 function getCameraErrorMessage(err: unknown): { title: string; detail: string } {
   const name = (err as any)?.name ?? "";
-  const message = (err as any)?.message ?? "";
+  const message = ((err as any)?.message ?? "").toLowerCase();
 
   if (!window.isSecureContext) {
     return {
@@ -642,34 +642,70 @@ function getCameraErrorMessage(err: unknown): { title: string; detail: string } 
       detail: "Akses kamera hanya diizinkan di HTTPS. Hubungi admin untuk mengaktifkan HTTPS.",
     };
   }
-  if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+  if (name === "NotAllowedError" || name === "PermissionDeniedError" || message.includes("permission") || message.includes("denied")) {
     return {
       title: "Izin kamera ditolak",
-      detail: "Buka pengaturan browser → izinkan akses kamera untuk situs ini, lalu muat ulang halaman.",
+      detail: "Ketuk ikon kunci/info di address bar browser → izinkan Kamera → muat ulang halaman.",
     };
   }
-  if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+  if (name === "NotFoundError" || name === "DevicesNotFoundError" || message.includes("not found") || message.includes("no camera")) {
     return {
       title: "Kamera tidak ditemukan",
       detail: "Perangkat ini tidak memiliki kamera yang dapat diakses.",
     };
   }
-  if (name === "NotReadableError" || name === "TrackStartError") {
+  if (name === "NotReadableError" || name === "TrackStartError" || message.includes("not readable") || message.includes("could not start")) {
     return {
       title: "Kamera sedang digunakan",
-      detail: "Kamera sedang dipakai aplikasi lain. Tutup aplikasi lain lalu coba lagi.",
+      detail: "Kamera sedang dipakai aplikasi lain. Tutup aplikasi kamera/video lain lalu coba lagi.",
     };
   }
   if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
     return {
       title: "Kamera tidak kompatibel",
-      detail: "Kamera belakang tidak tersedia. Coba gunakan browser lain.",
+      detail: "Resolusi kamera tidak didukung. Coba lagi — sistem akan mencoba pengaturan yang lebih sederhana.",
     };
   }
+  // Include raw error name/message to help diagnose unknown errors
+  const rawInfo = name ? ` (${name})` : message ? ` (${message})` : "";
   return {
-    title: "Gagal membuka kamera",
-    detail: message || "Pastikan izin kamera sudah diberikan dan coba lagi.",
+    title: `Gagal membuka kamera${rawInfo}`,
+    detail: "Pastikan izin kamera sudah diberikan di pengaturan browser, lalu coba lagi.",
   };
+}
+
+// Attempt to start Html5Qrcode with progressively simpler constraints.
+// Each attempt creates a fresh instance to avoid stale internal state.
+async function startHtml5QrcodeWithFallback(
+  elementId: string,
+  onScan: (code: string) => void,
+  config: Html5QrcodeCameraScanConfig
+): Promise<Html5Qrcode> {
+  const attempts = [
+    // 1. Rear camera with resolution cap (ideal for most Android)
+    { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
+    // 2. Rear camera only, no resolution constraints
+    { facingMode: "environment" },
+    // 3. Any camera (covers devices where "environment" is not enumerated)
+    { facingMode: { ideal: "environment" } },
+    // 4. Absolute fallback — let browser pick any camera
+    true as unknown as MediaTrackConstraints,
+  ];
+
+  let lastError: unknown;
+  for (const constraints of attempts) {
+    const scanner = new Html5Qrcode(elementId);
+    try {
+      await scanner.start(constraints as any, config, onScan, () => {});
+      return scanner; // success
+    } catch (err) {
+      lastError = err;
+      // Clean up this failed instance before trying next
+      try { await scanner.stop(); } catch {}
+      try { scanner.clear(); } catch {}
+    }
+  }
+  throw lastError;
 }
 
 // ── QR Scanner Screen ──────────────────────────────────────────────────────
@@ -715,28 +751,14 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
     const config = { fps: 15, qrbox: { width: 260, height: 260 } };
 
     try {
-      const scanner = new Html5Qrcode("pub-qr-reader");
+      const scanner = await startHtml5QrcodeWithFallback("pub-qr-reader", onScan, config);
       scannerRef.current = scanner;
-      // Try with resolution cap first (prevents Android bitmap OOM)
-      try {
-        await scanner.start(
-          { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
-          config, onScan, () => {}
-        );
-      } catch {
-        // Fallback: some Android WebViews reject combined constraints — retry with facingMode only
-        await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
-      }
       setScanning(true);
     } catch (err: unknown) {
       const errInfo = getCameraErrorMessage(err);
       setCameraError(errInfo);
       toast.error(errInfo.title);
-      // Clean up scanner instance if it was created
-      if (scannerRef.current) {
-        try { await scannerRef.current.stop(); } catch {}
-        scannerRef.current = null;
-      }
+      scannerRef.current = null;
     }
   };
 
@@ -915,28 +937,14 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
     const config = { fps: 15, qrbox: { width: 260, height: 260 } };
 
     try {
-      const scanner = new Html5Qrcode("meeting-qr-reader");
+      const scanner = await startHtml5QrcodeWithFallback("meeting-qr-reader", onScan, config);
       scannerRef.current = scanner;
-      // Try with resolution cap first (prevents Android bitmap OOM)
-      try {
-        await scanner.start(
-          { facingMode: "environment", width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } },
-          config, onScan, () => {}
-        );
-      } catch {
-        // Fallback: some Android WebViews reject combined constraints — retry with facingMode only
-        await scanner.start({ facingMode: "environment" }, config, onScan, () => {});
-      }
       setScanning(true);
     } catch (err: unknown) {
       const errInfo = getCameraErrorMessage(err);
       setCameraError(errInfo);
       toast.error(errInfo.title);
-      // Clean up scanner instance if it was created
-      if (scannerRef.current) {
-        try { await scannerRef.current.stop(); } catch {}
-        scannerRef.current = null;
-      }
+      scannerRef.current = null;
     }
   };
 

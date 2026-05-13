@@ -629,7 +629,7 @@ class MeetingCheckInServiceTest extends TestCase
         $url = $this->qrService->generatePersonalQrUrl($meeting, $participant);
 
         // Mock the current time to H+1 (1 hour after start)
-        $this->travelTo($meeting->started_at->addHours(1));
+        $this->travelTo($meeting->started_at->copy()->addHours(1));
 
         $request = $this->createMockRequest($url, '192.168.1.1');
 
@@ -657,7 +657,7 @@ class MeetingCheckInServiceTest extends TestCase
         $url = $this->qrService->generatePersonalQrUrl($meeting, $participant);
 
         // Mock the current time to 2 hours after meeting ended (well past the 1-hour buffer)
-        $this->travelTo($meeting->ended_at->addHours(2));
+        $this->travelTo($meeting->ended_at->copy()->addHours(2));
 
         $request = $this->createMockRequest($url, '192.168.1.1');
 

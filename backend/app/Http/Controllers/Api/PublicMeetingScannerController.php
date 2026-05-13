@@ -13,6 +13,7 @@ use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\Setting;
 use App\Services\MeetingCheckInService;
+use App\Services\MeetingQrService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,7 @@ class PublicMeetingScannerController extends Controller
 
     public function __construct(
         private MeetingCheckInService $checkInService,
+        private MeetingQrService $qrService,
     ) {}
 
     /**
@@ -150,11 +152,15 @@ class PublicMeetingScannerController extends Controller
             return $this->errorResponse('Rapat tidak ditemukan.', null, 404);
         }
 
-        // Validate the signed URL signature
-        $fakeRequest = \Illuminate\Http\Request::create($qrUrl, 'GET');
-        if (!\Illuminate\Support\Facades\URL::hasValidSignature($fakeRequest, true)) {
+        // Validate the signed URL signature — use MeetingQrService to handle
+        // frontend URL → backend URL conversion before validating.
+        if (!$this->qrService->validateSignature($qrUrl)) {
             return $this->errorResponse('QR Code tidak valid atau sudah kadaluarsa.', null, 403);
         }
+
+        // Build a fake request from the QR URL for passing to processCheckIn()
+        // (service needs a Request object to re-validate signature internally)
+        $fakeRequest = \Illuminate\Http\Request::create($qrUrl, 'GET');
 
         // Walk-in mode (no participant ID)
         if (!$participantId) {

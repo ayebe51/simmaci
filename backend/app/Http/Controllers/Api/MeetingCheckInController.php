@@ -15,6 +15,7 @@ use App\Models\Meeting;
 use App\Models\MeetingAttendance;
 use App\Models\MeetingParticipant;
 use App\Services\MeetingCheckInService;
+use App\Services\MeetingQrService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class MeetingCheckInController extends Controller
 
     public function __construct(
         private MeetingCheckInService $checkInService,
+        private MeetingQrService $qrService,
     ) {}
 
     /**
@@ -48,8 +50,9 @@ class MeetingCheckInController extends Controller
      */
     public function show(Request $request, Meeting $meeting): JsonResponse
     {
-        // Validate signed URL signature
-        if (!$request->hasValidSignature()) {
+        // Validate signed URL signature — use MeetingQrService to handle
+        // frontend URL → backend URL conversion before validating.
+        if (!$this->qrService->validateSignature($request->fullUrl())) {
             return $this->errorResponse('QR Code tidak valid atau telah dimodifikasi.', null, 403);
         }
 

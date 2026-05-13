@@ -22,7 +22,7 @@ use Jenssegers\Agent\Agent;
  *
  * Handles check-in validation and processing with 6-step security validation:
  * 1. Signature validation
- * 2. Expiry window validation (H-1 to H+1)
+ * 2. Expiry window validation (H-2 to H+1)
  * 3. Rate limiting (max 5 per 5 minutes)
  * 4. Geolocation validation (if enabled)
  * 5. Pessimistic locking + one-time use check
@@ -63,9 +63,9 @@ class MeetingCheckInService
             throw new InvalidQrSignatureException();
         }
 
-        // Step 2: Check expiry window (H-1 from start until meeting ends + 1 hour)
+        // Step 2: Check expiry window (H-2 from start until meeting ends + 1 hour)
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(1); // 1 hour before start
+        $startWindow = $meeting->started_at->copy()->subHours(2); // 2 hours before start
         $endWindow = $meeting->ended_at->copy()->addHour();       // 1 hour after end
 
         if ($now->isBefore($startWindow) || $now->isAfter($endWindow)) {
@@ -176,9 +176,9 @@ class MeetingCheckInService
             throw new InvalidQrSignatureException();
         }
 
-        // Step 2: Check expiry window (H-1 from start until meeting ends + 1 hour)
+        // Step 2: Check expiry window (H-2 from start until meeting ends + 1 hour)
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(1); // 1 hour before start
+        $startWindow = $meeting->started_at->copy()->subHours(2); // 2 hours before start
         $endWindow = $meeting->ended_at->copy()->addHour();       // 1 hour after end
 
         if ($now->isBefore($startWindow) || $now->isAfter($endWindow)) {

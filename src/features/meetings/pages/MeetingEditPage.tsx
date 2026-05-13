@@ -28,18 +28,12 @@ import { toast } from 'sonner';
 
 /**
  * Convert a datetime-local string to ISO 8601 with timezone offset.
- * Uses local timezone offset without parsing through Date() to avoid UTC ambiguity.
+ * Hardcodes WIB (+07:00) since this app is for Indonesia.
  */
 function toBackendDatetime(datetimeLocal: string): string {
   if (!datetimeLocal) return datetimeLocal;
   const withSeconds = datetimeLocal.length === 16 ? `${datetimeLocal}:00` : datetimeLocal;
-  const now = new Date();
-  const offsetMin = -now.getTimezoneOffset();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const sign = offsetMin >= 0 ? '+' : '-';
-  const absOffset = Math.abs(offsetMin);
-  const offsetStr = `${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
-  return `${withSeconds}${offsetStr}`;
+  return `${withSeconds}+07:00`;
 }
 
 /**

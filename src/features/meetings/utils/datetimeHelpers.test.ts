@@ -13,13 +13,8 @@ import { describe, it, expect } from 'vitest';
 function toBackendDatetime(datetimeLocal: string): string {
   if (!datetimeLocal) return datetimeLocal;
   const withSeconds = datetimeLocal.length === 16 ? `${datetimeLocal}:00` : datetimeLocal;
-  const now = new Date();
-  const offsetMin = -now.getTimezoneOffset();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const sign = offsetMin >= 0 ? '+' : '-';
-  const absOffset = Math.abs(offsetMin);
-  const offsetStr = `${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
-  return `${withSeconds}${offsetStr}`;
+  // Hardcode WIB (+07:00) — this app is for Indonesia
+  return `${withSeconds}+07:00`;
 }
 
 /**

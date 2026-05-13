@@ -29,22 +29,15 @@ import { toast } from 'sonner';
  * e.g. "2026-05-09T18:00:00+07:00"
  *
  * IMPORTANT: datetime-local input value is always in LOCAL time (no timezone).
- * We must NOT use new Date() to parse it as that may treat it as UTC in some browsers.
- * Instead, we manually append the local timezone offset.
+ * We hardcode WIB (+07:00) as the offset since this app is for Indonesia.
+ * Using getTimezoneOffset() is unreliable when browser timezone != WIB.
  */
 function toBackendDatetime(datetimeLocal: string): string {
   if (!datetimeLocal) return datetimeLocal;
   // Append seconds if missing
   const withSeconds = datetimeLocal.length === 16 ? `${datetimeLocal}:00` : datetimeLocal;
-  // Get local timezone offset from a known date (not from the input string)
-  const now = new Date();
-  const offsetMin = -now.getTimezoneOffset();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const sign = offsetMin >= 0 ? '+' : '-';
-  const absOffset = Math.abs(offsetMin);
-  const offsetStr = `${sign}${pad(Math.floor(absOffset / 60))}:${pad(absOffset % 60)}`;
-  // Append offset directly to the local datetime string — no Date() parsing
-  return `${withSeconds}${offsetStr}`;
+  // Hardcode WIB offset (+07:00) — this app is for LP Ma'arif NU Cilacap, Indonesia
+  return `${withSeconds}+07:00`;
 }
 
 const participantSchema = z.object({

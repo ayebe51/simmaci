@@ -22,7 +22,7 @@ class UpdateMeetingRequest extends FormRequest
             'location' => 'sometimes|required|string|max:500',
             // Disable date/time changes if meeting is ongoing or completed
             'started_at' => $this->isDateTimeChangeAllowed()
-                ? 'sometimes|required|date_format:Y-m-d\TH:i:sP|after:now'
+                ? 'sometimes|required|date_format:Y-m-d\TH:i:sP'
                 : 'prohibited',
             'ended_at' => $this->isDateTimeChangeAllowed()
                 ? 'sometimes|required|date_format:Y-m-d\TH:i:sP|after:started_at'

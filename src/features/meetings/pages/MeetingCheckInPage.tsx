@@ -61,9 +61,14 @@ export default function MeetingCheckInPage() {
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
   const [geoError, setGeoError] = useState<string | null>(null);
 
-  const { data: meeting, isLoading, error } = usePublicMeetingInfo(id, queryString);
+  const { data: checkInData, isLoading, error } = usePublicMeetingInfo(id, queryString);
   const checkInMutation = useMeetingCheckIn(id, queryString);
   const walkInMutation = useMeetingWalkIn(id, queryString);
+
+  // Backend returns { meeting, mode, geolocation_enabled, participant }
+  // apiClient interceptor unwraps outer { success, message, data } → data = { meeting, mode, ... }
+  const meeting = checkInData?.meeting ?? checkInData;
+  const isWalkInMode = checkInData?.mode === 'walk_in' || isWalkIn;
 
   const walkInForm = useForm<WalkInForm>({
     resolver: zodResolver(walkInSchema),
@@ -219,7 +224,9 @@ export default function MeetingCheckInPage() {
           <CardContent className="space-y-2 text-sm text-slate-600">
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
-              {format(new Date(meeting.started_at), 'dd MMM yyyy, HH:mm', { locale: idLocale })}
+              {meeting.started_at
+                ? format(new Date(meeting.started_at), 'dd MMM yyyy, HH:mm', { locale: idLocale })
+                : '—'}
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-3.5 w-3.5 text-slate-400" />

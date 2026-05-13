@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { formatMeetingDate } from '../utils/dateHelpers';
 import {
   CheckCircle2,
   XCircle,
@@ -225,7 +226,7 @@ export default function MeetingCheckInPage() {
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 text-slate-400" />
               {meeting.started_at
-                ? format(new Date(meeting.started_at), 'dd MMM yyyy, HH:mm', { locale: idLocale })
+                ? formatMeetingDate(meeting.started_at, 'dd MMM yyyy, HH:mm')
                 : '—'}
             </div>
             <div className="flex items-center gap-2">

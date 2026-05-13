@@ -17,9 +17,9 @@ use Illuminate\Support\Facades\Http;
  * If GoWA was started without --basic-auth, leave the token field empty.
  *
  * Endpoints (go-whatsapp-web-multidevice v5+):
- *   POST /api/send/message   — send text message
- *   POST /api/send/file      — send file/document
- *   GET  /api/user/info      — used for connection test
+ *   POST /send/message   — send text message (fields: phone, message)
+ *   POST /send/file      — send file/document (fields: phone, caption; file part: file)
+ *   GET  /app/status     — used for connection test
  */
 class GoWaGatewayService
 {
@@ -131,12 +131,19 @@ class GoWaGatewayService
                 ];
             }
 
+            $fileName = basename($filePath);
+
+            // Detect MIME type for correct Content-Type header on the file part
+            $mimeType = \Illuminate\Support\Facades\Storage::mimeType($filePath) ?: 'application/octet-stream';
+
+            // When using ->attach(), Laravel switches to multipart mode.
+            // All form fields (phone, caption) must also be attached as separate parts,
+            // NOT passed as the second argument to ->post() which would send them as JSON.
             $response = $this->makeClient($config)
-                ->attach('file', $fileContent, basename($filePath))
-                ->post($config->api_url . '/send/file', [
-                    'phone'   => $to,
-                    'caption' => $message,
-                ]);
+                ->attach('file', $fileContent, $fileName, ['Content-Type' => $mimeType])
+                ->attach('phone', $to)
+                ->attach('caption', $message)
+                ->post($config->api_url . '/send/file');
 
             if ($response->successful()) {
                 return [

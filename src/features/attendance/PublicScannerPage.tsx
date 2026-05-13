@@ -920,16 +920,17 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
       } catch (err: any) {
         const msg = err.response?.data?.message || "QR tidak valid atau sudah digunakan";
         const status = err.response?.status;
+        const debugInfo = err.response?.data?.debug || '';
         if (status === 409) {
           toast.info(msg);
         } else {
-          toast.error(msg);
+          toast.error(`${msg}${debugInfo ? ` [${debugInfo}]` : ''}`);
         }
         setScanResults((prev) => [{
           name: '—', jabatan: '', instansi: '',
           time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
           status: 'error',
-          message: msg,
+          message: `${msg} (HTTP ${status ?? '?'})`,
         }, ...prev.slice(0, 19)]);
       }
     };

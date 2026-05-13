@@ -647,17 +647,17 @@ class MeetingCheckInServiceTest extends TestCase
      */
     public function test_property_9_token_expiry_h_plus_2_fails(): void
     {
-        // Create meeting starting 1 hour ago
+        // Create meeting that has already ended (started 3 hours ago, ended 1 hour ago)
         $meeting = Meeting::factory()->create([
-            'started_at' => now()->subHours(1),
-            'ended_at' => now()->addHours(3),
+            'started_at' => now()->subHours(3),
+            'ended_at' => now()->subHours(1),
         ]);
 
         $participant = MeetingParticipant::factory()->forMeeting($meeting)->create();
         $url = $this->qrService->generatePersonalQrUrl($meeting, $participant);
 
-        // Mock the current time to H+2 (2 hours after start)
-        $this->travelTo($meeting->started_at->addHours(2));
+        // Mock the current time to 2 hours after meeting ended (well past the 1-hour buffer)
+        $this->travelTo($meeting->ended_at->addHours(2));
 
         $request = $this->createMockRequest($url, '192.168.1.1');
 

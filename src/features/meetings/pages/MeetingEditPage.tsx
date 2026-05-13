@@ -38,15 +38,15 @@ function toBackendDatetime(datetimeLocal: string): string {
 
 /**
  * Convert ISO 8601 datetime to datetime-local input format (YYYY-MM-DDTHH:mm).
+ * Extracts date/time directly from string to avoid browser timezone conversion.
+ * Backend stores in WIB, so "2026-05-14T08:00:00.000000Z" means 08:00 WIB.
  */
 function toDatetimeLocal(iso: string): string {
   if (!iso) return '';
-  const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
+  // Extract YYYY-MM-DDTHH:mm directly — no Date() to avoid UTC→local shift
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  if (match) return `${match[1]}T${match[2]}`;
+  return '';
 }
 
 const participantSchema = z.object({

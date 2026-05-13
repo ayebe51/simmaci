@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { formatMeetingDate } from '../utils/dateHelpers';
 import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,7 +187,7 @@ export default function MeetingListPage() {
                 <div className="flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                   <span>
-                    {format(new Date(meeting.started_at), 'dd MMM yyyy, HH:mm', { locale: idLocale })}
+                    {formatMeetingDate(meeting.started_at, 'dd MMM yyyy, HH:mm')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

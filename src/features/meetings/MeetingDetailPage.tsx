@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { formatMeetingDate } from './utils/dateHelpers';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MeetingMinutesEditor } from './components/MeetingMinutesEditor';
 import { MeetingMinutesView } from './components/MeetingMinutesView';
@@ -158,14 +159,14 @@ export const MeetingDetailPage: React.FC = () => {
                 <Clock className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs text-slate-500">Waktu Mulai</p>
-                  <p className="font-medium">{format(new Date(meeting.started_at), 'dd MMM yyyy, HH:mm', { locale: idLocale })}</p>
+                  <p className="font-medium">{formatMeetingDate(meeting.started_at, 'dd MMM yyyy, HH:mm')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <Clock className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs text-slate-500">Waktu Selesai</p>
-                  <p className="font-medium">{format(new Date(meeting.ended_at), 'dd MMM yyyy, HH:mm', { locale: idLocale })}</p>
+                  <p className="font-medium">{formatMeetingDate(meeting.ended_at, 'dd MMM yyyy, HH:mm')}</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">

@@ -63,12 +63,12 @@ class MeetingCheckInService
             throw new InvalidQrSignatureException();
         }
 
-        // Step 2: Check expiry window (H-1 to H+1 from meeting start)
+        // Step 2: Check expiry window (H-1 from start until meeting ends + 1 hour)
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(1); // H-1
-        $endWindow = $meeting->started_at->copy()->addHours(1); // H+1
+        $startWindow = $meeting->started_at->copy()->subHours(1); // 1 hour before start
+        $endWindow = $meeting->ended_at->copy()->addHour();       // 1 hour after end
 
-        if ($now->isBefore($startWindow) || $now->isAfter($endWindow->copy()->addSecond())) {
+        if ($now->isBefore($startWindow) || $now->isAfter($endWindow)) {
             throw new QrExpiredException();
         }
 
@@ -176,12 +176,12 @@ class MeetingCheckInService
             throw new InvalidQrSignatureException();
         }
 
-        // Step 2: Check expiry window (H-1 to H+1 from meeting start)
+        // Step 2: Check expiry window (H-1 from start until meeting ends + 1 hour)
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(1); // H-1
-        $endWindow = $meeting->started_at->copy()->addHours(1); // H+1
+        $startWindow = $meeting->started_at->copy()->subHours(1); // 1 hour before start
+        $endWindow = $meeting->ended_at->copy()->addHour();       // 1 hour after end
 
-        if ($now->isBefore($startWindow) || $now->isAfter($endWindow->copy()->addSecond())) {
+        if ($now->isBefore($startWindow) || $now->isAfter($endWindow)) {
             throw new QrExpiredException();
         }
 

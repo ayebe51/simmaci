@@ -25,8 +25,8 @@ class MeetingQrService
      */
     public function generatePersonalQrUrl(Meeting $meeting, MeetingParticipant $participant): string
     {
-        // Calculate expiry: H-1 to H+1 from meeting start time
-        $expiresAt = $meeting->started_at->addHours(25); // H+1 from start
+        // QR valid until meeting ends + 1 hour buffer (not just H+1 from start)
+        $expiresAt = $meeting->ended_at->copy()->addHour();
 
         // Generate signed URL using Laravel's temporary signed route
         $backendUrl = URL::temporarySignedRoute(
@@ -60,8 +60,8 @@ class MeetingQrService
      */
     public function generateUmumQrUrl(Meeting $meeting): string
     {
-        // Calculate expiry: H-1 to H+1 from meeting start time
-        $expiresAt = $meeting->started_at->addHours(25); // H+1 from start
+        // QR valid until meeting ends + 1 hour buffer
+        $expiresAt = $meeting->ended_at->copy()->addHour();
 
         // Generate signed URL using Laravel's temporary signed route
         $backendUrl = URL::temporarySignedRoute(

@@ -159,8 +159,17 @@ class PublicMeetingScannerController extends Controller
         // Validate the signed URL signature — use MeetingQrService to handle
         // frontend URL → backend URL conversion before validating.
         if (!$this->qrService->validateSignature($qrUrl)) {
-            return $this->errorResponse('QR Code tidak valid atau sudah kadaluarsa.', [
-                'debug' => 'signature_invalid | url=' . substr($qrUrl, 0, 80),
+            // Check if it's specifically an expiration issue
+            $parsed = parse_url($qrUrl);
+            parse_str($parsed['query'] ?? '', $queryParams2);
+            $isExpired = isset($queryParams2['expires']) && now()->getTimestamp() > (int) $queryParams2['expires'];
+
+            $message = $isExpired
+                ? 'QR Code sudah kadaluarsa. Minta admin untuk regenerate QR peserta ini.'
+                : 'QR Code tidak valid atau sudah kadaluarsa.';
+
+            return $this->errorResponse($message, [
+                'debug' => ($isExpired ? 'expired' : 'signature_invalid') . ' | url=' . substr($qrUrl, 0, 80),
             ], 403);
         }
 

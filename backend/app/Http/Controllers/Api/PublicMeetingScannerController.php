@@ -156,25 +156,11 @@ class PublicMeetingScannerController extends Controller
             return $this->errorResponse('Rapat tidak ditemukan.', null, 404);
         }
 
-        // Validate the signed URL signature — use MeetingQrService to handle
-        // frontend URL → backend URL conversion before validating.
-        if (!$this->qrService->validateSignature($qrUrl)) {
-            // Check if it's specifically an expiration issue
-            $parsed = parse_url($qrUrl);
-            parse_str($parsed['query'] ?? '', $queryParams2);
-            $isExpired = isset($queryParams2['expires']) && now()->getTimestamp() > (int) $queryParams2['expires'];
-
-            $message = $isExpired
-                ? 'QR Code sudah kadaluarsa. Minta admin untuk regenerate QR peserta ini.'
-                : 'QR Code tidak valid atau sudah kadaluarsa.';
-
-            return $this->errorResponse($message, [
-                'debug' => ($isExpired ? 'expired' : 'signature_invalid') . ' | url=' . substr($qrUrl, 0, 80),
-            ], 403);
-        }
-
-        // Build a fake request from the QR URL for passing to processCheckIn()
-        // (service needs a Request object to re-validate signature internally)
+        // Build a fake request from the QR URL for passing to processCheckIn().
+        // NOTE: Signature validation is intentionally delegated to MeetingCheckInService::processCheckIn()
+        // which handles frontend-to-backend URL conversion internally via MeetingQrService::validateSignature().
+        // Do NOT validate signature here to avoid double-validation with a reconstructed Request object
+        // that may alter query parameter encoding and cause false failures.
         $fakeRequest = \Illuminate\Http\Request::create($qrUrl, 'GET');
 
         // Walk-in mode (no participant ID)
@@ -220,7 +206,23 @@ class PublicMeetingScannerController extends Controller
         } catch (QrRevokedException $e) {
             return $this->errorResponse('QR Code sudah dicabut.', null, 410);
         } catch (InvalidQrSignatureException $e) {
-            return $this->errorResponse('QR Code tidak valid.', null, 403);
+            // Distinguish between expired and truly invalid signature
+            // so panitia gets an actionable error message
+            parse_str(parse_url($qrUrl, PHP_URL_QUERY) ?? '', $qrParams);
+            $isExpired = isset($qrParams['expires']) && now()->getTimestamp() > (int) $qrParams['expires'];
+
+            \Log::warning('MeetingScanner: InvalidQrSignature', [
+                'meeting_id'     => $meetingId,
+                'participant_id' => $participantId,
+                'is_expired'     => $isExpired,
+                'qr_url_prefix'  => substr($qrUrl, 0, 100),
+            ]);
+
+            $message = $isExpired
+                ? 'QR Code sudah kadaluarsa. Minta admin untuk generate ulang QR peserta ini.'
+                : 'QR Code tidak valid. Pastikan peserta menunjukkan QR dari undangan rapat yang benar.';
+
+            return $this->errorResponse($message, null, 403);
         } catch (TooManyCheckInAttemptsException $e) {
             return $this->errorResponse('Terlalu banyak percobaan. Tunggu beberapa menit.', null, 429);
         } catch (OutsideGeofenceException $e) {

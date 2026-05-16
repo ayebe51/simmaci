@@ -151,16 +151,30 @@ class PublicMeetingScannerController extends Controller
         $meetingId   = (int) $matches[1];
         $participantId = $queryParams['participant'] ?? null;
 
+        // Validate signature FIRST — before any DB lookup.
+        // Use raw $qrUrl string directly (not via Request::create) to avoid
+        // URL encoding differences that could cause false signature failures.
+        // This also ensures tampered URLs (missing expires/participant) are rejected
+        // immediately with 403 before reaching DB queries that would return 404.
+        if (!$this->qrService->validateSignature($qrUrl)) {
+            parse_str(parse_url($qrUrl, PHP_URL_QUERY) ?? '', $qrParams);
+            $isExpired = isset($qrParams['expires']) && now()->getTimestamp() > (int) $qrParams['expires'];
+
+            $message = $isExpired
+                ? 'QR Code sudah kadaluarsa. Minta admin untuk generate ulang QR peserta ini.'
+                : 'QR Code tidak valid atau sudah kadaluarsa.';
+
+            return $this->errorResponse($message, null, 403);
+        }
+
         $meeting = Meeting::find($meetingId);
         if (!$meeting) {
             return $this->errorResponse('Rapat tidak ditemukan.', null, 404);
         }
 
-        // Build a fake request from the QR URL for passing to processCheckIn().
-        // NOTE: Signature validation is intentionally delegated to MeetingCheckInService::processCheckIn()
-        // which handles frontend-to-backend URL conversion internally via MeetingQrService::validateSignature().
-        // Do NOT validate signature here to avoid double-validation with a reconstructed Request object
-        // that may alter query parameter encoding and cause false failures.
+        // Build a fake request from the QR URL for processCheckIn().
+        // Signature is already validated above; the service will re-validate
+        // via the same qrService, which should produce the same result.
         $fakeRequest = \Illuminate\Http\Request::create($qrUrl, 'GET');
 
         // Walk-in mode (no participant ID)

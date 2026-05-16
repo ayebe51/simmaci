@@ -8,11 +8,8 @@ import {
   Meeting,
   CreateMeetingPayload,
   UpdateMeetingPayload,
-  CheckInPayload,
-  WalkInPayload,
   MeetingListParams,
   PaginatedResponse,
-  CheckInResponse,
 } from '../types/meeting.types';
 
 export const meetingService = {
@@ -76,53 +73,6 @@ export const meetingService = {
 
   regenerateQr: async (meetingId: number, participantId: number): Promise<void> => {
     await apiClient.post(`/meetings/${meetingId}/participants/${participantId}/regenerate-qr`);
-  },
-
-  // ── Public Check-In (no auth) ──
-
-  validateCheckInUrl: async (meetingId: string, queryString: string): Promise<Meeting> => {
-    const response = await apiClient.get(
-      `/public/meetings/${meetingId}/check-in?${queryString}`,
-      { headers: { Authorization: undefined } }
-    );
-    return response.data.data ?? response.data;
-  },
-
-  checkIn: async (
-    meetingId: string,
-    queryString: string,
-    payload: CheckInPayload
-  ): Promise<CheckInResponse> => {
-    const formData = new FormData();
-    formData.append('is_delegation', String(payload.is_delegation));
-    if (payload.delegated_for_participant_id) {
-      formData.append('delegated_for_participant_id', String(payload.delegated_for_participant_id));
-    }
-    if (payload.delegation_letter) {
-      formData.append('delegation_letter', payload.delegation_letter);
-    }
-    if (payload.latitude !== undefined) formData.append('latitude', String(payload.latitude));
-    if (payload.longitude !== undefined) formData.append('longitude', String(payload.longitude));
-
-    const response = await apiClient.post(
-      `/public/meetings/${meetingId}/check-in?${queryString}`,
-      formData,
-      { headers: { Authorization: undefined, 'Content-Type': 'multipart/form-data' } }
-    );
-    return response.data;
-  },
-
-  walkIn: async (
-    meetingId: string,
-    queryString: string,
-    payload: WalkInPayload
-  ): Promise<CheckInResponse> => {
-    const response = await apiClient.post(
-      `/public/meetings/${meetingId}/walk-in?${queryString}`,
-      payload,
-      { headers: { Authorization: undefined } }
-    );
-    return response.data;
   },
 
   // ── Reports ──

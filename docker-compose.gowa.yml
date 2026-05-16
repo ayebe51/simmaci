@@ -1,0 +1,28 @@
+version: "3.8"
+
+# GoWA (go-whatsapp-web-multidevice) — local development
+# Run: docker compose -f docker-compose.gowa.yml up -d
+# UI:  http://localhost:3000
+# API: http://localhost:3000
+
+services:
+  gowa:
+    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
+    container_name: simmaci-gowa
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gowa_data:/app/storages
+    command:
+      - "rest"
+      - "--port=3000"
+      - "--basic-auth=admin:secret123"
+    networks:
+      - simmaci-network
+      - default
+
+networks:
+  simmaci-network:
+    external: true
+    name: simmaci_simmaci-network

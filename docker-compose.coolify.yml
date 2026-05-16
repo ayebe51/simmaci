@@ -234,6 +234,26 @@ services:
     networks:
       - simmaci-network
 
+  # ── GoWA (go-whatsapp-web-multidevice) ───────────────────
+  gowa:
+    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
+    container_name: simmaci-gowa
+    restart: unless-stopped
+    command:
+      - "rest"
+      - "--port=3000"
+      - "--basic-auth=${GOWA_BASIC_AUTH:-admin:secret123}"
+    volumes:
+      - gowa-data:/app/storages
+    networks:
+      - simmaci-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gowa.rule=Host(`gowa.simmaci.com`)"
+      - "traefik.http.routers.gowa.entrypoints=websecure"
+      - "traefik.http.routers.gowa.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gowa.loadbalancer.server.port=3000"
+
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:
     build:
@@ -269,3 +289,4 @@ volumes:
   postgres-data:
   redis-data:
   minio-data:
+  gowa-data:

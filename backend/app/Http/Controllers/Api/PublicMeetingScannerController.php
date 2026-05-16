@@ -2,12 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Exceptions\AlreadyCheckedInException;
-use App\Exceptions\InvalidQrSignatureException;
-use App\Exceptions\OutsideGeofenceException;
-use App\Exceptions\QrExpiredException;
-use App\Exceptions\QrRevokedException;
-use App\Exceptions\TooManyCheckInAttemptsException;
 use App\Http\Controllers\Controller;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
@@ -108,14 +102,20 @@ class PublicMeetingScannerController extends Controller
      * Body: { pin: string, qr_url: string }
      *
      * The qr_url is the full signed URL from the participant's QR code.
-     * This endpoint acts as a proxy — it validates the signed URL and
-     * records attendance on behalf of the panitia scanner.
+     * This endpoint acts as a proxy — it validates the QR by matching against
+     * the stored qr_token in the database, then records attendance.
+     *
+     * Security model:
+     * - Scanner is protected by PIN (only panitia has access)
+     * - QR is validated by matching against stored token in DB (tamper-proof)
+     * - Time window is checked against meeting started_at/ended_at
+     * - One-time use is enforced via pessimistic locking
      */
     public function scan(Request $request): JsonResponse
     {
         $request->validate([
             'pin'    => 'required|string',
-            'qr_url' => 'required|string|url',
+            'qr_url' => 'required|string',
         ]);
 
         // Validate scanner PIN
@@ -123,23 +123,22 @@ class PublicMeetingScannerController extends Controller
             return $this->errorResponse('PIN tidak valid.', null, 401);
         }
 
-        $qrUrl = $request->qr_url;
+        $qrUrl = trim($request->qr_url);
 
         \Log::info('MeetingScanner::scan received', [
-            'qr_url' => $qrUrl,
+            'qr_url' => substr($qrUrl, 0, 120),
         ]);
 
-        // Parse the signed URL to extract meeting ID and participant ID
+        // Parse the URL to extract meeting ID and participant ID
         $parsed = parse_url($qrUrl);
         if (!$parsed) {
             return $this->errorResponse('QR Code tidak valid.', null, 400);
         }
 
-        // Extract path segments: /meetings/{meetingId}/check-in or /api/public/meetings/{meetingId}/check-in
         $path = $parsed['path'] ?? '';
         parse_str($parsed['query'] ?? '', $queryParams);
 
-        // Match /meetings/{id}/check-in pattern
+        // Match /meetings/{id}/check-in pattern (handles both frontend and backend URL formats)
         if (!preg_match('#/meetings/(\d+)/check-in#', $path, $matches)) {
             return $this->errorResponse(
                 'QR Code bukan untuk absensi rapat. Pastikan Anda scan QR undangan rapat.',
@@ -148,34 +147,8 @@ class PublicMeetingScannerController extends Controller
             );
         }
 
-        $meetingId   = (int) $matches[1];
+        $meetingId     = (int) $matches[1];
         $participantId = $queryParams['participant'] ?? null;
-
-        // Validate signature FIRST — before any DB lookup.
-        // Use raw $qrUrl string directly (not via Request::create) to avoid
-        // URL encoding differences that could cause false signature failures.
-        // This also ensures tampered URLs (missing expires/participant) are rejected
-        // immediately with 403 before reaching DB queries that would return 404.
-        if (!$this->qrService->validateSignature($qrUrl)) {
-            parse_str(parse_url($qrUrl, PHP_URL_QUERY) ?? '', $qrParams);
-            $isExpired = isset($qrParams['expires']) && now()->getTimestamp() > (int) $qrParams['expires'];
-
-            $message = $isExpired
-                ? 'QR Code sudah kadaluarsa. Minta admin untuk generate ulang QR peserta ini.'
-                : 'QR Code tidak valid atau sudah kadaluarsa.';
-
-            return $this->errorResponse($message, null, 403);
-        }
-
-        $meeting = Meeting::find($meetingId);
-        if (!$meeting) {
-            return $this->errorResponse('Rapat tidak ditemukan.', null, 404);
-        }
-
-        // Build a fake request from the QR URL for processCheckIn().
-        // Signature is already validated above; the service will re-validate
-        // via the same qrService, which should produce the same result.
-        $fakeRequest = \Illuminate\Http\Request::create($qrUrl, 'GET');
 
         // Walk-in mode (no participant ID)
         if (!$participantId) {
@@ -186,85 +159,101 @@ class PublicMeetingScannerController extends Controller
             );
         }
 
-        $participant = MeetingParticipant::find($participantId);
-        if (!$participant || $participant->meeting_id !== $meeting->id) {
-            return $this->errorResponse('Peserta tidak ditemukan.', null, 404);
+        // ── Lookup meeting and participant ──
+        $meeting = Meeting::find($meetingId);
+        if (!$meeting) {
+            return $this->errorResponse('Rapat tidak ditemukan.', null, 404);
         }
 
-        // Process check-in using the existing service
-        // We create a fake request with the signed URL for signature validation
-        try {
-            $attendance = $this->checkInService->processCheckIn(
-                $meeting,
-                $participant,
-                $fakeRequest,
-                [] // no geolocation data from scanner
-            );
+        $participant = MeetingParticipant::find($participantId);
+        if (!$participant || $participant->meeting_id !== $meeting->id) {
+            return $this->errorResponse('Peserta tidak ditemukan dalam rapat ini.', null, 404);
+        }
 
-            return $this->successResponse([
-                'participant_name' => $participant->name,
-                'jabatan'          => $participant->jabatan,
-                'instansi'         => $participant->instansi,
-                'meeting_title'    => $meeting->title,
-                'checked_in_at'    => $attendance->checked_in_at,
-            ], "Check-in {$participant->name} berhasil dicatat.", 201);
-
-        } catch (AlreadyCheckedInException $e) {
-            return $this->errorResponse(
-                "{$participant->name} sudah check-in sebelumnya.",
-                null,
-                409
-            );
-        } catch (QrExpiredException $e) {
-            return $this->errorResponse('QR Code sudah kadaluarsa.', null, 410);
-        } catch (QrRevokedException $e) {
-            return $this->errorResponse('QR Code sudah dicabut.', null, 410);
-        } catch (InvalidQrSignatureException $e) {
-            // Distinguish between expired and truly invalid signature
-            // so panitia gets an actionable error message
-            parse_str(parse_url($qrUrl, PHP_URL_QUERY) ?? '', $qrParams);
-            $isExpired = isset($qrParams['expires']) && now()->getTimestamp() > (int) $qrParams['expires'];
-
-            \Log::warning('MeetingScanner: InvalidQrSignature', [
+        // ── Validate QR token by matching against stored token in DB ──
+        // This is more robust than signed URL validation which is fragile
+        // across different URL formats (frontend vs backend, http vs https).
+        // The scanner is already PIN-protected, so this is secure.
+        if (!$this->isQrTokenValid($qrUrl, $participant)) {
+            \Log::warning('MeetingScanner: QR token mismatch', [
                 'meeting_id'     => $meetingId,
                 'participant_id' => $participantId,
-                'is_expired'     => $isExpired,
-                'qr_url_prefix'  => substr($qrUrl, 0, 100),
+                'scanned_url'    => substr($qrUrl, 0, 120),
+                'stored_token'   => substr($participant->qr_token ?? '', 0, 120),
             ]);
 
-            $message = $isExpired
-                ? 'QR Code sudah kadaluarsa. Minta admin untuk generate ulang QR peserta ini.'
-                : 'QR Code tidak valid. Pastikan peserta menunjukkan QR dari undangan rapat yang benar.';
+            return $this->errorResponse(
+                'QR Code tidak valid. Pastikan peserta menunjukkan QR dari undangan rapat yang benar.',
+                null,
+                403
+            );
+        }
 
-            return $this->errorResponse($message, null, 403);
-        } catch (TooManyCheckInAttemptsException $e) {
-            return $this->errorResponse('Terlalu banyak percobaan. Tunggu beberapa menit.', null, 429);
-        } catch (OutsideGeofenceException $e) {
-            // Scanner panitia bypass geofence — catat tetap berhasil
-            // Panitia hadir di lokasi, jadi geofence tidak relevan
-            try {
-                // Re-process without geofence check by marking directly
+        // ── Check time window: H-2 to ended_at + 1 hour ──
+        $now = now();
+        $startWindow = $meeting->started_at->copy()->subHours(2);
+        $endWindow   = $meeting->ended_at->copy()->addHour();
+
+        if ($now->isBefore($startWindow)) {
+            return $this->errorResponse(
+                'Rapat belum dimulai. Check-in dibuka 2 jam sebelum rapat.',
+                null,
+                403
+            );
+        }
+
+        if ($now->isAfter($endWindow)) {
+            return $this->errorResponse(
+                'QR Code sudah kadaluarsa. Waktu check-in telah berakhir.',
+                null,
+                410
+            );
+        }
+
+        // ── Process check-in with pessimistic locking ──
+        try {
+            return \Illuminate\Support\Facades\DB::transaction(function () use ($meeting, $participant, $request) {
+                // Lock participant record
+                $locked = MeetingParticipant::lockForUpdate()->find($participant->id);
+
+                // Check if token has been revoked
+                if ($locked->token_revoked) {
+                    return $this->errorResponse('QR Code sudah dicabut.', null, 410);
+                }
+
+                // Check if already checked in (one-time use)
+                if ($locked->is_token_used) {
+                    return $this->errorResponse(
+                        "{$locked->name} sudah check-in sebelumnya.",
+                        null,
+                        409
+                    );
+                }
+
+                // Create attendance record
                 $attendance = \App\Models\MeetingAttendance::create([
-                    'meeting_id'           => $meeting->id,
-                    'participant_id'       => $participant->id,
-                    'attendance_type'      => 'manual',
-                    'is_delegation'        => false,
-                    'checked_in_at'        => now(),
-                    'checked_in_by_admin_id' => null,
-                    'ip_address'           => $request->ip(),
+                    'meeting_id'      => $meeting->id,
+                    'participant_id'  => $participant->id,
+                    'attendance_type' => 'qr_personal',
+                    'is_delegation'   => false,
+                    'checked_in_at'   => now(),
+                    'ip_address'      => $request->ip(),
                 ]);
-                $participant->update(['is_token_used' => true, 'token_used_at' => now()]);
+
+                // Mark token as used
+                $locked->update([
+                    'is_token_used' => true,
+                    'token_used_at' => now(),
+                ]);
 
                 return $this->successResponse([
-                    'participant_name' => $participant->name,
-                    'jabatan'          => $participant->jabatan,
-                    'instansi'         => $participant->instansi,
+                    'participant_name' => $locked->name,
+                    'jabatan'          => $locked->jabatan,
+                    'instansi'         => $locked->instansi,
                     'meeting_title'    => $meeting->title,
                     'checked_in_at'    => $attendance->checked_in_at,
-                ], "Check-in {$participant->name} berhasil dicatat (oleh panitia).", 201);
-            } catch (\Exception $inner) {
-                return $this->errorResponse('Gagal mencatat kehadiran.', null, 500);
-            }
+                ], "Check-in {$locked->name} berhasil dicatat.", 201);
+            });
         } catch (\Exception $e) {
             \Log::error('Meeting scanner check-in failed', [
                 'meeting_id'     => $meetingId,
@@ -273,6 +262,49 @@ class PublicMeetingScannerController extends Controller
             ]);
             return $this->errorResponse('Gagal memproses QR. Silakan coba lagi.', null, 500);
         }
+    }
+
+    /**
+     * Validate scanned QR URL against the stored token in the database.
+     *
+     * Compares the scanned URL with the participant's stored qr_token.
+     * Uses a normalized comparison that strips the base URL and compares
+     * only the path + query parameters (signature, expires, participant).
+     */
+    private function isQrTokenValid(string $scannedUrl, MeetingParticipant $participant): bool
+    {
+        $storedToken = $participant->qr_token;
+
+        if (empty($storedToken)) {
+            return false;
+        }
+
+        // Direct match (most common case)
+        if ($scannedUrl === $storedToken) {
+            return true;
+        }
+
+        // Normalized comparison: extract signature param from both URLs
+        // If signatures match, the QR is authentic regardless of base URL differences
+        $scannedSig = $this->extractSignature($scannedUrl);
+        $storedSig  = $this->extractSignature($storedToken);
+
+        if (!empty($scannedSig) && !empty($storedSig) && hash_equals($storedSig, $scannedSig)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Extract the 'signature' query parameter from a URL.
+     */
+    private function extractSignature(string $url): string
+    {
+        $parsed = parse_url($url);
+        parse_str($parsed['query'] ?? '', $params);
+
+        return $params['signature'] ?? '';
     }
 
     private function validatePin(string $pin): bool

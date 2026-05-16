@@ -251,7 +251,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.gowa.rule=Host(`gowa.simmaci.com`)"
-      - "traefik.http.routers.gowa.entrypoints=websecure"
+      - "traefik.http.routers.gowa.entrypoints=https"
       - "traefik.http.routers.gowa.tls.certresolver=letsencrypt"
       - "traefik.http.services.gowa.loadbalancer.server.port=3000"
 

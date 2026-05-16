@@ -28,7 +28,6 @@ use App\Http\Controllers\Api\WaBlastController;
 use App\Http\Controllers\Api\WaBlastConfigController;
 use App\Http\Controllers\Api\WaBlastTemplateController;
 use App\Http\Controllers\Api\MeetingController;
-use App\Http\Controllers\Api\MeetingCheckInController;
 use App\Http\Controllers\Api\MeetingReportController;
 use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\MeetingPhotoController;
@@ -322,10 +321,33 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-// ── Public Meeting Check-In Routes (No Auth — Signed URL Protected) ──
+// ── Public Meeting Check-In Routes (No Auth — Route names used for QR URL generation) ──
+// Note: Self-service check-in has been removed. Check-in is only via panitia scanner.
+// These routes exist so that URL::temporarySignedRoute() can generate QR URLs,
+// and so participants can view their QR code on the frontend page.
 Route::prefix('public/meetings')->group(function () {
-    Route::get('{meeting}/check-in', [MeetingCheckInController::class, 'show'])->name('public.meetings.check-in.show');
-    Route::post('{meeting}/check-in', [MeetingCheckInController::class, 'checkIn'])->name('public.meetings.check-in.store');
-    Route::get('{meeting}/walk-in', [MeetingCheckInController::class, 'show'])->name('public.meetings.walk-in.show');
-    Route::post('{meeting}/walk-in', [MeetingCheckInController::class, 'walkIn'])->name('public.meetings.walk-in.store');
+    Route::get('{meeting}/check-in', function (\App\Models\Meeting $meeting, \Illuminate\Http\Request $request) {
+        $participantId = $request->query('participant');
+        $participant = $participantId ? \App\Models\MeetingParticipant::find($participantId) : null;
+        return response()->json([
+            'success' => true,
+            'message' => 'Tunjukkan QR Code ini ke panitia untuk check-in.',
+            'data' => [
+                'meeting' => $meeting->only(['id', 'title', 'location', 'started_at', 'ended_at']),
+                'participant' => $participant?->only(['id', 'name', 'jabatan', 'instansi']),
+                'mode' => $participant ? 'personal' : 'walk_in',
+            ],
+        ]);
+    })->name('public.meetings.check-in.show');
+
+    Route::get('{meeting}/walk-in', function (\App\Models\Meeting $meeting) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Tunjukkan QR Code ini ke panitia untuk check-in.',
+            'data' => [
+                'meeting' => $meeting->only(['id', 'title', 'location', 'started_at', 'ended_at']),
+                'mode' => 'walk_in',
+            ],
+        ]);
+    })->name('public.meetings.walk-in.show');
 });

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Meeting;
 use App\Models\MeetingParticipant;
 use App\Models\Setting;
-use App\Services\MeetingCheckInService;
 use App\Services\MeetingQrService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +29,6 @@ class PublicMeetingScannerController extends Controller
     private const PIN_SETTING_KEY = 'meeting_scanner_pin';
 
     public function __construct(
-        private MeetingCheckInService $checkInService,
         private MeetingQrService $qrService,
     ) {}
 

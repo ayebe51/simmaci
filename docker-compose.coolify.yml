@@ -247,6 +247,7 @@ services:
       - gowa-data:/app/storages
     networks:
       - simmaci-network
+      - coolify
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.gowa.rule=Host(`gowa.simmaci.com`)"
@@ -284,6 +285,8 @@ services:
 networks:
   simmaci-network:
     driver: bridge
+  coolify:
+    external: true
 
 volumes:
   postgres-data:

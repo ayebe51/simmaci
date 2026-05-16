@@ -242,7 +242,7 @@ services:
     command:
       - "rest"
       - "--port=3000"
-      - "--basic-auth=${GOWA_BASIC_AUTH:-admin:secret123}"
+      - "--basic-auth=${GOWA_BASIC_AUTH:-admin:Aswajacilacap1}"
     volumes:
       - gowa-data:/app/storages
     networks:

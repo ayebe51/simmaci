@@ -267,11 +267,14 @@ class PublicMeetingScannerTest extends TestCase
 
         $participant = MeetingParticipant::factory()->forMeeting($meeting)->create();
 
-        // Build a URL with tampered signature
+        // Generate a valid QR first
+        $this->qrService->generatePersonalQrUrl($meeting, $participant);
+
+        // Build a URL with tampered signature (different from stored qr_token)
         $tamperedUrl = route('public.meetings.check-in.show', [
             'meeting'     => $meeting->id,
             'participant' => $participant->id,
-        ]) . '?signature=tampered_invalid_signature';
+        ]) . '&signature=tampered_invalid_signature&expires=' . now()->addHours(5)->getTimestamp();
 
         $response = $this->postJson('/api/public/meetings/scan', [
             'pin'    => self::VALID_PIN,

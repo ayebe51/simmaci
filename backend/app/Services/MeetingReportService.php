@@ -36,6 +36,9 @@ class MeetingReportService
      */
     public function generatePdf(Meeting $meeting): string
     {
+        // Ensure participants and attendance are loaded
+        $meeting->loadMissing(['participants.attendance', 'attendances']);
+
         // Configure PHPWord to use DomPDF renderer
         Settings::setPdfRendererName(Settings::PDF_RENDERER_DOMPDF);
         Settings::setPdfRendererPath(base_path('vendor/dompdf/dompdf'));
@@ -133,6 +136,9 @@ class MeetingReportService
      */
     public function generateExcel(Meeting $meeting): string
     {
+        // Ensure participants and attendance are loaded
+        $meeting->loadMissing(['participants.attendance', 'attendances']);
+
         // Create Excel export using proper Maatwebsite Excel interfaces
         $export = new class($meeting) implements FromCollection, WithHeadings {
             public function __construct(private Meeting $meeting) {}

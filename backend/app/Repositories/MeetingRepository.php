@@ -67,7 +67,7 @@ class MeetingRepository extends BaseRepository implements MeetingRepositoryInter
         return $this->model
             ->with([
                 'schools',
-                'participants',
+                'participants.attendance',
                 'attendances',
                 'creator',
             ])

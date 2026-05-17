@@ -29,8 +29,8 @@ RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "memory_limit=256M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && mkdir -p /tmp/php-uploads && chmod 1777 /tmp/php-uploads \
-    && echo "upload_tmp_dir=/tmp/php-uploads" >> /usr/local/etc/php/conf.d/uploads.ini
+    && echo "upload_tmp_dir=/tmp" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && chmod 1777 /tmp
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -78,6 +78,9 @@ if [ -f /var/www/html/.env ]; then\n\
 fi\n\
 \n\
 cd /var/www/html\n\
+\n\
+# Ensure tmp directory is writable for file uploads\n\
+chmod 1777 /tmp 2>/dev/null || true\n\
 \n\
 # Generate app key if not set\n\
 if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then\n\

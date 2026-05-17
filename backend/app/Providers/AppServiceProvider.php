@@ -51,6 +51,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Logic removed to prevent early bootstrapping crash
+        //
     }
 }

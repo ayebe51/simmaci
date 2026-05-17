@@ -38,6 +38,9 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 RUN mkdir -p vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer && \
     chmod -R 775 vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer && \
     chown -R www-data:www-data vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer
+RUN mkdir -p storage/fonts && \
+    chown -R www-data:www-data storage/fonts && \
+    chmod -R 775 /tmp
 
 # Copy Nginx configuration
 COPY ./docker/nginx/backend.conf /etc/nginx/sites-available/default

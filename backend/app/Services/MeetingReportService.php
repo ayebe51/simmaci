@@ -50,6 +50,16 @@ class MeetingReportService
             'marginRight' => 800,
         ]);
 
+        // Kop surat (if exists)
+        $kopPath = storage_path('app/public/logo/kop-surat.png');
+        if (file_exists($kopPath)) {
+            $section->addImage($kopPath, [
+                'width' => 700,
+                'alignment' => 'center',
+            ]);
+            $section->addTextBreak(1);
+        }
+
         // Header
         $section->addText('DAFTAR HADIR RAPAT', ['bold' => true, 'size' => 14]);
         $section->addText("Rapat: {$meeting->title}", ['size' => 11]);

@@ -187,14 +187,14 @@ class PublicMeetingScannerController extends Controller
             );
         }
 
-        // ── Check time window: H-2 to ended_at + 1 hour ──
+        // ── Check time window: H-24 to ended_at + 48 hours ──
         $now = now();
-        $startWindow = $meeting->started_at->copy()->subHours(2);
-        $endWindow   = $meeting->ended_at->copy()->addHour();
+        $startWindow = $meeting->started_at->copy()->subHours(24);
+        $endWindow   = $meeting->ended_at->copy()->addHours(48);
 
         if ($now->isBefore($startWindow)) {
             return $this->errorResponse(
-                'Rapat belum dimulai. Check-in dibuka 2 jam sebelum rapat.',
+                'Check-in dibuka 24 jam sebelum rapat dimulai.',
                 null,
                 403
             );
@@ -202,7 +202,7 @@ class PublicMeetingScannerController extends Controller
 
         if ($now->isAfter($endWindow)) {
             return $this->errorResponse(
-                'QR Code sudah kadaluarsa. Waktu check-in telah berakhir.',
+                'Waktu check-in telah berakhir (lebih dari 48 jam setelah rapat selesai).',
                 null,
                 410
             );

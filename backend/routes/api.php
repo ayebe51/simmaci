@@ -333,8 +333,19 @@ Route::prefix('public/meetings')->group(function () {
             'success' => true,
             'message' => 'Tunjukkan QR Code ini ke panitia untuk check-in.',
             'data' => [
-                'meeting' => $meeting->only(['id', 'title', 'location', 'started_at', 'ended_at']),
-                'participant' => $participant?->only(['id', 'name', 'jabatan', 'instansi']),
+                'meeting' => [
+                    'id' => $meeting->id,
+                    'title' => $meeting->title,
+                    'location' => $meeting->location,
+                    'started_at' => $meeting->started_at->format('Y-m-d\TH:i:s'),
+                    'ended_at' => $meeting->ended_at->format('Y-m-d\TH:i:s'),
+                ],
+                'participant' => $participant ? [
+                    'id' => $participant->id,
+                    'name' => $participant->name,
+                    'jabatan' => $participant->jabatan,
+                    'instansi' => $participant->instansi,
+                ] : null,
                 'mode' => $participant ? 'personal' : 'walk_in',
             ],
         ]);
@@ -345,7 +356,13 @@ Route::prefix('public/meetings')->group(function () {
             'success' => true,
             'message' => 'Tunjukkan QR Code ini ke panitia untuk check-in.',
             'data' => [
-                'meeting' => $meeting->only(['id', 'title', 'location', 'started_at', 'ended_at']),
+                'meeting' => [
+                    'id' => $meeting->id,
+                    'title' => $meeting->title,
+                    'location' => $meeting->location,
+                    'started_at' => $meeting->started_at->format('Y-m-d\TH:i:s'),
+                    'ended_at' => $meeting->ended_at->format('Y-m-d\TH:i:s'),
+                ],
                 'mode' => 'walk_in',
             ],
         ]);

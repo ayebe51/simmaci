@@ -95,4 +95,14 @@ class MeetingParticipant extends Model
     {
         return $this->hasMany(MeetingAttendance::class, 'participant_id');
     }
+
+    /**
+     * Get the latest attendance record for this participant (singular).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function attendance(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(MeetingAttendance::class, 'participant_id')->latestOfMany('checked_in_at');
+    }
 }

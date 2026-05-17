@@ -35,6 +35,9 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --no-script
 
 # Set permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
+RUN mkdir -p vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer && \
+    chmod -R 775 vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer && \
+    chown -R www-data:www-data vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer
 
 # Copy Nginx configuration
 COPY ./docker/nginx/backend.conf /etc/nginx/sites-available/default

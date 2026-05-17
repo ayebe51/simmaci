@@ -76,6 +76,15 @@ class Meeting extends Model
         ];
     }
 
+    /**
+     * Serialize dates without UTC 'Z' suffix.
+     * App timezone is Asia/Jakarta, so dates should be sent as-is.
+     */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d\TH:i:s');
+    }
+
     // ── Relationships ──
 
     /**

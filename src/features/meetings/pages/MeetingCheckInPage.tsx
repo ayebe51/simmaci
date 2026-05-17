@@ -9,7 +9,7 @@ import { Clock, MapPin, Loader2, QrCode, AlertCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
-import apiClient from '@/lib/api';
+import { apiClient } from '@/lib/api';
 
 export default function MeetingCheckInPage() {
   const { id } = useParams<{ id: string }>();

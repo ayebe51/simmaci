@@ -225,7 +225,9 @@ class MeetingReportService
 
     private function addMinutesPage(PhpWord $phpWord, Meeting $meeting): void
     {
-        $section = $phpWord->addSection();
+        $section = $phpWord->addSection([
+            'orientation' => 'portrait',
+        ]);
 
         $section->addText('NOTULENSI RAPAT', ['bold' => true, 'size' => 14]);
         $section->addText($meeting->title, ['size' => 12, 'bold' => true]);
@@ -249,7 +251,9 @@ class MeetingReportService
 
     private function addPhotosPage(PhpWord $phpWord, Meeting $meeting): void
     {
-        $section = $phpWord->addSection();
+        $section = $phpWord->addSection([
+            'orientation' => 'portrait',
+        ]);
 
         $section->addText('FOTO KEGIATAN RAPAT', ['bold' => true, 'size' => 14]);
         $section->addTextBreak(1);

@@ -555,10 +555,10 @@ class MeetingReportService
             try {
                 $cell = $currentRow->addCell(2500);
                 
-                // Add image with max width of 2.5 inches
+                // Add image with max width (values in points: 1 inch = 72pt)
                 $cell->addImage($photoUrl, [
-                    'width' => Inches(2.5),
-                    'height' => Inches(2),
+                    'width' => 180,  // ~2.5 inches
+                    'height' => 144, // ~2 inches
                     'alignment' => 'center',
                 ]);
 

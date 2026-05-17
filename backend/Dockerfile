@@ -28,7 +28,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "memory_limit=256M" >> /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/uploads.ini
+    && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && mkdir -p /tmp/php-uploads && chmod 1777 /tmp/php-uploads \
+    && echo "upload_tmp_dir=/tmp/php-uploads" >> /usr/local/etc/php/conf.d/uploads.ini
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -44,8 +46,8 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 RUN mkdir -p vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer && \
     chmod -R 775 vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer && \
     chown -R www-data:www-data vendor/ezyang/htmlpurifier/library/HTMLPurifier/DefinitionCache/Serializer
-RUN mkdir -p storage/fonts && \
-    chown -R www-data:www-data storage/fonts && \
+RUN mkdir -p storage/fonts storage/temp && \
+    chown -R www-data:www-data storage/fonts storage/temp && \
     chmod -R 775 /tmp
 
 # Copy Nginx configuration

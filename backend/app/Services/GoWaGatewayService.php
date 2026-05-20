@@ -114,20 +114,30 @@ class GoWaGatewayService
      *
      * @param string $to Recipient phone number (normalized format: 62xxxxxxxxx)
      * @param string $message Caption/message text
-     * @param string $filePath Path to file in Laravel Storage
+     * @param string $filePath Path to file in Laravel Storage (checks default disk first, then local)
      * @param WaBlastConfig $config Go-WA configuration
      * @return array Response array with keys: success, message, data (or error details)
      */
     public function sendFile(string $to, string $message, string $filePath, WaBlastConfig $config): array
     {
         try {
-            $fileContent = \Illuminate\Support\Facades\Storage::get($filePath);
+            // Try default disk first (S3/MinIO in production), then fallback to local
+            $fileContent = null;
+            $usedDisk = null;
+
+            if (\Illuminate\Support\Facades\Storage::exists($filePath)) {
+                $fileContent = \Illuminate\Support\Facades\Storage::get($filePath);
+                $usedDisk = config('filesystems.default');
+            } elseif (\Illuminate\Support\Facades\Storage::disk('local')->exists($filePath)) {
+                $fileContent = \Illuminate\Support\Facades\Storage::disk('local')->get($filePath);
+                $usedDisk = 'local';
+            }
 
             if (!$fileContent) {
                 return [
                     'success' => false,
                     'message' => 'File tidak ditemukan',
-                    'error'   => "File path: {$filePath}",
+                    'error'   => "File path: {$filePath} (checked default and local disks)",
                 ];
             }
 

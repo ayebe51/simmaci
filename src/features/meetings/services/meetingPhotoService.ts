@@ -112,16 +112,15 @@ export const meetingPhotoService = {
 
   /**
    * Get photo file URL for display.
-   * Photos are served via authenticated API endpoints.
+   * In production, photos are served via MinIO proxy at /api/minio/{path}.
+   * Backend returns relative paths like /minio/{storage_path}.
    * If the path is already a full URL, return as-is.
-   * If it starts with /meetings/, it's a relative API path.
    */
   getFileUrl: (filePath: string): string => {
     if (!filePath) return '';
     if (filePath.startsWith('http')) return filePath;
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
     const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-    // Photos are served via API endpoints (e.g., /meetings/{id}/photos/{id}/file)
     return `${baseUrl}${cleanPath}`;
   },
 

@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FileText, CheckCircle, ShieldAlert, CloudUpload, Loader2, Download, Eye, EyeOff } from "lucide-react"
+import { FileText, CheckCircle, ShieldAlert, CloudUpload, Loader2, Download, Eye, EyeOff, ImageIcon, Trash2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { settingApi, authApi, mediaApi } from "@/lib/api"
@@ -125,6 +125,10 @@ export default function SettingsPage() {
                 <TemplateCard title="Tenaga Kependidikan" settingKey="sk_template_tendik" onUpload={handleUploadTemplate} data={settingsMap} uploading={isUploading} />
                 <TemplateCard title="Kepala Madrasah" settingKey="sk_template_kamad" onUpload={handleUploadTemplate} data={settingsMap} uploading={isUploading} />
             </div>
+
+            {/* Kop Surat Laporan Rapat */}
+            <KopSuratCard settingsMap={settingsMap} refetch={refetch} />
+
             <Card className="border-0 shadow-sm bg-blue-50/50 rounded-3xl p-8">
                 <div className="flex gap-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600"><FileText className="w-5 h-5" /></div>
@@ -297,6 +301,143 @@ function ScannerPinCard({ settingsMap, refetch }: { settingsMap: any; refetch: (
           {saving ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
           Simpan PIN
         </Button>
+      </div>
+    </Card>
+  )
+}
+
+
+// ── Kop Surat Laporan Rapat Card ──────────────────────────────────────────
+
+function KopSuratCard({ settingsMap, refetch }: { settingsMap: any; refetch: () => void }) {
+  const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(false)
+
+  const currentValue = settingsMap?.kop_surat_meeting?.value ?? ""
+  const hasKop = !!currentValue
+
+  // Build preview URL
+  const getPreviewUrl = () => {
+    if (!currentValue) return ""
+    if (currentValue.startsWith("http")) return currentValue
+    if (currentValue.startsWith("data:")) return currentValue
+    // It's a storage path — construct MinIO proxy URL
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api"
+    return `${baseUrl}/minio/${currentValue}`
+  }
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ""
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("File harus berupa gambar (PNG, JPG, atau WEBP)")
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 5 MB")
+      return
+    }
+
+    setUploading(true)
+    try {
+      // Upload to storage
+      const uploaded = await mediaApi.upload(file, "logo")
+      const storagePath = uploaded.path ?? uploaded.url ?? uploaded.file_url
+      if (!storagePath) throw new Error("No path returned from upload")
+
+      // Save the storage path in settings
+      await settingApi.update({ key: "kop_surat_meeting", value: storagePath })
+      toast.success("Kop surat berhasil diupload")
+      refetch()
+    } catch (err: any) {
+      console.error("Upload kop surat error:", err)
+      toast.error("Gagal upload kop surat: " + (err?.response?.data?.message || err?.message || "Unknown error"))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = async () => {
+    setRemoving(true)
+    try {
+      await settingApi.update({ key: "kop_surat_meeting", value: "" })
+      toast.success("Kop surat berhasil dihapus")
+      refetch()
+    } catch {
+      toast.error("Gagal menghapus kop surat")
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  return (
+    <Card className="border-0 shadow-sm bg-white rounded-3xl p-8">
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h3 className="font-black text-slate-800 text-sm uppercase italic tracking-tight">Kop Surat Laporan Rapat</h3>
+          <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+            Gambar header yang tampil di PDF laporan kehadiran rapat (PNG/JPG, maks 5MB)
+          </p>
+        </div>
+        <div className={cn(
+          "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+          hasKop ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"
+        )}>
+          {hasKop ? <CheckCircle className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
+        </div>
+      </div>
+
+      {/* Preview */}
+      {hasKop && (
+        <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <p className="text-[9px] font-bold text-slate-400 uppercase mb-2">Preview Kop Surat</p>
+          <img
+            src={getPreviewUrl()}
+            alt="Kop Surat"
+            className="max-h-24 w-auto object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = "none"
+            }}
+          />
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <Input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handleUpload}
+            className="hidden"
+            id="upload-kop-surat"
+          />
+          <Button asChild size="sm" variant="outline"
+            className="h-10 rounded-xl px-4 font-black uppercase text-[10px] tracking-widest border-slate-200 hover:bg-slate-50">
+            <label htmlFor="upload-kop-surat" className="cursor-pointer flex items-center gap-2">
+              {uploading ? <Loader2 className="animate-spin h-4 w-4" /> : <CloudUpload className="h-3.5 w-3.5" />}
+              {hasKop ? "Ganti Kop Surat" : "Upload Kop Surat"}
+            </label>
+          </Button>
+        </div>
+
+        {hasKop && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRemove}
+            disabled={removing}
+            className="h-10 rounded-xl px-4 font-black uppercase text-[10px] tracking-widest border-red-200 text-red-600 hover:bg-red-50"
+          >
+            {removing ? <Loader2 className="animate-spin h-4 w-4" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+            Hapus
+          </Button>
+        )}
       </div>
     </Card>
   )

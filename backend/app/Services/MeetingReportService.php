@@ -50,18 +50,33 @@ class MeetingReportService
             'marginRight' => 800,
         ]);
 
-        // Kop surat (if exists) — try S3/MinIO first, then local fallback
+        // Kop surat — load from setting (uploaded via Settings page), fallback to storage paths
         $kopTempPath = null;
-        $kopStoragePath = 'logo/kop-surat.png';
-        if (Storage::exists($kopStoragePath)) {
-            $kopContent = Storage::get($kopStoragePath);
-            $kopTempPath = tempnam(sys_get_temp_dir(), 'kop_') . '.png';
-            file_put_contents($kopTempPath, $kopContent);
-        } else {
-            // Fallback to local storage path
-            $localKopPath = storage_path('app/public/logo/kop-surat.png');
-            if (file_exists($localKopPath)) {
-                $kopTempPath = $localKopPath;
+        $kopSuratSetting = \App\Models\Setting::getValue('kop_surat_meeting');
+
+        if ($kopSuratSetting) {
+            // Setting contains a storage path (e.g., "logo/kop-surat.png")
+            if (Storage::exists($kopSuratSetting)) {
+                $kopContent = Storage::get($kopSuratSetting);
+                $ext = pathinfo($kopSuratSetting, PATHINFO_EXTENSION) ?: 'png';
+                $kopTempPath = tempnam(sys_get_temp_dir(), 'kop_') . '.' . $ext;
+                file_put_contents($kopTempPath, $kopContent);
+            }
+        }
+
+        if (!$kopTempPath) {
+            // Fallback: try default path in storage
+            $defaultKopPath = 'logo/kop-surat.png';
+            if (Storage::exists($defaultKopPath)) {
+                $kopContent = Storage::get($defaultKopPath);
+                $kopTempPath = tempnam(sys_get_temp_dir(), 'kop_') . '.png';
+                file_put_contents($kopTempPath, $kopContent);
+            } else {
+                // Last fallback: local filesystem
+                $localKopPath = storage_path('app/public/logo/kop-surat.png');
+                if (file_exists($localKopPath)) {
+                    $kopTempPath = $localKopPath;
+                }
             }
         }
 

@@ -51,6 +51,7 @@ class StoreMeetingRequest extends FormRequest
             'send_reminder_wa' => 'required|boolean',
             'reminder_timing' => 'required_if:send_reminder_wa,true|nullable|in:H-1,2_hours,custom',
             'reminder_custom_at' => 'required_if:reminder_timing,custom|nullable|date_format:Y-m-d\TH:i:sP',
+            'invitation_attachment_path' => 'nullable|string|max:500',
         ];
     }
 

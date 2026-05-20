@@ -172,6 +172,7 @@ export interface CreateMeetingPayload {
   send_reminder_wa: boolean;
   reminder_timing?: ReminderTiming;
   reminder_custom_at?: string; // ISO 8601 with timezone offset, for custom timing
+  invitation_attachment_path?: string; // Storage path of PDF to attach to WA invitation
 }
 
 export interface UpdateMeetingPayload extends Partial<CreateMeetingPayload> {

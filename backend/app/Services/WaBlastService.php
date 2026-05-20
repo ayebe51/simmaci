@@ -129,6 +129,10 @@ class WaBlastService
             $file = $data['attachment'];
             $attachmentName = $file->getClientOriginalName();
             $attachmentPath = $file->store('wa-blasts/attachments', 'local');
+        } elseif (!empty($data['attachment_path']) && is_string($data['attachment_path'])) {
+            // Pre-uploaded file — path already in storage
+            $attachmentPath = $data['attachment_path'];
+            $attachmentName = $data['attachment_name'] ?? basename($attachmentPath);
         }
 
         // 6. Save WaBlast record

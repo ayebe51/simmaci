@@ -30,6 +30,8 @@ class GoWaGatewayService
      *
      * The token stored in WaBlastConfig is "username:password".
      * If empty, no Authorization header is sent (GoWA running without --basic-auth).
+     *
+     * Uses GOWA_INTERNAL_URL env var as override for api_url when running inside Docker.
      */
     private function makeClient(WaBlastConfig $config): \Illuminate\Http\Client\PendingRequest
     {
@@ -58,6 +60,16 @@ class GoWaGatewayService
     }
 
     /**
+     * Get the effective API URL for GoWA.
+     * Uses GOWA_INTERNAL_URL env var if set (for Docker internal networking),
+     * otherwise falls back to the configured api_url in the database.
+     */
+    private function getApiUrl(WaBlastConfig $config): string
+    {
+        return env('GOWA_INTERNAL_URL') ?: $config->api_url;
+    }
+
+    /**
      * Send a text message via Go-WA Gateway.
      *
      * @param string $to Recipient phone number (normalized format: 62xxxxxxxxx)
@@ -69,7 +81,7 @@ class GoWaGatewayService
     {
         try {
             $response = $this->makeClient($config)
-                ->post($config->api_url . '/send/message', [
+                ->post($this->getApiUrl($config) . '/send/message', [
                     'phone'   => $to,
                     'message' => $message,
                 ]);
@@ -153,7 +165,7 @@ class GoWaGatewayService
                 ->attach('file', $fileContent, $fileName, ['Content-Type' => $mimeType])
                 ->attach('phone', $to)
                 ->attach('caption', $message)
-                ->post($config->api_url . '/send/file');
+                ->post($this->getApiUrl($config) . '/send/file');
 
             if ($response->successful()) {
                 return [
@@ -203,7 +215,7 @@ class GoWaGatewayService
     {
         try {
             $response = $this->makeClient($config)
-                ->get($config->api_url . '/app/status');
+                ->get($this->getApiUrl($config) . '/app/status');
 
             if ($response->successful()) {
                 return [

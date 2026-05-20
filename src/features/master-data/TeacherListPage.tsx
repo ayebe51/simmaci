@@ -157,10 +157,33 @@ export default function TeacherListPage() {
   const handleSave = async () => {
     if (!formData.nama) { toast.error("Nama wajib diisi!"); return }
     try {
+      // Only send fields that the backend validates, and convert empty strings to null
+      const payload: Record<string, any> = {
+        nama: formData.nama || null,
+        nuptk: formData.nuptk || null,
+        nip: formData.nip || null,
+        jenis_kelamin: formData.jenis_kelamin || null,
+        tempat_lahir: formData.tempat_lahir || null,
+        tanggal_lahir: formData.tanggal_lahir || null,
+        pendidikan_terakhir: formData.pendidikan_terakhir || null,
+        mapel: formData.mapel || null,
+        unit_kerja: formData.unit_kerja || null,
+        status: formData.status || null,
+        phone_number: formData.phone_number || null,
+        email: formData.email || null,
+        tmt: formData.tmt || null,
+        is_certified: formData.is_certified ?? false,
+        is_active: formData.is_active ?? true,
+        pdpkpnu: formData.pdpkpnu || null,
+        kecamatan: formData.kecamatan || null,
+        kelurahan: formData.kelurahan || null,
+        photo_id: formData.photoId || null,
+      }
+
       if (isEditMode && formData.id) {
-        await updateMutation.mutateAsync({ id: formData.id, data: formData })
+        await updateMutation.mutateAsync({ id: formData.id, data: payload })
       } else {
-        await teacherApi.create(formData)
+        await teacherApi.create(payload)
         queryClient.invalidateQueries({ queryKey: ['teachers'] })
         toast.success("Berhasil menambah guru")
       }

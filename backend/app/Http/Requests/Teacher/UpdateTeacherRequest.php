@@ -35,6 +35,8 @@ class UpdateTeacherRequest extends FormRequest
             'is_active'            => 'nullable|boolean',
             'pdpkpnu'              => 'nullable|string',
             'kecamatan'            => 'nullable|string',
+            'kelurahan'            => 'nullable|string',
+            'photo_id'             => 'nullable|string',
         ];
     }
 }

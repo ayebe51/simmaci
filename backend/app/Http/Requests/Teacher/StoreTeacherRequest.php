@@ -30,8 +30,11 @@ class StoreTeacherRequest extends FormRequest
             'email'                => 'nullable|email',
             'tmt'                  => 'nullable|date',
             'is_certified'         => 'nullable|boolean',
+            'is_active'            => 'nullable|boolean',
             'pdpkpnu'              => 'nullable|string',
             'kecamatan'            => 'nullable|string',
+            'kelurahan'            => 'nullable|string',
+            'photo_id'             => 'nullable|string',
         ];
     }
 }

@@ -109,6 +109,10 @@ Route::prefix('public/meetings')->group(function () {
     Route::get('active',      [PublicMeetingScannerController::class, 'activeList']);
 });
 
+// ── Meeting Photo File Serving (no auth — photos are not sensitive) ──
+Route::get('meetings/{meeting}/photos/{photo}/file', [MeetingPhotoController::class, 'show']);
+Route::get('meetings/{meeting}/photos/{photo}/thumbnail', [MeetingPhotoController::class, 'thumbnail']);
+
 // Test route untuk debug
 Route::get('test-minio', function() {
     return response()->json(['status' => 'ok', 'message' => 'MinIO proxy test endpoint']);
@@ -316,8 +320,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // ── Meeting Photos (Foto Kegiatan) ──
         Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
         Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
-        Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
         Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
+        Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
     });
 });
 

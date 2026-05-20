@@ -50,10 +50,23 @@ class MeetingReportService
             'marginRight' => 800,
         ]);
 
-        // Kop surat (if exists)
-        $kopPath = storage_path('app/public/logo/kop-surat.png');
-        if (file_exists($kopPath)) {
-            $section->addImage($kopPath, [
+        // Kop surat (if exists) — try S3/MinIO first, then local fallback
+        $kopTempPath = null;
+        $kopStoragePath = 'logo/kop-surat.png';
+        if (Storage::exists($kopStoragePath)) {
+            $kopContent = Storage::get($kopStoragePath);
+            $kopTempPath = tempnam(sys_get_temp_dir(), 'kop_') . '.png';
+            file_put_contents($kopTempPath, $kopContent);
+        } else {
+            // Fallback to local storage path
+            $localKopPath = storage_path('app/public/logo/kop-surat.png');
+            if (file_exists($localKopPath)) {
+                $kopTempPath = $localKopPath;
+            }
+        }
+
+        if ($kopTempPath && file_exists($kopTempPath)) {
+            $section->addImage($kopTempPath, [
                 'width' => 700,
                 'alignment' => 'center',
             ]);
@@ -61,13 +74,23 @@ class MeetingReportService
         }
 
         // Header
-        $section->addText('DAFTAR HADIR RAPAT', ['bold' => true, 'size' => 14]);
-        $section->addText("Rapat: {$meeting->title}", ['size' => 11]);
-        $section->addText("Tanggal: {$meeting->started_at->format('d-m-Y')}", ['size' => 11]);
-        $section->addText("Waktu: {$meeting->started_at->format('H:i')} - {$meeting->ended_at->format('H:i')}", ['size' => 11]);
-        $section->addText("Lokasi: {$meeting->location}", ['size' => 11]);
+        $section->addText(
+            'DAFTAR HADIR RAPAT',
+            ['bold' => true, 'size' => 14],
+            ['alignment' => 'center', 'spaceAfter' => 120]
+        );
+        $section->addText(
+            strtoupper($meeting->title),
+            ['bold' => true, 'size' => 12],
+            ['alignment' => 'center', 'spaceAfter' => 200]
+        );
+
+        // Meeting info
+        $section->addText("Hari/Tanggal : {$meeting->started_at->translatedFormat('l, d F Y')}", ['size' => 10]);
+        $section->addText("Waktu        : {$meeting->started_at->format('H:i')} - {$meeting->ended_at->format('H:i')} WIB", ['size' => 10]);
+        $section->addText("Tempat       : {$meeting->location}", ['size' => 10]);
         if ($meeting->agenda) {
-            $section->addText("Agenda: {$meeting->agenda}", ['size' => 11]);
+            $section->addText("Agenda       : {$meeting->agenda}", ['size' => 10]);
         }
         $section->addTextBreak(1);
 
@@ -76,9 +99,21 @@ class MeetingReportService
 
         $section->addTextBreak(2);
 
+        // Summary
+        $totalParticipants = $meeting->participants->count();
+        $presentCount = $meeting->participants->filter(fn($p) => $p->attendance !== null)->count();
+        $section->addText(
+            "Total Peserta: {$totalParticipants} | Hadir: {$presentCount} | Tidak Hadir: " . ($totalParticipants - $presentCount),
+            ['size' => 10, 'bold' => true]
+        );
+
+        $section->addTextBreak(1);
+
         // Footer
-        $section->addText("Tanggal cetak: " . now()->format('d-m-Y H:i:s'), ['size' => 9, 'italic' => true]);
-        $section->addText("Dicetak oleh: " . (auth()->user()?->name ?? 'Admin'), ['size' => 9, 'italic' => true]);
+        $section->addText(
+            "Dicetak pada: " . now()->format('d-m-Y H:i:s') . " oleh " . (auth()->user()?->name ?? 'Admin'),
+            ['size' => 8, 'italic' => true, 'color' => '666666']
+        );
 
         // ── Page 2: Notulensi (if exists) ──
         if ($meeting->minutes) {
@@ -108,6 +143,10 @@ class MeetingReportService
                 if (file_exists($tempFile)) {
                     @unlink($tempFile);
                 }
+            }
+            // Clean up kop surat temp file (only if it was downloaded from S3)
+            if ($kopTempPath && $kopTempPath !== ($localKopPath ?? '') && file_exists($kopTempPath)) {
+                @unlink($kopTempPath);
             }
         }
 

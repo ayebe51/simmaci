@@ -257,7 +257,7 @@ export default function WaBlastDetailPage() {
           <CardTitle className="text-base">Daftar Penerima</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecipientDetailTable blastId={numericId} />
+          <RecipientDetailTable recipients={blast.recipients ?? []} />
         </CardContent>
       </Card>
 

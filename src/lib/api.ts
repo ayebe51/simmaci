@@ -50,6 +50,10 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 apiClient.interceptors.response.use(
   (response) => {
+    // Skip unwrapping for blob/arraybuffer responses (file downloads)
+    if (response.config.responseType === 'blob' || response.config.responseType === 'arraybuffer') {
+      return response;
+    }
     // If the response follows Requirement 6 (Standardized API Response)
     // and it was successful, we extract the nested 'data' field.
     if (response.data && response.data.success === true && response.data.data !== undefined) {

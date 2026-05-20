@@ -80,6 +80,7 @@ export const meetingService = {
   downloadPdf: async (meetingId: number): Promise<Blob> => {
     const response = await apiClient.get(`/meetings/${meetingId}/report/pdf`, {
       responseType: 'blob',
+      headers: { Accept: 'application/pdf' },
     });
     return response.data;
   },
@@ -87,6 +88,7 @@ export const meetingService = {
   downloadExcel: async (meetingId: number): Promise<Blob> => {
     const response = await apiClient.get(`/meetings/${meetingId}/report/excel`, {
       responseType: 'blob',
+      headers: { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
     });
     return response.data;
   },

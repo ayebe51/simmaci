@@ -86,8 +86,9 @@ class MeetingReportService
         }
 
         // ── Page 3: Foto Kegiatan (if exists) ──
+        $tempImageFiles = [];
         if ($meeting->photos->isNotEmpty()) {
-            $this->addPhotosPage($phpWord, $meeting);
+            $this->addPhotosPage($phpWord, $meeting, $tempImageFiles);
         }
 
         // Save as PDF
@@ -98,8 +99,15 @@ class MeetingReportService
             $writer->save($tempPath);
             $content = file_get_contents($tempPath);
         } finally {
+            // Clean up PDF temp file
             if (file_exists($tempPath)) {
                 unlink($tempPath);
+            }
+            // Clean up photo temp files AFTER save (PHPWord reads images at save time)
+            foreach ($tempImageFiles as $tempFile) {
+                if (file_exists($tempFile)) {
+                    @unlink($tempFile);
+                }
             }
         }
 
@@ -249,7 +257,7 @@ class MeetingReportService
         $section->addText("Tanggal: " . $meeting->minutes->created_at->format('d-m-Y H:i:s'), ['size' => 10, 'italic' => true]);
     }
 
-    private function addPhotosPage(PhpWord $phpWord, Meeting $meeting): void
+    private function addPhotosPage(PhpWord $phpWord, Meeting $meeting, array &$tempFiles = []): void
     {
         $section = $phpWord->addSection([
             'orientation' => 'portrait',
@@ -276,8 +284,8 @@ class MeetingReportService
                         'alignment' => 'center',
                     ]);
 
-                    // Clean up temp file
-                    @unlink($tempImagePath);
+                    // Track temp file for cleanup AFTER save() — PHPWord reads images at save time
+                    $tempFiles[] = $tempImagePath;
                 } else {
                     $section->addText("[Foto tidak ditemukan: {$photo->original_filename}]", ['italic' => true, 'size' => 9]);
                 }

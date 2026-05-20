@@ -10,6 +10,7 @@ use App\Services\MeetingPhotoService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * MeetingPhotoController
@@ -87,19 +88,11 @@ class MeetingPhotoController extends Controller
                     $request->user()
                 );
 
-                $disk = config('filesystems.default');
-                $photoUrl = $disk === 's3'
-                    ? '/minio/' . $photo->storage_path
-                    : "/meetings/{$meeting->id}/photos/{$photo->id}/file";
-                $thumbnailUrl = $disk === 's3'
-                    ? '/minio/' . ($photo->thumbnail_path ?? $photo->storage_path)
-                    : "/meetings/{$meeting->id}/photos/{$photo->id}/thumbnail";
-
                 $uploadedPhotos[] = [
                     'id' => $photo->id,
                     'original_filename' => $photo->original_filename,
-                    'photo_url' => $photoUrl,
-                    'thumbnail_url' => $thumbnailUrl,
+                    'photo_url' => Storage::url($photo->storage_path),
+                    'thumbnail_url' => Storage::url($photo->thumbnail_path ?? $photo->storage_path),
                     'file_size' => $photo->file_size,
                     'width' => $photo->width,
                     'height' => $photo->height,

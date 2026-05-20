@@ -110,6 +110,15 @@ export const MeetingPhotoGallery: React.FC<MeetingPhotoGalleryProps> = ({
               src={meetingPhotoService.getThumbnailUrl(photo.thumbnail_path) || meetingPhotoService.getFileUrl(photo.file_path)}
               alt={photo.caption || `Foto ${photo.id}`}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+              loading="lazy"
+              onError={(e) => {
+                const target = e.currentTarget;
+                // If thumbnail failed, try the full image
+                const fullUrl = meetingPhotoService.getFileUrl(photo.file_path);
+                if (target.src !== fullUrl && fullUrl) {
+                  target.src = fullUrl;
+                }
+              }}
             />
 
             {/* Overlay */}

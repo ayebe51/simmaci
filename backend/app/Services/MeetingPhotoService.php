@@ -153,24 +153,15 @@ class MeetingPhotoService
     /**
      * Get the display URL for a photo path.
      *
-     * In production (S3/MinIO disk), returns the MinIO proxy path: /minio/{storage_path}
-     * In local dev, returns the file-serving endpoint path.
+     * Uses Storage::url() which respects the configured AWS_URL for S3 disk.
+     * In production: returns https://simmaci.com/api/minio/{path}
+     * In local: returns /storage/{path} (via local disk serve)
      *
      * @param string $storagePath
      * @return string
      */
     private function getPhotoDisplayUrl(string $storagePath): string
     {
-        $disk = config('filesystems.default');
-
-        if ($disk === 's3') {
-            // Use MinIO proxy: frontend accesses /api/minio/{path}
-            return '/minio/' . $storagePath;
-        }
-
-        // Fallback for local disk: use the file-serving endpoint
-        // This requires the photo ID, but we only have the path here.
-        // For local, use Storage::url() which works with 'serve' => true
         return Storage::url($storagePath);
     }
 

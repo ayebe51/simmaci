@@ -112,16 +112,18 @@ export const meetingPhotoService = {
 
   /**
    * Get photo file URL for display.
-   * In production, photos are served via MinIO proxy at /api/minio/{path}.
-   * Backend returns relative paths like /minio/{storage_path}.
-   * If the path is already a full URL, return as-is.
+   * Backend returns full URLs (https://simmaci.com/api/minio/...) for S3 disk
+   * or relative paths for local disk.
    */
   getFileUrl: (filePath: string): string => {
     if (!filePath) return '';
+    // Full URL from Storage::url() — use as-is
     if (filePath.startsWith('http')) return filePath;
+    // Relative path (e.g., /api/minio/... or /storage/...) — use as-is (browser resolves relative to origin)
+    if (filePath.startsWith('/')) return filePath;
+    // Bare path without leading slash — prepend API base
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-    return `${baseUrl}${cleanPath}`;
+    return `${baseUrl}/${filePath}`;
   },
 
   /**

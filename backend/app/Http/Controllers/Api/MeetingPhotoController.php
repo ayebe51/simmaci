@@ -90,8 +90,8 @@ class MeetingPhotoController extends Controller
                 $uploadedPhotos[] = [
                     'id' => $photo->id,
                     'original_filename' => $photo->original_filename,
-                    'photo_url' => $photo->getPhotoUrl(),
-                    'thumbnail_url' => $photo->getThumbnailUrl(),
+                    'photo_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/file",
+                    'thumbnail_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/thumbnail",
                     'file_size' => $photo->file_size,
                     'width' => $photo->width,
                     'height' => $photo->height,
@@ -110,6 +110,89 @@ class MeetingPhotoController extends Controller
             ]);
 
             return $this->errorResponse($e->getMessage(), null, 400);
+        }
+    }
+
+    /**
+     * Serve a photo file (stream from private storage).
+     *
+     * Photos are stored on the local (private) disk, so they need to be
+     * served through an authenticated endpoint.
+     *
+     * @param Meeting $meeting
+     * @param MeetingPhoto $photo
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+     */
+    public function show(Meeting $meeting, MeetingPhoto $photo)
+    {
+        // Verify photo belongs to the meeting
+        if ($photo->meeting_id !== $meeting->id) {
+            return $this->errorResponse('Foto tidak ditemukan untuk rapat ini.', null, 404);
+        }
+
+        try {
+            if (!\Illuminate\Support\Facades\Storage::exists($photo->storage_path)) {
+                return $this->errorResponse('File foto tidak ditemukan.', null, 404);
+            }
+
+            return response()->stream(function () use ($photo) {
+                echo \Illuminate\Support\Facades\Storage::get($photo->storage_path);
+            }, 200, [
+                'Content-Type' => $photo->mime_type ?? 'image/jpeg',
+                'Content-Disposition' => 'inline; filename="' . $photo->original_filename . '"',
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to serve meeting photo', [
+                'meeting_id' => $meeting->id,
+                'photo_id' => $photo->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse('Gagal memuat foto.', null, 500);
+        }
+    }
+
+    /**
+     * Serve a photo thumbnail (stream from private storage).
+     *
+     * @param Meeting $meeting
+     * @param MeetingPhoto $photo
+     * @return \Symfony\Component\HttpFoundation\StreamedResponse|JsonResponse
+     */
+    public function thumbnail(Meeting $meeting, MeetingPhoto $photo)
+    {
+        // Verify photo belongs to the meeting
+        if ($photo->meeting_id !== $meeting->id) {
+            return $this->errorResponse('Foto tidak ditemukan untuk rapat ini.', null, 404);
+        }
+
+        try {
+            $path = $photo->thumbnail_path ?? $photo->storage_path;
+
+            if (!\Illuminate\Support\Facades\Storage::exists($path)) {
+                // Fallback to original if thumbnail doesn't exist
+                $path = $photo->storage_path;
+                if (!\Illuminate\Support\Facades\Storage::exists($path)) {
+                    return $this->errorResponse('File foto tidak ditemukan.', null, 404);
+                }
+            }
+
+            return response()->stream(function () use ($path) {
+                echo \Illuminate\Support\Facades\Storage::get($path);
+            }, 200, [
+                'Content-Type' => $photo->mime_type ?? 'image/jpeg',
+                'Content-Disposition' => 'inline; filename="thumb_' . $photo->original_filename . '"',
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to serve meeting photo thumbnail', [
+                'meeting_id' => $meeting->id,
+                'photo_id' => $photo->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse('Gagal memuat thumbnail.', null, 500);
         }
     }
 

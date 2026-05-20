@@ -123,6 +123,7 @@ class MeetingPhotoService
      * Get gallery data for frontend display.
      *
      * Returns photo data formatted for frontend gallery component.
+     * URLs point to authenticated API endpoints that stream files from private storage.
      *
      * @param Meeting $meeting The meeting to get gallery data for
      * @return array Array of photo data with URLs and metadata
@@ -131,18 +132,18 @@ class MeetingPhotoService
     {
         $photos = $this->getPhotos($meeting);
 
-        return $photos->map(function (MeetingPhoto $photo) {
+        return $photos->map(function (MeetingPhoto $photo) use ($meeting) {
             return [
                 'id' => $photo->id,
                 'meeting_id' => $photo->meeting_id,
                 'original_filename' => $photo->original_filename,
-                'photo_url' => $photo->getPhotoUrl(),
-                'thumbnail_url' => $photo->getThumbnailUrl(),
+                'photo_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/file",
+                'thumbnail_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/thumbnail",
                 'file_size' => $photo->file_size,
                 'width' => $photo->width,
                 'height' => $photo->height,
                 'mime_type' => $photo->mime_type,
-                'uploaded_by' => $photo->uploader->name,
+                'uploaded_by' => $photo->uploader?->name ?? 'Admin',
                 'uploaded_at' => $photo->created_at->toIso8601String(),
             ];
         })->toArray();

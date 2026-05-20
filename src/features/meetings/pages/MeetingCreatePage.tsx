@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X, Users } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, ArrowLeft, Loader2, Search, X, Users, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { useCreateMeeting } from '../hooks/useMeetings';
-import { schoolApi, apiClient } from '@/lib/api';
+import { schoolApi, apiClient, mediaApi } from '@/lib/api';
 import { CreateMeetingPayload, ParticipantInput } from '../types/meeting.types';
 import { toast } from 'sonner';
 
@@ -82,6 +82,9 @@ export default function MeetingCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreateMeeting();
   const [schoolSearch, setSchoolSearch] = useState('');
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const { data: schools = [], isLoading: schoolsLoading } = useQuery({
     queryKey: ['schools-autocomplete'],
@@ -157,7 +160,22 @@ export default function MeetingCreatePage() {
     }
   };
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
+    // Upload attachment PDF if provided
+    let attachmentPath: string | undefined;
+    if (attachmentFile && values.send_invitation_wa) {
+      setUploadingAttachment(true);
+      try {
+        const uploaded = await mediaApi.upload(attachmentFile, 'meeting-attachments');
+        attachmentPath = uploaded.path ?? uploaded.url;
+      } catch (err: any) {
+        toast.error('Gagal upload lampiran: ' + (err?.response?.data?.message || err?.message));
+        setUploadingAttachment(false);
+        return;
+      }
+      setUploadingAttachment(false);
+    }
+
     const payload: CreateMeetingPayload = {
       title: values.title,
       agenda: values.agenda,
@@ -176,13 +194,13 @@ export default function MeetingCreatePage() {
       send_reminder_wa: values.send_reminder_wa,
       reminder_timing: values.reminder_timing,
       reminder_custom_at: values.reminder_custom_at ? toBackendDatetime(values.reminder_custom_at) : undefined,
+      invitation_attachment_path: attachmentPath,
     };
 
     createMutation.mutate(payload, {
       onSuccess: (data) => navigate(`/dashboard/meetings/${data.id}`),
       onError: (error: any) => {
         const msg = error?.response?.data?.message || error?.response?.data?.errors?.ended_at?.[0] || 'Gagal membuat rapat';
-        // errors will be shown via toast from the hook
         console.error('Create meeting error:', msg);
       },
     });
@@ -546,6 +564,57 @@ export default function MeetingCreatePage() {
                 )}
               </div>
             )}
+
+            {/* Lampiran PDF untuk undangan WA */}
+            <div className="pt-2 border-t">
+              <Label className="text-sm font-medium">Lampiran Surat Undangan (Opsional)</Label>
+              <p className="text-xs text-slate-500 mb-2">
+                File PDF yang akan dikirim bersama pesan undangan WA ke peserta (maks 10MB)
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 10 * 1024 * 1024) {
+                        toast.error('Ukuran file maksimal 10 MB');
+                        return;
+                      }
+                      setAttachmentFile(file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => attachmentInputRef.current?.click()}
+                  className="text-xs"
+                >
+                  <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+                  {attachmentFile ? 'Ganti File' : 'Pilih File PDF'}
+                </Button>
+                {attachmentFile && (
+                  <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-md">
+                    <Paperclip className="h-3 w-3 text-slate-400" />
+                    <span className="truncate max-w-[200px]">{attachmentFile.name}</span>
+                    <span className="text-slate-400">({(attachmentFile.size / 1024).toFixed(0)} KB)</span>
+                    <button
+                      type="button"
+                      onClick={() => setAttachmentFile(null)}
+                      className="text-red-400 hover:text-red-600 ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

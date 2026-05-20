@@ -90,7 +90,7 @@ class MeetingService
 
             // 5. Send invitation WA blast if enabled
             if ($data['send_invitation_wa'] ?? false) {
-                $this->sendInvitationBlast($meeting);
+                $this->sendInvitationBlast($meeting, $data['invitation_attachment_path'] ?? null);
             }
 
             // 6. Schedule reminder if enabled
@@ -506,7 +506,7 @@ class MeetingService
      * @param Meeting $meeting
      * @return void
      */
-    private function sendInvitationBlast(Meeting $meeting): void
+    private function sendInvitationBlast(Meeting $meeting, ?string $attachmentPath = null): void
     {
         $recipients = [];
 
@@ -532,12 +532,20 @@ class MeetingService
         }
 
         try {
-            $blast = $this->waBlastService->createBlast([
+            $blastData = [
                 'title' => "Undangan: {$meeting->title}",
                 'recipient_category' => 'custom',
                 'message_body' => $this->buildInvitationMessage($meeting, null),
                 'recipients' => $recipients,
-            ], auth()->id());
+            ];
+
+            // Attach PDF file if provided
+            if ($attachmentPath && \Illuminate\Support\Facades\Storage::exists($attachmentPath)) {
+                $blastData['attachment_path'] = $attachmentPath;
+                $blastData['attachment_name'] = basename($attachmentPath);
+            }
+
+            $blast = $this->waBlastService->createBlast($blastData, auth()->id());
 
             $meeting->update(['invitation_blast_id' => $blast->id]);
         } catch (\Exception $e) {

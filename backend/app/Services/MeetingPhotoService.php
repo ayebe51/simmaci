@@ -123,7 +123,8 @@ class MeetingPhotoService
      * Get gallery data for frontend display.
      *
      * Returns photo data formatted for frontend gallery component.
-     * URLs point to authenticated API endpoints that stream files from private storage.
+     * URLs use the MinIO proxy pattern (/api/minio/{path}) for S3 disk,
+     * or the file-serving endpoint for local disk.
      *
      * @param Meeting $meeting The meeting to get gallery data for
      * @return array Array of photo data with URLs and metadata
@@ -137,8 +138,8 @@ class MeetingPhotoService
                 'id' => $photo->id,
                 'meeting_id' => $photo->meeting_id,
                 'original_filename' => $photo->original_filename,
-                'photo_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/file",
-                'thumbnail_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/thumbnail",
+                'photo_url' => $this->getPhotoDisplayUrl($photo->storage_path),
+                'thumbnail_url' => $this->getPhotoDisplayUrl($photo->thumbnail_path ?? $photo->storage_path),
                 'file_size' => $photo->file_size,
                 'width' => $photo->width,
                 'height' => $photo->height,
@@ -147,6 +148,30 @@ class MeetingPhotoService
                 'uploaded_at' => $photo->created_at->toIso8601String(),
             ];
         })->toArray();
+    }
+
+    /**
+     * Get the display URL for a photo path.
+     *
+     * In production (S3/MinIO disk), returns the MinIO proxy path: /minio/{storage_path}
+     * In local dev, returns the file-serving endpoint path.
+     *
+     * @param string $storagePath
+     * @return string
+     */
+    private function getPhotoDisplayUrl(string $storagePath): string
+    {
+        $disk = config('filesystems.default');
+
+        if ($disk === 's3') {
+            // Use MinIO proxy: frontend accesses /api/minio/{path}
+            return '/minio/' . $storagePath;
+        }
+
+        // Fallback for local disk: use the file-serving endpoint
+        // This requires the photo ID, but we only have the path here.
+        // For local, use Storage::url() which works with 'serve' => true
+        return Storage::url($storagePath);
     }
 
     /**

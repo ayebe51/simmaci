@@ -87,11 +87,19 @@ class MeetingPhotoController extends Controller
                     $request->user()
                 );
 
+                $disk = config('filesystems.default');
+                $photoUrl = $disk === 's3'
+                    ? '/minio/' . $photo->storage_path
+                    : "/meetings/{$meeting->id}/photos/{$photo->id}/file";
+                $thumbnailUrl = $disk === 's3'
+                    ? '/minio/' . ($photo->thumbnail_path ?? $photo->storage_path)
+                    : "/meetings/{$meeting->id}/photos/{$photo->id}/thumbnail";
+
                 $uploadedPhotos[] = [
                     'id' => $photo->id,
                     'original_filename' => $photo->original_filename,
-                    'photo_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/file",
-                    'thumbnail_url' => "/meetings/{$meeting->id}/photos/{$photo->id}/thumbnail",
+                    'photo_url' => $photoUrl,
+                    'thumbnail_url' => $thumbnailUrl,
                     'file_size' => $photo->file_size,
                     'width' => $photo->width,
                     'height' => $photo->height,

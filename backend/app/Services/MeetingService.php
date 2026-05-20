@@ -540,9 +540,17 @@ class MeetingService
             ];
 
             // Attach PDF file if provided
-            if ($attachmentPath && \Illuminate\Support\Facades\Storage::exists($attachmentPath)) {
-                $blastData['attachment_path'] = $attachmentPath;
-                $blastData['attachment_name'] = basename($attachmentPath);
+            if ($attachmentPath) {
+                $exists = \Illuminate\Support\Facades\Storage::exists($attachmentPath);
+                \Log::info('Meeting invitation attachment check', [
+                    'meeting_id' => $meeting->id,
+                    'attachment_path' => $attachmentPath,
+                    'exists_on_default_disk' => $exists,
+                ]);
+                if ($exists) {
+                    $blastData['attachment_path'] = $attachmentPath;
+                    $blastData['attachment_name'] = basename($attachmentPath);
+                }
             }
 
             $blast = $this->waBlastService->createBlast($blastData, auth()->id());

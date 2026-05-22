@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\MeetingReportController;
 use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\MeetingPhotoController;
 use App\Http\Controllers\Api\PublicMeetingScannerController;
+use App\Http\Controllers\Api\StudentStatisticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -323,6 +324,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
         Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
     });
+
+    // ── Student Statistics per Jenjang ──
+    Route::middleware('role:super_admin,admin_yayasan,operator')
+        ->prefix('student-statistics')
+        ->group(function () {
+            Route::get('/per-jenjang', [StudentStatisticsController::class, 'perJenjang']);
+            Route::get('/per-jenjang/{jenjang}/madrasah', [StudentStatisticsController::class, 'madrasahByJenjang']);
+            Route::get('/per-jenjang/{jenjang}/export', [StudentStatisticsController::class, 'exportRekapPerJenjang']);
+            Route::get('/madrasah/{id}/per-kelas', [StudentStatisticsController::class, 'perKelas']);
+            Route::get('/madrasah/{id}/per-kelas/export', [StudentStatisticsController::class, 'exportPerKelas']);
+        });
 });
 
 // ── Public Meeting Check-In Routes (No Auth — Route names used for QR URL generation) ──

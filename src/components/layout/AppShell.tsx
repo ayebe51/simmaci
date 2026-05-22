@@ -30,6 +30,7 @@ import {
   MessageSquare,
   CalendarDays,
   CalendarPlus,
+  BarChart3,
 } from "lucide-react"
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
 import { useState } from "react"
@@ -78,6 +79,7 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Kelola Sekolah", href: "/dashboard/admin/schools", icon: School, adminOnly: true },
         { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
         { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
+        { label: "Statistik Siswa", href: "/dashboard/student-statistics", icon: BarChart3 },
       ]
     },
     {

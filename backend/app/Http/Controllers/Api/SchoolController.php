@@ -114,7 +114,7 @@ class SchoolController extends Controller
         // Authorization check: operators can only update their own school
         $user = $request->user();
         
-        if ($user->role === 'operator' && $user->school_id !== $school->id) {
+        if ($user->role === 'operator' && (int) $user->school_id !== (int) $school->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Anda tidak memiliki akses untuk mengubah data sekolah ini'

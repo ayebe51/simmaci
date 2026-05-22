@@ -120,6 +120,14 @@ export default function SchoolProfilePage() {
         </p>
       </div>
 
+      {/* Profil Kepala Madrasah - Separate form (not nested) */}
+      <HeadmasterProfileForm
+        school={school}
+        onSuccess={() => {}}
+        onCancel={() => {}}
+        isAdminMode={false}
+      />
+
       <form onSubmit={handleSubmit} className="grid gap-10">
         <div className="grid gap-10 md:grid-cols-2">
             {/* Identitas Utama (Merged Card) */}
@@ -167,14 +175,6 @@ export default function SchoolProfilePage() {
               </CardContent>
             </Card>
         </div>
-        
-        {/* Profil Kepala Madrasah - Using Reusable Component */}
-        <HeadmasterProfileForm
-          school={school}
-          onSuccess={() => {}}
-          onCancel={() => {}}
-          isAdminMode={false}
-        />
 
         {/* Alamat & Kontak (Full Width) */}
         <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">

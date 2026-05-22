@@ -35,6 +35,9 @@ const TeacherListPage = lazy(() => import("./features/master-data/TeacherListPag
 const StudentListPage = lazy(() => import("./features/master-data/StudentListPage"))
 const DataAuditPage = lazy(() => import("@/features/master-data/DataAuditPage"))
 
+// ── Student Statistics ────────────────────────────────────────────────────────
+const StudentStatisticsPage = lazy(() => import("./features/student-statistics/StudentStatisticsPage"))
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 const UserListPage = lazy(() => import("./features/users/UserListPage"))
 
@@ -158,6 +161,7 @@ export default function App() {
                           <Route path="master/schools" element={<SchoolListPage />} />
                           <Route path="master/schools/:id" element={<SchoolDetailPage />} />
                           <Route path="master/students" element={<StudentListPage />} />
+                          <Route path="student-statistics" element={<StudentStatisticsPage />} />
                           <Route path="master/teachers" element={<TeacherListPage />} />
                           <Route path="users" element={<UserListPage />} />
                           <Route path="school/profile" element={<SchoolProfilePage />} />

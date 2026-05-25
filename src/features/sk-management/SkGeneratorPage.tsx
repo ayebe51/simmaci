@@ -10,15 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Eye, Trash2, AlertCircle } from "lucide-react"
-import { useState, useEffect, useMemo } from "react"
+import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Eye, Trash2, AlertCircle, XCircle } from "lucide-react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { createPortal } from "react-dom"
-import JSZip from "jszip"
-import PizZip from "pizzip"
-import Docxtemplater from "docxtemplater"
 import { Link } from "react-router-dom"
-import ImageModule from "docxtemplater-image-module-free"
-import QRCode from "qrcode"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi } from "@/lib/api"
 import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
@@ -36,6 +31,8 @@ import {
 } from "@/components/ui/dialog"
 import { NimDialog } from "@/features/sk-management/components/NimDialog"
 import type { TeacherForNim } from "@/features/sk-management/components/NimDialog"
+import type { FailedDoc } from "@/features/sk-management/utils/generateSkBatched"
+import { Progress } from "@/components/ui/progress"
 
 // --- TYPES ---
 interface TeacherCandidate {
@@ -160,6 +157,10 @@ export default function SkGeneratorPage() {
   const [page, setPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState<{ completed: number; total: number } | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const [generationFailures, setGenerationFailures] = useState<FailedDoc[]>([])
+  const [showFailureDialog, setShowFailureDialog] = useState(false)
   const [failedSyncItems, setFailedSyncItems] = useState<FailedSyncItem[]>([])
   const [isRetrying, setIsRetrying] = useState(false)
   const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending')
@@ -306,8 +307,29 @@ export default function SkGeneratorPage() {
     }
 
     setIsGenerating(true)
+    setGenerationProgress(null)
+    setGenerationFailures([])
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
     const pendingFailedSync: FailedSyncItem[] = []
     try {
+        // Dynamic imports — heavy libraries loaded only when user clicks generate
+        const [
+            { default: JSZip },
+            { default: PizZip },
+            { default: Docxtemplater },
+            { default: ImageModule },
+            { default: QRCode },
+            { saveAs },
+        ] = await Promise.all([
+            import('jszip'),
+            import('pizzip'),
+            import('docxtemplater'),
+            import('docxtemplater-image-module-free'),
+            import('qrcode'),
+            import('file-saver'),
+        ])
+
         const selectedTeachers = (filteredCandidates?.data || []).filter((t: any) => selectedIds.has(t.id))
         const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
         const dateObj = new Date()
@@ -351,7 +373,15 @@ export default function SkGeneratorPage() {
         // Mode insidentil: tanggal penetapan per guru = tanggal_permohonan + 1 hari
         const tglPenetapanVal = isInsidentil ? null : (tanggalPenetapan ? new Date(tanggalPenetapan) : new Date())
 
+        // --- Batched generation with progress and cancellation ---
+        const BATCH_SIZE = 5
+        const generationFailuresList: FailedDoc[] = []
+
         for (let i = 0; i < selectedTeachers.length; i++) {
+            // Check cancellation before processing each teacher
+            if (abortController.signal.aborted) break
+
+          try {
             const t = selectedTeachers[i]
             const teacher = t.teacher || {}
 
@@ -412,13 +442,11 @@ export default function SkGeneratorPage() {
             if (!templateCache[templateId]) {
                 const hookResult = skTemplateByType[templateId]
                 if (hookResult?.error) {
-                    toast.error(hookResult.error)
-                    continue
+                    throw new Error(hookResult.error)
                 }
                 const templateUrl = hookResult?.templateUrl
                 if (!templateUrl) {
-                    toast.error(`Template ${templateId} tidak tersedia.`)
-                    continue
+                    throw new Error(`Template ${templateId} tidak tersedia.`)
                 }
                 const resp = await fetch(templateUrl)
                 if (!resp.ok) throw new Error(`Gagal mengunduh template: ${templateId}`)
@@ -433,8 +461,7 @@ export default function SkGeneratorPage() {
             
             const cached = templateCache[templateId]
             if (!cached) {
-                toast.error(`Template ${templateId} tidak ditemukan.`)
-                continue
+                throw new Error(`Template ${templateId} tidak ditemukan.`)
             }
 
             // 3. Prepare Mapping Data
@@ -443,8 +470,7 @@ export default function SkGeneratorPage() {
 
             const tmtRaw = t.tmt || teacher.tmt
             if (!tmtRaw && !isInsidentil) {
-                toast.warning(`Guru "${teacher.nama || t.nama}" dilewati: field TMT kosong.`)
-                continue
+                throw new Error(`Field TMT kosong untuk guru "${teacher.nama || t.nama}"`)
             }
             // Mode insidentil: guru baru mungkin belum punya TMT di database, periode = 0
             // Mode normal: periode dihitung dari TMT guru
@@ -659,6 +685,31 @@ export default function SkGeneratorPage() {
                     errorMsg: errMsg,
                 })
             }
+
+          } catch (docErr: any) {
+            // Partial failure: record this teacher's failure and continue
+            const failedTeacher = selectedTeachers[i]
+            const errorMessage = docErr instanceof Error ? docErr.message : String(docErr)
+            generationFailuresList.push({
+                teacher: { id: failedTeacher.id, nama: failedTeacher.nama || failedTeacher.teacher?.nama || "?" },
+                error: errorMessage,
+            })
+          }
+
+            // Report progress after each batch boundary (every BATCH_SIZE items)
+            if ((i + 1) % BATCH_SIZE === 0 || i === selectedTeachers.length - 1) {
+                setGenerationProgress({ completed: i + 1, total: selectedTeachers.length })
+                // Yield to browser event loop between batches to keep UI responsive
+                if (i + 1 < selectedTeachers.length && !abortController.signal.aborted) {
+                    await new Promise<void>((resolve) => {
+                        if (typeof requestAnimationFrame === 'function') {
+                            requestAnimationFrame(() => resolve())
+                        } else {
+                            setTimeout(resolve, 0)
+                        }
+                    })
+                }
+            }
         }
 
         if (combineInOneFile) {
@@ -772,6 +823,11 @@ export default function SkGeneratorPage() {
         toast.success("Berhasil generate SK.")
         queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
         setSelectedIds(new Set())
+        // Show generation failures dialog if any teachers failed
+        if (generationFailuresList.length > 0) {
+            setGenerationFailures(generationFailuresList)
+            setShowFailureDialog(true)
+        }
         // Tampilkan dialog retry jika ada SK yang gagal sync ke database
         if (pendingFailedSync.length > 0) {
             setFailedSyncItems(pendingFailedSync)
@@ -781,6 +837,8 @@ export default function SkGeneratorPage() {
         toast.error("Gagal generate SK: " + (error.message || "Unknown error"))
     } finally {
         setIsGenerating(false)
+        setGenerationProgress(null)
+        abortControllerRef.current = null
     }
   }
 
@@ -845,6 +903,14 @@ export default function SkGeneratorPage() {
     } else {
         setFailedSyncItems(stillFailed)
         toast.error(`${stillFailed.length} SK masih gagal sync. Coba lagi atau catat manual.`)
+    }
+  }
+
+  // Cancel generation in progress
+  const handleCancelGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      toast.info("Generasi SK dibatalkan. Dokumen yang sudah selesai tetap tersimpan.")
     }
   }
 
@@ -1062,6 +1128,28 @@ export default function SkGeneratorPage() {
                 <div className="bg-blue-600 h-8 w-8 rounded-full flex items-center justify-center text-xs font-black">{selectedIds.size}</div>
                 <span className="text-sm font-black uppercase tracking-widest text-slate-300">Item Terpilih</span>
             </div>
+            {/* Progress indicator during generation */}
+            {isGenerating && generationProgress && (
+                <div className="flex items-center gap-3 border-r border-slate-700 pr-6">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-xs font-black text-blue-300">
+                            {generationProgress.completed}/{generationProgress.total} ({Math.round((generationProgress.completed / generationProgress.total) * 100)}%)
+                        </span>
+                        <Progress value={(generationProgress.completed / generationProgress.total) * 100} className="h-1.5 w-32 bg-slate-700" />
+                    </div>
+                </div>
+            )}
+            {/* Cancel button during generation */}
+            {isGenerating && (
+                <Button
+                    onClick={handleCancelGeneration}
+                    variant="destructive"
+                    className="h-11 px-6 rounded-2xl text-xs font-black uppercase tracking-widest"
+                >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Batalkan
+                </Button>
+            )}
             <Button onClick={handleGenerate} disabled={isGenerating} className="bg-blue-600 hover:bg-blue-700 h-11 px-8 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-900/50">
                 {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
                 Generate & Terbitkan SK
@@ -1128,6 +1216,47 @@ export default function SkGeneratorPage() {
             >
               {isRetrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
               Retry Sync ({failedSyncItems.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Generation Failures — shown when some teachers failed document generation */}
+      <Dialog open={showFailureDialog} onOpenChange={setShowFailureDialog}>
+        <DialogContent className="max-w-lg rounded-[2rem] p-8 border-0 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight text-red-600 flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
+              {generationFailures.length} Guru Gagal Generate
+            </DialogTitle>
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Dokumen SK tidak dapat dibuat untuk guru berikut
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-2 max-h-64 overflow-y-auto">
+            {generationFailures.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-800 truncate">{item.teacher.nama}</p>
+                  <p className="text-[10px] text-red-600 mt-0.5">{item.error}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => { setShowFailureDialog(false); setGenerationFailures([]) }}
+              className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400"
+            >
+              Tutup
+            </Button>
+            <Button
+              onClick={() => { setShowFailureDialog(false); handleGenerate() }}
+              className="h-12 px-8 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-red-100"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Retry Generate
             </Button>
           </DialogFooter>
         </DialogContent>

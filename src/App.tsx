@@ -4,8 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
+import { ChunkErrorBoundary } from "./components/common/ChunkErrorBoundary"
 import { PageTransition } from "./components/common/PageTransition"
 import { usePwaUpdate } from "./hooks/usePwaUpdate"
+import SkeletonPage from "./components/common/SkeletonPage"
 import AppShell from "./components/layout/AppShell"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
 
@@ -81,7 +83,6 @@ const PersetujuanNuptkPage = lazy(() => import("./features/sdm/PersetujuanNuptkP
 const MutationPage = lazy(() => import("./features/mutations/MutationPage"))
 
 // ── Attendance ────────────────────────────────────────────────────────────────
-const QrScannerPage = lazy(() => import("./features/attendance/QrScannerPage"))
 const TeacherAttendancePage = lazy(() => import("./features/attendance/TeacherAttendancePage"))
 const StudentAttendancePage = lazy(() => import("./features/attendance/StudentAttendancePage"))
 const StudentAttendanceReportPage = lazy(() => import("./features/attendance/StudentAttendanceReportPage"))
@@ -106,7 +107,16 @@ const WaBlastTemplatePage = lazy(() => import("./features/wa-blast/WaBlastTempla
 const WaBlastConfigPage = lazy(() => import("./features/wa-blast/pages/WaBlastConfigPage").then(m => ({ default: m.WaBlastConfigPage })))
 
 // ── QueryClient ───────────────────────────────────────────────────────────────
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,       // 30 seconds — serve from cache without background refetch
+      gcTime: 5 * 60 * 1000,      // 5 minutes — keep inactive data for back-navigation
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 
 // Keepalive ping — prevents Traefik from dropping idle connections to backend
 // Pings /health every 4 minutes so the connection never goes fully idle
@@ -118,14 +128,7 @@ if (typeof window !== 'undefined') {
   }, PING_INTERVAL)
 }
 
-// Shared loading fallback
-function PageLoader() {
-  return (
-    <div className="flex items-center justify-center min-h-[200px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-    </div>
-  )
-}
+
 
 export default function App() {
   console.log("App Rendering...");
@@ -133,7 +136,8 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
+        <ChunkErrorBoundary>
+        <Suspense fallback={<SkeletonPage />}>
           <Routes>
             <Route path="/test-render" element={<div className="p-10 bg-red-500 text-white">TEST ROUTE WORKING</div>} />
             <Route path="/login" element={<LoginPage />} />
@@ -236,6 +240,7 @@ export default function App() {
             <Route path="*" element={<div className="p-10 text-center">404 - Page Not Found (Catch-all)</div>} />
           </Routes>
         </Suspense>
+        </ChunkErrorBoundary>
         <Toaster />
       </BrowserRouter>
     </QueryClientProvider>

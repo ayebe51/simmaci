@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useNavigate } from "react-router-dom"
 import { useState, useMemo } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -87,7 +87,8 @@ export default function SkDashboardPage() {
       page: page,
       per_page: 10
     }),
-    enabled: statusFilter !== 'draft'
+    enabled: statusFilter !== 'draft',
+    placeholderData: keepPreviousData,
   })
 
   // 2. Pending SK Requests (Draft status in UI) — formal SK submissions awaiting review
@@ -99,7 +100,8 @@ export default function SkDashboardPage() {
       page: page,
       per_page: 10
     }),
-    enabled: statusFilter === 'draft'
+    enabled: statusFilter === 'draft',
+    placeholderData: keepPreviousData,
   })
 
   // Mutations

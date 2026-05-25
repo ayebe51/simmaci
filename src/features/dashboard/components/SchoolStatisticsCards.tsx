@@ -14,10 +14,12 @@ export function SchoolStatisticsCards() {
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
     refetchOnWindowFocus: false,
     retry: 1, // Reduce retry from 2 to 1
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   });
 
-  // Show error toast if request fails
-  if (error) {
+  // Show error toast only on initial load failure (not background refetch failures)
+  if (error && !data) {
     toast.error('Gagal memuat statistik sekolah');
   }
 
@@ -59,8 +61,8 @@ export function SchoolStatisticsCards() {
     );
   }
 
-  // Error state with fallback message
-  if (error || !data) {
+  // Error state with fallback message (only when no data available at all)
+  if (!data) {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">

@@ -268,6 +268,9 @@ class DashboardStatisticsIntegrationTest extends TestCase
             'jenjang' => 'MI',
         ]);
 
+        // Flush cache so the next request gets fresh data (DashboardCacheService uses 60s TTL)
+        \Illuminate\Support\Facades\Cache::flush();
+
         // Get updated statistics
         $updatedResponse = $this->actingAs($this->superAdmin)
             ->getJson('/api/dashboard/school-statistics');

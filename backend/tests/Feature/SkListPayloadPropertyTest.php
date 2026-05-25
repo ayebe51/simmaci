@@ -15,10 +15,10 @@ use Tests\TestCase;
  *
  * For any SK document returned by the list endpoint, the response object SHALL
  * contain exactly the fields: id, nomor_sk, nama, jenis_sk, status, unit_kerja,
- * created_at, and teacher.nomor_induk_maarif — and SHALL NOT contain any of:
- * jabatan, file_url, surat_permohonan_url, qr_code, revision_status, revision_reason,
- * revision_data, archived_at, archived_by, archive_reason, nomor_permohonan,
- * tanggal_permohonan, rejection_reason, ijazah_url.
+ * created_at, nomor_permohonan, tanggal_permohonan, surat_permohonan_url,
+ * and teacher.nomor_induk_maarif — and SHALL NOT contain any of:
+ * jabatan, file_url, qr_code, revision_status, revision_reason,
+ * revision_data, archived_at, archived_by, archive_reason, rejection_reason, ijazah_url.
  *
  * **Validates: Requirements 7.1, 7.2**
  *
@@ -36,13 +36,15 @@ class SkListPayloadPropertyTest extends TestCase
         'status',
         'unit_kerja',
         'created_at',
+        'nomor_permohonan',
+        'tanggal_permohonan',
+        'surat_permohonan_url',
         'teacher',
     ];
 
     private const EXCLUDED_FIELDS = [
         'jabatan',
         'file_url',
-        'surat_permohonan_url',
         'qr_code',
         'revision_status',
         'revision_reason',
@@ -50,8 +52,6 @@ class SkListPayloadPropertyTest extends TestCase
         'archived_at',
         'archived_by',
         'archive_reason',
-        'nomor_permohonan',
-        'tanggal_permohonan',
         'rejection_reason',
         'ijazah_url',
         'school_id',

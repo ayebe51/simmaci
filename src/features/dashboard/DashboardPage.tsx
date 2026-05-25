@@ -38,23 +38,31 @@ export default function DashboardPage() {
   // 🔥 REST API QUERIES
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
     queryKey: ['dashboard-stats', operatorSchool],
-    queryFn: () => user?.role === 'operator' ? dashboardApi.getSchoolStats() : dashboardApi.getStats()
+    queryFn: () => user?.role === 'operator' ? dashboardApi.getSchoolStats() : dashboardApi.getStats(),
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const { data: skStats, isLoading: isLoadingSkStats } = useQuery({
     queryKey: ['sk-stats', operatorSchool],
-    queryFn: () => dashboardApi.getSkStatistics(operatorSchool)
+    queryFn: () => dashboardApi.getSkStatistics(operatorSchool),
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const { data: skTrend, isLoading: isLoadingSkTrend } = useQuery({
     queryKey: ['sk-trend', operatorSchool],
-    queryFn: () => dashboardApi.getSkTrend(6, operatorSchool) 
+    queryFn: () => dashboardApi.getSkTrend(6, operatorSchool),
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const { data: chartsData, isLoading: isLoadingCharts } = useQuery({
     queryKey: ['dashboard-charts'],
     queryFn: () => dashboardApi.getCharts(),
-    enabled: !user || user.role !== 'operator'
+    enabled: !user || user.role !== 'operator',
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   // Mapping logic for stability

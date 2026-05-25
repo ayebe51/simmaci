@@ -22,12 +22,16 @@ export default function DashboardOperator() {
   // 🔥 REST API QUERIES
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['school-stats', user?.id],
-    queryFn: () => dashboardApi.getSchoolStats()
+    queryFn: () => dashboardApi.getSchoolStats(),
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
   
   const { data: skTrend, isLoading: isLoadingTrend } = useQuery({
     queryKey: ['sk-trend', user?.unit],
-    queryFn: () => dashboardApi.getSkTrend(6, user?.unit)
+    queryFn: () => dashboardApi.getSkTrend(6, user?.unit),
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   if (isLoadingStats && !stats) {

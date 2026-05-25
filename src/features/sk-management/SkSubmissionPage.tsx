@@ -17,6 +17,7 @@ import { BulkSkSubmission } from "./components/BulkSkSubmission"
 import { SchoolAutocomplete } from "./components/SchoolAutocomplete"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { skApi, mediaApi, authApi, schoolApi, skTemplateApi } from "@/lib/api"
+import { DASHBOARD_QUERY_KEYS } from "@/features/dashboard/utils/queryKeys"
 
 type SkFormValues = {
   jenisSk: string
@@ -143,6 +144,9 @@ export default function SkSubmissionPage() {
     onSuccess: () => {
       toast.success("✅ Pengajuan SK berhasil dikirim! Menunggu verifikasi admin.")
       queryClient.invalidateQueries({ queryKey: ['sk-documents'] })
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.stats })
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.schoolStats })
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.charts })
       navigate("/dashboard/sk")
     },
     onError: (err: any) => toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))

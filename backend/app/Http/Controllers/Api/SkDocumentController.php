@@ -11,19 +11,28 @@ use App\Models\School;
 use App\Models\SkDocument;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\DashboardCacheService;
 use App\Services\NormalizationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SkDocumentController extends Controller
 {
     public function __construct(
-        private NormalizationService $normalizationService
+        private NormalizationService $normalizationService,
+        private DashboardCacheService $dashboardCacheService,
     ) {}
 
     public function index(Request $request): JsonResponse
     {
-        $query = SkDocument::with('teacher');
+        $query = SkDocument::select([
+                'id', 'nomor_sk', 'nama', 'jenis_sk', 'status',
+                'unit_kerja', 'created_at', 'school_id', 'teacher_id',
+            ])
+            ->with(['teacher' => function ($q) {
+                $q->select(['id', 'nomor_induk_maarif']);
+            }]);
 
         if ($request->search) {
             $query->where('nama', 'ilike', "%{$request->search}%");
@@ -51,36 +60,52 @@ class SkDocumentController extends Controller
         $paginated = $query->orderByDesc('created_at')->orderByDesc('id')->paginate($request->integer('per_page', 25));
 
         // Enrich NIM: for items whose teacher has no nomor_induk_maarif,
-        // look up a matching teacher by name (case-insensitive) in the same school.
-        // Done in one batch query to avoid N+1.
+        // resolve matching teachers using SQL-level case-insensitive comparison
+        // scoped to the same school_id (avoids loading all teachers into PHP memory).
         $items = collect($paginated->items());
         $missingNimItems = $items->filter(fn($sk) =>
             empty($sk->teacher?->nomor_induk_maarif) && !empty($sk->nama)
         );
 
         if ($missingNimItems->isNotEmpty()) {
-            $names = $missingNimItems->pluck('nama')->unique()->values();
-            $schoolIds = $missingNimItems->pluck('school_id')->filter()->unique()->values();
+            $missingNimIds = $missingNimItems->pluck('id')->values()->toArray();
 
-            $teachersByName = Teacher::whereIn('school_id', $schoolIds)
-                ->whereNotNull('nomor_induk_maarif')
-                ->where('nomor_induk_maarif', '!=', '')
+            // SQL-level NIM enrichment: JOIN teachers on normalized name + same school_id
+            $enrichedRows = DB::table('sk_documents as sd')
+                ->join('teachers as t', function ($join) {
+                    $join->on(DB::raw('LOWER(TRIM(t.nama))'), '=', DB::raw('LOWER(TRIM(sd.nama))'))
+                        ->on('t.school_id', '=', 'sd.school_id')
+                        ->whereNotNull('t.nomor_induk_maarif')
+                        ->where('t.nomor_induk_maarif', '!=', '')
+                        ->whereNull('t.deleted_at');
+                })
+                ->whereIn('sd.id', $missingNimIds)
+                ->select('sd.id', 't.nomor_induk_maarif')
                 ->get()
-                ->filter(fn($t) => $names->contains(fn($n) =>
-                    mb_strtolower(trim($n)) === mb_strtolower(trim($t->nama))
-                ))
-                ->keyBy(fn($t) => mb_strtolower(trim($t->nama)));
+                ->keyBy('id');
 
             foreach ($missingNimItems as $sk) {
-                $key = mb_strtolower(trim($sk->nama));
-                if (isset($teachersByName[$key])) {
+                if (isset($enrichedRows[$sk->id])) {
+                    $nim = $enrichedRows[$sk->id]->nomor_induk_maarif;
                     // Inject NIM into the teacher relation (or create a minimal object)
                     if ($sk->teacher) {
-                        $sk->teacher->nomor_induk_maarif = $teachersByName[$key]->nomor_induk_maarif;
+                        $sk->teacher->nomor_induk_maarif = $nim;
                     } else {
-                        $sk->setRelation('teacher', $teachersByName[$key]);
+                        $sk->setRelation('teacher', new Teacher([
+                            'nomor_induk_maarif' => $nim,
+                        ]));
                     }
                 }
+            }
+        }
+
+        // Hide internal fields from response - school_id and teacher_id are used
+        // for joins/scoping but should not be exposed in the list response.
+        // Teacher relation should only expose nomor_induk_maarif.
+        foreach ($paginated->items() as $sk) {
+            $sk->makeHidden(['school_id', 'teacher_id']);
+            if ($sk->teacher) {
+                $sk->teacher->makeHidden(['id']);
             }
         }
 
@@ -239,6 +264,11 @@ class SkDocumentController extends Controller
                 ]);
             }
 
+            // Invalidate dashboard cache when SK status changes
+            if ($oldStatus !== $skDocument->status && $skDocument->school_id) {
+                $this->dashboardCacheService->invalidateForSchool($skDocument->school_id);
+            }
+
             return response()->json($skDocument->fresh());
         } catch (\Illuminate\Database\QueryException $e) {
             if ($e->getCode() == '23505') { // Postgres Unique violation
@@ -329,105 +359,162 @@ class SkDocumentController extends Controller
         }
 
         $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:sk_documents,id',
+            'ids' => 'required|array|max:50',
+            'ids.*' => 'integer',
             'status' => 'required|string|in:approved,rejected',
             'rejection_reason' => 'nullable|string',
         ]);
 
         $user = $request->user();
+        $ids = $request->ids;
+        $newStatus = $request->status;
+        $rejectionReason = $request->rejection_reason;
+        $isApproved = $newStatus === 'approved';
 
-        foreach ($request->ids as $id) {
-            $sk = SkDocument::find($id);
-            if (! $sk) continue;
+        // Eager-load all documents with teacher in a single query
+        $documents = SkDocument::with('teacher')
+            ->whereIn('id', $ids)
+            ->get();
 
-            $sk->update([
-                'status' => $request->status,
-                'rejection_reason' => $request->rejection_reason,
-            ]);
+        $succeeded = [];
+        $failed = [];
+        $notificationRecords = [];
+        $historyRecords = [];
+        $now = now();
 
-            // If it's a revision approval, apply the suggested data
-            if ($request->status === 'approved' && $sk->revision_status === 'revision_pending' && $sk->revision_data) {
-                $revData = $sk->revision_data;
-                
-                // Update SK Document
-                $sk->update([
-                    'nama' => $revData['nama'] ?? $sk->nama,
-                    'unit_kerja' => $revData['unit_kerja'] ?? $sk->unit_kerja,
-                    'revision_status' => 'approved',
-                ]);
-
-                // Update related Teacher
-                if ($sk->teacher_id) {
-                    $sk->teacher->update([
-                        'nama' => $revData['nama'] ?? $sk->teacher->nama,
-                        'nip' => $revData['nip'] ?? $sk->teacher->nip,
-                        'tempat_lahir' => $revData['tempat_lahir'] ?? $sk->teacher->tempat_lahir,
-                        'tanggal_lahir' => $revData['tanggal_lahir'] ?? $sk->teacher->tanggal_lahir,
-                        'pendidikan_terakhir' => $revData['pendidikan_terakhir'] ?? $sk->teacher->pendidikan_terakhir,
-                        'tmt' => $revData['tmt'] ?? $sk->teacher->tmt,
-                    ]);
-                }
-            } elseif ($request->status === 'rejected' && $sk->revision_status === 'revision_pending') {
-                $sk->update(['revision_status' => 'rejected']);
-            }
-
-            // Verify teacher when SK approved
-            if ($request->status === 'approved' && $sk->teacher_id) {
-                $sk->teacher?->update(['is_verified' => true]);
-            } elseif ($request->status === 'rejected' && $sk->teacher_id) {
-                $sk->teacher?->update(['is_verified' => false]);
-            }
-
-            // Create notification for SK creator
-            $targetUser = $this->findSkOperator($sk);
-            if ($targetUser) {
-                $isApproved = $request->status === 'approved';
-                Notification::create([
-                    'user_id'   => $targetUser->id,
-                    'school_id' => $sk->school_id,
-                    'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
-                    'title'     => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
-                    'message'   => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
-                        ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
-                        ($request->rejection_reason ? " Alasan: {$request->rejection_reason}" : '')),
-                    'is_read'   => false,
-                    'metadata'  => [
-                        'sk_id'           => $sk->id,
-                        'nomor_sk'        => $sk->nomor_sk,
-                        'rejection_reason' => $request->rejection_reason,
-                    ],
-                ]);
-            }
-
-            // Create approval history record for batch operations
-            ApprovalHistory::create([
-                'school_id'         => $sk->school_id,
-                'document_id'       => $sk->id,
-                'document_type'     => 'sk_document',
-                'action'            => $request->status === 'approved' ? 'approve' : 'reject',
-                'from_status'       => $sk->getOriginal('status'),
-                'to_status'         => $request->status,
-                'performed_by'      => $user->id,
-                'performed_at'      => now(),
-                'comment'           => $request->rejection_reason,
-                'metadata'          => [
-                    'performed_by_name' => $user->name,
-                    'performed_by_role' => $user->role,
-                    'rejection_reason'  => $request->rejection_reason,
-                ],
-            ]);
+        // Track IDs not found in the database as failures
+        $foundIds = $documents->pluck('id')->all();
+        $notFoundIds = array_diff($ids, $foundIds);
+        foreach ($notFoundIds as $missingId) {
+            $failed[] = ['id' => (int) $missingId, 'reason' => 'Dokumen SK tidak ditemukan'];
         }
 
+        DB::transaction(function () use (
+            $documents, $user, $newStatus, $rejectionReason, $isApproved,
+            &$succeeded, &$failed, &$notificationRecords, &$historyRecords, $now
+        ) {
+            foreach ($documents as $sk) {
+                try {
+                    $oldStatus = $sk->status;
+
+                    // Update SK status
+                    $sk->update([
+                        'status' => $newStatus,
+                        'rejection_reason' => $rejectionReason,
+                    ]);
+
+                    // If it's a revision approval, apply the suggested data
+                    if ($isApproved && $sk->revision_status === 'revision_pending' && $sk->revision_data) {
+                        $revData = $sk->revision_data;
+
+                        // Update SK Document with revision data
+                        $sk->update([
+                            'nama' => $revData['nama'] ?? $sk->nama,
+                            'unit_kerja' => $revData['unit_kerja'] ?? $sk->unit_kerja,
+                            'revision_status' => 'approved',
+                        ]);
+
+                        // Update related Teacher
+                        if ($sk->teacher_id && $sk->teacher) {
+                            $sk->teacher->update([
+                                'nama' => $revData['nama'] ?? $sk->teacher->nama,
+                                'nip' => $revData['nip'] ?? $sk->teacher->nip,
+                                'tempat_lahir' => $revData['tempat_lahir'] ?? $sk->teacher->tempat_lahir,
+                                'tanggal_lahir' => $revData['tanggal_lahir'] ?? $sk->teacher->tanggal_lahir,
+                                'pendidikan_terakhir' => $revData['pendidikan_terakhir'] ?? $sk->teacher->pendidikan_terakhir,
+                                'tmt' => $revData['tmt'] ?? $sk->teacher->tmt,
+                            ]);
+                        }
+                    } elseif (!$isApproved && $sk->revision_status === 'revision_pending') {
+                        $sk->update(['revision_status' => 'rejected']);
+                    }
+
+                    // Verify teacher when SK approved/rejected
+                    if ($isApproved && $sk->teacher_id && $sk->teacher) {
+                        $sk->teacher->update(['is_verified' => true]);
+                    } elseif (!$isApproved && $sk->teacher_id && $sk->teacher) {
+                        $sk->teacher->update(['is_verified' => false]);
+                    }
+
+                    // Collect notification record for bulk insert
+                    $targetUser = $this->findSkOperator($sk);
+                    if ($targetUser) {
+                        $notificationRecords[] = [
+                            'user_id'    => $targetUser->id,
+                            'school_id'  => $sk->school_id,
+                            'type'       => $isApproved ? 'sk_approved' : 'sk_rejected',
+                            'title'      => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
+                            'message'    => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
+                                ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
+                                ($rejectionReason ? " Alasan: {$rejectionReason}" : '')),
+                            'is_read'    => false,
+                            'metadata'   => json_encode([
+                                'sk_id'            => $sk->id,
+                                'nomor_sk'         => $sk->nomor_sk,
+                                'rejection_reason' => $rejectionReason,
+                            ]),
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+
+                    // Collect approval history record for bulk insert
+                    $historyRecords[] = [
+                        'school_id'     => $sk->school_id,
+                        'document_id'   => $sk->id,
+                        'document_type' => 'sk_document',
+                        'action'        => $isApproved ? 'approve' : 'reject',
+                        'from_status'   => $oldStatus,
+                        'to_status'     => $newStatus,
+                        'performed_by'  => $user->id,
+                        'performed_at'  => $now,
+                        'comment'       => $rejectionReason,
+                        'metadata'      => json_encode([
+                            'performed_by_name' => $user->name,
+                            'performed_by_role' => $user->role,
+                            'rejection_reason'  => $rejectionReason,
+                        ]),
+                        'created_at'    => $now,
+                        'updated_at'    => $now,
+                    ];
+
+                    $succeeded[] = $sk->id;
+                } catch (\Throwable $e) {
+                    $failed[] = ['id' => $sk->id, 'reason' => $e->getMessage()];
+                }
+            }
+
+            // Bulk insert notifications
+            if (!empty($notificationRecords)) {
+                Notification::insert($notificationRecords);
+            }
+
+            // Bulk insert approval histories
+            if (!empty($historyRecords)) {
+                ApprovalHistory::insert($historyRecords);
+            }
+        });
+
+        // Invalidate dashboard cache for affected schools
+        $affectedSchoolIds = $documents->pluck('school_id')->unique()->filter();
+        foreach ($affectedSchoolIds as $schoolId) {
+            $this->dashboardCacheService->invalidateForSchool($schoolId);
+        }
+
+        // Log activity
         ActivityLog::log(
-            description: "Batch {$request->status}: " . count($request->ids) . ' SK dokumen',
-            event: 'batch_' . $request->status . '_sk',
+            description: "Batch {$newStatus}: " . count($succeeded) . ' SK dokumen' .
+                (count($failed) > 0 ? ', ' . count($failed) . ' gagal' : ''),
+            event: 'batch_' . $newStatus . '_sk',
             logName: 'sk',
             causer: $user,
             schoolId: $user->school_id
         );
 
-        return response()->json(['count' => count($request->ids)]);
+        return response()->json([
+            'count' => count($succeeded),
+            'failed' => $failed,
+        ]);
     }
 
     /**
@@ -742,6 +829,11 @@ class SkDocumentController extends Controller
             } catch (\Exception $e) {
                 \Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id]);
                 // Continue execution - activity log failure should not block the request
+            }
+
+            // Invalidate dashboard cache for the affected school
+            if ($schoolId) {
+                $this->dashboardCacheService->invalidateForSchool($schoolId);
             }
 
             return response()->json($sk, 201);
@@ -1083,6 +1175,12 @@ class SkDocumentController extends Controller
                     'error'    => $e->getMessage(),
                 ]);
             }
+        }
+
+        // Invalidate dashboard cache for the affected school
+        $schoolId = $request->user()->school_id;
+        if ($schoolId) {
+            $this->dashboardCacheService->invalidateForSchool($schoolId);
         }
 
         return response()->json([

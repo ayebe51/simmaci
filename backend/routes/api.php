@@ -175,7 +175,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('sk-documents/batch-status',   [SkDocumentController::class, 'batchUpdateStatus']);
         Route::get('sk-documents-revisions', [SkDocumentController::class, 'revisions']);
         Route::get('sk-documents/{skDocument}/revisions', [SkDocumentController::class, 'revisions']);
-        Route::apiResource('sk-documents', SkDocumentController::class);
+        Route::apiResource('sk-documents', SkDocumentController::class)
+            ->middleware('slow_queries');
 
         // Headmasters
         Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store']);

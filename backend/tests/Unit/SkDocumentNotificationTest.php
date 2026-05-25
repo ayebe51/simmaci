@@ -29,7 +29,8 @@ class SkDocumentNotificationTest extends TestCase
     {
         parent::setUp();
         $normalizationService = $this->app->make(NormalizationService::class);
-        $this->controller = new SkDocumentController($normalizationService);
+        $dashboardCacheService = $this->app->make(\App\Services\DashboardCacheService::class);
+        $this->controller = new SkDocumentController($normalizationService, $dashboardCacheService);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

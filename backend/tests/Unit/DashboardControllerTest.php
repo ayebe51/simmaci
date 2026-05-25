@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Http\Controllers\Api\DashboardController;
 use App\Models\School;
 use App\Models\User;
+use App\Services\DashboardCacheService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -18,7 +19,9 @@ class DashboardControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new DashboardController();
+        $this->controller = new DashboardController(
+            app(DashboardCacheService::class)
+        );
     }
 
     /**

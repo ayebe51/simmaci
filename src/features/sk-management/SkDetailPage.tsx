@@ -26,6 +26,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { skApi, settingApi, authApi } from "@/lib/api";
 import { getSkVerificationUrl } from "@/utils/verification";
 import { toast } from "sonner";
+import { SK_QUERY_KEYS } from "@/features/sk-management/utils/queryKeys";
+import { DASHBOARD_QUERY_KEYS } from "@/features/dashboard/utils/queryKeys";
 import {
   Dialog,
   DialogContent,
@@ -82,6 +84,12 @@ export default function SkDetailPage() {
       skApi.batchUpdateStatus([parseInt(id!)], status, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sk-document', id] });
+      queryClient.invalidateQueries({ queryKey: SK_QUERY_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: SK_QUERY_KEYS.pending });
+      queryClient.invalidateQueries({ queryKey: SK_QUERY_KEYS.revisions });
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.stats });
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.schoolStats });
+      queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.charts });
       toast.success("Status dokumen berhasil diperbarui");
       setIsConfirmOpen(false);
     },

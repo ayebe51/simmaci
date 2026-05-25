@@ -11,6 +11,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi } from "@/lib/api"
 import IjazahUploadField from "@/features/sk-management/components/IjazahUploadField"
 import { detectGelarChange } from "@/features/sk-management/utils/detectGelarChange"
+import { SK_QUERY_KEYS } from "@/features/sk-management/utils/queryKeys"
+import { DASHBOARD_QUERY_KEYS } from "@/features/dashboard/utils/queryKeys"
 
 export default function SkRevisionPage() {
     const navigate = useNavigate()
@@ -28,6 +30,11 @@ export default function SkRevisionPage() {
         onSuccess: () => {
             toast.success("Pengajuan revisi profil berhasil dikirim ke Admin!")
             queryClient.invalidateQueries({ queryKey: ['sk-document', id] })
+            queryClient.invalidateQueries({ queryKey: SK_QUERY_KEYS.all })
+            queryClient.invalidateQueries({ queryKey: SK_QUERY_KEYS.revisions })
+            queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.stats })
+            queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.schoolStats })
+            queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEYS.charts })
             navigate(`/dashboard/sk/${id}`)
         },
         onError: (err: any) => toast.error("Gagal mengajukan revisi: " + (err.response?.data?.message || err.message))

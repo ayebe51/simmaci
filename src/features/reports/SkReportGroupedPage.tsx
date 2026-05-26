@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { reportApi, authApi } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,13 @@ export default function SkReportGroupedPage() {
 
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+
+  // Fetch count of madrasah belum mengajukan for badge
+  const { data: missingData } = useQuery({
+    queryKey: ['sk-belum-mengajukan-count'],
+    queryFn: () => reportApi.skBelumMengajukan(),
+    enabled: !isOperator,
+  })
 
   // 🔥 REST API QUERIES
   // Menggunakan skPerSekolah yang sudah exclude status 'rejected' di backend
@@ -123,6 +131,32 @@ export default function SkReportGroupedPage() {
            <Button onClick={handleExportExcel} className="rounded-xl font-bold uppercase text-[10px] tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-100">
              <Download className="w-4 h-4 mr-2" /> Export Excel
            </Button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="no-print bg-white border-b px-10">
+        <div className="flex gap-1">
+          <Link
+            to="/dashboard/reports/sk"
+            className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-lg transition-colors"
+          >
+            Detail SK
+          </Link>
+          <div className="px-4 py-3 text-xs font-bold text-emerald-700 border-b-2 border-emerald-600 bg-emerald-50/50 rounded-t-lg">
+            Per Sekolah
+          </div>
+          <Link
+            to="/dashboard/reports/sk-belum-mengajukan"
+            className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-lg transition-colors flex items-center gap-2"
+          >
+            Belum Mengajukan
+            {!isOperator && missingData?.total != null && missingData.total > 0 && (
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded-full min-w-[20px]">
+                {missingData.total}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
 

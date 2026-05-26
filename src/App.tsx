@@ -55,6 +55,7 @@ const HeadmasterExpiryPage = lazy(() => import("./features/monitoring/Headmaster
 const ReportPage = lazy(() => import("./features/reports/ReportPage"))
 const SkReportPageSimple = lazy(() => import("./features/reports/SkReportPageSimple"))
 const SkReportGroupedPage = lazy(() => import("./features/reports/SkReportGroupedPage"))
+const SkReportMissingPage = lazy(() => import("./features/reports/SkReportMissingPage"))
 
 // ── KTA ───────────────────────────────────────────────────────────────────────
 const KtaGeneratorPage = lazy(() => import("./features/kta/KtaGeneratorPage"))
@@ -191,6 +192,11 @@ export default function App() {
                           <Route path="reports/sk-grouped" element={
                             <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
                               <SkReportGroupedPage />
+                            </ErrorBoundary>
+                          } />
+                          <Route path="reports/sk-belum-mengajukan" element={
+                            <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load report.</div>}>
+                              <SkReportMissingPage />
                             </ErrorBoundary>
                           } />
                           <Route path="reports" element={<ReportPage />} />

@@ -215,6 +215,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('sk',             [ReportController::class, 'skReport']);
             Route::get('sk-per-sekolah', [ReportController::class, 'skPerSekolah']);
+            Route::get('sk-belum-mengajukan',        [ReportController::class, 'skBelumMengajukan']);
+            Route::get('sk-belum-mengajukan/export', [ReportController::class, 'exportSkBelumMengajukan']);
             Route::get('teacher',        [ReportController::class, 'teacherReport']);
             Route::get('summary',        [ReportController::class, 'summaryReport']);
         });

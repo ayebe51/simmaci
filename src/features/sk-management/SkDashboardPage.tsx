@@ -42,7 +42,34 @@ import {
 async function downloadSuratPermohonan(url: string, nama: string) {
   try {
     const token = localStorage.getItem('auth_token')
-    const response = await fetch(url, {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+    
+    // Determine the correct fetch URL
+    let fetchUrl = url
+    
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      // Relative path — route through authenticated API endpoint
+      const path = url.replace(/^\/?(storage\/)?/, '')
+      fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    } else if (url.includes('/storage/')) {
+      // Full URL with /storage/ — extract path and route through API
+      const path = url.split('/storage/')[1]
+      fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    } else {
+      // Other full URLs (e.g., minio:9000 internal) — extract object path and route through API
+      try {
+        const parsed = new URL(url)
+        const segments = parsed.pathname.split('/').filter(Boolean)
+        const path = segments.slice(1).join('/') // Skip bucket name
+        if (path) {
+          fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+        }
+      } catch {
+        // If URL parsing fails, try fetching directly
+      }
+    }
+    
+    const response = await fetch(fetchUrl, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     if (!response.ok) {

@@ -461,12 +461,12 @@ export default function SkReportGroupedPage() {
                   {/* Jenjang */}
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Jenjang</Label>
-                    <Select value={missingJenjang} onValueChange={setMissingJenjang}>
+                    <Select value={missingJenjang || '__all__'} onValueChange={(v) => setMissingJenjang(v === '__all__' ? '' : v)}>
                       <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
                         <SelectValue placeholder="Semua Jenjang" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Semua Jenjang</SelectItem>
+                        <SelectItem value="__all__">Semua Jenjang</SelectItem>
                         {JENJANG_OPTIONS.map(j => (
                           <SelectItem key={j} value={j}>{j}</SelectItem>
                         ))}
@@ -477,12 +477,12 @@ export default function SkReportGroupedPage() {
                   {/* Kecamatan */}
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Kecamatan</Label>
-                    <Select value={missingKecamatan} onValueChange={setMissingKecamatan}>
+                    <Select value={missingKecamatan || '__all__'} onValueChange={(v) => setMissingKecamatan(v === '__all__' ? '' : v)}>
                       <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
                         <SelectValue placeholder="Semua Kecamatan" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Semua Kecamatan</SelectItem>
+                        <SelectItem value="__all__">Semua Kecamatan</SelectItem>
                         {(missingData?.kecamatan_list ?? []).map(k => (
                           <SelectItem key={k} value={k}>{k}</SelectItem>
                         ))}

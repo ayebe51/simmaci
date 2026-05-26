@@ -111,21 +111,36 @@ const toRoman = (num: number): string => {
 async function openSuratPermohonan(url: string) {
   try {
     const token = localStorage.getItem('auth_token')
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
     
     // Determine the full URL to fetch
     let fetchUrl = url
     
     // If URL is a storage path (not a full URL), use the authenticated file viewer endpoint
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
       // Extract path from storage URL (e.g., "storage/surat_permohonan/abc.pdf" -> "surat_permohonan/abc.pdf")
       const path = url.replace(/^\/?(storage\/)?/, '')
       fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
     } else if (url.includes('/storage/')) {
       // If it's a full URL with /storage/, convert to API endpoint
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
       const path = url.split('/storage/')[1]
       fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    } else {
+      // For any other full URL (e.g., minio:9000 internal URLs), extract the object path
+      // and route through the authenticated API endpoint
+      // URL format: http://minio:9000/bucket-name/folder/file.pdf
+      try {
+        const parsed = new URL(url)
+        // Remove leading slash and bucket name (first path segment)
+        const segments = parsed.pathname.split('/').filter(Boolean)
+        // Skip bucket name (first segment), use the rest as the file path
+        const path = segments.slice(1).join('/')
+        if (path) {
+          fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
+        }
+      } catch {
+        // If URL parsing fails, try fetching directly (will likely fail but gives user feedback)
+      }
     }
     
     const response = await fetch(fetchUrl, {

@@ -50,8 +50,16 @@ class FileUploadController extends Controller
                 ], 500);
             }
 
+            // For S3/MinIO, return the relative path instead of the internal URL
+            // The frontend will route through /api/files/view/{path} for authenticated access
+            if ($disk === 's3') {
+                $url = $path; // Just the relative path (e.g., "sk-requests/abc.pdf")
+            } else {
+                $url = Storage::disk($disk)->url($path);
+            }
+
             return response()->json([
-                'url' => Storage::disk($disk)->url($path),
+                'url' => $url,
                 'path' => $path,
                 'disk' => $disk,
                 'filename' => $file->getClientOriginalName()

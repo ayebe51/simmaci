@@ -448,12 +448,32 @@ export default function SkReportMissingPage() {
             ) : (
               /* Data Table */
               <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
-                <CardContent className="p-10">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                    Daftar Madrasah
-                  </p>
-                  {/* Table will be added in task 5.3 */}
-                </CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">No</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Madrasah</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">NPSN</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Jenjang</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Kecamatan</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Kepala Madrasah</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {reportData.data.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-6 text-center font-bold text-slate-400 text-xs">{idx + 1}</td>
+                          <td className="p-6 font-black text-slate-800 text-sm tracking-tight">{item.nama}</td>
+                          <td className="p-6 text-xs font-bold text-slate-500">{item.npsn || '-'}</td>
+                          <td className="p-6 text-xs font-bold text-slate-500">{item.jenjang || '-'}</td>
+                          <td className="p-6 text-xs font-bold text-slate-600">{item.kecamatan || '-'}</td>
+                          <td className="p-6 text-xs font-bold text-slate-600">{item.kepala_madrasah || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </Card>
             )}
           </>

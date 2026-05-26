@@ -448,6 +448,30 @@ export const eventApi = {
 
 // ── Reports API ──
 
+export interface MissingSchoolItem {
+  id: number;
+  nama: string;
+  npsn: string | null;
+  jenjang: string | null;
+  kecamatan: string | null;
+  kepala_madrasah: string | null;
+  telepon: string | null;
+}
+
+export interface SkBelumMengajukanResponse {
+  total: number;
+  kecamatan_list: string[];
+  data: MissingSchoolItem[];
+}
+
+export interface SkBelumMengajukanParams {
+  jenjang?: string;
+  kecamatan?: string;
+  search?: string;
+  start_date?: string;
+  end_date?: string;
+}
+
 export const reportApi = {
   teacherRekap: {
     list: (params?: Record<string, any>) => apiClient.get('/reports/teacher', { params }).then((r) => r.data),
@@ -469,6 +493,13 @@ export const reportApi = {
     jenis_sk?: string;
   }) => apiClient.get('/reports/sk-per-sekolah', { params }).then((r) => r.data),
   summary: () => apiClient.get('/reports/summary').then((r) => r.data),
+  skBelumMengajukan: (params?: SkBelumMengajukanParams): Promise<SkBelumMengajukanResponse> =>
+    apiClient.get('/reports/sk-belum-mengajukan', { params }).then((r) => r.data),
+  exportSkBelumMengajukan: (params?: SkBelumMengajukanParams): Promise<Blob> =>
+    apiClient.get('/reports/sk-belum-mengajukan/export', {
+      params,
+      responseType: 'blob',
+    }).then((r) => r.data),
 };
 
 // ── SK Templates API ──

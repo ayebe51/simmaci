@@ -35,56 +35,26 @@ import {
 } from "@/components/ui/alert-dialog"
 
 /**
- * Download a surat permohonan PDF by fetching it with the auth token,
- * then triggering a browser download. This avoids issues with direct
- * URL access (CORS, missing auth headers, browser PDF rendering quirks).
+/**
+ * Resolve surat permohonan URL to an authenticated fetch URL
  */
-async function downloadSuratPermohonan(url: string, _nama: string) {
-  try {
-    const token = localStorage.getItem('auth_token')
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
-    
-    // Determine the correct fetch URL
-    let fetchUrl = url
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      // Relative path — route through authenticated API endpoint
-      const path = url.replace(/^\/?(storage\/)?/, '')
-      fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
-    } else if (url.includes('/storage/')) {
-      // Full URL with /storage/ — extract path and route through API
-      const path = url.split('/storage/')[1]
-      fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
-    } else {
-      // Other full URLs (e.g., minio:9000 internal) — extract object path and route through API
-      try {
-        const parsed = new URL(url)
-        const segments = parsed.pathname.split('/').filter(Boolean)
-        const path = segments.slice(1).join('/') // Skip bucket name
-        if (path) {
-          fetchUrl = `${apiUrl}/files/view/${encodeURIComponent(path)}`
-        }
-      } catch {
-        // If URL parsing fails, try fetching directly
-      }
-    }
-    
-    const response = await fetch(fetchUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-    const arrayBuffer = await response.arrayBuffer()
-    const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
-    const objectUrl = URL.createObjectURL(blob)
-    // Open in new tab for viewing (not download)
-    window.open(objectUrl, '_blank')
-    // Revoke after delay to allow the new tab to load
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
-  } catch (err: any) {
-    toast.error('Gagal membuka surat permohonan: ' + (err.message || 'Unknown error'))
+function resolveSuratPermohonanUrl(url: string): string {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    const path = url.replace(/^\/?(storage\/)?/, '')
+    return `${apiUrl}/files/view/${encodeURIComponent(path)}`
+  } else if (url.includes('/storage/')) {
+    const path = url.split('/storage/')[1]
+    return `${apiUrl}/files/view/${encodeURIComponent(path)}`
+  } else {
+    try {
+      const parsed = new URL(url)
+      const segments = parsed.pathname.split('/').filter(Boolean)
+      const path = segments.slice(1).join('/')
+      if (path) return `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    } catch { /* fallback */ }
   }
+  return url
 }
 
 export default function SkDashboardPage() {
@@ -96,6 +66,35 @@ export default function SkDashboardPage() {
   const [page, setPage] = useState(1)
   
   const user = authApi.getStoredUser()
+
+  // PDF Viewer state
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
+
+  const handleViewPdf = async (url: string) => {
+    setPdfLoading(true)
+    setPdfBlobUrl(null)
+    try {
+      const token = localStorage.getItem('auth_token')
+      const fetchUrl = resolveSuratPermohonanUrl(url)
+      const response = await fetch(fetchUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const arrayBuffer = await response.arrayBuffer()
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
+      setPdfBlobUrl(URL.createObjectURL(blob))
+    } catch (err: any) {
+      toast.error(`Gagal membuka PDF: ${err.message}`)
+      setPdfLoading(false)
+    }
+  }
+
+  const closePdfViewer = () => {
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl)
+    setPdfBlobUrl(null)
+    setPdfLoading(false)
+  }
 
   // 🔥 REST API QUERIES
   
@@ -361,8 +360,8 @@ export default function SkDashboardPage() {
                           <TableCell className="text-center">
                               {item.surat_permohonan_url ? (
                                   <button
-                                      onClick={() => downloadSuratPermohonan(item.surat_permohonan_url, item.nama || 'guru')}
-                                      title="Download Surat Permohonan"
+                                      onClick={() => handleViewPdf(item.surat_permohonan_url)}
+                                      title="Lihat Surat Permohonan"
                                       className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                                   >
                                       <FileDown className="w-4 h-4" />
@@ -518,6 +517,31 @@ export default function SkDashboardPage() {
                   </Button>
               </DialogFooter>
           </DialogContent>
+      </Dialog>
+
+      {/* Dialog: PDF Viewer — inline preview of surat permohonan */}
+      <Dialog open={pdfLoading || !!pdfBlobUrl} onOpenChange={(open) => { if (!open) closePdfViewer() }}>
+        <DialogContent className="max-w-4xl h-[85vh] rounded-[2rem] p-0 border-0 shadow-2xl flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-lg font-black uppercase tracking-tight text-slate-800">
+              Surat Permohonan
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 px-6 pb-6">
+            {pdfLoading && !pdfBlobUrl ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <span className="ml-3 text-sm text-slate-500">Memuat PDF...</span>
+              </div>
+            ) : pdfBlobUrl ? (
+              <iframe
+                src={pdfBlobUrl}
+                className="w-full h-full rounded-xl border border-slate-200"
+                title="Surat Permohonan PDF"
+              />
+            ) : null}
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   )

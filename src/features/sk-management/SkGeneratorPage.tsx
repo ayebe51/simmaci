@@ -151,7 +151,8 @@ async function openSuratPermohonan(url: string) {
       throw new Error(`HTTP ${response.status}: Gagal mengambil file`)
     }
     
-    const blob = await response.blob()
+    const arrayBuffer = await response.arrayBuffer()
+    const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
     const objectUrl = URL.createObjectURL(blob)
     window.open(objectUrl, '_blank')
     

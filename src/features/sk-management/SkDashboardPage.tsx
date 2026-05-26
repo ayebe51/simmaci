@@ -67,13 +67,13 @@ export default function SkDashboardPage() {
   
   const user = authApi.getStoredUser()
 
-  // PDF Viewer state
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null)
-  const [pdfLoading, setPdfLoading] = useState(false)
+  // Document Viewer state (supports PDF and DOCX)
+  const [docViewerContent, setDocViewerContent] = useState<{ type: 'pdf'; blobUrl: string } | { type: 'html'; html: string } | null>(null)
+  const [docViewerLoading, setDocViewerLoading] = useState(false)
 
-  const handleViewPdf = async (url: string) => {
-    setPdfLoading(true)
-    setPdfBlobUrl(null)
+  const handleViewDocument = async (url: string) => {
+    setDocViewerLoading(true)
+    setDocViewerContent(null)
     try {
       const token = localStorage.getItem('auth_token')
       const fetchUrl = resolveSuratPermohonanUrl(url)
@@ -81,19 +81,44 @@ export default function SkDashboardPage() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      
+      const contentType = response.headers.get('content-type') || ''
       const arrayBuffer = await response.arrayBuffer()
-      const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
-      setPdfBlobUrl(URL.createObjectURL(blob))
+      
+      const ext = url.split('.').pop()?.toLowerCase() || ''
+      const isPdf = contentType.includes('pdf') || ext === 'pdf'
+      const isDocx = contentType.includes('wordprocessingml') || contentType.includes('openxmlformats') || ext === 'docx'
+      
+      if (isPdf) {
+        const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
+        setDocViewerContent({ type: 'pdf', blobUrl: URL.createObjectURL(blob) })
+      } else if (isDocx) {
+        const mammoth = await import('mammoth')
+        const result = await mammoth.default.convertToHtml({ arrayBuffer })
+        setDocViewerContent({ type: 'html', html: result.value })
+      } else {
+        const blob = new Blob([arrayBuffer], { type: contentType || 'application/octet-stream' })
+        const objectUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = objectUrl
+        a.download = url.split('/').pop() || 'surat_permohonan'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(objectUrl)
+        toast.info('Format file tidak dapat ditampilkan, file diunduh.')
+      }
     } catch (err: any) {
-      toast.error(`Gagal membuka PDF: ${err.message}`)
-      setPdfLoading(false)
+      toast.error(`Gagal membuka dokumen: ${err.message}`)
+    } finally {
+      setDocViewerLoading(false)
     }
   }
 
-  const closePdfViewer = () => {
-    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl)
-    setPdfBlobUrl(null)
-    setPdfLoading(false)
+  const closeDocViewer = () => {
+    if (docViewerContent?.type === 'pdf') URL.revokeObjectURL(docViewerContent.blobUrl)
+    setDocViewerContent(null)
+    setDocViewerLoading(false)
   }
 
   // 🔥 REST API QUERIES
@@ -360,7 +385,7 @@ export default function SkDashboardPage() {
                           <TableCell className="text-center">
                               {item.surat_permohonan_url ? (
                                   <button
-                                      onClick={() => handleViewPdf(item.surat_permohonan_url)}
+                                      onClick={() => handleViewDocument(item.surat_permohonan_url)}
                                       title="Lihat Surat Permohonan"
                                       className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                                   >
@@ -519,8 +544,8 @@ export default function SkDashboardPage() {
           </DialogContent>
       </Dialog>
 
-      {/* Dialog: PDF Viewer — inline preview of surat permohonan */}
-      <Dialog open={pdfLoading || !!pdfBlobUrl} onOpenChange={(open) => { if (!open) closePdfViewer() }}>
+      {/* Dialog: Document Viewer — inline preview of surat permohonan (PDF/DOCX) */}
+      <Dialog open={docViewerLoading || !!docViewerContent} onOpenChange={(open) => { if (!open) closeDocViewer() }}>
         <DialogContent className="max-w-4xl h-[85vh] rounded-[2rem] p-0 border-0 shadow-2xl flex flex-col overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-lg font-black uppercase tracking-tight text-slate-800">
@@ -528,16 +553,21 @@ export default function SkDashboardPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 px-6 pb-6">
-            {pdfLoading && !pdfBlobUrl ? (
+            {docViewerLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                <span className="ml-3 text-sm text-slate-500">Memuat PDF...</span>
+                <span className="ml-3 text-sm text-slate-500">Memuat dokumen...</span>
               </div>
-            ) : pdfBlobUrl ? (
+            ) : docViewerContent?.type === 'pdf' ? (
               <iframe
-                src={pdfBlobUrl}
+                src={docViewerContent.blobUrl}
                 className="w-full h-full rounded-xl border border-slate-200"
                 title="Surat Permohonan PDF"
+              />
+            ) : docViewerContent?.type === 'html' ? (
+              <div
+                className="w-full h-full overflow-auto rounded-xl border border-slate-200 bg-white p-8 prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: docViewerContent.html }}
               />
             ) : null}
           </div>

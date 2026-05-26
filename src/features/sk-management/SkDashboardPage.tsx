@@ -39,7 +39,7 @@ import {
  * then triggering a browser download. This avoids issues with direct
  * URL access (CORS, missing auth headers, browser PDF rendering quirks).
  */
-async function downloadSuratPermohonan(url: string, nama: string) {
+async function downloadSuratPermohonan(url: string, _nama: string) {
   try {
     const token = localStorage.getItem('auth_token')
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
@@ -77,18 +77,12 @@ async function downloadSuratPermohonan(url: string, nama: string) {
     }
     const blob = await response.blob()
     const objectUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = objectUrl
-    // Derive filename from URL or use teacher name
-    const urlFilename = url.split('/').pop()?.split('?')[0] || ''
-    const ext = urlFilename.includes('.') ? urlFilename.split('.').pop() : 'pdf'
-    a.download = `Surat_Permohonan_${nama.replace(/\s+/g, '_')}.${ext}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(objectUrl)
+    // Open in new tab for viewing (not download)
+    window.open(objectUrl, '_blank')
+    // Revoke after delay to allow the new tab to load
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000)
   } catch (err: any) {
-    toast.error('Gagal mengunduh surat permohonan: ' + (err.message || 'Unknown error'))
+    toast.error('Gagal membuka surat permohonan: ' + (err.message || 'Unknown error'))
   }
 }
 

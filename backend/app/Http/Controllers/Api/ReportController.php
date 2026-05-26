@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\SkBelumMengajukanExport;
 use App\Http\Controllers\Controller;
 use App\Models\School;
 use App\Models\SkDocument;
@@ -9,6 +10,9 @@ use App\Models\Teacher;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ReportController extends Controller
 {
@@ -270,5 +274,124 @@ class ReportController extends Controller
             'sk_active' => SkDocument::whereIn('status', ['active', 'approved'])->count(),
             'sk_pending' => SkDocument::where('status', 'draft')->count(),
         ]);
+    }
+
+    /**
+     * GET /api/reports/sk-belum-mengajukan
+     *
+     * Returns list of jam'iyyah schools that have NOT submitted SK documents.
+     * Restricted to super_admin and admin_yayasan roles.
+     *
+     * Query params:
+     *   jenjang    — filter by jenjang (RA, MI, MTs, MA)
+     *   kecamatan  — filter by kecamatan
+     *   search     — search by nama or NPSN (case-insensitive)
+     *   start_date — period start (only SK submissions within this range count)
+     *   end_date   — period end
+     */
+    public function skBelumMengajukan(Request $request): JsonResponse
+    {
+        // Inline role check — only super_admin and admin_yayasan
+        if (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya super admin dan admin yayasan yang dapat mengakses laporan ini.',
+            ], 403);
+        }
+
+        $query = DB::table('schools as s')
+            ->leftJoin('sk_documents as sk', function ($join) use ($request) {
+                $join->on('sk.school_id', '=', 's.id')
+                    ->whereNull('sk.deleted_at');
+
+                // Period filter applies to sk_documents.created_at in the JOIN condition
+                if ($request->filled('start_date')) {
+                    $join->where('sk.created_at', '>=', $request->start_date);
+                }
+                if ($request->filled('end_date')) {
+                    $join->where('sk.created_at', '<=', $request->end_date . ' 23:59:59');
+                }
+            })
+            ->whereNull('sk.id')
+            ->whereRaw("LOWER(s.status_jamiyyah) LIKE '%jam''iyyah%'")
+            ->whereNull('s.deleted_at');
+
+        // Optional filters
+        if ($request->filled('jenjang')) {
+            $query->where('s.jenjang', $request->jenjang);
+        }
+
+        if ($request->filled('kecamatan')) {
+            $query->where('s.kecamatan', $request->kecamatan);
+        }
+
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw("LOWER(s.nama) LIKE ?", ["%{$search}%"])
+                  ->orWhereRaw("LOWER(s.npsn) LIKE ?", ["%{$search}%"]);
+            });
+        }
+
+        // Get distinct kecamatan values from the filtered results (before selecting specific columns)
+        $kecamatanList = (clone $query)
+            ->whereNotNull('s.kecamatan')
+            ->distinct()
+            ->orderBy('s.kecamatan')
+            ->pluck('s.kecamatan')
+            ->values()
+            ->toArray();
+
+        // Select the data
+        $data = $query->select([
+            's.id',
+            's.nama',
+            's.npsn',
+            's.jenjang',
+            's.kecamatan',
+            's.kepala_madrasah',
+            's.telepon',
+        ])
+            ->orderBy('s.nama', 'asc')
+            ->get();
+
+        return response()->json([
+            'total' => $data->count(),
+            'kecamatan_list' => $kecamatanList,
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * GET /api/reports/sk-belum-mengajukan/export
+     *
+     * Generates Excel file of jam'iyyah schools without SK submissions.
+     * Same filters as skBelumMengajukan apply.
+     */
+    public function exportSkBelumMengajukan(Request $request): BinaryFileResponse|JsonResponse
+    {
+        // Inline role check — only super_admin and admin_yayasan
+        if (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya super admin dan admin yayasan yang dapat mengakses laporan ini.',
+            ], 403);
+        }
+
+        try {
+            $export = new SkBelumMengajukanExport(
+                $request->input('jenjang'),
+                $request->input('kecamatan'),
+                $request->input('search'),
+                $request->input('start_date'),
+                $request->input('end_date'),
+            );
+
+            $filename = 'Laporan_Belum_Mengajukan_SK_' . now()->format('Y-m-d') . '.xlsx';
+
+            return Excel::download($export, $filename);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Gagal menghasilkan file Excel. Silakan coba lagi.',
+            ], 500);
+        }
     }
 }

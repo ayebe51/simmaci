@@ -75,7 +75,8 @@ async function downloadSuratPermohonan(url: string, _nama: string) {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`)
     }
-    const blob = await response.blob()
+    const arrayBuffer = await response.arrayBuffer()
+    const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
     const objectUrl = URL.createObjectURL(blob)
     // Open in new tab for viewing (not download)
     window.open(objectUrl, '_blank')

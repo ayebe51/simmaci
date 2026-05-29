@@ -251,7 +251,7 @@ export default function SkGeneratorPage() {
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
     queryKey: ['sk-candidates-generator', searchTerm, page, activeTab],
     queryFn: () => skApi.list({
-      status: activeTab,
+      status: activeTab === 'pending' ? 'unverified' : activeTab,
       search: searchTerm,
       page: page,
       per_page: 10

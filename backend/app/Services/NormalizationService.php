@@ -95,6 +95,7 @@ class NormalizationService
         'DI'        => 'D.I',
 
         // ── Magister (S2) ─────────────────────────────────────────────────
+        'MPDGR'     => 'M.Pd.Gr.',
         'MPDI'      => 'M.Pd.I',
         'MPD'       => 'M.Pd.',
         'MSOSI'     => 'M.Sos.I',

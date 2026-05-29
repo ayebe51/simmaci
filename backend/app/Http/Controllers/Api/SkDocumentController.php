@@ -41,7 +41,7 @@ class SkDocumentController extends Controller
         if ($request->status && $request->status !== 'all') {
             // For the SK Generator, we source from 'pending' requests
             if ($request->status === 'unverified') {
-                $query->where('status', 'pending');
+                $query->whereIn('status', ['pending', 'draft']);
             } else {
                 $query->byStatus($request->status);
             }

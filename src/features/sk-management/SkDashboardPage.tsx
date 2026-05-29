@@ -141,7 +141,7 @@ export default function SkDashboardPage() {
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
     queryKey: ['sk-pending', searchTerm, page],
     queryFn: () => skApi.list({
-      status: 'pending',
+      status: 'unverified',
       search: searchTerm,
       page: page,
       per_page: 10

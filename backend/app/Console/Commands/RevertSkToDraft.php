@@ -18,10 +18,10 @@ class RevertSkToDraft extends Command
         $dryRun = $this->option('dry-run');
 
         // Find SK documents where:
-        // 1. Status is NOT already draft (we want to revert non-draft ones)
+        // 1. Status is approved (target: revert approved ones with missing data)
         // 2. Either teacher_id is NULL, OR the linked teacher has empty NIM AND empty TMT
         $query = SkDocument::withoutTenantScope()
-            ->where('status', '!=', 'draft')
+            ->whereIn('status', ['approved', 'Approved', 'active', 'Active'])
             ->where(function ($q) {
                 // No teacher linked at all
                 $q->whereNull('teacher_id')

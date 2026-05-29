@@ -188,6 +188,40 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 }
 
                 if ($teacher) {
+                    // Auto-fill NIM & TMT from existing teacher data if not provided in Excel
+                    if (empty($teacherData['nomor_induk_maarif']) && !empty($teacher->nomor_induk_maarif)) {
+                        $teacherData['nomor_induk_maarif'] = $teacher->nomor_induk_maarif;
+                    }
+                    if (empty($teacherData['tmt']) && !empty($teacher->tmt)) {
+                        $teacherData['tmt'] = $teacher->tmt;
+                    }
+
+                    // Existing teacher must have NIM and TMT — reject if both sources are empty
+                    $finalNim = $teacherData['nomor_induk_maarif'] ?? $teacher->nomor_induk_maarif;
+                    $finalTmt = $teacherData['tmt'] ?? $teacher->tmt;
+
+                    if (empty(trim((string)($finalNim ?? ''))) && empty(trim((string)($finalTmt ?? '')))) {
+                        $seq++;
+                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                        SkDocument::create([
+                            'nomor_sk'         => $nomorSk,
+                            'nama'             => $doc['nama'],
+                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
+                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                            'school_id'        => $schoolId,
+                            'status'           => 'rejected',
+                            'rejection_reason' => 'Guru sudah terdaftar tetapi NIM dan TMT belum terisi. Lengkapi data guru terlebih dahulu.',
+                            'created_by'       => $this->userEmail,
+                            'tanggal_penetapan'=> now()->format('Y-m-d'),
+                        ]);
+                        $skipped++;
+                        $rejectedRows[] = [
+                            'nama'   => $doc['nama'] ?? 'unknown',
+                            'alasan' => 'Guru sudah terdaftar tetapi NIM dan TMT belum terisi. Lengkapi data guru terlebih dahulu.',
+                        ];
+                        continue;
+                    }
+
                     // Only update fields that were present in the uploaded file
                     $teacher->update($teacherData);
                 } else {

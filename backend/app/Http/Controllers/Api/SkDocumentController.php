@@ -113,7 +113,7 @@ class SkDocumentController extends Controller
             $sk->makeHidden(['school_id', 'teacher_id']);
 
             $tmt = $sk->teacher?->tmt;
-            $sk->setAttribute('is_guru_baru', empty($tmt) || $tmt > $oneYearAgo);
+            $sk->setAttribute('is_guru_baru', !empty($tmt) && $tmt > $oneYearAgo);
 
             if ($sk->teacher) {
                 $sk->teacher->makeHidden(['id']);

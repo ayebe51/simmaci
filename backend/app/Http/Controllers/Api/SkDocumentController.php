@@ -106,8 +106,15 @@ class SkDocumentController extends Controller
         // Hide internal fields from response - school_id and teacher_id are used
         // for joins/scoping but should not be exposed in the list response.
         // Teacher relation should only expose nomor_induk_maarif.
+        // Also compute is_guru_baru: TMT < 1 tahun atau TMT kosong.
+        $oneYearAgo = now()->subYear()->toDateString();
+
         foreach ($paginated->items() as $sk) {
             $sk->makeHidden(['school_id', 'teacher_id']);
+
+            $tmt = $sk->teacher?->tmt;
+            $sk->setAttribute('is_guru_baru', empty($tmt) || $tmt > $oneYearAgo);
+
             if ($sk->teacher) {
                 $sk->teacher->makeHidden(['id']);
             }

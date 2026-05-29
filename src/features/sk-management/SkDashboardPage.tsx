@@ -366,7 +366,12 @@ export default function SkDashboardPage() {
                               {item.jenis_sk || (item.nuptk ? "Verifikasi Baru" : "-")}
                           </TableCell>
                           <TableCell>
-                              <div className="font-black text-slate-800 text-sm tracking-tight">{item.nama}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-black text-slate-800 text-sm tracking-tight">{item.nama}</span>
+                                {item.is_guru_baru && (
+                                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200 text-[9px] font-black uppercase px-1.5 py-0">Guru Baru</Badge>
+                                )}
+                              </div>
                               {(item.nomor_induk_maarif || item.teacher?.nomor_induk_maarif) && (
                                 <div className="text-[10px] font-bold text-emerald-600 uppercase">NIM: {item.nomor_induk_maarif || item.teacher?.nomor_induk_maarif}</div>
                               )}

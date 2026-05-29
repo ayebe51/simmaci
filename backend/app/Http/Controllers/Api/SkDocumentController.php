@@ -32,7 +32,7 @@ class SkDocumentController extends Controller
                 'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url',
             ])
             ->with(['teacher' => function ($q) {
-                $q->select(['id', 'nomor_induk_maarif']);
+                $q->select(['id', 'nomor_induk_maarif', 'tmt']);
             }]);
 
         if ($request->search) {
@@ -60,40 +60,43 @@ class SkDocumentController extends Controller
 
         $paginated = $query->orderByDesc('created_at')->orderByDesc('id')->paginate($request->integer('per_page', 25));
 
-        // Enrich NIM: for items whose teacher has no nomor_induk_maarif,
+        // Enrich NIM and TMT: for items whose teacher has no nomor_induk_maarif or tmt,
         // resolve matching teachers using SQL-level case-insensitive comparison
         // scoped to the same school_id (avoids loading all teachers into PHP memory).
         $items = collect($paginated->items());
-        $missingNimItems = $items->filter(fn($sk) =>
-            empty($sk->teacher?->nomor_induk_maarif) && !empty($sk->nama)
+        $missingDataItems = $items->filter(fn($sk) =>
+            (empty($sk->teacher?->nomor_induk_maarif) || empty($sk->teacher?->tmt)) && !empty($sk->nama)
         );
 
-        if ($missingNimItems->isNotEmpty()) {
-            $missingNimIds = $missingNimItems->pluck('id')->values()->toArray();
+        if ($missingDataItems->isNotEmpty()) {
+            $missingDataIds = $missingDataItems->pluck('id')->values()->toArray();
 
-            // SQL-level NIM enrichment: JOIN teachers on normalized name + same school_id
+            // SQL-level enrichment: JOIN teachers on normalized name + same school_id
             $enrichedRows = DB::table('sk_documents as sd')
                 ->join('teachers as t', function ($join) {
                     $join->on(DB::raw('LOWER(TRIM(t.nama))'), '=', DB::raw('LOWER(TRIM(sd.nama))'))
                         ->on('t.school_id', '=', 'sd.school_id')
-                        ->whereNotNull('t.nomor_induk_maarif')
-                        ->where('t.nomor_induk_maarif', '!=', '')
                         ->whereNull('t.deleted_at');
                 })
-                ->whereIn('sd.id', $missingNimIds)
-                ->select('sd.id', 't.nomor_induk_maarif')
+                ->whereIn('sd.id', $missingDataIds)
+                ->select('sd.id', 't.nomor_induk_maarif', 't.tmt')
                 ->get()
                 ->keyBy('id');
 
-            foreach ($missingNimItems as $sk) {
+            foreach ($missingDataItems as $sk) {
                 if (isset($enrichedRows[$sk->id])) {
-                    $nim = $enrichedRows[$sk->id]->nomor_induk_maarif;
-                    // Inject NIM into the teacher relation (or create a minimal object)
+                    $row = $enrichedRows[$sk->id];
                     if ($sk->teacher) {
-                        $sk->teacher->nomor_induk_maarif = $nim;
+                        if (empty($sk->teacher->nomor_induk_maarif) && !empty($row->nomor_induk_maarif)) {
+                            $sk->teacher->nomor_induk_maarif = $row->nomor_induk_maarif;
+                        }
+                        if (empty($sk->teacher->tmt) && !empty($row->tmt)) {
+                            $sk->teacher->tmt = $row->tmt;
+                        }
                     } else {
                         $sk->setRelation('teacher', new Teacher([
-                            'nomor_induk_maarif' => $nim,
+                            'nomor_induk_maarif' => $row->nomor_induk_maarif,
+                            'tmt' => $row->tmt,
                         ]));
                     }
                 }

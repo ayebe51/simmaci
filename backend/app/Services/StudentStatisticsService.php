@@ -198,6 +198,11 @@ class StudentStatisticsService
         // Remove leading/trailing underscores
         $sanitized = trim($sanitized, '_');
 
+        // Fallback if sanitized result is empty (all special characters input)
+        if ($sanitized === '') {
+            $sanitized = 'unnamed';
+        }
+
         $timestamp = now()->format('Ymd_His');
 
         return "{$prefix}_{$sanitized}_{$timestamp}.xlsx";

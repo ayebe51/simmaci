@@ -9,35 +9,44 @@ use Illuminate\Support\Facades\DB;
 class RevertSkToDraft extends Command
 {
     protected $signature = 'sk:revert-to-draft
-                            {--dry-run : Show what would be changed without making changes}';
+                            {--dry-run : Show what would be changed without making changes}
+                            {--all-status : Search all non-draft statuses (not just approved/active)}';
 
     protected $description = 'Revert SK submissions with empty NIM and TMT back to draft status';
 
     public function handle(): int
     {
         $dryRun = $this->option('dry-run');
+        $allStatus = $this->option('all-status');
 
         // Find SK documents where:
-        // 1. Status is approved (target: revert approved ones with missing data)
-        // 2. Either teacher_id is NULL, OR the linked teacher has empty NIM AND empty TMT
-        $query = SkDocument::withoutTenantScope()
-            ->whereIn('status', ['approved', 'Approved', 'active', 'Active'])
-            ->where(function ($q) {
-                // No teacher linked at all
-                $q->whereNull('teacher_id')
-                    // OR teacher exists but both NIM and TMT are empty
-                    ->orWhereHas('teacher', function ($tq) {
-                        $tq->where(function ($inner) {
-                            $inner->whereNull('nomor_induk_maarif')
-                                ->orWhere('nomor_induk_maarif', '');
-                        })->where(function ($inner) {
-                            $inner->whereNull('tmt')
-                                ->orWhere('tmt', '');
-                        });
-                    });
-            });
+        // 1. Status is approved/active (or any non-draft if --all-status)
+        // 2. Either teacher_id is NULL, OR the linked teacher has empty NIM AND/OR empty TMT
+        $query = SkDocument::withoutTenantScope()->with('teacher');
 
-        $documents = $query->get();
+        if ($allStatus) {
+            $query->whereNotIn('status', ['draft', 'Draft']);
+        } else {
+            $query->whereIn('status', ['approved', 'Approved', 'active', 'Active']);
+        }
+
+        // Get all matching SK documents, then filter in PHP for more reliable empty checks
+        $allDocuments = $query->get();
+
+        $documents = $allDocuments->filter(function ($sk) {
+            $teacher = $sk->teacher;
+
+            // No teacher linked
+            if (!$teacher) {
+                return true;
+            }
+
+            $nim = trim($teacher->nomor_induk_maarif ?? '');
+            $tmt = trim((string) ($teacher->tmt ?? ''));
+
+            // Both NIM and TMT are empty
+            return empty($nim) && empty($tmt);
+        });
 
         if ($documents->isEmpty()) {
             $this->info('Tidak ada permohonan SK dengan NIM kosong DAN TMT kosong yang perlu di-revert.');
@@ -53,11 +62,12 @@ class RevertSkToDraft extends Command
             $sk->nama,
             $sk->unit_kerja,
             $sk->status,
-            $sk->jenis_sk,
+            $sk->teacher ? ($sk->teacher->nomor_induk_maarif ?: '-') : 'No Teacher',
+            $sk->teacher ? ($sk->teacher->tmt ?: '-') : 'No Teacher',
         ])->toArray();
 
         $this->table(
-            ['ID', 'Nomor SK', 'Nama', 'Unit Kerja', 'Status Saat Ini', 'Jenis SK'],
+            ['ID', 'Nomor SK', 'Nama', 'Unit Kerja', 'Status', 'NIM', 'TMT'],
             $tableData
         );
 

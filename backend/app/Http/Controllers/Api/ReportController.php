@@ -181,7 +181,10 @@ class ReportController extends Controller
     public function skPerSekolah(Request $request): JsonResponse
     {
         $query = SkDocument::with(['school'])
-            ->whereNotIn('status', ['rejected', 'Rejected']);
+            ->whereNotIn('status', ['rejected', 'Rejected'])
+            ->whereHas('school', function ($q) {
+                $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
+            });
 
         // Tenant scoping
         if ($request->user()->isOperator()) {
@@ -301,7 +304,8 @@ class ReportController extends Controller
         $query = DB::table('schools as s')
             ->leftJoin('sk_documents as sk', function ($join) use ($request) {
                 $join->on('sk.school_id', '=', 's.id')
-                    ->whereNull('sk.deleted_at');
+                    ->whereNull('sk.deleted_at')
+                    ->whereNotIn('sk.status', ['rejected', 'Rejected']);
 
                 // Period filter applies to sk_documents.created_at in the JOIN condition
                 if ($request->filled('start_date')) {

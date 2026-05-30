@@ -38,7 +38,8 @@ class SkBelumMengajukanExport implements FromCollection, WithHeadings, WithEvent
         $query = DB::table('schools as s')
             ->leftJoin('sk_documents as sk', function ($join) {
                 $join->on('sk.school_id', '=', 's.id')
-                    ->whereNull('sk.deleted_at');
+                    ->whereNull('sk.deleted_at')
+                    ->whereNotIn('sk.status', ['rejected', 'Rejected']);
 
                 if ($this->startDate) {
                     $join->where('sk.created_at', '>=', $this->startDate);

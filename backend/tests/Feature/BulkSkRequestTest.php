@@ -46,14 +46,16 @@ class BulkSkRequestTest extends TestCase
         ], $overrides);
     }
 
-    private function gtyDoc(string $nama = 'Ahmad Fauzi'): array
+    private static int $nimCounter = 0;
+
+    private function gtyDoc(string $nama = 'Ahmad Fauzi', ?string $nim = null): array
     {
         return [
             'nama'              => $nama,
             'unit_kerja'        => 'MI Ma\'arif NU 03 Karangsembung',
             'status'            => 'GTY',
             'nip'               => '123456',
-            'nomor_induk_maarif'=> 'NIM-001',
+            'nomor_induk_maarif'=> $nim ?? 'NIM-' . str_pad(++self::$nimCounter, 4, '0', STR_PAD_LEFT),
             'tanggal_lahir'     => '1990-01-01',
             'tempat_lahir'      => 'Cilacap',
         ];

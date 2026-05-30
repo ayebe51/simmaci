@@ -704,8 +704,9 @@ class NormalizationService
         }
 
         // Look for a teacher whose bare name matches.
-        // Use LIKE for SQLite/PostgreSQL compatibility (SPLIT_PART is PostgreSQL-only).
-        // Match: exact bare name OR "BARENAME, degree..."
+        // Strip degrees (after comma) from DB names before comparison.
+        // Match: bare name (part before first comma) OR exact full name (for names without commas).
+        // Uses LIKE for database-agnostic compatibility (works on both PostgreSQL and SQLite).
         $find = function (?int $sid) use ($bareName): ?string {
             return \App\Models\Teacher::withoutTenantScope()
                 ->where(function ($q) use ($bareName) {

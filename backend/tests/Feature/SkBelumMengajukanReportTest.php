@@ -445,7 +445,7 @@ class SkBelumMengajukanReportTest extends TestCase
             'status_jamiyyah' => "Jam'iyyah",
         ]);
         foreach ($schoolsWithSk as $school) {
-            SkDocument::factory()->create(['school_id' => $school->id]);
+            SkDocument::factory()->approved()->create(['school_id' => $school->id]);
         }
 
         $response = $this->actingAs($user, 'sanctum')

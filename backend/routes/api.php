@@ -284,6 +284,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('meetings/{meeting}/participants/{participant}/check-in', [MeetingController::class, 'manualCheckIn']);
         Route::post('meetings/{meeting}/participants/{participant}/reset-check-in', [MeetingController::class, 'resetCheckIn']);
         Route::post('meetings/{meeting}/participants/{participant}/regenerate-qr', [MeetingController::class, 'regenerateQr']);
+        Route::post('meetings/{meeting}/participants/{participant}/resend-wa', [MeetingController::class, 'resendWa']);
     });
 
     // ── WA Blast (super_admin + admin_yayasan only) ──

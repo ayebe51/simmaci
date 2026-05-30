@@ -72,6 +72,23 @@ export const useRegenerateQr = () => {
   });
 };
 
+/** Resend WA invitation to a single participant */
+export const useResendWa = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ meetingId, participantId, phoneNumber }: { meetingId: number; participantId: number; phoneNumber?: string }) =>
+      meetingService.resendWa(meetingId, participantId, phoneNumber),
+    onSuccess: (_, { meetingId }) => {
+      queryClient.invalidateQueries({ queryKey: ['meeting', meetingId] });
+      toast.success('Undangan WA berhasil dikirim ulang');
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Gagal mengirim ulang undangan WA';
+      toast.error(message);
+    },
+  });
+};
+
 /** Download PDF report */
 export const useDownloadMeetingPdf = () => {
   return useMutation({

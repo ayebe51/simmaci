@@ -317,4 +317,42 @@ class MeetingController extends Controller
             return $this->errorResponse('Gagal memperbarui QR code. Silakan coba lagi.', null, 500);
         }
     }
+
+    /**
+     * Resend WA invitation to a single participant.
+     *
+     * Optionally updates the participant's phone number before sending.
+     * Only super_admin and admin_yayasan can resend.
+     *
+     * @param Request $request
+     * @param Meeting $meeting
+     * @param MeetingParticipant $participant
+     * @return JsonResponse
+     */
+    public function resendWa(Request $request, Meeting $meeting, MeetingParticipant $participant): JsonResponse
+    {
+        $request->validate([
+            'phone_number' => 'sometimes|string|min:8|max:20',
+        ]);
+
+        try {
+            $this->meetingService->resendInvitationToParticipant(
+                $meeting,
+                $participant,
+                $request->input('phone_number')
+            );
+
+            return $this->successResponse(null, 'Undangan WA berhasil dikirim ulang ke ' . $participant->name . '.');
+        } catch (ValidationException $e) {
+            return $this->validationErrorResponse($e->errors());
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend WA invitation', [
+                'meeting_id' => $meeting->id,
+                'participant_id' => $participant->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse('Gagal mengirim ulang undangan WA. Silakan coba lagi.', null, 500);
+        }
+    }
 }

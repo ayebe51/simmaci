@@ -15,16 +15,15 @@ import { MeetingPhotoGallery } from './components/MeetingPhotoGallery';
 import { MeetingPhotoUploader } from './components/MeetingPhotoUploader';
 import { useMeetingMinutes, useCreateMeetingMinutes, useUpdateMeetingMinutes } from './hooks/useMeetingMinutes';
 import { useMeetingPhotos } from './hooks/useMeetingPhotos';
-import { useMeeting, useDownloadMeetingPdf, useDownloadMeetingExcel } from './hooks/useMeeting';
+import { useMeeting, useDownloadMeetingPdf, useDownloadMeetingExcel, useResendWa } from './hooks/useMeeting';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import {
   Edit2, ArrowLeft, Pencil, FileText, FileSpreadsheet,
-  MapPin, Clock, Users, CalendarDays, CheckCircle2, XCircle,
+  MapPin, Clock, Users, CheckCircle2, XCircle, Send,
 } from 'lucide-react';
-import { useNavigate as useNav } from 'react-router-dom';
 
 const statusColor: Record<string, string> = {
   upcoming: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -44,6 +43,8 @@ export const MeetingDetailPage: React.FC = () => {
 
   const [isEditingMinutes, setIsEditingMinutes] = useState(false);
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
+  const [resendTarget, setResendTarget] = useState<{ id: number; name: string; phone: string } | null>(null);
+  const [resendPhone, setResendPhone] = useState('');
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
@@ -60,6 +61,7 @@ export const MeetingDetailPage: React.FC = () => {
   const updateMinutesMutation = useUpdateMeetingMinutes();
   const downloadPdfMutation = useDownloadMeetingPdf();
   const downloadExcelMutation = useDownloadMeetingExcel();
+  const resendWaMutation = useResendWa();
 
   if (!meetingId) {
     return <div className="p-4 text-red-600">Invalid meeting ID</div>;
@@ -221,24 +223,83 @@ export const MeetingDetailPage: React.FC = () => {
               <CardContent>
                 <div className="divide-y">
                   {meeting.participants.map((participant) => (
-                    <div key={participant.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <p className="font-medium text-sm">{participant.name}</p>
-                        <p className="text-xs text-slate-500">{participant.jabatan} · {participant.instansi}</p>
+                    <div key={participant.id} className="py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{participant.name}</p>
+                          <p className="text-xs text-slate-500">{participant.jabatan} · {participant.instansi}</p>
+                          {!participant.phone_number && (
+                            <p className="text-xs text-amber-600 mt-0.5">⚠ Nomor HP belum diisi</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {participant.attendance ? (
+                            <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Hadir · {format(new Date(participant.attendance.checked_in_at), 'HH:mm')}
+                            </span>
+                          ) : (
+                            <>
+                              <span className="flex items-center gap-1 text-xs text-slate-400">
+                                <XCircle className="h-3.5 w-3.5" />
+                                Belum hadir
+                              </span>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => {
+                                    setResendTarget({ id: participant.id, name: participant.name, phone: participant.phone_number || '' });
+                                    setResendPhone(participant.phone_number || '');
+                                  }}
+                                >
+                                  <Send className="h-3 w-3 mr-1" />
+                                  Kirim WA
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {participant.attendance ? (
-                          <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Hadir · {format(new Date(participant.attendance.checked_in_at), 'HH:mm')}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs text-slate-400">
-                            <XCircle className="h-3.5 w-3.5" />
-                            Belum hadir
-                          </span>
-                        )}
-                      </div>
+
+                      {/* Inline resend WA form */}
+                      {resendTarget?.id === participant.id && (
+                        <div className="flex items-center gap-2 pl-4 py-2 bg-blue-50 rounded-md border border-blue-100">
+                          <Input
+                            type="tel"
+                            placeholder="Nomor HP (cth: 08123456789)"
+                            value={resendPhone}
+                            onChange={(e) => setResendPhone(e.target.value)}
+                            className="h-8 text-sm max-w-[200px]"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                            disabled={resendWaMutation.isPending || !resendPhone.trim()}
+                            onClick={() => {
+                              resendWaMutation.mutate(
+                                {
+                                  meetingId,
+                                  participantId: participant.id,
+                                  phoneNumber: resendPhone.trim() !== participant.phone_number ? resendPhone.trim() : undefined,
+                                },
+                                { onSuccess: () => setResendTarget(null) }
+                              );
+                            }}
+                          >
+                            {resendWaMutation.isPending ? 'Mengirim...' : 'Kirim'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setResendTarget(null)}
+                          >
+                            Batal
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

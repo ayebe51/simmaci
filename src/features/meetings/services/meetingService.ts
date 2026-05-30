@@ -75,6 +75,12 @@ export const meetingService = {
     await apiClient.post(`/meetings/${meetingId}/participants/${participantId}/regenerate-qr`);
   },
 
+  resendWa: async (meetingId: number, participantId: number, phoneNumber?: string): Promise<void> => {
+    await apiClient.post(`/meetings/${meetingId}/participants/${participantId}/resend-wa`, {
+      ...(phoneNumber ? { phone_number: phoneNumber } : {}),
+    });
+  },
+
   // ── Reports ──
 
   downloadPdf: async (meetingId: number): Promise<Blob> => {

@@ -336,6 +336,71 @@ class MeetingService
         ];
     }
 
+    /**
+     * Resend WA invitation to a single participant.
+     *
+     * If a new phone number is provided, updates the participant record first,
+     * then generates a QR token (if missing) and sends the invitation message.
+     *
+     * @param Meeting $meeting
+     * @param MeetingParticipant $participant
+     * @param string|null $newPhoneNumber Optional new phone number to set before sending
+     * @return void
+     * @throws ValidationException
+     */
+    public function resendInvitationToParticipant(Meeting $meeting, MeetingParticipant $participant, ?string $newPhoneNumber = null): void
+    {
+        // Update phone number if provided
+        if ($newPhoneNumber) {
+            $normalized = $this->phoneNormalizer->normalize($newPhoneNumber);
+            $participant->update(['phone_number' => $normalized]);
+            $participant->refresh();
+        }
+
+        // Validate phone number exists
+        if (empty($participant->phone_number)) {
+            throw ValidationException::withMessages([
+                'phone_number' => ['Nomor HP peserta belum diisi. Silakan isi nomor HP terlebih dahulu.'],
+            ]);
+        }
+
+        // Generate QR token if participant doesn't have one yet
+        if (empty($participant->qr_token)) {
+            $this->qrService->generatePersonalQrUrl($meeting, $participant);
+            $participant->refresh();
+        }
+
+        // Build and send the invitation message
+        $message = $this->buildInvitationMessage($meeting, $participant);
+
+        $recipients = [
+            [
+                'recipient_name' => $participant->name,
+                'school_name' => $participant->instansi,
+                'phone_number' => $participant->phone_number,
+                'recipient_type' => 'gtk',
+                'delivery_status' => 'pending',
+                'message_override' => $message,
+            ],
+        ];
+
+        try {
+            $this->waBlastService->createBlast([
+                'title' => "Kirim Ulang Undangan: {$meeting->title} - {$participant->name}",
+                'recipient_category' => 'custom',
+                'message_body' => $message,
+                'recipients' => $recipients,
+            ], auth()->id());
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend invitation to participant', [
+                'meeting_id' => $meeting->id,
+                'participant_id' => $participant->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
     // ── Private Helper Methods ──
 
     /**

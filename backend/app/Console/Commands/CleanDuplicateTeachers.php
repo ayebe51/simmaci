@@ -1,0 +1,135 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Models\Teacher;
+use App\Services\NormalizationService;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+
+class CleanDuplicateTeachers extends Command
+{
+    protected $signature = 'teachers:clean-duplicates
+                            {--dry-run : Only show duplicates without deleting}
+                            {--school= : Filter by school_id}';
+
+    protected $description = 'Find and soft-delete duplicate teachers with same bare name and school_id. Keeps the record with academic degrees (gelar) in the name.';
+
+    public function handle(NormalizationService $normalizationService): int
+    {
+        $isDryRun = $this->option('dry-run');
+        $schoolFilter = $this->option('school');
+
+        if ($isDryRun) {
+            $this->info('🔍 DRY RUN MODE — no records will be deleted.');
+        } else {
+            if (!$this->confirm('⚠️  This will SOFT-DELETE duplicate teacher records. Continue?')) {
+                return self::FAILURE;
+            }
+        }
+
+        $this->info('Scanning for duplicate teachers (same bare name + school_id)...');
+        $this->info('Priority: keep record WITH academic degrees (gelar) in nama.');
+        $this->newLine();
+
+        // Find duplicates: group by UPPER(SPLIT_PART(nama, ',', 1)) and school_id
+        $query = DB::table('teachers')
+            ->select(
+                DB::raw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) as bare_name"),
+                'school_id',
+                DB::raw('COUNT(*) as cnt')
+            )
+            ->whereNull('deleted_at')
+            ->groupBy(DB::raw("UPPER(TRIM(SPLIT_PART(nama, ',', 1)))"), 'school_id')
+            ->having(DB::raw('COUNT(*)'), '>', 1)
+            ->orderByDesc('cnt');
+
+        if ($schoolFilter) {
+            $query->where('school_id', $schoolFilter);
+        }
+
+        $duplicateGroups = $query->get();
+
+        if ($duplicateGroups->isEmpty()) {
+            $this->info('✅ No duplicate teachers found!');
+            return self::SUCCESS;
+        }
+
+        $this->warn("Found {$duplicateGroups->count()} groups of duplicates:");
+        $this->newLine();
+
+        $totalDeleted = 0;
+        $allDuplicates = [];
+
+        foreach ($duplicateGroups as $group) {
+            // Get all teachers in this duplicate group
+            $teachers = Teacher::withoutTenantScope()
+                ->whereNull('deleted_at')
+                ->where('school_id', $group->school_id)
+                ->whereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [$group->bare_name])
+                ->get();
+
+            if ($teachers->count() <= 1) {
+                continue;
+            }
+
+            // Sort: prioritize records WITH degrees (has comma = has gelar suffix)
+            // Then by identifier completeness, then by most recently updated
+            $sorted = $teachers->sortBy(function ($t) use ($normalizationService) {
+                $parsed = $normalizationService->parseAcademicDegreesPublic($t->nama);
+                $hasDegrees = !empty($parsed['prefix']) || !empty($parsed['suffix']);
+                // Also check if nama contains a comma (simple degree indicator)
+                $hasComma = str_contains($t->nama, ',');
+
+                // Score: lower = better (keep first)
+                $degreeScore = ($hasDegrees || $hasComma) ? 0 : 1;
+                $identifierScore = match (true) {
+                    !empty($t->nuptk) => 0,
+                    !empty($t->nomor_induk_maarif) => 1,
+                    !empty($t->nip) => 2,
+                    default => 3,
+                };
+                // Combine: degree presence is most important, then identifiers
+                return $degreeScore * 10 + $identifierScore;
+            })->values();
+
+            // Keep the first one (has degrees + most complete data)
+            $keep = $sorted->first();
+            $toDelete = $sorted->slice(1);
+
+            $schoolName = DB::table('schools')->where('id', $group->school_id)->value('nama') ?? 'Unknown';
+
+            $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            $this->info("Bare Name: {$group->bare_name} | School: {$schoolName} (ID: {$group->school_id})");
+            $this->line("  ✅ KEEP: ID={$keep->id} | nama=\"{$keep->nama}\" | nuptk={$keep->nuptk} | nim={$keep->nomor_induk_maarif} | nip={$keep->nip} | status={$keep->status_kepegawaian}");
+
+            foreach ($toDelete as $dup) {
+                $this->line("  ❌ DELETE: ID={$dup->id} | nama=\"{$dup->nama}\" | nuptk={$dup->nuptk} | nim={$dup->nomor_induk_maarif} | nip={$dup->nip} | status={$dup->status_kepegawaian}");
+
+                $allDuplicates[] = [
+                    'id' => $dup->id,
+                    'nama' => $dup->nama,
+                    'school_id' => $dup->school_id,
+                    'school_name' => $schoolName,
+                ];
+
+                if (!$isDryRun) {
+                    $dup->delete(); // soft-delete
+                    $totalDeleted++;
+                }
+            }
+        }
+
+        $this->newLine();
+        $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        if ($isDryRun) {
+            $this->warn("📋 Total duplicates that WOULD be deleted: " . count($allDuplicates));
+            $this->info("Run without --dry-run to actually delete them.");
+        } else {
+            $this->info("🗑️  Soft-deleted {$totalDeleted} duplicate teacher records.");
+        }
+
+        return self::SUCCESS;
+    }
+}

@@ -312,7 +312,7 @@ class ReportController extends Controller
                 }
             })
             ->whereNull('sk.id')
-            ->whereRaw("LOWER(s.status_jamiyyah) LIKE '%jam''iyyah%'")
+            ->whereRaw("LOWER(s.status_jamiyyah) LIKE '%jam%iyyah%'")
             ->whereNull('s.deleted_at');
 
         // Optional filters

@@ -48,7 +48,7 @@ class SkBelumMengajukanExport implements FromCollection, WithHeadings, WithEvent
                 }
             })
             ->whereNull('sk.id')
-            ->whereRaw("LOWER(s.status_jamiyyah) LIKE '%jam''iyyah%'")
+            ->whereRaw("LOWER(s.status_jamiyyah) LIKE '%jam%iyyah%'")
             ->whereNull('s.deleted_at');
 
         if ($this->jenjang) {

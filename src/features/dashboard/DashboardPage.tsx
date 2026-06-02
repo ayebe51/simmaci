@@ -190,7 +190,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between space-x-4 relative z-10">
                 <div className="flex flex-col space-y-1">
                     <span className="text-sm font-medium text-slate-300 tracking-wide">Total SK Terbit</span>
-                    <span className="text-4xl font-extrabold tracking-tight drop-shadow-md">{skStats?.total || 0}</span>
+                    <span className="text-4xl font-extrabold tracking-tight drop-shadow-md">{skStats?.approved || 0}</span>
                 </div>
                 <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-inner">
                     <FileText className="h-7 w-7 text-emerald-400 drop-shadow-sm" />

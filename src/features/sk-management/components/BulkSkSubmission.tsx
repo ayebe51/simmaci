@@ -189,20 +189,6 @@ export function BulkSkSubmission() {
         }
       }
     },
-    onError: (err: any) => {
-      const status = err.response?.status
-      if (status === 504 || err.code === 'ECONNABORTED') {
-        // 504 Gateway Timeout or Axios timeout — data may still be processing in background
-        toast.warning(
-          "Koneksi timeout, tapi data kemungkinan masih diproses di server. " +
-          "Silakan cek halaman Daftar SK dalam beberapa menit.",
-          { duration: 8000 }
-        )
-      } else {
-        toast.error("Gagal mengirim pengajuan: " + (err.response?.data?.message || err.message))
-      }
-      setIsProcessing(false)
-    }
   })
 
   const handleSubmit = async () => {
@@ -217,10 +203,32 @@ export function BulkSkSubmission() {
 
     setIsProcessing(true)
     try {
+      // Step 1: Upload surat permohonan PDF
       toast.loading("Mengunggah surat permohonan...", { id: 'bulk-upload' })
-      const uploadRes = await mediaApi.upload(suratPermohonanFile, 'permohonan-kolektif')
-      const permohonanUrl = uploadRes.url
+      let permohonanUrl: string
+      try {
+        const uploadRes = await mediaApi.upload(suratPermohonanFile, 'permohonan-kolektif')
+        permohonanUrl = uploadRes.url
+      } catch (uploadErr: any) {
+        toast.dismiss('bulk-upload')
+        const isNetworkError = !uploadErr.response
+        if (isNetworkError) {
+          toast.error(
+            "Gagal mengunggah surat permohonan: Koneksi terputus. " +
+            "Pastikan koneksi internet stabil lalu coba lagi.",
+            { duration: 8000 }
+          )
+        } else {
+          toast.error(
+            "Gagal mengunggah surat permohonan: " +
+            (uploadErr.response?.data?.message || uploadErr.message),
+            { duration: 6000 }
+          )
+        }
+        return
+      }
 
+      // Step 2: Submit bulk SK request
       toast.loading(`Memproses ${candidates.length} data...`, { id: 'bulk-upload' })
       const documents = candidates.map(c => ({
         ...c,
@@ -229,15 +237,36 @@ export function BulkSkSubmission() {
         tanggal_permohonan: tanggalPermohonanUi || undefined
       }))
 
-      await importMutation.mutateAsync({ 
-        documents, 
-        surat_permohonan_url: permohonanUrl,
-        meta: { detected_headers: detectedHeaders }
-      })
-      toast.dismiss('bulk-upload')
-    } catch (e: any) {
-      toast.dismiss('bulk-upload')
-      toast.error("Gagal memproses: " + (e.response?.data?.message || e.message))
+      try {
+        await importMutation.mutateAsync({ 
+          documents, 
+          surat_permohonan_url: permohonanUrl,
+          meta: { detected_headers: detectedHeaders }
+        })
+        toast.dismiss('bulk-upload')
+      } catch (submitErr: any) {
+        toast.dismiss('bulk-upload')
+        const status = submitErr.response?.status
+        if (status === 504 || submitErr.code === 'ECONNABORTED') {
+          // Gateway timeout — job may still be running in the queue
+          toast.warning(
+            "Koneksi timeout, tapi data kemungkinan masih diproses di server. " +
+            "Silakan cek halaman Daftar SK dalam beberapa menit.",
+            { duration: 8000 }
+          )
+        } else if (!submitErr.response) {
+          toast.error(
+            "Gagal mengirim pengajuan: Koneksi terputus saat mengirim data. " +
+            "Silakan coba lagi.",
+            { duration: 8000 }
+          )
+        } else {
+          toast.error(
+            "Gagal mengirim pengajuan: " +
+            (submitErr.response?.data?.message || submitErr.message)
+          )
+        }
+      }
     } finally {
       setIsProcessing(false)
     }

@@ -118,7 +118,7 @@ class SkBelumMengajukanReportTest extends TestCase
             'nama' => 'MTs Al-Ikhlas',
             'jenjang' => 'MTs',
         ]);
-        SkDocument::factory()->create(['school_id' => $schoolWith->id]);
+        SkDocument::factory()->create(['school_id' => $schoolWith->id, 'status' => 'pending']);
 
         $response = $this->actingAs($user, 'sanctum')
             ->getJson($this->endpoint);
@@ -149,7 +149,7 @@ class SkBelumMengajukanReportTest extends TestCase
         ]);
 
         // Create multiple SK documents for this school
-        SkDocument::factory()->count(3)->create(['school_id' => $school->id]);
+        SkDocument::factory()->count(3)->create(['school_id' => $school->id, 'status' => 'pending']);
 
         $response = $this->actingAs($user, 'sanctum')
             ->getJson($this->endpoint);
@@ -343,6 +343,7 @@ class SkBelumMengajukanReportTest extends TestCase
         SkDocument::factory()->create([
             'school_id' => $schoolA->id,
             'created_at' => '2025-01-15 10:00:00',
+            'status' => 'pending',
         ]);
 
         // School B: has SK created in March 2025
@@ -353,6 +354,7 @@ class SkBelumMengajukanReportTest extends TestCase
         SkDocument::factory()->create([
             'school_id' => $schoolB->id,
             'created_at' => '2025-03-15 10:00:00',
+            'status' => 'pending',
         ]);
 
         // School C: no SK at all

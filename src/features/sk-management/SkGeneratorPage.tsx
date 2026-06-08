@@ -108,6 +108,9 @@ const toRoman = (num: number): string => {
  * Resolve surat permohonan URL to an authenticated fetch URL
  */
 function resolveSuratPermohonanUrl(url: string): string {
+  if (!url) return url;
+  if (url.includes('/api/files/view/')) return url;
+
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
   
   if (!url.startsWith('http://') && !url.startsWith('https://')) {

@@ -216,7 +216,7 @@ class SkDocumentController extends Controller
                 'nomor_sk', 'jenis_sk', 'teacher_id', 'nama', 'jabatan',
                 'unit_kerja', 'tanggal_penetapan', 'status', 'file_url', 'qr_code',
                 'revision_status', 'revision_reason', 'revision_data',
-                'ijazah_url',
+                'ijazah_url', 'tahun_ajaran',
             ]));
 
             ActivityLog::log(
@@ -635,6 +635,38 @@ class SkDocumentController extends Controller
             }
             $data['school_id'] = $schoolId;
 
+            // --- Duplicate submission guard ---
+            // Tahun ajaran selalu mengacu ke tahun berjalan → tahun berikutnya.
+            // Contoh: Juni 2026 → "2026/2027" (SK disiapkan untuk tapel yang akan datang).
+            $nowYear  = (int) now()->format('Y');
+            $activeTahunAjaran = "{$nowYear}/" . ($nowYear + 1);
+
+            // Block re-submission of the same person + jenis SK for the current academic year.
+            // A "pending" or "draft" record already waiting for approval counts as a duplicate.
+            // Approved/rejected/archived records do NOT block: operators can re-submit after rejection,
+            // and perpanjangan for a different tapel is handled by the different tahun_ajaran value.
+            $duplicateQuery = SkDocument::where('nama', $data['nama'])
+                ->where('jenis_sk', $data['jenis_sk'])
+                ->where('school_id', $schoolId)
+                ->whereIn('status', ['pending', 'draft']);
+
+            // Only apply tahun_ajaran filter when the column is already populated on existing rows.
+            // Rows submitted before this fix have tahun_ajaran = NULL, so we catch both:
+            //   - rows with tahun_ajaran matching this year (new submissions)
+            //   - rows with tahun_ajaran = NULL (legacy rows without the field set)
+            $duplicateQuery->where(function ($q) use ($activeTahunAjaran) {
+                $q->where('tahun_ajaran', $activeTahunAjaran)
+                  ->orWhereNull('tahun_ajaran');
+            });
+
+            $existingPending = $duplicateQuery->first();
+            if ($existingPending) {
+                return response()->json([
+                    'message' => "Pengajuan SK untuk \"{$data['nama']}\" ({$data['jenis_sk']}) sudah ada dan sedang menunggu persetujuan (No: {$existingPending->nomor_sk}). Tidak bisa mengajukan duplikat untuk tahun ajaran yang sama.",
+                    'existing_nomor_sk' => $existingPending->nomor_sk,
+                ], 422);
+            }
+
             // Upsert Teacher logic
             $teacher = null;
             if (!empty($data['nuptk'])) {
@@ -739,6 +771,7 @@ class SkDocumentController extends Controller
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                    'tahun_ajaran'         => $activeTahunAjaran,
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                 // Race condition on nomor_sk — re-fetch and retry once
@@ -757,6 +790,7 @@ class SkDocumentController extends Controller
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                    'tahun_ajaran'         => $activeTahunAjaran,
                 ]);
             } catch (\Illuminate\Database\QueryException $e) {
                 \Log::error('SK document creation failed', ['exception' => $e, 'data' => [
@@ -1254,11 +1288,39 @@ class SkDocumentController extends Controller
                 $teacher = Teacher::create(array_merge(['status' => 'Draft', 'is_verified' => false], $teacherData));
             }
 
+            // --- Duplicate submission guard (bulk) ---
+            // Block if a pending/draft SK for the same nama + jenis + school already exists
+            // for the current active academic year. Rows with tahun_ajaran = NULL (legacy)
+            // are also caught to avoid silent duplicates after the fix is deployed.
+            $nowYearBulk  = (int) now()->format('Y');
+            $activeTahunAjaranBulk = "{$nowYearBulk}/" . ($nowYearBulk + 1);
+
+            $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
+
+            $dupeBulk = SkDocument::where('nama', $doc['nama'])
+                ->where('jenis_sk', $jenisSk)
+                ->where('school_id', $schoolId)
+                ->whereIn('status', ['pending', 'draft'])
+                ->where(function ($q) use ($activeTahunAjaranBulk) {
+                    $q->where('tahun_ajaran', $activeTahunAjaranBulk)
+                      ->orWhereNull('tahun_ajaran');
+                })
+                ->first();
+
+            if ($dupeBulk) {
+                $skipped++;
+                $rejectedRows[] = [
+                    'nama'   => $doc['nama'] ?? 'unknown',
+                    'alasan' => "Pengajuan SK sudah ada dan sedang menunggu persetujuan (No: {$dupeBulk->nomor_sk}). Duplikat tidak diperbolehkan untuk tahun ajaran yang sama.",
+                ];
+                continue;
+            }
+
             // Auto-generate unique nomor_sk: increment local counter, no per-row DB loop
             $seq++;
             $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
 
-            $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
+            // $jenisSk already set above in duplicate guard
 
             try {
                 $sk = SkDocument::create([
@@ -1274,6 +1336,7 @@ class SkDocumentController extends Controller
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
+                    'tahun_ajaran'         => $activeTahunAjaranBulk,
                 ]);
 
                 // Create approval history for bulk submission
@@ -1310,6 +1373,7 @@ class SkDocumentController extends Controller
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
+                    'tahun_ajaran'         => $activeTahunAjaranBulk,
                 ]);
 
                 // Create approval history for bulk submission (retry case)

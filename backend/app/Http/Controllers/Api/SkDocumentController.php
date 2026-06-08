@@ -252,6 +252,18 @@ class SkDocumentController extends Controller
                         ],
                     ]);
                 }
+
+                if ($newStatus === 'rejected') {
+                    $rejectionReason = $request->input('rejection_reason') ?? $skDocument->rejection_reason;
+                    \App\Jobs\NotifyHeadmasterOfSkRejection::dispatch(
+                        $skDocument->id,
+                        $skDocument->nomor_sk,
+                        $skDocument->nama,
+                        $skDocument->jenis_sk,
+                        $rejectionReason,
+                        $skDocument->school_id
+                    );
+                }
             }
 
             // Create approval history record when status changes to approved or rejected
@@ -488,6 +500,17 @@ class SkDocumentController extends Controller
                         'created_at'    => $now,
                         'updated_at'    => $now,
                     ];
+
+                    if (!$isApproved && $oldStatus !== $newStatus) {
+                        \App\Jobs\NotifyHeadmasterOfSkRejection::dispatch(
+                            $sk->id,
+                            $sk->nomor_sk,
+                            $sk->nama,
+                            $sk->jenis_sk,
+                            $rejectionReason,
+                            $sk->school_id
+                        );
+                    }
 
                     $succeeded[] = $sk->id;
                 } catch (\Throwable $e) {

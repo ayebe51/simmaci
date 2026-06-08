@@ -1,0 +1,1 @@
+off`r`nC:\php\php.exe C:\php\composer install --verbose

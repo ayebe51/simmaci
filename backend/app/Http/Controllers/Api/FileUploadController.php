@@ -96,6 +96,22 @@ class FileUploadController extends Controller
     {
         // Decode path if it's URL encoded
         $path = urldecode($path);
+
+        // Extract path if it's a full URL
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $parsedPath = parse_url($path, PHP_URL_PATH);
+            if ($parsedPath) {
+                $path = $parsedPath;
+            }
+        }
+        
+        // Remove leading slash
+        $path = ltrim($path, '/');
+        
+        // If it starts with storage/, remove it because the public disk roots at storage/app/public
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
         
         // Strip bucket name if accidentally included in the path
         if (str_starts_with($path, 'simmaci-storage/')) {

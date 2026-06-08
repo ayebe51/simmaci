@@ -114,24 +114,20 @@ function resolveSuratPermohonanUrl(url: string): string {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
   
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    const path = url.replace(/^\/?(storage\/)?/, '')
+    // If it starts with storage/ or api/minio/, we need to strip it to get the raw path
+    const path = url.replace(/^\/?(storage\/|api\/minio\/)?/, '')
+    // Force using the API proxy endpoint
     return `${apiUrl}/files/view/${encodeURIComponent(path)}`
-  } else if (url.includes('/storage/')) {
-    const path = url.split('/storage/')[1]
-    return `${apiUrl}/files/view/${encodeURIComponent(path)}`
-  } else {
-    try {
-      const parsed = new URL(url)
-      const segments = parsed.pathname.split('/').filter(Boolean)
-      const path = segments.slice(1).join('/')
-      if (path) {
-        return `${apiUrl}/files/view/${encodeURIComponent(path)}`
-      }
-    } catch {
-      // fallback
-    }
   }
-  return url
+  
+  // If it's already a full URL, we extract the path to force proxy
+  try {
+    const urlObj = new URL(url)
+    const path = urlObj.pathname.replace(/^\/?(storage\/|api\/minio\/)?/, '')
+    return `${apiUrl}/files/view/${encodeURIComponent(path)}`
+  } catch (e) {
+    return url
+  }
 }
 
 export default function SkGeneratorPage() {

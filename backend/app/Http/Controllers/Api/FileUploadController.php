@@ -97,12 +97,25 @@ class FileUploadController extends Controller
         // Decode path if it's URL encoded
         $path = urldecode($path);
         
+        // Strip bucket name if accidentally included in the path
+        if (str_starts_with($path, 'simmaci-storage/')) {
+            $path = substr($path, strlen('simmaci-storage/'));
+        }
+        
         // Determine disk
         $disk = $request->query('disk', env('AWS_ACCESS_KEY_ID') ? 's3' : 'public');
         
         // Check if file exists
         if (!Storage::disk($disk)->exists($path)) {
-            return response()->json(['error' => 'File not found'], 404);
+            // Fallback: if we checked s3 but it failed, try the local public disk
+            if ($disk === 's3' && Storage::disk('public')->exists($path)) {
+                $disk = 'public';
+            } else {
+                return response()->json([
+                    'error' => 'File not found',
+                    'path' => $path
+                ], 404);
+            }
         }
 
         // Get file content and mime type

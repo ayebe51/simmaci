@@ -398,4 +398,98 @@ class ReportController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * POST /api/reports/sk-belum-mengajukan/blast
+     *
+     * Creates a WA blast for schools that have not submitted SKs.
+     * Uses the exact same filters as skBelumMengajukan.
+     */
+    public function blastSkBelumMengajukan(Request $request, \App\Services\WaBlastService $waBlastService): JsonResponse
+    {
+        // Inline role check â€” only super_admin and admin_yayasan
+        if (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return response()->json([
+                'message' => 'Akses ditolak. Hanya super admin dan admin yayasan yang dapat mengakses fitur ini.',
+            ], 403);
+        }
+
+        $query = DB::table('schools as s')
+            ->leftJoin('sk_documents as sk', function ($join) use ($request) {
+                $join->on('sk.school_id', '=', 's.id')
+                    ->whereNull('sk.deleted_at')
+                    ->whereNotIn('sk.status', ['rejected', 'Rejected']);
+
+                if ($request->filled('start_date')) {
+                    $join->where('sk.created_at', '>=', $request->start_date);
+                }
+                if ($request->filled('end_date')) {
+                    $join->where('sk.created_at', '<=', $request->end_date . ' 23:59:59');
+                }
+            })
+            ->whereNull('sk.id')
+            ->whereRaw("LOWER(s.status_jamiyyah) LIKE '%jam%iyyah%'")
+            ->whereNull('s.deleted_at');
+
+        // Optional filters
+        if ($request->filled('jenjang')) {
+            $query->where('s.jenjang', $request->jenjang);
+        }
+        if ($request->filled('kecamatan')) {
+            $query->where('s.kecamatan', $request->kecamatan);
+        }
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw("LOWER(s.nama) LIKE ?", ["%{$search}%"])
+                  ->orWhereRaw("LOWER(s.npsn) LIKE ?", ["%{$search}%"]);
+            });
+        }
+
+        $schoolIds = $query->pluck('s.id')->toArray();
+
+        if (empty($schoolIds)) {
+            return response()->json([
+                'message' => 'Tidak ada madrasah yang memenuhi kriteria untuk di-blast.',
+            ], 400);
+        }
+
+        $messageTemplate = "Assalamu'alaikum warahmatullahi wabarakatuh.
+
+Yth. Kepala Madrasah/Sekolah Jam'iyyah LP Ma'arif NU Cilacap
+
+Berdasarkan data yang kami miliki, hingga saat ini madrasah/sekolah Bapak/Ibu belum mengajukan SK (Surat Keputusan) sesuai ketentuan yang berlaku.
+
+Sehubungan dengan hal tersebut, kami mohon kepada Bapak/Ibu untuk segera mengajukan berkas permohonan SK agar proses administrasi dan pendataan kelembagaan dapat berjalan dengan baik.
+
+Kami berharap berkas pengajuan dapat segera dikirimkan paling lambat sesuai jadwal yang telah ditentukan. Apabila berkas sudah dikirimkan, mohon abaikan pesan ini.
+
+Untuk informasi lebih lanjut, silakan menghubungi admin LP Ma'arif NU Cilacap.
+
+Atas perhatian dan kerja sama Bapak/Ibu, kami sampaikan terima kasih.
+
+Wassalamu'alaikum warahmatullahi wabarakatuh.
+
+Hormat kami,
+
+LP Ma'arif NU Cilacap";
+
+        try {
+            $blast = $waBlastService->createBlast([
+                'title' => 'Pengingat Belum Mengajukan SK',
+                'recipient_category' => 'kepala_sekolah',
+                'school_ids' => $schoolIds,
+                'message_body' => $messageTemplate,
+            ], $request->user()->id);
+
+            return response()->json([
+                'message' => 'WA Blast berhasil dibuat.',
+                'data' => $blast,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat membuat WA Blast: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

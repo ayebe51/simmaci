@@ -500,6 +500,8 @@ export const reportApi = {
       params,
       responseType: 'blob',
     }).then((r) => r.data),
+  blastSkBelumMengajukan: (params?: SkBelumMengajukanParams): Promise<any> =>
+    apiClient.post('/reports/sk-belum-mengajukan/blast', params).then((r) => r.data),
 };
 
 // ── SK Templates API ──

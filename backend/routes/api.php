@@ -217,6 +217,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('sk-per-sekolah', [ReportController::class, 'skPerSekolah']);
             Route::get('sk-belum-mengajukan',        [ReportController::class, 'skBelumMengajukan']);
             Route::get('sk-belum-mengajukan/export', [ReportController::class, 'exportSkBelumMengajukan']);
+            Route::post('sk-belum-mengajukan/blast', [ReportController::class, 'blastSkBelumMengajukan']);
             Route::get('teacher',        [ReportController::class, 'teacherReport']);
             Route::get('summary',        [ReportController::class, 'summaryReport']);
         });

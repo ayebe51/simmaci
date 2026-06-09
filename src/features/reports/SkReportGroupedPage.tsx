@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
 import { reportApi, authApi, type SkBelumMengajukanResponse, type SkBelumMengajukanParams } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Download, Printer, Loader2, Search, X, School, AlertCircle, RefreshCw } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Download, Printer, Loader2, Search, X, School, AlertCircle, RefreshCw, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -47,6 +55,9 @@ export default function SkReportGroupedPage() {
   const [missingEndDate, setMissingEndDate] = useState('')
   const [missingSearchInput, setMissingSearchInput] = useState('')
   const [isExporting, setIsExporting] = useState(false)
+  const [isBlastModalOpen, setIsBlastModalOpen] = useState(false)
+
+  const navigate = useNavigate()
 
   const debouncedMissingSearch = useDebounce(missingSearchInput, 400)
 
@@ -57,6 +68,18 @@ export default function SkReportGroupedPage() {
     ...(missingEndDate && { end_date: missingEndDate }),
     ...(debouncedMissingSearch && { search: debouncedMissingSearch }),
   }
+
+  const blastMutation = useMutation({
+    mutationFn: () => reportApi.blastSkBelumMengajukan(missingQueryParams),
+    onSuccess: () => {
+      toast.success('WA Blast berhasil dibuat!')
+      setIsBlastModalOpen(false)
+      navigate('/dashboard/wa-blast')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Gagal mengirim pesan WA blast.')
+    }
+  })
 
   // Fetch belum mengajukan data
   const {
@@ -233,6 +256,13 @@ export default function SkReportGroupedPage() {
             <>
               <Button variant="outline" onClick={handlePrintMissing} className="rounded-xl font-bold uppercase text-[10px] tracking-widest border-slate-200">
                 <Printer className="w-4 h-4 mr-2" /> PDF / Print
+              </Button>
+              <Button
+                onClick={() => setIsBlastModalOpen(true)}
+                className="rounded-xl font-bold uppercase text-[10px] tracking-widest bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100 text-white"
+                disabled={!missingData || missingData.total === 0}
+              >
+                <Send className="w-4 h-4 mr-2" /> Kirim WA Blast
               </Button>
               <Button
                 onClick={handleExportMissingExcel}
@@ -684,6 +714,34 @@ export default function SkReportGroupedPage() {
           </>
         )}
       </div>
+
+      <Dialog open={isBlastModalOpen} onOpenChange={setIsBlastModalOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi WA Blast</DialogTitle>
+            <DialogDescription>
+              Anda akan mengirimkan pesan WhatsApp peringatan belum mengajukan SK ke {missingData?.total || 0} madrasah.
+              Proses ini akan dibuat sebagai tugas *background* di server.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              Pesan akan dikirim kepada nomor telepon Kepala Madrasah untuk semua sekolah yang ada pada daftar saat ini. Pastikan filter sudah benar sebelum melanjutkan.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBlastModalOpen(false)}>Batal</Button>
+            <Button 
+              onClick={() => blastMutation.mutate()} 
+              disabled={blastMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {blastMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Kirim Sekarang
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

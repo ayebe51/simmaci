@@ -189,7 +189,18 @@ export default function TeacherListPage() {
       }
       setIsAddOpen(false)
     } catch (e: any) {
-      toast.error("Gagal menyimpan: " + e.message)
+      let errorMsg = e.message;
+      if (e.response?.data) {
+        if (e.response.data.errors) {
+          const firstError = Object.values(e.response.data.errors)[0] as string[];
+          errorMsg = firstError[0];
+        } else if (e.response.data.message) {
+          errorMsg = e.response.data.message;
+        } else if (e.response.data.error) {
+          errorMsg = e.response.data.error;
+        }
+      }
+      toast.error("Gagal menyimpan: " + errorMsg)
     }
   }
 

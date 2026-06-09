@@ -242,6 +242,37 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     $teacher = Teacher::where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])->first();
                 }
 
+                // Protect against data-entry typos: if identifier matches but name is completely different, don't overwrite!
+                if ($teacher) {
+                    $excelBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
+                    $dbBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacher->nama)['name']), 'UTF-8');
+                    
+                    if ($excelBareName !== '' && $dbBareName !== '') {
+                        similar_text($excelBareName, $dbBareName, $percent);
+                        if ($percent < 60) {
+                            $seq++;
+                            $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                            SkDocument::create([
+                                'nomor_sk'         => $nomorSk,
+                                'nama'             => $doc['nama'],
+                                'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
+                                'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                                'school_id'        => $schoolId,
+                                'status'           => 'rejected',
+                                'rejection_reason' => "Identitas (NIM/NUPTK/NIP) sudah terdaftar atas nama {$teacher->nama}, namun nama di Excel sangat berbeda ({$doc['nama']}).",
+                                'created_by'       => $this->userEmail,
+                                'tanggal_penetapan'=> now()->format('Y-m-d'),
+                            ]);
+                            $skipped++;
+                            $rejectedRows[] = [
+                                'nama'   => $doc['nama'] ?? 'unknown',
+                                'alasan' => "Identitas sudah terdaftar atas nama {$teacher->nama}, nama tidak cocok.",
+                            ];
+                            continue;
+                        }
+                    }
+                }
+
                 if (!$teacher) {
                     $teacher = Teacher::where('nama', $teacherData['nama'])
                         ->where('school_id', $schoolId)

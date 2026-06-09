@@ -84,7 +84,17 @@ export default function SkDashboardPage() {
       const response = await fetch(fetchUrl, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      
+      if (!response.ok) {
+        let errorDetail = `HTTP ${response.status}`;
+        try {
+            const errData = await response.json();
+            if (errData.error) {
+                errorDetail += `: ${errData.error} (Path: ${errData.path || 'unknown'})`;
+            }
+        } catch (jsonErr) {}
+        throw new Error(errorDetail);
+      }
       
       const contentType = response.headers.get('content-type') || ''
       const arrayBuffer = await response.arrayBuffer()

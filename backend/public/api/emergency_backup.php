@@ -52,16 +52,35 @@ try {
 
         $awsUrl = env('AWS_URL', '');
         $awsBucket = env('AWS_BUCKET', '');
-        $publicPrefix = rtrim($awsUrl, '/') . '/' . $awsBucket . '/';
+        $prefix1 = rtrim($awsUrl, '/') . '/' . $awsBucket . '/'; // with bucket
+        $prefix2 = rtrim($awsUrl, '/') . '/'; // without bucket
+
+        $s3Disk = \Illuminate\Support\Facades\Storage::disk('s3');
 
         foreach ($urlsToBackup as $url) {
-            if (str_starts_with($url, $publicPrefix)) {
-                $relativePath = substr($url, strlen($publicPrefix)); // e.g. 'uploads/file.pdf'
-                // Use internal docker network to fetch fast and avoid SSL issues
-                $internalUrl = 'http://minio:9000/' . $awsBucket . '/' . $relativePath;
-                $fileContent = @file_get_contents($internalUrl);
-                if ($fileContent !== false) {
-                    $zip->addFromString('s3_files/' . $relativePath, $fileContent);
+            $relativePath = null;
+            if (str_starts_with($url, $prefix1)) {
+                $relativePath = substr($url, strlen($prefix1));
+            } elseif (str_starts_with($url, $prefix2)) {
+                $relativePath = substr($url, strlen($prefix2));
+            }
+
+            if ($relativePath) {
+                $relativePath = ltrim($relativePath, '/');
+                try {
+                    if ($s3Disk->exists($relativePath)) {
+                        $fileContent = $s3Disk->get($relativePath);
+                        if ($fileContent) {
+                            $zip->addFromString('s3_files/' . $relativePath, $fileContent);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Fallback to direct HTTP if S3 SDK fails
+                    $internalUrl = 'http://minio:9000/' . $awsBucket . '/' . $relativePath;
+                    $fileContent = @file_get_contents($internalUrl);
+                    if ($fileContent !== false) {
+                        $zip->addFromString('s3_files/' . $relativePath, $fileContent);
+                    }
                 }
             }
         }

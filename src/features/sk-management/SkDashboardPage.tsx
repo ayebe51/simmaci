@@ -122,11 +122,16 @@ export default function SkDashboardPage() {
         URL.revokeObjectURL(objectUrl)
         toast.info('Format file tidak dapat ditampilkan, file diunduh.')
       }
-    } catch (err: any) {
-      toast.error(`Gagal membuka dokumen: ${err.message}`)
-    } finally {
-      setDocViewerLoading(false)
-    }
+    } catch (error: any) {
+        // Fallback: If proxy API fails (e.g., 504 Timeout), just open the raw URL in a new tab if it's a full URL
+        if (url.startsWith('http')) {
+            window.open(url, '_blank')
+        } else {
+            toast.error(error.message || 'Gagal membuka dokumen')
+        }
+      } finally {
+        setDocViewerLoading(false)
+      }
   }
 
   const closeDocViewer = () => {

@@ -134,13 +134,12 @@ class FileUploadController extends Controller
             }
         }
 
-        // Get file content and mime type
-        $file = Storage::disk($disk)->get($path);
+        // Stream the file instead of loading entirely into memory to prevent 504 Timeouts
         $mimeType = Storage::disk($disk)->mimeType($path);
-
-        // Return file response
-        return response($file, 200)
-            ->header('Content-Type', $mimeType)
-            ->header('Content-Disposition', 'inline');
+        
+        return Storage::disk($disk)->response($path, basename($path), [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . basename($path) . '"'
+        ]);
     }
 }

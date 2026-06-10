@@ -41,6 +41,32 @@ try {
     if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === TRUE) {
         $zip->addFromString('database.json', $jsonContent);
 
+        // Backup files from MinIO
+        $urlsToBackup = [];
+        foreach ($skDocs as $doc) {
+            if (!empty($doc->file_url)) $urlsToBackup[] = $doc->file_url;
+            if (!empty($doc->surat_permohonan_url)) $urlsToBackup[] = $doc->surat_permohonan_url;
+            if (!empty($doc->ijazah_url)) $urlsToBackup[] = $doc->ijazah_url;
+        }
+        $urlsToBackup = array_unique($urlsToBackup);
+
+        $awsUrl = env('AWS_URL', '');
+        $awsBucket = env('AWS_BUCKET', '');
+        $publicPrefix = rtrim($awsUrl, '/') . '/' . $awsBucket . '/';
+
+        foreach ($urlsToBackup as $url) {
+            if (str_starts_with($url, $publicPrefix)) {
+                $relativePath = substr($url, strlen($publicPrefix)); // e.g. 'uploads/file.pdf'
+                // Use internal docker network to fetch fast and avoid SSL issues
+                $internalUrl = 'http://minio:9000/' . $awsBucket . '/' . $relativePath;
+                $fileContent = @file_get_contents($internalUrl);
+                if ($fileContent !== false) {
+                    $zip->addFromString('s3_files/' . $relativePath, $fileContent);
+                }
+            }
+        }
+
+        // Also check local storage just in case
         $docDirectory = storage_path('app/public/sk_documents');
         if (is_dir($docDirectory)) {
             $files = new \RecursiveIteratorIterator(

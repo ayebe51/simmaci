@@ -6,36 +6,28 @@ $kernel->bootstrap();
 
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use App\Models\SkApplication;
 use App\Models\SkDocument;
 use App\Models\Teacher;
-use Spatie\Activitylog\Models\Activity;
+use App\Models\ActivityLog;
 
 try {
     $cutoffDate = Carbon::parse('2026-06-09 00:00:00');
 
-    $skApps = SkApplication::withoutGlobalScopes()->where('updated_at', '>=', $cutoffDate)->get();
-    $skAppIds = $skApps->pluck('id')->toArray();
-
-    $skDocs = SkDocument::whereIn('sk_application_id', $skAppIds)->get();
-
-    $skTeachers = DB::table('sk_application_teachers')
-        ->whereIn('sk_application_id', $skAppIds)
+    $skDocs = SkDocument::withoutGlobalScopes()
+        ->where('updated_at', '>=', $cutoffDate)
         ->get();
-    
-    $teacherIdsInSk = $skTeachers->pluck('teacher_id')->unique()->toArray();
+
+    $teacherIdsInSk = $skDocs->pluck('teacher_id')->unique()->filter()->toArray();
 
     $newTeachers = Teacher::withoutGlobalScopes()
         ->whereIn('id', $teacherIdsInSk)
         ->where('created_at', '>=', $cutoffDate)
         ->get();
 
-    $activities = Activity::where('created_at', '>=', $cutoffDate)->get();
+    $activities = ActivityLog::where('created_at', '>=', $cutoffDate)->get();
 
     $backupData = [
-        'sk_applications' => $skApps->toArray(),
         'sk_documents' => $skDocs->toArray(),
-        'sk_application_teachers' => $skTeachers->toArray(),
         'new_teachers' => $newTeachers->toArray(),
         'activity_logs' => $activities->toArray(),
     ];
@@ -80,5 +72,6 @@ try {
         echo "Gagal membuat ZIP";
     }
 } catch (\Exception $e) {
+    http_response_code(500);
     echo "Error: " . $e->getMessage();
 }

@@ -566,9 +566,6 @@ class TeacherController extends Controller
                         // Sarjana tapi TMT kosong → GTT
                         $normalizedRow['status'] = 'GTT';
                     }
-                } else {
-                    // Tidak ada kolom pendidikan → selalu Tendik
-                    $normalizedRow['status'] = 'Tendik';
                 }
 
                 // Filter row to only include allowed fields

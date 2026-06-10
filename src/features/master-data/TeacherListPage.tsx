@@ -58,6 +58,18 @@ export default function TeacherListPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("all")
+  const [filterSchool, setFilterSchool] = useState("all")
+
+  // List of kecamatan in Cilacap
+  const uniqueKecamatan = [
+    "Adipala", "Dayeuhluhur", "Kedungreja", "Nusawungu",
+    "Bantarsari", "Gandrungmangu", "Kesugihan", "Patimuan",
+    "Binangun", "Jeruklegi", "Kroya", "Pelumutan",
+    "Cilacap Selatan", "Kampung Laut", "Majenang", "Sampang",
+    "Cilacap Tengah", "Karangpucung", "Maos", "Sidareja",
+    "Cilacap Utara", "Kawunganten", "Wanareja"
+  ]
+
   const [activeFilter, setActiveFilter] = useState("active") // active, inactive, all
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
@@ -71,16 +83,24 @@ export default function TeacherListPage() {
     }
   })
   const isOperator = user?.role === "operator"
-  const isSuperAdmin = user?.role === "super_admin"
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "admin_yayasan"
+
+  // Fetch schools for filter
+  const { data: schoolsData } = useQuery({
+    queryKey: ['schools-autocomplete'],
+    queryFn: () => schoolApi.autocomplete(),
+    enabled: isSuperAdmin // Only super admin needs to filter by school
+  })
 
   // 🔥 REST API QUERY
   const { data: teachersData, isLoading } = useQuery({
-    queryKey: ['teachers', currentPage, searchTerm, filterKecamatan, activeFilter],
+    queryKey: ['teachers', currentPage, debouncedSearchTerm, filterKecamatan, filterSchool, activeFilter],
     queryFn: () => teacherApi.list({
       page: currentPage,
       per_page: itemsPerPage,
-      search: searchTerm || undefined,
+      search: debouncedSearchTerm,
       kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan,
+      school_id: filterSchool === "all" ? undefined : filterSchool,
       is_active: activeFilter === "all" ? undefined : (activeFilter === "active" ? 1 : 0)
     })
   })
@@ -317,9 +337,25 @@ export default function TeacherListPage() {
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-slate-100">
                             <SelectItem value="all">Semua Kec</SelectItem>
-                            {/* Filter kecamatan logic here */}
+                            {uniqueKecamatan.map(k => (
+                                <SelectItem key={k} value={k}>{k}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
+
+                    {isSuperAdmin && (
+                        <Select value={filterSchool} onValueChange={setFilterSchool}>
+                            <SelectTrigger className="w-[200px] h-10 rounded-2xl bg-white border-slate-200">
+                                <SelectValue placeholder="Semua Sekolah" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl border-slate-100 max-h-[300px]">
+                                <SelectItem value="all">Semua Sekolah</SelectItem>
+                                {schoolsData?.data?.map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                     
                     <Select defaultValue="all">
                         <SelectTrigger className="w-[160px] h-10 rounded-2xl bg-white border-slate-200">

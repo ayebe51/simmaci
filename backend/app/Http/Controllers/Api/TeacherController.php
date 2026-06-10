@@ -276,7 +276,7 @@ class TeacherController extends Controller
     {
         $isDryRun = $request->boolean('dry_run', false);
 
-        // Temukan guru lama yang kolom NIP-nya berisi NIM (berawalan 1134 dan 9 digit)
+        // 1. Deduplicate based on NIM mistakenly placed in NIP
         $oldTeachers = Teacher::withoutTenantScope()
             ->where('nip', 'like', '1134%')
             ->whereRaw("LENGTH(nip) = 9")
@@ -285,62 +285,154 @@ class TeacherController extends Controller
         $mergedCount = 0;
         $dryRunSamples = [];
 
-        foreach ($oldTeachers as $oldTeacher) {
-            // Cari guru baru yang nomor_induk_maarif-nya sama persis dengan NIP guru lama
-            $newTeacher = Teacher::withoutTenantScope()
-                ->where('nomor_induk_maarif', $oldTeacher->nip)
-                ->where('id', '!=', $oldTeacher->id)
-                ->first();
+        if ($oldTeachers->isNotEmpty()) {
+            $nips = $oldTeachers->pluck('nip')->filter()->unique()->toArray();
+            $oldTeacherIds = $oldTeachers->pluck('id')->toArray();
+            
+            // Fetch all matching new teachers at once (Avoid N+1 timeout)
+            $newTeachersByNim = Teacher::withoutTenantScope()
+                ->whereIn('nomor_induk_maarif', $nips)
+                ->whereNotIn('id', $oldTeacherIds)
+                ->get()
+                ->keyBy('nomor_induk_maarif');
 
-            if ($newTeacher) {
-                $mergedCount++;
+            foreach ($oldTeachers as $oldTeacher) {
+                if (!$oldTeacher->nip) continue;
                 
-                if ($isDryRun) {
-                    if (count($dryRunSamples) < 5) {
-                        $dryRunSamples[] = [
-                            'old_name' => $oldTeacher->nama,
-                            'new_name' => $newTeacher->nama,
-                            'nim' => $newTeacher->nomor_induk_maarif
-                        ];
+                $newTeacher = $newTeachersByNim->get($oldTeacher->nip);
+
+                if ($newTeacher) {
+                    if ($isDryRun) {
+                        if (count($dryRunSamples) < 5) {
+                            $dryRunSamples[] = [
+                                'old_name' => $oldTeacher->nama,
+                                'new_name' => $newTeacher->nama,
+                                'nim' => $newTeacher->nomor_induk_maarif
+                            ];
+                        }
+                        $mergedCount++;
+                        continue;
                     }
-                    continue;
-                }
 
-                $oldTeacherName = $oldTeacher->nama;
-                $newTeacherName = $newTeacher->nama;
+                    $oldTeacherName = $oldTeacher->nama;
+                    $newTeacherName = $newTeacher->nama;
+                    
+                    $oldTeacher->nama = $newTeacher->nama;
+                    $oldTeacher->nomor_induk_maarif = $newTeacher->nomor_induk_maarif;
+                    
+                    $fieldsToCopy = ['tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
+                    foreach ($fieldsToCopy as $field) {
+                        if (!empty($newTeacher->$field)) {
+                            $oldTeacher->$field = $newTeacher->$field;
+                        }
+                    }
+                    
+                    $oldTeacher->nip = null;
+                    $oldTeacher->save();
+
+                    $newTeacher->delete();
+
+                    ActivityLog::create([
+                        'description' => "Merge otomatis duplikat data (NIM nyasar): NUPTK {$oldTeacher->nuptk}. Nama lama: {$oldTeacherName} diganti menjadi {$newTeacherName}.",
+                        'event' => 'deduplicate_teacher',
+                        'log_name' => 'master',
+                        'subject_id' => $oldTeacher->id,
+                        'subject_type' => get_class($oldTeacher),
+                        'causer_id' => $request->user()->id,
+                        'causer_type' => get_class($request->user()),
+                        'school_id' => $oldTeacher->school_id,
+                    ]);
+
+                    $mergedCount++;
+                }
+            }
+        }
+
+        // 2. Deduplicate based on similar names within the SAME school (e.g. with vs without degree)
+        $schools = Teacher::withoutTenantScope()
+            ->select('school_id')
+            ->distinct()
+            ->whereNotNull('school_id')
+            ->pluck('school_id');
+
+        foreach ($schools as $schoolId) {
+            $schoolTeachers = Teacher::withoutTenantScope()
+                ->where('school_id', $schoolId)
+                ->orderBy('created_at', 'asc') // Keep the oldest entry by default
+                ->get();
+
+            $processedIds = [];
+
+            foreach ($schoolTeachers as $t1) {
+                if (in_array($t1->id, $processedIds)) continue;
+
+                // Clean name 1 (strip everything after comma to ignore degrees, uppercase, remove spaces)
+                $name1 = explode(',', $t1->nama)[0];
+                $clean1 = preg_replace('/[^A-Z]/', '', strtoupper($name1));
                 
-                // Pindahkan nama dari guru baru (yang biasanya lebih benar sesuai excel)
-                $oldTeacher->nama = $newTeacher->nama;
-                $oldTeacher->nomor_induk_maarif = $newTeacher->nomor_induk_maarif;
-                
-                // Copy field lain yang mungkin lebih lengkap dari guru baru
-                $fieldsToCopy = ['tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
-                foreach ($fieldsToCopy as $field) {
-                    if (!empty($newTeacher->$field)) {
-                        $oldTeacher->$field = $newTeacher->$field;
+                if (strlen($clean1) < 3) continue;
+
+                foreach ($schoolTeachers as $t2) {
+                    if ($t1->id === $t2->id || in_array($t2->id, $processedIds)) continue;
+
+                    // Clean name 2
+                    $name2 = explode(',', $t2->nama)[0];
+                    $clean2 = preg_replace('/[^A-Z]/', '', strtoupper($name2));
+
+                    if ($clean1 === $clean2) {
+                        // We found a duplicate based on name in the same school!
+                        // Determine which one is "better" (has NIM/NUPTK/Degrees)
+                        $t1HasDegrees = str_contains($t1->nama, ',');
+                        $t2HasDegrees = str_contains($t2->nama, ',');
+
+                        // Swap so $keep is the one we want to save, $drop is the one to delete
+                        // Priority: 1. Has NIM, 2. Has Degrees, 3. Has NUPTK
+                        $score1 = (!empty($t1->nomor_induk_maarif) ? 10 : 0) + ($t1HasDegrees ? 5 : 0) + (!empty($t1->nuptk) ? 2 : 0);
+                        $score2 = (!empty($t2->nomor_induk_maarif) ? 10 : 0) + ($t2HasDegrees ? 5 : 0) + (!empty($t2->nuptk) ? 2 : 0);
+
+                        $keep = $score1 >= $score2 ? $t1 : $t2;
+                        $drop = $score1 >= $score2 ? $t2 : $t1;
+
+                        if ($isDryRun) {
+                            if (count($dryRunSamples) < 5) {
+                                $dryRunSamples[] = [
+                                    'old_name' => $drop->nama,
+                                    'new_name' => $keep->nama,
+                                    'nim' => $keep->nomor_induk_maarif ?? $drop->nomor_induk_maarif
+                                ];
+                            }
+                            $mergedCount++;
+                            $processedIds[] = $drop->id;
+                            continue;
+                        }
+
+                        // Copy missing data to $keep
+                        $fields = ['nomor_induk_maarif', 'nuptk', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
+                        foreach ($fields as $field) {
+                            if (empty($keep->$field) && !empty($drop->$field)) {
+                                $keep->$field = $drop->$field;
+                            }
+                        }
+                        
+                        $keep->save();
+                        $dropName = $drop->nama;
+                        $drop->delete();
+
+                        ActivityLog::create([
+                            'description' => "Merge otomatis duplikat nama: {$dropName} digabungkan ke {$keep->nama}.",
+                            'event' => 'deduplicate_teacher',
+                            'log_name' => 'master',
+                            'subject_id' => $keep->id,
+                            'subject_type' => get_class($keep),
+                            'causer_id' => $request->user()->id,
+                            'causer_type' => get_class($request->user()),
+                            'school_id' => $keep->school_id,
+                        ]);
+
+                        $mergedCount++;
+                        $processedIds[] = $drop->id;
                     }
                 }
-                
-                // Kosongkan nip lama karena isinya NIM
-                $oldTeacher->nip = null;
-                $oldTeacher->save();
-
-                // Hapus data guru baru karena duplikat
-                $newTeacher->delete();
-
-                // Log Activity
-                ActivityLog::create([
-                    'description' => "Merge otomatis duplikat data: NUPTK {$oldTeacher->nuptk}. Nama lama: {$oldTeacherName} diganti menjadi {$newTeacherName}.",
-                    'event' => 'deduplicate_teacher',
-                    'log_name' => 'master',
-                    'subject_id' => $oldTeacher->id,
-                    'subject_type' => get_class($oldTeacher),
-                    'causer_id' => $request->user()->id,
-                    'causer_type' => get_class($request->user()),
-                    'school_id' => $oldTeacher->school_id,
-                ]);
-
-                $mergedCount++;
             }
         }
 
@@ -348,10 +440,12 @@ class TeacherController extends Controller
             return $this->successResponse([
                 'merged_count' => $mergedCount,
                 'samples' => $dryRunSamples
-            ], "Ditemukan $mergedCount data ganda siap digabung.");
+            ], "Simulasi: $mergedCount data ganda terdeteksi (Berdasarkan NIM Nyasar & Kesamaan Nama).");
         }
 
-        return $this->successResponse(['merged_count' => $mergedCount], "Berhasil menggabungkan $mergedCount data guru ganda.");
+        return $this->successResponse([
+            'merged_count' => $mergedCount,
+        ], "Berhasil menggabungkan $mergedCount data ganda.");
     }
 
     /**

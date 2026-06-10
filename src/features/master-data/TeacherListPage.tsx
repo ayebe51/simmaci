@@ -121,6 +121,7 @@ export default function TeacherListPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isDeduplicateOpen, setIsDeduplicateOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Teacher | null>(null)
 
   // Account Generation States
@@ -253,6 +254,17 @@ export default function TeacherListPage() {
     onError: (e: any) => toast.error('Gagal hapus: ' + (e.response?.data?.message || e.message))
   })
 
+  // ── Deduplicate ──
+  const deduplicateMutation = useMutation({
+    mutationFn: () => teacherApi.deduplicate(),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] })
+      toast.success(`Selesai! Berhasil menggabungkan ${res?.data?.merged_count || 0} data guru ganda.`)
+      setIsDeduplicateOpen(false)
+    },
+    onError: (e: any) => toast.error('Gagal menggabungkan: ' + (e.response?.data?.message || e.message))
+  })
+
 
 
   return (
@@ -265,6 +277,7 @@ export default function TeacherListPage() {
           ...(isSuperAdmin ? [
               { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
+          { label: 'Bersihkan Data Ganda', onClick: () => setIsDeduplicateOpen(true), variant: 'amber', icon: <Wand2 className="h-4 w-4" /> },
           { label: 'Tambah Manual', onClick: () => {
               setFormData({ is_active: true })
               setIsEditMode(false)
@@ -717,7 +730,6 @@ export default function TeacherListPage() {
         </DialogContent>
       </Dialog>
       
-      {/* ── Confirm Delete Single Teacher ── */}
       <ConfirmDialog
         open={!!confirmDelete}
         onOpenChange={(open) => { if (!open) setConfirmDelete(null) }}
@@ -729,6 +741,17 @@ export default function TeacherListPage() {
           if (confirmDelete) deleteMutation.mutate(confirmDelete.id)
           setConfirmDelete(null)
         }}
+      />
+
+      {/* ── Confirm Deduplicate ── */}
+      <ConfirmDialog
+        open={isDeduplicateOpen}
+        onOpenChange={setIsDeduplicateOpen}
+        title="Bersihkan Data Ganda"
+        description="Fitur ini akan otomatis mencari dan menggabungkan data guru yang ganda (duplikat) berdasarkan kesamaan NIM/NIP. Nama lama akan otomatis diperbaiki dengan nama dari file Excel, dan riwayat SK tidak akan hilang. Lanjutkan?"
+        confirmText={deduplicateMutation.isPending ? "Sedang Menggabungkan..." : "Ya, Gabungkan!"}
+        variant="default"
+        onConfirm={() => deduplicateMutation.mutate()}
       />
     </div>
   )

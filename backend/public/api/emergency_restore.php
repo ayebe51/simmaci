@@ -5,14 +5,14 @@ $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
 use Illuminate\Support\Facades\DB;
-use App\Models\SkApplication;
 use App\Models\SkDocument;
 use App\Models\Teacher;
-use Spatie\Activitylog\Models\Activity;
+use App\Models\ActivityLog;
 
 header('Content-Type: application/json');
 
 if (!isset($_FILES['backup_file'])) {
+    http_response_code(400);
     echo json_encode(['message' => 'File tidak ditemukan']);
     exit;
 }
@@ -25,6 +25,7 @@ try {
         $jsonContent = $zip->getFromName('database.json');
         if (!$jsonContent) {
             $zip->close();
+            http_response_code(400);
             echo json_encode(['message' => 'File database.json tidak ditemukan']);
             exit;
         }
@@ -49,30 +50,22 @@ try {
         
         DB::beginTransaction();
 
-        foreach ($data['new_teachers'] as $row) {
-            Teacher::withoutGlobalScopes()->updateOrCreate(['id' => $row['id']], $row);
+        if (isset($data['new_teachers'])) {
+            foreach ($data['new_teachers'] as $row) {
+                Teacher::withoutGlobalScopes()->updateOrCreate(['id' => $row['id']], $row);
+            }
         }
 
-        foreach ($data['sk_applications'] as $row) {
-            SkApplication::withoutGlobalScopes()->updateOrCreate(['id' => $row['id']], $row);
+        if (isset($data['sk_documents'])) {
+            foreach ($data['sk_documents'] as $row) {
+                SkDocument::withoutGlobalScopes()->updateOrCreate(['id' => $row['id']], $row);
+            }
         }
 
-        foreach ($data['sk_documents'] as $row) {
-            SkDocument::updateOrCreate(['id' => $row['id']], $row);
-        }
-
-        $appIds = array_column($data['sk_applications'], 'id');
-        if (!empty($appIds)) {
-            DB::table('sk_application_teachers')->whereIn('sk_application_id', $appIds)->delete();
-        }
-        
-        $pivotChunks = array_chunk($data['sk_application_teachers'], 100);
-        foreach ($pivotChunks as $chunk) {
-            DB::table('sk_application_teachers')->insert($chunk);
-        }
-
-        foreach ($data['activity_logs'] as $row) {
-            Activity::updateOrCreate(['id' => $row['id']], $row);
+        if (isset($data['activity_logs'])) {
+            foreach ($data['activity_logs'] as $row) {
+                ActivityLog::updateOrCreate(['id' => $row['id']], $row);
+            }
         }
 
         DB::commit();
@@ -80,10 +73,12 @@ try {
 
         echo json_encode(['message' => 'Restore Berhasil! Pengajuan SK hari ini sudah kembali.']);
     } else {
+        http_response_code(400);
         echo json_encode(['message' => 'Gagal ekstrak ZIP']);
     }
 } catch (\Exception $e) {
     DB::rollBack();
     DB::statement('SET session_replication_role = \'origin\';');
+    http_response_code(500);
     echo json_encode(['message' => 'Gagal: ' . $e->getMessage()]);
 }

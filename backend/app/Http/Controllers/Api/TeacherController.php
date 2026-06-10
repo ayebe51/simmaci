@@ -605,11 +605,9 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                if ($sertifikasi !== null) {
+                if ($sertifikasi !== null && $sertifikasi !== '') {
                     $val = strtolower(trim((string)$sertifikasi));
                     $normalizedRow['is_certified'] = in_array($val, ['sudah', 'ya', '1', 'true', 'yes', 'v']);
-                } else {
-                    $normalizedRow['is_certified'] = false;
                 }
 
                 // Parse Tempat Tanggal Lahir (Combined)
@@ -676,7 +674,7 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                if ($pdpkpnuRaw !== null) {
+                if ($pdpkpnuRaw !== null && $pdpkpnuRaw !== '') {
                     $val2 = strtolower(trim((string)$pdpkpnuRaw));
                     $normalizedRow['pdpkpnu'] = in_array($val2, ['sudah', 'ya', '1', 'true', 'yes', 'v']) ? 'Sudah' : 'Belum';
                 }

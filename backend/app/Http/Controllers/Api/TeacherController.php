@@ -269,6 +269,69 @@ class TeacherController extends Controller
     }
 
     /**
+     * POST /api/teachers/deduplicate
+     * Gabungkan data guru lama (NIM nyasar di kolom NIP) dengan data baru (Dari Excel)
+     */
+    public function deduplicate(Request $request): JsonResponse
+    {
+        // Temukan guru lama yang kolom NIP-nya berisi NIM (berawalan 1134 dan 9 digit)
+        $oldTeachers = Teacher::withoutTenantScope()
+            ->where('nip', 'like', '1134%')
+            ->whereRaw("LENGTH(nip) = 9")
+            ->get();
+
+        $mergedCount = 0;
+
+        foreach ($oldTeachers as $oldTeacher) {
+            // Cari guru baru yang nomor_induk_maarif-nya sama persis dengan NIP guru lama
+            $newTeacher = Teacher::withoutTenantScope()
+                ->where('nomor_induk_maarif', $oldTeacher->nip)
+                ->where('id', '!=', $oldTeacher->id)
+                ->first();
+
+            if ($newTeacher) {
+                $oldTeacherName = $oldTeacher->nama;
+                $newTeacherName = $newTeacher->nama;
+                
+                // Pindahkan nama dari guru baru (yang biasanya lebih benar sesuai excel)
+                $oldTeacher->nama = $newTeacher->nama;
+                $oldTeacher->nomor_induk_maarif = $newTeacher->nomor_induk_maarif;
+                
+                // Copy field lain yang mungkin lebih lengkap dari guru baru
+                $fieldsToCopy = ['tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
+                foreach ($fieldsToCopy as $field) {
+                    if (!empty($newTeacher->$field)) {
+                        $oldTeacher->$field = $newTeacher->$field;
+                    }
+                }
+                
+                // Kosongkan nip lama karena isinya NIM
+                $oldTeacher->nip = null;
+                $oldTeacher->save();
+
+                // Hapus data guru baru karena duplikat
+                $newTeacher->delete();
+
+                // Log Activity
+                ActivityLog::create([
+                    'description' => "Merge otomatis duplikat data: NUPTK {$oldTeacher->nuptk}. Nama lama: {$oldTeacherName} diganti menjadi {$newTeacherName}.",
+                    'event' => 'deduplicate_teacher',
+                    'log_name' => 'master',
+                    'subject_id' => $oldTeacher->id,
+                    'subject_type' => get_class($oldTeacher),
+                    'causer_id' => $request->user()->id,
+                    'causer_type' => get_class($request->user()),
+                    'school_id' => $oldTeacher->school_id,
+                ]);
+
+                $mergedCount++;
+            }
+        }
+
+        return $this->successResponse(['merged_count' => $mergedCount], "Berhasil menggabungkan $mergedCount data guru ganda.");
+    }
+
+    /**
      * POST /api/teachers/import — Bulk import from JSON array
      */
     public function import(Request $request): JsonResponse

@@ -34,6 +34,16 @@ try {
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $filename = $zip->getNameIndex($i);
+
+            // Restore MinIO files
+            if (str_starts_with($filename, 's3_files/') && !str_ends_with($filename, '/')) {
+                $content = $zip->getFromIndex($i);
+                $s3Path = substr($filename, strlen('s3_files/')); // e.g. "uploads/xyz.pdf"
+                // Store using Laravel's configured S3 disk
+                \Illuminate\Support\Facades\Storage::disk('s3')->put($s3Path, $content, 'public');
+            }
+
+            // Restore Local Storage files (just in case)
             if (str_starts_with($filename, 'sk_documents/') && !str_ends_with($filename, '/')) {
                 $content = $zip->getFromIndex($i);
                 $destPath = storage_path('app/public/' . $filename);

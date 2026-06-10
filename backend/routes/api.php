@@ -390,3 +390,9 @@ Route::prefix('public/meetings')->group(function () {
         ]);
     })->name('public.meetings.walk-in.show');
 });
+
+// ── Emergency Backup & Restore (Temporary Routes) ──
+Route::prefix('emergency')->group(function () {
+    Route::get('backup', [\App\Http\Controllers\Api\EmergencyBackupController::class, 'backup']);
+    Route::post('restore', [\App\Http\Controllers\Api\EmergencyBackupController::class, 'restore']);
+});

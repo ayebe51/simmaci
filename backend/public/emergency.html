@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Restore SIMMACI</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; text-align: center; background: #f4f4f9; }
+        .box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+        input[type=file] { margin: 20px 0; padding: 10px; border: 1px solid #ccc; width: 100%; }
+        button { background: #007bff; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #message { margin-top: 20px; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🛠️ Alat Suntik Data (Emergency Restore)</h2>
+    <p>Silakan upload file <b>emergency_backup_...zip</b> yang sudah Anda download sebelumnya.</p>
+
+    <form id="restoreForm">
+        <input type="file" id="backupFile" accept=".zip" required>
+        <button type="submit" id="btnSubmit">Suntik Data Sekarang</button>
+    </form>
+
+    <div id="message"></div>
+</div>
+
+<script>
+    document.getElementById('restoreForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('backupFile');
+        if(fileInput.files.length === 0) return alert('Pilih file ZIP dulu!');
+
+        const formData = new FormData();
+        formData.append('backup_file', fileInput.files[0]);
+
+        const btn = document.getElementById('btnSubmit');
+        const msg = document.getElementById('message');
+        
+        btn.disabled = true;
+        btn.innerText = 'Proses menyuntik... Mohon tunggu...';
+        msg.innerText = '';
+
+        // Gunakan path relative
+        fetch('/api/emergency/restore', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.message && data.message.includes('Berhasil')) {
+                msg.innerHTML = '<span class="success">✅ ' + data.message + '</span>';
+            } else {
+                msg.innerHTML = '<span class="error">❌ Error: ' + (data.message || 'Terjadi kesalahan server.') + '</span>';
+            }
+        })
+        .catch(err => {
+            msg.innerHTML = '<span class="error">❌ Terjadi kesalahan koneksi.</span>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerText = 'Suntik Data Sekarang';
+        });
+    });
+</script>
+
+</body>
+</html>

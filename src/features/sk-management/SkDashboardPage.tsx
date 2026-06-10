@@ -47,15 +47,15 @@ function resolveSuratPermohonanUrl(url: string): string {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     // If it starts with storage/ or api/minio/, we need to strip it to get the raw path
     const path = url.replace(/^\/?(storage\/|api\/minio\/)?/, '')
-    // Force using the API proxy endpoint
-    return `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    // Force using the API proxy endpoint. Preserve slashes so NGINX doesn't return 404 for %2F
+    return `${apiUrl}/files/view/${path.split('/').map(encodeURIComponent).join('/')}`
   }
   
   // If it's already a full URL, we extract the path to force proxy
   try {
     const urlObj = new URL(url)
     const path = urlObj.pathname.replace(/^\/?(storage\/|api\/minio\/)?/, '')
-    return `${apiUrl}/files/view/${encodeURIComponent(path)}`
+    return `${apiUrl}/files/view/${path.split('/').map(encodeURIComponent).join('/')}`
   } catch (e) {
     return url
   }

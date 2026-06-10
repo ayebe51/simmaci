@@ -122,6 +122,7 @@ export default function TeacherListPage() {
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [isDeduplicateOpen, setIsDeduplicateOpen] = useState(false)
+  const [dryRunResult, setDryRunResult] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<Teacher | null>(null)
 
   // Account Generation States
@@ -255,8 +256,17 @@ export default function TeacherListPage() {
   })
 
   // ── Deduplicate ──
+  const deduplicateDryRunMutation = useMutation({
+    mutationFn: () => teacherApi.deduplicate(true),
+    onSuccess: (res: any) => {
+      setDryRunResult(res.data)
+      setIsDeduplicateOpen(true)
+    },
+    onError: (e: any) => toast.error('Gagal mengecek data ganda: ' + (e.response?.data?.message || e.message))
+  })
+
   const deduplicateMutation = useMutation({
-    mutationFn: () => teacherApi.deduplicate(),
+    mutationFn: () => teacherApi.deduplicate(false),
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['teachers'] })
       toast.success(`Selesai! Berhasil menggabungkan ${res?.data?.merged_count || 0} data guru ganda.`)
@@ -277,7 +287,7 @@ export default function TeacherListPage() {
           ...(isSuperAdmin ? [
               { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
-          { label: 'Bersihkan Data Ganda', onClick: () => setIsDeduplicateOpen(true), variant: 'amber', icon: <Wand2 className="h-4 w-4" /> },
+          { label: 'Bersihkan Data Ganda', onClick: () => deduplicateDryRunMutation.mutate(), variant: 'amber', icon: <Wand2 className="h-4 w-4" />, disabled: deduplicateDryRunMutation.isPending },
           { label: 'Tambah Manual', onClick: () => {
               setFormData({ is_active: true })
               setIsEditMode(false)
@@ -747,9 +757,27 @@ export default function TeacherListPage() {
       <ConfirmDialog
         open={isDeduplicateOpen}
         onOpenChange={setIsDeduplicateOpen}
-        title="Bersihkan Data Ganda"
-        description="Fitur ini akan otomatis mencari dan menggabungkan data guru yang ganda (duplikat) berdasarkan kesamaan NIM/NIP. Nama lama akan otomatis diperbaiki dengan nama dari file Excel, dan riwayat SK tidak akan hilang. Lanjutkan?"
-        confirmText={deduplicateMutation.isPending ? "Sedang Menggabungkan..." : "Ya, Gabungkan!"}
+        title="Konfirmasi Penggabungan Data"
+        description={
+          <div className="space-y-3">
+            <p>Fitur ini akan otomatis mencari dan menggabungkan data guru yang ganda (duplikat) berdasarkan kesamaan NIM/NIP. Nama lama akan otomatis diperbaiki dengan nama dari file Excel, dan riwayat SK tidak akan hilang.</p>
+            {dryRunResult?.merged_count > 0 ? (
+              <div className="bg-amber-50 text-amber-900 p-3 rounded text-sm">
+                <strong>Ditemukan {dryRunResult.merged_count} data ganda yang siap digabung!</strong><br/>
+                <span className="block mt-1 mb-1 opacity-80">Beberapa contoh yang akan digabung:</span>
+                <ul className="list-disc pl-5">
+                  {dryRunResult.samples?.map((s: any, i: number) => (
+                    <li key={i}>{s.old_name} <span className="text-amber-500 mx-1">→</span> <strong>{s.new_name}</strong> (NIM: {s.nim})</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="bg-slate-100 p-2 rounded text-slate-700 text-sm">Tidak ditemukan data ganda pada simulasi pencarian.</p>
+            )}
+            <p className="font-semibold text-rose-600">Lanjutkan penggabungan permanen?</p>
+          </div>
+        }
+        confirmText={deduplicateMutation.isPending ? "Sedang Menggabungkan..." : "Ya, Gabungkan Sekarang!"}
         variant="default"
         onConfirm={() => deduplicateMutation.mutate()}
       />

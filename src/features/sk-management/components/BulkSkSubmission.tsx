@@ -59,7 +59,7 @@ export function BulkSkSubmission() {
       "nuptk": ["nuptk"],
       "pendidikan_terakhir": ["pendidikan terakhir", "pendidikan", "ijazah terakhir"],
       "unit_kerja": ["unit kerja", "satminkal", "tempat tugas", "lembaga", "nama madrasah", "sekolah"],
-      "tmt": ["tanggal mulai tugas", "tmt", "mulai tugas", "tgl masuk", "tmt guru", "tanggal masuk"],
+      "tmt": ["tanggal mulai tugas", "tmt", "mulai tugas", "tgl masuk", "tmt guru", "tanggal masuk", "terhitung mulai tanggal", "t.m.t", "t.m.t.", "tmt."],
       "status": ["status", "status kepegawaian", "status guru"],
       "pdpkpnu": ["pdpkpnu", "pkpnu", "diklat"],
       "kecamatan": ["kecamatan", "kec"],
@@ -131,15 +131,31 @@ export function BulkSkSubmission() {
            }
         }
 
+        // Validate required columns
+        if (colMap['nama'] === undefined) {
+           throw new Error("Kolom 'Nama' tidak ditemukan di file Excel.");
+        }
+        if (colMap['nomor_induk_maarif'] === undefined) {
+           throw new Error("Kolom NIM tidak terdeteksi! Pastikan judul kolom menggunakan kata 'NIM' atau 'Nomor Induk Maarif'.");
+        }
+        if (colMap['tmt'] === undefined) {
+           throw new Error("Kolom TMT tidak terdeteksi! Pastikan judul kolom menggunakan kata 'TMT' atau 'Terhitung Mulai Tanggal'.");
+        }
+
         const data = rows.slice(bestRowIndex + 1).map(row => {
           const obj: any = {}
           Object.entries(colMap).forEach(([key, idx]) => {
             let val = row[idx]
             if (key.includes('tanggal') || key === 'tmt') {
                if (typeof val === 'number') {
-                  // Excel serial date number → ISO string
-                  const d = new Date((val - 25569) * 86400 * 1000)
-                  val = d.toISOString().split('T')[0]
+                  if (val > 1000 && val <= 3000) {
+                     // If it's just a year number (e.g., 2020), set it to July 1st of that year
+                     val = `${val}-07-01`
+                  } else {
+                     // Excel serial date number → ISO string
+                     const d = new Date((val - 25569) * 86400 * 1000)
+                     val = d.toISOString().split('T')[0]
+                  }
                } else if (typeof val === 'string' && val.trim()) {
                   // Normalize Indonesian month names to English before parsing
                   val = parseIndonesianDate(val.trim())
@@ -149,6 +165,25 @@ export function BulkSkSubmission() {
           })
           return obj
         }).filter(o => o.nama)
+
+        // Validate internal duplicates (NIM ganda di dalam file Excel)
+        const seenNim = new Set<string>();
+        const duplicateNims = new Set<string>();
+        
+        data.forEach(item => {
+           const nim = String(item.nomor_induk_maarif || '').trim();
+           if (nim) {
+              if (seenNim.has(nim)) {
+                 duplicateNims.add(nim);
+              }
+              seenNim.add(nim);
+           }
+        });
+
+        if (duplicateNims.size > 0) {
+           const dupArray = Array.from(duplicateNims).join(", ");
+           throw new Error(`Ditemukan data ganda pada file Excel! NIM berikut muncul lebih dari sekali: ${dupArray}. Harap hapus duplikasi sebelum mengunggah.`);
+        }
 
         setHeaderIndex(bestRowIndex)
         setMappingDiagnostics(diagnostics)

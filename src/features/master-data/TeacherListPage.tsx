@@ -94,11 +94,11 @@ export default function TeacherListPage() {
 
   // 🔥 REST API QUERY
   const { data: teachersData, isLoading } = useQuery({
-    queryKey: ['teachers', currentPage, debouncedSearchTerm, filterKecamatan, filterSchool, activeFilter],
+    queryKey: ['teachers', currentPage, searchTerm, filterKecamatan, filterSchool, activeFilter],
     queryFn: () => teacherApi.list({
       page: currentPage,
       per_page: itemsPerPage,
-      search: debouncedSearchTerm,
+      search: searchTerm || undefined,
       kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan,
       school_id: filterSchool === "all" ? undefined : filterSchool,
       is_active: activeFilter === "all" ? undefined : (activeFilter === "active" ? 1 : 0)
@@ -350,7 +350,7 @@ export default function TeacherListPage() {
                             </SelectTrigger>
                             <SelectContent className="rounded-2xl border-slate-100 max-h-[300px]">
                                 <SelectItem value="all">Semua Sekolah</SelectItem>
-                                {schoolsData?.data?.map((s: any) => (
+                                {(Array.isArray(schoolsData) ? schoolsData : schoolsData?.data || [])?.map((s: any) => (
                                     <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
                                 ))}
                             </SelectContent>

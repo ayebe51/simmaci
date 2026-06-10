@@ -280,6 +280,9 @@ class TeacherController extends Controller
         $oldTeachers = Teacher::withoutTenantScope()
             ->where('nip', 'like', '1134%')
             ->whereRaw("LENGTH(nip) = 9")
+            ->where(function($q) {
+                $q->whereNull('nomor_induk_maarif')->orWhere('nomor_induk_maarif', '');
+            })
             ->get();
 
         $mergedCount = 0;
@@ -434,6 +437,14 @@ class TeacherController extends Controller
                     }
                 }
             }
+        }
+
+        // 3. CLEANUP: Kosongkan NIP yang isinya sebenarnya adalah NIM (1134... 9 digit)
+        if (!$isDryRun) {
+            Teacher::withoutTenantScope()
+                ->where('nip', 'like', '1134%')
+                ->whereRaw("LENGTH(nip) = 9")
+                ->update(['nip' => null]);
         }
 
         if ($isDryRun) {

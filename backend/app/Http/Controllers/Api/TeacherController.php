@@ -421,6 +421,22 @@ class TeacherController extends Controller
                     $normalizedRow['is_certified'] = false;
                 }
 
+                // Parse Tempat Tanggal Lahir (Combined)
+                foreach($normalizedRow as $k => $v) {
+                    if (str_contains($k, 'tempat_tanggal_lahir') || $k === 'ttl' || str_contains($k, 'tempat_tgl_lahir')) {
+                        $parts = explode(',', (string)$v);
+                        if (count($parts) >= 2) {
+                            if (!isset($normalizedRow['tempat_lahir'])) {
+                                $normalizedRow['tempat_lahir'] = trim($parts[0]);
+                            }
+                            if (!isset($normalizedRow['tanggal_lahir'])) {
+                                $normalizedRow['tanggal_lahir'] = trim($parts[1]);
+                            }
+                        }
+                        break;
+                    }
+                }
+
                 // Parse Tanggal Lahir (Mencegah Error 500 PostgreSQL dari Excel Serial Date)
                 $tglLahirRaw = $normalizedRow['tanggal_lahir'] ?? $normalizedRow['tgl_lahir'] ?? null;
                 if ($tglLahirRaw !== null && (string)$tglLahirRaw !== '') {
@@ -430,9 +446,31 @@ class TeacherController extends Controller
                             $normalizedRow['tanggal_lahir'] = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tglStr)->format('Y-m-d');
                         } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
                     } else {
-                        // Jika string, coba diparse biasa, atau biarkan null
+                        // Jika string, coba diparse biasa dengan translasi bulan Indonesia
                         try {
-                            $normalizedRow['tanggal_lahir'] = \Carbon\Carbon::parse($tglStr)->format('Y-m-d');
+                            $indoMonths = [
+                                'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
+                                'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
+                                'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
+                                'november' => 'november', 'desember' => 'december',
+                                'jan' => 'jan', 'feb' => 'feb', 'mar' => 'mar', 'apr' => 'apr',
+                                'jun' => 'jun', 'jul' => 'jul', 'agu' => 'aug', 'sep' => 'sep', 'okt' => 'oct',
+                                'nov' => 'nov', 'des' => 'dec'
+                            ];
+                            $translatedTgl = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tglStr);
+                            
+                            $tglDate = null;
+                            $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd F Y', 'd M Y', 'd-M-Y', 'd/M/Y'];
+                            foreach ($formats as $format) {
+                                try {
+                                    $tglDate = \Carbon\Carbon::createFromFormat($format, $translatedTgl);
+                                    if ($tglDate !== false) break;
+                                } catch (\Exception $e) { $tglDate = null; }
+                            }
+                            if (!$tglDate) {
+                                $tglDate = \Carbon\Carbon::parse($translatedTgl);
+                            }
+                            $normalizedRow['tanggal_lahir'] = $tglDate->format('Y-m-d');
                         } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
                     }
                 } else {
@@ -500,7 +538,7 @@ class TeacherController extends Controller
                 // Kalkulasi Status berdasarkan Pendidikan Terakhir, TMT Lama Pengabdian, dan Sertifikasi
                 $pendidikan = null;
                 foreach($normalizedRow as $k => $v) {
-                    if (str_contains($k, 'pendidikan') || str_contains($k, 'ijazah') || str_contains($k, 'jenjang')) {
+                    if (str_contains($k, 'pendidikan') || str_contains($k, 'ijazah') || str_contains($k, 'ijasah') || str_contains($k, 'jenjang')) {
                         $pendidikan = $v;
                         break;
                     }
@@ -548,11 +586,12 @@ class TeacherController extends Controller
 
                 // Fallback for nama
                 if (empty($dataToSave['nama'])) {
-                    $dataToSave['nama'] = $normalizedRow['nama_guru'] 
-                        ?? $normalizedRow['nama_lengkap'] 
-                        ?? $normalizedRow['nama_asli'] 
-                        ?? $normalizedRow['guru']
-                        ?? null;
+                    foreach($normalizedRow as $k => $v) {
+                        if (str_contains($k, 'nama') || $k === 'guru' || $k === 'karyawan') {
+                            $dataToSave['nama'] = $v;
+                            break;
+                        }
+                    }
                 }
 
                 if (empty($dataToSave['nama'])) {
@@ -627,6 +666,35 @@ class TeacherController extends Controller
                         ->where('nama', $dataToSave['nama'])
                         ->where('school_id', $schoolId)
                         ->first();
+                }
+
+                // Forcefully reclaim the NIM if it's already used by someone else
+                if (!empty($savePayload['nomor_induk_maarif'])) {
+                    $nimToReclaim = $savePayload['nomor_induk_maarif'];
+                    $nimConflicts = Teacher::withoutTenantScope()
+                        ->where('nomor_induk_maarif', $nimToReclaim)
+                        ->when($teacher, function ($query) use ($teacher) {
+                            $query->where('id', '!=', $teacher->id);
+                        })
+                        ->get();
+                    
+                    foreach ($nimConflicts as $conflict) {
+                        $conflict->update(['nomor_induk_maarif' => null]);
+                        try {
+                            ActivityLog::create([
+                                'description' => "NIM {$nimToReclaim} dicabut otomatis karena dipakai oleh data resmi atas nama {$dataToSave['nama']}",
+                                'event' => 'nim_force_reassigned',
+                                'log_name' => 'master',
+                                'subject_id' => $conflict->id,
+                                'subject_type' => get_class($conflict),
+                                'causer_id' => $request->user()->id,
+                                'causer_type' => get_class($request->user()),
+                                'school_id' => $conflict->school_id,
+                            ]);
+                        } catch (\Exception $e) {
+                            // ignore log error
+                        }
+                    }
                 }
 
                 if ($teacher) {

@@ -107,6 +107,10 @@ export function parseIndonesianDate(val: string): string {
   const dotDmy = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
   if (dotDmy) return toIso(dotDmy[3], dotDmy[2], dotDmy[1])
 
+  // 8. Hanya Tahun YYYY (sering dientri user sebagai angka tahun saja)
+  const justYear = trimmed.match(/^(\d{4})$/)
+  if (justYear) return toIso(justYear[1], 7, 1) // Default ke 1 Juli tahun tersebut
+
   // Tidak dikenali — kembalikan string asli
   return trimmed
 }

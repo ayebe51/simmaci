@@ -154,7 +154,7 @@ export const teacherApi = {
   delete: (id: number) => apiClient.delete(`/teachers/${id}`).then((r) => r.data),
   import: (teachers: any[]) => apiClient.post('/teachers/import', { teachers }, { timeout: 120000 }).then((r) => r.data),
   deleteAll: () => apiClient.delete('/teachers/delete-all').then((r) => r.data),
-  deduplicate: () => apiClient.post('/teachers/deduplicate').then((r) => r.data),
+  deduplicate: (dryRun = false) => apiClient.post(`/teachers/deduplicate?dry_run=${dryRun ? 1 : 0}`).then((r) => r.data),
   generateAccounts: (teacherIds?: number[]) =>
     apiClient.post('/teachers/generate-accounts', { teacher_ids: teacherIds }).then((r) => r.data),
   export: (params?: Record<string, any>) =>

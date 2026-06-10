@@ -274,6 +274,8 @@ class TeacherController extends Controller
      */
     public function deduplicate(Request $request): JsonResponse
     {
+        $isDryRun = $request->boolean('dry_run', false);
+
         // Temukan guru lama yang kolom NIP-nya berisi NIM (berawalan 1134 dan 9 digit)
         $oldTeachers = Teacher::withoutTenantScope()
             ->where('nip', 'like', '1134%')
@@ -281,6 +283,7 @@ class TeacherController extends Controller
             ->get();
 
         $mergedCount = 0;
+        $dryRunSamples = [];
 
         foreach ($oldTeachers as $oldTeacher) {
             // Cari guru baru yang nomor_induk_maarif-nya sama persis dengan NIP guru lama
@@ -290,6 +293,19 @@ class TeacherController extends Controller
                 ->first();
 
             if ($newTeacher) {
+                $mergedCount++;
+                
+                if ($isDryRun) {
+                    if (count($dryRunSamples) < 5) {
+                        $dryRunSamples[] = [
+                            'old_name' => $oldTeacher->nama,
+                            'new_name' => $newTeacher->nama,
+                            'nim' => $newTeacher->nomor_induk_maarif
+                        ];
+                    }
+                    continue;
+                }
+
                 $oldTeacherName = $oldTeacher->nama;
                 $newTeacherName = $newTeacher->nama;
                 
@@ -326,6 +342,13 @@ class TeacherController extends Controller
 
                 $mergedCount++;
             }
+        }
+
+        if ($isDryRun) {
+            return $this->successResponse([
+                'merged_count' => $mergedCount,
+                'samples' => $dryRunSamples
+            ], "Ditemukan $mergedCount data ganda siap digabung.");
         }
 
         return $this->successResponse(['merged_count' => $mergedCount], "Berhasil menggabungkan $mergedCount data guru ganda.");

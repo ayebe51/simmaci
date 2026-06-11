@@ -37,7 +37,7 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 // ── Maintenance Mode Flag ──
-export const MAINTENANCE_MODE = true; // Set to true to block all non-GET requests globally
+export const MAINTENANCE_MODE = false; // Set to true to block all non-GET requests globally
 
 // ── Request Interceptor: Attach Sanctum token & Maintenance Check ──
 

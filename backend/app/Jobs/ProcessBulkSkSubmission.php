@@ -220,18 +220,18 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 // Validasi NIM / NIP ganda di-bypass sesuai dengan permintaan,
                 // sehingga duplicate NIM akan diarahkan untuk update data guru yang sudah ada.
 
-                // Find existing teacher
+                // Find existing teacher (termasuk yang ada di tong sampah / Soft Delete)
                 $teacher = null;
                 if (!empty($teacherData['nuptk'])) {
-                    $teacher = Teacher::withoutTenantScope()->where('nuptk', $teacherData['nuptk'])->first();
+                    $teacher = Teacher::withoutTenantScope()->withTrashed()->where('nuptk', $teacherData['nuptk'])->first();
                 }
 
                 if (!$teacher && !empty($teacherData['nip'])) {
-                    $teacher = Teacher::withoutTenantScope()->where('nip', $teacherData['nip'])->first();
+                    $teacher = Teacher::withoutTenantScope()->withTrashed()->where('nip', $teacherData['nip'])->first();
                 }
 
                 if (!$teacher && !empty($teacherData['nomor_induk_maarif'])) {
-                    $teacher = Teacher::withoutTenantScope()->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])->first();
+                    $teacher = Teacher::withoutTenantScope()->withTrashed()->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])->first();
                 }
 
                 // Protect against data-entry typos: if identifier matches but name is completely different, don't overwrite!
@@ -242,16 +242,21 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     if ($excelBareName !== '' && $dbBareName !== '') {
                         similar_text($excelBareName, $dbBareName, $percent);
                         if ($percent < 60) {
-                            // Instead of rejecting, we clear $teacher so that it creates a new profile
-                            // with the same NIM but for a different name.
+                            // Kita kembali ke Bypass: Jika namanya beda, kita buatkan profil baru!
                             $teacher = null;
                         }
+                    }
+                    
+                    // Bangkitkan dari tong sampah jika cocok (hanya jika namanya match >= 60%)
+                    if ($teacher && $teacher->trashed()) {
+                        $teacher->restore();
                     }
                 }
 
                 if (!$teacher) {
                     $teacher = Teacher::where('nama', $teacherData['nama'])
                         ->where('school_id', $schoolId)
+                        ->withTrashed()
                         ->first();
 
                     // Fallback: bare-name match (handles degree mismatch between file and DB)
@@ -261,13 +266,18 @@ class ProcessBulkSkSubmission implements ShouldQueue
                             'UTF-8'
                         );
                         if ($bareName !== '') {
-                            $teacher = Teacher::where('school_id', $schoolId)
-                                ->where(function ($q) use ($bareName) {
+                            $teacher = Teacher::where(function ($q) use ($bareName) {
                                     $q->whereRaw("UPPER(nama) = ?", [$bareName])
                                       ->orWhereRaw("UPPER(nama) LIKE ?", [$bareName . ',%']);
                                 })
+                                ->where('school_id', $schoolId)
+                                ->withTrashed()
                                 ->first();
                         }
+                    }
+
+                    if ($teacher && $teacher->trashed()) {
+                        $teacher->restore();
                     }
                 }
 

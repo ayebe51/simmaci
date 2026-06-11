@@ -197,6 +197,25 @@ export function BulkSkSubmission() {
     reader.readAsBinaryString(file)
   }
 
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+          if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+              e.target.value = "";
+              toast.error("Format tidak didukung. Surat permohonan harus berupa file PDF.");
+              return;
+          }
+          if (file.size > 2 * 1024 * 1024) {
+              e.target.value = "";
+              toast.error("Ukuran file surat permohonan maksimal 2MB.");
+              return;
+          }
+          setSuratPermohonanFile(file);
+      } else {
+          setSuratPermohonanFile(null);
+      }
+  }
+
   const importMutation = useMutation({
     mutationFn: (data: { documents: any[], surat_permohonan_url: string, meta?: any }) => skApi.bulkRequest(data),
     onSuccess: (res) => {
@@ -343,7 +362,7 @@ export function BulkSkSubmission() {
                     Langkah 3: Berkas Permohonan Resmi <span className="text-red-500">*</span>
                   </Label>
                  <div className="space-y-4">
-                    <Input type="file" accept=".pdf" onChange={(e) => setSuratPermohonanFile(e.target.files?.[0] || null)} className="h-12 rounded-xl bg-white border-slate-200" />
+                    <Input type="file" accept=".pdf" onChange={handlePdfUpload} className="h-12 rounded-xl bg-white border-slate-200" />
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <Label className="text-[9px] font-black uppercase text-slate-400">No. Surat</Label>

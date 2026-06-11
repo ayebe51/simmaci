@@ -155,7 +155,14 @@ export default function SkSubmissionPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return toast.error("Ukuran file maksimal 2MB")
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        e.target.value = "";
+        return toast.error("Format tidak didukung. Surat permohonan harus berupa file PDF.");
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        e.target.value = "";
+        return toast.error("Ukuran file maksimal 2MB.");
+      }
       setSelectedFile(file)
       toast.success(`File terpilih: ${file.name}`)
     }
@@ -395,7 +402,7 @@ export default function SkSubmissionPage() {
                                     <span className="text-[10px] font-black uppercase tracking-widest">Upload Berkas</span>
                                 </div>
                             )}
-                            <Input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+                            <Input type="file" accept=".pdf" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
                         </div>
                     </div>
 

@@ -51,8 +51,13 @@ export default function HeadmasterSubmissionPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
           const file = e.target.files[0];
-          if (file.size > 1024 * 1024) { // 1MB for Laravel
-              toast.error("Ukuran file maksimal 1MB");
+          if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+              e.target.value = "";
+              toast.error("Format tidak didukung. Surat permohonan harus berupa file PDF.");
+              return;
+          }
+          if (file.size > 2 * 1024 * 1024) { // Update to 2MB
+              toast.error("Ukuran file maksimal 2MB");
               e.target.value = "";
               return;
           }
@@ -361,8 +366,8 @@ export default function HeadmasterSubmissionPage() {
 
             <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Upload Scan Permohonan (Format PDF)</Label>
-                <Input type="file" onChange={handleFileChange} accept=".pdf,.jpg,.jpeg,.png" className="h-12 rounded-xl border-slate-200 file:bg-slate-100 file:border-0 file:rounded-lg file:text-[10px] file:font-black file:uppercase file:mr-4 file:h-8 hover:file:bg-slate-200" />
-                <p className="text-[10px] text-slate-400 font-medium">Maksimal 1MB untuk berkas permohonan.</p>
+                <Input type="file" onChange={handleFileChange} accept=".pdf" className="h-12 rounded-xl border-slate-200 file:bg-slate-100 file:border-0 file:rounded-lg file:text-[10px] file:font-black file:uppercase file:mr-4 file:h-8 hover:file:bg-slate-200" />
+                <p className="text-[10px] text-slate-400 font-medium">Maksimal 2MB untuk berkas permohonan. Harus berformat PDF.</p>
             </div>
 
             <div className="space-y-3">

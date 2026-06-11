@@ -36,13 +36,25 @@ export const apiClient: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
-// ── Request Interceptor: Attach Sanctum token ──
+// ── Maintenance Mode Flag ──
+export const MAINTENANCE_MODE = true; // Set to true to block all non-GET requests globally
+
+// ── Request Interceptor: Attach Sanctum token & Maintenance Check ──
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (MAINTENANCE_MODE) {
+    const method = config.method?.toUpperCase();
+    // Allow GET requests, and allow Auth requests (login/logout)
+    if (method !== 'GET' && !config.url?.includes('/auth/')) {
+      return Promise.reject({ isMaintenance: true, message: "Aplikasi sedang dalam Maintenance (Pemeliharaan). Semua aksi penambahan/perubahan data dimatikan sementara." });
+    }
+  }
+
   return config;
 });
 
@@ -65,6 +77,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (error.isMaintenance) {
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error("⚠️ MAINTENANCE: " + error.message, { id: 'maintenance', duration: 4000 });
+      });
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);

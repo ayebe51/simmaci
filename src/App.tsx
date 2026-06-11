@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { MAINTENANCE_MODE } from "@/lib/api"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
@@ -136,6 +137,15 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        {MAINTENANCE_MODE && (
+          <div className="bg-red-600 text-white p-3 text-center font-bold sticky top-0 z-[9999] shadow-md flex items-center justify-center gap-2 animate-pulse">
+            <span>🚧</span>
+            <span>
+              MODE PEMELIHARAAN (MAINTENANCE) SEDANG AKTIF. ANDA HANYA DAPAT MELIHAT DATA. SEMUA AKSI PENAMBAHAN, UBAH, DAN HAPUS DATA DIMATIKAN SEMENTARA.
+            </span>
+            <span>🚧</span>
+          </div>
+        )}
         <ChunkErrorBoundary>
         <Suspense fallback={<SkeletonPage />}>
           <Routes>

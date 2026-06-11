@@ -65,8 +65,8 @@ export function BulkSkSubmission() {
       "kecamatan": ["kecamatan", "kec"],
     }
   const handleDownloadTemplate = () => {
-    const headers = ["Nama", "Tempat Lahir", "Tanggal Lahir", "NUPTK", "NIP/NIY", "Pendidikan Terakhir", "Unit Kerja", "TMT", "Status", "PDPKPNU", "Kecamatan"];
-    const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "1990-05-12", "1234567890123456", "123456789", "S1 PAI", "MI Ma'arif 01", "2015-07-01", "GTY", "Lulus", "Cilacap Selatan"]]);
+    const headers = ["Nama", "Tempat Lahir", "Tanggal Lahir", "NIM", "Pendidikan Terakhir", "Unit Kerja", "TMT", "Status", "PDPKPNU", "Kecamatan"];
+    const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "1990-05-12", "123456789", "S1 PAI", "MI Ma'arif 01", "2015-07-01", "GTY", "Lulus", "Cilacap Selatan"]]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -139,7 +139,7 @@ export function BulkSkSubmission() {
            throw new Error("Kolom NIM tidak terdeteksi! Pastikan judul kolom menggunakan kata 'NIM' atau 'Nomor Induk Maarif'.");
         }
         if (colMap['tmt'] === undefined) {
-           throw new Error("Kolom TMT tidak terdeteksi! Pastikan judul kolom menggunakan kata 'TMT' atau 'Terhitung Mulai Tanggal'.");
+           throw new Error("Kolom TMT tidak terdeteksi! Pastikan judul kolom menggunakan kata 'TMT' atau 'Tanggal Mulai Tugas'.");
         }
 
         const data = rows.slice(bestRowIndex + 1).map(row => {
@@ -421,7 +421,7 @@ export function BulkSkSubmission() {
                 <Checkbox id="fullSync" checked={isFullSync} onCheckedChange={(c) => setIsFullSync(!!c)} />
                 <Label htmlFor="fullSync" className="text-[10px] font-black uppercase text-slate-400 tracking-widest cursor-pointer hover:text-slate-600 transition-colors">Sinkronisasi Penuh</Label>
             </div>
-            <Button onClick={handleSubmit} disabled={isProcessing || candidates.length === 0} className="h-14 px-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100">
+            <Button onClick={handleSubmit} disabled={isProcessing || candidates.length === 0 || !suratPermohonanFile || !nomorPermohonanUi || !tanggalPermohonanUi} className="h-14 px-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100">
                 {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Save className="mr-2 h-5 w-5" />}
                 Proses {candidates.length} Data
             </Button>

@@ -50,36 +50,41 @@ try {
         }
         $urlsToBackup = array_unique($urlsToBackup);
 
-        $awsUrl = env('AWS_URL', '');
-        $awsBucket = env('AWS_BUCKET', '');
-        $prefix1 = rtrim($awsUrl, '/') . '/' . $awsBucket . '/'; // with bucket
-        $prefix2 = rtrim($awsUrl, '/') . '/'; // without bucket
-
+        $awsBucket = env('AWS_BUCKET', 'simmaci-storage');
         $s3Disk = \Illuminate\Support\Facades\Storage::disk('s3');
+
+        $folders = ['surat_permohonan', 'ijazah', 'sk_documents', 'uploads'];
+        $pattern = '/(?:' . implode('|', $folders) . ')\/[^\/]+$/i';
 
         foreach ($urlsToBackup as $url) {
             $relativePath = null;
-            if (str_starts_with($url, $prefix1)) {
-                $relativePath = substr($url, strlen($prefix1));
-            } elseif (str_starts_with($url, $prefix2)) {
-                $relativePath = substr($url, strlen($prefix2));
+            if (preg_match($pattern, $url, $matches)) {
+                $relativePath = ltrim($matches[0], '/');
             }
 
             if ($relativePath) {
-                $relativePath = ltrim($relativePath, '/');
                 try {
                     if ($s3Disk->exists($relativePath)) {
                         $fileContent = $s3Disk->get($relativePath);
                         if ($fileContent) {
                             $zip->addFromString('s3_files/' . $relativePath, $fileContent);
                         }
+                    } else {
+                        // Fallback to check local disk just in case
+                        $localDisk = \Illuminate\Support\Facades\Storage::disk('public');
+                        if ($localDisk->exists($relativePath)) {
+                            $fileContent = $localDisk->get($relativePath);
+                            if ($fileContent) {
+                                $zip->addFromString('s3_files/' . $relativePath, $fileContent);
+                            }
+                        }
                     }
                 } catch (\Exception $e) {
-                    // Fallback to direct HTTP if S3 SDK fails
-                    $internalUrl = 'http://minio:9000/' . $awsBucket . '/' . $relativePath;
+                    // Fallback to direct HTTP if SDK fails
+                    $internalUrl = 'http://minio:9000/' . ltrim($awsBucket, '/') . '/' . ltrim($relativePath, '/');
                     $fileContent = @file_get_contents($internalUrl);
                     if ($fileContent !== false) {
-                        $zip->addFromString('s3_files/' . $relativePath, $fileContent);
+                        $zip->addFromString('s3_files/' . ltrim($relativePath, '/'), $fileContent);
                     }
                 }
             }

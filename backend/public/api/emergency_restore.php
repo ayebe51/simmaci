@@ -60,22 +60,28 @@ try {
         
         DB::beginTransaction();
 
-        if (isset($data['new_teachers'])) {
-            foreach ($data['new_teachers'] as $row) {
-                Teacher::withoutGlobalScopes()->updateOrCreate(['id' => $row['id']], $row);
+        if (isset($data['new_teachers']) && count($data['new_teachers']) > 0) {
+            foreach ($data['new_teachers'] as &$row) {
+                foreach ($row as $k => $v) { if (is_array($v)) $row[$k] = json_encode($v); }
             }
+            $columns = array_keys(reset($data['new_teachers']));
+            DB::table('teachers')->upsert($data['new_teachers'], ['id'], $columns);
         }
 
-        if (isset($data['sk_documents'])) {
-            foreach ($data['sk_documents'] as $row) {
-                SkDocument::withoutGlobalScopes()->updateOrCreate(['id' => $row['id']], $row);
+        if (isset($data['sk_documents']) && count($data['sk_documents']) > 0) {
+            foreach ($data['sk_documents'] as &$row) {
+                foreach ($row as $k => $v) { if (is_array($v)) $row[$k] = json_encode($v); }
             }
+            $columns = array_keys(reset($data['sk_documents']));
+            DB::table('sk_documents')->upsert($data['sk_documents'], ['id'], $columns);
         }
 
-        if (isset($data['activity_logs'])) {
-            foreach ($data['activity_logs'] as $row) {
-                ActivityLog::updateOrCreate(['id' => $row['id']], $row);
+        if (isset($data['activity_logs']) && count($data['activity_logs']) > 0) {
+            foreach ($data['activity_logs'] as &$row) {
+                foreach ($row as $k => $v) { if (is_array($v)) $row[$k] = json_encode($v); }
             }
+            $columns = array_keys(reset($data['activity_logs']));
+            DB::table('activity_logs')->upsert($data['activity_logs'], ['id'], $columns);
         }
 
         DB::commit();

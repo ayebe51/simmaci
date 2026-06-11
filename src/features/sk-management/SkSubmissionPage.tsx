@@ -191,6 +191,7 @@ export default function SkSubmissionPage() {
         nip: data.nip || undefined,
         nomor_induk_maarif: data.nomor_induk_maarif || undefined,
         jenis_sk: data.jenisSk,
+        jenis_pengajuan: data.jenisPengajuan,
         unit_kerja: unitKerja,
         jabatan: data.jabatan,
         tmt: data.tmt || undefined,

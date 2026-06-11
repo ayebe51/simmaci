@@ -1067,58 +1067,7 @@ class SkDocumentController extends Controller
                 $teacherData['status'] = $this->normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus);
             }
 
-            // Early NIM uniqueness validation: reject BEFORE NIP sync and teacher matching.
-            // This prevents the NIP sync from creating a false match with the existing NIM owner.
-            if (!empty($teacherData['nomor_induk_maarif'])) {
-                // Find any teacher that already owns this NIM.
-                // We don't have a matched teacher yet, so we check globally.
-                // Self-reference is determined by nuptk match (the only reliable identifier at this stage).
-                $existingNimOwner = Teacher::withoutTenantScope()
-                    ->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])
-                    ->whereNull('deleted_at')
-                    ->first();
 
-                if ($existingNimOwner) {
-                    // Self-reference check: only allow if the import row's nuptk matches the NIM owner
-                    $isSelfByNuptk = !empty($teacherData['nuptk']) && $existingNimOwner->nuptk === $teacherData['nuptk'];
-                    // Also check by exact name + school to identify self-reference
-                    $isSelfByName = mb_strtoupper(trim($teacherData['nama']), 'UTF-8') === mb_strtoupper(trim($existingNimOwner->nama), 'UTF-8')
-                        && $existingNimOwner->school_id == $schoolId;
-                    // Check bare-name match for self-reference (handles degree differences)
-                    $importBareName = mb_strtoupper(
-                        trim($this->normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']),
-                        'UTF-8'
-                    );
-                    $ownerBareName = mb_strtoupper(
-                        trim($this->normalizationService->parseAcademicDegreesPublic($existingNimOwner->nama)['name']),
-                        'UTF-8'
-                    );
-                    $isSelfByBareName = $importBareName !== '' && $importBareName === $ownerBareName
-                        && $existingNimOwner->school_id == $schoolId;
-
-                    if (!$isSelfByNuptk && !$isSelfByName && !$isSelfByBareName) {
-                        $seq++;
-                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                        SkDocument::create([
-                            'nomor_sk'         => $nomorSk,
-                            'nama'             => $doc['nama'],
-                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
-                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
-                            'school_id'        => $schoolId,
-                            'status'           => 'rejected',
-                            'rejection_reason' => 'NIM sudah digunakan oleh guru lain.',
-                            'created_by'       => $request->user()->email,
-                            'tanggal_penetapan'=> now()->format('Y-m-d'),
-                        ]);
-                        $skipped++;
-                        $rejectedRows[] = [
-                            'nama'   => $doc['nama'] ?? 'unknown',
-                            'alasan' => 'NIM sudah digunakan oleh guru lain.',
-                        ];
-                        continue;
-                    }
-                }
-            }
 
             // Sync NIP ↔ NIM only when one side is provided and the other is missing
             $nipWasSynced = false;
@@ -1171,41 +1120,7 @@ class SkDocumentController extends Controller
                 }
             }
 
-            // When NIP is copied to NIM, validate the synced NIM for uniqueness as well
-            if ($nimWasSynced && !empty($teacherData['nomor_induk_maarif'])) {
-                $existingNimFromSync = Teacher::withoutTenantScope()
-                    ->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])
-                    ->whereNull('deleted_at')
-                    ->first();
 
-                if ($existingNimFromSync) {
-                    // Self-reference check: if the NIP also matches, it's the same teacher
-                    $isSelfByNip = !empty($teacherData['nip']) && $existingNimFromSync->nip === $teacherData['nip'];
-                    $isSelfByNuptk = !empty($teacherData['nuptk']) && $existingNimFromSync->nuptk === $teacherData['nuptk'];
-
-                    if (!$isSelfByNip && !$isSelfByNuptk) {
-                        $seq++;
-                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                        SkDocument::create([
-                            'nomor_sk'         => $nomorSk,
-                            'nama'             => $doc['nama'],
-                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
-                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
-                            'school_id'        => $schoolId,
-                            'status'           => 'rejected',
-                            'rejection_reason' => 'NIM sudah digunakan oleh guru lain (dari sinkronisasi NIP).',
-                            'created_by'       => $request->user()->email,
-                            'tanggal_penetapan'=> now()->format('Y-m-d'),
-                        ]);
-                        $skipped++;
-                        $rejectedRows[] = [
-                            'nama'   => $doc['nama'] ?? 'unknown',
-                            'alasan' => 'NIM sudah digunakan oleh guru lain (dari sinkronisasi NIP).',
-                        ];
-                        continue;
-                    }
-                }
-            }
 
             $teacher = null;
             if (!empty($teacherData['nuptk'])) {
@@ -1218,6 +1133,19 @@ class SkDocumentController extends Controller
 
             if (!$teacher && !empty($teacherData['nomor_induk_maarif'])) {
                 $teacher = Teacher::where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])->first();
+            }
+
+            // Protect against data-entry typos: if identifier matches but name is completely different, don't overwrite!
+            if ($teacher) {
+                $excelBareName = mb_strtoupper(trim($this->normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
+                $dbBareName = mb_strtoupper(trim($this->normalizationService->parseAcademicDegreesPublic($teacher->nama)['name']), 'UTF-8');
+                
+                if ($excelBareName !== '' && $dbBareName !== '') {
+                    similar_text($excelBareName, $dbBareName, $percent);
+                    if ($percent < 60) {
+                        $teacher = null;
+                    }
+                }
             }
 
             if (!$teacher) {
@@ -1242,36 +1170,7 @@ class SkDocumentController extends Controller
                 }
             }
 
-            // NIM uniqueness validation: reject if NIM is already assigned to a different teacher
-            if (!empty($teacherData['nomor_induk_maarif'])) {
-                $existingNimTeacher = Teacher::withoutTenantScope()
-                    ->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])
-                    ->where('id', '!=', $teacher?->id ?? 0)
-                    ->whereNull('deleted_at')
-                    ->first();
 
-                if ($existingNimTeacher) {
-                    $seq++;
-                    $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                    SkDocument::create([
-                        'nomor_sk'         => $nomorSk,
-                        'nama'             => $doc['nama'],
-                        'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
-                        'unit_kerja'       => $doc['unit_kerja'] ?? null,
-                        'school_id'        => $schoolId,
-                        'status'           => 'rejected',
-                        'rejection_reason' => 'NIM sudah digunakan oleh guru lain.',
-                        'created_by'       => $request->user()->email,
-                        'tanggal_penetapan'=> now()->format('Y-m-d'),
-                    ]);
-                    $skipped++;
-                    $rejectedRows[] = [
-                        'nama'   => $doc['nama'] ?? 'unknown',
-                        'alasan' => 'NIM sudah digunakan oleh guru lain.',
-                    ];
-                    continue;
-                }
-            }
 
             if ($teacher) {
                 // Auto-fill NIM & TMT from existing teacher data if not provided in Excel

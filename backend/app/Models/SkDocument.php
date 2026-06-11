@@ -13,7 +13,7 @@ class SkDocument extends Model
     use HasFactory, SoftDeletes, AuditLogTrait, HasTenantScope;
 
     protected $fillable = [
-        'nomor_sk', 'jenis_sk', 'teacher_id', 'nama',
+        'nomor_sk', 'jenis_sk', 'jenis_pengajuan', 'teacher_id', 'nama',
         'jabatan', 'unit_kerja', 'school_id', 'tanggal_penetapan',
         'status', 'file_url', 'surat_permohonan_url', 'qr_code',
         'tahun_ajaran', 'revision_status', 'revision_reason', 'revision_data',

@@ -78,7 +78,7 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.isMaintenance) {
-      import('react-hot-toast').then(({ default: toast }) => {
+      import('sonner').then(({ toast }) => {
         toast.error("⚠️ MAINTENANCE: " + error.message, { id: 'maintenance', duration: 4000 });
       });
       return Promise.reject(error);

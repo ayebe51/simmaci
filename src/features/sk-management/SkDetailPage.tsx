@@ -291,6 +291,18 @@ export default function SkDetailPage() {
         </div>
       </div>
 
+      {skDoc.status === 'rejected' && skDoc.rejection_reason && (
+        <div className="bg-rose-50 border border-rose-200 p-6 rounded-[2rem] flex items-center gap-4">
+          <div className="bg-rose-100 p-3 rounded-2xl text-rose-600">
+            <XCircle className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-rose-900 uppercase tracking-tight">Pengajuan Ditolak</p>
+            <p className="text-xs text-rose-700/80 font-medium">{skDoc.rejection_reason}</p>
+          </div>
+        </div>
+      )}
+
       {skDoc.revision_status === 'revision_pending' && (
         <div className="bg-amber-50 border border-amber-200 p-6 rounded-[2rem] flex items-center justify-between">
           <div className="flex items-center gap-4">

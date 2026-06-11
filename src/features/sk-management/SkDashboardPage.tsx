@@ -414,7 +414,14 @@ export default function SkDashboardPage() {
                               )}
                           </TableCell>
                           <TableCell>
-                              {renderStatusBadge(item.status || 'draft')}
+                              <div className="flex flex-col gap-1.5 items-start">
+                                {renderStatusBadge(item.status || 'draft')}
+                                {status === 'rejected' && item.rejection_reason && (
+                                  <div className="text-[10px] text-rose-500 font-bold max-w-[150px] leading-tight">
+                                    {item.rejection_reason}
+                                  </div>
+                                )}
+                              </div>
                           </TableCell>
                           <TableCell className="text-center">
                               {item.surat_permohonan_url ? (

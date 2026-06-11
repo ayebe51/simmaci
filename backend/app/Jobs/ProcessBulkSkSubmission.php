@@ -67,7 +67,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 if ($this->isPns($doc)) {
                     $seq++;
                     $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                    SkDocument::create([
+                    $createdDoc = SkDocument::create([
                         'nomor_sk'         => $nomorSk,
                         'nama'             => $doc['nama'],
                         'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'PNS',
@@ -77,6 +77,18 @@ class ProcessBulkSkSubmission implements ShouldQueue
                         'rejection_reason' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
                         'created_by'       => $this->userEmail,
                         'tanggal_penetapan'=> now()->format('Y-m-d'),
+                    ]);
+                    \App\Models\ApprovalHistory::create([
+                        'school_id' => $this->userSchoolId,
+                        'document_id' => $createdDoc->id,
+                        'document_type' => 'sk_document',
+                        'action' => 'reject',
+                        'from_status' => 'pending',
+                        'to_status' => 'rejected',
+                        'performed_by' => null,
+                        'performed_at' => now(),
+                        'comment' => 'Ditolak otomatis oleh sistem',
+                        'metadata' => ['rejection_reason' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.'],
                     ]);
                     $skipped++;
                     $rejectedRows[] = [
@@ -133,7 +145,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 if ($existingPending) {
                     $seq++;
                     $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                    SkDocument::create([
+                    $createdDoc = SkDocument::create([
                         'nomor_sk'         => $nomorSk,
                         'nama'             => $doc['nama'],
                         'jenis_sk'         => $jenisSk,
@@ -143,6 +155,18 @@ class ProcessBulkSkSubmission implements ShouldQueue
                         'rejection_reason' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk}).",
                         'created_by'       => $this->userEmail,
                         'tanggal_penetapan'=> now()->format('Y-m-d'),
+                    ]);
+                    \App\Models\ApprovalHistory::create([
+                        'school_id' => $schoolId,
+                        'document_id' => $createdDoc->id,
+                        'document_type' => 'sk_document',
+                        'action' => 'reject',
+                        'from_status' => 'pending',
+                        'to_status' => 'rejected',
+                        'performed_by' => null,
+                        'performed_at' => now(),
+                        'comment' => 'Ditolak otomatis oleh sistem',
+                        'metadata' => ['rejection_reason' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk})."],
                     ]);
                     $skipped++;
                     $rejectedRows[] = [
@@ -265,7 +289,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     if (empty(trim((string)($finalNim ?? ''))) && empty(trim((string)($finalTmt ?? '')))) {
                         $seq++;
                         $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                        SkDocument::create([
+                        $createdDoc = SkDocument::create([
                             'nomor_sk'         => $nomorSk,
                             'nama'             => $doc['nama'],
                             'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
@@ -275,6 +299,18 @@ class ProcessBulkSkSubmission implements ShouldQueue
                             'rejection_reason' => 'Guru sudah terdaftar tetapi NIM dan TMT belum terisi. Lengkapi data guru terlebih dahulu.',
                             'created_by'       => $this->userEmail,
                             'tanggal_penetapan'=> now()->format('Y-m-d'),
+                        ]);
+                        \App\Models\ApprovalHistory::create([
+                            'school_id' => $schoolId,
+                            'document_id' => $createdDoc->id,
+                            'document_type' => 'sk_document',
+                            'action' => 'reject',
+                            'from_status' => 'pending',
+                            'to_status' => 'rejected',
+                            'performed_by' => null,
+                            'performed_at' => now(),
+                            'comment' => 'Ditolak otomatis oleh sistem',
+                            'metadata' => ['rejection_reason' => 'Guru sudah terdaftar tetapi NIM dan TMT belum terisi. Lengkapi data guru terlebih dahulu.'],
                         ]);
                         $skipped++;
                         $rejectedRows[] = [

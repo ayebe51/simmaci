@@ -990,7 +990,7 @@ class SkDocumentController extends Controller
             if ($this->isPns($doc)) {
                 $seq++;
                 $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                SkDocument::create([
+                $createdDoc = SkDocument::create([
                     'nomor_sk'         => $nomorSk,
                     'nama'             => $doc['nama'],
                     'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'PNS',
@@ -1000,6 +1000,18 @@ class SkDocumentController extends Controller
                     'rejection_reason' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
                     'created_by'       => $request->user()->email,
                     'tanggal_penetapan'=> now()->format('Y-m-d'),
+                ]);
+                \App\Models\ApprovalHistory::create([
+                    'school_id' => $createdDoc->school_id,
+                    'document_id' => $createdDoc->id,
+                    'document_type' => 'sk_document',
+                    'action' => 'reject',
+                    'from_status' => 'pending',
+                    'to_status' => 'rejected',
+                    'performed_by' => null,
+                    'performed_at' => now(),
+                    'comment' => 'Ditolak otomatis oleh sistem',
+                    'metadata' => ['rejection_reason' => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.'],
                 ]);
                 $skipped++;
                 $rejectedRows[] = [
@@ -1057,7 +1069,7 @@ class SkDocumentController extends Controller
             if ($existingPending) {
                 $seq++;
                 $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                \App\Models\SkDocument::create([
+                $createdDoc = \App\Models\SkDocument::create([
                     'nomor_sk'         => $nomorSk,
                     'nama'             => $doc['nama'],
                     'jenis_sk'         => $jenisSk,
@@ -1067,6 +1079,18 @@ class SkDocumentController extends Controller
                     'rejection_reason' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk}).",
                     'created_by'       => $request->user()->email,
                     'tanggal_penetapan'=> now()->format('Y-m-d'),
+                ]);
+                \App\Models\ApprovalHistory::create([
+                    'school_id' => $schoolId,
+                    'document_id' => $createdDoc->id,
+                    'document_type' => 'sk_document',
+                    'action' => 'reject',
+                    'from_status' => 'pending',
+                    'to_status' => 'rejected',
+                    'performed_by' => null,
+                    'performed_at' => now(),
+                    'comment' => 'Ditolak otomatis oleh sistem',
+                    'metadata' => ['rejection_reason' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk})."],
                 ]);
                 $skipped++;
                 $rejectedRows[] = [

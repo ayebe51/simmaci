@@ -205,9 +205,9 @@ export function BulkSkSubmission() {
               toast.error("Format tidak didukung. Surat permohonan harus berupa file PDF.");
               return;
           }
-          if (file.size > 2 * 1024 * 1024) {
+          if (file.size > 5 * 1024 * 1024) {
               e.target.value = "";
-              toast.error("Ukuran file surat permohonan maksimal 2MB.");
+              toast.error("Ukuran file surat permohonan maksimal 5MB.");
               return;
           }
           setSuratPermohonanFile(file);

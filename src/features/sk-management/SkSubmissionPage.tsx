@@ -159,9 +159,9 @@ export default function SkSubmissionPage() {
         e.target.value = "";
         return toast.error("Format tidak didukung. Surat permohonan harus berupa file PDF.");
       }
-      if (file.size > 2 * 1024 * 1024) {
+      if (file.size > 5 * 1024 * 1024) {
         e.target.value = "";
-        return toast.error("Ukuran file maksimal 2MB.");
+        return toast.error("Ukuran file maksimal 5MB.");
       }
       setSelectedFile(file)
       toast.success(`File terpilih: ${file.name}`)

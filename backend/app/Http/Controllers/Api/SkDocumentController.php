@@ -1038,6 +1038,44 @@ class SkDocumentController extends Controller
                 $schoolId = $schoolCache[$doc['unit_kerja']];
             }
 
+            // --- Duplicate submission guard ---
+            $nowYear  = (int) now()->format('Y');
+            $activeTahunAjaranBulk = "{$nowYear}/" . ($nowYear + 1);
+
+            $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
+            
+            $duplicateQuery = \App\Models\SkDocument::where('nama', $doc['nama'])
+                ->where('jenis_sk', $jenisSk)
+                ->where('school_id', $schoolId)
+                ->whereIn('status', ['pending', 'draft'])
+                ->where(function ($q) use ($activeTahunAjaranBulk) {
+                    $q->where('tahun_ajaran', $activeTahunAjaranBulk)
+                      ->orWhereNull('tahun_ajaran');
+                });
+
+            $existingPending = $duplicateQuery->first();
+            if ($existingPending) {
+                $seq++;
+                $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                \App\Models\SkDocument::create([
+                    'nomor_sk'         => $nomorSk,
+                    'nama'             => $doc['nama'],
+                    'jenis_sk'         => $jenisSk,
+                    'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                    'school_id'        => $schoolId,
+                    'status'           => 'rejected',
+                    'rejection_reason' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk}).",
+                    'created_by'       => $request->user()->email,
+                    'tanggal_penetapan'=> now()->format('Y-m-d'),
+                ]);
+                $skipped++;
+                $rejectedRows[] = [
+                    'nama'   => $doc['nama'] ?? 'unknown',
+                    'alasan' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk}).",
+                ];
+                continue;
+            }
+
             // Build teacher data — only include fields that are explicitly provided in the
             // uploaded Excel row. Fields absent from the file must NOT overwrite existing
             // database values (e.g. status, is_certified, is_verified, pdpkpnu).

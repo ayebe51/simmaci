@@ -117,8 +117,8 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
         { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
         { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
-        { label: "Pengajuan NUPTK", href: "/dashboard/sdm/nuptk/pengajuan", icon: FileText },
-        { label: "Persetujuan NUPTK", href: "/dashboard/sdm/nuptk/persetujuan", icon: Gavel },
+        // { label: "Pengajuan NUPTK", href: "/dashboard/sdm/nuptk/pengajuan", icon: FileText },
+        // { label: "Persetujuan NUPTK", href: "/dashboard/sdm/nuptk/persetujuan", icon: Gavel },
         { label: "Laporan Guru", href: "/dashboard/reports", icon: FileBarChart },
       ]
     },

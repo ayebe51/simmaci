@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Search, Activity, CalendarDays, RefreshCw } from "lucide-react";
+import { Search, Activity, CalendarDays, RefreshCw, Download } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export default function ActivityLogPage() {
@@ -36,6 +36,24 @@ export default function ActivityLogPage() {
             case 'updated': return 'bg-blue-100 text-blue-800';
             case 'deleted': return 'bg-rose-100 text-rose-800';
             default: return 'bg-slate-100 text-slate-800';
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            const blob = await activityLogApi.export({
+                search: debouncedSearch,
+                event: eventFilter === 'all' ? undefined : eventFilter,
+            });
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Activity_Logs_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("Failed to export logs:", error);
         }
     };
 
@@ -78,6 +96,10 @@ export default function ActivityLogPage() {
                             </Select>
                             <Button variant="outline" size="icon" onClick={() => refetch()} title="Refresh Data">
                                 <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button variant="default" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={handleExport}>
+                                <Download className="h-4 w-4" />
+                                <span className="hidden sm:inline">Export CSV</span>
                             </Button>
                         </div>
                     </div>

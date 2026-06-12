@@ -450,6 +450,7 @@ export const auditApi = {
 
 export const activityLogApi = {
   list: (params?: Record<string, any>) => apiClient.get('/activity-logs', { params }).then((r) => r.data),
+  export: (params?: Record<string, any>) => apiClient.get('/activity-logs/export', { params, responseType: 'blob' }).then((r) => r.data),
 };
 
 export const approvalApi = {

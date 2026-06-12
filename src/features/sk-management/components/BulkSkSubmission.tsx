@@ -53,7 +53,7 @@ export function BulkSkSubmission() {
     const HEADER_MAP: Record<string, string[]> = {
       "nama": ["nama lengkap", "nama guru", "nama"],
       "tempat_lahir": ["tempat lahir", "tmp lahir"],
-      "tanggal_lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir"],
+      "tanggal_lahir": ["tanggal lahir", "tgl lahir", "tgl. lahir", "tempat, tanggal lahir", "ttl", "tempat, tgl lahir"],
       "nomor_induk_maarif": ["nomor induk maarif", "nim", "n.i.m", "n.i.m.", "niy", "nigk", "n.i.y", "maarif", "nomor induk ma'arif", "nomor induk m", "no. induk maarif", "no. induk", "no induk ma'arif", "nok", "id guru"],
       "nip": ["nip", "nomor induk pegawai", "nrp", "nik", "pegid", "no. pegawai"],
       "nuptk": ["nuptk"],
@@ -146,21 +146,30 @@ export function BulkSkSubmission() {
           const obj: any = {}
           Object.entries(colMap).forEach(([key, idx]) => {
             let val = row[idx]
-            if (key.includes('tanggal') || key === 'tmt') {
-               if (typeof val === 'number') {
-                  if (val > 1000 && val <= 3000) {
-                     // If it's just a year number (e.g., 2020), set it to July 1st of that year
-                     val = `${val}-07-01`
-                  } else {
-                     // Excel serial date number → ISO string
-                     const d = new Date((val - 25569) * 86400 * 1000)
-                     val = d.toISOString().split('T')[0]
-                  }
-               } else if (typeof val === 'string' && val.trim()) {
-                  // Normalize Indonesian month names to English before parsing
-                  val = parseIndonesianDate(val.trim())
-               }
-            }
+             if (key.includes('tanggal') || key === 'tmt') {
+                if (typeof val === 'number') {
+                   if (val > 1000 && val <= 3000) {
+                      // If it's just a year number (e.g., 2020), set it to July 1st of that year
+                      val = `${val}-07-01`
+                   } else {
+                      // Excel serial date number → ISO string
+                      const d = new Date((val - 25569) * 86400 * 1000)
+                      val = d.toISOString().split('T')[0]
+                   }
+                } else if (typeof val === 'string' && val.trim()) {
+                   let dateStr = val.trim();
+                   // Toleransi: Jika Tempat dan Tanggal Lahir digabung (misal: "Cilacap, 31 Desember 1988")
+                   if (key === 'tanggal_lahir' && dateStr.includes(',')) {
+                      const parts = dateStr.split(',');
+                      if (parts.length >= 2) {
+                          if (!obj['tempat_lahir']) obj['tempat_lahir'] = parts[0].trim();
+                          dateStr = parts.slice(1).join(',').trim();
+                      }
+                   }
+                   // Normalize Indonesian month names to English before parsing
+                   val = parseIndonesianDate(dateStr)
+                }
+             }
             obj[key] = val
           })
           return obj

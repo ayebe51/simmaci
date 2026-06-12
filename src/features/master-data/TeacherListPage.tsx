@@ -497,6 +497,17 @@ export default function TeacherListPage() {
                     </div>
 
                     <div className="grid grid-cols-[130px_1fr] items-center gap-4">
+                        <Label className="text-right text-slate-600 font-bold text-sm">Jenis Kelamin</Label>
+                        <Select value={formData.jenis_kelamin || ""} onValueChange={v => setFormData({...formData, jenis_kelamin: v})}>
+                            <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Pilih Jenis Kelamin" /></SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                                <SelectItem value="L">Laki-laki (L)</SelectItem>
+                                <SelectItem value="P">Perempuan (P)</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid grid-cols-[130px_1fr] items-center gap-4">
                         <Label className="text-right text-slate-600 font-bold text-sm">Pendidikan</Label>
                         <Select value={formData.pendidikan_terakhir} onValueChange={v => setFormData({...formData, pendidikan_terakhir: v})}>
                             <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Pilih Pendidikan" /></SelectTrigger>

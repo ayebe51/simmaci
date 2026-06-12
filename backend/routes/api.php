@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\FileUploadController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\DataAuditController;
+use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\ApprovalHistoryController;
 use App\Http\Controllers\Api\TeacherMutationController;
 use App\Http\Controllers\Api\SkTemplateController;
@@ -272,6 +273,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Data Audit
     Route::post('data-audit/health-check', [DataAuditController::class, 'runHealthCheck']);
+    Route::get('activity-logs', [ActivityLogController::class, 'index']);
 
     // ── Meetings read-only (all authenticated users, operators see filtered results) ──
     Route::get('meetings', [MeetingController::class, 'index']);

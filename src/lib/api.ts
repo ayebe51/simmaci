@@ -443,7 +443,13 @@ export const mutationApi = {
 // ── Audit API ──
 
 export const auditApi = {
-  healthCheck: () => apiClient.get('/data-audit').then((r) => r.data),
+  healthCheck: () => apiClient.get('/data-audit/health-check').then((r) => r.data), // Corrected path to match routes
+};
+
+// ── Activity Logs API ──
+
+export const activityLogApi = {
+  list: (params?: Record<string, any>) => apiClient.get('/activity-logs', { params }).then((r) => r.data),
 };
 
 export const approvalApi = {

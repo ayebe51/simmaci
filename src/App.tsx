@@ -37,6 +37,7 @@ const SchoolDetailPage = lazy(() => import("./features/master-data/SchoolDetailP
 const TeacherListPage = lazy(() => import("./features/master-data/TeacherListPage"))
 const StudentListPage = lazy(() => import("./features/master-data/StudentListPage"))
 const DataAuditPage = lazy(() => import("@/features/master-data/DataAuditPage"))
+const ActivityLogPage = lazy(() => import("@/features/master-data/ActivityLogPage"))
 
 // ── Student Statistics ────────────────────────────────────────────────────────
 const StudentStatisticsPage = lazy(() => import("./features/student-statistics/StudentStatisticsPage"))
@@ -189,6 +190,7 @@ export default function App() {
                           <Route path="sk-revisions" element={<SkRevisionListPage />} />
                           <Route path="generator" element={<SkGeneratorPage />} />
                           <Route path="audit" element={<DataAuditPage />} />
+                          <Route path="activity-logs" element={<ActivityLogPage />} />
                           <Route path="settings" element={<SettingsPage />} />
                           <Route path="sk-templates" element={<SkTemplateManagementPage />} />
                           <Route path="change-password" element={<ChangePasswordPage />} />

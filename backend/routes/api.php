@@ -274,6 +274,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Data Audit
     Route::post('data-audit/health-check', [DataAuditController::class, 'runHealthCheck']);
     Route::get('activity-logs', [ActivityLogController::class, 'index']);
+    Route::get('activity-logs/export', [ActivityLogController::class, 'export']);
 
     // ── Meetings read-only (all authenticated users, operators see filtered results) ──
     Route::get('meetings', [MeetingController::class, 'index']);

@@ -39,4 +39,58 @@ class ActivityLogController extends Controller
 
         return response()->json($logs);
     }
+
+    public function export(Request $request)
+    {
+        $user = $request->user();
+        
+        $query = ActivityLog::with(['causer', 'school']);
+
+        if ($user->isOperator() && $user->school_id) {
+            $query->where('school_id', $user->school_id);
+        }
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('description', 'like', "%{$search}%")
+                  ->orWhere('log_name', 'like', "%{$search}%")
+                  ->orWhere('event', 'like', "%{$search}%");
+            });
+        }
+        
+        if ($request->filled('event')) {
+            $query->where('event', $request->event);
+        }
+
+        $logs = $query->latest()->get();
+
+        $filename = "Activity_Logs_" . date('Ymd_His') . ".csv";
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($logs) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Tanggal', 'Pelaku', 'Role', 'Sekolah', 'Event', 'Deskripsi Aktivitas']);
+
+            foreach ($logs as $log) {
+                fputcsv($file, [
+                    $log->created_at->format('Y-m-d H:i:s'),
+                    $log->causer ? $log->causer->name : 'System',
+                    $log->causer ? $log->causer->role : '-',
+                    $log->school ? $log->school->nama : '-',
+                    $log->event ?? 'System',
+                    $log->description
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

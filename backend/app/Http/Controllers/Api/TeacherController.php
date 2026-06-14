@@ -275,9 +275,25 @@ class TeacherController extends Controller
     public function deduplicate(Request $request): JsonResponse
     {
         $isDryRun = $request->boolean('dry_run', false);
+        $user = $request->user();
+
+        // Cek jika user adalah operator tapi tidak punya school_id
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if (!$user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki akses ke sekolah manapun.', 403);
+            }
+        }
+
+        // Helper untuk membatasi query berdasarkan role
+        $applyRoleFilter = function ($query) use ($user) {
+            if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+                $query->where('school_id', $user->school_id);
+            }
+            return $query;
+        };
 
         // 1. Deduplicate based on NIM mistakenly placed in NIP
-        $oldTeachers = Teacher::withoutTenantScope()
+        $oldTeachers = $applyRoleFilter(Teacher::withoutTenantScope())
             ->where('nip', 'like', '1134%')
             ->whereRaw("LENGTH(nip) = 9")
             ->where(function($q) {
@@ -293,7 +309,7 @@ class TeacherController extends Controller
             $oldTeacherIds = $oldTeachers->pluck('id')->toArray();
             
             // Fetch all matching new teachers at once (Avoid N+1 timeout)
-            $newTeachersByNim = Teacher::withoutTenantScope()
+            $newTeachersByNim = $applyRoleFilter(Teacher::withoutTenantScope())
                 ->whereIn('nomor_induk_maarif', $nips)
                 ->whereNotIn('id', $oldTeacherIds)
                 ->get()
@@ -352,7 +368,7 @@ class TeacherController extends Controller
         }
 
         // 2. Deduplicate based on similar names within the SAME school (e.g. with vs without degree)
-        $schools = Teacher::withoutTenantScope()
+        $schools = $applyRoleFilter(Teacher::withoutTenantScope())
             ->select('school_id')
             ->distinct()
             ->whereNotNull('school_id')
@@ -441,7 +457,7 @@ class TeacherController extends Controller
 
         // 3. CLEANUP: Kosongkan NIP yang isinya sebenarnya adalah NIM (1134... 9 digit)
         if (!$isDryRun) {
-            Teacher::withoutTenantScope()
+            $applyRoleFilter(Teacher::withoutTenantScope())
                 ->where('nip', 'like', '1134%')
                 ->whereRaw("LENGTH(nip) = 9")
                 ->update(['nip' => null]);

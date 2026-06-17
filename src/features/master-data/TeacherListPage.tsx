@@ -670,8 +670,20 @@ export default function TeacherListPage() {
                     if (res.previews) allPreviews.push(...res.previews)
                 }
                 
-                // Re-index to ensure unique IDs for frontend table selection
-                allPreviews.forEach((p, idx) => p.id = idx)
+                // Cek NIM ganda di dalam file Excel itu sendiri
+                const nimSet = new Set<string>();
+                allPreviews.forEach((p, idx) => {
+                    p.id = idx;
+                    if (p.nim) {
+                        if (nimSet.has(p.nim)) {
+                            p.status = 'KONFLIK_INTERNAL';
+                            p.message = 'NIM ganda terdeteksi di dalam file Excel yang sama. Data ini akan diabaikan.';
+                            p.action = 'SKIP';
+                        } else {
+                            nimSet.add(p.nim);
+                        }
+                    }
+                });
                 
                 setPreviews(allPreviews)
                 setIsImportModalOpen(false)

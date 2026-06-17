@@ -37,10 +37,10 @@ export default function ImportPreviewModal({
 }: ImportPreviewModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
-  // Select all by default when previews change
+  // Select all by default when previews change, except SKIP actions
   useEffect(() => {
     if (isOpen && previews.length > 0) {
-      setSelectedIds(new Set(previews.map(p => p.id)))
+      setSelectedIds(new Set(previews.filter(p => p.action !== 'SKIP').map(p => p.id)))
     }
   }, [isOpen, previews])
 
@@ -52,10 +52,11 @@ export default function ImportPreviewModal({
   }
 
   const toggleAll = () => {
-    if (selectedIds.size === previews.length) {
+    const validPreviews = previews.filter(p => p.action !== 'SKIP')
+    if (selectedIds.size === validPreviews.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(previews.map(p => p.id)))
+      setSelectedIds(new Set(validPreviews.map(p => p.id)))
     }
   }
 
@@ -74,6 +75,8 @@ export default function ImportPreviewModal({
         return <Badge className="bg-orange-500">Ambil Alih NIM</Badge>
       case 'KONFLIK':
         return <Badge className="bg-red-500">Konflik</Badge>
+      case 'KONFLIK_INTERNAL':
+        return <Badge className="bg-red-700">Ganda di File</Badge>
       case 'MANUAL':
         return <Badge className="bg-slate-500">Manual</Badge>
       default:
@@ -113,7 +116,7 @@ export default function ImportPreviewModal({
             </TableHeader>
             <TableBody>
               {previews.map(row => (
-                <TableRow key={row.id} className={row.status === 'KONFLIK' ? 'bg-red-50/50' : 'hover:bg-slate-50/50'}>
+                <TableRow key={row.id} className={(row.status === 'KONFLIK' || row.status === 'KONFLIK_INTERNAL') ? 'bg-red-50/50' : 'hover:bg-slate-50/50'}>
                   <TableCell className="text-center">
                     <Checkbox 
                       checked={selectedIds.has(row.id)}

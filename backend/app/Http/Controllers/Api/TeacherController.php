@@ -1496,12 +1496,33 @@ class TeacherController extends Controller
                         ->toArray();
                 }
 
-                $matchResult = $this->matchingService->determineStatus($dbMatches, $parsedData);
+                if (!empty($dbMatches)) {
+                    $matchResult = $this->matchingService->determineStatus($dbMatches, $parsedData);
+                } else {
+                    // NIM not found. Try to find an existing teacher without NIM.
+                    $nameMatchQuery = Teacher::withoutTenantScope()->whereNull('nomor_induk_maarif');
+                    if (!empty($parsedData['school_id'])) {
+                         $nameMatchQuery->where('school_id', $parsedData['school_id']);
+                    } else {
+                         // Broad match on the first 4 characters of the name to reduce DB load
+                         $prefix = substr($namaFile, 0, 4);
+                         if (strlen($prefix) >= 3) {
+                             $nameMatchQuery->whereRaw('LOWER(nama) LIKE ?', [strtolower($prefix).'%']);
+                         }
+                    }
+                    $potentialMatches = $nameMatchQuery->get()->toArray();
+                    $matchResult = $this->matchingService->determineStatusByName($potentialMatches, $parsedData);
+                }
                 
                 $dbNama = '';
                 $dbUnit = '';
                 if ($matchResult['target_id']) {
+                    // Match could come from dbMatches or potentialMatches
                     $targetRow = collect($dbMatches)->firstWhere('id', $matchResult['target_id']);
+                    if (!$targetRow && isset($potentialMatches)) {
+                        $targetRow = collect($potentialMatches)->firstWhere('id', $matchResult['target_id']);
+                    }
+
                     if ($targetRow) {
                         $dbNama = $targetRow['nama'];
                         $dbUnit = $targetRow['unit_kerja'];

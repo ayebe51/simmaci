@@ -25,6 +25,7 @@ import { teacherApi, schoolApi } from "@/lib/api"
 import ExcelImportModal from "./components/ExcelImportModal"
 import TeacherPhotoUpload from "./components/TeacherPhotoUpload"
 import KtaCard from "./components/KtaCard"
+import ImportPreviewModal from "./components/ImportPreviewModal"
 import * as XLSX from "xlsx"
 
 interface Teacher {
@@ -144,6 +145,11 @@ export default function TeacherListPage() {
   const [isDeduplicateOpen, setIsDeduplicateOpen] = useState(false)
   const [dryRunResult, setDryRunResult] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<Teacher | null>(null)
+  
+  // Import Preview States
+  const [previews, setPreviews] = useState<any[]>([])
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
+  const [isCommitting, setIsCommitting] = useState(false)
 
   // Account Generation States
   const [isGenerateOpen, setIsGenerateOpen] = useState(false)
@@ -654,32 +660,53 @@ export default function TeacherListPage() {
         templateUrl="/TEMPLATE_IMPORT_DATA_GURU_V4.xlsx"
         onImport={async (data) => {
             try {
-                // Chunk import to avoid timeout on large datasets
-                const CHUNK_SIZE = 25
-                let totalCreated = 0
-                const allErrors: any[] = []
-
+                // Fetch previews
+                const CHUNK_SIZE = 50
+                const allPreviews: any[] = []
                 for (let i = 0; i < data.length; i += CHUNK_SIZE) {
                     const chunk = data.slice(i, i + CHUNK_SIZE)
-                    if (chunk.length === 0) continue // skip empty chunks
-                    const res = await teacherApi.import(chunk as any[])
-                    totalCreated += res.created || 0
-                    if (res.errors) allErrors.push(...res.errors)
+                    if (chunk.length === 0) continue
+                    const res = await teacherApi.importPreview(chunk as any[])
+                    if (res.previews) allPreviews.push(...res.previews)
                 }
-
-                queryClient.invalidateQueries({ queryKey: ['teachers'] })
-                if (allErrors.length > 0) {
-                    const firstError = allErrors[0]?.error || "Unknown error"
-                    toast.warning(`Berhasil: ${totalCreated}, Gagal: ${allErrors.length}. Error pertama: ${firstError}`, { duration: 6000 })
-                } else {
-                    toast.success(`Berhasil mengimpor ${totalCreated} data guru!`)
-                }
+                
+                // Re-index to ensure unique IDs for frontend table selection
+                allPreviews.forEach((p, idx) => p.id = idx)
+                
+                setPreviews(allPreviews)
                 setIsImportModalOpen(false)
+                setIsPreviewModalOpen(true)
             } catch (e: any) {
-                const detail = e.response?.data?.message
-                    || (e.response?.data?.errors && JSON.stringify(e.response.data.errors))
-                    || e.message
-                toast.error("Gagal import: " + detail)
+                const detail = e.response?.data?.message || e.message
+                toast.error("Gagal memproses preview import: " + detail)
+            }
+        }}
+      />
+
+      <ImportPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        previews={previews}
+        isCommitting={isCommitting}
+        onCommit={async (selectedRows) => {
+            setIsCommitting(true)
+            try {
+                const CHUNK_SIZE = 50
+                let lastSummary = ""
+                for (let i = 0; i < selectedRows.length; i += CHUNK_SIZE) {
+                    const chunk = selectedRows.slice(i, i + CHUNK_SIZE)
+                    if (chunk.length === 0) continue
+                    const res = await teacherApi.importCommit(chunk)
+                    if (res.summary) lastSummary = res.summary
+                }
+                queryClient.invalidateQueries({ queryKey: ['teachers'] })
+                toast.success(lastSummary || "Berhasil menyimpan data!")
+                setIsPreviewModalOpen(false)
+            } catch (e: any) {
+                const detail = e.response?.data?.message || e.message
+                toast.error("Gagal menyimpan import: " + detail)
+            } finally {
+                setIsCommitting(false)
             }
         }}
       />

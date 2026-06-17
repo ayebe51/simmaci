@@ -159,6 +159,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         
         Route::post('teachers/import', [TeacherController::class, 'import']);
+        Route::post('teachers/import/preview', [TeacherController::class, 'importPreview']);
+        Route::post('teachers/import/commit', [TeacherController::class, 'importCommit']);
         Route::post('teachers/deduplicate', [TeacherController::class, 'deduplicate']);
         // NIM routes must be registered before apiResource to avoid {teacher} wildcard conflict
         Route::get('teachers/nim/generate', [TeacherController::class, 'previewNim']);

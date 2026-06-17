@@ -69,7 +69,7 @@ class MatchingService
     {
         if (empty($dbMatches)) {
             return [
-                'status' => 'BARU',
+                'status' => 'INSERT_BARU',
                 'action' => 'INSERT',
                 'target_id' => null,
                 'confidence' => 0,
@@ -143,6 +143,62 @@ class MatchingService
             'target_id' => $bestMatch['id'] ?? null,
             'confidence' => $highestScore,
             'message' => 'Data ditemukan tapi nama/unit sedikit berbeda. Harap tinjau manual.'
+        ];
+    }
+
+    /**
+     * Determine status when NIM is NOT found in the database.
+     * We try to find a teacher with a matching name & unit who does NOT have a NIM yet.
+     */
+    public function determineStatusByName(array $potentialMatches, array $fileData): array
+    {
+        if (empty($potentialMatches)) {
+            return [
+                'status' => 'INSERT_BARU',
+                'action' => 'INSERT',
+                'target_id' => null,
+                'confidence' => 0,
+                'message' => 'NIM tidak ditemukan dan tidak ada nama yang cocok. Akan ditambahkan sebagai guru baru.'
+            ];
+        }
+
+        $bestMatch = null;
+        $highestScore = -1;
+        $bestMatchDetails = [];
+
+        foreach ($potentialMatches as $dbRecord) {
+            $scoreDetails = $this->calculateMatchScore(
+                $fileData['nama'] ?? '',
+                $dbRecord['nama'] ?? '',
+                $fileData['unit_kerja'] ?? '',
+                $dbRecord['unit_kerja'] ?? ''
+            );
+
+            if ($scoreDetails['total_score'] > $highestScore) {
+                $highestScore = $scoreDetails['total_score'];
+                $bestMatch = $dbRecord;
+                $bestMatchDetails = $scoreDetails;
+            }
+        }
+
+        // If we found a very good match (Name > 80% and Unit > 60%)
+        if ($bestMatchDetails['name_similarity'] > 80 && $bestMatchDetails['unit_similarity'] > 60) {
+            return [
+                'status' => 'UPDATE_AMAN',
+                'action' => 'UPDATE',
+                'target_id' => $bestMatch['id'] ?? null,
+                'confidence' => $highestScore,
+                'message' => 'NIM baru akan ditambahkan ke data guru yang sudah ada (berdasarkan kecocokan nama & unit).'
+            ];
+        }
+
+        // Otherwise, no confident match, insert as new
+        return [
+            'status' => 'INSERT_BARU',
+            'action' => 'INSERT',
+            'target_id' => null,
+            'confidence' => 0,
+            'message' => 'NIM tidak ditemukan. Tidak ada nama yang cukup mirip, akan dibuat data baru.'
         ];
     }
 

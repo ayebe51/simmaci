@@ -30,7 +30,7 @@ RUN echo "VITE_API_URL=${VITE_API_URL}" > .env.production && \
     echo "VITE_SENTRY_DSN=${VITE_SENTRY_DSN}" >> .env.production
 
 # Build the app (Vite production build)
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=768" npm run build
 
 # Stage 2: Serve static files with Nginx
 FROM nginx:alpine

@@ -369,41 +369,22 @@ class TeacherController extends Controller
             }
         }
 
-        // 2. Deduplicate based on similar names within the SAME unit_kerja (e.g. with vs without degree)
-        $units = $applyRoleFilter(Teacher::withoutTenantScope())
-            ->select('unit_kerja')
-            ->distinct()
-            ->whereNotNull('unit_kerja')
-            ->where('unit_kerja', '!=', '')
-            ->pluck('unit_kerja');
-
-        foreach ($units as $unitKerja) {
-            $schoolTeachers = Teacher::withoutTenantScope()
-                ->where('unit_kerja', $unitKerja)
-                ->orderBy('created_at', 'asc') // Keep the oldest entry by default
-                ->get();
-
-            $processedIds = [];
-
-            foreach ($schoolTeachers as $t1) {
+        // Function to process a group of teachers and find duplicates
+        $processDuplicateGroup = function($teachers) use (&$processedIds, &$mergedCount, &$dryRunSamples, $isDryRun, $manualSelections, $request) {
+            foreach ($teachers as $t1) {
                 if (in_array($t1->id, $processedIds)) continue;
 
-                // Clean name 1 (strip everything after comma to ignore degrees, uppercase, remove spaces)
                 $name1 = explode(',', $t1->nama)[0];
                 $clean1 = preg_replace('/[^A-Z]/', '', strtoupper($name1));
-                
                 if (strlen($clean1) < 3) continue;
 
-                foreach ($schoolTeachers as $t2) {
+                foreach ($teachers as $t2) {
                     if ($t1->id === $t2->id || in_array($t2->id, $processedIds)) continue;
 
-                    // Clean name 2
                     $name2 = explode(',', $t2->nama)[0];
                     $clean2 = preg_replace('/[^A-Z]/', '', strtoupper($name2));
 
                     if ($clean1 === $clean2) {
-                        // We found a duplicate based on name in the same school!
-                        // Determine which one is "better" (has NIM/NUPTK/Degrees)
                         $t1HasDegrees = str_contains($t1->nama, ',');
                         $t2HasDegrees = str_contains($t2->nama, ',');
 
@@ -416,10 +397,8 @@ class TeacherController extends Controller
                             $keep = $t1->id == $manual['keep_id'] ? $t1 : $t2;
                             $drop = $t1->id == $manual['drop_id'] ? $t1 : $t2;
                         } else {
-                            // Priority: 1. Has NIM, 2. Has Degrees, 3. Has NUPTK
                             $score1 = (!empty($t1->nomor_induk_maarif) ? 10 : 0) + ($t1HasDegrees ? 5 : 0) + (!empty($t1->nuptk) ? 2 : 0);
                             $score2 = (!empty($t2->nomor_induk_maarif) ? 10 : 0) + ($t2HasDegrees ? 5 : 0) + (!empty($t2->nuptk) ? 2 : 0);
-    
                             $keep = $score1 >= $score2 ? $t1 : $t2;
                             $drop = $score1 >= $score2 ? $t2 : $t1;
                         }
@@ -439,7 +418,6 @@ class TeacherController extends Controller
                             continue;
                         }
 
-                        // Copy missing data to $keep
                         $fields = ['nomor_induk_maarif', 'nuptk', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
                         foreach ($fields as $field) {
                             if (empty($keep->$field) && !empty($drop->$field)) {
@@ -467,6 +445,41 @@ class TeacherController extends Controller
                     }
                 }
             }
+        };
+
+        $processedIds = [];
+
+        // 2a. Deduplicate based on similar names within the SAME school_id
+        $schools = $applyRoleFilter(Teacher::withoutTenantScope())
+            ->select('school_id')
+            ->distinct()
+            ->whereNotNull('school_id')
+            ->pluck('school_id');
+
+        foreach ($schools as $schoolId) {
+            $schoolTeachers = Teacher::withoutTenantScope()
+                ->where('school_id', $schoolId)
+                ->orderBy('created_at', 'asc')
+                ->get();
+            $processDuplicateGroup($schoolTeachers);
+        }
+
+        // 2b. Deduplicate based on similar names within the SAME unit_kerja (for those without school_id)
+        $units = $applyRoleFilter(Teacher::withoutTenantScope())
+            ->select('unit_kerja')
+            ->distinct()
+            ->whereNotNull('unit_kerja')
+            ->where('unit_kerja', '!=', '')
+            ->whereNull('school_id') // Avoid processing same teachers twice
+            ->pluck('unit_kerja');
+
+        foreach ($units as $unitKerja) {
+            $unitTeachers = Teacher::withoutTenantScope()
+                ->where('unit_kerja', $unitKerja)
+                ->whereNull('school_id')
+                ->orderBy('created_at', 'asc')
+                ->get();
+            $processDuplicateGroup($unitTeachers);
         }
 
         // 3. CLEANUP: Kosongkan NIP yang isinya sebenarnya adalah NIM (1134... 9 digit)

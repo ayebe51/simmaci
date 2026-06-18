@@ -217,6 +217,7 @@ export default function TeacherListPage() {
         nama: formData.nama || null,
         nuptk: formData.nuptk || null,
         nip: formData.nip || null,
+        nomor_induk_maarif: formData.nomor_induk_maarif || null,
         jenis_kelamin: formData.jenis_kelamin || null,
         tempat_lahir: formData.tempat_lahir || null,
         tanggal_lahir: formData.tanggal_lahir || null,
@@ -540,6 +541,11 @@ export default function TeacherListPage() {
                     <div className="grid grid-cols-[130px_1fr] items-center gap-4">
                         <Label className="text-right text-slate-600 font-bold text-sm">NIP</Label>
                         <Input value={formData.nip || ""} onChange={e => setFormData({...formData, nip: e.target.value})} className="h-10 rounded-xl" />
+                    </div>
+
+                    <div className="grid grid-cols-[130px_1fr] items-center gap-4">
+                        <Label className="text-right text-emerald-600 font-bold text-sm">NIM</Label>
+                        <Input placeholder="Wajib 1134..." value={formData.nomor_induk_maarif || ""} onChange={e => setFormData({...formData, nomor_induk_maarif: e.target.value})} className="h-10 rounded-xl border-emerald-200 focus:border-emerald-500 focus:ring-emerald-500" />
                     </div>
 
                     <div className="grid grid-cols-[130px_1fr] items-center gap-4">

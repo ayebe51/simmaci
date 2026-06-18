@@ -350,9 +350,9 @@ export default function TeacherListPage() {
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
           ...(isSuperAdmin || isAdminYayasan ? [
               { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
-              { label: 'Generate NIM', onClick: () => { setGenerateNimResult([]); setIsGenerateNimOpen(true) }, variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
           ] : []),
           ...(isSuperAdmin ? [
+              { label: 'Generate NIM', onClick: () => { setGenerateNimResult([]); setIsGenerateNimOpen(true) }, variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
               { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'red', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
           { label: 'Bersihkan Data Ganda', onClick: () => deduplicateDryRunMutation.mutate(), variant: 'amber', icon: <Wand2 className="h-4 w-4" />, disabled: deduplicateDryRunMutation.isPending },

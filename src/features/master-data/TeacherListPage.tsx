@@ -850,10 +850,10 @@ export default function TeacherListPage() {
             {dryRunResult?.merged_count > 0 ? (
               <div className="bg-amber-50 text-amber-900 p-3 rounded text-sm">
                 <strong>Ditemukan {dryRunResult.merged_count} data ganda yang siap digabung!</strong><br/>
-                <span className="block mt-1 mb-1 opacity-80">Beberapa contoh yang akan digabung:</span>
-                <ul className="list-disc pl-5">
+                <span className="block mt-1 mb-1 opacity-80">Daftar data yang akan digabung:</span>
+                <ul className="list-disc pl-5 max-h-60 overflow-y-auto pr-2">
                   {dryRunResult.samples?.map((s: any, i: number) => (
-                    <li key={i}>{s.old_name} <span className="text-amber-500 mx-1">→</span> <strong>{s.new_name}</strong> (NIM: {s.nim})</li>
+                    <li key={i} className="mb-1 text-xs">{s.old_name} <span className="text-amber-500 mx-1">→</span> <strong>{s.new_name}</strong> (NIM: {s.nim})</li>
                   ))}
                 </ul>
               </div>

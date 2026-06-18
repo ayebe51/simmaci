@@ -324,13 +324,11 @@ class TeacherController extends Controller
 
                 if ($newTeacher) {
                     if ($isDryRun) {
-                        if (count($dryRunSamples) < 5) {
-                            $dryRunSamples[] = [
-                                'old_name' => $oldTeacher->nama,
-                                'new_name' => $newTeacher->nama,
-                                'nim' => $newTeacher->nomor_induk_maarif
-                            ];
-                        }
+                        $dryRunSamples[] = [
+                            'old_name' => $oldTeacher->nama,
+                            'new_name' => $newTeacher->nama,
+                            'nim' => $newTeacher->nomor_induk_maarif
+                        ];
                         $mergedCount++;
                         continue;
                     }
@@ -415,13 +413,11 @@ class TeacherController extends Controller
                         $drop = $score1 >= $score2 ? $t2 : $t1;
 
                         if ($isDryRun) {
-                            if (count($dryRunSamples) < 5) {
-                                $dryRunSamples[] = [
-                                    'old_name' => $drop->nama,
-                                    'new_name' => $keep->nama,
-                                    'nim' => $keep->nomor_induk_maarif ?? $drop->nomor_induk_maarif
-                                ];
-                            }
+                            $dryRunSamples[] = [
+                                'old_name' => $drop->nama,
+                                'new_name' => $keep->nama,
+                                'nim' => $keep->nomor_induk_maarif ?? $drop->nomor_induk_maarif
+                            ];
                             $mergedCount++;
                             $processedIds[] = $drop->id;
                             continue;

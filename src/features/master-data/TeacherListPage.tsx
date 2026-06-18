@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle, Fingerprint } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
@@ -157,6 +157,11 @@ export default function TeacherListPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateResult, setGenerateResult] = useState<any[]>([])
 
+  // NIM Generation States
+  const [isGenerateNimOpen, setIsGenerateNimOpen] = useState(false)
+  const [isGeneratingNim, setIsGeneratingNim] = useState(false)
+  const [generateNimResult, setGenerateNimResult] = useState<any[]>([])
+
   const handleGenerateAccounts = async () => {
     setIsGenerating(true)
     try {
@@ -169,6 +174,26 @@ export default function TeacherListPage() {
         toast.error("Gagal generate akun: " + (err.response?.data?.message || err.message))
     } finally {
         setIsGenerating(false)
+    }
+  }
+
+  const handleGenerateNim = async () => {
+    setIsGeneratingNim(true)
+    try {
+        const teacherIds = selectedTeacherIds.size > 0 ? Array.from(selectedTeacherIds) : undefined
+        const res = await teacherApi.bulkGenerateNim(teacherIds)
+        if (res.success === false) {
+          toast.error(res.message)
+          setIsGenerateNimOpen(false)
+          return
+        }
+        setGenerateNimResult(res.results || [])
+        toast.success(res.message || `Berhasil generate ${res.results?.length || 0} NIM baru.`)
+        queryClient.invalidateQueries({ queryKey: ["teachers"] })
+    } catch (err: any) {
+        toast.error("Gagal generate NIM: " + (err.response?.data?.message || err.message))
+    } finally {
+        setIsGeneratingNim(false)
     }
   }
 
@@ -323,8 +348,12 @@ export default function TeacherListPage() {
         description="Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap"
         actions={[
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
+          ...(isSuperAdmin || isAdminYayasan ? [
+              { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
+              { label: 'Generate NIM', onClick: () => { setGenerateNimResult([]); setIsGenerateNimOpen(true) }, variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
+          ] : []),
           ...(isSuperAdmin ? [
-              { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
+              { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'red', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
           { label: 'Bersihkan Data Ganda', onClick: () => deduplicateDryRunMutation.mutate(), variant: 'amber', icon: <Wand2 className="h-4 w-4" />, disabled: deduplicateDryRunMutation.isPending },
           { label: 'Tambah Manual', onClick: () => {
@@ -833,6 +862,76 @@ export default function TeacherListPage() {
                 className="flex-1 h-12 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
               >
                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Generate Sekarang'}
+              </button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* ── Generate NIM Dialog ── */}
+      <Dialog open={isGenerateNimOpen} onOpenChange={(v) => { if (!isGeneratingNim) setIsGenerateNimOpen(v) }}>
+        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="items-center text-center">
+            <div className="bg-emerald-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
+              <Fingerprint className="h-8 w-8 text-emerald-500" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Generate NIM Massal</DialogTitle>
+            <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
+              {selectedTeacherIds.size > 0
+                ? `Akan meng-generate NIM (Nomor Induk Ma'arif) untuk ${selectedTeacherIds.size} guru yang dipilih (jika belum punya).`
+                : "Akan meng-generate NIM untuk semua guru di database yang belum memilikinya."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {generateNimResult.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-600 text-center">{generateNimResult.length} NIM Berhasil Dibuat</p>
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">Nama Guru</th>
+                      <th className="text-left px-4 py-2 font-black text-slate-500">NIM Baru</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generateNimResult.map((a: any, i: number) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        <td className="px-4 py-2 font-medium">{a.nama}</td>
+                        <td className="px-4 py-2 font-mono text-emerald-600 font-bold">{a.nim}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                onClick={() => {
+                  const ws = XLSX.utils.json_to_sheet(generateNimResult.map((a: any) => ({
+                    Nama: a.nama, NIM: a.nim
+                  })))
+                  const wb = XLSX.utils.book_new()
+                  XLSX.utils.book_append_sheet(wb, ws, 'NIM Guru')
+                  XLSX.writeFile(wb, `Generate_NIM_${new Date().toISOString().slice(0,10)}.xlsx`)
+                }}
+                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest transition-colors"
+              >
+                <Download className="h-3 w-3 inline mr-2" /> Download Hasil (Excel)
+              </button>
+            </div>
+          ) : (
+            <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+              <button
+                onClick={() => setIsGenerateNimOpen(false)}
+                className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleGenerateNim}
+                disabled={isGeneratingNim}
+                className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+              >
+                {isGeneratingNim ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Generate Sekarang'}
               </button>
             </DialogFooter>
           )}

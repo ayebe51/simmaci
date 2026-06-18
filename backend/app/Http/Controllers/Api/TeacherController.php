@@ -1090,6 +1090,94 @@ class TeacherController extends Controller
      * Generate user accounts for teachers who don't have one.
      * Username: email (from NUPTK@maarif.nu if no email), Password: tanggal_lahir (ddmmyyyy).
      */
+    /**
+     * POST /api/teachers/nim/bulk-generate
+     * Bulk generate NIM for teachers who don't have one.
+     */
+    public function bulkGenerateNim(Request $request): JsonResponse
+    {
+        // Require super_admin or admin_yayasan
+        if (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return response()->json(['message' => 'Anda tidak memiliki akses.'], 403);
+        }
+
+        $teacherIds = $request->input('teacher_ids');
+
+        $query = Teacher::where(function ($q) {
+            $q->whereNull('nomor_induk_maarif')
+              ->orWhere('nomor_induk_maarif', '');
+        });
+        
+        if ($teacherIds && count($teacherIds) > 0) {
+            $query->whereIn('id', $teacherIds);
+        }
+
+        // Order by name ascending
+        $teachers = $query->orderBy('nama', 'asc')->get();
+
+        if ($teachers->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada guru yang membutuhkan NIM pada data yang dipilih.'
+            ]);
+        }
+
+        $generatedCount = 0;
+        $results = [];
+
+        \DB::transaction(function () use ($teachers, &$generatedCount, &$results, $request) {
+            $driver = \DB::connection()->getDriverName();
+
+            // Find current MAX NIM
+            $q = Teacher::withoutTenantScope()
+                ->where('nomor_induk_maarif', 'like', '1134%')
+                ->whereRaw("LENGTH(nomor_induk_maarif) = 9");
+
+            if ($driver === 'pgsql') {
+                $q->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
+                  ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC");
+            } else {
+                $q->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'")
+                  ->orderByRaw("CAST(nomor_induk_maarif AS INTEGER) DESC");
+            }
+
+            $lastNim = $q->value('nomor_induk_maarif');
+            $lastSeq = $lastNim ? (int) substr($lastNim, 4) : 0;
+            $newSeq = $lastSeq;
+
+            foreach ($teachers as $teacher) {
+                // Find next available
+                do {
+                    $newSeq++;
+                    $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
+                } while (Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nextNim)->exists());
+
+                $teacher->update(['nomor_induk_maarif' => $nextNim]);
+                
+                $results[] = [
+                    'id' => $teacher->id,
+                    'nama' => $teacher->nama,
+                    'nim' => $nextNim
+                ];
+                $generatedCount++;
+            }
+
+            \App\Models\ActivityLog::log(
+                description: "Bulk Generate NIM: {$generatedCount} NIM berhasil dibuat",
+                event: 'bulk_generate_nim',
+                logName: 'teacher',
+                causer: $request->user()
+            );
+        });
+
+        return response()->json([
+            'success' => true,
+            'count' => $generatedCount,
+            'results' => $results,
+            'message' => "Berhasil men-generate {$generatedCount} NIM baru."
+        ]);
+    }
+
     public function generateAccounts(Request $request): JsonResponse
     {
         $teacherIds = $request->input('teacher_ids');

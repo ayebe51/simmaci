@@ -196,6 +196,9 @@ export const teacherApi = {
    */
   updateNim: (teacherId: number, nim: string): Promise<{ id: number; nama: string; nomor_induk_maarif: string }> =>
     apiClient.patch(`/teachers/${teacherId}/nim`, { nim }).then((r) => r.data),
+
+  bulkGenerateNim: (teacherIds?: number[]): Promise<any> =>
+    apiClient.post('/teachers/nim/bulk-generate', { teacher_ids: teacherIds }).then((r) => r.data),
 };
 
 

@@ -369,16 +369,17 @@ class TeacherController extends Controller
             }
         }
 
-        // 2. Deduplicate based on similar names within the SAME school (e.g. with vs without degree)
-        $schools = $applyRoleFilter(Teacher::withoutTenantScope())
-            ->select('school_id')
+        // 2. Deduplicate based on similar names within the SAME unit_kerja (e.g. with vs without degree)
+        $units = $applyRoleFilter(Teacher::withoutTenantScope())
+            ->select('unit_kerja')
             ->distinct()
-            ->whereNotNull('school_id')
-            ->pluck('school_id');
+            ->whereNotNull('unit_kerja')
+            ->where('unit_kerja', '!=', '')
+            ->pluck('unit_kerja');
 
-        foreach ($schools as $schoolId) {
+        foreach ($units as $unitKerja) {
             $schoolTeachers = Teacher::withoutTenantScope()
-                ->where('school_id', $schoolId)
+                ->where('unit_kerja', $unitKerja)
                 ->orderBy('created_at', 'asc') // Keep the oldest entry by default
                 ->get();
 

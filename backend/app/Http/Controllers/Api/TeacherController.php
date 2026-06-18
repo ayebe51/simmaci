@@ -431,7 +431,8 @@ class TeacherController extends Controller
                                 'drop_id' => $drop->id,
                                 'keep_name' => $keep->nama,
                                 'drop_name' => $drop->nama,
-                                'nim' => $keep->nomor_induk_maarif ?? $drop->nomor_induk_maarif
+                                'keep_nim' => $keep->nomor_induk_maarif,
+                                'drop_nim' => $drop->nomor_induk_maarif
                             ];
                             $mergedCount++;
                             $processedIds[] = $drop->id;

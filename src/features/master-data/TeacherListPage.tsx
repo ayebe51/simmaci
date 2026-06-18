@@ -997,7 +997,7 @@ export default function TeacherListPage() {
                             }}
                             className="text-amber-600 focus:ring-amber-500 mt-0.5"
                           />
-                          <span>{s.keep_name} <span className="text-emerald-600 font-medium ml-1 bg-emerald-50 px-1 py-0.5 rounded text-[10px]">(Rekomendasi)</span></span>
+                          <span>{s.keep_name} {s.keep_nim && <span className="text-slate-400">({s.keep_nim})</span>} <span className="text-emerald-600 font-medium ml-1 bg-emerald-50 px-1 py-0.5 rounded text-[10px]">(Rekomendasi)</span></span>
                         </label>
                         <label className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-slate-50 rounded">
                           <input 
@@ -1018,7 +1018,7 @@ export default function TeacherListPage() {
                             }}
                             className="text-amber-600 focus:ring-amber-500 mt-0.5"
                           />
-                          <span className="opacity-70">{s.drop_name}</span>
+                          <span className="opacity-70">{s.drop_name} {s.drop_nim && <span className="text-slate-400">({s.drop_nim})</span>}</span>
                         </label>
                       </li>
                     )

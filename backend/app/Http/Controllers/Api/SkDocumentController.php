@@ -747,7 +747,20 @@ class SkDocumentController extends Controller
                 $teacherData['tmt'] = $data['tmt'];
             }
             if (!empty($data['nomor_induk_maarif'])) {
-                $teacherData['nomor_induk_maarif'] = $data['nomor_induk_maarif'];
+                $existingWithNim = Teacher::where('nomor_induk_maarif', $data['nomor_induk_maarif'])->first();
+                if ($existingWithNim) {
+                    $isSameTeacher = ($teacher && $teacher->id === $existingWithNim->id) ||
+                                     ($existingWithNim->nama === $teacherData['nama'] && $existingWithNim->school_id === $schoolId);
+                    
+                    if ($isSameTeacher) {
+                        $teacherData['nomor_induk_maarif'] = $data['nomor_induk_maarif'];
+                    } else {
+                        // Loloskan tapi NIM dihilangkan agar admin yang meng-generate nanti
+                        // (Mencegah error unique constraint collision dengan guru lain)
+                    }
+                } else {
+                    $teacherData['nomor_induk_maarif'] = $data['nomor_induk_maarif'];
+                }
             }
 
             // 3.2: Wrap teacher upsert in try-catch block

@@ -144,6 +144,7 @@ export default function TeacherListPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [isDeduplicateOpen, setIsDeduplicateOpen] = useState(false)
   const [dryRunResult, setDryRunResult] = useState<any>(null)
+  const [manualSelections, setManualSelections] = useState<any[]>([])
   const [confirmDelete, setConfirmDelete] = useState<Teacher | null>(null)
   
   // Import Preview States
@@ -287,12 +288,24 @@ export default function TeacherListPage() {
     onSuccess: (res: any) => {
       setDryRunResult(res.data)
       setIsDeduplicateOpen(true)
+      // Initialize manual selections based on dry run result
+      if (res.data?.samples) {
+        const initialSelections = res.data.samples
+          .filter((s: any) => s.type === 'name_match')
+          .map((s: any) => ({
+            keep_id: s.keep_id,
+            drop_id: s.drop_id
+          }))
+        setManualSelections(initialSelections)
+      } else {
+        setManualSelections([])
+      }
     },
     onError: (e: any) => toast.error('Gagal mengecek data ganda: ' + (e.response?.data?.message || e.message))
   })
 
   const deduplicateMutation = useMutation({
-    mutationFn: () => teacherApi.deduplicate(false),
+    mutationFn: () => teacherApi.deduplicate(false, manualSelections),
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['teachers'] })
       toast.success(`Selesai! Berhasil menggabungkan ${res?.data?.merged_count || 0} data guru ganda.`)
@@ -851,10 +864,66 @@ export default function TeacherListPage() {
               <div className="bg-amber-50 text-amber-900 p-3 rounded text-sm">
                 <strong>Ditemukan {dryRunResult.merged_count} data ganda yang siap digabung!</strong><br/>
                 <span className="block mt-1 mb-1 opacity-80">Daftar data yang akan digabung:</span>
-                <ul className="list-disc pl-5 max-h-60 overflow-y-auto pr-2">
-                  {dryRunResult.samples?.map((s: any, i: number) => (
-                    <li key={i} className="mb-1 text-xs">{s.old_name} <span className="text-amber-500 mx-1">→</span> <strong>{s.new_name}</strong> (NIM: {s.nim})</li>
-                  ))}
+                <ul className="list-disc pl-5 max-h-[400px] overflow-y-auto pr-2">
+                  {dryRunResult.samples?.map((s: any, i: number) => {
+                    if (s.type === 'nim_nyasar') {
+                      return (
+                        <li key={i} className="mb-1 text-xs">{s.old_name} <span className="text-amber-500 mx-1">→</span> <strong>{s.new_name}</strong> (NIM: {s.nim})</li>
+                      )
+                    }
+
+                    // Tipe 2: name_match
+                    const sel = manualSelections.find((m) => (m.keep_id === s.keep_id && m.drop_id === s.drop_id) || (m.keep_id === s.drop_id && m.drop_id === s.keep_id))
+                    const currentKeepId = sel ? sel.keep_id : s.keep_id
+
+                    return (
+                      <li key={i} className="mb-3 text-xs bg-white p-2 rounded border border-amber-200 list-none -ml-5 shadow-sm">
+                        <div className="font-semibold text-slate-700 mb-1">Pilih Data Utama (akan dipertahankan):</div>
+                        <label className="flex items-center space-x-2 cursor-pointer mb-1 p-1 hover:bg-slate-50 rounded">
+                          <input 
+                            type="radio" 
+                            name={`dedup_${i}`} 
+                            checked={currentKeepId === s.keep_id}
+                            onChange={() => {
+                              setManualSelections(prev => {
+                                const newSels = [...prev]
+                                const idx = newSels.findIndex(m => (m.keep_id === s.keep_id && m.drop_id === s.drop_id) || (m.keep_id === s.drop_id && m.drop_id === s.keep_id))
+                                if (idx !== -1) {
+                                  newSels[idx] = { keep_id: s.keep_id, drop_id: s.drop_id }
+                                } else {
+                                  newSels.push({ keep_id: s.keep_id, drop_id: s.drop_id })
+                                }
+                                return newSels
+                              })
+                            }}
+                            className="text-amber-600 focus:ring-amber-500 mt-0.5"
+                          />
+                          <span>{s.keep_name} <span className="text-emerald-600 font-medium ml-1 bg-emerald-50 px-1 py-0.5 rounded text-[10px]">(Rekomendasi)</span></span>
+                        </label>
+                        <label className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-slate-50 rounded">
+                          <input 
+                            type="radio" 
+                            name={`dedup_${i}`} 
+                            checked={currentKeepId === s.drop_id}
+                            onChange={() => {
+                              setManualSelections(prev => {
+                                const newSels = [...prev]
+                                const idx = newSels.findIndex(m => (m.keep_id === s.keep_id && m.drop_id === s.drop_id) || (m.keep_id === s.drop_id && m.drop_id === s.keep_id))
+                                if (idx !== -1) {
+                                  newSels[idx] = { keep_id: s.drop_id, drop_id: s.keep_id }
+                                } else {
+                                  newSels.push({ keep_id: s.drop_id, drop_id: s.keep_id })
+                                }
+                                return newSels
+                              })
+                            }}
+                            className="text-amber-600 focus:ring-amber-500 mt-0.5"
+                          />
+                          <span className="opacity-70">{s.drop_name}</span>
+                        </label>
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             ) : (

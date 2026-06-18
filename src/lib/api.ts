@@ -175,7 +175,7 @@ export const teacherApi = {
   importPreview: (teachers: any[]) => apiClient.post('/teachers/import/preview', { teachers }, { timeout: 120000 }).then((r) => r.data),
   importCommit: (teachers: any[]) => apiClient.post('/teachers/import/commit', { teachers }, { timeout: 120000 }).then((r) => r.data),
   deleteAll: () => apiClient.delete('/teachers/delete-all').then((r) => r.data),
-  deduplicate: (dryRun = false) => apiClient.post(`/teachers/deduplicate?dry_run=${dryRun ? 1 : 0}`).then((r) => r.data),
+  deduplicate: (dryRun = false, manualSelections: any[] = []) => apiClient.post(`/teachers/deduplicate?dry_run=${dryRun ? 1 : 0}`, { manual_selections: manualSelections }).then((r) => r.data),
   generateAccounts: (teacherIds?: number[]) =>
     apiClient.post('/teachers/generate-accounts', { teacher_ids: teacherIds }).then((r) => r.data),
   export: (params?: Record<string, any>) =>

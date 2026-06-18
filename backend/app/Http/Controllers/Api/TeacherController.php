@@ -278,6 +278,7 @@ class TeacherController extends Controller
     {
         $isDryRun = $request->boolean('dry_run', false);
         $user = $request->user();
+        $manualSelections = $request->input('manual_selections', []);
 
         // Cek jika user adalah operator tapi tidak punya school_id
         if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
@@ -325,6 +326,7 @@ class TeacherController extends Controller
                 if ($newTeacher) {
                     if ($isDryRun) {
                         $dryRunSamples[] = [
+                            'type' => 'nim_nyasar',
                             'old_name' => $oldTeacher->nama,
                             'new_name' => $newTeacher->nama,
                             'nim' => $newTeacher->nomor_induk_maarif
@@ -404,18 +406,30 @@ class TeacherController extends Controller
                         $t1HasDegrees = str_contains($t1->nama, ',');
                         $t2HasDegrees = str_contains($t2->nama, ',');
 
-                        // Swap so $keep is the one we want to save, $drop is the one to delete
-                        // Priority: 1. Has NIM, 2. Has Degrees, 3. Has NUPTK
-                        $score1 = (!empty($t1->nomor_induk_maarif) ? 10 : 0) + ($t1HasDegrees ? 5 : 0) + (!empty($t1->nuptk) ? 2 : 0);
-                        $score2 = (!empty($t2->nomor_induk_maarif) ? 10 : 0) + ($t2HasDegrees ? 5 : 0) + (!empty($t2->nuptk) ? 2 : 0);
+                        $manual = collect($manualSelections)->first(function ($sel) use ($t1, $t2) {
+                            return ($sel['keep_id'] == $t1->id && $sel['drop_id'] == $t2->id) ||
+                                   ($sel['keep_id'] == $t2->id && $sel['drop_id'] == $t1->id);
+                        });
 
-                        $keep = $score1 >= $score2 ? $t1 : $t2;
-                        $drop = $score1 >= $score2 ? $t2 : $t1;
+                        if ($manual) {
+                            $keep = $t1->id == $manual['keep_id'] ? $t1 : $t2;
+                            $drop = $t1->id == $manual['drop_id'] ? $t1 : $t2;
+                        } else {
+                            // Priority: 1. Has NIM, 2. Has Degrees, 3. Has NUPTK
+                            $score1 = (!empty($t1->nomor_induk_maarif) ? 10 : 0) + ($t1HasDegrees ? 5 : 0) + (!empty($t1->nuptk) ? 2 : 0);
+                            $score2 = (!empty($t2->nomor_induk_maarif) ? 10 : 0) + ($t2HasDegrees ? 5 : 0) + (!empty($t2->nuptk) ? 2 : 0);
+    
+                            $keep = $score1 >= $score2 ? $t1 : $t2;
+                            $drop = $score1 >= $score2 ? $t2 : $t1;
+                        }
 
                         if ($isDryRun) {
                             $dryRunSamples[] = [
-                                'old_name' => $drop->nama,
-                                'new_name' => $keep->nama,
+                                'type' => 'name_match',
+                                'keep_id' => $keep->id,
+                                'drop_id' => $drop->id,
+                                'keep_name' => $keep->nama,
+                                'drop_name' => $drop->nama,
                                 'nim' => $keep->nomor_induk_maarif ?? $drop->nomor_induk_maarif
                             ];
                             $mergedCount++;

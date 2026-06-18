@@ -538,7 +538,7 @@ export default function TeacherListPage() {
                     </div>
 
                     <div className="grid grid-cols-[130px_1fr] items-center gap-4">
-                        <Label className="text-right text-slate-600 font-bold text-sm">N.I.M</Label>
+                        <Label className="text-right text-slate-600 font-bold text-sm">NIP</Label>
                         <Input value={formData.nip || ""} onChange={e => setFormData({...formData, nip: e.target.value})} className="h-10 rounded-xl" />
                     </div>
 

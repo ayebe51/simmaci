@@ -1114,11 +1114,11 @@ export default function SkGeneratorPage() {
                                 }}
                             />
                         </TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Lengkap</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jenis SK</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama & NIM</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">TTL</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">TMT</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Unit Kerja</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nomor Surat Permohonan</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Tanggal Surat Permohonan</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jenis SK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-right pr-8">Surat Permohonan</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -1143,14 +1143,23 @@ export default function SkGeneratorPage() {
                                         }} 
                                     />
                                 </TableCell>
-                                <TableCell className="font-bold text-slate-800 text-sm">{t.nama}</TableCell>
-                                <TableCell className="text-xs text-slate-500 font-medium">{t.jenis_sk || "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-600 font-bold">{t.unit_kerja || "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500">{t.nomor_permohonan || "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500">
-                                    {t.tanggal_permohonan ? new Date(t.tanggal_permohonan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
+                                <TableCell>
+                                    <div className="font-bold text-slate-800 text-sm">{t.nama}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">NIM: {t.nomor_induk_maarif || t.teacher?.nomor_induk_maarif || "-"}</div>
                                 </TableCell>
+                                <TableCell className="text-xs text-slate-500">
+                                    <div className="font-medium text-slate-700">{t.tempat_lahir || t.teacher?.tempat_lahir || "-"}</div>
+                                    <div className="text-[10px] mt-0.5">{t.tanggal_lahir || t.teacher?.tanggal_lahir ? new Date(t.tanggal_lahir || t.teacher?.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}</div>
+                                </TableCell>
+                                <TableCell className="text-xs text-slate-500 font-medium">
+                                    {t.tmt || t.teacher?.tmt ? new Date(t.tmt || t.teacher?.tmt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
+                                </TableCell>
+                                <TableCell className="text-xs text-slate-600 font-bold">{t.unit_kerja || "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500 font-medium">{t.jenis_sk || "-"}</TableCell>
                                 <TableCell className="text-right pr-8">
+                                    <div className="text-[10px] text-slate-500 mb-1 font-medium">
+                                        {t.nomor_permohonan || "-"} • {t.tanggal_permohonan ? new Date(t.tanggal_permohonan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
+                                    </div>
                                     {t.surat_permohonan_url ? (
                                         <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-blue-600" onClick={() => handleViewDocument(t.surat_permohonan_url)}>
                                             <Eye className="mr-1 h-3 w-3" /> Lihat PDF

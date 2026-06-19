@@ -32,7 +32,7 @@ class SkDocumentController extends Controller
                 'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url',
             ])
             ->with(['teacher' => function ($q) {
-                $q->select(['id', 'nomor_induk_maarif', 'tmt']);
+                $q->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir']);
             }]);
 
         if ($request->search) {
@@ -65,7 +65,7 @@ class SkDocumentController extends Controller
         // scoped to the same school_id (avoids loading all teachers into PHP memory).
         $items = collect($paginated->items());
         $missingDataItems = $items->filter(fn($sk) =>
-            (empty($sk->teacher?->nomor_induk_maarif) || empty($sk->teacher?->tmt)) && !empty($sk->nama)
+            (empty($sk->teacher?->nomor_induk_maarif) || empty($sk->teacher?->tmt) || empty($sk->teacher?->tempat_lahir) || empty($sk->teacher?->tanggal_lahir)) && !empty($sk->nama)
         );
 
         if ($missingDataItems->isNotEmpty()) {
@@ -79,7 +79,7 @@ class SkDocumentController extends Controller
                         ->whereNull('t.deleted_at');
                 })
                 ->whereIn('sd.id', $missingDataIds)
-                ->select('sd.id', 't.nomor_induk_maarif', 't.tmt')
+                ->select('sd.id', 't.nomor_induk_maarif', 't.tmt', 't.tempat_lahir', 't.tanggal_lahir')
                 ->get()
                 ->keyBy('id');
 
@@ -93,10 +93,18 @@ class SkDocumentController extends Controller
                         if (empty($sk->teacher->tmt) && !empty($row->tmt)) {
                             $sk->teacher->tmt = $row->tmt;
                         }
+                        if (empty($sk->teacher->tempat_lahir) && !empty($row->tempat_lahir)) {
+                            $sk->teacher->tempat_lahir = $row->tempat_lahir;
+                        }
+                        if (empty($sk->teacher->tanggal_lahir) && !empty($row->tanggal_lahir)) {
+                            $sk->teacher->tanggal_lahir = $row->tanggal_lahir;
+                        }
                     } else {
                         $sk->setRelation('teacher', new Teacher([
                             'nomor_induk_maarif' => $row->nomor_induk_maarif,
                             'tmt' => $row->tmt,
+                            'tempat_lahir' => $row->tempat_lahir,
+                            'tanggal_lahir' => $row->tanggal_lahir,
                         ]));
                     }
                 }

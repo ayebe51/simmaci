@@ -131,4 +131,22 @@ class StaffAttendanceController extends Controller
             'face_recognition_enabled' => Setting::getValue('staff_face_recognition_enabled') === 'true',
         ]);
     }
+
+    public function checkQr(Request $request): JsonResponse
+    {
+        $request->validate([
+            'qr_code' => 'required|string',
+        ]);
+
+        $staff = Staff::where('qr_code', $request->qr_code)->first();
+        if (!$staff) {
+            return $this->errorResponse('QR Code tidak valid atau staff tidak ditemukan.', 404);
+        }
+
+        return $this->successResponse([
+            'nama' => $staff->nama,
+            'jabatan' => $staff->jabatan,
+            'face_descriptor' => $staff->face_descriptor ? json_decode($staff->face_descriptor) : null,
+        ], 'Data wajah ditemukan.');
+    }
 }

@@ -1209,21 +1209,79 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   const startFaceVerification = async (qrCode: string) => {
     setFaceVerificationStatus('scanning');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // 1. Cek QR Code dan ambil data face_descriptor staff
+      const res = await staffAttendanceApi.checkQr({ qr_code: qrCode });
+      const staffData = res.data;
+
+      if (!staffData.face_descriptor) {
+        toast.error('Wajah staf belum terdaftar di sistem. Silakan daftarkan wajah di dashboard Staff terlebih dahulu.');
+        setFaceVerificationStatus('failed');
+        return;
+      }
+
+      // 2. Mulai Kamera
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
       
-      // Dummy timeout untuk simulasi (nanti bisa diganti perbandingan riil)
-      setTimeout(() => {
-        if (stream) stream.getTracks().forEach(track => track.stop());
-        setFaceVerificationStatus('verified');
-        submitAttendance(qrCode);
-      }, 3000);
+      // 3. Buat Face Matcher
+      const storedDescriptor = new Float32Array(staffData.face_descriptor);
+      const faceMatcher = new faceapi.FaceMatcher(
+        [new faceapi.LabeledFaceDescriptors(staffData.nama, [storedDescriptor])],
+        0.5 // Jarak maksimal (threshold), bisa disesuaikan
+      );
 
-    } catch (e) {
+      let isVerified = false;
+      let stopLoop = false;
+
+      const stopCamera = () => {
+        if (stream) stream.getTracks().forEach(track => track.stop());
+      };
+
+      const verifyLoop = async () => {
+        if (stopLoop || isVerified || !videoRef.current) return;
+        
+        try {
+          const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+          if (detection) {
+            const match = faceMatcher.findBestMatch(detection.descriptor);
+            if (match.label !== 'unknown') {
+              isVerified = true;
+              stopLoop = true;
+              stopCamera();
+              setFaceVerificationStatus('verified');
+              submitAttendance(qrCode);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Face detection error:", e);
+        }
+
+        // Lanjut loop
+        setTimeout(verifyLoop, 800);
+      };
+
+      // 4. Set Timeout untuk deteksi wajah (misal 15 detik)
+      setTimeout(() => {
+        if (!isVerified) {
+          stopLoop = true;
+          stopCamera();
+          setFaceVerificationStatus('failed');
+          toast.error('Waktu verifikasi habis atau wajah tidak cocok.');
+        }
+      }, 15000);
+
+      // Mulai loop setelah video diputar sebentar
+      setTimeout(verifyLoop, 1500);
+
+    } catch (e: any) {
       setFaceVerificationStatus('failed');
-      toast.error('Gagal mengakses kamera untuk verifikasi wajah.');
+      toast.error(e?.response?.data?.message || 'Terjadi kesalahan saat memverifikasi QR/Wajah.');
     }
   };
 

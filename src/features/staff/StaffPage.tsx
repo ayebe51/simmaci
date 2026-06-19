@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash, QrCode, Plus } from 'lucide-react';
+import { Edit, Trash, QrCode, Plus, Camera, Loader2, CheckCircle2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import * as faceapi from 'face-api.js';
 
 export default function StaffPage() {
   const queryClient = useQueryClient();
@@ -18,6 +19,7 @@ export default function StaffPage() {
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
+  const [isFaceOpen, setIsFaceOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
 
   const [formData, setFormData] = useState({
@@ -98,6 +100,11 @@ export default function StaffPage() {
     setIsQrOpen(true);
   };
 
+  const openFace = (staff: any) => {
+    setSelectedStaff(staff);
+    setIsFaceOpen(true);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -150,10 +157,13 @@ export default function StaffPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => openQr(staff)}>
+                    <Button variant="outline" size="sm" onClick={() => openFace(staff)} title="Daftarkan Wajah" className={staff.face_descriptor ? "text-emerald-500" : ""}>
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openQr(staff)} title="QR Code">
                       <QrCode className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => openForm(staff)}>
+                    <Button variant="outline" size="sm" onClick={() => openForm(staff)} title="Edit">
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button variant="destructive" size="sm" onClick={() => {
@@ -274,6 +284,166 @@ export default function StaffPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Face Enrollment Dialog */}
+      {isFaceOpen && selectedStaff && (
+        <StaffFaceEnrollmentDialog 
+          staff={selectedStaff} 
+          onClose={() => setIsFaceOpen(false)} 
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['staffs'] });
+            setIsFaceOpen(false);
+          }} 
+        />
+      )}
     </div>
+  );
+}
+
+function StaffFaceEnrollmentDialog({ staff, onClose, onSuccess }: { staff: any, onClose: () => void, onSuccess: () => void }) {
+  const [status, setStatus] = useState<'loading_models'|'ready'|'scanning'|'success'|'error'>('loading_models');
+  const [errorMsg, setErrorMsg] = useState('');
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const streamRef = React.useRef<MediaStream | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const loadModels = async () => {
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+          faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+          faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+        ]);
+        if (mounted) {
+          setStatus('ready');
+          startCamera();
+        }
+      } catch (err) {
+        if (mounted) {
+          setStatus('error');
+          setErrorMsg('Gagal memuat model AI. Pastikan folder /models tersedia.');
+        }
+      }
+    };
+    loadModels();
+    return () => {
+      mounted = false;
+      stopCamera();
+    };
+  }, []);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg('Gagal mengakses kamera. Periksa izin browser.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const captureFace = async () => {
+    if (!videoRef.current || status !== 'ready') return;
+    setStatus('scanning');
+    
+    try {
+      // Tunggu sebentar agar kamera stabil
+      const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detection) {
+        toast.error('Wajah tidak terdeteksi. Pastikan pencahayaan cukup dan wajah terlihat jelas.');
+        setStatus('ready');
+        return;
+      }
+
+      // Format Descriptor to Array
+      const descriptorArray = Array.from(detection.descriptor);
+      
+      // Kirim ke backend
+      await staffApi.saveFace(staff.id, { face_descriptor: descriptorArray });
+      toast.success('Wajah berhasil didaftarkan!');
+      setStatus('success');
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
+
+    } catch (err: any) {
+      toast.error('Gagal memproses wajah: ' + (err?.response?.data?.message || err.message));
+      setStatus('ready');
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-md flex flex-col items-center">
+        <DialogHeader>
+          <DialogTitle>Daftarkan Wajah - {staff.nama}</DialogTitle>
+        </DialogHeader>
+
+        <div className="w-full flex flex-col items-center justify-center p-4 gap-4">
+          {status === 'loading_models' && (
+            <div className="flex flex-col items-center gap-2 text-slate-500 py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <p>Memuat Model AI Biometrik...</p>
+            </div>
+          )}
+          
+          {status === 'error' && (
+            <div className="text-red-500 text-center py-10">
+              <p className="font-bold">Error</p>
+              <p className="text-sm">{errorMsg}</p>
+            </div>
+          )}
+
+          {status === 'success' && (
+            <div className="flex flex-col items-center gap-2 text-emerald-500 py-10">
+              <CheckCircle2 className="h-12 w-12" />
+              <p className="font-bold">Wajah Tersimpan!</p>
+            </div>
+          )}
+
+          {(status === 'ready' || status === 'scanning') && (
+            <>
+              <div className="relative w-64 h-64 rounded-full overflow-hidden border-4 border-slate-200">
+                <video 
+                  ref={videoRef} 
+                  autoPlay 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover"
+                />
+                {status === 'scanning' && (
+                  <div className="absolute inset-0 border-4 border-blue-500 border-dashed rounded-full animate-spin-slow" />
+                )}
+              </div>
+              <p className="text-sm text-slate-500 text-center">
+                Posisikan wajah Anda di tengah lingkaran dan pastikan pencahayaan cukup terang.
+              </p>
+              <Button 
+                onClick={captureFace} 
+                disabled={status === 'scanning'}
+                className="w-full mt-4 bg-blue-600 hover:bg-blue-700 font-bold"
+              >
+                {status === 'scanning' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                {status === 'scanning' ? 'Memindai...' : 'Ambil Data Wajah'}
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

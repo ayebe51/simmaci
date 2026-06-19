@@ -105,11 +105,11 @@ class StaffController extends Controller
     public function saveFace(Request $request, Staff $staff): JsonResponse
     {
         $request->validate([
-            'face_descriptor' => 'required|string',
+            'face_descriptor' => 'required|array',
         ]);
 
         $staff->update([
-            'face_descriptor' => $request->face_descriptor,
+            'face_descriptor' => json_encode($request->face_descriptor),
         ]);
 
         return $this->successResponse(null, 'Data wajah berhasil disimpan.');

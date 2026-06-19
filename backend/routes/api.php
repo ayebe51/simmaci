@@ -103,6 +103,7 @@ Route::prefix('public/attendance')->group(function () {
     Route::post('student-log', [PublicAttendanceController::class, 'studentLogStore']);
     Route::post('qr-scan',     [PublicAttendanceController::class, 'qrScan']);
     Route::post('staff-scan',  [\App\Http\Controllers\Api\StaffAttendanceController::class, 'scan']);
+    Route::post('staff-check-qr', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'checkQr']);
     Route::get('staff-settings', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'publicSettings']);
 });
 

@@ -218,9 +218,36 @@ export default function StaffPage() {
       <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
         <DialogContent className="sm:max-w-md flex flex-col items-center justify-center">
           <DialogHeader>
-            <DialogTitle className="text-center">QR Code Staff</DialogTitle>
+            <DialogTitle className="text-center no-print">QR Code Staff</DialogTitle>
           </DialogHeader>
-          <div className="p-4 bg-white rounded-xl shadow-sm border flex flex-col items-center space-y-4">
+          <div id="staff-qr-print" className="p-8 bg-white rounded-xl shadow-sm border flex flex-col items-center space-y-4">
+            <style>
+              {`
+                @media print {
+                  body * {
+                    visibility: hidden;
+                  }
+                  #staff-qr-print, #staff-qr-print * {
+                    visibility: visible;
+                  }
+                  #staff-qr-print {
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    border: 2px solid #e2e8f0 !important;
+                    border-radius: 16px !important;
+                    box-shadow: none !important;
+                    width: 300px;
+                    padding: 40px;
+                    margin: 0;
+                  }
+                  .no-print {
+                    display: none !important;
+                  }
+                }
+              `}
+            </style>
             {selectedStaff?.qr_code ? (
               <>
                 <QRCodeSVG value={selectedStaff.qr_code} size={256} level="H" />
@@ -231,7 +258,7 @@ export default function StaffPage() {
               <p>QR Code belum di-generate.</p>
             )}
           </div>
-          <DialogFooter className="w-full sm:justify-between flex-row">
+          <DialogFooter className="w-full sm:justify-between flex-row no-print mt-4">
             <Button variant="outline" onClick={() => window.print()}>Cetak</Button>
             <Button 
               variant="destructive" 

@@ -118,9 +118,14 @@ export default function AppShell({ children }: AppShellProps) {
         { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
         { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
         { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
-        // { label: "Pengajuan NUPTK", href: "/dashboard/sdm/nuptk/pengajuan", icon: FileText },
-        // { label: "Persetujuan NUPTK", href: "/dashboard/sdm/nuptk/persetujuan", icon: Gavel },
         { label: "Laporan Guru", href: "/dashboard/reports", icon: FileBarChart },
+      ]
+    },
+    {
+      title: "Staff PCNU",
+      items: [
+        { label: "Data Staff", href: "/dashboard/staff", icon: Users, superAdminOnly: true },
+        { label: "Laporan Absensi Staff", href: "/dashboard/staff/attendance-report", icon: FileBarChart, superAdminOnly: true },
       ]
     },
     {
@@ -205,6 +210,13 @@ export default function AppShell({ children }: AppShellProps) {
                   // Rapat Yayasan: semua role bisa lihat daftar, hanya admin yang bisa buat
                   if (item.label === "Buat Rapat Baru") {
                       return adminRoles.includes(userRole);
+                  }
+
+                  if ((item as any).superAdminOnly) {
+                      return userRole === "super_admin";
+                  }
+                  if ((item as any).staffOnly) {
+                      return userRole === "staff" || userRole === "super_admin";
                   }
 
                   if (superAdminOnlyLabels.includes(item.label)) {

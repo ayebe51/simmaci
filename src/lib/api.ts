@@ -215,6 +215,25 @@ export const studentApi = {
     apiClient.post('/students/batch-transition', payload).then((r) => r.data),
 };
 
+// ── Staff API ──
+
+export const staffApi = {
+  list: (params?: Record<string, any>) => apiClient.get('/staffs', { params }).then((r) => r.data),
+  get: (id: number) => apiClient.get(`/staffs/${id}`).then((r) => r.data),
+  create: (data: any) => apiClient.post('/staffs', data).then((r) => r.data),
+  update: (id: number, data: any) => apiClient.put(`/staffs/${id}`, data).then((r) => r.data),
+  delete: (id: number) => apiClient.delete(`/staffs/${id}`).then((r) => r.data),
+  generateQr: (id: number) => apiClient.post(`/staffs/${id}/generate-qr`).then((r) => r.data),
+  saveFace: (id: number, data: { face_descriptor: string }) => apiClient.post(`/staffs/${id}/face`, data).then((r) => r.data),
+};
+
+export const staffAttendanceApi = {
+  list: (params?: Record<string, any>) => apiClient.get('/staff-attendances', { params }).then((r) => r.data),
+  scan: (data: { qr_code: string; latitude: number; longitude: number; photo?: string }) => 
+    apiClient.post('/public/attendance/staff-scan', data).then((r) => r.data),
+  getSettings: () => apiClient.get('/public/attendance/staff-settings').then((r) => r.data),
+};
+
 // ── Schools API ──
 
 export interface School {

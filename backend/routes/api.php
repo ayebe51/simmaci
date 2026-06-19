@@ -102,6 +102,8 @@ Route::prefix('public/attendance')->group(function () {
     Route::get('student-log',  [PublicAttendanceController::class, 'studentLogShow']);
     Route::post('student-log', [PublicAttendanceController::class, 'studentLogStore']);
     Route::post('qr-scan',     [PublicAttendanceController::class, 'qrScan']);
+    Route::post('staff-scan',  [\App\Http\Controllers\Api\StaffAttendanceController::class, 'scan']);
+    Route::get('staff-settings', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'publicSettings']);
 });
 
 // ── Public Meeting Scanner (PIN protected, no auth token) ──
@@ -256,7 +258,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:super_admin')->group(function () {
         Route::delete('users/{user}/force', [UserController::class, 'forceDestroy']);
         Route::apiResource('users', UserController::class);
+
+        // Staff Management
+        Route::post('staffs/{staff}/generate-qr', [\App\Http\Controllers\Api\StaffController::class, 'generateQr']);
+        Route::post('staffs/{staff}/face', [\App\Http\Controllers\Api\StaffController::class, 'saveFace']);
+        Route::apiResource('staffs', \App\Http\Controllers\Api\StaffController::class);
+
+        // Staff Attendance Report
+        Route::get('staff-attendances', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'index']);
     });
+
+    // Staff Self-Attendance Scan (Moved to public/attendance/staff-scan)
 
     // SK Templates (global resource — no tenant isolation)
     // NOTE: /sk-templates/active must be registered before the {skTemplate} wildcard routes

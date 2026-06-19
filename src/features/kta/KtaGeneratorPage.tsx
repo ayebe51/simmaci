@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, CreditCard, User, Printer, Loader2 } from "lucide-react";
+import { Search, CreditCard, User, Printer, Loader2, Settings, Image as ImageIcon, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import KtaCard from "../master-data/components/KtaCard";
 import { useQuery } from "@tanstack/react-query";
 import { teacherApi } from "@/lib/api";
@@ -11,6 +13,25 @@ export default function KtaGeneratorPage() {
   const [search, setSearch] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleUploadTemplate = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        localStorage.setItem(`kta_template_${side}_blob`, base64);
+        setRefreshKey(prev => prev + 1);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveTemplate = (side: 'front' | 'back') => {
+    localStorage.removeItem(`kta_template_${side}_blob`);
+    setRefreshKey(prev => prev + 1);
+  };
 
   // 🔥 REST API QUERY
   const { data: teachersData, isLoading } = useQuery({
@@ -42,6 +63,40 @@ export default function KtaGeneratorPage() {
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Generator Kartu Identitas LP Ma'arif NU Cilacap</p>
         </div>
         <div className="flex gap-2">
+           <Dialog>
+             <DialogTrigger asChild>
+               <Button variant="outline" className="rounded-xl bg-white">
+                 <Settings className="w-4 h-4 mr-2" /> Pengaturan Template
+               </Button>
+             </DialogTrigger>
+             <DialogContent className="sm:max-w-md rounded-3xl">
+               <DialogHeader>
+                 <DialogTitle>Pengaturan Desain KTA</DialogTitle>
+               </DialogHeader>
+               <div className="space-y-6 py-4">
+                 <div className="space-y-3">
+                   <Label>Template Depan (Background)</Label>
+                   <div className="flex items-center gap-3">
+                     <Input type="file" accept="image/*" onChange={(e) => handleUploadTemplate(e, 'front')} className="rounded-xl" />
+                     <Button variant="destructive" size="icon" className="rounded-xl shrink-0" onClick={() => handleRemoveTemplate('front')} title="Hapus Template Depan">
+                       <Trash2 className="w-4 h-4" />
+                     </Button>
+                   </div>
+                   <p className="text-xs text-slate-400">Rekomendasi rasio 8:5 (misal: 800x500 px)</p>
+                 </div>
+                 <div className="space-y-3">
+                   <Label>Template Belakang (Background)</Label>
+                   <div className="flex items-center gap-3">
+                     <Input type="file" accept="image/*" onChange={(e) => handleUploadTemplate(e, 'back')} className="rounded-xl" />
+                     <Button variant="destructive" size="icon" className="rounded-xl shrink-0" onClick={() => handleRemoveTemplate('back')} title="Hapus Template Belakang">
+                       <Trash2 className="w-4 h-4" />
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+             </DialogContent>
+           </Dialog>
+
            <Button variant={isBatchMode ? "default" : "outline"} onClick={() => setIsBatchMode(!isBatchMode)} className="rounded-xl">
               {isBatchMode ? "Mode Tunggal" : "Mode Batch"}
            </Button>
@@ -103,7 +158,7 @@ export default function KtaGeneratorPage() {
                </div>
                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 justify-items-center print:block print:w-full">
                  {filteredTeachers.map((person: any) => (
-                   <div key={person.id} className="print:block print:w-full print:m-0 print:p-0 print:mb-20">
+                   <div key={`${person.id}-${refreshKey}`} className="print:block print:w-full print:m-0 print:p-0 print:mb-20">
                      <KtaCard 
                         data={person} 
                         type="teacher" 
@@ -115,7 +170,7 @@ export default function KtaGeneratorPage() {
                </div>
             </div>
           ) : selectedPerson ? (
-            <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-center min-h-[600px] print:p-0 print:border-none print:shadow-none">
+            <div key={`${selectedPerson.id}-${refreshKey}`} className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center justify-center min-h-[600px] print:p-0 print:border-none print:shadow-none">
                 <KtaCard data={selectedPerson} type="teacher" photoId={selectedPerson.foto_path} />
             </div>
           ) : (

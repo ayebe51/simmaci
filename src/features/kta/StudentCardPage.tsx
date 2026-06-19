@@ -10,6 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Settings, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import StudentCard from "../master-data/components/StudentCard";
 import { useQuery } from "@tanstack/react-query";
 import { studentApi, schoolApi, attendanceApi } from "@/lib/api";
@@ -20,6 +24,25 @@ export default function StudentCardPage() {
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("all");
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [isBatchMode, setIsBatchMode] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleUploadTemplate = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        localStorage.setItem(`kta_student_template_${side}_blob`, base64);
+        setRefreshKey(prev => prev + 1);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveTemplate = (side: 'front' | 'back') => {
+    localStorage.removeItem(`kta_student_template_${side}_blob`);
+    setRefreshKey(prev => prev + 1);
+  };
 
   // 🔥 REST API QUERIES
   const { data: schoolsRaw = [] } = useQuery({ queryKey: ['schools'], queryFn: schoolApi.list });
@@ -68,6 +91,40 @@ export default function StudentCardPage() {
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Generator Identitas Siswa LP Ma'arif NU Cilacap</p>
         </div>
         <div className="flex gap-3">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="rounded-xl bg-white shadow-sm border-slate-200">
+                  <Settings className="w-4 h-4 mr-2" /> Pengaturan Template
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md rounded-3xl">
+                <DialogHeader>
+                  <DialogTitle>Pengaturan Desain Kartu Siswa</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                  <div className="space-y-3">
+                    <Label>Template Depan (Background)</Label>
+                    <div className="flex items-center gap-3">
+                      <Input type="file" accept="image/*" onChange={(e) => handleUploadTemplate(e, 'front')} className="rounded-xl" />
+                      <Button variant="destructive" size="icon" className="rounded-xl shrink-0" onClick={() => handleRemoveTemplate('front')} title="Hapus Template Depan">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-400">Rekomendasi rasio 8:5 (misal: 800x500 px)</p>
+                  </div>
+                  <div className="space-y-3">
+                    <Label>Template Belakang (Background)</Label>
+                    <div className="flex items-center gap-3">
+                      <Input type="file" accept="image/*" onChange={(e) => handleUploadTemplate(e, 'back')} className="rounded-xl" />
+                      <Button variant="destructive" size="icon" className="rounded-xl shrink-0" onClick={() => handleRemoveTemplate('back')} title="Hapus Template Belakang">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <div className="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm flex items-center">
               <button 
                 onClick={() => setIsBatchMode(false)}
@@ -197,7 +254,7 @@ export default function StudentCardPage() {
                ) : (
                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 justify-items-center print:block print:w-full">
                         {filteredStudents.map((s: any) => (
-                        <div key={s.id} className="print:block print:w-full print:m-0 print:p-0 print:mb-20">
+                        <div key={`${s.id}-${refreshKey}`} className="print:block print:w-full print:m-0 print:p-0 print:mb-20">
                             <StudentCard 
                                 student={{
                                     nama: s.nama,
@@ -216,7 +273,7 @@ export default function StudentCardPage() {
             </div>
           ) : (
             selectedStudent ? (
-                <div className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[600px] flex items-center justify-center relative">
+                <div key={`${selectedStudent.id}-${refreshKey}`} className="bg-white p-12 rounded-[2.5rem] shadow-sm border border-slate-100 min-h-[600px] flex items-center justify-center relative">
                     <StudentCard student={{
                       nama: selectedStudent.nama,
                       nisn: selectedStudent.nisn,

@@ -35,6 +35,7 @@ class NormalizationService
         'SPDSDI'    => 'S.Pd.SD.I',
         'SPDSD'     => 'S.Pd.SD.',
         'SPDSI'     => 'S.Pd.Si.',
+        'SPDGR'     => 'S.Pd.Gr.',
         'SPD'       => 'S.Pd.',
         'SSOSI'     => 'S.Sos.I',
         'SSOS'      => 'S.Sos.',

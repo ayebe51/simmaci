@@ -1297,7 +1297,9 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
           )}
 
           {/* Scanner Container */}
-          <div id="staff-qr-reader" className="w-full" style={{ display: scanning ? 'block' : 'none' }} />
+          <div className={scanning ? "block" : "absolute opacity-0 pointer-events-none"}>
+             <div id="staff-qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
+          </div>
 
           {/* Face Verification Overlay */}
           {faceVerificationStatus === 'scanning' && (

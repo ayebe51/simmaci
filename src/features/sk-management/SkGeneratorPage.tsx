@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileDown, Loader2, Search, Archive, BadgeCheck, Settings, CheckCircle, RotateCcw, Eye, Trash2, AlertCircle, XCircle } from "lucide-react"
 import { useState, useEffect, useMemo, useRef } from "react"
 import { createPortal } from "react-dom"
@@ -243,6 +244,7 @@ export default function SkGeneratorPage() {
   const [nomorSuratMasuk, setNomorSuratMasuk] = useState("")
   const [tanggalSuratMasuk, setTanggalSuratMasuk] = useState("")
   const [combineInOneFile, setCombineInOneFile] = useState(false)
+  const [itemsPerPage, setItemsPerPage] = useState(50)
 
   const [defaultKecamatan, setDefaultKecamatan] = useState("")
 
@@ -268,7 +270,7 @@ export default function SkGeneratorPage() {
       status: activeTab === 'pending' ? 'unverified' : activeTab,
       search: searchTerm,
       page: page,
-      per_page: 10
+      per_page: itemsPerPage
     })
   })
 
@@ -1175,9 +1177,23 @@ export default function SkGeneratorPage() {
             {!isCandidatesLoading && filteredCandidates?.total > 0 && (
                 <div className="p-8 bg-slate-50/50 flex items-center justify-between border-t border-slate-100">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total {filteredCandidates.total} Kandidat</span>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-xl h-9 px-4">Sebelumnya</Button>
-                        <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(filteredCandidates.total / 10)} className="rounded-xl h-9 px-4">Berikutnya</Button>
+                    <div className="flex items-center gap-4">
+                        <Select value={String(itemsPerPage)} onValueChange={(v) => { setItemsPerPage(Number(v)); setPage(1); }}>
+                            <SelectTrigger className="h-9 w-24 text-[10px] font-black uppercase text-slate-500 rounded-xl bg-white border-slate-200">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="10">10 Baris</SelectItem>
+                                <SelectItem value="25">25 Baris</SelectItem>
+                                <SelectItem value="50">50 Baris</SelectItem>
+                                <SelectItem value="100">100 Baris</SelectItem>
+                                <SelectItem value="200">200 Baris</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-xl h-9 px-4">Sebelumnya</Button>
+                            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(filteredCandidates.total / itemsPerPage)} className="rounded-xl h-9 px-4">Berikutnya</Button>
+                        </div>
                     </div>
                 </div>
             )}

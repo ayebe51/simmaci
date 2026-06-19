@@ -101,6 +101,10 @@ const MeetingEditPage = lazy(() => import("./features/meetings/pages/MeetingEdit
 const MeetingDetailPage = lazy(() => import("./features/meetings/MeetingDetailPage").then(m => ({ default: m.MeetingDetailPage })))
 const MeetingCheckInPage = lazy(() => import("./features/meetings/pages/MeetingCheckInPage"))
 
+// ── Staff ──────────────────────────────────────────────────────────────────
+const StaffPage = lazy(() => import("./features/staff/StaffPage"))
+const StaffAttendanceReportPage = lazy(() => import("./features/staff/StaffAttendanceReportPage"))
+
 // ── WA Blast ──────────────────────────────────────────────────────────────────
 const WaBlastListPage = lazy(() => import("./features/wa-blast/WaBlastListPage"))
 const WaBlastCreatePage = lazy(() => import("./features/wa-blast/WaBlastCreatePage"))
@@ -227,6 +231,10 @@ export default function App() {
                           <Route path="attendance/classes" element={<ClassesPage />} />
                           <Route path="attendance/schedule" element={<LessonSchedulePage />} />
                           <Route path="attendance/settings" element={<AttendanceSettingsPage />} />
+                          
+                          {/* Staff Management */}
+                          <Route path="staff" element={<StaffPage />} />
+                          <Route path="staff/attendance-report" element={<StaffAttendanceReportPage />} />
 
                           {/* WA Blast Module */}
                           <Route path="wa-blast" element={<WaBlastListPage />} />

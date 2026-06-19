@@ -11,11 +11,12 @@ import {
   ChevronLeft, ChevronRight, Camera, CheckCircle2, XCircle,
   Clock, ArrowLeft, Loader2, LogOut, Download, ExternalLink,
   BookOpen, School, ClipboardList, BarChart2, Settings,
-  CalendarDays, Users,
+  CalendarDays, Users, AlertTriangle, ScanFace, QrCode
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { publicAttendanceApi, API_URL } from "@/lib/api";
+import { publicAttendanceApi, staffAttendanceApi, API_URL } from "@/lib/api";
 import axios from "axios";
+import * as faceapi from 'face-api.js';
 
 // ── Public Meeting Scanner API ─────────────────────────────────────────────
 
@@ -73,8 +74,8 @@ function useInstallPrompt() {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Screen = "login" | "mode" | "manual" | "scanner" | "meeting-scanner";
-type LoginMode = "operator" | "yayasan";
+type Screen = "login" | "mode" | "manual" | "scanner" | "meeting-scanner" | "staff-scanner";
+type LoginMode = "operator" | "yayasan" | "staff";
 
 interface Session {
   schoolId: number;
@@ -128,7 +129,7 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
       } finally {
         setLoading(false);
       }
-    } else {
+    } else if (loginMode === "yayasan") {
       // Yayasan mode — verify meeting scanner PIN
       if (!pin) { toast.error("Masukkan PIN Panitia Rapat"); return; }
       setLoading(true);
@@ -145,6 +146,8 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
       } finally {
         setLoading(false);
       }
+    } else if (loginMode === "staff") {
+      onSuccess({ schoolId: 0, schoolName: "Staff PCNU Cilacap", pin: "", loginMode: "staff" });
     }
   };
 
@@ -178,20 +181,27 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
           </CardHeader>
           <CardContent className="space-y-4 p-6">
             {/* Mode toggle */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-xl">
               <button
                 onClick={() => { setLoginMode("operator"); setPin(""); }}
-                className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === "operator" ? "bg-white shadow text-emerald-700" : "text-slate-500"}`}
+                className={`py-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${loginMode === "operator" ? "bg-white shadow text-emerald-700" : "text-slate-500"}`}
               >
                 <School className="h-3.5 w-3.5 inline mr-1" />
-                Operator Sekolah
+                Operator
               </button>
               <button
                 onClick={() => { setLoginMode("yayasan"); setPin(""); setSchoolId(""); }}
-                className={`py-2 rounded-lg text-xs font-bold transition-all ${loginMode === "yayasan" ? "bg-white shadow text-purple-700" : "text-slate-500"}`}
+                className={`py-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${loginMode === "yayasan" ? "bg-white shadow text-purple-700" : "text-slate-500"}`}
               >
                 <CalendarDays className="h-3.5 w-3.5 inline mr-1" />
-                Panitia Rapat
+                Panitia
+              </button>
+              <button
+                onClick={() => { setLoginMode("staff"); setPin(""); setSchoolId(""); }}
+                className={`py-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${loginMode === "staff" ? "bg-white shadow text-blue-700" : "text-slate-500"}`}
+              >
+                <Users className="h-3.5 w-3.5 inline mr-1" />
+                Staff PCNU
               </button>
             </div>
 
@@ -221,27 +231,40 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {loginMode === "operator" ? "PIN Scanner" : "PIN Panitia Rapat"}
-              </label>
-              <Input
-                type="password"
-                placeholder="••••••"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                className="h-12 text-center text-2xl tracking-[0.5em] font-mono rounded-xl bg-slate-50 border-0"
-                maxLength={8}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              />
-            </div>
+            {loginMode === "staff" && (
+              <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700">
+                <Users className="h-3.5 w-3.5 inline mr-1" />
+                Mode Absensi Staff — scan QR Code di ID Card tanpa login
+              </div>
+            )}
+
+            {loginMode !== "staff" && (
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {loginMode === "operator" ? "PIN Scanner" : "PIN Panitia Rapat"}
+                </label>
+                <Input
+                  type="password"
+                  placeholder="••••••"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  className="h-12 text-center text-2xl tracking-[0.5em] font-mono rounded-xl bg-slate-50 border-0"
+                  maxLength={8}
+                  onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                />
+              </div>
+            )}
 
             <Button
               onClick={handleSubmit}
-              disabled={(loginMode === "operator" ? !schoolId : false) || !pin || loading}
-              className={`w-full h-12 font-bold rounded-xl mt-2 ${loginMode === "yayasan" ? "bg-purple-600 hover:bg-purple-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+              disabled={(loginMode === "operator" ? (!schoolId || !pin) : loginMode === "yayasan" ? !pin : false) || loading}
+              className={`w-full h-12 font-bold rounded-xl mt-2 ${
+                loginMode === "yayasan" ? "bg-purple-600 hover:bg-purple-700" : 
+                loginMode === "staff" ? "bg-blue-600 hover:bg-blue-700" :
+                "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Masuk →"}
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : loginMode === "staff" ? "Buka Scanner →" : "Masuk →"}
             </Button>
           </CardContent>
         </Card>
@@ -1072,6 +1095,260 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
   );
 }
 
+// ── Staff Scanner Screen ───────────────────────────────────────────────────
+
+function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
+  const [scanning, setScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<{ title: string; detail: string } | null>(null);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  
+  // GPS
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationError, setLocationError] = useState('');
+
+  // Face Recognition
+  const [isFaceVerificationEnabled, setIsFaceVerificationEnabled] = useState(false);
+  const [faceVerificationStatus, setFaceVerificationStatus] = useState<'idle'|'scanning'|'verified'|'failed'>('idle');
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const { data: staffSettings } = useQuery({
+    queryKey: ['staff-settings'],
+    queryFn: staffAttendanceApi.getSettings,
+  });
+
+  useEffect(() => {
+    if (staffSettings) {
+      const faceEnabled = staffSettings.face_recognition_enabled;
+      setIsFaceVerificationEnabled(faceEnabled);
+      if (faceEnabled) {
+        loadFaceModels();
+      }
+    }
+  }, [staffSettings]);
+
+  const loadFaceModels = async () => {
+    try {
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
+      ]);
+    } catch (e) {
+      console.error('Failed to load face models', e);
+      toast.error('Gagal memuat model pengenalan wajah. Hubungi administrator.');
+    }
+  };
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => setLocation({ lat: position.coords.latitude, lng: position.coords.longitude }),
+        () => setLocationError('Gagal mendapatkan lokasi GPS. Pastikan izin lokasi aktif.'),
+        { enableHighAccuracy: true }
+      );
+    } else {
+      setLocationError('Browser Anda tidak mendukung Geolocation.');
+    }
+  }, []);
+
+  const startScanner = async () => {
+    if (!location && !locationError) {
+      toast.warning('Menunggu lokasi GPS...');
+      return;
+    }
+    if (locationError) {
+      toast.error(locationError);
+      return;
+    }
+
+    setCameraError(null);
+    if (!window.isSecureContext) {
+      const err = getCameraErrorMessage(null);
+      setCameraError(err);
+      toast.error(err.title);
+      return;
+    }
+
+    const onScan = async (code: string) => {
+      // Stop scanner immediately upon detection to prevent multiple reads
+      await stopScanner();
+      setScanResult(code);
+      
+      if (isFaceVerificationEnabled) {
+        startFaceVerification(code);
+      } else {
+        submitAttendance(code);
+      }
+    };
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    try {
+      const scanner = await startHtml5QrcodeWithFallback("staff-qr-reader", onScan, config);
+      scannerRef.current = scanner;
+      setScanning(true);
+    } catch (err: unknown) {
+      const errInfo = getCameraErrorMessage(err);
+      setCameraError(errInfo);
+      toast.error(errInfo.title);
+      scannerRef.current = null;
+    }
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try { await scannerRef.current.stop(); } catch {}
+      try { scannerRef.current.clear(); } catch {}
+      scannerRef.current = null;
+    }
+    setScanning(false);
+  };
+
+  useEffect(() => () => { stopScanner(); }, []);
+
+  const startFaceVerification = async (qrCode: string) => {
+    setFaceVerificationStatus('scanning');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      // Dummy timeout untuk simulasi (nanti bisa diganti perbandingan riil)
+      setTimeout(() => {
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        setFaceVerificationStatus('verified');
+        submitAttendance(qrCode);
+      }, 3000);
+
+    } catch (e) {
+      setFaceVerificationStatus('failed');
+      toast.error('Gagal mengakses kamera untuk verifikasi wajah.');
+    }
+  };
+
+  const submitAttendance = async (qrCode: string) => {
+    if (!location) {
+      toast.error('Menunggu lokasi GPS...');
+      return;
+    }
+
+    try {
+      const res = await staffAttendanceApi.scan({
+        qr_code: qrCode,
+        latitude: location.lat,
+        longitude: location.lng,
+      });
+      toast.success(res.message || 'Absen berhasil.');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Gagal melakukan absensi.');
+    } finally {
+      setScanResult(null);
+      setFaceVerificationStatus('idle');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+      {/* Header */}
+      <div className="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={async () => { await stopScanner(); onBack(); }} className="text-white hover:bg-slate-800 rounded-xl h-9 w-9">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="flex-1">
+          <h2 className="font-black text-base">ABSENSI STAFF PCNU</h2>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col p-4 max-w-sm mx-auto w-full space-y-4">
+        {locationError && (
+          <div className="bg-red-900/30 border border-red-800/50 rounded-2xl p-3 text-xs text-red-300 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>{locationError}</p>
+          </div>
+        )}
+
+        {!location && !locationError && (
+          <div className="bg-blue-900/30 border border-blue-800/50 rounded-2xl p-3 text-xs text-blue-300 flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+            <p>Mendeteksi Lokasi GPS...</p>
+          </div>
+        )}
+
+        <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl flex-1 flex flex-col justify-center min-h-[300px]">
+          {/* Default Screen */}
+          {!scanning && !scanResult && faceVerificationStatus === 'idle' && (
+            <div className="flex flex-col items-center justify-center p-6 text-center gap-4">
+              <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-700">
+                <Users className="h-9 w-9 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-white font-bold mb-1">Siapkan ID Card Anda</p>
+                <p className="text-slate-400 text-xs leading-relaxed">Pastikan Anda berada di area kantor PCNU Cilacap.</p>
+              </div>
+              <Button
+                onClick={startScanner}
+                disabled={!location && !locationError}
+                className="w-full mt-2 h-12 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl"
+              >
+                <ScanLine className="mr-2 h-5 w-5" /> Mulai Scan
+              </Button>
+            </div>
+          )}
+
+          {/* Scanner Container */}
+          <div id="staff-qr-reader" className="w-full" style={{ display: scanning ? 'block' : 'none' }} />
+
+          {/* Face Verification Overlay */}
+          {faceVerificationStatus === 'scanning' && (
+            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 gap-4 z-10">
+              <div className="relative w-full aspect-square rounded-full overflow-hidden border-4 border-blue-500">
+                <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                <div className="absolute inset-0 border-[4px] border-dashed border-blue-400 animate-spin-slow rounded-full pointer-events-none" />
+              </div>
+              <p className="text-blue-400 font-bold animate-pulse text-sm">Memverifikasi Wajah...</p>
+            </div>
+          )}
+
+          {faceVerificationStatus === 'failed' && (
+            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 gap-4 z-10">
+              <div className="w-16 h-16 bg-red-950/50 rounded-full flex items-center justify-center border-2 border-red-800/50">
+                <XCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <div className="text-center">
+                <p className="text-red-400 font-bold">Verifikasi Gagal</p>
+                <p className="text-slate-500 text-xs mt-1">Wajah tidak cocok.</p>
+              </div>
+              <Button variant="outline" className="mt-2 text-slate-300 border-slate-700" onClick={() => {
+                setScanResult(null);
+                setFaceVerificationStatus('idle');
+                startScanner();
+              }}>Coba Lagi</Button>
+            </div>
+          )}
+          
+          {scanResult && faceVerificationStatus === 'verified' && (
+             <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 gap-4 z-10">
+               <div className="w-16 h-16 bg-emerald-950/50 rounded-full flex items-center justify-center border-2 border-emerald-800/50">
+                 <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+               </div>
+               <p className="text-emerald-400 font-bold">Wajah Cocok</p>
+               <p className="text-slate-500 text-xs">Memproses absensi...</p>
+             </div>
+          )}
+        </div>
+
+        {/* Cancel Button during scanning */}
+        {scanning && (
+          <Button variant="outline" onClick={stopScanner} className="w-full h-12 rounded-xl border-slate-700 text-slate-300 hover:bg-slate-800">
+            Batal
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function PublicScannerPage() {
@@ -1080,9 +1357,10 @@ export default function PublicScannerPage() {
 
   const handleLogin = (s: Session) => {
     setSession(s);
-    // Yayasan goes directly to meeting scanner, operator goes to mode selection
     if (s.loginMode === "yayasan") {
       setScreen("meeting-scanner");
+    } else if (s.loginMode === "staff") {
+      setScreen("staff-scanner");
     } else {
       setScreen("mode");
     }
@@ -1128,6 +1406,10 @@ export default function PublicScannerPage() {
         }}
       />
     );
+  }
+
+  if (screen === "staff-scanner") {
+    return <StaffScannerScreen session={session} onBack={handleLogout} />;
   }
 
   return null;

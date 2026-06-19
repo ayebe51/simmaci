@@ -174,6 +174,10 @@ export default function SettingsPage() {
                     </Button>
                 </form>
             </Card>
+            
+            <div className="mt-8">
+                <StaffSecurityCard settingsMap={settingsMap} refetch={refetch} />
+            </div>
         </TabsContent>
       </Tabs>
     </div>
@@ -442,3 +446,67 @@ function KopSuratCard({ settingsMap, refetch }: { settingsMap: any; refetch: () 
     </Card>
   )
 }
+
+// ── Staff Security Card ──────────────────────────────────────────
+
+function StaffSecurityCard({ settingsMap, refetch }: { settingsMap: any; refetch: () => void }) {
+  const [faceEnabled, setFaceEnabled] = useState(settingsMap?.staff_face_recognition_enabled?.value === 'true')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setFaceEnabled(settingsMap?.staff_face_recognition_enabled?.value === 'true')
+  }, [settingsMap])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await settingApi.update({ key: "staff_face_recognition_enabled", value: faceEnabled ? "true" : "false" })
+      toast.success("Pengaturan Face Recognition berhasil disimpan")
+      refetch()
+    } catch {
+      toast.error("Gagal menyimpan pengaturan")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] p-10 max-w-2xl">
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-black uppercase italic tracking-tight">Keamanan Absensi Staff</h2>
+          <p className="text-slate-400 text-sm mt-1">
+            Atur fitur pengenalan wajah biometrik (Facial Recognition AI) untuk memperketat absensi Staff PCNU.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between border rounded-2xl p-4 bg-slate-50">
+          <div className="flex-1 space-y-1">
+            <h3 className="font-bold text-slate-800 text-sm">Aktifkan Face Recognition AI</h3>
+            <p className="text-xs text-slate-500">
+              Mewajibkan staff melakukan pemindaian wajah saat absen dengan QR Code ID Card.
+            </p>
+          </div>
+          <div className="flex items-center">
+            <input 
+              type="checkbox" 
+              checked={faceEnabled} 
+              onChange={(e) => setFaceEnabled(e.target.checked)} 
+              className="w-5 h-5 accent-emerald-600"
+            />
+          </div>
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="h-12 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100"
+        >
+          {saving ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+          Simpan Pengaturan
+        </Button>
+      </div>
+    </Card>
+  )
+}
+

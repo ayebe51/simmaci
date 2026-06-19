@@ -65,7 +65,7 @@ class SkDocumentController extends Controller
         // scoped to the same school_id (avoids loading all teachers into PHP memory).
         $items = collect($paginated->items());
         $missingDataItems = $items->filter(fn($sk) =>
-            (empty($sk->teacher?->nomor_induk_maarif) || empty($sk->teacher?->tmt) || empty($sk->teacher?->tempat_lahir) || empty($sk->teacher?->tanggal_lahir)) && !empty($sk->nama)
+            (empty($sk->teacher?->nomor_induk_maarif) || empty($sk->teacher?->tmt)) && !empty($sk->nama)
         );
 
         if ($missingDataItems->isNotEmpty()) {

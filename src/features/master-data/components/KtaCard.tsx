@@ -54,8 +54,8 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
   };
 
   const cardStyle = {
-    width: "480px", 
-    height: "300px",
+    width: isTeacher ? "300px" : "480px", 
+    height: isTeacher ? "480px" : "300px",
     borderRadius: "12px",
     position: "relative" as const,
     overflow: "hidden" as const,
@@ -128,19 +128,19 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
             className={`border ${isTeacher ? "border-yellow-500/20" : "border-blue-400/20"} relative overflow-hidden`}
           >
             <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900/80 to-slate-800/80 backdrop-blur-md border-b border-white/10 flex items-center px-4 justify-between z-10">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <img src="/logo-icon-192.png" alt="Logo" className="h-10 w-10 object-contain" />
                     <div className="flex flex-col">
-                        <h1 className="text-[12px] font-extrabold text-white uppercase tracking-widest leading-none mb-0.5">
+                        <h1 className={`font-extrabold text-white uppercase tracking-widest leading-none mb-0.5 ${isTeacher ? 'text-[10px]' : 'text-[12px]'}`}>
                           {isTeacher ? "KARTU TANDA ANGGOTA" : "KARTU IDENTITAS SISWA"}
                         </h1>
-                        <h2 className="text-[8px] font-semibold text-emerald-400 uppercase tracking-widest leading-none">LP MA'ARIF NU CILACAP</h2>
+                        <h2 className="text-[7px] font-semibold text-emerald-400 uppercase tracking-widest leading-none">LP MA'ARIF NU CILACAP</h2>
                     </div>
                 </div>
             </div>
 
-            <div className="relative z-10 flex gap-5 w-full h-full pt-20 pb-6 px-5">
-                <div className={`w-24 h-32 bg-slate-800 rounded-md border-2 ${isTeacher ? 'border-yellow-500/40' : 'border-blue-400/40'} overflow-hidden flex-shrink-0`}>
+            <div className={`relative z-10 flex ${isTeacher ? 'flex-col items-center gap-3 pt-20 px-6 pb-6' : 'gap-5 pt-20 pb-6 px-5'} w-full h-full`}>
+                <div className={`${isTeacher ? 'w-28 h-36 mt-2' : 'w-24 h-32'} bg-slate-800 rounded-md border-2 ${isTeacher ? 'border-yellow-500/40' : 'border-blue-400/40'} overflow-hidden flex-shrink-0 z-20 shadow-xl`}>
                     {displayUrl ? (
                         <img src={displayUrl} className="w-full h-full object-cover" alt="Profile" />
                     ) : (
@@ -148,18 +148,18 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                     )}
                 </div>
 
-                <div className="flex-1 flex flex-col justify-start pt-1 gap-2.5">
-                    <div className="border-b border-white/10 pb-1 flex justify-between">
-                        <label className="text-[7px] text-slate-400 uppercase tracking-widest">ID</label>
-                        <p className="font-mono font-bold text-[10px] text-white tracking-widest">{idValue || "-"}</p>
+                <div className={`flex-1 flex flex-col justify-start pt-1 w-full ${isTeacher ? 'gap-1.5' : 'gap-2.5'}`}>
+                    <div className={`border-b border-white/10 pb-1 ${isTeacher ? 'text-center' : 'flex justify-between'}`}>
+                        <label className="text-[7px] text-slate-400 uppercase tracking-widest block mb-0.5">ID / NUPTK</label>
+                        <p className={`font-mono font-bold text-white tracking-widest ${isTeacher ? 'text-[11px]' : 'text-[10px]'}`}>{idValue || "-"}</p>
                     </div>
-                    <div className="border-b border-white/10 pb-1">
+                    <div className={`border-b border-white/10 pb-1 ${isTeacher ? 'text-center mt-1' : ''}`}>
                         <label className="text-[7px] text-slate-400 uppercase tracking-widest block mb-0.5">Nama Lengkap</label>
-                        <p className="font-bold text-[11px] text-white uppercase truncate">{data.nama}</p>
+                        <p className={`font-bold text-white uppercase ${isTeacher ? 'text-[12px] line-clamp-2' : 'text-[11px] truncate'}`}>{data.nama}</p>
                     </div>
-                    <div className="border-b border-white/10 pb-1">
+                    <div className={`border-b border-white/10 pb-1 ${isTeacher ? 'text-center mt-1' : ''}`}>
                         <label className="text-[7px] text-slate-400 uppercase tracking-widest block mb-0.5">Instansi</label>
-                        <p className="font-semibold text-[10px] text-slate-300 truncate uppercase">
+                        <p className={`font-semibold text-slate-300 uppercase ${isTeacher ? 'text-[11px] line-clamp-2' : 'text-[10px] truncate'}`}>
                           {isTeacher ? data.unitKerja : data.namaSekolah}
                         </p>
                     </div>
@@ -179,19 +179,19 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
             }}
             className={`border ${isTeacher ? "border-yellow-500/20" : "border-blue-400/20"} relative`}
           >
-            <div className="p-5 flex flex-col h-full justify-between z-10 relative">
-                <div>
-                   <h3 className="text-[9px] font-bold uppercase border-b border-white/10 pb-1.5 mb-2.5 text-slate-400 tracking-widest">Ketentuan</h3>
-                   <ul className="text-[7.5px] space-y-1.5 text-slate-300">
+            <div className={`p-5 flex flex-col h-full ${isTeacher ? 'justify-start items-center pt-8 gap-8' : 'justify-between z-10 relative'}`}>
+                <div className={`${isTeacher ? 'text-center px-4' : ''}`}>
+                   <h3 className={`font-bold uppercase border-b border-white/10 pb-1.5 mb-2.5 text-slate-400 tracking-widest ${isTeacher ? 'text-[10px]' : 'text-[9px]'}`}>Ketentuan</h3>
+                   <ul className={`text-[7.5px] space-y-1.5 text-slate-300 ${isTeacher ? 'text-center' : ''}`}>
                        <li>• Kartu ini adalah identitas resmi LP Ma'arif NU Cilacap.</li>
                        <li>• Wajib dibawa saat kegiatan resmi.</li>
                        <li>• Digunakan dalam sistem absensi digital.</li>
                    </ul>
                 </div>
 
-                <div className="flex justify-between items-end pb-1">
-                    <div className="bg-white p-1 rounded-md">
-                        <QRCodeSVG value={verifyUrl} size={60} level="M" />
+                <div className={`flex ${isTeacher ? 'flex-col items-center gap-6 w-full' : 'justify-between items-end pb-1'}`}>
+                    <div className={`bg-white p-1 rounded-md ${isTeacher ? 'shadow-xl' : ''}`}>
+                        <QRCodeSVG value={verifyUrl} size={isTeacher ? 90 : 60} level="M" />
                     </div>
                     <div className="text-center">
                         <p className="text-[7.5px] text-slate-400 mb-4 font-medium">LP MA'ARIF NU CILACAP</p>

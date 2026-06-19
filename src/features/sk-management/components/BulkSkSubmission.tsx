@@ -142,10 +142,15 @@ export function BulkSkSubmission() {
            throw new Error("Kolom TMT tidak terdeteksi! Pastikan judul kolom menggunakan kata 'TMT' atau 'Tanggal Mulai Tugas'.");
         }
 
-        const data = rows.slice(bestRowIndex + 1).map(row => {
+        const data = rows.slice(bestRowIndex + 1).map((row, index) => {
           const obj: any = {}
+          let isRowEmpty = true;
+
           Object.entries(colMap).forEach(([key, idx]) => {
             let val = row[idx]
+            if (val !== undefined && val !== null && String(val).trim() !== "") {
+                isRowEmpty = false;
+            }
              if (key.includes('tanggal') || key === 'tmt') {
                 if (typeof val === 'number') {
                    if (val > 1000 && val <= 3000) {
@@ -172,8 +177,29 @@ export function BulkSkSubmission() {
              }
             obj[key] = val
           })
+          
+          if (isRowEmpty) return null;
+
+          const missingColumns: string[] = [];
+          Object.entries(colMap).forEach(([key, idx]) => {
+              if (key === 'nomor_induk_maarif' || key === 'nip' || key === 'nuptk') return;
+              
+              const val = obj[key];
+              if (val === undefined || val === null || String(val).trim() === '') {
+                  // Ignore 'status' if it's missing but we default it later?
+                  // Actually the user says "tetapi yang lainnya harus ada"
+                  missingColumns.push(headers[idx] || key);
+              }
+          });
+
+          if (missingColumns.length > 0) {
+              const rowNum = bestRowIndex + index + 2;
+              const nama = obj.nama || "Tanpa Nama";
+              throw new Error(`Baris ke-${rowNum} (${nama}): Kolom yang wajib diisi masih kosong (${missingColumns.join(', ')}). Harap lengkapi data.`);
+          }
+
           return obj
-        }).filter(o => o.nama)
+        }).filter(Boolean)
 
         // Validate internal duplicates (NIM ganda di dalam file Excel)
         const seenNim = new Set<string>();

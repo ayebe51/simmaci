@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('staffs', function (Blueprint $table) {
-            $table->text('face_descriptor')->nullable()->after('qr_code');
-        });
+        if (!Schema::hasColumn('staffs', 'face_descriptor')) {
+            Schema::table('staffs', function (Blueprint $table) {
+                $table->text('face_descriptor')->nullable()->after('qr_code');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('staffs', function (Blueprint $table) {
-            $table->dropColumn('face_descriptor');
-        });
+        if (Schema::hasColumn('staffs', 'face_descriptor')) {
+            Schema::table('staffs', function (Blueprint $table) {
+                $table->dropColumn('face_descriptor');
+            });
+        }
     }
 };

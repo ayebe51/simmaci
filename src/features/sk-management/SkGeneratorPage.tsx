@@ -598,7 +598,7 @@ export default function SkGeneratorPage() {
                 // Mode normal: TMT dari data guru di database
                 tmt: formatDateIndo(t.tmt || teacher.tmt),
                 tanggal_mulai_tugas: formatDateIndo(t.tmt || teacher.tmt),
-                nomor_induk_maarif: t.nomor_induk_maarif || teacher.nomor_induk_maarif || t.nip || teacher.nip || "-",
+                nomor_induk_maarif: teacher.nomor_induk_maarif || t.nomor_induk_maarif || teacher.nip || t.nip || "-",
                 kecamatan: t.kecamatan || teacher.kecamatan || defaultKecamatan
             }
 
@@ -1147,7 +1147,7 @@ export default function SkGeneratorPage() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="font-bold text-slate-800 text-sm">{t.nama}</div>
-                                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">NIM: {t.nomor_induk_maarif || t.teacher?.nomor_induk_maarif || "-"}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">NIM: {t.teacher?.nomor_induk_maarif || t.nomor_induk_maarif || "-"}</div>
                                 </TableCell>
                                 <TableCell className="text-xs text-slate-500">
                                     <div className="font-medium text-slate-700">{t.tempat_lahir || t.teacher?.tempat_lahir || "-"}</div>

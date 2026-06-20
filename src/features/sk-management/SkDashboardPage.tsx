@@ -391,8 +391,8 @@ export default function SkDashboardPage() {
                                   <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200 text-[9px] font-black uppercase px-1.5 py-0">Guru Baru</Badge>
                                 )}
                               </div>
-                              {(item.nomor_induk_maarif || item.teacher?.nomor_induk_maarif) && (
-                                <div className="text-[10px] font-bold text-emerald-600 uppercase">NIM: {item.nomor_induk_maarif || item.teacher?.nomor_induk_maarif}</div>
+                              {(item.teacher?.nomor_induk_maarif || item.nomor_induk_maarif) && (
+                                <div className="text-[10px] font-bold text-emerald-600 uppercase">NIM: {item.teacher?.nomor_induk_maarif || item.nomor_induk_maarif}</div>
                               )}
                               {item.nuptk && <div className="text-[10px] font-bold text-blue-500 uppercase">NUPTK: {item.nuptk}</div>}
                           </TableCell>

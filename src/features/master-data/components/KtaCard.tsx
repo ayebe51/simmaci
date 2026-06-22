@@ -15,6 +15,10 @@ interface KtaCardProps {
     kelas?: string; // Student
     photoId?: string;
     nip?: string;
+    // adding snake_case variants to match API response
+    unit_kerja?: string;
+    nomor_induk_maarif?: string;
+    school?: { nama: string };
   };
   type: "teacher" | "student";
   isBatch?: boolean;
@@ -40,7 +44,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
   }, [data.photoId]);
   
   const baseUrl = (import.meta.env as any).VITE_APP_URL || window.location.origin;
-  const idValue = isTeacher ? data.nomorIndukMaarif : data.nisn;
+  const idValue = isTeacher ? (data.nomorIndukMaarif || data.nomor_induk_maarif) : data.nisn;
   const verifyUrl = `${baseUrl}/verify/${isTeacher ? 'teacher' : 'student'}/${idValue || "unknown"}`;
 
   const handlePrint = () => {
@@ -160,7 +164,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                     <div className={`border-b border-white/10 pb-1 ${isTeacher ? 'text-center mt-1' : ''}`}>
                         <label className="text-[7px] text-slate-400 uppercase tracking-widest block mb-0.5">Instansi</label>
                         <p className={`font-semibold text-slate-300 uppercase ${isTeacher ? 'text-[11px] line-clamp-2' : 'text-[10px] truncate'}`}>
-                          {isTeacher ? data.unitKerja : data.namaSekolah}
+                          {isTeacher ? (data.school?.nama || data.unitKerja || data.unit_kerja) : data.namaSekolah}
                         </p>
                     </div>
                 </div>

@@ -144,12 +144,18 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
             </div>
 
             <div className={`relative z-10 flex ${isTeacher ? 'flex-col items-center gap-3 pt-20 px-6 pb-6' : 'gap-5 pt-20 pb-6 px-5'} w-full h-full`}>
-                <div className={`${isTeacher ? 'w-28 h-36 mt-2' : 'w-24 h-32'} bg-slate-800 rounded-md border-2 ${isTeacher ? 'border-yellow-500/40' : 'border-blue-400/40'} overflow-hidden flex-shrink-0 z-20 shadow-xl`}>
-                    {displayUrl ? (
-                        <img src={displayUrl} className="w-full h-full object-cover" alt="Profile" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">No Photo</div>
-                    )}
+                <div className="relative">
+                    <div className={`${isTeacher ? 'w-28 h-36 mt-2' : 'w-24 h-32'} bg-slate-800 rounded-md border-2 ${isTeacher ? 'border-yellow-500/40' : 'border-blue-400/40'} overflow-hidden flex-shrink-0 z-20 shadow-xl`}>
+                        {displayUrl ? (
+                            <img src={displayUrl} className="w-full h-full object-cover" alt="Profile" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">No Photo</div>
+                        )}
+                    </div>
+                    {/* Barcode on Front Side */}
+                    <div className={`absolute ${isTeacher ? '-right-14 bottom-2' : '-right-16 bottom-0'} bg-white p-1 rounded-sm shadow-xl border border-slate-200 z-30`}>
+                        <QRCodeSVG value={verifyUrl} size={45} level="L" />
+                    </div>
                 </div>
 
                 <div className={`flex-1 flex flex-col justify-start pt-1 w-full ${isTeacher ? 'gap-1.5' : 'gap-2.5'}`}>

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\ApprovalHistoryController;
 use App\Http\Controllers\Api\TeacherMutationController;
 use App\Http\Controllers\Api\SkTemplateController;
 use App\Http\Controllers\Api\SkVerificationController;
+use App\Http\Controllers\Api\TeacherVerificationController;
 use App\Http\Controllers\Api\MinioProxyController;
 use App\Http\Controllers\Api\PublicAttendanceController;
 use App\Http\Controllers\Api\WaBlastController;
@@ -78,6 +79,9 @@ Route::prefix('auth')->group(function () {
 // ── Public SK Verification ──
 Route::get('verify/sk/{nomor}', [SkVerificationController::class, 'verifyBySk'])
     ->where('nomor', '.*');
+
+// ── Public Teacher Verification ──
+Route::get('verify/teacher/{nim}', [TeacherVerificationController::class, 'verifyByNim']);
 
 // ── PPDB Public Registration ──
 Route::prefix('ppdb')->group(function () {

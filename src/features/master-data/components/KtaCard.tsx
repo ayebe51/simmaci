@@ -40,7 +40,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
   }, [data.photoId]);
   
   const baseUrl = (import.meta.env as any).VITE_APP_URL || window.location.origin;
-  const idValue = isTeacher ? data.nuptk : data.nisn;
+  const idValue = isTeacher ? data.nomorIndukMaarif : data.nisn;
   const verifyUrl = `${baseUrl}/verify/${isTeacher ? 'teacher' : 'student'}/${idValue || "unknown"}`;
 
   const handlePrint = () => {
@@ -150,7 +150,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
 
                 <div className={`flex-1 flex flex-col justify-start pt-1 w-full ${isTeacher ? 'gap-1.5' : 'gap-2.5'}`}>
                     <div className={`border-b border-white/10 pb-1 ${isTeacher ? 'text-center' : 'flex justify-between'}`}>
-                        <label className="text-[7px] text-slate-400 uppercase tracking-widest block mb-0.5">ID / NUPTK</label>
+                        <label className="text-[7px] text-slate-400 uppercase tracking-widest block mb-0.5">ID / NIM</label>
                         <p className={`font-mono font-bold text-white tracking-widest ${isTeacher ? 'text-[11px]' : 'text-[10px]'}`}>{idValue || "-"}</p>
                     </div>
                     <div className={`border-b border-white/10 pb-1 ${isTeacher ? 'text-center mt-1' : ''}`}>
@@ -194,7 +194,7 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                         <QRCodeSVG value={verifyUrl} size={isTeacher ? 90 : 60} level="M" />
                     </div>
                     <div className="text-center">
-                        <p className="text-[7.5px] text-slate-400 mb-4 font-medium">LP MA'ARIF NU CILACAP</p>
+                        <p className="text-[7.5px] text-slate-400 mb-16 font-medium">LP MA'ARIF NU CILACAP</p>
                         <p className="text-[10px] font-extrabold text-white border-b border-white/20 pb-0.5 mb-1 px-4 tracking-wide">Ali Sodiqin, S.Ag., M.Pd.I.</p>
                         <p className="text-[6.5px] uppercase tracking-widest text-emerald-400 font-semibold">Ketua</p>
                     </div>

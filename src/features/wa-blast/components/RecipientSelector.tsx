@@ -16,9 +16,13 @@ interface RecipientSelectorProps {
 }
 
 const jenjangOptions: { value: Jenjang; label: string }[] = [
+  { value: "TK/RA", label: "TK/RA" },
+  { value: "RA", label: "RA" },
   { value: "MI", label: "MI" },
   { value: "MTs", label: "MTs" },
   { value: "MA", label: "MA" },
+  { value: "SMA", label: "SMA" },
+  { value: "SMK", label: "SMK" },
 ];
 
 export function RecipientSelector({

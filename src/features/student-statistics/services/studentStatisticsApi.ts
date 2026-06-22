@@ -8,7 +8,7 @@ import { apiClient } from '@/lib/api';
 // ── Interfaces ──
 
 export interface JenjangStatItem {
-  jenjang: string; // "RA" | "MI" | "MTs" | "MA" | "Tidak Terdefinisi" | "Lainnya"
+  jenjang: string; // "TK/RA" | "RA" | "MI" | "MTs" | "MA" | "SMA" | "SMK" | "Tidak Terdefinisi" | "Lainnya"
   jumlah_siswa: number;
   persentase: number; // 0-100, rounded
 }

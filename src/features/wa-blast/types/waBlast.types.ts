@@ -13,7 +13,7 @@ export type RecipientCategory = 'kepala_sekolah' | 'gtk' | 'both';
 
 export type RecipientType = 'kepala_sekolah' | 'gtk';
 
-export type Jenjang = 'MI' | 'MTs' | 'MA';
+export type Jenjang = 'TK/RA' | 'RA' | 'MI' | 'MTs' | 'MA' | 'SMA' | 'SMK';
 
 // ── Core Interfaces ──
 

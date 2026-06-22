@@ -14,6 +14,7 @@ export interface AffiliationStats {
 }
 
 export interface JenjangStats {
+  tk_ra: number;
   mi_sd: number;
   mts_smp: number;
   ma_sma_smk: number;

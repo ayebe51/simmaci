@@ -31,6 +31,7 @@ const mockStatisticsData: SchoolStatisticsData = {
     undefined: 0,
   },
   jenjang: {
+    tk_ra: 0,
     mi_sd: 80,
     mts_smp: 60,
     ma_sma_smk: 50,
@@ -47,6 +48,7 @@ const mockStatisticsWithZeros: SchoolStatisticsData = {
     undefined: 0,
   },
   jenjang: {
+    tk_ra: 0,
     mi_sd: 50,
     mts_smp: 30,
     ma_sma_smk: 20,
@@ -63,6 +65,7 @@ const mockEmptyStatistics: SchoolStatisticsData = {
     undefined: 0,
   },
   jenjang: {
+    tk_ra: 0,
     mi_sd: 0,
     mts_smp: 0,
     ma_sma_smk: 0,
@@ -320,7 +323,7 @@ describe('SchoolStatisticsCards', () => {
 
       // All categories should show 0 (0%)
       const zeroTexts = screen.getAllByText(/0 \(0%\)/);
-      expect(zeroTexts.length).toBeGreaterThanOrEqual(8); // 3 affiliation + 5 jenjang
+      expect(zeroTexts.length).toBeGreaterThanOrEqual(9); // 3 affiliation + 6 jenjang
     });
   });
 
@@ -335,6 +338,7 @@ describe('SchoolStatisticsCards', () => {
           undefined: 34, // 34/100 = 34%
         },
         jenjang: {
+          tk_ra: 0,
           mi_sd: 25, // 25/100 = 25%
           mts_smp: 25, // 25/100 = 25%
           ma_sma_smk: 25, // 25/100 = 25%
@@ -373,6 +377,7 @@ describe('SchoolStatisticsCards', () => {
           undefined: 3, // 3/6 = 50%
         },
         jenjang: {
+          tk_ra: 0,
           mi_sd: 2, // 2/6 = 33.33% → rounds to 33%
           mts_smp: 2, // 2/6 = 33.33% → rounds to 33%
           ma_sma_smk: 2, // 2/6 = 33.33% → rounds to 33%

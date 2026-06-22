@@ -51,7 +51,7 @@ const jenjangConfig: Record<string, { icon: React.ElementType; color: string; bg
 };
 
 /** Canonical order for displaying jenjang categories */
-const JENJANG_ORDER = ['RA', 'MI', 'MTs', 'MA', 'Tidak Terdefinisi', 'Lainnya'];
+const JENJANG_ORDER = ['TK/RA', 'RA', 'MI', 'MTs', 'MA', 'SMA', 'SMK', 'Tidak Terdefinisi', 'Lainnya'];
 
 export function JenjangSummaryCards({ data, onSelectJenjang }: JenjangSummaryCardsProps) {
   if (!data) return null;

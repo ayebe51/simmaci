@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { CheckCircle2, XCircle, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 
 export default function VerifyTeacherPage() {
-  const { nuptk } = useParams<{ nuptk: string }>();
+  const { nim } = useParams<{ nim: string }>();
   
   // 🔥 REST API QUERY
   const { data: verificationResponse, isLoading, error } = useQuery({
-    queryKey: ['verify', 'teacher', nuptk],
-    queryFn: () => nuptk ? verificationApi.verifyByNuptk(nuptk) : null,
-    enabled: !!nuptk
+    queryKey: ['verify', 'teacher', nim],
+    queryFn: () => nim ? verificationApi.verifyByNim(nim) : null,
+    enabled: !!nim
   });
 
   const teacher = verificationResponse?.data;
@@ -22,7 +22,7 @@ export default function VerifyTeacherPage() {
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <div className="flex flex-col items-center">
             <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Memvalidasi NUPTK...</p>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Memvalidasi NIM...</p>
         </div>
       </div>
     );
@@ -38,7 +38,7 @@ export default function VerifyTeacherPage() {
             </div>
             <CardTitle className="text-2xl font-black text-slate-800">DATA TIDAK SAH</CardTitle>
             <CardDescription className="text-sm px-8 pt-2 leading-relaxed">
-              Pendidik dengan NUPTK <strong>{nuptk}</strong> tidak terdaftar dalam database resmi PC LP Ma'arif NU Cilacap.
+              Pendidik dengan NIM <strong>{nim}</strong> tidak terdaftar dalam database resmi PC LP Ma'arif NU Cilacap.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8 flex justify-center border-t border-slate-50 mt-4">

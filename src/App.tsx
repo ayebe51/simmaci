@@ -158,7 +158,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/verify/:id" element={<PublicVerificationPage />} />
             <Route path="/verify/sk/:nomor" element={<VerifySkPage />} />
-            <Route path="/verify/teacher/:nuptk" element={<VerifyTeacherPage />} />
+            <Route path="/verify/teacher/:nim" element={<VerifyTeacherPage />} />
             <Route path="/verify/student/:nisn" element={<VerifyStudentPage />} />
 
             {/* Public Attendance Scanner — accessible without login */}

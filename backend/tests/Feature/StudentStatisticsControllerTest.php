@@ -126,7 +126,7 @@ class StudentStatisticsControllerTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'super_admin']);
 
-        $invalidJenjangValues = ['invalid', 'sma', 'sd', 'xyz', '123'];
+        $invalidJenjangValues = ['invalid', 'universitas', 'smp', 'xyz', '123'];
 
         foreach ($invalidJenjangValues as $jenjang) {
             $response = $this->actingAs($user, 'sanctum')
@@ -274,7 +274,7 @@ class StudentStatisticsControllerTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'super_admin']);
 
-        $validJenjangValues = ['ra', 'mi', 'mts', 'ma', 'tidak_terdefinisi', 'lainnya'];
+        $validJenjangValues = ['tk/ra', 'ra', 'mi', 'mts', 'ma', 'sma', 'smk', 'tidak_terdefinisi', 'lainnya'];
 
         foreach ($validJenjangValues as $jenjang) {
             $response = $this->actingAs($user, 'sanctum')

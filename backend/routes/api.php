@@ -359,8 +359,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->prefix('student-statistics')
         ->group(function () {
             Route::get('/per-jenjang', [StudentStatisticsController::class, 'perJenjang']);
-            Route::get('/per-jenjang/{jenjang}/madrasah', [StudentStatisticsController::class, 'madrasahByJenjang']);
-            Route::get('/per-jenjang/{jenjang}/export', [StudentStatisticsController::class, 'exportRekapPerJenjang']);
+            Route::get('/per-jenjang/{jenjang}/madrasah', [StudentStatisticsController::class, 'madrasahByJenjang'])
+                ->where('jenjang', '.*');
+            Route::get('/per-jenjang/{jenjang}/export', [StudentStatisticsController::class, 'exportRekapPerJenjang'])
+                ->where('jenjang', '.*');
             Route::get('/madrasah/{id}/per-kelas', [StudentStatisticsController::class, 'perKelas']);
             Route::get('/madrasah/{id}/per-kelas/export', [StudentStatisticsController::class, 'exportPerKelas']);
         });

@@ -62,6 +62,7 @@ class DashboardControllerTest extends TestCase
         $this->assertArrayHasKey('undefined', $data['data']['affiliation']);
 
         // Assert: Check jenjang keys
+        $this->assertArrayHasKey('tk_ra', $data['data']['jenjang']);
         $this->assertArrayHasKey('mi_sd', $data['data']['jenjang']);
         $this->assertArrayHasKey('mts_smp', $data['data']['jenjang']);
         $this->assertArrayHasKey('ma_sma_smk', $data['data']['jenjang']);
@@ -118,6 +119,8 @@ class DashboardControllerTest extends TestCase
         School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'MA']);
         School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'SMA']);
         School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'SMK']);
+        School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'TK']);
+        School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'RA']);
 
         // Act
         $request = Request::create('/api/dashboard/school-statistics', 'GET');
@@ -126,6 +129,9 @@ class DashboardControllerTest extends TestCase
         $response = $this->controller->getSchoolStatistics($request);
         $data = $response->getData(true)['data'];
 
+        // Assert: TK and RA should be counted as 'tk_ra'
+        $this->assertEquals(2, $data['jenjang']['tk_ra']);
+        
         // Assert: MI and SD should be counted as 'mi_sd'
         $this->assertEquals(2, $data['jenjang']['mi_sd']);
         
@@ -199,6 +205,7 @@ class DashboardControllerTest extends TestCase
         $this->assertEquals(1, $data['total']);
         $this->assertEquals(1, $data['affiliation']['jamaah']);
         $this->assertEquals(0, $data['affiliation']['jamiyyah']);
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(1, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -321,6 +328,7 @@ class DashboardControllerTest extends TestCase
         $this->assertEquals(0, $data['affiliation']['undefined']);
         
         // Assert: Empty jenjang categories should return 0
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(1, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -338,7 +346,7 @@ class DashboardControllerTest extends TestCase
         $user = User::factory()->create(['role' => 'super_admin']);
 
         // Create schools with unrecognized jenjang values
-        School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'TK']);
+        School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'Kursus']);
         School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'PAUD']);
         School::factory()->create(['status_jamiyyah' => 'Jama\'ah', 'jenjang' => 'Universitas']);
 
@@ -351,6 +359,7 @@ class DashboardControllerTest extends TestCase
 
         // Assert: Unrecognized values should be counted as 'lainnya'
         $this->assertEquals(3, $data['jenjang']['lainnya']);
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(0, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -387,7 +396,8 @@ class DashboardControllerTest extends TestCase
         $this->assertEquals($data['total'], $affiliationSum);
 
         // Assert: Total should match sum of jenjang categories
-        $jenjangSum = $data['jenjang']['mi_sd'] 
+        $jenjangSum = $data['jenjang']['tk_ra']
+                    + $data['jenjang']['mi_sd'] 
                     + $data['jenjang']['mts_smp'] 
                     + $data['jenjang']['ma_sma_smk'] 
                     + $data['jenjang']['lainnya'] 

@@ -105,7 +105,7 @@ class Task8_IntegrationVerificationTest extends TestCase
             'nsm' => '999999999999',
             'npsn' => '99999999',
             'status_jamiyyah' => 'Afiliasi',
-            'jenjang' => 'TK',
+            'jenjang' => 'Kursus',
         ]);
 
         // Edge case: Mixed case jenjang
@@ -149,7 +149,7 @@ class Task8_IntegrationVerificationTest extends TestCase
                 'message',
                 'data' => [
                     'affiliation' => ['jamaah', 'jamiyyah', 'undefined'],
-                    'jenjang' => ['mi_sd', 'mts_smp', 'ma_sma_smk', 'lainnya', 'undefined'],
+                    'jenjang' => ['tk_ra', 'mi_sd', 'mts_smp', 'ma_sma_smk', 'lainnya', 'undefined'],
                     'total',
                 ],
             ]);
@@ -179,6 +179,7 @@ class Task8_IntegrationVerificationTest extends TestCase
         // MA/SMA/SMK: MA Miftahul Ulum, SMK Teknologi = 2
         // Lainnya: Sekolah Jenjang Lain (TK) = 1
         // Undefined: Sekolah Tanpa Jenjang (NULL), Sekolah Jenjang Kosong ('') = 2
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(4, $data['jenjang']['mi_sd']);
         $this->assertEquals(2, $data['jenjang']['mts_smp']);
         $this->assertEquals(2, $data['jenjang']['ma_sma_smk']);
@@ -247,6 +248,7 @@ class Task8_IntegrationVerificationTest extends TestCase
         $this->assertEquals(0, $data['affiliation']['undefined']);
 
         // Assert jenjang counts (MI Al-Ikhlas is MI)
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(1, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -282,6 +284,7 @@ class Task8_IntegrationVerificationTest extends TestCase
         $this->assertEquals(0, $data['affiliation']['jamaah']);
         $this->assertEquals(0, $data['affiliation']['jamiyyah']);
         $this->assertEquals(0, $data['affiliation']['undefined']);
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(0, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -328,6 +331,7 @@ class Task8_IntegrationVerificationTest extends TestCase
         $data = $response->json('data');
         $this->assertEquals(2, $data['total']);
         $this->assertEquals(2, $data['jenjang']['undefined']);
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(0, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -385,11 +389,11 @@ class Task8_IntegrationVerificationTest extends TestCase
         School::query()->delete();
         
         School::create([
-            'nama' => 'TK School',
+            'nama' => 'Kursus School',
             'nsm' => '111111111102',
             'npsn' => '11111102',
             'status_jamiyyah' => 'Jama\'ah',
-            'jenjang' => 'TK',
+            'jenjang' => 'Kursus',
         ]);
 
         School::create([
@@ -422,6 +426,7 @@ class Task8_IntegrationVerificationTest extends TestCase
         $data = $response->json('data');
         $this->assertEquals(3, $data['total']);
         $this->assertEquals(3, $data['jenjang']['lainnya']);
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         $this->assertEquals(0, $data['jenjang']['mi_sd']);
         $this->assertEquals(0, $data['jenjang']['mts_smp']);
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk']);
@@ -491,6 +496,7 @@ class Task8_IntegrationVerificationTest extends TestCase
         $data = $response->json('data');
         $this->assertEquals(5, $data['total']);
         
+        $this->assertEquals(0, $data['jenjang']['tk_ra']);
         // All MI variants should be categorized as mi_sd
         $this->assertEquals(3, $data['jenjang']['mi_sd']);
         
@@ -527,7 +533,7 @@ class Task8_IntegrationVerificationTest extends TestCase
                 'message',
                 'data' => [
                     'affiliation' => ['jamaah', 'jamiyyah', 'undefined'],
-                    'jenjang' => ['mi_sd', 'mts_smp', 'ma_sma_smk', 'lainnya', 'undefined'],
+                    'jenjang' => ['tk_ra', 'mi_sd', 'mts_smp', 'ma_sma_smk', 'lainnya', 'undefined'],
                     'total',
                 ],
             ]);

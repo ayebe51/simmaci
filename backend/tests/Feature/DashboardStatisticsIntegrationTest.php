@@ -109,7 +109,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         School::factory()->create([
             'nama' => 'School with unrecognized jenjang',
             'status_jamiyyah' => 'Jama\'ah',
-            'jenjang' => 'TK', // Not in MI/SD, MTs/SMP, MA/SMA/SMK
+            'jenjang' => 'Kursus', // Not in MI/SD, MTs/SMP, MA/SMA/SMK, TK/RA
         ]);
 
         // Make API request as super_admin
@@ -122,7 +122,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
             'message',
             'data' => [
                 'affiliation' => ['jamaah', 'jamiyyah', 'undefined'],
-                'jenjang' => ['mi_sd', 'mts_smp', 'ma_sma_smk', 'lainnya', 'undefined'],
+                'jenjang' => ['tk_ra', 'mi_sd', 'mts_smp', 'ma_sma_smk', 'lainnya', 'undefined'],
                 'total',
             ],
         ]);
@@ -151,7 +151,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         // MA/SMA/SMK: MA Jama'ah 1 = 1
         $this->assertEquals(1, $data['jenjang']['ma_sma_smk'], 'Should have 1 MA/SMA/SMK school');
         
-        // Lainnya: School with unrecognized jenjang (TK) = 1
+        // Lainnya: School with unrecognized jenjang (Kursus) = 1
         $this->assertEquals(1, $data['jenjang']['lainnya'], 'Should have 1 school with unrecognized jenjang');
         
         // Undefined: School with NULL values + School with empty values = 2
@@ -166,7 +166,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         $this->assertEquals($totalSchools, $affiliationSum, 'Affiliation categories should sum to total');
         
         // Verify jenjang sum equals total
-        $jenjangSum = $data['jenjang']['mi_sd'] + $data['jenjang']['mts_smp'] + $data['jenjang']['ma_sma_smk'] + $data['jenjang']['lainnya'] + $data['jenjang']['undefined'];
+        $jenjangSum = $data['jenjang']['tk_ra'] + $data['jenjang']['mi_sd'] + $data['jenjang']['mts_smp'] + $data['jenjang']['ma_sma_smk'] + $data['jenjang']['lainnya'] + $data['jenjang']['undefined'];
         $this->assertEquals($totalSchools, $jenjangSum, 'Jenjang categories should sum to total');
     }
 
@@ -205,6 +205,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         $this->assertEquals(0, $data['affiliation']['undefined'], 'No undefined schools for operator');
         
         $this->assertEquals(1, $data['jenjang']['mi_sd'], 'Operator school is MI');
+        $this->assertEquals(0, $data['jenjang']['tk_ra'], 'No TK/RA schools for operator');
         $this->assertEquals(0, $data['jenjang']['mts_smp'], 'No MTs/SMP schools for operator');
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk'], 'No MA/SMA/SMK schools for operator');
         $this->assertEquals(0, $data['jenjang']['lainnya'], 'No other jenjang for operator');
@@ -461,6 +462,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         $this->assertArrayHasKey('jamiyyah', $data['affiliation']);
         $this->assertArrayHasKey('undefined', $data['affiliation']);
         
+        $this->assertArrayHasKey('tk_ra', $data['jenjang']);
         $this->assertArrayHasKey('mi_sd', $data['jenjang']);
         $this->assertArrayHasKey('mts_smp', $data['jenjang']);
         $this->assertArrayHasKey('ma_sma_smk', $data['jenjang']);
@@ -471,6 +473,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         $this->assertEquals(0, $data['affiliation']['jamiyyah'], 'Jamiyyah should be 0');
         $this->assertEquals(0, $data['affiliation']['undefined'], 'Undefined affiliation should be 0');
         
+        $this->assertEquals(0, $data['jenjang']['tk_ra'], 'TK/RA should be 0');
         $this->assertEquals(0, $data['jenjang']['mts_smp'], 'MTs/SMP should be 0');
         $this->assertEquals(0, $data['jenjang']['ma_sma_smk'], 'MA/SMA/SMK should be 0');
         $this->assertEquals(0, $data['jenjang']['lainnya'], 'Lainnya should be 0');
@@ -497,6 +500,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
                     'undefined',
                 ],
                 'jenjang' => [
+                    'tk_ra',
                     'mi_sd',
                     'mts_smp',
                     'ma_sma_smk',
@@ -514,6 +518,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         $this->assertIsInt($data['affiliation']['jamiyyah']);
         $this->assertIsInt($data['affiliation']['undefined']);
         
+        $this->assertIsInt($data['jenjang']['tk_ra']);
         $this->assertIsInt($data['jenjang']['mi_sd']);
         $this->assertIsInt($data['jenjang']['mts_smp']);
         $this->assertIsInt($data['jenjang']['ma_sma_smk']);
@@ -527,6 +532,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         $this->assertGreaterThanOrEqual(0, $data['affiliation']['jamiyyah']);
         $this->assertGreaterThanOrEqual(0, $data['affiliation']['undefined']);
         
+        $this->assertGreaterThanOrEqual(0, $data['jenjang']['tk_ra']);
         $this->assertGreaterThanOrEqual(0, $data['jenjang']['mi_sd']);
         $this->assertGreaterThanOrEqual(0, $data['jenjang']['mts_smp']);
         $this->assertGreaterThanOrEqual(0, $data['jenjang']['ma_sma_smk']);
@@ -627,7 +633,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
         
         // "Madrasah Tsanawiyah" contains "mts" (case-insensitive) - actually it doesn't, so it should be in lainnya
         // Let's verify it's categorized somewhere
-        $totalJenjang = $data['jenjang']['mi_sd'] + $data['jenjang']['mts_smp'] + $data['jenjang']['ma_sma_smk'] + $data['jenjang']['lainnya'] + $data['jenjang']['undefined'];
+        $totalJenjang = $data['jenjang']['tk_ra'] + $data['jenjang']['mi_sd'] + $data['jenjang']['mts_smp'] + $data['jenjang']['ma_sma_smk'] + $data['jenjang']['lainnya'] + $data['jenjang']['undefined'];
         $this->assertEquals($data['total'], $totalJenjang, 'All schools should be categorized');
     }
 }

@@ -18,7 +18,7 @@ import { useWaBlast } from "./hooks/useWaBlast"
 import { useWaBlastProgress } from "./hooks/useWaBlastProgress"
 import { deleteBlast, retryBlast } from "./services/waBlastService"
 import { format } from "date-fns"
-import { id } from "date-fns/locale"
+import { id as idLocale } from "date-fns/locale"
 import { toast } from "sonner"
 import { useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -33,7 +33,7 @@ export default function WaBlastDetailPage() {
   const { data: blast, isLoading, error, refetch } = useWaBlast(isValidId ? numericId : 0)
   const { data: progress } = useWaBlastProgress(
     isValidId ? numericId : 0,
-    blast?.blast_status === "sending"
+    { blastStatus: blast?.blast_status }
   )
 
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -110,7 +110,7 @@ export default function WaBlastDetailPage() {
             <p className="text-sm text-slate-500 mt-1">
               Dibuat pada{" "}
               {format(new Date(blast.created_at), "dd MMMM yyyy HH:mm", {
-                locale: id,
+                locale: idLocale,
               })}
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function WaBlastDetailPage() {
               <p className="text-sm text-slate-500">Waktu Terjadwal</p>
               <p className="text-base font-medium">
                 {format(new Date(blast.scheduled_at), "dd MMMM yyyy HH:mm", {
-                  locale: id,
+                  locale: idLocale,
                 })}
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function WaBlastDetailPage() {
               <p className="text-sm text-slate-500">Waktu Mulai Kirim</p>
               <p className="text-base font-medium">
                 {format(new Date(blast.sent_at), "dd MMMM yyyy HH:mm", {
-                  locale: id,
+                  locale: idLocale,
                 })}
               </p>
             </div>
@@ -194,7 +194,7 @@ export default function WaBlastDetailPage() {
               <p className="text-sm text-slate-500">Waktu Selesai</p>
               <p className="text-base font-medium">
                 {format(new Date(blast.completed_at), "dd MMMM yyyy HH:mm", {
-                  locale: id,
+                  locale: idLocale,
                 })}
               </p>
             </div>
@@ -210,8 +210,8 @@ export default function WaBlastDetailPage() {
           </CardHeader>
           <CardContent>
             <BlastProgressBar
-              sentCount={progress.sent_count}
-              totalCount={progress.total_count}
+              blastId={numericId}
+              blastStatus={blast.blast_status}
             />
           </CardContent>
         </Card>

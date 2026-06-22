@@ -451,6 +451,7 @@ class DashboardCacheService
         $jenjangStats = (clone $query)
             ->selectRaw("
                 CASE
+                    WHEN LOWER(jenjang) LIKE '%tk%' OR LOWER(jenjang) LIKE '%ra%' THEN 'tk_ra'
                     WHEN LOWER(jenjang) LIKE '%mi%' OR LOWER(jenjang) LIKE '%sd%' THEN 'mi_sd'
                     WHEN LOWER(jenjang) LIKE '%mts%' OR LOWER(jenjang) LIKE '%smp%' THEN 'mts_smp'
                     WHEN LOWER(jenjang) LIKE '%ma%' OR LOWER(jenjang) LIKE '%sma%' OR LOWER(jenjang) LIKE '%smk%' THEN 'ma_sma_smk'
@@ -472,6 +473,7 @@ class DashboardCacheService
                 'undefined' => (int) ($affiliationStats['undefined'] ?? 0),
             ],
             'jenjang' => [
+                'tk_ra' => (int) ($jenjangStats['tk_ra'] ?? 0),
                 'mi_sd' => (int) ($jenjangStats['mi_sd'] ?? 0),
                 'mts_smp' => (int) ($jenjangStats['mts_smp'] ?? 0),
                 'ma_sma_smk' => (int) ($jenjangStats['ma_sma_smk'] ?? 0),

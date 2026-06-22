@@ -15,6 +15,11 @@ export function JenjangCard({ data, total }: JenjangCardProps) {
 
   const categories = [
     {
+      label: 'TK / RA',
+      count: data.tk_ra,
+      percentage: calculatePercentage(data.tk_ra),
+    },
+    {
       label: 'MI / SD',
       count: data.mi_sd,
       percentage: calculatePercentage(data.mi_sd),

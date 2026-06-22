@@ -26,7 +26,7 @@ class StudentStatisticsController extends Controller
 {
     use ApiResponse;
 
-    private const VALID_JENJANG = ['ra', 'mi', 'mts', 'ma', 'tidak_terdefinisi', 'lainnya'];
+    private const VALID_JENJANG = ['tk/ra', 'ra', 'mi', 'mts', 'ma', 'sma', 'smk', 'tidak_terdefinisi', 'lainnya'];
 
     public function __construct(
         private StudentStatisticsService $service

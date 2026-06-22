@@ -35,7 +35,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-const JENJANG_OPTIONS = ['RA', 'MI', 'MTs', 'MA'] as const
+const JENJANG_OPTIONS = ['TK/RA', 'RA', 'MI', 'MTs', 'MA', 'SMA', 'SMK'] as const
 
 export default function SkReportGroupedPage() {
   const user = authApi.getStoredUser()

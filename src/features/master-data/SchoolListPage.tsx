@@ -416,6 +416,7 @@ export default function SchoolListPage() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         templateUrl="/TEMPLATE_IMPORT_DATA_LEMBAGA_V3.xlsx"
+        enablePreview={true}
         onImport={async (data) => {
           try {
             const res = await schoolApi.import(data)

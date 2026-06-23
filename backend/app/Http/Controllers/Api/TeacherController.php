@@ -1121,6 +1121,8 @@ class TeacherController extends Controller
         $query = Teacher::where(function ($q) {
             $q->whereNull('nomor_induk_maarif')
               ->orWhere('nomor_induk_maarif', '');
+        })->whereHas('school', function ($q) {
+            $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
         });
         
         if ($teacherIds && count($teacherIds) > 0) {

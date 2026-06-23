@@ -993,12 +993,10 @@ class TeacherController extends Controller
         if ($driver === 'pgsql') {
             // PostgreSQL: use regex to ensure purely numeric and cast to BIGINT for ordering
             $query->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
-                  ->whereRaw("CAST(nomor_induk_maarif AS BIGINT) < 113430000") // Abaikan NIM hasil salah ketik (lompat jauh)
                   ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC");
         } else {
             // SQLite (tests) / other: filter non-numeric via GLOB and order as integer
             $query->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'")
-                  ->whereRaw("CAST(nomor_induk_maarif AS INTEGER) < 113430000") // Abaikan NIM hasil salah ketik
                   ->orderByRaw("CAST(nomor_induk_maarif AS INTEGER) DESC");
         }
 
@@ -1152,11 +1150,9 @@ class TeacherController extends Controller
 
             if ($driver === 'pgsql') {
                 $q->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
-                  ->whereRaw("CAST(nomor_induk_maarif AS BIGINT) < 113430000") // Abaikan NIM hasil salah ketik (lompat jauh)
                   ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC");
             } else {
                 $q->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'")
-                  ->whereRaw("CAST(nomor_induk_maarif AS INTEGER) < 113430000") // Abaikan NIM hasil salah ketik
                   ->orderByRaw("CAST(nomor_induk_maarif AS INTEGER) DESC");
             }
 

@@ -130,7 +130,7 @@ Route::get('test-minio', function() {
 
 // ── Protected Routes ──
 Route::middleware('auth:sanctum')->group(function () {
-    // Auth
+    // --- AUTHENTICATED ROUTES ---
     Route::post('auth/logout',          [AuthController::class, 'logout']);
     Route::get('auth/me',               [AuthController::class, 'user']);
     Route::post('auth/change-password', [AuthController::class, 'changePassword']);

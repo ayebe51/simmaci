@@ -281,9 +281,7 @@ export default function SkGeneratorPage() {
         ...candidatesData,
         data: (candidatesData?.data || []).filter((sk: any) => 
           !sk.file_url || 
-          sk.file_url === '' || 
-          sk.file_url === 'Generated via Bulk (Collective Group)' ||
-          sk.file_url === 'Generated via Bulk (ZIP)'
+          sk.file_url === ''
         )
       }
     }

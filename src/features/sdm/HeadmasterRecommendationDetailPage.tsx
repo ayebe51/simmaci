@@ -109,7 +109,7 @@ export function HeadmasterRecommendationDetailPage() {
                         )}
                     </div>
 
-                    {!isOperator && recommendation.status === "Pending" && (
+                    {(user?.role === 'super_admin' || user?.role === 'admin_yayasan') && recommendation.status === "Pending" && (
                         <div className="flex gap-3">
                             <Button onClick={() => setIsApproveOpen(true)} className="h-12 rounded-2xl px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-100">
                                 Setujui

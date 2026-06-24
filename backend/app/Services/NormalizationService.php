@@ -114,6 +114,7 @@ class NormalizationService
         'MH'        => 'M.H.',
         'MEI'       => 'M.E.I',
         'ME'        => 'M.E.',
+        'MSC'       => 'M.Sc.',
         'MSI'       => 'M.Si.',
         'MKOM'      => 'M.Kom.',
         'MIP'       => 'M.IP.',
@@ -410,6 +411,12 @@ class NormalizationService
         $name = preg_replace('/[.,]+/', '', $name);
         $name = preg_replace('/\s+/', ' ', $name);
         $name = trim($name);
+
+        // Add dots to single-letter abbreviations (e.g., A -> A.)
+        $name = preg_replace('/\b([A-Za-z])(\s|$)/i', '$1.$2', $name);
+        
+        // Add dots to specific abbreviations (Moch, Mokh, Moh, Hj)
+        $name = preg_replace('/\b(Moch|Mokh|Moh|Hj)(\s|$)/i', '$1.$2', $name);
 
         // Post-process: if a prefix-type degree (Dr., Dra., Prof.) ended up in suffixes
         // because it appeared after the name (e.g. "MUMBASITOH, Dra." or "fatimah dr."),

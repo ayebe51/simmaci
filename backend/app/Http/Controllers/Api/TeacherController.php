@@ -33,6 +33,9 @@ class TeacherController extends Controller
         if ($request->kecamatan) {
             $query->where('kecamatan', $request->kecamatan);
         }
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
         if ($request->has('is_active')) {
             $query->where('is_active', $request->boolean('is_active'));
         }

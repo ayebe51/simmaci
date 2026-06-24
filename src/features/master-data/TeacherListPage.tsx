@@ -60,6 +60,7 @@ export default function TeacherListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterKecamatan, setFilterKecamatan] = useState("all")
   const [filterSchool, setFilterSchool] = useState("all")
+  const [filterStatus, setFilterStatus] = useState("all")
 
   // List of kecamatan in Cilacap
   const uniqueKecamatan = [
@@ -95,13 +96,14 @@ export default function TeacherListPage() {
 
   // 🔥 REST API QUERY
   const { data: teachersData, isLoading } = useQuery({
-    queryKey: ['teachers', currentPage, searchTerm, filterKecamatan, filterSchool, activeFilter],
+    queryKey: ['teachers', currentPage, searchTerm, filterKecamatan, filterSchool, filterStatus, activeFilter],
     queryFn: () => teacherApi.list({
       page: currentPage,
       per_page: itemsPerPage,
       search: searchTerm || undefined,
       kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan,
       school_id: filterSchool === "all" ? undefined : filterSchool,
+      status: filterStatus === "all" ? undefined : filterStatus,
       is_active: activeFilter === "all" ? undefined : (activeFilter === "active" ? 1 : 0)
     })
   })
@@ -404,7 +406,7 @@ export default function TeacherListPage() {
                         </Select>
                     )}
                     
-                    <Select defaultValue="all">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
                         <SelectTrigger className="w-[160px] h-10 rounded-2xl bg-white border-slate-200">
                             <SelectValue placeholder="Semua Status" />
                         </SelectTrigger>

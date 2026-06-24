@@ -578,11 +578,27 @@ export default function SkGeneratorPage() {
                 }
             }
 
+            const inferPendidikan = (nama: string) => {
+                if (!nama) return "-";
+                const lower = nama.toLowerCase();
+                // Check degrees from highest to lowest
+                if (lower.includes("dr.") || lower.includes("ph.d")) return "S3";
+                if (lower.includes("m.pd") || lower.includes("m.ag") || lower.includes("m.si") || lower.includes("m.kom") || lower.includes("m.a.") || lower.includes("m.sc")) return "S2";
+                if (lower.includes("s.pd") || lower.includes("s.ag") || lower.includes("s.kom") || lower.includes("s.e") || lower.includes("s.t") || lower.includes("s.sos") || lower.includes("s.i.p") || lower.includes("s.h") || lower.includes("s.p")) return "S1";
+                if (lower.includes("a.md") || lower.includes("a.ma")) return "D3";
+                return "-";
+            };
+
+            const rawPendidikan = t.pendidikan_terakhir || teacher?.pendidikan_terakhir;
+            const pendidikanTerakhir = (rawPendidikan && rawPendidikan.trim() !== "" && rawPendidikan.trim() !== "-") 
+                ? rawPendidikan 
+                : inferPendidikan(t.nama || teacher?.nama);
+
             const identity = {
                 nama: t.nama || teacher.nama,
                 tempat_lahir: t.tempat_lahir || teacher.tempat_lahir,
                 tanggal_lahir: formatDateIndo(t.tanggal_lahir || teacher.tanggal_lahir),
-                pendidikan_terakhir: t.pendidikan_terakhir || teacher.pendidikan_terakhir,
+                pendidikan_terakhir: pendidikanTerakhir,
                 unit_kerja: t.unit_kerja || teacher.unit_kerja,
                 // Mode insidentil: TMT tetap dari data guru (kapan guru mulai bertugas),
                 // bukan tanggal penetapan SK. Tanggal penetapan adalah kapan SK diterbitkan.

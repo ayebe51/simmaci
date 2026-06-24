@@ -115,6 +115,7 @@ export default function AppShell({ children }: AppShellProps) {
     {
       title: "Manajemen SDM",
       items: [
+        { label: "Rekomendasi Kepala", href: "/dashboard/sdm/rekomendasi-kepala/pengajuan", icon: Crown },
         { label: "Pengajuan Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
         { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
         { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },

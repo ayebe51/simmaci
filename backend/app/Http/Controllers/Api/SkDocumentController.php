@@ -29,7 +29,7 @@ class SkDocumentController extends Controller
         $query = SkDocument::select([
                 'id', 'nomor_sk', 'nama', 'jenis_sk', 'status',
                 'unit_kerja', 'created_at', 'school_id', 'teacher_id',
-                'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url',
+                'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url', 'file_url',
             ])
             ->with(['teacher' => function ($q) {
                 $q->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir', 'pendidikan_terakhir']);

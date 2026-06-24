@@ -79,7 +79,7 @@ class SkDocumentController extends Controller
                         ->whereNull('t.deleted_at');
                 })
                 ->whereIn('sd.id', $missingDataIds)
-                ->select('sd.id', 't.nomor_induk_maarif', 't.tmt', 't.tempat_lahir', 't.tanggal_lahir')
+                ->select('sd.id', 't.nomor_induk_maarif', 't.tmt', 't.tempat_lahir', 't.tanggal_lahir', 't.pendidikan_terakhir')
                 ->get()
                 ->keyBy('id');
 
@@ -99,12 +99,16 @@ class SkDocumentController extends Controller
                         if (empty($sk->teacher->tanggal_lahir) && !empty($row->tanggal_lahir)) {
                             $sk->teacher->tanggal_lahir = $row->tanggal_lahir;
                         }
+                        if (empty($sk->teacher->pendidikan_terakhir) && !empty($row->pendidikan_terakhir)) {
+                            $sk->teacher->pendidikan_terakhir = $row->pendidikan_terakhir;
+                        }
                     } else {
                         $sk->setRelation('teacher', new Teacher([
                             'nomor_induk_maarif' => $row->nomor_induk_maarif,
                             'tmt' => $row->tmt,
                             'tempat_lahir' => $row->tempat_lahir,
                             'tanggal_lahir' => $row->tanggal_lahir,
+                            'pendidikan_terakhir' => $row->pendidikan_terakhir,
                         ]));
                     }
                 }

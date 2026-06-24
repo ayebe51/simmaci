@@ -460,37 +460,34 @@ export default function SkGeneratorPage() {
             const tanggalPenetapanPerGuru = tglPenetapanPerGuru.toISOString().split('T')[0]
             
             // 1. Determine Template
-            // Status source: sk_document.status_kepegawaian takes priority over teacher.status
-            const statusRaw = (t.status_kepegawaian || teacher.status || "").toLowerCase()
             const jenis = (t.jenis_sk || "").toLowerCase()
+            const isKamad = jenis.includes("kamad") || jenis.includes("kepala")
+            
+            // 1. Abaikan status dari excel karena operator sering salah input
+            // 2. Cek apakah memiliki gelar atau pendidikan S1+
+            const namaLengkap = (t.nama || teacher.nama || "")
+            const hasGelarDepan = /^(Drs\.|Dra\.|Ir\.|Dr\.|Prof\.)/i.test(namaLengkap)
+            const hasGelarBelakang = namaLengkap.includes(',')
+            
             const pendidikan = (t.pendidikan_terakhir || teacher.pendidikan_terakhir || "").toLowerCase()
-
-            const isGty   = statusRaw.includes("gty") || statusRaw.includes("tetap yayasan") ||
-                            jenis.includes("gty")     || jenis.includes("tetap yayasan")
-            const isKamad = statusRaw.includes("kamad") || statusRaw.includes("kepala") ||
-                            jenis.includes("kamad")     || jenis.includes("kepala")
-            const isGtt   = statusRaw.includes("gtt") || statusRaw.includes("tidak tetap") ||
-                            jenis.includes("gtt")     || jenis.includes("tidak tetap")
-            const isEmpty = statusRaw === "" && jenis === ""
-
-            // Pendidikan di bawah S1: SMA/MA, D1, D2, D3 — bukan S1/S2/S3/D4
             const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
-            const isBelowS1 = pendidikan !== "" && !PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
+            const isPendidikanTinggi = PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
+
+            const hasGelar = hasGelarDepan || hasGelarBelakang || isPendidikanTinggi
 
             let templateId = "sk_template_tendik" // Default
 
-            if (isGty || isKamad) {
+            if (isKamad) {
                 // Kamad is GTY — SK massal for Kamad uses GTY template
                 templateId = "sk_template_gty"
-            } else if (isGtt || isEmpty || (!isGty && !isKamad && !isBelowS1)) {
-                // GTT status, empty status, or unrecognized status:
-                // TMT always overrides — TMT >= 2 years → GTY, TMT < 2 years → GTT
+            } else if (!hasGelar) {
+                // Tidak ada gelar/pendidikan tinggi otomatis Tendik
+                templateId = "sk_template_tendik"
+            } else {
+                // Punya gelar, penentuan murni dari TMT
                 const tmtForTemplate = t.tmt || teacher.tmt
                 const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanPerGuru) : 0
                 templateId = periodeForTemplate >= 2 ? "sk_template_gty" : "sk_template_gtt"
-            } else if (isBelowS1) {
-                // Unrecognized status + pendidikan below S1 → Tendik
-                templateId = "sk_template_tendik"
             }
             
             // 2. Fetch Template if not cached
@@ -624,6 +621,7 @@ export default function SkGeneratorPage() {
                 "TEMPAT/TANGGAL LAHIR": tempatTglLahir,
                 "PENDIDIKAN": identity.pendidikan_terakhir || "-",
                 "Pendidikan": identity.pendidikan_terakhir || "-",
+                "PENDIDIKAN TERAKHIR": identity.pendidikan_terakhir || "-",
                 "TMT": identity.tmt,
                 "TMT GURU": identity.tmt,
                 "TANGGAL MULAI TUGAS": identity.tmt,

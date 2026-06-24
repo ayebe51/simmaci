@@ -198,7 +198,7 @@ export default function AppShell({ children }: AppShellProps) {
                   const adminOnlyLabels = [
                     "Manajemen User", "Health Data", "Event / Lomba", 
                     "Generator SK", "Approval Yayasan", "Monitoring Kepala", 
-                    "Persetujuan NUPTK", "Laporan Guru", "Laporan SK", "Kelola Sekolah"
+                    "Laporan Guru", "Laporan SK", "Kelola Sekolah"
                   ];
                   const superAdminOnlyLabels = ["Template SK", "Konfigurasi Go-WA"];
 

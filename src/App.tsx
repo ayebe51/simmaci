@@ -78,8 +78,6 @@ const VerifyStudentPage = lazy(() => import("./features/verification/VerifyStude
 const VerifySkPage = lazy(() => import("./features/verification/VerifySkPage"))
 
 // ── SDM / NUPTK ───────────────────────────────────────────────────────────────
-const PengajuanNuptkPage = lazy(() => import("./features/sdm/PengajuanNuptkPage").then(m => ({ default: m.PengajuanNuptkPage })))
-const PersetujuanNuptkPage = lazy(() => import("./features/sdm/PersetujuanNuptkPage").then(m => ({ default: m.PersetujuanNuptkPage })))
 const PengajuanRekomendasiKepalaPage = lazy(() => import("./features/sdm/PengajuanRekomendasiKepalaPage").then(m => ({ default: m.PengajuanRekomendasiKepalaPage })))
 const HeadmasterRecommendationDetailPage = lazy(() => import("./features/sdm/HeadmasterRecommendationDetailPage").then(m => ({ default: m.HeadmasterRecommendationDetailPage })))
 
@@ -220,8 +218,6 @@ export default function App() {
                           <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
                           <Route path="sk/:id/print" element={<SkPrintPage />} />
                           <Route path="approval/yayasan" element={<YayasanApprovalPage />} />
-                          <Route path="sdm/nuptk/pengajuan" element={<PengajuanNuptkPage />} />
-                          <Route path="sdm/nuptk/persetujuan" element={<PersetujuanNuptkPage />} />
                           <Route path="sdm/rekomendasi-kepala/pengajuan" element={<PengajuanRekomendasiKepalaPage />} />
                           <Route path="sdm/rekomendasi-kepala/:id" element={<HeadmasterRecommendationDetailPage />} />
 

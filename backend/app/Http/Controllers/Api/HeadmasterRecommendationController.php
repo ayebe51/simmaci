@@ -79,8 +79,8 @@ class HeadmasterRecommendationController extends Controller
 
     public function approve(Request $request, HeadmasterRecommendation $headmasterRecommendation): JsonResponse
     {
-        if ($request->user()->isOperator()) {
-            abort(403, 'Only admins can approve.');
+        if (! in_array($request->user()->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Admin Yayasan dan Super Admin yang dapat menyetujui.');
         }
 
         $headmasterRecommendation->update([
@@ -94,8 +94,8 @@ class HeadmasterRecommendationController extends Controller
 
     public function reject(Request $request, HeadmasterRecommendation $headmasterRecommendation): JsonResponse
     {
-        if ($request->user()->isOperator()) {
-            abort(403, 'Only admins can reject.');
+        if (! in_array($request->user()->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Admin Yayasan dan Super Admin yang dapat menolak.');
         }
 
         $request->validate(['rejection_reason' => 'required|string']);

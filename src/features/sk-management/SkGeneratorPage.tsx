@@ -583,9 +583,9 @@ export default function SkGeneratorPage() {
                 const lower = nama.toLowerCase();
                 // Check degrees from highest to lowest
                 if (lower.includes("dr.") || lower.includes("ph.d")) return "S3";
-                if (lower.includes("m.pd") || lower.includes("m.ag") || lower.includes("m.si") || lower.includes("m.kom") || lower.includes("m.a.") || lower.includes("m.sc")) return "S2";
-                if (lower.includes("s.pd") || lower.includes("s.ag") || lower.includes("s.kom") || lower.includes("s.e") || lower.includes("s.t") || lower.includes("s.sos") || lower.includes("s.i.p") || lower.includes("s.h") || lower.includes("s.p") || lower.includes("s.s")) return "S1";
-                if (lower.includes("a.md") || lower.includes("a.ma")) return "D3";
+                if (lower.match(/\bm\.[a-z]{1,4}\b/i)) return "S2";
+                if (lower.match(/\bs\.[a-z]{1,4}\b/i) || lower.match(/\bs\.[a-z]{1,4}\.[a-z]{1,4}\b/i)) return "S1";
+                if (lower.includes("a.md") || lower.includes("a.ma") || lower.includes("d.iii") || lower.includes("d.iv")) return "D3";
                 return "-";
             };
 

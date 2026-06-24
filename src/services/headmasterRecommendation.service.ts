@@ -1,4 +1,4 @@
-import api from './api';
+import { apiClient } from '@/lib/api';
 
 export interface HeadmasterRecommendation {
   id: number;
@@ -34,26 +34,26 @@ export interface HeadmasterRecommendation {
 }
 
 export const getHeadmasterRecommendations = async (params?: any) => {
-  const response = await api.get('/headmaster-recommendations', { params });
+  const response = await apiClient.get('/headmaster-recommendations', { params });
   return response.data;
 };
 
 export const getHeadmasterRecommendation = async (id: number | string) => {
-  const response = await api.get(`/headmaster-recommendations/${id}`);
+  const response = await apiClient.get(`/headmaster-recommendations/${id}`);
   return response.data;
 };
 
 export const submitHeadmasterRecommendation = async (data: any) => {
-  const response = await api.post('/headmaster-recommendations', data);
+  const response = await apiClient.post('/headmaster-recommendations', data);
   return response.data;
 };
 
 export const approveHeadmasterRecommendation = async (id: number | string) => {
-  const response = await api.post(`/headmaster-recommendations/${id}/approve`);
+  const response = await apiClient.post(`/headmaster-recommendations/${id}/approve`);
   return response.data;
 };
 
 export const rejectHeadmasterRecommendation = async (id: number | string, data: { rejection_reason: string }) => {
-  const response = await api.post(`/headmaster-recommendations/${id}/reject`, data);
+  const response = await apiClient.post(`/headmaster-recommendations/${id}/reject`, data);
   return response.data;
 };

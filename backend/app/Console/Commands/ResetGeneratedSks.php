@@ -26,11 +26,9 @@ class ResetGeneratedSks extends Command
      */
     public function handle()
     {
-        $count = SkDocument::where('file_url', 'like', 'Generated via Bulk%')
-            ->update([
-                'file_url' => null,
-                'nomor_sk' => null,
-            ]);
+        $count = \Illuminate\Support\Facades\DB::update(
+            "UPDATE sk_documents SET file_url = NULL, nomor_sk = 'DRAFT-' || id WHERE file_url LIKE 'Generated via Bulk%'"
+        );
 
         $this->info("Successfully reset $count SK documents.");
     }

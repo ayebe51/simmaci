@@ -31,7 +31,7 @@ class ClearPnsNim extends Command
         $query = Teacher::withoutTenantScope()
             ->whereNotNull('nomor_induk_maarif')
             ->where('nomor_induk_maarif', '!=', '')
-            ->where('status', 'PNS');
+            ->whereRaw("LOWER(status) LIKE '%pns%'");
 
         $count = $query->count();
 

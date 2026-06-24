@@ -146,7 +146,6 @@ export default function SkGeneratorPage() {
   const [showFailureDialog, setShowFailureDialog] = useState(false)
   const [failedSyncItems, setFailedSyncItems] = useState<FailedSyncItem[]>([])
   const [isRetrying, setIsRetrying] = useState(false)
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending')
 
   // NIM Dialog state — shown when a selected teacher has no nomor_induk_maarif
   const [nimDialogTeacher, setNimDialogTeacher] = useState<TeacherForNim | null>(null)
@@ -263,11 +262,11 @@ export default function SkGeneratorPage() {
 
   // 🔥 REST API QUERIES
   
-  // 1. SK Request Candidates (Pending or Approved but not yet printed)
+  // 1. SK Request Candidates (Approved but not yet printed)
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
-    queryKey: ['sk-candidates-generator', searchTerm, page, activeTab],
+    queryKey: ['sk-candidates-generator', searchTerm, page],
     queryFn: () => skApi.list({
-      status: activeTab === 'pending' ? 'unverified' : activeTab,
+      status: 'approved',
       search: searchTerm,
       page: page,
       per_page: itemsPerPage
@@ -276,17 +275,14 @@ export default function SkGeneratorPage() {
 
   // Filter approved SK to only show those without file_url (not yet printed)
   const filteredCandidates = useMemo(() => {
-    if (activeTab === 'approved') {
-      return {
-        ...candidatesData,
-        data: (candidatesData?.data || []).filter((sk: any) => 
-          !sk.file_url || 
-          sk.file_url === ''
-        )
-      }
+    return {
+      ...candidatesData,
+      data: (candidatesData?.data || []).filter((sk: any) => 
+        !sk.file_url || 
+        sk.file_url === ''
+      )
     }
-    return candidatesData
-  }, [candidatesData, activeTab])
+  }, [candidatesData])
 
   // 2. Last SK Number for Auto-Increment
   // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
@@ -1066,39 +1062,7 @@ export default function SkGeneratorPage() {
                 </div>
             </div>
 
-            {/* Tab Switcher */}
-            <div className="px-8 pt-6 pb-0 flex gap-2 border-b border-slate-100">
-                <button
-                    onClick={() => {
-                        setActiveTab('pending')
-                        setSelectedIds(new Set())
-                        setPage(1)
-                    }}
-                    className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-t-lg transition-all ${
-                        activeTab === 'pending'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    }`}
-                >
-                    <AlertCircle className="inline h-3 w-3 mr-1" />
-                    Antrean Draft ({candidatesData?.data?.length || 0})
-                </button>
-                <button
-                    onClick={() => {
-                        setActiveTab('approved')
-                        setSelectedIds(new Set())
-                        setPage(1)
-                    }}
-                    className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-t-lg transition-all ${
-                        activeTab === 'approved'
-                            ? 'bg-green-600 text-white'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    }`}
-                >
-                    <CheckCircle className="inline h-3 w-3 mr-1" />
-                    Disetujui Belum Tercetak ({filteredCandidates?.data?.length || 0})
-                </button>
-            </div>
+            {/* Removed Tab Switcher */}
 
             <Table>
                 <TableHeader className="bg-slate-50/50">
@@ -1125,7 +1089,7 @@ export default function SkGeneratorPage() {
                         <TableRow><TableCell colSpan={7} className="h-32 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
                     ) : filteredCandidates?.data?.length === 0 ? (
                         <TableRow><TableCell colSpan={7} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">
-                            {activeTab === 'pending' ? 'Tidak ada antrean calon SK' : 'Semua SK yang disetujui sudah tercetak'}
+                            Semua SK yang disetujui sudah tercetak
                         </TableCell></TableRow>
                     ) : (
                         filteredCandidates.data.map((t: any) => (

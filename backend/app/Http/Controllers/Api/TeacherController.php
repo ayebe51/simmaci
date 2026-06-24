@@ -1124,7 +1124,7 @@ class TeacherController extends Controller
         })->whereHas('school', function ($q) {
             $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
         })->where(function ($q) {
-            $q->where('status', '!=', 'PNS')
+            $q->whereRaw("LOWER(status) NOT LIKE '%pns%'")
               ->orWhereNull('status');
         });
         

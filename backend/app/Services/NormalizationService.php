@@ -44,6 +44,7 @@ class NormalizationService
         'SPD'       => 'S.Pd.',
         'SSOSI'     => 'S.Sos.I',
         'SSOS'      => 'S.Sos.',
+        'SS'        => 'S.S.',
         'SFILI'     => 'S.Fil.I',
         'SFIL'      => 'S.Fil.',
         'STHI'      => 'S.Th.I',

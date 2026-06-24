@@ -39,12 +39,12 @@ class SkListPayloadPropertyTest extends TestCase
         'nomor_permohonan',
         'tanggal_permohonan',
         'surat_permohonan_url',
+        'file_url',
         'teacher',
     ];
 
     private const EXCLUDED_FIELDS = [
         'jabatan',
-        'file_url',
         'qr_code',
         'revision_status',
         'revision_reason',

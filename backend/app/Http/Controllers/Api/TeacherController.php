@@ -303,7 +303,7 @@ class TeacherController extends Controller
             ->where('nip', 'like', '1134%')
             ->whereRaw("LENGTH(nip) = 9")
             ->where(function($q) {
-                $q->whereNull('nomor_induk_maarif')->orWhere('nomor_induk_maarif', '');
+                $q->whereNull('nomor_induk_maarif')->orWhere('nomor_induk_maarif', '')->orWhere('nomor_induk_maarif', '-');
             })
             ->get();
 
@@ -1123,7 +1123,8 @@ class TeacherController extends Controller
 
         $query = Teacher::where(function ($q) {
             $q->whereNull('nomor_induk_maarif')
-              ->orWhere('nomor_induk_maarif', '');
+              ->orWhere('nomor_induk_maarif', '')
+              ->orWhere('nomor_induk_maarif', '-');
         })->whereHas('school', function ($q) {
             $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
         })->where(function ($q) {

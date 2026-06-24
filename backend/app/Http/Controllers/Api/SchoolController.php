@@ -92,6 +92,10 @@ class SchoolController extends Controller
             'jenjang' => 'nullable|string',
         ]);
 
+        if (isset($data['nama'])) {
+            $data['nama'] = app(\App\Services\NormalizationService::class)->normalizeSchoolName($data['nama']);
+        }
+
         $school = School::create($data);
 
         // Log activity
@@ -156,6 +160,10 @@ class SchoolController extends Controller
         // Filter out null values - only update fields with actual data
         $updateData = array_filter($updateData, fn($value) => !is_null($value));
         
+        if (isset($updateData['nama'])) {
+            $updateData['nama'] = app(\App\Services\NormalizationService::class)->normalizeSchoolName($updateData['nama']);
+        }
+
         if (!empty($updateData)) {
             // Use database transaction to ensure atomicity
             \DB::transaction(function () use ($school, $updateData, $user) {
@@ -271,6 +279,8 @@ class SchoolController extends Controller
                     if (empty($dataToSave['nama'])) {
                         if (empty(array_filter($normalizedRow))) continue; 
                         $dataToSave['nama'] = "Sekolah Baru (Harap lengkapi)";
+                    } else {
+                        $dataToSave['nama'] = app(\App\Services\NormalizationService::class)->normalizeSchoolName($dataToSave['nama']);
                     }
 
                     if (empty($dataToSave['kepala_madrasah'])) {

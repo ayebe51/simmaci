@@ -7,7 +7,12 @@ class NormalizationService
     /**
      * Common Indonesian education abbreviations that should remain uppercase
      */
-    private const SCHOOL_ABBREVIATIONS = ['MI', 'MTs', 'MA', 'NU', 'SD', 'SMP', 'SMA', 'SMK'];
+    private const SCHOOL_ABBREVIATIONS = ['MI', 'MTs', 'MA', 'NU', 'SD', 'SMP', 'SMA', 'SMK', 'RA', 'TK', 'PAUD', 'SDIT', 'SMPIT', 'SMAIT', 'LP', 'PGRI'];
+
+    /**
+     * Words that should remain lowercase in school names
+     */
+    private const SCHOOL_KEEP_LOWER = ['dan', 'di', 'ke', 'dari', 'yang', 'untuk', 'dengan', 'bin', 'binti'];
 
     /**
      * Degrees that appear BEFORE the name (prefixes).
@@ -147,7 +152,7 @@ class NormalizationService
 
     /**
      * Normalize school name to Title Case format
-     * Preserves common abbreviations in uppercase (MI, MTs, MA, NU)
+     * Preserves common abbreviations in uppercase (MI, MTs, MA, NU, RA, dll.)
      */
     public function normalizeSchoolName(?string $schoolName): ?string
     {
@@ -155,43 +160,111 @@ class NormalizationService
             return $schoolName;
         }
 
-        $schoolName = trim($schoolName);
-        $lower = mb_strtolower($schoolName, 'UTF-8');
+        $name = trim($schoolName);
 
-        $words = explode(' ', $lower);
-        $words = array_map(function (string $word): string {
-            if ($word === '') return $word;
-            $parts = explode('-', $word);
-            $parts = array_map(function (string $part): string {
-                if ($part === '') return $part;
-                $prefix = '';
-                $rest   = $part;
-                while ($rest !== '') {
-                    $ch = mb_substr($rest, 0, 1, 'UTF-8');
-                    if (mb_strpos('([{', $ch) !== false) {
-                        $prefix .= $ch;
-                        $rest    = mb_substr($rest, 1, null, 'UTF-8');
-                    } else {
-                        break;
-                    }
+        // Step 1: Normalize prefix variants
+        $name = str_replace('`', "'", $name);
+        
+        // Handle input kesalahan "Ma,arif" menjadi "Ma'arif" (case insensitive)
+        $name = preg_replace('/ma,arif/i', "Ma'arif", $name);
+
+        // MTsS, MTSS, MTS → MTs (case-insensitive, at start of string)
+        $name = preg_replace('/^(MTsS|MTSS|MTS)\s+/i', 'MTs ', $name);
+
+        // MIS, Mis, Mi → MI
+        $name = preg_replace('/^(MIS|Mis|Mi)\s+/i', 'MI ', $name);
+
+        // MAS, Mas → MA
+        $name = preg_replace('/^(MAS|Mas)\s+/i', 'MA ', $name);
+
+        // Step 2: Convert to Title Case word by word
+        $words  = explode(' ', $name);
+        $result = [];
+
+        foreach ($words as $i => $word) {
+            if (empty($word)) continue;
+
+            $upper = mb_strtoupper($word, 'UTF-8');
+            $lower = mb_strtolower($word, 'UTF-8');
+
+            // Keep known acronyms uppercase
+            if (in_array($upper, self::SCHOOL_ABBREVIATIONS, true)) {
+                $result[] = $upper;
+                continue;
+            }
+
+            // Keep MTs specifically (mixed case acronym)
+            if (mb_strtolower($word, 'UTF-8') === 'mts') {
+                $result[] = 'MTs';
+                continue;
+            }
+
+            // Keep conjunctions lowercase (except first word)
+            if ($i > 0 && in_array($lower, self::SCHOOL_KEEP_LOWER, true)) {
+                $result[] = $lower;
+                continue;
+            }
+
+            // Handle kata dengan apostrof: Ma'arif → Ma'arif, 'Uqul → 'Uqul
+            if (str_contains($word, "'") || str_contains($word, '`')) {
+                $result[] = $this->titleCaseWithApostrophe($word);
+                continue;
+            }
+
+            // Handle hyphenated words: AL-MAHDY → Al-Mahdy, Al-mahdy → Al-Mahdy
+            if (str_contains($word, '-')) {
+                $result[] = $this->titleCaseWithHyphen($word);
+                continue;
+            }
+
+            // Fallback: handle prefix punctuation like ( [ {
+            $prefix = '';
+            $rest = $word;
+            while ($rest !== '') {
+                $ch = mb_substr($rest, 0, 1, 'UTF-8');
+                if (mb_strpos('([{', $ch) !== false) {
+                    $prefix .= $ch;
+                    $rest = mb_substr($rest, 1, null, 'UTF-8');
+                } else {
+                    break;
                 }
-                if ($rest === '') return $prefix;
-                return $prefix
-                    . mb_strtoupper(mb_substr($rest, 0, 1, 'UTF-8'), 'UTF-8')
-                    . mb_substr($rest, 1, null, 'UTF-8');
-            }, $parts);
-            return implode('-', $parts);
-        }, $words);
-
-        $normalized = implode(' ', $words);
-
-        $padded = ' ' . $normalized . ' ';
-        foreach (self::SCHOOL_ABBREVIATIONS as $abbr) {
-            $padded = str_ireplace(' ' . $abbr . ' ', ' ' . $abbr . ' ', $padded);
-            $padded = str_ireplace(' ' . $abbr . '. ', ' ' . $abbr . '. ', $padded);
+            }
+            if ($rest === '') {
+                $result[] = $prefix;
+            } else {
+                $result[] = $prefix . mb_convert_case($rest, MB_CASE_TITLE, 'UTF-8');
+            }
         }
 
-        return trim($padded);
+        return implode(' ', $result);
+    }
+
+    private function titleCaseWithApostrophe(string $word): string
+    {
+        $apostrophes = ["'", "\u{2018}", "\u{2019}", "`"];
+        
+        $firstChar = mb_substr($word, 0, 1);
+        if (in_array($firstChar, $apostrophes, true)) {
+            $rest = mb_substr($word, 1);
+            return $firstChar . mb_convert_case($rest, MB_CASE_TITLE, 'UTF-8');
+        }
+        
+        $parts = preg_split("/(['`])/u", $word, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $out   = [];
+        foreach ($parts as $i => $part) {
+            if (in_array($part, $apostrophes, true)) {
+                $out[] = "'";
+            } else {
+                $out[] = $i === 0 ? mb_convert_case($part, MB_CASE_TITLE, 'UTF-8') : mb_strtolower($part, 'UTF-8');
+            }
+        }
+        return implode('', $out);
+    }
+
+    private function titleCaseWithHyphen(string $word): string
+    {
+        $parts = explode('-', $word);
+        return implode('-', array_map(fn($p) => mb_convert_case($p, MB_CASE_TITLE, 'UTF-8'), $parts));
     }
 
     /**

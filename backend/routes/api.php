@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SkDocumentController;
 use App\Http\Controllers\Api\HeadmasterController;
+use App\Http\Controllers\Api\HeadmasterRecommendationController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\NuptkSubmissionController;
 use App\Http\Controllers\Api\ReportController;
@@ -199,6 +200,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('nuptk-submissions', NuptkSubmissionController::class)->only(['index', 'store']);
         Route::post('nuptk-submissions/{nuptkSubmission}/approve', [NuptkSubmissionController::class, 'approve']);
         Route::post('nuptk-submissions/{nuptkSubmission}/reject',  [NuptkSubmissionController::class, 'reject']);
+
+        // Headmaster Recommendations
+        Route::apiResource('headmaster-recommendations', HeadmasterRecommendationController::class)->only(['index', 'store', 'show']);
+        Route::post('headmaster-recommendations/{headmasterRecommendation}/approve', [HeadmasterRecommendationController::class, 'approve']);
+        Route::post('headmaster-recommendations/{headmasterRecommendation}/reject', [HeadmasterRecommendationController::class, 'reject']);
 
         // Attendance
         Route::prefix('attendance')->group(function () {

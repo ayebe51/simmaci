@@ -522,13 +522,17 @@ export default function SkGeneratorPage() {
             // Mode normal: periode dihitung dari TMT guru
             const periodeValue = tmtRaw ? calculatePeriode(tmtRaw, tglPenetapanPerGuru) : 0
             const periodeStr = String(periodeValue)
+            const tglHari = String(tglPenetapanPerGuru.getDate()).padStart(2, '0')
+            const tglBulan = String(tglPenetapanPerGuru.getMonth() + 1)
+            const tglRoma = toRoman(tglPenetapanPerGuru.getMonth() + 1)
+            const tglTahun = String(tglPenetapanPerGuru.getFullYear())
 
             const generatedNomor = nomorFormat
                 .replace(/{NOMOR}/g, seqStr)
                 .replace(/{PERIODE}/g, periodeStr)
-                .replace(/{BULAN}/g, String(dateObj.getMonth() + 1))
-                .replace(/{BL_ROMA}/g, mmRoma)
-                .replace(/{TAHUN}/g, String(yyyy))
+                .replace(/{BULAN}/g, tglBulan)
+                .replace(/{BL_ROMA}/g, tglRoma)
+                .replace(/{TAHUN}/g, tglTahun)
                 .replace(/\/\//g, '/')
                 .replace(/^\/|\/$/g, '')
 
@@ -618,10 +622,10 @@ export default function SkGeneratorPage() {
                 ...identity,
                 nomor_sk: generatedNomor,
                 "NOMOR": seqStr,
-                "TANGGAL": dd,
-                "BULAN": String(dateObj.getMonth() + 1),
-                "TAHUN": String(yyyy),
-                "BL_ROMA": mmRoma,
+                "TANGGAL": tglHari,
+                "BULAN": tglBulan,
+                "TAHUN": tglTahun,
+                "BL_ROMA": tglRoma,
                 "NAMA": identity.nama,
                 "UNIT KERJA": identity.unit_kerja || "-",
                 "NOMOR INDUK MAARIF": identity.nomor_induk_maarif,

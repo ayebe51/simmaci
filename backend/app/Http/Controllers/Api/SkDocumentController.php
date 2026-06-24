@@ -32,7 +32,7 @@ class SkDocumentController extends Controller
                 'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url',
             ])
             ->with(['teacher' => function ($q) {
-                $q->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir']);
+                $q->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir', 'pendidikan_terakhir']);
             }]);
 
         if ($request->search) {

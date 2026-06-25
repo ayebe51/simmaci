@@ -1126,15 +1126,19 @@ class TeacherController extends Controller
             $q->whereNull('nomor_induk_maarif')
               ->orWhere('nomor_induk_maarif', '')
               ->orWhere('nomor_induk_maarif', '-');
-        })->whereHas('school', function ($q) {
-            $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
-        })->where(function ($q) {
-            $q->whereRaw("LOWER(status) NOT LIKE '%pns%'")
-              ->orWhereNull('status');
         });
-        
+
         if ($teacherIds && count($teacherIds) > 0) {
+            // If explicitly selected, bypass the strict school and status filters
             $query->whereIn('id', $teacherIds);
+        } else {
+            // If not explicitly selected, apply strict filters
+            $query->whereHas('school', function ($q) {
+                $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
+            })->where(function ($q) {
+                $q->whereRaw("LOWER(status) NOT LIKE '%pns%'")
+                  ->orWhereNull('status');
+            });
         }
 
         // Order by name ascending

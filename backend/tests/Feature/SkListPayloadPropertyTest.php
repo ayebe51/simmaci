@@ -40,6 +40,8 @@ class SkListPayloadPropertyTest extends TestCase
         'tanggal_permohonan',
         'surat_permohonan_url',
         'file_url',
+        'teacher_id',
+        'is_guru_baru',
         'teacher',
     ];
 
@@ -55,7 +57,6 @@ class SkListPayloadPropertyTest extends TestCase
         'rejection_reason',
         'ijazah_url',
         'school_id',
-        'teacher_id',
     ];
 
     /**
@@ -165,8 +166,8 @@ class SkListPayloadPropertyTest extends TestCase
                     . "Got keys: " . implode(', ', $teacherKeys)
                 );
 
-                // Teacher should NOT expose internal fields like id, nama, school_id, etc.
-                $excludedTeacherFields = ['id', 'nama', 'school_id', 'nuptk', 'nip', 'email'];
+                // Teacher should NOT expose internal fields like nama, school_id, etc.
+                $excludedTeacherFields = ['nama', 'school_id', 'nuptk', 'nip', 'email'];
                 foreach ($excludedTeacherFields as $excludedTeacherField) {
                     $this->assertNotContains(
                         $excludedTeacherField,

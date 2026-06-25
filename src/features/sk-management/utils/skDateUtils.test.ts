@@ -55,33 +55,33 @@ describe('deriveStartDate', () => {
 })
 
 describe('deriveEndDate', () => {
-  it('menghasilkan 30 Juni tahun berikutnya untuk tahun normal', () => {
+  it('menghasilkan 1 Juli tahun berikutnya untuk tahun normal', () => {
     const d = deriveEndDate(2025)
-    expect(d.getMonth()).toBe(5)  // 0-indexed: 5 = Juni
-    expect(d.getDate()).toBe(30)
+    expect(d.getMonth()).toBe(6)  // 0-indexed: 6 = Juli
+    expect(d.getDate()).toBe(1)
     expect(d.getFullYear()).toBe(2026)
   })
 
-  it('menghasilkan 30 Juni 2025 untuk input 2024 (tahun kabisat)', () => {
+  it('menghasilkan 1 Juli 2025 untuk input 2024 (tahun kabisat)', () => {
     // 2024 adalah tahun kabisat — offset hari akan salah, konstruktor eksplisit harus benar
     const d = deriveEndDate(2024)
-    expect(d.getMonth()).toBe(5)
-    expect(d.getDate()).toBe(30)
+    expect(d.getMonth()).toBe(6)
+    expect(d.getDate()).toBe(1)
     expect(d.getFullYear()).toBe(2025)
   })
 
-  it('menghasilkan 30 Juni 2029 untuk input 2028 (tahun kabisat)', () => {
+  it('menghasilkan 1 Juli 2029 untuk input 2028 (tahun kabisat)', () => {
     const d = deriveEndDate(2028)
-    expect(d.getMonth()).toBe(5)
-    expect(d.getDate()).toBe(30)
+    expect(d.getMonth()).toBe(6)
+    expect(d.getDate()).toBe(1)
     expect(d.getFullYear()).toBe(2029)
   })
 
-  it('menghasilkan 30 Juni 2024 untuk input 2023 (sebelum tahun kabisat)', () => {
-    // deriveEndDate(2023) → 30 Juni 2024, bukan terpengaruh kabisat
+  it('menghasilkan 1 Juli 2024 untuk input 2023 (sebelum tahun kabisat)', () => {
+    // deriveEndDate(2023) → 1 Juli 2024, bukan terpengaruh kabisat
     const d = deriveEndDate(2023)
-    expect(d.getMonth()).toBe(5)
-    expect(d.getDate()).toBe(30)
+    expect(d.getMonth()).toBe(6)
+    expect(d.getDate()).toBe(1)
     expect(d.getFullYear()).toBe(2024)
   })
 })

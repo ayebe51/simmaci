@@ -35,18 +35,18 @@ describe('skDateUtils — property tests', () => {
   })
 
   /**
-   * Property 2: `deriveEndDate` selalu menghasilkan 30 Juni tahun berikutnya
-   * Untuk sembarang tahun valid, bulan harus Juni (index 5), hari 30, tahun = year+1.
+   * Property 2: `deriveEndDate` selalu menghasilkan 1 Juli tahun berikutnya
+   * Untuk sembarang tahun valid, bulan harus Juli (index 6), hari 1, tahun = year+1.
    * Ini harus benar bahkan untuk tahun kabisat.
    *
-   * **Validates: Requirements 1.2, 2.3, 4.1, 4.2**
+   * **Validates: Requirements 1.2, 2.3, 4.3**
    */
-  it('Property 2: deriveEndDate selalu menghasilkan 30 Juni tahun berikutnya', () => {
-    // Feature: sk-auto-date, Property 2: deriveEndDate selalu menghasilkan 30 Juni tahun berikutnya
+  it('Property 2: deriveEndDate selalu menghasilkan 1 Juli tahun berikutnya', () => {
+    // Feature: sk-auto-date, Property 2: deriveEndDate selalu menghasilkan 1 Juli tahun berikutnya
     fc.assert(
-      fc.property(fc.integer({ min: 1, max: 9998 }), (year) => {
+      fc.property(fc.integer({ min: 1, max: 9999 }), (year) => {
         const d = deriveEndDate(year)
-        return d.getMonth() === 5 && d.getDate() === 30 && d.getFullYear() === year + 1
+        return d.getMonth() === 6 && d.getDate() === 1 && d.getFullYear() === year + 1
       }),
       { numRuns: 100 }
     )
@@ -84,7 +84,7 @@ describe('skDateUtils — property tests', () => {
         const startStr = formatDateIndo(deriveStartDate(year).toISOString().split('T')[0])
         const endStr = formatDateIndo(deriveEndDate(year).toISOString().split('T')[0])
         return startStr.includes('1 Juli') && startStr.includes(String(year))
-          && endStr.includes('30 Juni') && endStr.includes(String(year + 1))
+          && endStr.includes('1 Juli') && endStr.includes(String(year + 1))
       }),
       { numRuns: 100 }
     )

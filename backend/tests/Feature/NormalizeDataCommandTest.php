@@ -226,7 +226,7 @@ class NormalizeDataCommandTest extends TestCase
             'school_id' => $school->id,
         ]);
         Teacher::factory()->create([
-            'nama' => 'ALREADY NORMALIZED TEACHER', // already normalized
+            'nama' => 'ALREADY NORMALIZED TEACHER, S.Pd.', // already normalized, has degree
             'unit_kerja' => 'MA Already Normalized', // already normalized
             'school_id' => $school->id,
         ]);
@@ -391,12 +391,12 @@ class NormalizeDataCommandTest extends TestCase
         // Create test data with already normalized names
         $school = School::factory()->create(['nama' => 'MI Already Normalized']);
         $teacher = Teacher::factory()->create([
-            'nama' => 'ALREADY NORMALIZED TEACHER',
+            'nama' => 'ALREADY NORMALIZED TEACHER, S.Pd.',
             'unit_kerja' => 'MA Already Normalized',
             'school_id' => $school->id,
         ]);
         $skDocument = SkDocument::factory()->create([
-            'nama' => 'ALREADY NORMALIZED TEACHER',
+            'nama' => 'ALREADY NORMALIZED TEACHER, S.Pd.',
             'unit_kerja' => 'SMP Already Normalized',
             'school_id' => $school->id,
             'teacher_id' => $teacher->id,
@@ -419,9 +419,9 @@ class NormalizeDataCommandTest extends TestCase
         $skDocument->refresh();
 
         $this->assertEquals('MI Already Normalized', $school->nama);
-        $this->assertEquals('ALREADY NORMALIZED TEACHER', $teacher->nama);
+        $this->assertEquals('ALREADY NORMALIZED TEACHER, S.Pd.', $teacher->nama);
         $this->assertEquals('MA Already Normalized', $teacher->unit_kerja);
-        $this->assertEquals('ALREADY NORMALIZED TEACHER', $skDocument->nama);
+        $this->assertEquals('ALREADY NORMALIZED TEACHER, S.Pd.', $skDocument->nama);
         $this->assertEquals('SMP Already Normalized', $skDocument->unit_kerja);
 
         // Check that summary log was still created (even with 0 updates)

@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_pgsql mbstring zip gd intl bcmath exif pcntl \
+    && docker-php-ext-install pdo_pgsql mbstring zip gd intl bcmath exif pcntl opcache \
     && pecl install redis && docker-php-ext-enable redis
 
 # PHP configuration for file uploads and memory
@@ -56,6 +56,7 @@ RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Copy PHP-FPM pool configuration (increase worker count to prevent timeouts)
 COPY ./docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY ./docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
 # Copy Supervisor configuration
 COPY ./docker/supervisor/backend.conf /etc/supervisor/conf.d/supervisord.conf

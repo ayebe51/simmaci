@@ -202,7 +202,8 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 // Normalize employment status if provided
                 if (isset($teacherData['status'])) {
                     $tmtForStatus = isset($teacherData['tmt']) ? \Carbon\Carbon::parse($teacherData['tmt']) : null;
-                    $teacherData['status'] = $normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus);
+                    $teacherNameForStatus = $teacherData['nama'] ?? null;
+                    $teacherData['status'] = $normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus, $teacherNameForStatus);
                 }
 
                 // Sync NIP ↔ NIM only when one side is provided and the other is missing

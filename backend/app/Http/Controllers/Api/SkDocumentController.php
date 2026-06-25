@@ -1151,7 +1151,8 @@ class SkDocumentController extends Controller
             // Normalize employment status if provided
             if (isset($teacherData['status'])) {
                 $tmtForStatus = isset($teacherData['tmt']) ? \Carbon\Carbon::parse($teacherData['tmt']) : null;
-                $teacherData['status'] = $this->normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus);
+                $teacherNameForStatus = $teacherData['nama'] ?? null;
+                $teacherData['status'] = $this->normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus, $teacherNameForStatus);
             }
 
 

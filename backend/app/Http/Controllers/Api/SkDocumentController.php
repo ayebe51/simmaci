@@ -32,7 +32,8 @@ class SkDocumentController extends Controller
                 'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url', 'file_url',
             ])
             ->with(['teacher' => function ($q) {
-                $q->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir', 'pendidikan_terakhir']);
+                $q->withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                  ->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir', 'pendidikan_terakhir']);
             }]);
 
         if ($request->search) {
@@ -122,7 +123,7 @@ class SkDocumentController extends Controller
         $oneYearAgo = now()->subYear()->toDateString();
 
         foreach ($paginated->items() as $sk) {
-            $sk->makeHidden(['school_id', 'teacher_id']);
+            $sk->makeHidden(['school_id']);
 
             $tmt = $sk->teacher?->tmt;
             $nim = $sk->teacher?->nomor_induk_maarif;
@@ -130,10 +131,6 @@ class SkDocumentController extends Controller
             
             $isGuruBaru = !empty($tmt) && $tmt > $oneYearAgo && empty($nim) && $isManual;
             $sk->setAttribute('is_guru_baru', $isGuruBaru);
-
-            if ($sk->teacher) {
-                $sk->teacher->makeHidden(['id']);
-            }
         }
 
         return response()->json($paginated);

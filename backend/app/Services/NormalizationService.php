@@ -327,11 +327,19 @@ class NormalizationService
         $result = $normalizedName;
 
         if (!empty($suffixes)) {
-            $result .= ', ' . implode(', ', $suffixes);
+            if ($result === '') {
+                $result = implode(', ', $suffixes);
+            } else {
+                $result .= ', ' . implode(', ', $suffixes);
+            }
         }
 
         if (!empty($prefixes)) {
-            $result = implode(' ', $prefixes) . ' ' . $result;
+            if ($result === '') {
+                $result = implode(' ', $prefixes);
+            } else {
+                $result = implode(' ', $prefixes) . ' ' . $result;
+            }
         }
 
         return $result;

@@ -192,6 +192,8 @@ services:
       LOG_CHANNEL: stderr
     networks:
       - simmaci-network
+    healthcheck:
+      disable: true
 
   # ── Scheduler (Laravel) ───────────────────────────────────
   scheduler:
@@ -236,6 +238,8 @@ services:
       LOG_CHANNEL: stderr
     networks:
       - simmaci-network
+    healthcheck:
+      disable: true
 
   # ── GoWA (go-whatsapp-web-multidevice) ───────────────────
   gowa:

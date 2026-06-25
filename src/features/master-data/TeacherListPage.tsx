@@ -479,7 +479,7 @@ export default function TeacherListPage() {
                                             <Check className="h-3 w-3 border border-emerald-600 rounded-full p-[1px]" /> Sertifikasi
                                         </div>
                                     ) : (
-                                        <Badge variant="outline" className="rounded-xl px-2 py-0.5 text-xs font-bold tracking-wide border-0 bg-slate-100 text-slate-600">Honorer</Badge>
+                                        <Badge variant="outline" className="rounded-xl px-2 py-0.5 text-xs font-bold tracking-wide border-0 bg-slate-100 text-slate-500">Belum</Badge>
                                     )}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5 text-center">

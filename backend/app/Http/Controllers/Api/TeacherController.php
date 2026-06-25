@@ -849,7 +849,8 @@ class TeacherController extends Controller
                 // Normalize employment status to one of: GTY, GTT, Tendik, PNS
                 if (isset($dataToSave['status'])) {
                     $tmtForStatus = isset($dataToSave['tmt']) ? \Carbon\Carbon::parse($dataToSave['tmt']) : null;
-                    $dataToSave['status'] = $this->normalizationService->normalizeEmploymentStatus($dataToSave['status'], $tmtForStatus);
+                    $teacherNameForStatus = $dataToSave['nama'] ?? null;
+                    $dataToSave['status'] = $this->normalizationService->normalizeEmploymentStatus($dataToSave['status'], $tmtForStatus, $teacherNameForStatus);
                 }
 
                 // Track normalization changes for this teacher
@@ -1572,7 +1573,8 @@ class TeacherController extends Controller
         }
         if (isset($dataToSave['status'])) {
             $tmtForStatus = isset($dataToSave['tmt']) ? \Carbon\Carbon::parse($dataToSave['tmt']) : null;
-            $dataToSave['status'] = $this->normalizationService->normalizeEmploymentStatus($dataToSave['status'], $tmtForStatus);
+            $teacherNameForStatus = $dataToSave['nama'] ?? null;
+            $dataToSave['status'] = $this->normalizationService->normalizeEmploymentStatus($dataToSave['status'], $tmtForStatus, $teacherNameForStatus);
         }
 
         $savePayload = array_merge(array_filter($dataToSave, fn($v) => $v !== null && $v !== ''), ['school_id' => $schoolId]);

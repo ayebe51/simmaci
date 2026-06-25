@@ -640,7 +640,7 @@ class NormalizationService
      * @param  \Carbon\Carbon|null  $tmt     TMT date (used only for 'Aktif' resolution)
      * @return string|null
      */
-    public function normalizeEmploymentStatus(?string $status, ?\Carbon\Carbon $tmt = null): ?string
+    public function normalizeEmploymentStatus(?string $status, ?\Carbon\Carbon $tmt = null, ?string $teacherName = null): ?string
     {
         if ($status === null || trim($status) === '') {
             return $status;
@@ -649,30 +649,39 @@ class NormalizationService
         $valid = ['GTY', 'GTT', 'Tendik', 'PNS'];
         $trimmed = trim($status);
 
-        // Already a valid value — return as-is (case-sensitive match)
-        if (in_array($trimmed, $valid, true)) {
-            return $trimmed;
+        $resolvedStatus = $trimmed;
+        if (!in_array($trimmed, $valid, true)) {
+            $upper = mb_strtoupper($trimmed, 'UTF-8');
+
+            // Expanded mapping for common Excel values
+            $resolvedStatus = match (true) {
+                $upper === 'AKTIF'                                    => $this->resolveAktif($tmt),
+                in_array($upper, ['GTTY', 'GURU TIDAK TETAP'], true) => 'GTT',
+                in_array($upper, ['GURU TETAP YAYASAN', 'KEPALA MADRASAH', 'KEPALA SEKOLAH'], true) => 'GTY',
+                in_array($upper, ['TENAGA KEPENDIDIKAN', 'TENDIK'], true) => 'Tendik',
+                $upper === 'PNS'                                      => 'PNS',
+                // Common Excel values
+                str_contains($upper, 'HONORER')                       => 'GTT', // "Honorer" → GTT
+                str_contains($upper, 'GTK NON PNS')                   => 'GTT', // "GTK Non PNS" → GTT
+                str_contains($upper, 'NON PNS')                       => 'GTT', // "Non PNS" → GTT
+                str_contains($upper, 'KONTRAK')                       => 'GTT', // "Kontrak" → GTT
+                str_contains($upper, 'TIDAK TETAP')                   => 'GTT', // "Tidak Tetap" → GTT
+                str_contains($upper, 'TETAP')                         => 'GTY', // "Tetap" → GTY (after "Tidak Tetap" check)
+                str_contains($upper, 'YAYASAN')                       => 'GTY', // "Yayasan" → GTY
+                default                                               => 'GTT', // safe fallback
+            };
         }
 
-        $upper = mb_strtoupper($trimmed, 'UTF-8');
+        // Business rule: If a teacher has no academic degrees (no prefixes and no suffixes),
+        // they should be classified as 'Tendik' instead of 'GTY' or 'GTT'.
+        if ($teacherName !== null && in_array($resolvedStatus, ['GTY', 'GTT'], true)) {
+            $parsedName = $this->parseAcademicDegrees($teacherName);
+            if (empty($parsedName['prefix_degrees']) && empty($parsedName['suffix_degrees'])) {
+                return 'Tendik';
+            }
+        }
 
-        // Expanded mapping for common Excel values
-        return match (true) {
-            $upper === 'AKTIF'                                    => $this->resolveAktif($tmt),
-            in_array($upper, ['GTTY', 'GURU TIDAK TETAP'], true) => 'GTT',
-            in_array($upper, ['GURU TETAP YAYASAN', 'KEPALA MADRASAH', 'KEPALA SEKOLAH'], true) => 'GTY',
-            in_array($upper, ['TENAGA KEPENDIDIKAN', 'TENDIK'], true) => 'Tendik',
-            $upper === 'PNS'                                      => 'PNS',
-            // Common Excel values
-            str_contains($upper, 'HONORER')                       => 'GTT', // "Honorer" → GTT
-            str_contains($upper, 'GTK NON PNS')                   => 'GTT', // "GTK Non PNS" → GTT
-            str_contains($upper, 'NON PNS')                       => 'GTT', // "Non PNS" → GTT
-            str_contains($upper, 'KONTRAK')                       => 'GTT', // "Kontrak" → GTT
-            str_contains($upper, 'TIDAK TETAP')                   => 'GTT', // "Tidak Tetap" → GTT
-            str_contains($upper, 'TETAP')                         => 'GTY', // "Tetap" → GTY (after "Tidak Tetap" check)
-            str_contains($upper, 'YAYASAN')                       => 'GTY', // "Yayasan" → GTY
-            default                                               => 'GTT', // safe fallback
-        };
+        return $resolvedStatus;
     }
 
     /**

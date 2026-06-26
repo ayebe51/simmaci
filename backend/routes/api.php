@@ -277,6 +277,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Staff Attendance Report
         Route::get('staff-attendances', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'index']);
+        Route::post('staff-attendances/manual', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'storeManual']);
     });
 
     // Staff Self-Attendance Scan (Moved to public/attendance/staff-scan)

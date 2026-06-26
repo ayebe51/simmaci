@@ -35,6 +35,32 @@ class StaffAttendanceController extends Controller
         return $this->successResponse($attendances);
     }
 
+    public function storeManual(Request $request): JsonResponse
+    {
+        $request->validate([
+            'staff_id' => 'required|exists:staffs,id',
+            'tanggal' => 'required|date',
+            'status' => 'required|string',
+            'jam_masuk' => 'nullable|date_format:H:i',
+            'jam_pulang' => 'nullable|date_format:H:i',
+        ]);
+
+        $attendance = StaffAttendance::updateOrCreate(
+            [
+                'staff_id' => $request->staff_id,
+                'tanggal' => $request->tanggal,
+            ],
+            [
+                'status' => $request->status,
+                'jam_masuk' => $request->jam_masuk,
+                'jam_pulang' => $request->jam_pulang,
+                'location_verified' => true, // Manual entry is implicitly verified
+            ]
+        );
+
+        return $this->successResponse($attendance, 'Kehadiran manual berhasil dicatat.');
+    }
+
     public function scan(Request $request): JsonResponse
     {
         $request->validate([

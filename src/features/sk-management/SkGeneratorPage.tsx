@@ -296,7 +296,7 @@ export default function SkGeneratorPage() {
   // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
   const { data: lastSkData } = useQuery({
     queryKey: ['last-sk-number'],
-    queryFn: () => skApi.list({ per_page: 100, status: 'approved' })
+    queryFn: () => skApi.list({ per_page: 100, status: 'approved', sort_dir: 'desc' })
   })
 
   useEffect(() => {
@@ -915,6 +915,7 @@ export default function SkGeneratorPage() {
         }
         toast.success("Berhasil generate SK.")
         queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
+        queryClient.invalidateQueries({ queryKey: ['last-sk-number'] })
         setSelectedIds(new Set())
         // Show generation failures dialog if any teachers failed
         if (generationFailuresList.length > 0) {
@@ -963,6 +964,7 @@ export default function SkGeneratorPage() {
     // 2. Invalidate di background untuk sinkronisasi penuh
     queryClient.invalidateQueries({ queryKey: ['teachers'] })
     queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
+    queryClient.invalidateQueries({ queryKey: ['last-sk-number'] })
     // 3. Tutup dialog
     setNimDialogTeacher(null)
     // 4. Jika ada pending generate, lanjutkan — data sudah di-patch optimistically
@@ -993,6 +995,7 @@ export default function SkGeneratorPage() {
         toast.success("Semua SK berhasil disinkronkan ke database.")
         setFailedSyncItems([])
         queryClient.invalidateQueries({ queryKey: ['sk-candidates-generator'] })
+        queryClient.invalidateQueries({ queryKey: ['last-sk-number'] })
     } else {
         setFailedSyncItems(stillFailed)
         toast.error(`${stillFailed.length} SK masih gagal sync. Coba lagi atau catat manual.`)

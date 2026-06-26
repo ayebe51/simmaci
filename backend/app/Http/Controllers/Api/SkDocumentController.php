@@ -62,7 +62,8 @@ class SkDocumentController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
-        $paginated = $query->orderByDesc('created_at')->orderByDesc('id')->paginate($request->integer('per_page', 25));
+        $sortDir = strtolower($request->sort_dir ?? 'asc');
+        $paginated = $query->orderBy('created_at', $sortDir)->orderBy('id', $sortDir)->paginate($request->integer('per_page', 25));
 
         // Enrich NIM and TMT: for items whose teacher has no nomor_induk_maarif or tmt,
         // resolve matching teachers using SQL-level case-insensitive comparison

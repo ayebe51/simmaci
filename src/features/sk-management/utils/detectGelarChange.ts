@@ -15,7 +15,7 @@
  * by the literal dot in the pattern.
  */
 export const GELAR_PATTERN =
-  /S\.Pd\.AUD|S\.Pd\.I|S\.Pd|M\.Pd|S\.Ag|M\.Ag|S\.T\b|S\.Kom|S\.E\.Sy|S\.E\b|S\.H\b|S\.Sos|M\.M\b|M\.Si|S\.Sy|S\.Si|Dr\.|Prof\./i;
+  /(?:S\.[A-Za-z]+|M\.[A-Za-z]+|A\.Md\.|A\.Ma\.|Dr\.|Dra\.|Prof\.|Lc\.)/i;
 
 /**
  * Checks whether a name string contains an academic degree.

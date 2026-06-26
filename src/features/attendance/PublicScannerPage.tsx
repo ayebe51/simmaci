@@ -1334,6 +1334,8 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         )}
 
         <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl flex-1 flex flex-col justify-center min-h-[300px]">
+          <div id="staff-qr-reader" className="w-full shrink-0" style={{ minHeight: scanning ? 300 : 0 }} />
+
           {/* Default Screen */}
           {!scanning && !scanResult && faceVerificationStatus === 'idle' && (
             <div className="flex flex-col items-center justify-center p-6 text-center gap-4">
@@ -1353,11 +1355,6 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
               </Button>
             </div>
           )}
-
-          {/* Scanner Container */}
-          <div className={scanning ? "block" : "absolute opacity-0 pointer-events-none"}>
-             <div id="staff-qr-reader" className="w-full" style={{ minHeight: scanning ? 300 : 0 }} />
-          </div>
 
           {/* Face Verification Overlay */}
           {faceVerificationStatus === 'scanning' && (

@@ -37,7 +37,10 @@ class SkDocumentController extends Controller
             }]);
 
         if ($request->search) {
-            $query->where('nama', 'ilike', "%{$request->search}%");
+            $query->where(function ($q) use ($request) {
+                $q->where('nama', 'ilike', "%{$request->search}%")
+                  ->orWhere('unit_kerja', 'ilike', "%{$request->search}%");
+            });
         }
         if ($request->status && $request->status !== 'all') {
             // For the SK Generator, we source from 'pending' requests

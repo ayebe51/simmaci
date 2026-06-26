@@ -1104,7 +1104,7 @@ export default function SkGeneratorPage() {
                 </div>
                 <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input placeholder="Cari nama..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-10 border-slate-200 rounded-xl text-xs" />
+                    <Input placeholder="Cari nama atau unit kerja..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 h-10 border-slate-200 rounded-xl text-xs" />
                 </div>
             </div>
 

@@ -24,6 +24,7 @@ export default function StaffPage() {
 
   const [formData, setFormData] = useState({
     nama: '',
+    nomor_id: '',
     jabatan: '',
     divisi: '',
     telepon: '',
@@ -69,6 +70,7 @@ export default function StaffPage() {
     if (staff) {
       setFormData({
         nama: staff.nama,
+        nomor_id: staff.nomor_id || '',
         jabatan: staff.jabatan || '',
         divisi: staff.divisi || '',
         telepon: staff.telepon || '',
@@ -79,6 +81,7 @@ export default function StaffPage() {
     } else {
       setFormData({
         nama: '',
+        nomor_id: '',
         jabatan: '',
         divisi: '',
         telepon: '',
@@ -129,6 +132,7 @@ export default function StaffPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nama</TableHead>
+              <TableHead>Nomor ID</TableHead>
               <TableHead>Jabatan / Divisi</TableHead>
               <TableHead>Kontak</TableHead>
               <TableHead>Akun</TableHead>
@@ -138,13 +142,14 @@ export default function StaffPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
             ) : data?.data?.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center">Tidak ada data staff</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center">Tidak ada data staff</TableCell></TableRow>
             ) : (
               data?.data?.map((staff: any) => (
                 <TableRow key={staff.id}>
                   <TableCell className="font-medium">{staff.nama}</TableCell>
+                  <TableCell>{staff.nomor_id || '-'}</TableCell>
                   <TableCell>
                     <div className="text-sm">{staff.jabatan}</div>
                     <div className="text-xs text-muted-foreground">{staff.divisi}</div>
@@ -188,6 +193,18 @@ export default function StaffPage() {
             <div className="space-y-2">
               <Label>Nama Lengkap</Label>
               <Input required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Nomor ID</Label>
+              <div className="flex gap-2">
+                <Input value={formData.nomor_id} onChange={(e) => setFormData({...formData, nomor_id: e.target.value})} placeholder="Contoh: NIK / NIPY" />
+                <Button type="button" variant="outline" onClick={() => {
+                  const prefix = "LPM-STF-";
+                  const year = new Date().getFullYear();
+                  const rnd = Math.floor(Math.random() * 9000 + 1000);
+                  setFormData({...formData, nomor_id: `${prefix}${year}${rnd}`});
+                }}>Auto</Button>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -262,6 +279,7 @@ export default function StaffPage() {
               <>
                 <QRCodeSVG value={selectedStaff.qr_code} size={256} level="H" />
                 <p className="font-semibold">{selectedStaff.nama}</p>
+                {selectedStaff.nomor_id && <p className="text-sm font-medium">{selectedStaff.nomor_id}</p>}
                 <p className="text-sm text-muted-foreground">{selectedStaff.jabatan}</p>
               </>
             ) : (

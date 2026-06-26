@@ -16,11 +16,19 @@ import { useState, useEffect, useMemo, useRef } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { skApi, teacherApi, authApi } from "@/lib/api"
+import { skApi, teacherApi, authApi, schoolApi } from "@/lib/api"
 import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
 import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
 import { deriveStartDate, deriveEndDate, deriveTahunAjaran, getCurrentSkYear } from "@/features/sk-management/utils/skDateUtils"
 import { getSkVerificationUrl } from "@/utils/verification"
+
+// Helper to normalize uppercase strings like "CILACAP UTARA" to "Cilacap Utara"
+const toTitleCase = (str: string) => {
+  return str.replace(
+    /\w\S*/g,
+    text => text.charAt(0).toUpperCase() + text.substring(1).toLowerCase()
+  );
+};
 import { toast } from "sonner"
 import {
   Dialog,
@@ -329,6 +337,11 @@ export default function SkGeneratorPage() {
   })
 
   // Bulk Generation Logic
+  const { data: schoolsData } = useQuery({
+      queryKey: ['schools-all'],
+      queryFn: () => schoolApi.list({ per_page: 1000 }),
+  })
+
   const handleGenerate = async () => {
     if (selectedIds.size === 0) {
         toast.warning("Pilih minimal satu data guru.")
@@ -597,6 +610,19 @@ export default function SkGeneratorPage() {
             const pendidikanTerakhir = (rawPendidikan && rawPendidikan.trim() !== "" && rawPendidikan.trim() !== "-") 
                 ? rawPendidikan 
                 : inferPendidikan(t.nama || teacher?.nama);
+            const schoolMatch = schoolsData?.find(s => s.nama?.trim().toLowerCase() === (t.unit_kerja || teacher.unit_kerja)?.trim().toLowerCase())
+            
+            let rawKecamatan = schoolMatch?.kecamatan || t.kecamatan || teacher.kecamatan;
+
+            // Jika kecamatan masih kosong, coba ekstrak dari string alamat sekolah
+            if (!rawKecamatan && schoolMatch?.alamat) {
+                const match = schoolMatch.alamat.match(/Kecamatan\s+([A-Za-z\s]+)(,|$)/i) || schoolMatch.alamat.match(/Kec\.\s*([A-Za-z\s]+)(,|$)/i);
+                if (match && match[1]) {
+                    rawKecamatan = match[1].trim();
+                }
+            }
+
+            const schoolKecamatan = rawKecamatan ? toTitleCase(rawKecamatan) : defaultKecamatan;
 
             const identity = {
                 nama: t.nama || teacher.nama,
@@ -610,7 +636,7 @@ export default function SkGeneratorPage() {
                 tmt: formatDateIndo(t.tmt || teacher.tmt),
                 tanggal_mulai_tugas: formatDateIndo(t.tmt || teacher.tmt),
                 nomor_induk_maarif: teacher.nomor_induk_maarif || t.nomor_induk_maarif || teacher.nip || t.nip || "-",
-                kecamatan: t.kecamatan || teacher.kecamatan || defaultKecamatan
+                kecamatan: schoolKecamatan
             }
 
             const birthDateStr = identity.tanggal_lahir || "-"
@@ -658,8 +684,8 @@ export default function SkGeneratorPage() {
                 // Ini satu-satunya cara agar nomor tembusan selalu reset ke 1 di mode gabung
                 "tembusan": [
                     { nomor: 1, isi: "LP Ma'arif NU PWNU Jawa Tengah" },
-                    { nomor: 2, isi: "Pengurus Cabang NU Cilacap" },
-                    { nomor: 3, isi: `Perwakilan MWC LP Ma'arif NU Kecamatan ${identity.kecamatan || ""}`.trim() },
+                    { nomor: 2, isi: "PCNU Cilacap" },
+                    { nomor: 3, isi: `Perwakilan LP Ma'arif NU MWCNU Kecamatan ${schoolKecamatan || ""}`.trim() },
                     { nomor: 4, isi: `Kepala ${identity.unit_kerja || ""}`.trim() },
                     { nomor: 5, isi: `BP3MNU ${identity.unit_kerja || ""}`.trim() },
                     { nomor: 6, isi: "Arsip" },

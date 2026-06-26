@@ -104,6 +104,7 @@ const MeetingCheckInPage = lazy(() => import("./features/meetings/pages/MeetingC
 // ── Staff ──────────────────────────────────────────────────────────────────
 const StaffPage = lazy(() => import("./features/staff/StaffPage"))
 const StaffAttendanceReportPage = lazy(() => import("./features/staff/StaffAttendanceReportPage"))
+const StaffAttendanceSettingsPage = lazy(() => import("./features/staff/StaffAttendanceSettingsPage"))
 
 // ── WA Blast ──────────────────────────────────────────────────────────────────
 const WaBlastListPage = lazy(() => import("./features/wa-blast/WaBlastListPage"))
@@ -235,6 +236,7 @@ export default function App() {
                           {/* Staff Management */}
                           <Route path="staff" element={<StaffPage />} />
                           <Route path="staff/attendance-report" element={<StaffAttendanceReportPage />} />
+                          <Route path="staff/attendance-settings" element={<StaffAttendanceSettingsPage />} />
 
                           {/* WA Blast Module */}
                           <Route path="wa-blast" element={<WaBlastListPage />} />

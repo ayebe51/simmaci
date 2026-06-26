@@ -56,15 +56,15 @@ class StaffAttendanceController extends Controller
         $officeLng = (float) Setting::getValue('office_longitude') ?: 109.009415;
         $radius = (int) Setting::getValue('office_geofence_radius') ?: 100; // in meters
 
+        $isGeoEnabled = Setting::getValue('staff_geolocation_enabled') === 'true';
+
         $distance = $this->calculateDistance($request->latitude, $request->longitude, $officeLat, $officeLng);
+        $locationVerified = $isGeoEnabled ? ($distance <= $radius) : true;
         
         // If they are outside the radius, block it.
-        // Uncomment to enforce strictly:
-        /*
-        if ($distance > $radius) {
-            return $this->errorResponse("Anda berada di luar area kantor (Jarak: " . round($distance) . "m).", 400);
+        if ($isGeoEnabled && $distance > $radius) {
+             return $this->errorResponse("Anda berada di luar area kantor (Jarak: " . round($distance) . "m dari batas $radius"."m).", 400);
         }
-        */
 
         $today = Carbon::today()->toDateString();
         $currentTime = Carbon::now()->toTimeString();
@@ -97,7 +97,7 @@ class StaffAttendanceController extends Controller
                 'status' => 'Hadir',
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
-                'location_verified' => $distance <= $radius,
+                'location_verified' => $locationVerified,
                 'photo_proof' => $photoPath,
             ]);
 
@@ -129,6 +129,8 @@ class StaffAttendanceController extends Controller
     {
         return $this->successResponse([
             'face_recognition_enabled' => Setting::getValue('staff_face_recognition_enabled') === 'true',
+            'staff_geolocation_enabled' => Setting::getValue('staff_geolocation_enabled') === 'true',
+            'staff_photo_enabled' => Setting::getValue('staff_photo_enabled') === 'true',
         ]);
     }
 

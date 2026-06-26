@@ -37,6 +37,8 @@ class NormalizationService
 
         // ── Sarjana (S1) ──────────────────────────────────────────────────
         'SPDI'      => 'S.Pd.I',
+        'SPDAUDI'   => 'S.Pd.AUD.I',
+        'SPDAUD'    => 'S.Pd.AUD.',
         'SPDSDI'    => 'S.Pd.SD.I',
         'SPDSD'     => 'S.Pd.SD.',
         'SPDSI'     => 'S.Pd.Si.',
@@ -374,6 +376,10 @@ class NormalizationService
     protected function parseAcademicDegrees(string $fullName): array
     {
         $map = $this->getDegreeMap();
+
+        // Pre-process: ensure there is a space before degrees that start with S., M., Dr., Dra., etc.
+        // e.g. "BudiS.E." -> "Budi S.E."
+        $fullName = preg_replace('/([a-zA-Z]{3,})(S\.|M\.|A\.Md\.|A\.Ma\.|Dr\.|Dra\.|Prof\.)/i', '$1 $2', $fullName);
 
         // Pre-process: split degrees that are attached to the name without separator.
         // e.g. "MAFTUHSAG" → "MAFTUH SAG", "AHMADSPDI" → "AHMAD SPDI"

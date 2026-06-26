@@ -1112,6 +1112,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   const [isPhotoEnabled, setIsPhotoEnabled] = useState(false);
   const [isGeolocationEnabled, setIsGeolocationEnabled] = useState(false);
   const [faceVerificationStatus, setFaceVerificationStatus] = useState<'idle'|'scanning'|'verified'|'failed'>('idle');
+  const [attendanceType, setAttendanceType] = useState<'Kantor'|'Dinas Luar'>('Kantor');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const { data: staffSettings } = useQuery({
@@ -1157,7 +1158,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   }, []);
 
   const startScanner = async () => {
-    if (isGeolocationEnabled) {
+    if (isGeolocationEnabled && attendanceType === 'Kantor') {
       if (!location && !locationError) {
         toast.warning('Menunggu lokasi GPS...');
         return;
@@ -1181,7 +1182,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       await stopScanner();
       setScanResult(code);
       
-      if (isFaceVerificationEnabled) {
+      if (isFaceVerificationEnabled && attendanceType === 'Kantor') {
         startFaceVerification(code);
       } else {
         submitAttendance(code);
@@ -1292,7 +1293,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   };
 
   const submitAttendance = async (qrCode: string, faceVerified: boolean = false) => {
-    if (!location) {
+    if (!location && attendanceType === 'Kantor') {
       toast.error('Menunggu lokasi GPS...');
       return;
     }
@@ -1322,9 +1323,10 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
     try {
       const res = await staffAttendanceApi.scan({
         qr_code: qrCode,
-        latitude: location.lat,
-        longitude: location.lng,
-        photo: photoData
+        latitude: location?.lat || 0,
+        longitude: location?.lng || 0,
+        photo: photoData,
+        jenis_absen: attendanceType
       });
       toast.success(res.message || 'Absen berhasil.');
     } catch (error: any) {
@@ -1368,17 +1370,38 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
           {/* Default Screen */}
           {!scanning && !scanResult && faceVerificationStatus === 'idle' && (
             <div className="flex flex-col items-center justify-center p-6 text-center gap-4">
-              <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-700">
-                <Users className="h-9 w-9 text-blue-500" />
+              <div className="flex bg-slate-900 p-1 rounded-xl w-full border border-slate-800">
+                <button
+                  onClick={() => setAttendanceType('Kantor')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${attendanceType === 'Kantor' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Di Kantor
+                </button>
+                <button
+                  onClick={() => setAttendanceType('Dinas Luar')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${attendanceType === 'Dinas Luar' ? 'bg-amber-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Dinas Luar
+                </button>
+              </div>
+
+              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-2 border-dashed ${attendanceType === 'Kantor' ? 'bg-slate-900 border-slate-700' : 'bg-amber-900/20 border-amber-800/50'}`}>
+                {attendanceType === 'Kantor' ? (
+                  <Users className="h-9 w-9 text-blue-500" />
+                ) : (
+                  <ScanLine className="h-9 w-9 text-amber-500" />
+                )}
               </div>
               <div>
                 <p className="text-white font-bold mb-1">Siapkan ID Card Anda</p>
-                <p className="text-slate-400 text-xs leading-relaxed">Pastikan Anda berada di area kantor PCNU Cilacap.</p>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  {attendanceType === 'Kantor' ? 'Pastikan Anda berada di area kantor PCNU Cilacap.' : 'Absen dinas luar tanpa verifikasi wajah dan lokasi.'}
+                </p>
               </div>
               <Button
                 onClick={startScanner}
-                disabled={!location && !locationError}
-                className="w-full mt-2 h-12 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl"
+                disabled={attendanceType === 'Kantor' && (!location && !locationError)}
+                className={`w-full mt-2 h-12 font-bold rounded-xl ${attendanceType === 'Kantor' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700'}`}
               >
                 <ScanLine className="mr-2 h-5 w-5" /> Mulai Scan
               </Button>

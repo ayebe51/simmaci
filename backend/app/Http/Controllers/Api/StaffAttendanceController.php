@@ -42,6 +42,7 @@ class StaffAttendanceController extends Controller
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'photo' => 'nullable|string', // base64 image if we want to save proof
+            'jenis_absen' => 'nullable|string|in:Kantor,Dinas Luar',
         ]);
 
         // 1. Find staff by the provided QR code
@@ -57,12 +58,15 @@ class StaffAttendanceController extends Controller
         $radius = (int) Setting::getValue('office_geofence_radius') ?: 100; // in meters
 
         $isGeoEnabled = Setting::getValue('staff_geolocation_enabled') === 'true';
+        $isDinasLuar = $request->jenis_absen === 'Dinas Luar';
 
         $distance = $this->calculateDistance($request->latitude, $request->longitude, $officeLat, $officeLng);
-        $locationVerified = $isGeoEnabled ? ($distance <= $radius) : true;
         
-        // If they are outside the radius, block it.
-        if ($isGeoEnabled && $distance > $radius) {
+        // If Dinas Luar, we skip the radius check.
+        $locationVerified = ($isGeoEnabled && !$isDinasLuar) ? ($distance <= $radius) : true;
+        
+        // If they are outside the radius AND not dinas luar, block it.
+        if ($isGeoEnabled && !$isDinasLuar && $distance > $radius) {
              return $this->errorResponse("Anda berada di luar area kantor (Jarak: " . round($distance) . "m dari batas $radius"."m).", 400);
         }
 
@@ -94,7 +98,7 @@ class StaffAttendanceController extends Controller
                 'staff_id' => $staff->id,
                 'tanggal' => $today,
                 'jam_masuk' => $currentTime,
-                'status' => 'Hadir',
+                'status' => $isDinasLuar ? 'Dinas Luar' : 'Hadir',
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'location_verified' => $locationVerified,

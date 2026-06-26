@@ -147,7 +147,7 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
         setLoading(false);
       }
     } else if (loginMode === "staff") {
-      onSuccess({ schoolId: 0, schoolName: "Staff PCNU Cilacap", pin: "", loginMode: "staff" });
+      onSuccess({ schoolId: 0, schoolName: "Staff LP Ma'arif NU Cilacap", pin: "", loginMode: "staff" });
     }
   };
 
@@ -201,7 +201,7 @@ function LoginScreen({ onSuccess }: { onSuccess: (session: Session) => void }) {
                 className={`py-2 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${loginMode === "staff" ? "bg-white shadow text-blue-700" : "text-slate-500"}`}
               >
                 <Users className="h-3.5 w-3.5 inline mr-1" />
-                Staff PCNU
+                Staff
               </button>
             </div>
 
@@ -1345,7 +1345,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h2 className="font-black text-base">ABSENSI STAFF PCNU</h2>
+          <h2 className="font-black text-base">ABSENSI STAFF LP MA'ARIF NU CILACAP</h2>
         </div>
       </div>
 
@@ -1395,7 +1395,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
               <div>
                 <p className="text-white font-bold mb-1">Siapkan ID Card Anda</p>
                 <p className="text-slate-400 text-xs leading-relaxed">
-                  {attendanceType === 'Kantor' ? 'Pastikan Anda berada di area kantor PCNU Cilacap.' : 'Absen dinas luar tanpa verifikasi wajah dan lokasi.'}
+                  {attendanceType === 'Kantor' ? 'Pastikan Anda berada di area kantor LP Ma\'arif NU Cilacap.' : 'Absen dinas luar tanpa verifikasi wajah dan lokasi.'}
                 </p>
               </div>
               <Button

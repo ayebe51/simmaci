@@ -51,6 +51,7 @@ class NormalizationService
         'SFIL'      => 'S.Fil.',
         'STHI'      => 'S.Th.I',
         'STH'       => 'S.Th.',
+        'SESY'      => 'S.E.Sy.',
         'SSY'       => 'S.Sy.',
         'SAG'       => 'S.Ag.',
         'SH'        => 'S.H.',

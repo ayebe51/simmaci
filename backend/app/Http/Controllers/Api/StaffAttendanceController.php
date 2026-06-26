@@ -104,6 +104,23 @@ class StaffAttendanceController extends Controller
             ->where('tanggal', $today)
             ->first();
 
+        // 3. Strict Time Validation
+        $enforceTime = Setting::getValue('staff_enforce_time') === 'true';
+        $batasMasuk = Setting::getValue('staff_batas_jam_masuk') ?: '08:00:00';
+        $batasPulang = Setting::getValue('staff_batas_jam_pulang') ?: '15:30:00';
+
+        if ($enforceTime) {
+            if (!$attendance) {
+                if ($currentTime > $batasMasuk) {
+                    return $this->errorResponse("Absen MASUK gagal. Batas waktu absen masuk adalah jam " . substr($batasMasuk, 0, 5) . ".", 400);
+                }
+            } else {
+                if (!$attendance->jam_pulang && $currentTime < $batasPulang) {
+                    return $this->errorResponse("Absen PULANG gagal. Belum waktunya pulang (Minimal jam " . substr($batasPulang, 0, 5) . ").", 400);
+                }
+            }
+        }
+
         // Process base64 photo if provided
         $photoPath = null;
         if ($request->photo) {

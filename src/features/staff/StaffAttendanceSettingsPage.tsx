@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { MapPin, Navigation, Save, Loader2, Camera } from "lucide-react";
+import { MapPin, Navigation, Save, Loader2, Camera, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { settingApi } from "@/lib/api";
 
@@ -41,20 +41,30 @@ export default function StaffAttendanceSettingsPage() {
     office_longitude: number | null;
     office_geofence_radius: number;
     staff_photo_enabled: boolean;
+    staff_enforce_time: boolean;
+    staff_batas_jam_masuk: string;
+    staff_batas_jam_pulang: string;
   }>({
     staff_geolocation_enabled: false,
     office_latitude: null,
     office_longitude: null,
     office_geofence_radius: 100,
     staff_photo_enabled: false,
+    staff_enforce_time: false,
+    staff_batas_jam_masuk: "08:00",
+    staff_batas_jam_pulang: "15:30",
   });
 
   useEffect(() => {
-    if (allSettings && Array.isArray(allSettings)) {
+    if (allSettings) {
       const map: Record<string, string> = {};
-      allSettings.forEach((s: any) => {
-        map[s.key] = s.value;
-      });
+      
+      // Handle both array and object response structures
+      if (Array.isArray(allSettings)) {
+        allSettings.forEach((s: any) => map[s.key] = s.value);
+      } else {
+        Object.values(allSettings).forEach((s: any) => map[s.key] = s.value);
+      }
 
       setFormState({
         staff_geolocation_enabled: map['staff_geolocation_enabled'] === 'true',
@@ -62,6 +72,9 @@ export default function StaffAttendanceSettingsPage() {
         office_longitude: map['office_longitude'] ? parseFloat(map['office_longitude']) : null,
         office_geofence_radius: map['office_geofence_radius'] ? parseInt(map['office_geofence_radius']) : 100,
         staff_photo_enabled: map['staff_photo_enabled'] === 'true',
+        staff_enforce_time: map['staff_enforce_time'] === 'true',
+        staff_batas_jam_masuk: map['staff_batas_jam_masuk'] ? map['staff_batas_jam_masuk'].substring(0, 5) : "08:00",
+        staff_batas_jam_pulang: map['staff_batas_jam_pulang'] ? map['staff_batas_jam_pulang'].substring(0, 5) : "15:30",
       });
     }
   }, [allSettings]);
@@ -73,6 +86,9 @@ export default function StaffAttendanceSettingsPage() {
       office_longitude: formState.office_longitude,
       office_geofence_radius: formState.office_geofence_radius,
       staff_photo_enabled: formState.staff_photo_enabled ? 'true' : 'false',
+      staff_enforce_time: formState.staff_enforce_time ? 'true' : 'false',
+      staff_batas_jam_masuk: formState.staff_batas_jam_masuk + ":00",
+      staff_batas_jam_pulang: formState.staff_batas_jam_pulang + ":00",
     });
   };
 
@@ -122,10 +138,56 @@ export default function StaffAttendanceSettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-800">Pengaturan Absensi Staff PCNU</h1>
-        <p className="text-slate-500 text-sm mt-1">Kelola fitur absensi (geolocation & foto selfie) untuk staff</p>
+        <p className="text-slate-500 text-sm mt-1">Kelola fitur absensi (geolocation, waktu, & foto selfie) untuk staff</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden md:col-span-2">
+          <CardHeader className="pb-3 bg-slate-50/50">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-600" />
+              Jadwal & Waktu Absensi
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label className="text-sm text-slate-600">Enforce Jadwal Masuk & Pulang</Label>
+                <p className="text-[10px] text-slate-400 leading-relaxed">
+                  Jika diaktifkan, staff akan ditolak jika absen melebihi batas jam masuk atau absen pulang lebih awal.
+                </p>
+              </div>
+              <Switch 
+                checked={formState.staff_enforce_time} 
+                onCheckedChange={(v) => setFormState({...formState, staff_enforce_time: v})} 
+              />
+            </div>
+            
+            {formState.staff_enforce_time && (
+              <div className="border-t pt-4 grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Batas Maksimal Jam Masuk</Label>
+                  <Input
+                    type="time"
+                    value={formState.staff_batas_jam_masuk}
+                    onChange={(e) => setFormState({...formState, staff_batas_jam_masuk: e.target.value})}
+                    className="font-mono text-sm rounded-xl h-11 w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Batas Minimal Jam Pulang</Label>
+                  <Input
+                    type="time"
+                    value={formState.staff_batas_jam_pulang}
+                    onChange={(e) => setFormState({...formState, staff_batas_jam_pulang: e.target.value})}
+                    className="font-mono text-sm rounded-xl h-11 w-full"
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="border-0 shadow-sm rounded-xl overflow-hidden md:col-span-2">
           <CardHeader className="pb-3 bg-slate-50/50">
             <CardTitle className="text-base flex items-center gap-2">

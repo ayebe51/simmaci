@@ -65,7 +65,10 @@ export default function StaffAttendanceReportPage() {
               data?.data?.map((log: any) => (
                 <TableRow key={log.id}>
                   <TableCell>{log.tanggal}</TableCell>
-                  <TableCell className="font-medium">{log.staff?.nama}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{log.staff?.nama}</div>
+                    {log.staff?.nomor_id && <div className="text-xs text-muted-foreground">{log.staff?.nomor_id}</div>}
+                  </TableCell>
                   <TableCell>{log.jam_masuk || '-'}</TableCell>
                   <TableCell>{log.jam_pulang || '-'}</TableCell>
                   <TableCell>

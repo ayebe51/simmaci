@@ -127,6 +127,7 @@ export default function AppShell({ children }: AppShellProps) {
       items: [
         { label: "Data Staff", href: "/dashboard/staff", icon: Users, superAdminOnly: true },
         { label: "Laporan Absensi Staff", href: "/dashboard/staff/attendance-report", icon: FileBarChart, superAdminOnly: true },
+        { label: "Pengaturan Absensi", href: "/dashboard/staff/attendance-settings", icon: Settings, superAdminOnly: true },
       ]
     },
     {

@@ -33,6 +33,7 @@ class StaffController extends Controller
     {
         $request->validate([
             'nama' => 'required|string|max:255',
+            'nomor_id' => 'nullable|string|max:255|unique:staffs,nomor_id',
             'jabatan' => 'nullable|string|max:255',
             'divisi' => 'nullable|string|max:255',
             'telepon' => 'nullable|string|max:255',
@@ -55,6 +56,7 @@ class StaffController extends Controller
         $staff = Staff::create([
             'user_id' => $userId,
             'nama' => $request->nama,
+            'nomor_id' => $request->nomor_id,
             'jabatan' => $request->jabatan,
             'divisi' => $request->divisi,
             'telepon' => $request->telepon,
@@ -68,13 +70,14 @@ class StaffController extends Controller
     {
         $request->validate([
             'nama' => 'required|string|max:255',
+            'nomor_id' => 'nullable|string|max:255|unique:staffs,nomor_id' . ($staff ? ',' . $staff->id : ''),
             'jabatan' => 'nullable|string|max:255',
             'divisi' => 'nullable|string|max:255',
             'telepon' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
 
-        $staff->update($request->only(['nama', 'jabatan', 'divisi', 'telepon', 'is_active']));
+        $staff->update($request->only(['nama', 'nomor_id', 'jabatan', 'divisi', 'telepon', 'is_active']));
 
         if ($staff->user) {
             $staff->user->update([

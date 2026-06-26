@@ -1107,8 +1107,10 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState('');
 
-  // Face Recognition
+  // Face Recognition & Geolocation
   const [isFaceVerificationEnabled, setIsFaceVerificationEnabled] = useState(false);
+  const [isPhotoEnabled, setIsPhotoEnabled] = useState(false);
+  const [isGeolocationEnabled, setIsGeolocationEnabled] = useState(false);
   const [faceVerificationStatus, setFaceVerificationStatus] = useState<'idle'|'scanning'|'verified'|'failed'>('idle');
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -1119,8 +1121,10 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
 
   useEffect(() => {
     if (staffSettings) {
-      const faceEnabled = staffSettings.face_recognition_enabled;
+      const faceEnabled = staffSettings.face_recognition_enabled === 'true' || staffSettings.face_recognition_enabled === true;
       setIsFaceVerificationEnabled(faceEnabled);
+      setIsPhotoEnabled(staffSettings.staff_photo_enabled === 'true' || staffSettings.staff_photo_enabled === true);
+      setIsGeolocationEnabled(staffSettings.staff_geolocation_enabled === 'true' || staffSettings.staff_geolocation_enabled === true);
       if (faceEnabled) {
         loadFaceModels();
       }
@@ -1153,13 +1157,15 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   }, []);
 
   const startScanner = async () => {
-    if (!location && !locationError) {
-      toast.warning('Menunggu lokasi GPS...');
-      return;
-    }
-    if (locationError) {
-      toast.error(locationError);
-      return;
+    if (isGeolocationEnabled) {
+      if (!location && !locationError) {
+        toast.warning('Menunggu lokasi GPS...');
+        return;
+      }
+      if (locationError) {
+        toast.error(locationError);
+        return;
+      }
     }
 
     setCameraError(null);
@@ -1254,7 +1260,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
               stopLoop = true;
               stopCamera();
               setFaceVerificationStatus('verified');
-              submitAttendance(qrCode);
+              submitAttendance(qrCode, true);
               return;
             }
           }
@@ -1285,10 +1291,32 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
     }
   };
 
-  const submitAttendance = async (qrCode: string) => {
+  const submitAttendance = async (qrCode: string, faceVerified: boolean = false) => {
     if (!location) {
       toast.error('Menunggu lokasi GPS...');
       return;
+    }
+
+    // Capture photo if needed
+    let photoData = undefined;
+    if (isPhotoEnabled || isFaceVerificationEnabled) {
+       if (!videoRef.current) {
+          videoRef.current = document.querySelector('#reader-staff video') as HTMLVideoElement;
+       }
+       if (videoRef.current) {
+           try {
+             const canvas = document.createElement('canvas');
+             canvas.width = videoRef.current.videoWidth;
+             canvas.height = videoRef.current.videoHeight;
+             const ctx = canvas.getContext('2d');
+             if (ctx) {
+                 ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                 photoData = canvas.toDataURL('image/jpeg', 0.8);
+             }
+           } catch(e) {
+             console.error("Failed to capture photo", e);
+           }
+       }
     }
 
     try {
@@ -1296,6 +1324,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         qr_code: qrCode,
         latitude: location.lat,
         longitude: location.lng,
+        photo: photoData
       });
       toast.success(res.message || 'Absen berhasil.');
     } catch (error: any) {

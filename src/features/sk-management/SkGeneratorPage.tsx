@@ -296,7 +296,7 @@ export default function SkGeneratorPage() {
   // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
   const { data: lastSkData } = useQuery({
     queryKey: ['last-sk-number'],
-    queryFn: () => skApi.list({ per_page: 100, status: 'approved', sort_dir: 'desc' })
+    queryFn: () => skApi.list({ per_page: 100, status: 'approved', sort_by: 'updated_at', sort_dir: 'desc' })
   })
 
   useEffect(() => {

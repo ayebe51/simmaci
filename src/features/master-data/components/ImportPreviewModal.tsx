@@ -71,8 +71,8 @@ export default function ImportPreviewModal({
         return <Badge className="bg-emerald-500">Baru</Badge>
       case 'UPDATE_AMAN':
         return <Badge className="bg-blue-500">Update Data</Badge>
-      case 'TAKEOVER':
-        return <Badge className="bg-orange-500">Ambil Alih NIM</Badge>
+      case 'ERROR':
+        return <Badge className="bg-red-700">Tidak Valid</Badge>
       case 'KONFLIK':
         return <Badge className="bg-red-500">Konflik</Badge>
       case 'KONFLIK_INTERNAL':

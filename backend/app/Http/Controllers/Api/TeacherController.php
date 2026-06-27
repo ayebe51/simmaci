@@ -1723,39 +1723,12 @@ class TeacherController extends Controller
                         $updated++;
                     }
                 }
-                elseif ($action === 'TAKEOVER') {
-                    if ($nim) {
-                        // 1. Revoke NIM from existing users
-                        $nimConflicts = Teacher::withoutTenantScope()
-                            ->where('nomor_induk_maarif', $nim)
-                            ->get();
-                            
-                        foreach ($nimConflicts as $conflict) {
-                            $conflict->update(['nomor_induk_maarif' => null]);
-                            
-                            ActivityLog::create([
-                                'description' => "NIM {$nim} dicabut otomatis (TAKEOVER) karena dipakai oleh data resmi baru atas nama {$payload['nama']}",
-                                'event' => 'nim_force_reassigned',
-                                'log_name' => 'master',
-                                'subject_id' => $conflict->id,
-                                'subject_type' => get_class($conflict),
-                                'causer_id' => $request->user()->id,
-                                'causer_type' => get_class($request->user()),
-                                'school_id' => $conflict->school_id,
-                            ]);
-                        }
-                    }
-                    // 2. Insert the new legitimate owner
-                    Teacher::create($payload);
-                    $takeovers++;
-                    $created++;
-                }
             }
             \DB::commit();
             
             return response()->json([
                 'success' => true,
-                'summary' => "Berhasil: $created Ditambahkan (termasuk $takeovers Takeover), $updated Diperbarui."
+                'summary' => "Berhasil: $created Ditambahkan, $updated Diperbarui."
             ]);
         } catch (\Exception $e) {
             \DB::rollBack();

@@ -114,3 +114,39 @@ export function parseIndonesianDate(val: string): string {
   // Tidak dikenali — kembalikan string asli
   return trimmed
 }
+
+/**
+ * Format "YYYY-MM-DD" string explicitly without timezone shifts
+ * into "DD MMM YYYY" (e.g., "16 Jul 2007")
+ */
+export function formatIndonesianDateDisplay(val: string | null | undefined): string {
+  if (!val) return ''
+  const trimmed = val.trim()
+  
+  const datePart = trimmed.split('T')[0]
+  const parts = datePart.split('-')
+  
+  if (parts.length === 3) {
+    const year = parts[0]
+    const month = parseInt(parts[1], 10)
+    const day = parseInt(parts[2], 10)
+    
+    const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
+    
+    if (month >= 1 && month <= 12 && !isNaN(day)) {
+      return `${String(day).padStart(2, '0')} ${monthNames[month]} ${year}`
+    }
+  }
+  
+  // Fallback to browser formatting if format is unrecognized
+  try {
+    const d = new Date(val)
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+    }
+  } catch (e) {
+    // Ignore
+  }
+  
+  return trimmed
+}

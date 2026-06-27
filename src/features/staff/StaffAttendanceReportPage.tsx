@@ -62,7 +62,7 @@ export default function StaffAttendanceReportPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Laporan Absensi Staff</h1>
-          <p className="text-muted-foreground">Monitoring kehadiran harian staff PCNU Cilacap</p>
+          <p className="text-muted-foreground">Monitoring kehadiran harian staff LP Ma'arif NU Cilacap</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
@@ -77,7 +77,7 @@ export default function StaffAttendanceReportPage() {
               </DialogHeader>
               <form onSubmit={handleManualSubmit} className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Staff PCNU</Label>
+                  <Label>Staff LP Ma'arif NU</Label>
                   <Select value={manualForm.staff_id} onValueChange={(val) => setManualForm({ ...manualForm, staff_id: val })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Staff" />
@@ -166,7 +166,7 @@ export default function StaffAttendanceReportPage() {
             ) : (
               attendanceList.map((log: any) => (
                 <TableRow key={log.id}>
-                  <TableCell>{log.tanggal}</TableCell>
+                  <TableCell>{log.tanggal?.split('T')[0] || log.tanggal}</TableCell>
                   <TableCell>
                     <div className="font-medium">{log.staff?.nama}</div>
                     {log.staff?.nomor_id && <div className="text-xs text-muted-foreground">{log.staff?.nomor_id}</div>}

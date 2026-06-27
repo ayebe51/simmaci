@@ -166,7 +166,7 @@ export default function StaffAttendanceReportPage() {
             ) : (
               attendanceList.map((log: any) => (
                 <TableRow key={log.id}>
-                  <TableCell>{log.tanggal?.split('T')[0] || log.tanggal}</TableCell>
+                  <TableCell>{log.tanggal ? format(new Date(log.tanggal), 'yyyy-MM-dd') : '-'}</TableCell>
                   <TableCell>
                     <div className="font-medium">{log.staff?.nama}</div>
                     {log.staff?.nomor_id && <div className="text-xs text-muted-foreground">{log.staff?.nomor_id}</div>}

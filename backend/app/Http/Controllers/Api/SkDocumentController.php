@@ -736,10 +736,10 @@ class SkDocumentController extends Controller
 
             // Teacher data with normalized values
             $teacherData = [
-                'nama' => $data['nama'],
-                'nuptk' => $data['nuptk'] ?? null,
-                'nip' => $data['nip'] ?? null,
-                'unit_kerja' => $data['unit_kerja'],
+                'nama' => trim($data['nama']),
+                'nuptk' => !empty($data['nuptk']) ? trim($data['nuptk']) : null,
+                'nip' => !empty($data['nip']) ? trim($data['nip']) : null,
+                'unit_kerja' => trim($data['unit_kerja']),
                 'school_id' => $schoolId,
                 'jabatan' => $data['jabatan'] ?? null,
                 'status' => $data['status_kepegawaian'] ?? 'Draft',

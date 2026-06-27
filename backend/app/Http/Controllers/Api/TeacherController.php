@@ -421,7 +421,7 @@ class TeacherController extends Controller
                             continue;
                         }
 
-                        $fields = ['nomor_induk_maarif', 'nuptk', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
+                        $fields = ['school_id', 'nomor_induk_maarif', 'nuptk', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status', 'tmt', 'is_certified', 'pdpkpnu', 'pendidikan_terakhir', 'phone_number'];
                         foreach ($fields as $field) {
                             if (empty($keep->$field) && !empty($drop->$field)) {
                                 $keep->$field = $drop->$field;
@@ -467,19 +467,17 @@ class TeacherController extends Controller
             $processDuplicateGroup($schoolTeachers);
         }
 
-        // 2b. Deduplicate based on similar names within the SAME unit_kerja (for those without school_id)
+        // 2b. Deduplicate based on similar names within the SAME unit_kerja (this covers missing school_id)
         $units = $applyRoleFilter(Teacher::withoutTenantScope())
             ->select('unit_kerja')
             ->distinct()
             ->whereNotNull('unit_kerja')
             ->where('unit_kerja', '!=', '')
-            ->whereNull('school_id') // Avoid processing same teachers twice
             ->pluck('unit_kerja');
 
         foreach ($units as $unitKerja) {
             $unitTeachers = Teacher::withoutTenantScope()
                 ->where('unit_kerja', $unitKerja)
-                ->whereNull('school_id')
                 ->orderBy('created_at', 'asc')
                 ->get();
             $processDuplicateGroup($unitTeachers);

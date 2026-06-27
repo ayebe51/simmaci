@@ -813,7 +813,11 @@ class NormalizationService
 
         // Fallback: coba Carbon::parse untuk format lain yang dikenali
         try {
-            return \Carbon\Carbon::parse($trimmed)->format('Y-m-d');
+            $parsed = \Carbon\Carbon::parse($trimmed);
+            // If the input was an ISO 8601 string in UTC (e.g., from JS toISOString()),
+            // converting it to the app's timezone ensures the date matches the local day.
+            $parsed->setTimezone(config('app.timezone', 'Asia/Jakarta'));
+            return $parsed->format('Y-m-d');
         } catch (\Exception $e) {
             return null;
         }

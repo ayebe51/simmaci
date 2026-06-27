@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table"
 import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle, CheckCircle, XCircle, Loader2, ChevronLeft, ChevronRight, FileDown } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { parseIndonesianDate, formatIndonesianDateDisplay } from './utils/skDateUtils'
 import { useNavigate } from "react-router-dom"
 import { useState, useMemo } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -407,7 +408,7 @@ export default function SkDashboardPage() {
                           <TableCell>
                               {item.teacher?.tmt ? (
                                 <div className="text-xs font-bold text-slate-700">
-                                  {new Date(item.teacher.tmt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  {formatIndonesianDateDisplay(item.teacher.tmt)}
                                 </div>
                               ) : (
                                 <span className="text-[10px] font-bold text-amber-500 italic">Belum ada</span>

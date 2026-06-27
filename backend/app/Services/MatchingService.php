@@ -124,15 +124,13 @@ class MatchingService
             ];
         }
 
-        // If the best match is still terrible (e.g. Name < 50%), then it's a TAKEOVER scenario
-        // because someone else has this NIM in the DB.
         if ($bestMatchDetails['name_similarity'] < 50) {
             return [
-                'status' => 'TAKEOVER',
-                'action' => 'TAKEOVER',
-                'target_id' => null, // Will insert new, and revoke NIM from others
+                'status' => 'ERROR',
+                'action' => 'SKIP',
+                'target_id' => null, 
                 'confidence' => $highestScore,
-                'message' => 'NIM sudah ada tapi beda orang. NIM lama akan dicabut dan diberikan ke data baru ini.'
+                'message' => 'NIM sudah terdaftar atas nama orang lain di sistem.'
             ];
         }
 

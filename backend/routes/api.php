@@ -43,7 +43,7 @@ use App\Http\Controllers\Api\StudentStatisticsController;
 |--------------------------------------------------------------------------
 */
 
-// ── Temporary Cleanup Route (Delete after use) ──
+// â”€â”€ Temporary Cleanup Route (Delete after use) â”€â”€
 Route::get('temp-cleanup', function () {
     $tables = ['schools', 'notifications', 'teachers', 'students', 'users', 'activity_logs', 'sk_documents'];
     $fixed  = 0;
@@ -71,32 +71,32 @@ Route::get('temp-cleanup', function () {
     return response()->json(['success' => true, 'fixed_rows' => $fixed]);
 });
 
-// ── Public / Auth ──
+// â”€â”€ Public / Auth â”€â”€
 Route::prefix('auth')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 });
 
-// ── Public SK Verification ──
+// â”€â”€ Public SK Verification â”€â”€
 Route::get('verify/sk/{nomor}', [SkVerificationController::class, 'verifyBySk'])
     ->where('nomor', '.*');
 
-// ── Public Teacher Verification ──
+// â”€â”€ Public Teacher Verification â”€â”€
 Route::get('verify/teacher/{nim}', [TeacherVerificationController::class, 'verifyByNim']);
 
-// ── PPDB Public Registration ──
+// â”€â”€ PPDB Public Registration â”€â”€
 Route::prefix('ppdb')->group(function () {
     Route::get('schools',          [SchoolController::class, 'publicIndex']);
     Route::post('register',        [StudentController::class, 'ppdbRegister']);
     Route::post('upload-document', [FileUploadController::class, 'upload']);
 });
 
-// ── Public Routes ──
+// â”€â”€ Public Routes â”€â”€
 // MinIO proxy - accessible at /api/minio/*
 Route::get('minio', [MinioProxyController::class, 'proxy'])->name('minio.proxy');
 Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*')->name('minio.proxy.path');
 
-// ── Public Attendance (Scanner Standalone — PIN protected, no auth token) ──
+// â”€â”€ Public Attendance (Scanner Standalone â€” PIN protected, no auth token) â”€â”€
 Route::prefix('public/attendance')->group(function () {
     Route::get('schools',      [PublicAttendanceController::class, 'schools']);
     Route::post('verify-pin',  [PublicAttendanceController::class, 'verifyPin']);
@@ -112,14 +112,14 @@ Route::prefix('public/attendance')->group(function () {
     Route::get('staff-settings', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'publicSettings']);
 });
 
-// ── Public Meeting Scanner (PIN protected, no auth token) ──
+// â”€â”€ Public Meeting Scanner (PIN protected, no auth token) â”€â”€
 Route::prefix('public/meetings')->group(function () {
     Route::post('verify-pin', [PublicMeetingScannerController::class, 'verifyPin']);
     Route::post('scan',       [PublicMeetingScannerController::class, 'scan']);
     Route::get('active',      [PublicMeetingScannerController::class, 'activeList']);
 });
 
-// ── Meeting Photo File Serving (no auth — photos are not sensitive) ──
+// â”€â”€ Meeting Photo File Serving (no auth â€” photos are not sensitive) â”€â”€
 Route::get('meetings/{meeting}/photos/{photo}/file', [MeetingPhotoController::class, 'show']);
 Route::get('meetings/{meeting}/photos/{photo}/thumbnail', [MeetingPhotoController::class, 'thumbnail']);
 
@@ -128,7 +128,7 @@ Route::get('test-minio', function() {
     return response()->json(['status' => 'ok', 'message' => 'MinIO proxy test endpoint']);
 })->name('test.minio');
 
-// ── Protected Routes ──
+// â”€â”€ Protected Routes â”€â”€
 Route::middleware('auth:sanctum')->group(function () {
     // --- AUTHENTICATED ROUTES ---
     Route::post('auth/logout',          [AuthController::class, 'logout']);
@@ -136,7 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/change-password', [AuthController::class, 'changePassword']);
 
 
-    // Schools (no tenant isolation — global resource)
+    // Schools (no tenant isolation â€” global resource)
     Route::middleware('role:super_admin')->group(function () {
         Route::delete('schools/delete-all',       [SchoolController::class, 'deleteAll']);
         Route::post('schools/generate-accounts',  [SchoolController::class, 'generateAccounts']);
@@ -148,7 +148,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('schools', SchoolController::class);
 
 
-    // ── Tenant-Isolated Routes ──
+    // â”€â”€ Tenant-Isolated Routes â”€â”€
     Route::middleware('tenant')->group(function () {
         // Dashboard (Tenant-Aware)
         Route::prefix('dashboard')->group(function () {
@@ -182,7 +182,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('students/batch-transition', [StudentController::class, 'batchTransition']);
         Route::apiResource('students', StudentController::class);
 
-        // SK Documents — specific routes MUST come before apiResource
+        // SK Documents â€” specific routes MUST come before apiResource
         Route::post('sk-documents/submit-request',  [SkDocumentController::class, 'submitRequest']);
         Route::post('sk-documents/bulk-request',    [SkDocumentController::class, 'bulkRequest']);
         Route::patch('sk-documents/batch-status',   [SkDocumentController::class, 'batchUpdateStatus']);
@@ -250,7 +250,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('mark-all-read',         [NotificationController::class, 'markAllRead']); // backward compat
         });
 
-        // Settings — GET /settings (list) + GET /settings/{key} (show) + POST /settings (upsert)
+        // Settings â€” GET /settings (list) + GET /settings/{key} (show) + POST /settings (upsert)
         Route::get('settings/{key}',   [SettingController::class, 'show']);
         Route::apiResource('settings', SettingController::class)->only(['index', 'store', 'update']);
 
@@ -282,7 +282,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Staff Self-Attendance Scan (Moved to public/attendance/staff-scan)
 
-    // SK Templates (global resource — no tenant isolation)
+    // SK Templates (global resource â€” no tenant isolation)
     // NOTE: /sk-templates/active must be registered before the {skTemplate} wildcard routes
     Route::get('sk-templates', [SkTemplateController::class, 'index']);
     Route::get('sk-templates/active', [SkTemplateController::class, 'active']);
@@ -303,12 +303,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('activity-logs', [ActivityLogController::class, 'index']);
     Route::get('activity-logs/export', [ActivityLogController::class, 'export']);
 
-    // ── Meetings read-only (all authenticated users, operators see filtered results) ──
+    // â”€â”€ Meetings read-only (all authenticated users, operators see filtered results) â”€â”€
     Route::get('meetings', [MeetingController::class, 'index']);
     Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
     Route::post('meetings/participants-from-schools', [MeetingController::class, 'participantsFromSchools']);
 
-    // ── Meetings write operations (super_admin + admin_yayasan only) ──
+    // â”€â”€ Meetings write operations (super_admin + admin_yayasan only) â”€â”€
     Route::middleware('role:super_admin,admin_yayasan')->group(function () {
         Route::post('meetings', [MeetingController::class, 'store']);
         Route::put('meetings/{meeting}', [MeetingController::class, 'update']);
@@ -319,9 +319,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('meetings/{meeting}/participants/{participant}/resend-wa', [MeetingController::class, 'resendWa']);
     });
 
-    // ── WA Blast (super_admin + admin_yayasan only) ──
+    // â”€â”€ WA Blast (super_admin + admin_yayasan only) â”€â”€
     Route::middleware('role:super_admin,admin_yayasan')->group(function () {
-        // Blast sessions — preview-recipients must come before {id} wildcard
+        // Blast sessions â€” preview-recipients must come before {id} wildcard
         Route::post('wa-blasts/preview-recipients', [WaBlastController::class, 'previewRecipients']);
         Route::get('wa-blasts', [WaBlastController::class, 'index']);
         Route::post('wa-blasts', [WaBlastController::class, 'store']);
@@ -337,7 +337,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('wa-blast-templates/{id}', [WaBlastTemplateController::class, 'update']);
         Route::delete('wa-blast-templates/{id}', [WaBlastTemplateController::class, 'destroy']);
 
-        // Go-WA configuration — super_admin only
+        // Go-WA configuration â€” super_admin only
         Route::middleware('role:super_admin')->group(function () {
             Route::get('wa-blast-config', [WaBlastConfigController::class, 'show']);
             Route::post('wa-blast-config', [WaBlastConfigController::class, 'store']);
@@ -348,20 +348,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
         Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
 
-        // ── Meeting Minutes (Notulensi) ──
+        // â”€â”€ Meeting Minutes (Notulensi) â”€â”€
         Route::get('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
         Route::post('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'store']);
         Route::put('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'update']);
         Route::delete('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'destroy']);
 
-        // ── Meeting Photos (Foto Kegiatan) ──
+        // â”€â”€ Meeting Photos (Foto Kegiatan) â”€â”€
         Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
         Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
         Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
         Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
     });
 
-    // ── Student Statistics per Jenjang ──
+    // â”€â”€ Student Statistics per Jenjang â”€â”€
     Route::middleware('role:super_admin,admin_yayasan,operator')
         ->prefix('student-statistics')
         ->group(function () {
@@ -375,7 +375,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 });
 
-// ── Public Meeting Check-In Routes (No Auth — Route names used for QR URL generation) ──
+// â”€â”€ Public Meeting Check-In Routes (No Auth â€” Route names used for QR URL generation) â”€â”€
 // Note: Self-service check-in has been removed. Check-in is only via panitia scanner.
 // These routes exist so that URL::temporarySignedRoute() can generate QR URLs,
 // and so participants can view their QR code on the frontend page.
@@ -423,7 +423,7 @@ Route::prefix('public/meetings')->group(function () {
     })->name('public.meetings.walk-in.show');
 });
 
-// ── Emergency Backup & Restore (Temporary Routes) ──
+// â”€â”€ Emergency Backup & Restore (Temporary Routes) â”€â”€
 Route::prefix('emergency')->group(function () {
     Route::get('backup', [\App\Http\Controllers\Api\EmergencyBackupController::class, 'backup']);
     Route::post('restore', [\App\Http\Controllers\Api\EmergencyBackupController::class, 'restore']);

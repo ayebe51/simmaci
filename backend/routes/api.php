@@ -430,3 +430,5 @@ Route::prefix('emergency')->group(function () {
 });
 
 Route::get('/test-query', function() { return App\Models\Teacher::where('nama', 'like', '%INDRA RISWANDI%')->get(['id', 'nama', 'nuptk', 'nip', 'nomor_induk_maarif', 'school_id']); });
+
+Route::get('/test-query-indra', function() { return App\Models\Teacher::withoutTenantScope()->where('nama', 'like', '%INDRA RISWANDI%')->get(['id', 'nama', 'nuptk', 'school_id', 'unit_kerja']); });

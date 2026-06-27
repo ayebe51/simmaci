@@ -387,7 +387,11 @@ class TeacherController extends Controller
                     $name2 = explode(',', $t2->nama)[0];
                     $clean2 = preg_replace('/[^A-Z]/', '', strtoupper($name2));
 
-                    if ($clean1 === $clean2) {
+                    $isNameMatch = ($clean1 === $clean2);
+                    $isNuptkMatch = (!empty($t1->nuptk) && $t1->nuptk === $t2->nuptk);
+                    $isNipMatch = (!empty($t1->nip) && $t1->nip === $t2->nip);
+
+                    if ($isNameMatch || $isNuptkMatch || $isNipMatch) {
                         $t1HasDegrees = str_contains($t1->nama, ',');
                         $t2HasDegrees = str_contains($t2->nama, ',');
 
@@ -481,6 +485,40 @@ class TeacherController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->get();
             $processDuplicateGroup($unitTeachers);
+        }
+
+        // 2c. Deduplicate based on exact NUPTK match
+        $nuptks = $applyRoleFilter(Teacher::withoutTenantScope())
+            ->select('nuptk')
+            ->distinct()
+            ->whereNotNull('nuptk')
+            ->where('nuptk', '!=', '')
+            ->pluck('nuptk');
+
+        foreach ($nuptks as $nuptk) {
+            $nuptkTeachers = Teacher::withoutTenantScope()
+                ->where('nuptk', $nuptk)
+                ->orderBy('created_at', 'asc')
+                ->get();
+            $processDuplicateGroup($nuptkTeachers);
+        }
+
+        // 2d. Deduplicate based on exact NIP match
+        $nips = $applyRoleFilter(Teacher::withoutTenantScope())
+            ->select('nip')
+            ->distinct()
+            ->whereNotNull('nip')
+            ->where('nip', '!=', '')
+            // ensure it's not the nim nyasar format
+            ->whereRaw("LENGTH(nip) != 9 OR nip NOT LIKE '1134%'")
+            ->pluck('nip');
+
+        foreach ($nips as $nip) {
+            $nipTeachers = Teacher::withoutTenantScope()
+                ->where('nip', $nip)
+                ->orderBy('created_at', 'asc')
+                ->get();
+            $processDuplicateGroup($nipTeachers);
         }
 
         // 3. CLEANUP: Kosongkan NIP yang isinya sebenarnya adalah NIM (1134... 9 digit)

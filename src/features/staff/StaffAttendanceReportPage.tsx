@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 
 export default function StaffAttendanceReportPage() {
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -56,6 +57,28 @@ export default function StaffAttendanceReportPage() {
   };
 
   const attendanceList = Array.isArray(data) ? data : (data?.data || []);
+
+  const handleExportExcel = () => {
+    if (!attendanceList || attendanceList.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+
+    const exportData = attendanceList.map((log: any) => ({
+      'Tanggal': log.tanggal ? format(new Date(log.tanggal), 'yyyy-MM-dd') : '-',
+      'Nama Staff': log.staff?.nama || '-',
+      'Nomor ID': log.staff?.nomor_id || '-',
+      'Jam Masuk': log.jam_masuk || '-',
+      'Jam Pulang': log.jam_pulang || '-',
+      'Status': log.status || '-',
+      'Validasi GPS': log.location_verified ? 'Valid (Di Kantor / Diverifikasi)' : 'Di Luar Area'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi Staff");
+    XLSX.writeFile(wb, `Laporan_Absensi_Staff_${startDate}_sd_${endDate}.xlsx`);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -125,7 +148,7 @@ export default function StaffAttendanceReportPage() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline"><FileDown className="mr-2 h-4 w-4" /> Export Excel</Button>
+          <Button variant="outline" onClick={handleExportExcel}><FileDown className="mr-2 h-4 w-4" /> Export Excel</Button>
         </div>
       </div>
 

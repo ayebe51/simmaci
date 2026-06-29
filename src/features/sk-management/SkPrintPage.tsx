@@ -54,7 +54,7 @@ export default function SkPrintPage() {
     const isNewTeacher = sk.jenis_pengajuan === 'new' || 
         (sk.jenis_pengajuan !== 'renew' && sk.teacher?.tmt && new Date(sk.teacher.tmt).getFullYear() === skTahun);
     
-    const textPengangkatan = isNewTeacher ? "diangkat menjadi" : "diangkat kembali";
+    const textPengangkatan = isNewTeacher ? "diangkat sebagai" : "diangkat kembali";
 
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8 print:bg-white print:py-0">

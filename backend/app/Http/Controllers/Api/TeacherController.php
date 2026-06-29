@@ -88,7 +88,7 @@ class TeacherController extends Controller
         $originalNama = $data['nama'];
         $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
 
-        // Normalize NIM â€” strip dots, dashes, spaces (e.g. "113.403.283" â†’ "113403283")
+        // Normalize NIM — strip dots, dashes, spaces (e.g. "113.403.283" → "113403283")
         if (isset($data['nomor_induk_maarif'])) {
             $data['nomor_induk_maarif'] = $this->normalizationService->normalizeNim($data['nomor_induk_maarif']);
         }
@@ -178,7 +178,7 @@ class TeacherController extends Controller
             }
         }
 
-        // Normalize NIM â€” strip dots, dashes, spaces (e.g. "113.403.283" â†’ "113403283")
+        // Normalize NIM — strip dots, dashes, spaces (e.g. "113.403.283" → "113403283")
         if (isset($data['nomor_induk_maarif'])) {
             $originalNim = $data['nomor_induk_maarif'];
             $data['nomor_induk_maarif'] = $this->normalizationService->normalizeNim($data['nomor_induk_maarif']);
@@ -542,7 +542,7 @@ class TeacherController extends Controller
     }
 
     /**
-     * POST /api/teachers/import â€” Bulk import from JSON array
+     * POST /api/teachers/import — Bulk import from JSON array
      */
     public function import(Request $request): JsonResponse
     {
@@ -578,7 +578,7 @@ class TeacherController extends Controller
                         break;
                     }
                 }
-                // Normalize NIM â€” strip dots, dashes, spaces, apostrophes
+                // Normalize NIM — strip dots, dashes, spaces, apostrophes
                 $nimNormalized = $nim ? $this->normalizationService->normalizeNim((string)$nim) : null;
                 // If the "NIM" value is non-numeric text (e.g. "Non PNS", "PNS"), discard it
                 if ($nimNormalized !== null && !ctype_digit($nimNormalized)) {
@@ -827,14 +827,14 @@ class TeacherController extends Controller
                     }
 
                     if (!$isSarjana) {
-                        // Non-sarjana (D1/D2/D3/SMA/dll) â†’ Tendik
+                        // Non-sarjana (D1/D2/D3/SMA/dll) → Tendik
                         $normalizedRow['status'] = 'Tendik';
                     } elseif ($tmtDate) {
-                        // Sarjana + TMT ada â†’ hitung lama pengabdian
+                        // Sarjana + TMT ada → hitung lama pengabdian
                         $diffYears = $tmtDate->diffInYears(\Carbon\Carbon::now());
                         $normalizedRow['status'] = ($diffYears >= 2) ? 'GTY' : 'GTT';
                     } else {
-                        // Sarjana tapi TMT kosong â†’ GTT
+                        // Sarjana tapi TMT kosong → GTT
                         $normalizedRow['status'] = 'GTT';
                     }
                 }
@@ -1067,17 +1067,17 @@ class TeacherController extends Controller
      * PATCH /api/teachers/{id}/nim
      * Save a NIM to a teacher record. Validates global uniqueness across all tenants.
      *
-     * Feature: nim-generator-sk, Property 3: Global uniqueness â€” no two teachers may share the same NIM
-     * Feature: nim-generator-sk, Property 5: Format validation â€” non-numeric NIM rejected
+     * Feature: nim-generator-sk, Property 3: Global uniqueness — no two teachers may share the same NIM
+     * Feature: nim-generator-sk, Property 5: Format validation — non-numeric NIM rejected
      */
     public function updateNim(UpdateNimRequest $request, Teacher $teacher): JsonResponse
     {
         $this->authorize('update', $teacher);
 
-        // Normalize NIM before validation â€” strip dots, dashes, spaces
+        // Normalize NIM before validation — strip dots, dashes, spaces
         $nim = $this->normalizationService->normalizeNim($request->validated()['nim']) ?? $request->validated()['nim'];
 
-        // Global uniqueness check â€” bypass tenant scope to check across ALL schools
+        // Global uniqueness check — bypass tenant scope to check across ALL schools
         $duplicate = Teacher::withoutTenantScope()
             ->where('nomor_induk_maarif', $nim)
             ->where('id', '!=', $teacher->id)
@@ -1102,7 +1102,7 @@ class TeacherController extends Controller
 
         // Activity log
         ActivityLog::create([
-            'description' => "Update NIM guru: {$teacher->nama} â†’ {$nim}",
+            'description' => "Update NIM guru: {$teacher->nama} → {$nim}",
             'event'       => 'update_nim',
             'log_name'    => 'master',
             'subject_id'  => $teacher->id,
@@ -1332,7 +1332,7 @@ class TeacherController extends Controller
                 break;
             }
         }
-        // Normalize NIM â€” strip dots, dashes, spaces, apostrophes
+        // Normalize NIM — strip dots, dashes, spaces, apostrophes
         $nimNormalized = $nim ? $this->normalizationService->normalizeNim((string)$nim) : null;
         // If the "NIM" value is non-numeric text (e.g. "Non PNS", "PNS"), discard it
         if ($nimNormalized !== null && !ctype_digit($nimNormalized)) {

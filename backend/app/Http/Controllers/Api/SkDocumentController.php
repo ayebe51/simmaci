@@ -239,7 +239,7 @@ class SkDocumentController extends Controller
 
             ActivityLog::log(
                 description: "SK {$skDocument->nomor_sk} diperbarui" .
-                    ($oldStatus !== $skDocument->status ? " (status: {$oldStatus} â†’ {$skDocument->status})" : ''),
+                    ($oldStatus !== $skDocument->status ? " (status: {$oldStatus} → {$skDocument->status})" : ''),
                 event: 'update_sk',
                 logName: 'sk',
                 subject: $skDocument,
@@ -258,7 +258,7 @@ class SkDocumentController extends Controller
                         'user_id'   => $targetUser->id,
                         'school_id' => $skDocument->school_id,
                         'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
-                        'title'     => $isApproved ? 'âœ… SK Disetujui' : 'âŒ SK Ditolak',
+                        'title'     => $isApproved ? '✅ SK Disetujui' : 'âŒ SK Ditolak',
                         'message'   => "SK No. {$skDocument->nomor_sk} untuk {$skDocument->nama} telah " .
                             ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
                             ($rejectionReason ? " Alasan: {$rejectionReason}" : '')),
@@ -339,7 +339,7 @@ class SkDocumentController extends Controller
     }
 
     /**
-     * POST /api/sk-documents/bulk â€” Batch create
+     * POST /api/sk-documents/bulk — Batch create
      */
     public function bulkCreate(Request $request): JsonResponse
     {
@@ -388,7 +388,7 @@ class SkDocumentController extends Controller
     }
 
     /**
-     * PATCH /api/sk-documents/batch-status â€” Batch approve / reject
+     * PATCH /api/sk-documents/batch-status — Batch approve / reject
      */
     public function batchUpdateStatus(Request $request): JsonResponse
     {
@@ -484,7 +484,7 @@ class SkDocumentController extends Controller
                             'user_id'    => $targetUser->id,
                             'school_id'  => $sk->school_id,
                             'type'       => $isApproved ? 'sk_approved' : 'sk_rejected',
-                            'title'      => $isApproved ? 'âœ… SK Disetujui' : 'âŒ SK Ditolak',
+                            'title'      => $isApproved ? '✅ SK Disetujui' : 'âŒ SK Ditolak',
                             'message'    => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
                                 ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
                                 ($rejectionReason ? " Alasan: {$rejectionReason}" : '')),
@@ -600,7 +600,7 @@ class SkDocumentController extends Controller
                 'tanggal_surat_permohonan' => 'nullable|string',
                 'tanggal_penetapan' => 'nullable|string',
                 'status_kepegawaian' => 'nullable|string',
-                // Personal data fields â€” saved to Teacher record for use in SK generation
+                // Personal data fields — saved to Teacher record for use in SK generation
                 'tempat_lahir' => 'nullable|string',
                 'tanggal_lahir' => 'nullable|string',
                 'pendidikan_terakhir' => 'nullable|string',
@@ -616,7 +616,7 @@ class SkDocumentController extends Controller
             $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
 
             // Enrich name with degrees from Teacher record if the submitted name lacks them.
-            // e.g. "MAILID" â†’ "MAILID, S.Pd." when the Teacher DB has the full name.
+            // e.g. "MAILID" → "MAILID, S.Pd." when the Teacher DB has the full name.
             $schoolIdForEnrich = $request->user()->role === 'operator' ? $request->user()->school_id : null;
             $data['nama'] = $this->normalizationService->enrichNameFromTeacher($data['nama'], $schoolIdForEnrich);
 
@@ -677,8 +677,8 @@ class SkDocumentController extends Controller
             $data['school_id'] = $schoolId;
 
             // --- Duplicate submission guard ---
-            // Tahun ajaran selalu mengacu ke tahun berjalan â†’ tahun berikutnya.
-            // Contoh: Juni 2026 â†’ "2026/2027" (SK disiapkan untuk tapel yang akan datang).
+            // Tahun ajaran selalu mengacu ke tahun berjalan → tahun berikutnya.
+            // Contoh: Juni 2026 → "2026/2027" (SK disiapkan untuk tapel yang akan datang).
             $nowYear  = (int) now()->format('Y');
             $activeTahunAjaran = "{$nowYear}/" . ($nowYear + 1);
 
@@ -746,7 +746,7 @@ class SkDocumentController extends Controller
                 'is_verified' => false,
             ];
 
-            // Merge personal data fields only when provided â€” avoid overwriting existing
+            // Merge personal data fields only when provided — avoid overwriting existing
             // Teacher data with empty values (e.g. if operator re-submits without filling them)
             if (!empty($data['tempat_lahir'])) {
                 $teacherData['tempat_lahir'] = $data['tempat_lahir'];
@@ -828,7 +828,7 @@ class SkDocumentController extends Controller
                     'tahun_ajaran'         => $activeTahunAjaran,
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                // Race condition on nomor_sk â€” re-fetch and retry once
+                // Race condition on nomor_sk — re-fetch and retry once
                 $nomorSk = SkDocument::generateNomorSk();
                 $sk = SkDocument::create([
                     'nomor_sk'             => $nomorSk,
@@ -915,7 +915,7 @@ class SkDocumentController extends Controller
                     ],
                 ]);
 
-                // Dispatch notification to queue â€” avoids blocking the HTTP response
+                // Dispatch notification to queue — avoids blocking the HTTP response
                 // when there are many admins to notify.
                 NotifyAdminsOfSkSubmission::dispatch(
                     skId: $sk->id,
@@ -1001,7 +1001,7 @@ class SkDocumentController extends Controller
         $year         = now()->year;
 
         // Get the highest existing REQ/{year}/NNNN sequence number in one query,
-        // then increment locally â€” avoids a per-row existence-check loop.
+        // then increment locally — avoids a per-row existence-check loop.
         // On a rare race-condition duplicate, the create() will throw and we
         // re-fetch via generateNomorSk() which retries safely.
         $prefix = "REQ/{$year}/";
@@ -1127,7 +1127,7 @@ class SkDocumentController extends Controller
                 continue;
             }
 
-            // Build teacher data â€” only include fields that are explicitly provided in the
+            // Build teacher data — only include fields that are explicitly provided in the
             // uploaded Excel row. Fields absent from the file must NOT overwrite existing
             // database values (e.g. status, is_certified, is_verified, pdpkpnu).
             $teacherData = ['nama' => $doc['nama'], 'school_id' => $schoolId];
@@ -1142,11 +1142,11 @@ class SkDocumentController extends Controller
                 }
             }
 
-            // Normalize date fields â€” convert Indonesian date strings to ISO YYYY-MM-DD
+            // Normalize date fields — convert Indonesian date strings to ISO YYYY-MM-DD
             foreach (['tanggal_lahir', 'tmt'] as $dateField) {
                 if (isset($teacherData[$dateField]) && is_string($teacherData[$dateField])) {
                     $parsed = $this->normalizationService->parseIndonesianDate($teacherData[$dateField]);
-                    $teacherData[$dateField] = $parsed; // null if unparseable â€” safer than bad string
+                    $teacherData[$dateField] = $parsed; // null if unparseable — safer than bad string
                 }
             }
 
@@ -1271,7 +1271,7 @@ class SkDocumentController extends Controller
                     $teacherData['tmt'] = $teacher->tmt;
                 }
 
-                // Existing teacher must have NIM and TMT â€” reject if both sources are empty
+                // Existing teacher must have NIM and TMT — reject if both sources are empty
                 $finalNim = $teacherData['nomor_induk_maarif'] ?? $teacher->nomor_induk_maarif;
                 $finalTmt = $teacherData['tmt'] ?? $teacher->tmt;
 
@@ -1373,7 +1373,7 @@ class SkDocumentController extends Controller
                     ],
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                // Race condition: another request grabbed this nomor_sk â€” re-fetch safely
+                // Race condition: another request grabbed this nomor_sk — re-fetch safely
                 $nomorSk = SkDocument::generateNomorSk($year);
                 $seq = (int) explode('/', $nomorSk)[2]; // keep local counter in sync
                 $sk = SkDocument::create([
@@ -1446,7 +1446,7 @@ class SkDocumentController extends Controller
                     'user_id'   => $admin->id,
                     'school_id' => $request->user()->school_id,
                     'type'      => 'sk_bulk_submitted',
-                    'title'     => 'ðŸ“‹ Pengajuan SK Kolektif Baru',
+                    'title'     => '📝 Pengajuan SK Kolektif Baru',
                     'message'   => "Pengajuan SK kolektif dari {$operatorSchoolName}: {$created} permohonan menunggu verifikasi" .
                         ($skipped > 0 ? ", {$skipped} dilewati." : '.'),
                     'is_read'   => false,

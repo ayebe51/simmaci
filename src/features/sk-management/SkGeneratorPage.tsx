@@ -660,7 +660,13 @@ export default function SkGeneratorPage() {
             const birthDateStr = identity.tanggal_lahir || "-"
             const tempatTglLahir = (identity.tempat_lahir || "") + (birthDateStr !== "-" ? ", " + birthDateStr : "")
 
+            const skTahunVal = new Date(tanggalPenetapanPerGuru).getFullYear();
+            const isNewTeacher = t.jenis_pengajuan === 'new' || 
+                (t.jenis_pengajuan !== 'renew' && (t.tmt || teacher?.tmt) && new Date(t.tmt || teacher?.tmt).getFullYear() === skTahunVal);
+            const dynamicPengangkatan = isNewTeacher ? "diangkat" : "diangkat kembali";
+
             const renderData: any = {
+                "KATA_PENGANGKATAN": dynamicPengangkatan,
                 ...teacher,
                 ...t,
                 ...identity,
@@ -739,6 +745,11 @@ export default function SkGeneratorPage() {
                 const docFile = pzip.file("word/document.xml")
                 if (docFile) {
                     let docXmlStr = docFile.asText()
+                    // Dynamically replace hardcoded "diangkat kembali" or "diangkat menjadi" in template XML
+                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali\b/g, '{KATA_PENGANGKATAN}');
+                    docXmlStr = docXmlStr.replace(/\bdiangkat menjadi\b/g, '{KATA_PENGANGKATAN}');
+                    docXmlStr = docXmlStr.replace(/\bdiangkat sebagai\b/g, '{KATA_PENGANGKATAN}');
+                    
                     // Find runs containing {NAMA} (with optional spaces) and add <w:b/><w:bCs/> if missing
                     docXmlStr = docXmlStr.replace(
                         /(<w:r\b[^>]*>)((?:(?!<\/w:r>)[\s\S])*?\{[\s]*NAMA[\s]*\}[\s\S]*?<\/w:r>)/g,
@@ -843,6 +854,12 @@ export default function SkGeneratorPage() {
                 const docFileCollective = collectivePzip.file("word/document.xml")
                 if (docFileCollective) {
                     let docXmlStr = docFileCollective.asText()
+                    
+                    // Dynamically replace hardcoded "diangkat kembali" or "diangkat menjadi" in template XML
+                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali\b/g, '{KATA_PENGANGKATAN}');
+                    docXmlStr = docXmlStr.replace(/\bdiangkat menjadi\b/g, '{KATA_PENGANGKATAN}');
+                    docXmlStr = docXmlStr.replace(/\bdiangkat sebagai\b/g, '{KATA_PENGANGKATAN}');
+
                     docXmlStr = docXmlStr.replace(
                         /(<w:r\b[^>]*>)((?:(?!<\/w:r>)[\s\S])*?\{[\s]*NAMA[\s]*\}[\s\S]*?<\/w:r>)/g,
                         (match, openTag, rest) => {

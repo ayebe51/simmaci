@@ -663,7 +663,7 @@ export default function SkGeneratorPage() {
             const skTahunVal = new Date(tanggalPenetapanPerGuru).getFullYear();
             const isNewTeacher = t.jenis_pengajuan === 'new' || 
                 (t.jenis_pengajuan !== 'renew' && (t.tmt || teacher?.tmt) && new Date(t.tmt || teacher?.tmt).getFullYear() === skTahunVal);
-            const dynamicPengangkatan = isNewTeacher ? "diangkat" : "diangkat kembali";
+            const dynamicPengangkatan = isNewTeacher ? "diangkat sebagai" : "diangkat kembali sebagai";
 
             const renderData: any = {
                 "KATA_PENGANGKATAN": dynamicPengangkatan,
@@ -745,10 +745,12 @@ export default function SkGeneratorPage() {
                 const docFile = pzip.file("word/document.xml")
                 if (docFile) {
                     let docXmlStr = docFile.asText()
-                    // Dynamically replace hardcoded "diangkat kembali" or "diangkat menjadi" in template XML
-                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali\b/g, '{KATA_PENGANGKATAN}');
+                    // Dynamically replace hardcoded "diangkat kembali sebagai" etc in template XML
+                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali sebagai\b/g, '{KATA_PENGANGKATAN}');
                     docXmlStr = docXmlStr.replace(/\bdiangkat menjadi\b/g, '{KATA_PENGANGKATAN}');
                     docXmlStr = docXmlStr.replace(/\bdiangkat sebagai\b/g, '{KATA_PENGANGKATAN}');
+                    // Fallback for cases where "sebagai" is separated by extra spaces or XML tags
+                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali\b/g, '{KATA_PENGANGKATAN}');
                     
                     // Find runs containing {NAMA} (with optional spaces) and add <w:b/><w:bCs/> if missing
                     docXmlStr = docXmlStr.replace(
@@ -855,10 +857,12 @@ export default function SkGeneratorPage() {
                 if (docFileCollective) {
                     let docXmlStr = docFileCollective.asText()
                     
-                    // Dynamically replace hardcoded "diangkat kembali" or "diangkat menjadi" in template XML
-                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali\b/g, '{KATA_PENGANGKATAN}');
+                    // Dynamically replace hardcoded "diangkat kembali sebagai" etc in template XML
+                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali sebagai\b/g, '{KATA_PENGANGKATAN}');
                     docXmlStr = docXmlStr.replace(/\bdiangkat menjadi\b/g, '{KATA_PENGANGKATAN}');
                     docXmlStr = docXmlStr.replace(/\bdiangkat sebagai\b/g, '{KATA_PENGANGKATAN}');
+                    // Fallback for cases where "sebagai" is separated by extra spaces or XML tags
+                    docXmlStr = docXmlStr.replace(/\bdiangkat kembali\b/g, '{KATA_PENGANGKATAN}');
 
                     docXmlStr = docXmlStr.replace(
                         /(<w:r\b[^>]*>)((?:(?!<\/w:r>)[\s\S])*?\{[\s]*NAMA[\s]*\}[\s\S]*?<\/w:r>)/g,

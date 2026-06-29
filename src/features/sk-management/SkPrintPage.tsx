@@ -50,6 +50,12 @@ export default function SkPrintPage() {
 
     const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
 
+    const skTahun = parseIndonesianDate(sk.tanggal_penetapan)?.getFullYear() || new Date(sk.created_at).getFullYear();
+    const isNewTeacher = sk.jenis_pengajuan === 'new' || 
+        (sk.jenis_pengajuan !== 'renew' && sk.teacher?.tmt && new Date(sk.teacher.tmt).getFullYear() === skTahun);
+    
+    const textPengangkatan = isNewTeacher ? "diangkat menjadi" : "diangkat kembali";
+
     return (
         <div className="min-h-screen bg-slate-100 flex flex-col items-center py-8 print:bg-white print:py-0">
             {/* Action Bar - Hidden when printing */}
@@ -162,7 +168,7 @@ export default function SkPrintPage() {
                                 </tbody>
                             </table>
                             <p className="indent-0 text-justify">
-                                Terhitung mulai tanggal <span className="font-bold">{(parseIndonesianDate(sk.tanggal_penetapan) || new Date(sk.created_at)).toLocaleDateString('id-ID')}</span> diangkat kembali sebagai {sk.jenis_sk} pada {sk.unit_kerja}, diberikan hak-hak sesuai dengan ketentuan yang berlaku.
+                                Terhitung mulai tanggal <span className="font-bold">{(parseIndonesianDate(sk.tanggal_penetapan) || new Date(sk.created_at)).toLocaleDateString('id-ID')}</span> {textPengangkatan} sebagai {sk.jenis_sk} pada {sk.unit_kerja}, diberikan hak-hak sesuai dengan ketentuan yang berlaku.
                             </p>
                          </div>
                     </div>

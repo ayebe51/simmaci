@@ -584,7 +584,7 @@ class SkDocumentController extends Controller
     /**
      * POST /api/sk-documents/submit-request
      * Submit single SK request (individual)
-     */
+*/
     public function submitRequest(Request $request): JsonResponse
     {
         try {
@@ -593,6 +593,7 @@ class SkDocumentController extends Controller
                 'nuptk' => 'nullable|string',
                 'nip' => 'nullable|string',
                 'jenis_sk' => 'required|string',
+                'jenis_pengajuan' => 'nullable|string|in:new,renew,bulk',
                 'unit_kerja' => 'required|string',
                 'jabatan' => 'nullable|string',
                 'surat_permohonan_url' => 'required|string',

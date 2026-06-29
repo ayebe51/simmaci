@@ -48,6 +48,8 @@ class PopulateJenjangData extends Command
                 $jenjang = 'SMA';
             } elseif (preg_match('/\bSMK\b|SEKOLAH MENENGAH KEJURUAN/', $nama)) {
                 $jenjang = 'SMK';
+            } elseif (preg_match('/\bRA\b|RAUDHATUL|RAUDATUL|TK\b|TAMAN KANAK|PAUD\b/', $nama)) {
+                $jenjang = 'RA';
             }
             
             if ($jenjang) {
@@ -78,6 +80,7 @@ class PopulateJenjangData extends Command
                     WHEN LOWER(jenjang) LIKE '%mi%' OR LOWER(jenjang) LIKE '%sd%' THEN 'mi_sd'
                     WHEN LOWER(jenjang) LIKE '%mts%' OR LOWER(jenjang) LIKE '%smp%' THEN 'mts_smp'
                     WHEN LOWER(jenjang) LIKE '%ma%' OR LOWER(jenjang) LIKE '%sma%' OR LOWER(jenjang) LIKE '%smk%' THEN 'ma_sma_smk'
+                    WHEN LOWER(jenjang) LIKE '%ra%' OR LOWER(jenjang) LIKE '%tk%' OR LOWER(jenjang) LIKE '%paud%' THEN 'tk_ra'
                     WHEN jenjang IS NULL OR jenjang = '' THEN 'undefined'
                     ELSE 'lainnya'
                 END as category,

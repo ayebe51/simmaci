@@ -39,7 +39,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . .
 
 # Install dependencies
-RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
 
 # Set permissions
 RUN chown -R www-data:www-data storage bootstrap/cache

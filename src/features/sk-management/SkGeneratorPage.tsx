@@ -764,7 +764,13 @@ export default function SkGeneratorPage() {
             }
             try {
                 await updateSkMutation.mutateAsync({ id: t.id, data: syncPayload })
-                if (t.teacher_id) await markVerifiedMutation.mutateAsync(t.teacher_id)
+                if (t.teacher_id) {
+                    try {
+                        await markVerifiedMutation.mutateAsync(t.teacher_id)
+                    } catch (verifyErr) {
+                        console.warn(`[SK Generator] Gagal verifikasi guru ID ${t.teacher_id} (mungkin terhapus/duplikat). Mengabaikan.`, verifyErr)
+                    }
+                }
             } catch (err: any) {
                 // SK sudah tercetak tapi gagal tersimpan — kumpulkan untuk retry di akhir
                 const errMsg = err?.response?.data?.message || err?.message || "Network error"
@@ -984,7 +990,13 @@ export default function SkGeneratorPage() {
     for (const item of failedSyncItems) {
         try {
             await updateSkMutation.mutateAsync({ id: item.id, data: item.syncPayload })
-            if (item.teacherId) await markVerifiedMutation.mutateAsync(item.teacherId)
+            if (item.teacherId) {
+                try {
+                    await markVerifiedMutation.mutateAsync(item.teacherId)
+                } catch (verifyErr) {
+                    console.warn(`[SK Generator Retry] Gagal verifikasi guru ID ${item.teacherId}. Mengabaikan.`, verifyErr)
+                }
+            }
         } catch (err: any) {
             const errMsg = err?.response?.data?.message || err?.message || "Network error"
             stillFailed.push({ ...item, errorMsg: errMsg })

@@ -345,12 +345,20 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
                 $jenisSk = $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY';
 
+                $rawJenisPengajuan = strtolower(trim($doc['jenis_pengajuan'] ?? ''));
+                $jenisPengajuan = 'bulk';
+                if (str_contains($rawJenisPengajuan, 'baru')) {
+                    $jenisPengajuan = 'new';
+                } elseif (str_contains($rawJenisPengajuan, 'perpanjangan')) {
+                    $jenisPengajuan = 'renew';
+                }
+
                 $skData = [
                     'nomor_sk'             => $nomorSk,
                     'teacher_id'           => $teacher->id,
                     'nama'                 => $doc['nama'],
                     'jenis_sk'             => $jenisSk,
-                    'jenis_pengajuan'      => 'bulk',
+                    'jenis_pengajuan'      => $jenisPengajuan,
                     'unit_kerja'           => $doc['unit_kerja'] ?? null,
                     'school_id'            => $schoolId,
                     'surat_permohonan_url' => $this->suratPermohonanUrl,

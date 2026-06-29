@@ -63,10 +63,11 @@ export function BulkSkSubmission() {
       "status": ["status", "status kepegawaian", "status guru"],
       "pdpkpnu": ["pdpkpnu", "pkpnu", "diklat"],
       "kecamatan": ["kecamatan", "kec"],
+      "jenis_pengajuan": ["jenis pengajuan", "baru/perpanjangan", "pengajuan", "status pengajuan", "baru / perpanjangan"],
     }
   const handleDownloadTemplate = () => {
-    const headers = ["Nama", "Tempat Lahir", "Tanggal Lahir", "NIM", "Pendidikan Terakhir", "Unit Kerja", "TMT", "Status", "PDPKPNU", "Kecamatan"];
-    const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "1990-05-12", "123456789", "S1 PAI", "MI Ma'arif 01", "2015-07-01", "GTY", "Lulus", "Cilacap Selatan"]]);
+    const headers = ["Nama", "Tempat Lahir", "Tanggal Lahir", "NIM", "Pendidikan Terakhir", "Unit Kerja", "TMT", "Status", "PDPKPNU", "Kecamatan", "Baru/Perpanjangan"];
+    const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "1990-05-12", "123456789", "S1 PAI", "MI Ma'arif 01", "2015-07-01", "GTY", "Lulus", "Cilacap Selatan", "Perpanjangan"]]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -182,7 +183,7 @@ export function BulkSkSubmission() {
 
           const missingColumns: string[] = [];
           Object.entries(colMap).forEach(([key, idx]) => {
-              if (key === 'nomor_induk_maarif' || key === 'nip' || key === 'nuptk') return;
+              if (key === 'nomor_induk_maarif' || key === 'nip' || key === 'nuptk' || key === 'jenis_pengajuan') return;
               
               const val = obj[key];
               if (val === undefined || val === null || String(val).trim() === '') {

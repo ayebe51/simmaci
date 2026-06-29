@@ -1339,12 +1339,21 @@ class SkDocumentController extends Controller
 
             // $jenisSk already set above in duplicate guard
 
+            $rawJenisPengajuan = strtolower(trim($doc['jenis_pengajuan'] ?? ''));
+            $jenisPengajuan = 'bulk';
+            if (str_contains($rawJenisPengajuan, 'baru')) {
+                $jenisPengajuan = 'new';
+            } elseif (str_contains($rawJenisPengajuan, 'perpanjangan')) {
+                $jenisPengajuan = 'renew';
+            }
+
             try {
                 $sk = SkDocument::create([
                     'nomor_sk'             => $nomorSk,
                     'teacher_id'           => $teacher->id,
                     'nama'                 => $doc['nama'],
                     'jenis_sk'             => $jenisSk,
+                    'jenis_pengajuan'      => $jenisPengajuan,
                     'unit_kerja'           => $doc['unit_kerja'] ?? null,
                     'school_id'            => $schoolId,
                     'surat_permohonan_url' => $request->surat_permohonan_url,
@@ -1382,6 +1391,7 @@ class SkDocumentController extends Controller
                     'teacher_id'           => $teacher->id,
                     'nama'                 => $doc['nama'],
                     'jenis_sk'             => $jenisSk,
+                    'jenis_pengajuan'      => $jenisPengajuan,
                     'unit_kerja'           => $doc['unit_kerja'] ?? null,
                     'school_id'            => $schoolId,
                     'surat_permohonan_url' => $request->surat_permohonan_url,

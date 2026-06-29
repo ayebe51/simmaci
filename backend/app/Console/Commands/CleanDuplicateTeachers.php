@@ -32,15 +32,14 @@ class CleanDuplicateTeachers extends Command
         $this->info('Priority: keep record WITH academic degrees (gelar) in nama.');
         $this->newLine();
 
-        // Find duplicates: group by UPPER(SPLIT_PART(nama, ',', 1)) and school_id
+        // Find duplicates: group by UPPER(SPLIT_PART(nama, ',', 1)) globally
         $query = DB::table('teachers')
             ->select(
                 DB::raw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) as bare_name"),
-                'school_id',
                 DB::raw('COUNT(*) as cnt')
             )
             ->whereNull('deleted_at')
-            ->groupBy(DB::raw("UPPER(TRIM(SPLIT_PART(nama, ',', 1)))"), 'school_id')
+            ->groupBy(DB::raw("UPPER(TRIM(SPLIT_PART(nama, ',', 1)))"))
             ->having(DB::raw('COUNT(*)'), '>', 1)
             ->orderByDesc('cnt');
 
@@ -62,10 +61,9 @@ class CleanDuplicateTeachers extends Command
         $allDuplicates = [];
 
         foreach ($duplicateGroups as $group) {
-            // Get all teachers in this duplicate group
+            // Get all teachers in this duplicate group globally
             $teachers = Teacher::withoutTenantScope()
                 ->whereNull('deleted_at')
-                ->where('school_id', $group->school_id)
                 ->whereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [$group->bare_name])
                 ->get();
 
@@ -97,20 +95,42 @@ class CleanDuplicateTeachers extends Command
             $keep = $sorted->first();
             $toDelete = $sorted->slice(1);
 
-            $schoolName = DB::table('schools')->where('id', $group->school_id)->value('nama') ?? 'Unknown';
+            $schoolNameKeep = DB::table('schools')->where('id', $keep->school_id)->value('nama') ?? 'Unknown';
 
             $this->line("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            $this->info("Bare Name: {$group->bare_name} | School: {$schoolName} (ID: {$group->school_id})");
-            $this->line("  ✅ KEEP: ID={$keep->id} | nama=\"{$keep->nama}\" | nuptk={$keep->nuptk} | nim={$keep->nomor_induk_maarif} | nip={$keep->nip} | status={$keep->status_kepegawaian}");
+            $this->info("Bare Name: {$group->bare_name} | Target School: {$schoolNameKeep}");
+            $this->line("  ✅ KEEP: ID={$keep->id} | nama=\"{$keep->nama}\" | nuptk={$keep->nuptk} | nim={$keep->nomor_induk_maarif} | nip={$keep->nip}");
 
             foreach ($toDelete as $dup) {
-                $this->line("  ❌ DELETE: ID={$dup->id} | nama=\"{$dup->nama}\" | nuptk={$dup->nuptk} | nim={$dup->nomor_induk_maarif} | nip={$dup->nip} | status={$dup->status_kepegawaian}");
+                $schoolNameDup = DB::table('schools')->where('id', $dup->school_id)->value('nama') ?? 'Unknown';
+
+                // Safety check: only merge if they are in the same school (by ID or Name) OR share the same NUPTK OR NIM
+                $sameSchool = $keep->school_id === $dup->school_id;
+                $sameSchoolName = strtoupper(trim($schoolNameKeep)) === strtoupper(trim($schoolNameDup)) && $schoolNameKeep !== 'Unknown';
+                $sameNuptk = !empty($keep->nuptk) && $keep->nuptk === $dup->nuptk;
+                $sameNim = !empty($keep->nomor_induk_maarif) && $keep->nomor_induk_maarif === $dup->nomor_induk_maarif;
+
+                if (!($sameSchool || $sameSchoolName || $sameNuptk || $sameNim)) {
+                    $this->warn("  ⏭️ SKIP: ID={$dup->id} | School name differs ({$schoolNameDup}) and identifiers don't match.");
+                    continue;
+                }
+
+                $this->line("  ❌ DELETE: ID={$dup->id} | nama=\"{$dup->nama}\" | nuptk={$dup->nuptk} | nim={$dup->nomor_induk_maarif} | nip={$dup->nip} | school={$schoolNameDup}");
+
+                // Migrate important fields if keep is missing them
+                $fields = ['nuptk', 'nomor_induk_maarif', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status_kepegawaian', 'tmt'];
+                foreach ($fields as $f) {
+                    if (empty($keep->$f) && !empty($dup->$f)) {
+                        $keep->$f = $dup->$f;
+                    }
+                }
+                if (!$isDryRun) {
+                    $keep->save();
+                }
 
                 $allDuplicates[] = [
                     'id' => $dup->id,
                     'nama' => $dup->nama,
-                    'school_id' => $dup->school_id,
-                    'school_name' => $schoolName,
                 ];
 
                 if (!$isDryRun) {

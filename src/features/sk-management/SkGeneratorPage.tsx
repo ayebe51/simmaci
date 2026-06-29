@@ -606,10 +606,28 @@ export default function SkGeneratorPage() {
                 return "-";
             };
 
+            const formatPendidikan = (pend?: string) => {
+                if (!pend || pend === "-") return "-";
+                const upper = pend.trim().toUpperCase();
+                if (upper.startsWith("S1") || upper.startsWith("SI ") || upper === "SI") return "S1";
+                if (upper.startsWith("S2") || upper.startsWith("SII ") || upper === "SII") return "S2";
+                if (upper.startsWith("S3") || upper.startsWith("SIII ") || upper === "SIII") return "S3";
+                if (upper.startsWith("D1") || upper.startsWith("D-1") || upper.startsWith("D.1") || upper.startsWith("DI ") || upper === "DI") return "D1";
+                if (upper.startsWith("D2") || upper.startsWith("D-2") || upper.startsWith("D.2") || upper.startsWith("DII ") || upper === "DII") return "D2";
+                if (upper.startsWith("D3") || upper.startsWith("D-3") || upper.startsWith("D.3") || upper.startsWith("DIII ") || upper === "DIII") return "D3";
+                if (upper.startsWith("D4") || upper.startsWith("D-4") || upper.startsWith("D.4") || upper.startsWith("DIV ") || upper === "DIV") return "D4";
+                if (upper.startsWith("SMA") || upper.startsWith("SMK") || upper.startsWith("MA ") || upper === "MA") return upper.split(" ")[0];
+                if (upper.startsWith("SMP") || upper.startsWith("MTS")) return upper.split(" ")[0];
+                if (upper.startsWith("SD") || upper.startsWith("MI ") || upper === "MI") return upper.split(" ")[0];
+                return pend;
+            };
+
             const rawPendidikan = t.pendidikan_terakhir || teacher?.pendidikan_terakhir;
-            const pendidikanTerakhir = (rawPendidikan && rawPendidikan.trim() !== "" && rawPendidikan.trim() !== "-") 
+            let pendidikanTerakhir = (rawPendidikan && rawPendidikan.trim() !== "" && rawPendidikan.trim() !== "-") 
                 ? rawPendidikan 
                 : inferPendidikan(t.nama || teacher?.nama);
+                
+            pendidikanTerakhir = formatPendidikan(pendidikanTerakhir);
             const schoolMatch = schoolsData?.find(s => s.nama?.trim().toLowerCase() === (t.unit_kerja || teacher.unit_kerja)?.trim().toLowerCase())
             
             let rawKecamatan = schoolMatch?.kecamatan || t.kecamatan || teacher.kecamatan;

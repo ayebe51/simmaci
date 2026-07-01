@@ -26,7 +26,7 @@ class NormalizationIntegrationTest extends TestCase
 
         // Create test school with mixed case name
         $this->school = School::factory()->create([
-            'nama' => 'mi darwata glempang',
+            'nama' => 'ra darwata glempang',
             'nsm'  => '111233010001',
             'kecamatan' => 'Glempang Pasir',
         ]);
@@ -42,7 +42,7 @@ class NormalizationIntegrationTest extends TestCase
             'role'      => 'operator',
             'email'     => 'operator@test.com',
             'school_id' => $this->school->id,
-            'unit'      => 'MI Darwata Glempang',
+            'unit'      => 'RA Darwata Glempang',
             'is_active' => true,
         ]);
 
@@ -61,7 +61,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'ahmad ayub nu\'man, s.h',
             'nuptk' => '1234567890123456',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'MI DARWATA GLEMPANG', // All uppercase
+            'unit_kerja' => 'RA DARWATA GLEMPANG', // All uppercase
             'jabatan' => 'Guru Kelas',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -74,7 +74,7 @@ class NormalizationIntegrationTest extends TestCase
 
         // Verify school name was normalized to Title Case with MI preserved
         $skDocument = SkDocument::latest()->first();
-        $this->assertEquals('MI Darwata Glempang', $skDocument->unit_kerja);
+        $this->assertEquals('RA Darwata Glempang', $skDocument->unit_kerja);
         
         // Verify the school was found using case-insensitive lookup
         $this->assertEquals($this->school->id, $skDocument->school_id);
@@ -90,7 +90,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'ahmad ayub nu\'man, s.h', // Mixed case with degree
             'nuptk' => '1234567890123456',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'MI Darwata Glempang',
+            'unit_kerja' => 'RA Darwata Glempang',
             'jabatan' => 'Guru Kelas',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -127,7 +127,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'AHMAD AYUB NU\'MAN, S.H.', // Already normalized but will be re-normalized
             'nuptk' => '1234567890123456', // Same NUPTK to trigger upsert
             'jenis_sk' => 'Mutasi',
-            'unit_kerja' => 'MI Darwata Glempang',
+            'unit_kerja' => 'RA Darwata Glempang',
             'jabatan' => 'Kepala Sekolah',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -156,7 +156,7 @@ class NormalizationIntegrationTest extends TestCase
     {
         // Create another school for testing
         $school2 = School::factory()->create([
-            'nama' => 'SMP NU Cilacap', // Already normalized for easier matching
+            'nama' => 'RA NU Cilacap', // Already normalized for easier matching
             'nsm' => '111233020001',
         ]);
 
@@ -166,13 +166,13 @@ class NormalizationIntegrationTest extends TestCase
                     'nama' => 'SITI AMINAH',
                     'nuptk' => '1111111111111111',
                     'jenis_sk' => 'Pengangkatan',
-                    'unit_kerja' => 'MI DARWATA GLEMPANG', // Should normalize and match
+                    'unit_kerja' => 'RA DARWATA GLEMPANG', // Should normalize and match
                 ],
                 [
                     'nama' => 'BUDI SANTOSO',
                     'nuptk' => '2222222222222222',
                     'jenis_sk' => 'Pengangkatan',
-                    'unit_kerja' => 'SMP NU CILACAP', // Should normalize and match
+                    'unit_kerja' => 'RA NU CILACAP', // Should normalize and match
                 ],
             ],
             'surat_permohonan_url' => 'https://example.com/bulk-surat.pdf',
@@ -194,7 +194,7 @@ class NormalizationIntegrationTest extends TestCase
             $skDocuments = SkDocument::latest()->take(2)->get();
             
             foreach ($skDocuments as $doc) {
-                $this->assertContains($doc->unit_kerja, ['MI Darwata Glempang', 'SMP NU Cilacap']);
+                $this->assertContains($doc->unit_kerja, ['RA Darwata Glempang', 'RA NU Cilacap']);
             }
         }
     }
@@ -211,13 +211,13 @@ class NormalizationIntegrationTest extends TestCase
                     'nama' => 'siti aminah, s.pd', // Lowercase with degree
                     'nuptk' => '1111111111111111',
                     'jenis_sk' => 'Pengangkatan',
-                    'unit_kerja' => 'MI Darwata Glempang',
+                    'unit_kerja' => 'RA Darwata Glempang',
                 ],
                 [
                     'nama' => 'BUDI SANTOSO', // Uppercase without degree
                     'nuptk' => '2222222222222222',
                     'jenis_sk' => 'Pengangkatan',
-                    'unit_kerja' => 'MI Darwata Glempang',
+                    'unit_kerja' => 'RA Darwata Glempang',
                 ],
             ],
             'surat_permohonan_url' => 'https://example.com/bulk-surat.pdf',
@@ -250,11 +250,11 @@ class NormalizationIntegrationTest extends TestCase
     public function test_individual_submission_case_insensitive_school_lookup(): void
     {
         // Update school to have normalized name
-        $this->school->update(['nama' => 'MI Darwata Glempang']);
+        $this->school->update(['nama' => 'RA Darwata Glempang']);
 
         $testCases = [
-            'mi darwata glempang',     // All lowercase
-            'MI DARWATA GLEMPANG',     // All uppercase
+            'ra darwata glempang',     // All lowercase
+            'RA DARWATA GLEMPANG',     // All uppercase
             'Mi Darwata Glempang',     // Title case
             'mI dArWaTa GlEmPaNg',     // Mixed case
         ];
@@ -278,7 +278,7 @@ class NormalizationIntegrationTest extends TestCase
             // Verify school was found regardless of case
             $skDocument = SkDocument::latest()->first();
             $this->assertEquals($this->school->id, $skDocument->school_id);
-            $this->assertEquals('MI Darwata Glempang', $skDocument->unit_kerja); // Normalized
+            $this->assertEquals('RA Darwata Glempang', $skDocument->unit_kerja); // Normalized
         }
     }
 
@@ -294,7 +294,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'ahmad rifai, s.pd.i, m.pd.i',
             'nuptk' => '9876543210987654',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'ma nu cilacap',
+            'unit_kerja' => 'ra nu cilacap',
             'jabatan' => 'Guru Bahasa Arab',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -302,7 +302,7 @@ class NormalizationIntegrationTest extends TestCase
 
         // Create school for this test
         $maSchool = School::factory()->create([
-            'nama' => 'MA NU Cilacap',
+            'nama' => 'RA NU Cilacap',
             'nsm' => '111233030001',
         ]);
 
@@ -314,14 +314,14 @@ class NormalizationIntegrationTest extends TestCase
         // Verify SK document has normalized data (MA preserved in uppercase)
         $this->assertDatabaseHas('sk_documents', [
             'nama' => 'AHMAD RIFAI, S.Pd.I, M.Pd.I',
-            'unit_kerja' => 'MA NU Cilacap',
+            'unit_kerja' => 'RA NU Cilacap',
             'school_id' => $maSchool->id,
         ]);
 
         // Verify teacher record has normalized data
         $this->assertDatabaseHas('teachers', [
             'nama' => 'AHMAD RIFAI, S.Pd.I, M.Pd.I',
-            'unit_kerja' => 'MA NU Cilacap',
+            'unit_kerja' => 'RA NU Cilacap',
             'nuptk' => '9876543210987654',
             'school_id' => $maSchool->id,
         ]);
@@ -337,7 +337,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'SITI KHADIJAH, S.AG',
             'nuptk' => '5555555555555555',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'mi darwata glempang',
+            'unit_kerja' => 'ra darwata glempang',
             'jabatan' => 'Guru Agama',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -362,8 +362,8 @@ class NormalizationIntegrationTest extends TestCase
         $this->assertArrayHasKey('normalization', $properties);
         $this->assertArrayHasKey('unit_kerja', $properties['normalization']);
         
-        $this->assertEquals('mi darwata glempang', $properties['normalization']['unit_kerja']['original']);
-        $this->assertEquals('MI Darwata Glempang', $properties['normalization']['unit_kerja']['normalized']);
+        $this->assertEquals('ra darwata glempang', $properties['normalization']['unit_kerja']['original']);
+        $this->assertEquals('RA Darwata Glempang', $properties['normalization']['unit_kerja']['normalized']);
     }
 
     // ── Edge Cases and Error Handling ─────────────────────────────────────────
@@ -377,7 +377,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'al-farabi ibn sina, dr., s.h',
             'nuptk' => '7777777777777777',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'mi al-ikhlas nu\'man',
+            'unit_kerja' => 'ra al-ikhlas nu\'man',
             'jabatan' => 'Guru Fiqh',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -385,7 +385,7 @@ class NormalizationIntegrationTest extends TestCase
 
         // Create school with special characters
         $specialSchool = School::factory()->create([
-            'nama' => 'MI Al-Ikhlas Nu\'man',
+            'nama' => 'RA Al-Ikhlas Nu\'man',
             'nsm' => '111233040001',
         ]);
 
@@ -397,7 +397,7 @@ class NormalizationIntegrationTest extends TestCase
         // Verify special characters are preserved in normalization
         $skDocument = SkDocument::latest()->first();
         $this->assertEquals('AL-FARABI IBN SINA, Dr., S.H.', $skDocument->nama);
-        $this->assertEquals('MI Al-Ikhlas Nu\'man', $skDocument->unit_kerja); // Nu'man is a name, not the NU abbreviation
+        $this->assertEquals('RA Al-Ikhlas Nu\'man', $skDocument->unit_kerja); // Nu'man is a name, not the NU abbreviation
         $this->assertEquals($specialSchool->id, $skDocument->school_id);
     }
 
@@ -410,7 +410,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'Simple Name', // No degree
             'nuptk' => '8888888888888888',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'MI Darwata Glempang',
+            'unit_kerja' => 'RA Darwata Glempang',
             'jabatan' => null, // Null value
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -424,7 +424,7 @@ class NormalizationIntegrationTest extends TestCase
         // Verify normalization works with simple names and null values
         $skDocument = SkDocument::latest()->first();
         $this->assertEquals('SIMPLE NAME', $skDocument->nama);
-        $this->assertEquals('MI Darwata Glempang', $skDocument->unit_kerja);
+        $this->assertEquals('RA Darwata Glempang', $skDocument->unit_kerja);
         $this->assertNull($skDocument->jabatan);
     }
 
@@ -437,7 +437,7 @@ class NormalizationIntegrationTest extends TestCase
             'nama' => 'operator teacher, s.pd',
             'nuptk' => '9999999999999999',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'mi darwata glempang', // Should be normalized but operator's school used
+            'unit_kerja' => 'ra darwata glempang', // Should be normalized but operator's school used
             'jabatan' => 'Guru Kelas',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -451,7 +451,7 @@ class NormalizationIntegrationTest extends TestCase
         // Verify normalization occurred and operator's school was used
         $skDocument = SkDocument::latest()->first();
         $this->assertEquals('OPERATOR TEACHER, S.Pd.', $skDocument->nama);
-        $this->assertEquals('MI Darwata Glempang', $skDocument->unit_kerja);
+        $this->assertEquals('RA Darwata Glempang', $skDocument->unit_kerja);
         $this->assertEquals($this->operator->school_id, $skDocument->school_id);
     }
 
@@ -462,13 +462,13 @@ class NormalizationIntegrationTest extends TestCase
     public function test_case_insensitive_lookup_database_agnostic(): void
     {
         // Update school name to test case-insensitive matching
-        $this->school->update(['nama' => 'MI Darwata Glempang']);
+        $this->school->update(['nama' => 'RA Darwata Glempang']);
 
         $payload = [
             'nama' => 'Test Teacher',
             'nuptk' => '1111111111111110',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'mi darwata glempang', // Lowercase
+            'unit_kerja' => 'ra darwata glempang', // Lowercase
             'jabatan' => 'Guru Kelas',
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
             'tanggal_penetapan' => '2025-01-15',
@@ -482,6 +482,6 @@ class NormalizationIntegrationTest extends TestCase
         // Verify school was found using case-insensitive lookup
         $skDocument = SkDocument::latest()->first();
         $this->assertEquals($this->school->id, $skDocument->school_id);
-        $this->assertEquals('MI Darwata Glempang', $skDocument->unit_kerja);
+        $this->assertEquals('RA Darwata Glempang', $skDocument->unit_kerja);
     }
 }

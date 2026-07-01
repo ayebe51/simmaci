@@ -643,6 +643,17 @@ class SkDocumentController extends Controller
                 ], 400);
             }
 
+            // Case-insensitive school lookup with normalized name
+            $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->first();
+            
+            // Block SK submission for non-RA schools (MI, MTs, MA, dll)
+            $detectedJenjang = $this->detectJenjang($school, $data['unit_kerja']);
+            if (in_array($detectedJenjang, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
+                return response()->json([
+                    'message' => "Pengajuan SK untuk jenjang {$detectedJenjang} saat ini sudah ditutup. Pengajuan hanya dibuka untuk jenjang RA.",
+                ], 422);
+            }
+
             // PNS auto-rejection: SK for PNS is issued by the government, not LP Ma'arif NU
             if ($this->isPns($data)) {
                 $nomorSk = SkDocument::generateNomorSk();
@@ -666,9 +677,7 @@ class SkDocumentController extends Controller
                 ], 422);
             }
 
-            // Case-insensitive school lookup with normalized name
             // Use database-agnostic case-insensitive comparison
-            $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->first();
             $schoolId = $school?->id;
 
             // Force school_id for operators
@@ -1572,5 +1581,28 @@ class SkDocumentController extends Controller
         $isPnsByStatus = (bool) preg_match('/^(pns|asn)\b/', $status);
 
         return $isPnsByStatus || strlen($nip) === 18;
+    }
+
+    /**
+     * Helper to detect jenjang from school name if not available in DB
+     */
+    private function detectJenjang(?School $school, string $namaUnitKerja): string
+    {
+        if ($school && $school->jenjang) {
+            $jenjang = strtoupper($school->jenjang);
+            if (!empty($jenjang)) return $jenjang;
+        }
+
+        $nama = strtoupper($namaUnitKerja);
+        if (preg_match('/\bMI\b|MADRASAH IBTIDAIYAH|IBTIDAIYAH/', $nama)) return 'MI';
+        if (preg_match('/\bSD\b|SEKOLAH DASAR/', $nama)) return 'SD';
+        if (preg_match('/MTS|MT S|MADRASAH TSANAWIYAH|TSANAWIYAH/', $nama)) return 'MTS';
+        if (preg_match('/\bSMP\b|SEKOLAH MENENGAH PERTAMA/', $nama)) return 'SMP';
+        if (preg_match('/\bMA\b\s|MADRASAH ALIYAH/', $nama)) return 'MA';
+        if (preg_match('/\bSMA\b|SEKOLAH MENENGAH ATAS/', $nama)) return 'SMA';
+        if (preg_match('/\bSMK\b|SEKOLAH MENENGAH KEJURUAN/', $nama)) return 'SMK';
+        if (preg_match('/\bRA\b|\bR A\b|RAUDHATUL|RAUDATUL|TK\b|TAMAN KANAK|PAUD\b|\bBA\b|BUSTHANUL|BUSTANUL/', $nama)) return 'RA';
+
+        return 'UNKNOWN';
     }
 }

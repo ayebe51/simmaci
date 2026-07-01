@@ -14,11 +14,21 @@ class PopulateJenjangData extends Command
     {
         $this->info('Starting jenjang population...');
         
-        // Get schools with empty jenjang
+        // Get schools that have empty jenjang OR are RA but empty status_jamiyyah
         $schools = DB::table('schools')
-            ->whereNull('jenjang')
-            ->orWhere('jenjang', '')
-            ->select('id', 'nama')
+            ->where(function($q) {
+                $q->whereNull('jenjang')
+                  ->orWhere('jenjang', '');
+            })
+            ->orWhere(function($q) {
+                $q->where('jenjang', 'RA')
+                  ->where(function($q2) {
+                      $q2->whereNull('status_jamiyyah')
+                         ->orWhere('status_jamiyyah', '')
+                         ->orWhere('status_jamiyyah', '!=', "Jam'iyyah");
+                  });
+            })
+            ->select('id', 'nama', 'jenjang', 'status_jamiyyah')
             ->get();
         
         $this->info("Found {$schools->count()} schools with empty jenjang");
@@ -31,10 +41,11 @@ class PopulateJenjangData extends Command
         
         foreach ($schools as $school) {
             $nama = strtoupper($school->nama);
-            $jenjang = null;
+            $jenjang = $school->jenjang; // Keep existing jenjang if not empty
             
-            // Detect jenjang from school name
-            if (preg_match('/\bMI\b|MADRASAH IBTIDAIYAH|IBTIDAIYAH/', $nama)) {
+            // Detect jenjang from school name if it's empty
+            if (empty($jenjang)) {
+                if (preg_match('/\bMI\b|MADRASAH IBTIDAIYAH|IBTIDAIYAH/', $nama)) {
                 $jenjang = 'MI';
             } elseif (preg_match('/\bSD\b|SEKOLAH DASAR/', $nama)) {
                 $jenjang = 'SD';
@@ -48,14 +59,20 @@ class PopulateJenjangData extends Command
                 $jenjang = 'SMA';
             } elseif (preg_match('/\bSMK\b|SEKOLAH MENENGAH KEJURUAN/', $nama)) {
                 $jenjang = 'SMK';
-            } elseif (preg_match('/\bRA\b|RAUDHATUL|RAUDATUL|TK\b|TAMAN KANAK|PAUD\b/', $nama)) {
+            } elseif (preg_match('/\bRA\b|\bR A\b|RAUDHATUL|RAUDATUL|TK\b|TAMAN KANAK|PAUD\b|\bBA\b|BUSTHANUL|BUSTANUL/', $nama)) {
                 $jenjang = 'RA';
             }
+            } // Close if (empty($jenjang))
             
             if ($jenjang) {
+                $updateData = ['jenjang' => $jenjang];
+                if ($jenjang === 'RA') {
+                    $updateData['status_jamiyyah'] = "Jam'iyyah";
+                }
+                
                 DB::table('schools')
                     ->where('id', $school->id)
-                    ->update(['jenjang' => $jenjang]);
+                    ->update($updateData);
                 $updated++;
             } else {
                 $notDetected++;

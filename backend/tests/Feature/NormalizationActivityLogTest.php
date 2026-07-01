@@ -20,7 +20,7 @@ class NormalizationActivityLogTest extends TestCase
     {
         parent::setUp();
         
-        $this->school = School::factory()->create(['nama' => 'MI Test School']);
+        $this->school = School::factory()->create(['nama' => 'RA Test School']);
         $this->user = User::factory()->create([
             'role' => 'operator',
             'school_id' => $this->school->id,
@@ -33,7 +33,7 @@ class NormalizationActivityLogTest extends TestCase
             'nama' => 'ahmad dahlan, s.pd',  // Will be normalized to "AHMAD DAHLAN, S.Pd"
             'nuptk' => '1234567890123456',
             'jenis_sk' => 'Pengangkatan',
-            'unit_kerja' => 'mi test school',  // Will be normalized to "MI Test School"
+            'unit_kerja' => 'RA test school',  // Will be normalized to "RA Test School"
             'surat_permohonan_url' => 'https://example.com/surat.pdf',
         ];
 
@@ -63,8 +63,8 @@ class NormalizationActivityLogTest extends TestCase
         
         // Check unit_kerja normalization
         $this->assertArrayHasKey('unit_kerja', $normalization);
-        $this->assertEquals('mi test school', $normalization['unit_kerja']['original']);
-        $this->assertEquals('MI Test School', $normalization['unit_kerja']['normalized']);
+        $this->assertEquals('RA test school', $normalization['unit_kerja']['original']);
+        $this->assertEquals('RA Test School', $normalization['unit_kerja']['normalized']);
     }
 
     public function test_teacher_creation_logs_normalization_changes(): void
@@ -72,7 +72,7 @@ class NormalizationActivityLogTest extends TestCase
         $payload = [
             'nama' => 'siti aminah, m.pd',  // Will be normalized to "SITI AMINAH, M.Pd"
             'nuptk' => '9876543210987654',
-            'unit_kerja' => 'ma test school',  // Will be normalized to "MA Test School"
+            'unit_kerja' => 'RA test school',  // Will be normalized to "RA Test School"
         ];
 
         $response = $this->actingAs($this->user)
@@ -101,8 +101,8 @@ class NormalizationActivityLogTest extends TestCase
         
         // Check unit_kerja normalization
         $this->assertArrayHasKey('unit_kerja', $normalization);
-        $this->assertEquals('ma test school', $normalization['unit_kerja']['original']);
-        $this->assertEquals('MA Test School', $normalization['unit_kerja']['normalized']);
+        $this->assertEquals('RA test school', $normalization['unit_kerja']['original']);
+        $this->assertEquals('RA Test School', $normalization['unit_kerja']['normalized']);
     }
 
     public function test_teacher_update_logs_normalization_changes(): void

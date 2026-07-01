@@ -274,7 +274,7 @@ class ActivityLoggingNormalizationTest extends TestCase
      */
     public function test_migration_command_creates_summary_activity_log(): void
     {
-        School::factory()->create(['nama' => 'mi test school']);
+        School::factory()->create(['nama' => 'RA test school']);
 
         $this->artisan('normalize:data')->assertExitCode(0);
 
@@ -291,10 +291,10 @@ class ActivityLoggingNormalizationTest extends TestCase
      */
     public function test_migration_command_summary_log_includes_entity_counts(): void
     {
-        $school = School::factory()->create(['nama' => 'mi test school']);
+        $school = School::factory()->create(['nama' => 'RA test school']);
         Teacher::factory()->create([
             'nama'      => 'ahmad dahlan, s.pd',
-            'unit_kerja' => 'ma test school',
+            'unit_kerja' => 'RA test school',
             'school_id' => $school->id,
         ]);
 
@@ -312,10 +312,10 @@ class ActivityLoggingNormalizationTest extends TestCase
      */
     public function test_migration_command_batch_logs_include_original_and_normalized_values(): void
     {
-        $school = School::factory()->create(['nama' => 'mi test school']);
+        $school = School::factory()->create(['nama' => 'RA test school']);
         Teacher::factory()->create([
             'nama'      => 'ahmad dahlan, s.pd',
-            'unit_kerja' => 'ma test school',
+            'unit_kerja' => 'RA test school',
             'school_id' => $school->id,
         ]);
 
@@ -348,7 +348,7 @@ class ActivityLoggingNormalizationTest extends TestCase
      */
     public function test_migration_command_does_not_create_logs_in_dry_run_mode(): void
     {
-        School::factory()->create(['nama' => 'mi test school']);
+        School::factory()->create(['nama' => 'RA test school']);
 
         $this->artisan('normalize:data --dry-run')->assertExitCode(0);
 
@@ -362,7 +362,7 @@ class ActivityLoggingNormalizationTest extends TestCase
      */
     public function test_migration_command_batch_logs_reference_correct_table_and_record(): void
     {
-        $school = School::factory()->create(['nama' => 'mi test school']);
+        $school = School::factory()->create(['nama' => 'RA test school']);
 
         $this->artisan('normalize:data')->assertExitCode(0);
 
@@ -379,7 +379,7 @@ class ActivityLoggingNormalizationTest extends TestCase
         $this->assertEquals('schools', $change['table']);
         $this->assertEquals($school->id, $change['record_id']);
         $this->assertEquals('nama', $change['field']);
-        $this->assertEquals('mi test school', $change['original']);
-        $this->assertEquals('MI Test School', $change['normalized']);
+        $this->assertEquals('RA test school', $change['original']);
+        $this->assertEquals('RA Test School', $change['normalized']);
     }
 }

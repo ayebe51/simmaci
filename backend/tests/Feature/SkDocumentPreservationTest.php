@@ -41,7 +41,7 @@ class SkDocumentPreservationTest extends TestCase
         parent::setUp();
 
         $this->school = School::factory()->create([
-            'nama' => 'MI Preservation Test',
+            'nama' => 'RA Preservation Test',
         ]);
 
         $this->operator = User::factory()->create([
@@ -450,7 +450,7 @@ class SkDocumentPreservationTest extends TestCase
     {
         // Create another school
         $otherSchool = School::factory()->create([
-            'nama' => 'MI Other School',
+            'nama' => 'RA Other School',
         ]);
 
         // Operator tries to submit SK with different unit_kerja

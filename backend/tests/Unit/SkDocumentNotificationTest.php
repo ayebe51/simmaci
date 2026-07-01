@@ -51,7 +51,7 @@ class SkDocumentNotificationTest extends TestCase
         $superAdmin = User::factory()->create(['role' => 'super_admin', 'school_id' => null]);
         $adminYayasan = User::factory()->create(['role' => 'admin_yayasan', 'school_id' => null]);
 
-        $school = School::factory()->create(['nama' => 'MI Test Individual']);
+        $school = School::factory()->create(['nama' => 'RA Test Individual']);
         $operator = User::factory()->create([
             'role'      => 'operator',
             'school_id' => $school->id,
@@ -106,7 +106,7 @@ class SkDocumentNotificationTest extends TestCase
     {
         // Arrange
         $admin = User::factory()->create(['role' => 'super_admin', 'school_id' => null]);
-        $school = School::factory()->create(['nama' => 'MI Test Queue']);
+        $school = School::factory()->create(['nama' => 'RA Test Queue']);
         $operator = User::factory()->create([
             'role'      => 'operator',
             'school_id' => $school->id,

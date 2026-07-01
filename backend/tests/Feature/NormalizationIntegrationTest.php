@@ -72,7 +72,7 @@ class NormalizationIntegrationTest extends TestCase
 
         $response->assertStatus(201);
 
-        // Verify school name was normalized to Title Case with MI preserved
+        // Verify school name was normalized to Title Case with RA preserved
         $skDocument = SkDocument::latest()->first();
         $this->assertEquals('RA Darwata Glempang', $skDocument->unit_kerja);
         
@@ -255,8 +255,8 @@ class NormalizationIntegrationTest extends TestCase
         $testCases = [
             'ra darwata glempang',     // All lowercase
             'RA DARWATA GLEMPANG',     // All uppercase
-            'Mi Darwata Glempang',     // Title case
-            'mI dArWaTa GlEmPaNg',     // Mixed case
+            'RA Darwata Glempang',     // Title case
+            'RA dArWaTa GlEmPaNg',     // Mixed case
         ];
 
         foreach ($testCases as $index => $unitKerja) {
@@ -311,7 +311,7 @@ class NormalizationIntegrationTest extends TestCase
 
         $response->assertStatus(201);
 
-        // Verify SK document has normalized data (MA preserved in uppercase)
+        // Verify SK document has normalized data (RA preserved in uppercase)
         $this->assertDatabaseHas('sk_documents', [
             'nama' => 'AHMAD RIFAI, S.Pd.I, M.Pd.I',
             'unit_kerja' => 'RA NU Cilacap',

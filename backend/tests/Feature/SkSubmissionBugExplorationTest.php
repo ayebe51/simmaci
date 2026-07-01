@@ -43,7 +43,7 @@ class SkSubmissionBugExplorationTest extends TestCase
         parent::setUp();
 
         $this->school = School::factory()->create([
-            'nama' => 'MI Test School',
+            'nama' => 'RA Test School',
         ]);
 
         $this->operator = User::factory()->create([
@@ -84,7 +84,7 @@ class SkSubmissionBugExplorationTest extends TestCase
             'nama'                      => 'Ahmad Test',
             'nuptk'                     => '1234567890123456',
             'jenis_sk'                  => 'Pengangkatan',
-            'unit_kerja'                => 'MI Test School',
+            'unit_kerja'                => 'RA Test School',
             'surat_permohonan_url'      => 'https://example.com/surat.pdf',
             'nomor_surat_permohonan'    => 'SP/001/2025',
             'tanggal_surat_permohonan'  => '2025-01-15',

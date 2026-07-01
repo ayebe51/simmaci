@@ -110,7 +110,9 @@ class CleanDuplicateTeachers extends Command
                 $sameNuptk = !empty($keep->nuptk) && $keep->nuptk === $dup->nuptk;
                 $sameNim = !empty($keep->nomor_induk_maarif) && $keep->nomor_induk_maarif === $dup->nomor_induk_maarif;
 
-                if (!($sameSchool || $sameSchoolName || $sameNuptk || $sameNim)) {
+                $sameUnitKerja = !empty($keep->unit_kerja) && !empty($dup->unit_kerja) && strtoupper(trim($keep->unit_kerja)) === strtoupper(trim($dup->unit_kerja));
+
+                if (!($sameSchool || $sameSchoolName || $sameUnitKerja || $sameNuptk || $sameNim)) {
                     $this->warn("  ⏭️ SKIP: ID={$dup->id} | School name differs ({$schoolNameDup}) and identifiers don't match.");
                     continue;
                 }
@@ -118,7 +120,7 @@ class CleanDuplicateTeachers extends Command
                 $this->line("  ❌ DELETE: ID={$dup->id} | nama=\"{$dup->nama}\" | nuptk={$dup->nuptk} | nim={$dup->nomor_induk_maarif} | nip={$dup->nip} | school={$schoolNameDup}");
 
                 // Migrate important fields if keep is missing them
-                $fields = ['nuptk', 'nomor_induk_maarif', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status_kepegawaian', 'tmt'];
+                $fields = ['school_id', 'nuptk', 'nomor_induk_maarif', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status_kepegawaian', 'tmt'];
                 foreach ($fields as $f) {
                     if (empty($keep->$f) && !empty($dup->$f)) {
                         $keep->$f = $dup->$f;

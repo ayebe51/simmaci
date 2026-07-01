@@ -117,14 +117,35 @@ class CleanDuplicateTeachers extends Command
                     continue;
                 }
 
-                $this->line("  ❌ DELETE: ID={$dup->id} | nama=\"{$dup->nama}\" | nuptk={$dup->nuptk} | nim={$dup->nomor_induk_maarif} | nip={$dup->nip} | school={$schoolNameDup}");
+                $this->line("  ❌ MERGE & DELETE: ID={$dup->id} | nama=\"{$dup->nama}\" | nuptk={$dup->nuptk} | nim={$dup->nomor_induk_maarif} | nip={$dup->nip} | school={$schoolNameDup}");
 
-                // Migrate important fields if keep is missing them
-                $fields = ['school_id', 'nuptk', 'nomor_induk_maarif', 'nip', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'mapel', 'status_kepegawaian', 'tmt'];
+                // Migrate ALL relevant fields if keep is missing them
+                $fields = [
+                    'school_id', 'nuptk', 'nomor_induk_maarif', 'nip',
+                    'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
+                    'pendidikan_terakhir', 'mapel', 'unit_kerja',
+                    'status_kepegawaian', 'status', 'tmt',
+                    'phone_number', 'email', 'is_certified',
+                    'provinsi', 'kabupaten', 'kecamatan', 'kelurahan',
+                    'pdpkpnu', 'kta_number',
+                    'photo_id', 'surat_permohonan_url',
+                    'nomor_surat_permohonan', 'tanggal_surat_permohonan',
+                ];
+                $merged = [];
                 foreach ($fields as $f) {
-                    if (empty($keep->$f) && !empty($dup->$f)) {
-                        $keep->$f = $dup->$f;
+                    $keepVal = $keep->$f;
+                    $dupVal = $dup->$f;
+                    // Treat '-', 'null', empty string as empty
+                    $keepEmpty = empty($keepVal) || in_array(trim((string)$keepVal), ['-', 'null', 'NULL', 'N/A', '_']);
+                    $dupEmpty = empty($dupVal) || in_array(trim((string)$dupVal), ['-', 'null', 'NULL', 'N/A', '_']);
+
+                    if ($keepEmpty && !$dupEmpty) {
+                        $keep->$f = $dupVal;
+                        $merged[] = "{$f}=\"{$dupVal}\"";
                     }
+                }
+                if (!empty($merged)) {
+                    $this->line("    📋 Merged fields: " . implode(', ', $merged));
                 }
                 if (!$isDryRun) {
                     $keep->save();

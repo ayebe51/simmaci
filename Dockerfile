@@ -1,13 +1,15 @@
 # Stage 1: Build React frontend
-FROM node:20-alpine AS build
+FROM node:20-slim AS build
 
 WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with retries to prevent GitHub Actions ECONNRESET
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm ci
 
 # Copy source files (explicitly, no .env files from host)
 COPY src ./src

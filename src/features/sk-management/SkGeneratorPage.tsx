@@ -660,10 +660,15 @@ export default function SkGeneratorPage() {
             const birthDateStr = identity.tanggal_lahir || "-"
             const tempatTglLahir = (identity.tempat_lahir || "") + (birthDateStr !== "-" ? ", " + birthDateStr : "")
 
-            const skTahunVal = new Date(tanggalPenetapanPerGuru).getFullYear();
-            const isNewTeacher = t.jenis_pengajuan === 'new' || 
-                (t.jenis_pengajuan !== 'renew' && (t.tmt || teacher?.tmt) && new Date(t.tmt || teacher?.tmt).getFullYear() === skTahunVal);
-            const dynamicPengangkatan = isNewTeacher ? "diangkat sebagai" : "diangkat kembali sebagai";
+            const tmtDateObj = new Date(t.tmt || teacher?.tmt || new Date());
+            const diffTime = tglPenetapanPerGuru.getTime() - tmtDateObj.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const isUnder11Months = diffDays <= 330; // 11 months
+
+            const isNewTeacher = t.jenis_pengajuan === 'new' || isUnder11Months;
+            const isFirstGty = templateId === "sk_template_gty" && periodeValue === 2;
+            
+            const dynamicPengangkatan = (isNewTeacher || isFirstGty) ? "diangkat sebagai" : "diangkat kembali sebagai";
 
             const renderData: any = {
                 "KATA_PENGANGKATAN": dynamicPengangkatan,

@@ -28,7 +28,7 @@ class ActivityLoggingNormalizationTest extends TestCase
         parent::setUp();
 
         $this->school = School::factory()->create([
-            'nama'      => 'MI Darwata Glempang',
+            'nama'      => 'RA Darwata Glempang',
             'nsm'       => '111233010001',
             'kecamatan' => 'Glempang Pasir',
         ]);
@@ -43,7 +43,7 @@ class ActivityLoggingNormalizationTest extends TestCase
             'role'      => 'operator',
             'email'     => 'operator@test.com',
             'school_id' => $this->school->id,
-            'unit'      => 'MI Darwata Glempang',
+            'unit'      => 'RA Darwata Glempang',
             'is_active' => true,
         ]);
     }
@@ -61,7 +61,7 @@ class ActivityLoggingNormalizationTest extends TestCase
                 'nama'                 => 'siti aminah, s.pd',
                 'nuptk'                => '1234567890123456',
                 'jenis_sk'             => 'Pengangkatan',
-                'unit_kerja'           => 'mi darwata glempang',
+                'unit_kerja'           => 'ra darwata glempang',
                 'jabatan'              => 'Guru Kelas',
                 'surat_permohonan_url' => 'https://example.com/surat.pdf',
                 'tanggal_penetapan'    => '2025-01-15',
@@ -89,7 +89,7 @@ class ActivityLoggingNormalizationTest extends TestCase
                 'nama'                 => 'Test Teacher',
                 'nuptk'                => '1111111111111111',
                 'jenis_sk'             => 'Pengangkatan',
-                'unit_kerja'           => 'mi darwata glempang',
+                'unit_kerja'           => 'ra darwata glempang',
                 'jabatan'              => 'Guru Kelas',
                 'surat_permohonan_url' => 'https://example.com/surat.pdf',
                 'tanggal_penetapan'    => '2025-01-15',
@@ -103,8 +103,8 @@ class ActivityLoggingNormalizationTest extends TestCase
         $this->assertArrayHasKey('unit_kerja', $properties['normalization']);
 
         $change = $properties['normalization']['unit_kerja'];
-        $this->assertEquals('mi darwata glempang', $change['original']);
-        $this->assertEquals('MI Darwata Glempang', $change['normalized']);
+        $this->assertEquals('ra darwata glempang', $change['original']);
+        $this->assertEquals('RA Darwata Glempang', $change['normalized']);
     }
 
     /**
@@ -118,7 +118,7 @@ class ActivityLoggingNormalizationTest extends TestCase
                 'nama'                 => "ahmad ayub nu'man, s.h",
                 'nuptk'                => '2222222222222222',
                 'jenis_sk'             => 'Pengangkatan',
-                'unit_kerja'           => 'MI Darwata Glempang',
+                'unit_kerja'           => 'RA Darwata Glempang',
                 'jabatan'              => 'Guru Kelas',
                 'surat_permohonan_url' => 'https://example.com/surat.pdf',
                 'tanggal_penetapan'    => '2025-01-15',
@@ -147,7 +147,7 @@ class ActivityLoggingNormalizationTest extends TestCase
                 'nama'                 => 'ALREADY NORMALIZED',
                 'nuptk'                => '3333333333333333',
                 'jenis_sk'             => 'Pengangkatan',
-                'unit_kerja'           => 'MI Darwata Glempang',
+                'unit_kerja'           => 'RA Darwata Glempang',
                 'jabatan'              => 'Guru Kelas',
                 'surat_permohonan_url' => 'https://example.com/surat.pdf',
                 'tanggal_penetapan'    => '2025-01-15',
@@ -174,7 +174,7 @@ class ActivityLoggingNormalizationTest extends TestCase
         $this->actingAs($this->superAdmin)
             ->postJson('/api/teachers', [
                 'nama'      => 'budi santoso, s.pd',
-                'unit_kerja' => 'mi darwata glempang',
+                'unit_kerja' => 'ra darwata glempang',
                 'school_id' => $this->school->id,
                 'status'    => 'GTY',
             ])
@@ -197,7 +197,7 @@ class ActivityLoggingNormalizationTest extends TestCase
         $this->actingAs($this->superAdmin)
             ->postJson('/api/teachers', [
                 'nama'      => 'budi santoso, s.pd',
-                'unit_kerja' => 'mi darwata glempang',
+                'unit_kerja' => 'ra darwata glempang',
                 'school_id' => $this->school->id,
                 'status'    => 'GTY',
             ])
@@ -215,8 +215,8 @@ class ActivityLoggingNormalizationTest extends TestCase
 
         // unit_kerja was normalized
         $this->assertArrayHasKey('unit_kerja', $properties['normalization']);
-        $this->assertEquals('mi darwata glempang', $properties['normalization']['unit_kerja']['original']);
-        $this->assertEquals('MI Darwata Glempang', $properties['normalization']['unit_kerja']['normalized']);
+        $this->assertEquals('ra darwata glempang', $properties['normalization']['unit_kerja']['original']);
+        $this->assertEquals('RA Darwata Glempang', $properties['normalization']['unit_kerja']['normalized']);
     }
 
     /**
@@ -228,7 +228,7 @@ class ActivityLoggingNormalizationTest extends TestCase
         $this->actingAs($this->superAdmin)
             ->postJson('/api/teachers', [
                 'nama'      => 'fatimah zahra',
-                'unit_kerja' => 'MI Darwata Glempang',
+                'unit_kerja' => 'RA Darwata Glempang',
                 'school_id' => $this->school->id,
                 'status'    => 'GTY',
             ])
@@ -251,7 +251,7 @@ class ActivityLoggingNormalizationTest extends TestCase
         $this->actingAs($this->superAdmin)
             ->postJson('/api/teachers', [
                 'nama'      => 'ALREADY NORMALIZED TEACHER',
-                'unit_kerja' => 'MI Darwata Glempang',
+                'unit_kerja' => 'RA Darwata Glempang',
                 'school_id' => $this->school->id,
                 'status'    => 'GTY',
             ])

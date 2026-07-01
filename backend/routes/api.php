@@ -71,6 +71,15 @@ Route::get('temp-cleanup', function () {
     return response()->json(['success' => true, 'fixed_rows' => $fixed]);
 });
 
+// ── Temporary script to run populate-jenjang ──
+Route::get('run-script-jenjang', function () {
+    \Illuminate\Support\Facades\Artisan::call('schools:populate-jenjang');
+    return response()->json([
+        'success' => true,
+        'output' => \Illuminate\Support\Facades\Artisan::output()
+    ]);
+});
+
 // ── Public / Auth ──
 Route::prefix('auth')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);

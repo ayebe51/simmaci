@@ -50,9 +50,15 @@ export default function SkPrintPage() {
 
     const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
 
-    const skTahun = parseIndonesianDate(sk.tanggal_penetapan)?.getFullYear() || new Date(sk.created_at).getFullYear();
-    const isNewTeacher = sk.jenis_pengajuan === 'new' || 
-        (sk.jenis_pengajuan !== 'renew' && sk.teacher?.tmt && new Date(sk.teacher.tmt).getFullYear() === skTahun);
+    const skTglPenetapan = parseIndonesianDate(sk.tanggal_penetapan) || new Date(sk.created_at);
+    
+    let isNewTeacher = sk.jenis_pengajuan === 'new';
+    if (sk.jenis_pengajuan !== 'renew' && sk.teacher?.tmt) {
+        const tmtDateObj = new Date(sk.teacher.tmt);
+        const diffTime = skTglPenetapan.getTime() - tmtDateObj.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        isNewTeacher = isNewTeacher || diffDays <= 330; // 11 months
+    }
     
     const textPengangkatan = isNewTeacher ? "diangkat" : "diangkat kembali";
 

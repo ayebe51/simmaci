@@ -1165,17 +1165,16 @@ class TeacherController extends Controller
         });
 
         if ($teacherIds && count($teacherIds) > 0) {
-            // If explicitly selected, bypass the strict school and status filters
             $query->whereIn('id', $teacherIds);
-        } else {
-            // If not explicitly selected, apply strict filters
-            $query->whereHas('school', function ($q) {
-                $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
-            })->where(function ($q) {
-                $q->whereRaw("LOWER(status) NOT LIKE '%pns%'")
-                  ->orWhereNull('status');
-            });
         }
+        
+        // Selalu terapkan filter ketat: hanya untuk sekolah jam'iyyah dan BUKAN PNS
+        $query->whereHas('school', function ($q) {
+            $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
+        })->where(function ($q) {
+            $q->whereRaw("LOWER(status) NOT LIKE '%pns%'")
+              ->orWhereNull('status');
+        });
 
         // Order by name ascending
         $teachers = $query->orderBy('nama', 'asc')->get();

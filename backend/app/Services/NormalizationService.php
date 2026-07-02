@@ -699,7 +699,7 @@ class NormalizationService
      * @param  \Carbon\Carbon|null  $tmt     TMT date (used only for 'Aktif' resolution)
      * @return string|null
      */
-    public function normalizeEmploymentStatus(?string $status, ?\Carbon\Carbon $tmt = null, ?string $teacherName = null): ?string
+    public function normalizeEmploymentStatus(?string $status, ?\Carbon\Carbon $tmt = null, ?string $teacherName = null, ?string $pendidikan = null): ?string
     {
         if ($status === null || trim($status) === '') {
             return $status;
@@ -736,6 +736,28 @@ class NormalizationService
         if ($teacherName !== null && in_array($resolvedStatus, ['GTY', 'GTT'], true)) {
             $parsedName = $this->parseAcademicDegrees($teacherName);
             if (empty($parsedName['prefix_degrees']) && empty($parsedName['suffix_degrees'])) {
+                return 'Tendik';
+            }
+            
+            // Check if all suffix degrees are diploma (A.Md, A.Ma)
+            if (!empty($parsedName['suffix_degrees'])) {
+                $isAllDiploma = true;
+                foreach ($parsedName['suffix_degrees'] as $deg) {
+                    if (!str_starts_with($deg, 'A.Md') && !str_starts_with($deg, 'A.Ma')) {
+                        $isAllDiploma = false;
+                        break;
+                    }
+                }
+                if ($isAllDiploma) {
+                    return 'Tendik';
+                }
+            }
+        }
+
+        // Check explicit pendidikan column
+        if ($pendidikan !== null && in_array($resolvedStatus, ['GTY', 'GTT'], true)) {
+            $p = preg_replace('/[^a-z0-9]/', '', mb_strtolower(trim($pendidikan), 'UTF-8'));
+            if (in_array($p, ['d3', 'diii', 'd2', 'd1', 'sma', 'smp', 'sd', 'slta', 'sltp'])) {
                 return 'Tendik';
             }
         }

@@ -152,10 +152,6 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                             <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">No Photo</div>
                         )}
                     </div>
-                    {/* Barcode on Front Side */}
-                    <div className={`absolute ${isTeacher ? '-right-14 bottom-2' : '-right-16 bottom-0'} bg-white p-1 rounded-sm shadow-xl border border-slate-200 z-30`}>
-                        <QRCodeSVG value={verifyUrl} size={45} level="L" />
-                    </div>
                 </div>
 
                 <div className={`flex-1 flex flex-col justify-start pt-1 w-full ${isTeacher ? 'gap-1.5' : 'gap-2.5'}`}>
@@ -172,6 +168,13 @@ export default function KtaCard({ data, type, isBatch }: KtaCardProps) {
                         <p className={`font-semibold text-slate-300 uppercase ${isTeacher ? 'text-[11px] line-clamp-2' : 'text-[10px] truncate'}`}>
                           {isTeacher ? (data.school?.nama || data.unitKerja || data.unit_kerja) : data.namaSekolah}
                         </p>
+                    </div>
+                    
+                    {/* QR Code placed elegantly below the ID information */}
+                    <div className={`mt-2 ${isTeacher ? 'flex justify-center' : 'flex justify-start'}`}>
+                        <div className="bg-white p-1.5 rounded-md shadow-sm">
+                            <QRCodeSVG value={verifyUrl} size={isTeacher ? 45 : 50} level="L" />
+                        </div>
                     </div>
                 </div>
             </div>

@@ -74,7 +74,7 @@ function useInstallPrompt() {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Screen = "login" | "mode" | "manual" | "scanner" | "meeting-scanner" | "staff-scanner";
+type Screen = "login" | "mode" | "manual" | "scanner-teacher" | "scanner-student" | "meeting-scanner" | "staff-scanner";
 type LoginMode = "operator" | "yayasan" | "staff";
 
 interface Session {
@@ -287,7 +287,7 @@ function ModeScreen({
   onLogout,
 }: {
   session: Session;
-  onSelect: (mode: "manual" | "scanner" | "meeting-scanner") => void;
+  onSelect: (mode: "manual" | "scanner-teacher" | "scanner-student" | "meeting-scanner") => void;
   onLogout: () => void;
 }) {
   const isYayasan = session.loginMode === "yayasan";
@@ -336,7 +336,7 @@ function ModeScreen({
             </button>
 
             <button
-              onClick={() => onSelect("scanner")}
+              onClick={() => onSelect("scanner-teacher")}
               className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-blue-600/60"
             >
               <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
@@ -345,6 +345,19 @@ function ModeScreen({
               <div className="text-left">
                 <h3 className="text-lg font-black text-white">Scan QR Guru</h3>
                 <p className="text-slate-400 text-xs mt-0.5">Scan KTA guru untuk absensi masuk</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => onSelect("scanner-student")}
+              className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-6 flex items-center gap-5 hover:bg-slate-750 transition-all group border-b-4 border-b-sky-600/60"
+            >
+              <div className="w-14 h-14 bg-sky-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                <QrCode className="h-7 w-7 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-lg font-black text-white">Scan QR Siswa</h3>
+                <p className="text-slate-400 text-xs mt-0.5">Scan KTA siswa untuk absensi masuk</p>
               </div>
             </button>
           </>
@@ -733,7 +746,7 @@ async function startHtml5QrcodeWithFallback(
 
 // ── QR Scanner Screen ──────────────────────────────────────────────────────
 
-function ScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
+function ScannerScreen({ session, type, onBack }: { session: Session; type: "teacher" | "student"; onBack: () => void }) {
   const [scanning, setScanning] = useState(false);
   const [cameraError, setCameraError] = useState<{ title: string; detail: string } | null>(null);
   const [scanResults, setScanResults] = useState<Array<{ name: string; time: string }>>([]);
@@ -756,7 +769,7 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
       cooldownRef.current = true;
       setTimeout(() => { cooldownRef.current = false; }, 2500);
       try {
-        const res = await publicAttendanceApi.qrScan(session.schoolId, session.pin, code, "teacher");
+        const res = await publicAttendanceApi.qrScan(session.schoolId, session.pin, code, type);
         if (res.success) {
           toast.success(res.message);
           setScanResults((prev) => [
@@ -767,7 +780,7 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
           toast.error(res.message || "Gagal memproses QR");
         }
       } catch (err: any) {
-        toast.error(err.response?.data?.message || "Guru tidak ditemukan");
+        toast.error(err.response?.data?.message || (type === "teacher" ? "Guru tidak ditemukan" : "Siswa tidak ditemukan"));
       }
     };
 
@@ -807,7 +820,7 @@ function ScannerScreen({ session, onBack }: { session: Session; onBack: () => vo
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h2 className="font-black text-base">SCAN QR GURU</h2>
+          <h2 className="font-black text-base">SCAN QR {type === "teacher" ? "GURU" : "SISWA"}</h2>
           <p className="text-slate-400 text-xs">{session.schoolName}</p>
         </div>
         <div className="bg-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-mono text-emerald-400 text-sm">
@@ -1498,8 +1511,12 @@ export default function PublicScannerPage() {
     return <ManualScreen session={session} onBack={() => setScreen("mode")} />;
   }
 
-  if (screen === "scanner") {
-    return <ScannerScreen session={session} onBack={() => setScreen("mode")} />;
+  if (screen === "scanner-teacher") {
+    return <ScannerScreen session={session} type="teacher" onBack={() => setScreen("mode")} />;
+  }
+
+  if (screen === "scanner-student") {
+    return <ScannerScreen session={session} type="student" onBack={() => setScreen("mode")} />;
   }
 
   if (screen === "meeting-scanner") {

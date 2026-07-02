@@ -76,7 +76,8 @@ export default function MySkPage() {
       if (!res?.value) throw new Error("Template tidak ditemukan")
 
       const base64 = res.value.split(";base64,")[1] || res.value
-      const content = atob(base64)
+      const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, "")
+      const content = atob(cleanBase64)
 
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })

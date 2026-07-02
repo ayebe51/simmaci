@@ -275,20 +275,14 @@ export default function SkGeneratorPage() {
       status: 'approved',
       search: searchTerm,
       page: page,
-      per_page: itemsPerPage
+      per_page: itemsPerPage,
+      unprinted_only: true
     })
   })
 
-  // Filter approved SK to only show those without file_url (not yet printed)
-  const filteredCandidates = useMemo(() => {
-    return {
-      ...candidatesData,
-      data: (candidatesData?.data || []).filter((sk: any) => 
-        !sk.file_url || 
-        sk.file_url === ''
-      )
-    }
-  }, [candidatesData])
+  // The backend already filters out items that have file_url via unprinted_only: true,
+  // so we can just use the query data directly without frontend filtering.
+  const filteredCandidates = candidatesData
 
   // 2. Last SK Number for Auto-Increment
   // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)

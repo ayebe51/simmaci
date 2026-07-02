@@ -11,5 +11,6 @@
 export function calculatePeriode(tmt: string, tanggalCetak: Date): number {
   const tmtDate = new Date(tmt)
   const years = tanggalCetak.getFullYear() - tmtDate.getFullYear()
-  return Math.max(0, years)
+  // Periode minimal 1 — nomor SK tidak boleh mengandung angka 0 pada bagian periode
+  return Math.max(1, years)
 }

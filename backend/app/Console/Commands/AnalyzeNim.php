@@ -74,5 +74,41 @@ class AnalyzeNim extends Command
                 $this->info("Gap size {$gap['size']}: from {$gap['from']} to {$gap['to']}");
             }
         }
+
+        // 3. Cari guru dengan NIM rentang 6000-an yang belum cetak SK
+        $teachersNim6000 = Teacher::withoutGlobalScope(\App\Traits\HasTenantScope::class)
+            ->whereNotNull('nomor_induk_maarif')
+            ->where('nomor_induk_maarif', 'like', '%6___%') // simple search for 4 digit string starting with 6
+            ->where(function($q) {
+                $q->whereNull('is_sk_generated')
+                  ->orWhere('is_sk_generated', false)
+                  ->orWhere('is_sk_generated', 0);
+            })
+            ->get(['id', 'nama', 'nomor_induk_maarif', 'unit_kerja']);
+
+        // filter the regex exact numbers in PHP just to be completely safe
+        $filteredNim6000 = $teachersNim6000->filter(function($t) {
+            if (preg_match('/(\d+)$/', $t->nomor_induk_maarif, $matches)) {
+                $num = (int) $matches[1];
+                return $num >= 6000 && $num < 7000;
+            }
+            return false;
+        });
+
+        $this->newLine();
+        $this->info("── Analisis Rentang 6000-an Belum Cetak SK ──");
+        $this->info("Ditemukan: {$filteredNim6000->count()} guru.");
+        
+        if ($filteredNim6000->count() > 0) {
+            $csv6000 = fopen(base_path('guru_nim_6000_tanpa_sk.csv'), 'w');
+            fputcsv($csv6000, ['ID', 'NIM', 'Nama', 'Unit Kerja']);
+            foreach ($filteredNim6000 as $t) {
+                fputcsv($csv6000, [$t->id, $t->nomor_induk_maarif, $t->nama, $t->unit_kerja]);
+            }
+            fclose($csv6000);
+            $this->info("File diekspor ke: guru_nim_6000_tanpa_sk.csv");
+            $this->warn("Jika ingin mereset NIM mereka agar di-generate ulang saat pengajuan, jalankan manual query:");
+            $this->line("UPDATE teachers SET nomor_induk_maarif = NULL WHERE id IN (" . $filteredNim6000->pluck('id')->implode(',') . ");");
+        }
     }
 }

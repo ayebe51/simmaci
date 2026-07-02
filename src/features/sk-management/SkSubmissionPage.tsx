@@ -264,18 +264,20 @@ export default function SkSubmissionPage() {
       </div>
 
       {/* Banner informasi penutupan SK */}
-      <div className="flex items-center gap-4 bg-red-50 border border-red-200 rounded-2xl px-6 py-4">
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-          <AlertTriangle className="h-5 w-5 text-red-600" />
+      {schoolProfile?.nama !== "MI Ma'arif 01 Sidaurip" && (
+        <div className="flex items-center gap-4 bg-red-50 border border-red-200 rounded-2xl px-6 py-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-red-900 uppercase tracking-wide">Pemberitahuan</p>
+            <p className="text-xs text-red-700 mt-0.5">
+              Pengajuan SK untuk jenjang MI, MTs, MA, dan SMK saat ini <b>sudah ditutup</b>. 
+              Pengajuan SK saat ini hanya dibuka untuk jenjang <b>RA (Raudhatul Athfal)</b>.
+            </p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-red-900 uppercase tracking-wide">Pemberitahuan</p>
-          <p className="text-xs text-red-700 mt-0.5">
-            Pengajuan SK untuk jenjang MI, MTs, MA, dan SMK saat ini <b>sudah ditutup</b>. 
-            Pengajuan SK saat ini hanya dibuka untuk jenjang <b>RA (Raudhatul Athfal)</b>.
-          </p>
-        </div>
-      </div>
+      )}
 
       <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-100 p-1 rounded-2xl h-auto mb-8">

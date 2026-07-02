@@ -29,7 +29,7 @@ class EnsureTenantIsValid
 
         $school = School::find($user->school_id);
 
-        if (! $school || $school->status !== 'Aktif') {
+        if (! $school) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tenant tidak valid atau tidak aktif.',

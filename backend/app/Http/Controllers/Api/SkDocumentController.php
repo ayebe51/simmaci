@@ -258,7 +258,7 @@ class SkDocumentController extends Controller
                         'user_id'   => $targetUser->id,
                         'school_id' => $skDocument->school_id,
                         'type'      => $isApproved ? 'sk_approved' : 'sk_rejected',
-                        'title'     => $isApproved ? '✅ SK Disetujui' : 'âŒ SK Ditolak',
+                        'title'     => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
                         'message'   => "SK No. {$skDocument->nomor_sk} untuk {$skDocument->nama} telah " .
                             ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
                             ($rejectionReason ? " Alasan: {$rejectionReason}" : '')),
@@ -484,7 +484,7 @@ class SkDocumentController extends Controller
                             'user_id'    => $targetUser->id,
                             'school_id'  => $sk->school_id,
                             'type'       => $isApproved ? 'sk_approved' : 'sk_rejected',
-                            'title'      => $isApproved ? '✅ SK Disetujui' : 'âŒ SK Ditolak',
+                            'title'      => $isApproved ? '✅ SK Disetujui' : '❌ SK Ditolak',
                             'message'    => "SK No. {$sk->nomor_sk} untuk {$sk->nama} telah " .
                                 ($isApproved ? 'disetujui dan siap diterbitkan.' : 'ditolak.' .
                                 ($rejectionReason ? " Alasan: {$rejectionReason}" : '')),

@@ -627,8 +627,14 @@ export default function SkGeneratorPage() {
                 
             pendidikanTerakhir = formatPendidikan(pendidikanTerakhir);
             const unitKerjaKey = (t.unit_kerja || teacher.unit_kerja)?.trim().toLowerCase() || ''
-            // 1. Coba exact match (case-insensitive)
-            let schoolMatch = schoolsData?.find((s: any) => s.nama?.trim().toLowerCase() === unitKerjaKey)
+            // 0. Lookup by school_id — paling andal, tidak bergantung string matching
+            let schoolMatch: any = (t.school_id || teacher.school_id)
+                ? schoolsData?.find((s: any) => s.id === (t.school_id || teacher.school_id))
+                : undefined
+            // 1. Coba exact match (case-insensitive) jika school_id tidak ada
+            if (!schoolMatch && unitKerjaKey) {
+                schoolMatch = schoolsData?.find((s: any) => s.nama?.trim().toLowerCase() === unitKerjaKey)
+            }
             // 2. Jika tidak ketemu, coba partial match (nama sekolah mengandung unit_kerja atau sebaliknya)
             if (!schoolMatch && unitKerjaKey) {
                 schoolMatch = schoolsData?.find((s: any) => {

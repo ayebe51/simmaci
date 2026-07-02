@@ -642,12 +642,16 @@ export default function SkGeneratorPage() {
                     return sNama.includes(unitKerjaKey) || unitKerjaKey.includes(sNama)
                 })
             }
-            
-            let rawKecamatan = schoolMatch?.kecamatan || t.kecamatan || teacher.kecamatan;
 
-            // Jika kecamatan masih kosong, coba ekstrak dari string alamat sekolah
+            // Sumber kecamatan HANYA dari data sekolah (bukan dari data guru).
+            // t.kecamatan / teacher.kecamatan sengaja TIDAK dipakai karena operator
+            // sering mengisi kecamatan guru dengan kecamatan domisili guru, bukan unit kerja.
+            let rawKecamatan: string | undefined = schoolMatch?.kecamatan || undefined;
+
+            // Jika kolom kecamatan sekolah kosong, coba ekstrak dari string alamat sekolah
             if (!rawKecamatan && schoolMatch?.alamat) {
-                const match = schoolMatch.alamat.match(/Kecamatan\s+([A-Za-z\s]+)(,|$)/i) || schoolMatch.alamat.match(/Kec\.\s*([A-Za-z\s]+)(,|$)/i);
+                const match = schoolMatch.alamat.match(/Kecamatan\s+([A-Za-z\s]+)(,|$)/i)
+                    || schoolMatch.alamat.match(/Kec\.?\s+([A-Za-z\s]+)(,|$)/i);
                 if (match && match[1]) {
                     rawKecamatan = match[1].trim();
                 }

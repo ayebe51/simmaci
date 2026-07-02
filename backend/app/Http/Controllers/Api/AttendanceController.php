@@ -107,6 +107,9 @@ class AttendanceController extends Controller
         if ($request->class_id) {
             $query->where('class_id', $request->class_id);
         }
+        if ($request->subject_id) {
+            $query->where('subject_id', $request->subject_id);
+        }
 
         return response()->json(
             $query->orderByDesc('tanggal')->paginate($request->integer('per_page', 50))

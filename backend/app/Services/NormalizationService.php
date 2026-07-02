@@ -781,20 +781,21 @@ class NormalizationService
             return null;
         }
 
-        $trimmed = trim($val);
+        // Replace non-breaking spaces (\xC2\xA0) with standard spaces before trimming
+        $trimmed = trim(str_replace("\xC2\xA0", ' ', $val));
 
         // 1. Sudah ISO YYYY-MM-DD
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $trimmed)) {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/u', $trimmed)) {
             return $trimmed;
         }
 
         // 2. YYYY/MM/DD
-        if (preg_match('/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/', $trimmed, $m)) {
+        if (preg_match('/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/u', $trimmed, $m)) {
             return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
         }
 
         // 3 & 4. DD MMMM YYYY atau DD MMM YYYY (nama bulan Indonesia)
-        if (preg_match('/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/', $trimmed, $m)) {
+        if (preg_match('/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/u', $trimmed, $m)) {
             $monthNum = self::BULAN_MAP[strtolower($m[2])] ?? null;
             if ($monthNum) {
                 return sprintf('%04d-%02d-%02d', $m[3], $monthNum, $m[1]);

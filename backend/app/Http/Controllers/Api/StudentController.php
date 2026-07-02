@@ -23,6 +23,9 @@ class StudentController extends Controller
         if ($request->status && $request->status !== 'all') {
             $query->byStatus($request->status);
         }
+        if ($request->kelas) {
+            $query->where('kelas', $request->kelas);
+        }
 
         // --- Tenant Isolation ---
         // Operators CANNOT override their school_id via request parameter.

@@ -54,6 +54,12 @@ class SkDocumentController extends Controller
             $query->byJenis($request->jenis_sk);
         }
 
+        if ($request->boolean('unprinted_only')) {
+            $query->where(function($q) {
+                $q->whereNull('file_url')->orWhere('file_url', '');
+            });
+        }
+
         // --- Tenant Isolation ---
         $user = $request->user();
         if ($user->role === 'operator' && $user->school_id) {

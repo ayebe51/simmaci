@@ -628,7 +628,16 @@ export default function SkGeneratorPage() {
                 : inferPendidikan(t.nama || teacher?.nama);
                 
             pendidikanTerakhir = formatPendidikan(pendidikanTerakhir);
-            const schoolMatch = schoolsData?.find(s => s.nama?.trim().toLowerCase() === (t.unit_kerja || teacher.unit_kerja)?.trim().toLowerCase())
+            const unitKerjaKey = (t.unit_kerja || teacher.unit_kerja)?.trim().toLowerCase() || ''
+            // 1. Coba exact match (case-insensitive)
+            let schoolMatch = schoolsData?.find((s: any) => s.nama?.trim().toLowerCase() === unitKerjaKey)
+            // 2. Jika tidak ketemu, coba partial match (nama sekolah mengandung unit_kerja atau sebaliknya)
+            if (!schoolMatch && unitKerjaKey) {
+                schoolMatch = schoolsData?.find((s: any) => {
+                    const sNama = s.nama?.trim().toLowerCase() || ''
+                    return sNama.includes(unitKerjaKey) || unitKerjaKey.includes(sNama)
+                })
+            }
             
             let rawKecamatan = schoolMatch?.kecamatan || t.kecamatan || teacher.kecamatan;
 
@@ -1157,6 +1166,16 @@ export default function SkGeneratorPage() {
                         />
                         <label htmlFor="combine" className="text-xs font-bold text-slate-600 cursor-pointer select-none">Gabung dalam 1 file Word</label>
                     </div>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Kecamatan (Tembusan)</label>
+                    <Input
+                        value={defaultKecamatan}
+                        onChange={e => setDefaultKecamatan(e.target.value)}
+                        placeholder="Fallback jika kecamatan sekolah kosong..."
+                        className="h-11 rounded-xl bg-white border-slate-200"
+                    />
+                    <p className="text-[10px] text-slate-400">Dipakai jika kecamatan sekolah tidak terdeteksi otomatis</p>
                 </div>
             </div>
         </CardHeader>

@@ -922,10 +922,15 @@ export default function SkGeneratorPage() {
                     }
 
                     const startLoopParagraph = '<w:p><w:r><w:t>{#items}</w:t></w:r></w:p>'
-                    const pageBreakParagraph = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
                     const endLoopParagraph = '<w:p><w:r><w:t>{/items}</w:t></w:r></w:p>'
                     
-                    const newBodyXml = `<w:body>${startLoopParagraph}${bodyInner}${pageBreakParagraph}${endLoopParagraph}${sectPr}</w:body>`
+                    groupItems.forEach((item: any, idx: number) => {
+                        item.isNotLast = idx < groupItems.length - 1;
+                    });
+
+                    bodyInner = bodyInner.replace(/<\/w:p>(?!.*<\/w:p>)/s, '<w:r><w:t>{#isNotLast}</w:t><w:br w:type="page"/><w:t>{/isNotLast}</w:t></w:r></w:p>')
+                    
+                    const newBodyXml = `<w:body>${startLoopParagraph}${bodyInner}${endLoopParagraph}${sectPr}</w:body>`
                     docXml = docXml.replace(/<w:body>.*?<\/w:body>/s, () => newBodyXml)
                     
                     collectivePzip.file("word/document.xml", docXml)

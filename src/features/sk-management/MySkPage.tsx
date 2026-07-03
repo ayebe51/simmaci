@@ -50,7 +50,8 @@ export default function MySkPage() {
       status: 'approved',
       search: searchTerm,
       page: skPage,
-      per_page: 10
+      per_page: 10,
+      exclude_req_nomor: true
     })
   })
 

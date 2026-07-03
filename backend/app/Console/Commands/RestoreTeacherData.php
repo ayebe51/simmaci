@@ -128,8 +128,7 @@ class RestoreTeacherData extends Command
             ->where(function ($q) {
                 $q->whereNull('nomor_permohonan')
                   ->orWhere('nomor_permohonan', '')
-                  ->orWhereNull('tanggal_permohonan')
-                  ->orWhere('tanggal_permohonan', '');
+                  ->orWhereNull('tanggal_permohonan');
             })
             ->get();
 

@@ -289,8 +289,8 @@ export default function SkGeneratorPage() {
   const { data: lastSkData } = useQuery({
     queryKey: ['last-sk-number'],
     queryFn: () => skApi.list({ 
-      per_page: 1, 
-      status: 'approved', 
+      per_page: 50, 
+      status: ['approved', 'active'], 
       sort_by: 'nomor_sk', 
       sort_dir: 'desc',
       exclude_req_nomor: true

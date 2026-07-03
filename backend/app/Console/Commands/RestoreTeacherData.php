@@ -120,9 +120,101 @@ class RestoreTeacherData extends Command
             }
         }
 
+        // === PART 2: RESTORE MISSING SK DOCUMENT DATA ===
+        $this->info('');
+        $this->info('Memulai proses pemulihan data pengajuan SK yang hilang...');
+        $activeSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+            ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('nomor_permohonan')
+                  ->orWhere('nomor_permohonan', '')
+                  ->orWhereNull('tanggal_permohonan')
+                  ->orWhere('tanggal_permohonan', '');
+            })
+            ->get();
+
+        $recoveredSkFieldsCount = 0;
+        foreach ($activeSks as $sk) {
+            // Find soft-deleted SKs for the same teacher (or same name/school_id if teacher_id is null)
+            $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->onlyTrashed();
+            
+            if ($sk->teacher_id) {
+                $query->where('teacher_id', $sk->teacher_id);
+            } else {
+                $query->where(DB::raw('LOWER(TRIM(nama))'), strtolower(trim($sk->nama)))
+                      ->where('school_id', $sk->school_id);
+            }
+
+            $deletedSkMatches = $query->get();
+            $restoredSkFields = [];
+
+            foreach ($deletedSkMatches as $deletedSk) {
+                if (empty($sk->nomor_permohonan) && !empty($deletedSk->nomor_permohonan)) {
+                    $sk->nomor_permohonan = $deletedSk->nomor_permohonan;
+                    $restoredSkFields[] = 'Nomor Permohonan';
+                }
+                if (empty($sk->tanggal_permohonan) && !empty($deletedSk->tanggal_permohonan)) {
+                    $sk->tanggal_permohonan = $deletedSk->tanggal_permohonan;
+                    $restoredSkFields[] = 'Tanggal Permohonan';
+                }
+                if (empty($sk->surat_permohonan_url) && !empty($deletedSk->surat_permohonan_url)) {
+                    $sk->surat_permohonan_url = $deletedSk->surat_permohonan_url;
+                    $restoredSkFields[] = 'Surat Permohonan URL';
+                }
+            }
+
+            if (count($restoredSkFields) > 0) {
+                $sk->save();
+                $recoveredSkFieldsCount++;
+                $this->line("- Berhasil memulihkan [" . implode(', ', array_unique($restoredSkFields)) . "] untuk SK: {$sk->nama}");
+            }
+        }
+
+        // === PART 3: DEDUPLICATE PENDING SK DOCUMENTS ===
+        $this->info('');
+        $this->info('Memulai proses pembersihan antrean SK ganda (Deduplikasi)...');
+        
+        // Find all teachers who have a printed SK (file_url is not null)
+        $printedSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+            ->whereNotNull('file_url')
+            ->where('file_url', '!=', '')
+            ->whereNotIn('nomor_sk', ['REQ/%', 'DRAFT-%']) // Ensure it's a real SK number
+            ->get();
+
+        $deduplicatedCount = 0;
+
+        foreach ($printedSks as $printedSk) {
+            // Find unprinted (REQ/DRAFT) SKs for the same teacher and same jenis_sk
+            $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                ->where('id', '!=', $printedSk->id)
+                ->where('jenis_sk', $printedSk->jenis_sk)
+                ->where(function ($q) {
+                    $q->whereNull('file_url')->orWhere('file_url', '')
+                      ->orWhere('nomor_sk', 'like', 'REQ/%')
+                      ->orWhere('nomor_sk', 'like', 'DRAFT-%');
+                });
+                
+            if ($printedSk->teacher_id) {
+                $query->where('teacher_id', $printedSk->teacher_id);
+            } else {
+                $query->where(DB::raw('LOWER(TRIM(nama))'), strtolower(trim($printedSk->nama)))
+                      ->where('school_id', $printedSk->school_id);
+            }
+
+            $duplicateUnprinted = $query->get();
+
+            foreach ($duplicateUnprinted as $dup) {
+                $dup->delete(); // Soft delete the duplicate pending request
+                $deduplicatedCount++;
+                $this->line("- Menghapus SK Ganda di antrean untuk: {$dup->nama} ({$dup->jenis_sk})");
+            }
+        }
+
         $this->info('');
         $this->info("✅ PROSES SELESAI!");
         $this->info("Total Guru yang berhasil diselamatkan datanya: {$recoveredCount}");
-        $this->info("Total Dokumen SK yang berhasil dikaitkan ulang: {$recoveredSkCount}");
+        $this->info("Total Dokumen SK yang berhasil dikaitkan ulang ke guru: {$recoveredSkCount}");
+        $this->info("Total Dokumen SK yang berhasil dipulihkan data permohonannya: {$recoveredSkFieldsCount}");
+        $this->info("Total Antrean SK ganda yang berhasil dibersihkan: {$deduplicatedCount}");
     }
 }

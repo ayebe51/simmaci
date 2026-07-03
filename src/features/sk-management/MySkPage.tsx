@@ -77,7 +77,6 @@ export default function MySkPage() {
 
       const base64 = res.value.split(";base64,")[1] || res.value
       const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, "")
-      const content = atob(cleanBase64)
 
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
@@ -90,7 +89,7 @@ export default function MySkPage() {
         qrcode: qrDataUrl
       }
 
-      const pzip = new PizZip(content)
+      const pzip = new PizZip(cleanBase64, { base64: true })
       const doc = new Docxtemplater(pzip, {
         paragraphLoop: true,
         linebreaks: true,

@@ -276,6 +276,8 @@ export default function SkGeneratorPage() {
       search: searchTerm,
       page: page,
       per_page: itemsPerPage,
+      sort_by: 'created_at',
+      sort_dir: 'asc',
       unprinted_only: true
     })
   })

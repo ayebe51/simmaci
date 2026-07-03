@@ -165,13 +165,13 @@ export default function SkDetailPage() {
 
       const block = base64Template.split(";base64,");
       const realData = block[1] ? block[1] : base64Template;
-      const content = atob(realData);
+      const cleanBase64 = realData.replace(/[^A-Za-z0-9+/=]/g, "");
 
       // Generate QR
       const verificationUrl = getSkVerificationUrl(skDoc.nomor_sk);
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
 
-      const pzip = new PizZip(content);
+      const pzip = new PizZip(cleanBase64, { base64: true });
       const imageOpts = {
         getImage: (tagValue: string) => base64DataURLToArrayBuffer(tagValue),
         getSize: () => [100, 100],

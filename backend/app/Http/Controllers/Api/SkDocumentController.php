@@ -61,7 +61,8 @@ class SkDocumentController extends Controller
         }
 
         if ($request->boolean('exclude_req_nomor')) {
-            $query->where('nomor_sk', 'not like', 'REQ/%');
+            $query->where('nomor_sk', 'not like', 'REQ/%')
+                  ->where('nomor_sk', 'not like', 'DRAFT-%');
         }
 
         // --- Tenant Isolation ---

@@ -60,6 +60,10 @@ class SkDocumentController extends Controller
             });
         }
 
+        if ($request->boolean('exclude_req_nomor')) {
+            $query->where('nomor_sk', 'not like', 'REQ/%');
+        }
+
         // --- Tenant Isolation ---
         $user = $request->user();
         if ($user->role === 'operator' && $user->school_id) {

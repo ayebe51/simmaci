@@ -285,10 +285,16 @@ export default function SkGeneratorPage() {
   const filteredCandidates = candidatesData
 
   // 2. Last SK Number for Auto-Increment
-  // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
+  // Fetch the absolute highest SK number by sorting nomor_sk descending
   const { data: lastSkData } = useQuery({
     queryKey: ['last-sk-number'],
-    queryFn: () => skApi.list({ per_page: 100, status: 'approved', sort_by: 'updated_at', sort_dir: 'desc' })
+    queryFn: () => skApi.list({ 
+      per_page: 1, 
+      status: 'approved', 
+      sort_by: 'nomor_sk', 
+      sort_dir: 'desc',
+      exclude_req_nomor: true
+    })
   })
 
   useEffect(() => {

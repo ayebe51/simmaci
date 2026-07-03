@@ -290,7 +290,7 @@ export default function SkGeneratorPage() {
     queryKey: ['last-sk-number'],
     queryFn: () => skApi.list({ 
       per_page: 50, 
-      status: ['approved', 'active'], 
+      status: 'approved', 
       sort_by: 'nomor_sk', 
       sort_dir: 'desc',
       exclude_req_nomor: true
@@ -436,6 +436,7 @@ export default function SkGeneratorPage() {
         // --- Batched generation with progress and cancellation ---
         const BATCH_SIZE = 5
         const generationFailuresList: FailedDoc[] = []
+        let currentSeqIndex = parseInt(nomorMulai) || 1
 
         for (let i = 0; i < selectedTeachers.length; i++) {
             // Check cancellation before processing each teacher
@@ -522,7 +523,7 @@ export default function SkGeneratorPage() {
             }
 
             // 3. Prepare Mapping Data
-            const currentSeq = (parseInt(nomorMulai) || 1) + i
+            const currentSeq = currentSeqIndex
             const seqStr = String(currentSeq).padStart(4, '0')
 
             const tmtRaw = t.tmt || teacher.tmt
@@ -837,6 +838,9 @@ export default function SkGeneratorPage() {
                     errorMsg: errMsg,
                 })
             }
+            
+            // Increment only if document was successfully generated
+            currentSeqIndex++
 
           } catch (docErr: any) {
             // Partial failure: record this teacher's failure and continue

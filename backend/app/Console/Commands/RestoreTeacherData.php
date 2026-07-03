@@ -184,11 +184,14 @@ class RestoreTeacherData extends Command
         $deduplicatedCount = 0;
 
         foreach ($printedSks as $printedSk) {
-            // Find unprinted (REQ/DRAFT) SKs for the same teacher, same jenis_sk, AND same tahun_ajaran
+            // Find unprinted (REQ/DRAFT) SKs for the same teacher, same jenis_sk
             $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
                 ->where('id', '!=', $printedSk->id)
                 ->where('jenis_sk', $printedSk->jenis_sk)
-                ->where('tahun_ajaran', $printedSk->tahun_ajaran)
+                ->where(function ($q) use ($printedSk) {
+                    $q->where('tahun_ajaran', $printedSk->tahun_ajaran)
+                      ->orWhereNull('tahun_ajaran');
+                })
                 ->where(function ($q) {
                     $q->whereNull('file_url')->orWhere('file_url', '')
                       ->orWhere('nomor_sk', 'like', 'REQ/%')

@@ -59,15 +59,41 @@ class CleanDuplicatePendingSks extends Command
                 ->orderBy('created_at', 'desc')
                 ->get();
                 
-            // We want to KEEP the one that has nomor_permohonan filled (or the latest one if none have it)
+            // We want to KEEP the one that has the most data:
+            // 1. Has file_url (PDF generated)
+            // 2. Has surat_permohonan_url (Uploaded letter)
+            // 3. Has nomor_permohonan
             $keep = null;
+            
+            // Priority 1: file_url
             foreach ($pendingSks as $sk) {
-                if (!empty($sk->nomor_permohonan)) {
+                if (!empty($sk->file_url)) {
                     $keep = $sk;
                     break;
                 }
             }
             
+            // Priority 2: surat_permohonan_url
+            if (!$keep) {
+                foreach ($pendingSks as $sk) {
+                    if (!empty($sk->surat_permohonan_url)) {
+                        $keep = $sk;
+                        break;
+                    }
+                }
+            }
+            
+            // Priority 3: nomor_permohonan
+            if (!$keep) {
+                foreach ($pendingSks as $sk) {
+                    if (!empty($sk->nomor_permohonan)) {
+                        $keep = $sk;
+                        break;
+                    }
+                }
+            }
+            
+            // Priority 4: just the newest one
             if (!$keep) {
                 $keep = $pendingSks->first();
             }

@@ -7,7 +7,7 @@ import { Download, FileText, Search, Loader2 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { useQuery } from "@tanstack/react-query"
-import { skApi, headmasterApi, authApi, settingApi } from "@/lib/api"
+import { skApi, headmasterApi, authApi, settingApi, getFileUrl } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
 
 // DOCX Generation Imports
@@ -75,9 +75,11 @@ export default function MySkPage() {
       const res = await settingApi.get(templateId)
       if (!res?.value) throw new Error("Template tidak ditemukan")
 
-      const base64 = res.value.split(";base64,")[1] || res.value
-      const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, "")
-
+      const fileUrl = getFileUrl(res.value)
+      const resp = await fetch(fileUrl)
+      if (!resp.ok) throw new Error("Gagal mengunduh file template")
+      
+      const arrayBuffer = await resp.arrayBuffer()
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
@@ -89,7 +91,7 @@ export default function MySkPage() {
         qrcode: qrDataUrl
       }
 
-      const pzip = new PizZip(cleanBase64, { base64: true })
+      const pzip = new PizZip(arrayBuffer)
       const doc = new Docxtemplater(pzip, {
         paragraphLoop: true,
         linebreaks: true,

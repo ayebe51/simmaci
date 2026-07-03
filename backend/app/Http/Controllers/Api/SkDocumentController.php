@@ -57,7 +57,10 @@ class SkDocumentController extends Controller
 
         if ($request->boolean('unprinted_only')) {
             $query->where(function($q) {
-                $q->whereNull('file_url')->orWhere('file_url', '');
+                $q->whereNull('file_url')
+                  ->orWhere('file_url', '')
+                  ->orWhere('nomor_sk', 'like', 'REQ/%')
+                  ->orWhere('nomor_sk', 'like', 'DRAFT-%');
             });
         }
 

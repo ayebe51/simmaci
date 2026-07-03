@@ -74,8 +74,13 @@ class SkDocumentController extends Controller
         }
 
         $sortBy = in_array($request->sort_by, ['id', 'created_at', 'updated_at', 'nomor_sk']) ? $request->sort_by : 'created_at';
-        $sortDir = strtolower($request->sort_dir ?? 'asc');
-        $paginated = $query->orderBy($sortBy, $sortDir)->orderBy('id', $sortDir)->paginate($request->integer('per_page', 25));
+        $sortDir = strtolower($request->sort_dir ?? 'desc'); // Ubah default jadi desc agar yang terbaru tampil di atas
+        
+        $paginated = $query
+            ->orderByRaw("CASE WHEN nomor_sk LIKE 'REQ/%' OR nomor_sk LIKE 'DRAFT-%' THEN 1 ELSE 0 END ASC")
+            ->orderBy($sortBy, $sortDir)
+            ->orderBy('id', $sortDir)
+            ->paginate($request->integer('per_page', 25));
 
         // Enrich NIM and TMT: for items whose teacher has no nomor_induk_maarif or tmt,
         // resolve matching teachers using SQL-level case-insensitive comparison

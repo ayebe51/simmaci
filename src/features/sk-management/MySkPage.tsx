@@ -80,6 +80,12 @@ export default function MySkPage() {
       if (!resp.ok) throw new Error("Gagal mengunduh file template")
       
       const arrayBuffer = await resp.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let b = 0; b < bytes.byteLength; b++) {
+          binary += String.fromCharCode(bytes[b])
+      }
+
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
@@ -91,7 +97,7 @@ export default function MySkPage() {
         qrcode: qrDataUrl
       }
 
-      const pzip = new PizZip(arrayBuffer)
+      const pzip = new PizZip(binary)
       const doc = new Docxtemplater(pzip, {
         paragraphLoop: true,
         linebreaks: true,

@@ -7,7 +7,7 @@ import { Download, FileText, Search, Loader2 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { useQuery } from "@tanstack/react-query"
-import { skApi, headmasterApi, authApi, settingApi, getFileUrl } from "@/lib/api"
+import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
 
 // DOCX Generation Imports
@@ -67,17 +67,25 @@ export default function MySkPage() {
     try {
       const teacherData = sk.teacher || {}
       const jenis = (sk.jenis_sk || "").toLowerCase()
-      let templateId = "sk_template_tendik"
-      if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "sk_template_gty";
-      else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "sk_template_gtt";
-      else if (jenis.includes("kepala") || jenis.includes("kamad")) templateId = "sk_template_kamad_nonpns";
+      let templateId = "tendik"
+      if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "gty";
+      else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "gtt";
+      else if (jenis.includes("kepala") || jenis.includes("kamad")) templateId = "kamad";
 
-      const res = await settingApi.get(templateId)
-      if (!res?.value) throw new Error("Template tidak ditemukan")
+      let fileUrl = `/templates/sk-${templateId}-template.docx`;
+      try {
+          const res = await skTemplateApi.getActive(templateId);
+          if (res?.file_url) {
+              fileUrl = getFileUrl(res.file_url);
+          }
+      } catch (err: any) {
+          if (err.response?.status !== 404) {
+              console.warn("Failed to fetch active template from db, falling back to static", err);
+          }
+      }
 
-      const fileUrl = getFileUrl(res.value)
       const resp = await fetch(fileUrl)
-      if (!resp.ok) throw new Error("Gagal mengunduh file template")
+      if (!resp.ok) throw new Error(`Gagal mengunduh file template (${resp.status})`)
       
       const arrayBuffer = await resp.arrayBuffer()
       const bytes = new Uint8Array(arrayBuffer)

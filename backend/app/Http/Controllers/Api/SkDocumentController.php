@@ -158,6 +158,16 @@ class SkDocumentController extends Controller
             $sk->setAttribute('is_guru_baru', $isGuruBaru);
         }
 
+        if ($request->boolean('unprinted_only')) {
+            $filteredItems = collect($paginated->items())->filter(function ($sk) {
+                return !empty($sk->teacher?->tmt) &&
+                       !empty($sk->teacher?->tempat_lahir) &&
+                       !empty($sk->teacher?->tanggal_lahir);
+            })->values();
+            
+            $paginated->setCollection($filteredItems);
+        }
+
         return response()->json($paginated);
     }
 

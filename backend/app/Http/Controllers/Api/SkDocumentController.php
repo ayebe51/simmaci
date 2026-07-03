@@ -147,25 +147,14 @@ class SkDocumentController extends Controller
         // Also compute is_guru_baru: TMT < 1 tahun AND belum punya NIM AND pengajuan manual
         $oneYearAgo = now()->subYear()->toDateString();
 
-        foreach ($paginated->items() as $sk) {
+        foreach ($paginated as $sk) {
             $sk->makeHidden(['school_id']);
-
             $tmt = $sk->teacher?->tmt;
             $nim = $sk->teacher?->nomor_induk_maarif;
             $isManual = empty($sk->surat_permohonan_url);
             
             $isGuruBaru = !empty($tmt) && $tmt > $oneYearAgo && empty($nim) && $isManual;
             $sk->setAttribute('is_guru_baru', $isGuruBaru);
-        }
-
-        if ($request->boolean('unprinted_only')) {
-            $filteredItems = collect($paginated->items())->filter(function ($sk) {
-                return !empty($sk->teacher?->tmt) &&
-                       !empty($sk->teacher?->tempat_lahir) &&
-                       !empty($sk->teacher?->tanggal_lahir);
-            })->values();
-            
-            $paginated->setCollection($filteredItems);
         }
 
         return response()->json($paginated);

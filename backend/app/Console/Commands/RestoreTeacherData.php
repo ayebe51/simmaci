@@ -199,7 +199,8 @@ class RestoreTeacherData extends Command
                 });
                 
             if ($printedSk->teacher_id) {
-                $query->where('teacher_id', $printedSk->teacher_id);
+                $query->where('teacher_id', $printedSk->teacher_id)
+                      ->where('school_id', $printedSk->school_id);
             } else {
                 $query->where(DB::raw('LOWER(TRIM(nama))'), strtolower(trim($printedSk->nama)))
                       ->where('school_id', $printedSk->school_id);

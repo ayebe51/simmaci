@@ -29,16 +29,16 @@ class CleanDuplicatePendingSks extends Command
     {
         $this->info('Mencari pengajuan SK ganda yang masih mengantre di Generator (belum dicetak)...');
         
-        // Find teachers who have more than 1 pending SK of the same jenis_sk
+        // Find teachers who have more than 1 pending SK of the same jenis_sk AND same school
         $duplicates = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
             ->where(function ($q) {
                 $q->whereNull('file_url')->orWhere('file_url', '')
                   ->orWhere('nomor_sk', 'like', 'REQ/%')
                   ->orWhere('nomor_sk', 'like', 'DRAFT-%');
             })
-            ->select('teacher_id', 'jenis_sk', DB::raw('COUNT(*) as count'))
+            ->select('teacher_id', 'jenis_sk', 'school_id', DB::raw('COUNT(*) as count'))
             ->whereNotNull('teacher_id')
-            ->groupBy('teacher_id', 'jenis_sk')
+            ->groupBy('teacher_id', 'jenis_sk', 'school_id')
             ->havingRaw('COUNT(*) > 1')
             ->get();
 
@@ -47,10 +47,11 @@ class CleanDuplicatePendingSks extends Command
         foreach ($duplicates as $dup) {
             $teacherName = DB::table('teachers')->where('id', $dup->teacher_id)->value('nama') ?? 'Guru ID ' . $dup->teacher_id;
             
-            // Get all pending SKs for this teacher & jenis_sk
+            // Get all pending SKs for this teacher, jenis_sk, AND school
             $pendingSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
                 ->where('teacher_id', $dup->teacher_id)
                 ->where('jenis_sk', $dup->jenis_sk)
+                ->where('school_id', $dup->school_id)
                 ->where(function ($q) {
                     $q->whereNull('file_url')->orWhere('file_url', '')
                       ->orWhere('nomor_sk', 'like', 'REQ/%')

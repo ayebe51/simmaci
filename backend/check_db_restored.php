@@ -7,12 +7,9 @@ echo "=== CEK STATUS DATABASE (APAKAH TER-RESTORE?) ===\n\n";
 
 $ghostCount = Teacher::withoutGlobalScopes()
     ->where(function($q) {
-        $q->whereNull('school_id')
-          ->orWhere('school_id', '')
-          ->orWhere('school_id', 0);
+        $q->whereNull('school_id');
     })
     ->whereNotNull('unit_kerja')
-    ->where('unit_kerja', '!=', '')
     ->count();
 
 echo "Jumlah Guru Hantu saat ini: {$ghostCount}\n";
@@ -26,5 +23,7 @@ if ($supriyatun) {
 $sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->get();
 echo "Jumlah SK Supriyatun: {$sks->count()}\n";
 foreach ($sks as $sk) {
-    echo "  - SK ID: {$sk->id} | School ID: {$sk->school_id} | Nomor: {$sk->nomor_sk}\n";
+    $school = $sk->school_id ? \App\Models\School::find($sk->school_id) : null;
+    $schoolName = $school ? $school->nama : 'KOSONG/TIDAK ADA';
+    echo "  - SK ID: {$sk->id} | School ID: {$sk->school_id} ({$schoolName}) | Nomor: {$sk->nomor_sk} | Status: {$sk->status} | Nomor Permohonan: {$sk->nomor_permohonan}\n";
 }

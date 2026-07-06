@@ -38,7 +38,7 @@ $duplicates = SkDocument::withoutGlobalScopes()
     ->select('teacher_id', DB::raw('count(*) as count'))
     ->whereNotNull('teacher_id')
     ->groupBy('teacher_id')
-    ->having('count', '>', 1)
+    ->havingRaw('count(*) > 1')
     ->get();
 
 $deletedCount = 0;

@@ -54,6 +54,18 @@ foreach ($groupedSks as $groupKey => $sksInGroup) {
         if (!empty($sk->jabatan)) $score += 5;
         if (!empty($sk->tugas_mengajar)) $score += 5;
         
+        // 6. Kualitas Nomor Permohonan (Menghukum nomor yang terlalu singkat seperti "65")
+        if (!empty($sk->nomor_permohonan)) {
+            $len = strlen($sk->nomor_permohonan);
+            if ($len > 15) {
+                $score += 40; // Nomor super lengkap (contoh: 0223/PC.L/A.II/...)
+            } elseif ($len > 5) {
+                $score += 20; // Nomor standar
+            } else {
+                $score -= 20; // Nomor mencurigakan / terlalu pendek (contoh: "65")
+            }
+        }
+        
         $scoredSks[] = [
             'sk' => $sk,
             'score' => $score,

@@ -6,9 +6,8 @@ use App\Models\SkDocument;
 
 echo "=== MENCARI GURU HANTU (SCHOOL_ID KOSONG) & SK NYASAR MEREKA ===\n\n";
 
-$ghostTeachers = Teacher::withoutGlobalScopes()->where(function ($q) {
-    $q->whereNull('school_id')->orWhere('school_id', 0);
-})->whereNotNull('unit_kerja')->where('unit_kerja', '!=', '')->get();
+$ghostTeachers = Teacher::withoutGlobalScopes()->whereRaw("(school_id IS NULL OR school_id = 0)")
+    ->whereRaw("unit_kerja IS NOT NULL AND unit_kerja != ''")->get();
 
 $allSchools = School::all();
 $schoolMap = [];

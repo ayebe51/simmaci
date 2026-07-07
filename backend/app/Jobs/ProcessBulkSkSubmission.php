@@ -238,6 +238,41 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
                 // Protect against data-entry typos: if identifier matches but name is completely different, don't overwrite!
                 if ($teacher) {
+                    // VALIDASI LINTAS SEKOLAH (Mencegah pencurian profil / Ghost SK)
+                    if ($teacher->school_id !== $schoolId) {
+                        $seq++;
+                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                        $createdDoc = SkDocument::create([
+                            'nomor_sk'         => $nomorSk,
+                            'nama'             => $doc['nama'],
+                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
+                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                            'school_id'        => $schoolId,
+                            'status'           => 'rejected',
+                            'rejection_reason' => 'NIM/NIP sudah terdaftar di unit kerja lain. Pengajuan ditolak untuk mencegah penimpaan profil (Ghost SK).',
+                            'created_by'       => $this->userEmail,
+                            'tanggal_penetapan'=> now()->format('Y-m-d'),
+                        ]);
+                        \App\Models\ApprovalHistory::create([
+                            'school_id' => $schoolId,
+                            'document_id' => $createdDoc->id,
+                            'document_type' => 'sk_document',
+                            'action' => 'reject',
+                            'from_status' => 'pending',
+                            'to_status' => 'rejected',
+                            'performed_by' => null,
+                            'performed_at' => now(),
+                            'comment' => 'Ditolak otomatis oleh sistem',
+                            'metadata' => ['rejection_reason' => 'NIM/NIP sudah terdaftar di unit kerja lain. Pengajuan ditolak untuk mencegah penimpaan profil (Ghost SK).'],
+                        ]);
+                        $skipped++;
+                        $rejectedRows[] = [
+                            'nama'   => $doc['nama'] ?? 'unknown',
+                            'alasan' => 'NIM/NIP sudah terdaftar di unit kerja lain (Mencegah Ghost SK).',
+                        ];
+                        continue;
+                    }
+
                     $excelBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
                     $dbBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacher->nama)['name']), 'UTF-8');
                     

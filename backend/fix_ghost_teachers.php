@@ -1,11 +1,8 @@
 <?php
-require __DIR__.'/vendor/autoload.php';
-$app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
-
 use App\Models\SkDocument;
 use App\Models\Teacher;
+use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\DB;
 
 echo "=== MEMBERSIHKAN GHOST SK & MEMULIHKAN PROFIL GURU ===\n\n";

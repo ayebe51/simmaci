@@ -12,8 +12,7 @@ $unlinkedTeachers = Teacher::withoutGlobalScopes()
     ->whereNull('deleted_at')
     ->where(function($q) {
         $q->whereNull('school_id')
-          ->orWhere('school_id', 0)
-          ->orWhere('school_id', '');
+          ->orWhere('school_id', 0);
     })
     ->get();
 

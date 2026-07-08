@@ -272,6 +272,8 @@ class StudentController extends Controller
         $request->validate([
             'school_id' => 'nullable|exists:schools,id',
             'action' => 'required|in:promote,graduate',
+            'student_ids' => 'nullable|array',
+            'student_ids.*' => 'exists:students,id'
         ]);
 
         $user = $request->user();
@@ -285,6 +287,10 @@ class StudentController extends Controller
         $query = Student::query()->where('status', 'Aktif');
         if ($schoolId) {
             $query->where('school_id', $schoolId);
+        }
+
+        if (!empty($request->student_ids)) {
+            $query->whereIn('id', $request->student_ids);
         }
 
         $students = $query->get();

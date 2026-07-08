@@ -211,7 +211,7 @@ export const studentApi = {
   update: (id: number, data: any) => apiClient.put(`/students/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/students/${id}`).then((r) => r.data),
   import: (students: any[]) => apiClient.post('/students/import', { students }, { timeout: 120000 }).then((r) => r.data),
-  batchTransition: (payload: { school_id: number; action: 'promote' | 'graduate' }) =>
+  batchTransition: (payload: { school_id?: number; action: 'promote' | 'graduate'; student_ids?: number[] }) =>
     apiClient.post('/students/batch-transition', payload).then((r) => r.data),
 };
 

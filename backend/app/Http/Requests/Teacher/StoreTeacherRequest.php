@@ -16,8 +16,8 @@ class StoreTeacherRequest extends FormRequest
     {
         return [
             'nama'                 => 'required|string|max:255',
-            'nuptk'                => ['nullable', 'string', new UniqueForTenant('teachers', 'nuptk')],
-            'nomor_induk_maarif'   => ['nullable', 'string', new UniqueForTenant('teachers', 'nomor_induk_maarif')],
+            'nuptk'                => ['nullable', 'string', 'unique:teachers,nuptk'],
+            'nomor_induk_maarif'   => ['nullable', 'string', 'unique:teachers,nomor_induk_maarif'],
             'nip'                  => 'nullable|string',
             'jenis_kelamin'        => 'nullable|in:L,P',
             'tempat_lahir'         => 'nullable|string|max:100',

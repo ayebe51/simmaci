@@ -51,7 +51,9 @@ export default function MySkPage() {
       search: searchTerm,
       page: skPage,
       per_page: 10,
-      exclude_req_nomor: true
+      exclude_req_nomor: true,
+      sort_by: 'nomor_sk',
+      sort_dir: 'desc'
     })
   })
 

@@ -18,8 +18,8 @@ class UpdateTeacherRequest extends FormRequest
 
         return [
             'nama'                 => 'sometimes|string|max:255',
-            'nuptk'                => ['nullable', 'string', new UniqueForTenant('teachers', 'nuptk', $teacherId)],
-            'nomor_induk_maarif'   => ['nullable', 'string', new UniqueForTenant('teachers', 'nomor_induk_maarif', $teacherId)],
+            'nuptk'                => ['nullable', 'string', 'unique:teachers,nuptk,' . $teacherId],
+            'nomor_induk_maarif'   => ['nullable', 'string', 'unique:teachers,nomor_induk_maarif,' . $teacherId],
             'nip'                  => 'nullable|string',
             'jenis_kelamin'        => 'nullable|in:L,P',
             'tempat_lahir'         => 'nullable|string|max:100',

@@ -64,23 +64,17 @@ export default function StaffAttendanceReportPage() {
       return;
     }
 
-    const exportData = attendanceList.map((log: any) => ({
-      'Tanggal': log.tanggal ? format(new Date(log.tanggal), 'yyyy-MM-dd') : '-',
-      'Nama Staff': log.staff?.nama || '-',
-      'Nomor ID': log.staff?.nomor_id || '-',
-      'Jam Masuk': log.jam_masuk || '-',
-      'Jam Pulang': log.jam_pulang || '-',
-      'Status': log.status || '-',
-      'Validasi GPS': log.location_verified ? 'Valid (Di Kantor / Diverifikasi)' : 'Di Luar Area'
-    }));
-
     const summaryMap = new Map();
+    const staffGroups = new Map();
+
     attendanceList.forEach((log: any) => {
       const name = log.staff?.nama || '-';
       const id = log.staff?.nomor_id || '-';
+      const staffId = log.staff?.id || 'unknown';
       const statusRaw = String(log.status || '-').trim();
       const status = statusRaw.toLowerCase();
       
+      // Populate Summary Map
       const key = `${id}_${name}`;
       if (!summaryMap.has(key)) {
         summaryMap.set(key, { 
@@ -112,15 +106,65 @@ export default function StaffAttendanceReportPage() {
          if (!counts[statusRaw] && statusRaw !== '-') counts[statusRaw] = 0;
          if (statusRaw !== '-') counts[statusRaw] += 1;
       }
+
+      // Populate Staff Groups for individual sheets
+      if (!staffGroups.has(staffId)) {
+        staffGroups.set(staffId, {
+          staffInfo: log.staff || { nama: 'Unknown', nomor_id: '-' },
+          logs: []
+        });
+      }
+      staffGroups.get(staffId).logs.push(log);
     });
 
+    const wb = XLSX.utils.book_new();
+    const usedSheetNames = new Set<string>();
+
+    // Create a sheet for each staff member
+    staffGroups.forEach((group, staffId) => {
+        const { staffInfo, logs } = group;
+        
+        const sheetData = [
+            ['Laporan Absensi', `Periode: ${startDate} s/d ${endDate}`],
+            ['Nama Staff', staffInfo.nama],
+            ['ID Staff', staffInfo.nomor_id],
+            [],
+            ['Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Validasi GPS']
+        ];
+        
+        logs.forEach((log: any) => {
+            sheetData.push([
+                log.tanggal ? format(new Date(log.tanggal), 'yyyy-MM-dd') : '-',
+                log.jam_masuk || '-',
+                log.jam_pulang || '-',
+                log.status || '-',
+                log.location_verified ? 'Valid (Di Kantor / Diverifikasi)' : 'Di Luar Area'
+            ]);
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        
+        // Style adjustments (optional basic widths)
+        ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 35 }];
+        
+        // Ensure unique sheet name
+        let baseName = (staffInfo.nama || 'Unknown').replace(/[\*\?\/\\\[\]:]/g, '').trim().substring(0, 25);
+        let sheetName = baseName;
+        let counter = 1;
+        while (usedSheetNames.has(sheetName)) {
+            sheetName = `${baseName} (${counter})`;
+            counter++;
+        }
+        usedSheetNames.add(sheetName);
+
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    // Create Summary Sheet
     const summaryData = Array.from(summaryMap.values());
     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Absensi Harian");
     XLSX.utils.book_append_sheet(wb, wsSummary, "Rekapitulasi");
+
     XLSX.writeFile(wb, `Laporan_Absensi_Staff_${startDate}_sd_${endDate}.xlsx`);
   };
 

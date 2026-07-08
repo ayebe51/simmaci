@@ -74,9 +74,53 @@ export default function StaffAttendanceReportPage() {
       'Validasi GPS': log.location_verified ? 'Valid (Di Kantor / Diverifikasi)' : 'Di Luar Area'
     }));
 
+    const summaryMap = new Map();
+    attendanceList.forEach((log: any) => {
+      const name = log.staff?.nama || '-';
+      const id = log.staff?.nomor_id || '-';
+      const statusRaw = String(log.status || '-').trim();
+      const status = statusRaw.toLowerCase();
+      
+      const key = `${id}_${name}`;
+      if (!summaryMap.has(key)) {
+        summaryMap.set(key, { 
+          'Nomor ID': id, 
+          'Nama Staff': name, 
+          'Hadir': 0, 
+          'Izin': 0,
+          'Sakit': 0,
+          'Cuti': 0,
+          'Dinas Luar': 0,
+          'Alpa': 0 
+        });
+      }
+      
+      const counts = summaryMap.get(key);
+      if (status.includes('hadir')) {
+        counts['Hadir'] += 1;
+      } else if (status.includes('izin')) {
+        counts['Izin'] += 1;
+      } else if (status.includes('sakit')) {
+        counts['Sakit'] += 1;
+      } else if (status.includes('cuti')) {
+        counts['Cuti'] += 1;
+      } else if (status.includes('dinas luar') || status.includes('dl')) {
+        counts['Dinas Luar'] += 1;
+      } else if (status.includes('alpa') || status.includes('absen') || status.includes('tidak hadir')) {
+        counts['Alpa'] += 1;
+      } else {
+         if (!counts[statusRaw] && statusRaw !== '-') counts[statusRaw] = 0;
+         if (statusRaw !== '-') counts[statusRaw] += 1;
+      }
+    });
+
+    const summaryData = Array.from(summaryMap.values());
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Absensi Staff");
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi Harian");
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Rekapitulasi");
     XLSX.writeFile(wb, `Laporan_Absensi_Staff_${startDate}_sd_${endDate}.xlsx`);
   };
 

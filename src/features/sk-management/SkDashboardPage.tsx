@@ -315,11 +315,13 @@ export default function SkDashboardPage() {
               <TableHeader>
                 <TableRow className="bg-slate-50/50 border-b border-slate-100 hover:bg-slate-50/50">
                   <TableHead className="w-12 pl-8">
-                    <Checkbox
-                        checked={items.length > 0 && selectedIds.size === items.length}
-                        onCheckedChange={handleSelectAll}
-                        className="rounded-md border-slate-300"
-                    />
+                    {statusFilter === 'draft' && (
+                        <Checkbox
+                            checked={items.length > 0 && selectedIds.size === items.length}
+                            onCheckedChange={handleSelectAll}
+                            className="rounded-md border-slate-300"
+                        />
+                    )}
                   </TableHead>
                   <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Tanggal</TableHead>
                   <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Unit Kerja / Madrasah</TableHead>
@@ -370,11 +372,13 @@ export default function SkDashboardPage() {
                           className="hover:bg-slate-50/50 border-b border-slate-50 transition-colors group"
                         >
                           <TableCell className="pl-8">
-                              <Checkbox
-                                  checked={selectedIds.has(item.id)}
-                                  onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
-                                  className="rounded-md border-slate-300"
-                              />
+                              {status === 'draft' && (
+                                  <Checkbox
+                                      checked={selectedIds.has(item.id)}
+                                      onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
+                                      className="rounded-md border-slate-300"
+                                  />
+                              )}
                           </TableCell>
                           <TableCell className="text-xs font-bold text-slate-500 py-4">
                               {new Date(item.created_at || item.updated_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}

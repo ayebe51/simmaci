@@ -98,11 +98,32 @@ export default function MySkPage() {
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
+      const formatDate = (dateStr: string) => {
+          if (!dateStr) return "";
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return dateStr;
+          return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
+
       const renderData = {
         ...teacherData,
         ...sk,
         NAMA: sk.nama?.toUpperCase(),
         NOMOR_SURAT: sk.nomor_sk,
+        TEMPAT_LAHIR: teacherData.tempat_lahir || "",
+        TANGGAL_LAHIR: formatDate(teacherData.tanggal_lahir),
+        NOMOR_INDUK: teacherData.nuptk || teacherData.nip || teacherData.nomor_induk_maarif || "",
+        NOMOR_INDUK_MAARIF: teacherData.nomor_induk_maarif || "",
+        PENDIDIKAN_TERAKHIR: teacherData.pendidikan_terakhir || "",
+        UNIT_KERJA: sk.unit_kerja || "",
+        TMT: formatDate(teacherData.tmt),
+        TANGGAL_PENETAPAN: formatDate(sk.tanggal_penetapan),
+        
+        // Lowercase overrides for formatted dates
+        tanggal_lahir: formatDate(teacherData.tanggal_lahir),
+        tanggal_penetapan: formatDate(sk.tanggal_penetapan),
+        tmt: formatDate(teacherData.tmt),
+        
         qrcode: qrDataUrl
       }
 

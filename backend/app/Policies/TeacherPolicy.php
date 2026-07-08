@@ -9,10 +9,17 @@ class TeacherPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
-        // Super Admin and Admin Yayasan have global access to all teachers
-        if (in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+        if ($user->role === 'super_admin') {
             return true;
         }
+        
+        if ($user->role === 'admin_yayasan') {
+            if (in_array($ability, ['viewAny', 'view'])) {
+                return true;
+            }
+            return false;
+        }
+
         return null;
     }
 

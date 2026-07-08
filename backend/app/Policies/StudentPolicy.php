@@ -12,6 +12,14 @@ class StudentPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
+        if ($user->role === 'admin_yayasan') {
+            if (in_array($ability, ['viewAny', 'view'])) {
+                return true;
+            }
+            return false;
+        }
+
         return null;
     }
 

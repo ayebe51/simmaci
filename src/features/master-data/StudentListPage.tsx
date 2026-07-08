@@ -64,7 +64,8 @@ export default function StudentListPage() {
     }
   })
   const isOperator = user?.role === "operator"
-  const isSuperAdmin = user?.role === "super_admin"
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "admin_yayasan"
+  const canEdit = user?.role !== "admin_yayasan"
 
   const [filterSchoolId, setFilterSchoolId] = useState<number | null>(null)
 
@@ -163,9 +164,11 @@ export default function StudentListPage() {
         title="Data Siswa"
         description="Data peserta didik di lingkungan LP Ma'arif NU Cilacap"
         actions={[
-          { label: 'Naik Kelas', onClick: () => setIsTransitionModalOpen(true), variant: 'blue', icon: <ArrowUpDown className="h-5 w-5" /> },
-          { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'cream', icon: <FileSpreadsheet className="h-5 w-5" /> },
-          { label: 'Tambah Manual', onClick: () => { setFormData({}); setIsAddOpen(true); }, variant: 'mint', icon: <Plus className="h-5 w-5" /> }
+          ...(canEdit ? [
+              { label: 'Naik Kelas', onClick: () => setIsTransitionModalOpen(true), variant: 'blue', icon: <ArrowUpDown className="h-5 w-5" /> },
+              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'cream', icon: <FileSpreadsheet className="h-5 w-5" /> },
+              { label: 'Tambah Manual', onClick: () => { setFormData({}); setIsAddOpen(true); }, variant: 'mint', icon: <Plus className="h-5 w-5" /> }
+          ] : [])
         ]}
       />
 
@@ -217,11 +220,13 @@ export default function StudentListPage() {
                 <TableHeader className="bg-emerald-50/40">
                     <TableRow>
                         <TableHead className="w-12 text-center">
-                            <Checkbox 
-                                checked={students.length > 0 && selectedStudentIds.length === students.length}
-                                onCheckedChange={handleSelectAll}
-                                className="mx-auto"
-                            />
+                            {canEdit && (
+                                <Checkbox 
+                                    checked={students.length > 0 && selectedStudentIds.length === students.length}
+                                    onCheckedChange={handleSelectAll}
+                                    className="mx-auto"
+                                />
+                            )}
                         </TableHead>
                         <TableHead className="text-emerald-800 font-semibold cursor-pointer whitespace-nowrap">
                             <div className="flex items-center gap-1">NISN <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
@@ -254,7 +259,7 @@ export default function StudentListPage() {
                             <div className="flex items-center gap-1">NPSN <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
                         </TableHead>
                         <TableHead className="text-emerald-800 font-semibold">Status</TableHead>
-                        <TableHead className="text-emerald-800 font-semibold text-center border-l bg-white/40 backdrop-blur-sm shadow-sm sticky right-0">Aksi</TableHead>
+                        {canEdit && <TableHead className="text-emerald-800 font-semibold text-center border-l bg-white/40 backdrop-blur-sm shadow-sm sticky right-0">Aksi</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -266,11 +271,13 @@ export default function StudentListPage() {
                         students.map((item: Student) => (
                             <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <TableCell className="text-center align-top pt-4">
-                                    <Checkbox 
-                                        checked={selectedStudentIds.includes(item.id)}
-                                        onCheckedChange={(checked) => handleSelectOne(checked as boolean, item.id)}
-                                        className="mx-auto"
-                                    />
+                                    {canEdit && (
+                                        <Checkbox 
+                                            checked={selectedStudentIds.includes(item.id)}
+                                            onCheckedChange={(checked) => handleSelectOne(checked as boolean, item.id)}
+                                            className="mx-auto"
+                                        />
+                                    )}
                                 </TableCell>
                                 <TableCell className="font-semibold text-slate-800 text-sm align-top pt-4">{item.nisn || "-"}</TableCell>
                                 <TableCell className="text-sm text-slate-700 align-top pt-4">{item.nama || "-"}</TableCell>
@@ -285,23 +292,26 @@ export default function StudentListPage() {
                                 <TableCell className="text-sm text-slate-700 align-top pt-4">{item.nama_ibu || "-"}</TableCell>
                                 <TableCell className="text-sm text-slate-600 align-top pt-4 max-w-[150px] truncate" title={item.school?.nama || ""}>{item.school?.nama || "-"}</TableCell>
                                 <TableCell className="text-sm text-slate-600 align-top pt-4">{item.npsn || "-"}</TableCell>
-                                <TableCell className="align-top pt-4">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] capitalize font-semibold ${
-                                        item.status === 'Aktif' ? 'bg-green-100 text-green-700' : 
-                                        item.status === 'Lulus' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-slate-100 text-slate-600'
-                                    }`}>{item.status || "Lulus"}</span>
+                                <TableCell>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'Aktif' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                                        {item.status || "Aktif"}
+                                    </span>
                                 </TableCell>
-                                <TableCell className="text-center border-l bg-white/40 group-hover:bg-slate-50/50 transition-colors sticky right-0 align-top pt-2">
-                                    <div className="flex flex-col items-center gap-3">
-                                        <button className="text-slate-600 hover:text-blue-600 transition-colors" onClick={() => { setFormData(item); setIsAddOpen(true) }}>
-                                            <Edit className="h-4 w-4" />
-                                        </button>
-                                        <button className="text-slate-600 hover:text-red-500 transition-colors" onClick={() => setConfirmDelete(item)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </TableCell>
+                                {canEdit && (
+                                    <TableCell className="text-center align-top pt-4 border-l bg-white/40 backdrop-blur-sm sticky right-0">
+                                        <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => {
+                                                setFormData({...item, tanggal_lahir: item.tanggal_lahir ? new Date(item.tanggal_lahir).toISOString().split('T')[0] : ''})
+                                                setIsAddOpen(true)
+                                            }}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))
                     )}

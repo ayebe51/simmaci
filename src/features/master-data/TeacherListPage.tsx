@@ -86,6 +86,7 @@ export default function TeacherListPage() {
   })
   const isOperator = user?.role === "operator"
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "admin_yayasan"
+  const canEdit = user?.role !== "admin_yayasan"
 
   // Fetch schools for filter
   const { data: schoolsData } = useQuery({
@@ -352,17 +353,19 @@ export default function TeacherListPage() {
         actions={[
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
 
-          ...(isSuperAdmin ? [
+          ...(isSuperAdmin && canEdit ? [
               { label: 'Generate NIM', onClick: () => { setGenerateNimResult([]); setIsGenerateNimOpen(true) }, variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
               { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'red', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
-          { label: 'Bersihkan Data Ganda', onClick: () => deduplicateDryRunMutation.mutate(), variant: 'amber', icon: <Wand2 className="h-4 w-4" />, disabled: deduplicateDryRunMutation.isPending },
-          { label: 'Tambah Manual', onClick: () => {
-              setFormData({ is_active: true })
-              setIsEditMode(false)
-              setIsAddOpen(true)
-          }, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
-          { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
+          ...(canEdit ? [
+              { label: 'Bersihkan Data Ganda', onClick: () => deduplicateDryRunMutation.mutate(), variant: 'amber', icon: <Wand2 className="h-4 w-4" />, disabled: deduplicateDryRunMutation.isPending },
+              { label: 'Tambah Manual', onClick: () => {
+                  setFormData({ is_active: true })
+                  setIsEditMode(false)
+                  setIsAddOpen(true)
+              }, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
+              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
+          ] : [])
         ]}
       />
 
@@ -439,7 +442,7 @@ export default function TeacherListPage() {
                         <TableHead className="py-3 px-3 font-bold text-emerald-800 text-center">Sertifikasi</TableHead>
                         <TableHead className="py-3 px-3 font-bold text-emerald-800 text-center">PDPKPNU</TableHead>
                         <TableHead className="py-3 px-3 font-bold text-emerald-800">Satminkal</TableHead>
-                        <TableHead className="py-3 px-3 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>
+                        {canEdit && <TableHead className="py-3 px-3 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -449,7 +452,7 @@ export default function TeacherListPage() {
                         <TableRow><TableCell colSpan={8} className="h-32 text-center text-slate-400 font-medium">Tidak ada data guru.</TableCell></TableRow>
                     ) : (
                         teachers.map((item: Teacher) => (
-                            <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
                                 <TableCell className="pl-4">
                                     <Checkbox 
                                         className="border-slate-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-none"
@@ -492,12 +495,14 @@ export default function TeacherListPage() {
                                 <TableCell className="px-3 py-2.5 text-sm font-medium text-slate-700 max-w-[130px] truncate">
                                     {item.unit_kerja || <span className="text-slate-300 italic text-xs">—</span>}
                                 </TableCell>
-                                <TableCell className="px-3 py-2.5 text-right">
-                                    <div className="flex gap-1 items-center justify-end">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                                    </div>
-                                </TableCell>
+                                {canEdit && (
+                                    <TableCell className="px-3 py-2.5 text-right">
+                                        <div className="flex gap-1 items-center justify-end">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                        </div>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))
                     )}

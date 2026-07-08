@@ -73,6 +73,10 @@ class SchoolController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk menambah data sekolah.'], 403);
+        }
+
         $data = $request->validate([
             'nsm' => 'nullable|string|unique:schools,nsm',
             'npsn' => 'nullable|string|unique:schools,npsn',
@@ -115,9 +119,17 @@ class SchoolController extends Controller
 
     public function update(Request $request, School $school): JsonResponse
     {
-        // Authorization check: operators can only update their own school
         $user = $request->user();
         
+        // Authorization check: admin_yayasan cannot update
+        if ($user->role === 'admin_yayasan') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin Yayasan tidak memiliki akses untuk mengubah data sekolah'
+            ], 403);
+        }
+
+        // Authorization check: operators can only update their own school
         if ($user->role === 'operator' && (int) $user->school_id !== (int) $school->id) {
             return response()->json([
                 'success' => false,
@@ -192,6 +204,10 @@ class SchoolController extends Controller
 
     public function destroy(Request $request, School $school): JsonResponse
     {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk menghapus sekolah.'], 403);
+        }
+
         $schoolName = $school->nama;
         $schoolId = $school->id;
         

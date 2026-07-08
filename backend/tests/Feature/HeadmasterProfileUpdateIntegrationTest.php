@@ -277,7 +277,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
             'kepala_jabatan_mulai' => '2023-06-01',
         ];
 
-        $response = $this->actingAs($this->adminYayasan)
+        $response = $this->actingAs($this->superAdmin)
             ->putJson("/api/schools/{$this->otherSchool->id}", $updateData);
 
         $response->assertOk();
@@ -364,7 +364,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
      * Test admin yayasan can complete full workflow
      * Requirements: 4.1, 4.2, 4.3, 7.1, 7.2
      */
-    public function test_admin_yayasan_can_complete_full_workflow(): void
+    public function test_super_admin_can_complete_full_workflow(): void
     {
         $initialActivityLogCount = ActivityLog::where('subject_id', $this->otherSchool->id)->count();
 
@@ -376,7 +376,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
             'kepala_jabatan_selesai' => '2025-05-31',
         ];
 
-        $response = $this->actingAs($this->adminYayasan)
+        $response = $this->actingAs($this->superAdmin)
             ->putJson("/api/schools/{$this->otherSchool->id}", $updateData);
 
         $response->assertOk();
@@ -464,7 +464,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
             ->assertOk();
 
         // Third update
-        $this->actingAs($this->adminYayasan)
+        $this->actingAs($this->superAdmin)
             ->putJson("/api/schools/{$this->otherSchool->id}", [
                 'kepala_madrasah' => 'Third Update',
             ])

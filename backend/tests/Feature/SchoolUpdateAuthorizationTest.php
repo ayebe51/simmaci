@@ -90,7 +90,7 @@ class SchoolUpdateAuthorizationTest extends TestCase
      * Test admin_yayasan can update any school headmaster profile
      * Requirements: 1.4, 6.2
      */
-    public function test_admin_yayasan_can_update_any_school(): void
+    public function test_admin_yayasan_cannot_update_school(): void
     {
         $updateData = [
             'kepala_madrasah' => 'Siti Aminah',
@@ -101,12 +101,11 @@ class SchoolUpdateAuthorizationTest extends TestCase
         $response = $this->actingAs($this->adminYayasan)
             ->putJson("/api/schools/{$this->otherSchool->id}", $updateData);
 
-        $response->assertOk();
+        $response->assertForbidden();
         
-        $this->assertDatabaseHas('schools', [
+        $this->assertDatabaseMissing('schools', [
             'id' => $this->otherSchool->id,
             'kepala_madrasah' => 'Siti Aminah',
-            'kepala_nim' => '654321',
         ]);
     }
 

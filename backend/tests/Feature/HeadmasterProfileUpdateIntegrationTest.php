@@ -295,7 +295,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
         $this->assertEquals('school', $activityLog->log_name);
 
         // Requirement 4.2: Record causer_id (user who performed update)
-        $this->assertEquals($this->adminYayasan->id, $activityLog->causer_id);
+        $this->assertEquals($this->superAdmin->id, $activityLog->causer_id);
         $this->assertEquals(User::class, $activityLog->causer_type);
 
         // Requirement 4.3: Record school_id (school that was updated)
@@ -399,7 +399,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
             ->latest()
             ->first();
 
-        $this->assertEquals($this->adminYayasan->id, $activityLog->causer_id);
+        $this->assertEquals($this->superAdmin->id, $activityLog->causer_id);
         $this->assertEquals($this->otherSchool->id, $activityLog->school_id);
     }
 
@@ -481,7 +481,7 @@ class HeadmasterProfileUpdateIntegrationTest extends TestCase
             ->take(3)
             ->get();
 
-        $this->assertEquals($this->adminYayasan->id, $logs[0]->causer_id);
+        $this->assertEquals($this->superAdmin->id, $logs[0]->causer_id);
         $this->assertEquals($this->superAdmin->id, $logs[1]->causer_id);
         $this->assertEquals($this->superAdmin->id, $logs[2]->causer_id);
     }

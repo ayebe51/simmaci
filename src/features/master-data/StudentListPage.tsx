@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -100,10 +101,12 @@ export default function StudentListPage() {
   const batchTransitionMutation = useMutation({
     mutationFn: (action: 'promote' | 'graduate') => studentApi.batchTransition({
         school_id: isSuperAdmin ? (filterSchoolId ?? undefined) : user?.school_id,
-        action
+        action,
+        student_ids: selectedStudentIds.length > 0 ? selectedStudentIds : undefined
     }),
     onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: ['students'] })
+        setSelectedStudentIds([]) // Clear selection after successful batch action
         toast.success(`Berhasil memproses ${res.count} siswa`)
     },
     onError: (err: any) => {
@@ -118,6 +121,24 @@ export default function StudentListPage() {
   const [isTransitionModalOpen, setIsTransitionModalOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Student | null>(null)
   const [confirmBatchAction, setConfirmBatchAction] = useState<{ type: 'promote' | 'graduate', label: string } | null>(null)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([])
+
+  const handleSelectAll = (checked: boolean) => {
+      if (checked) {
+          const allIds = students.map((s: Student) => s.id)
+          setSelectedStudentIds(allIds)
+      } else {
+          setSelectedStudentIds([])
+      }
+  }
+
+  const handleSelectOne = (checked: boolean, id: number) => {
+      if (checked) {
+          setSelectedStudentIds(prev => [...prev, id])
+      } else {
+          setSelectedStudentIds(prev => prev.filter(studentId => studentId !== id))
+      }
+  }
 
   const handleSave = async () => {
     if (!formData.nama) { toast.error("Nama wajib diisi!"); return }
@@ -196,7 +217,11 @@ export default function StudentListPage() {
                 <TableHeader className="bg-emerald-50/40">
                     <TableRow>
                         <TableHead className="w-12 text-center">
-                            <div className="w-4 h-4 rounded-full border border-emerald-500 mx-auto" />
+                            <Checkbox 
+                                checked={students.length > 0 && selectedStudentIds.length === students.length}
+                                onCheckedChange={handleSelectAll}
+                                className="mx-auto"
+                            />
                         </TableHead>
                         <TableHead className="text-emerald-800 font-semibold cursor-pointer whitespace-nowrap">
                             <div className="flex items-center gap-1">NISN <ArrowUpDown className="h-3 w-3 text-slate-400" /></div>
@@ -241,7 +266,11 @@ export default function StudentListPage() {
                         students.map((item: Student) => (
                             <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <TableCell className="text-center align-top pt-4">
-                                    <div className="w-4 h-4 rounded-full border border-emerald-500 mx-auto" />
+                                    <Checkbox 
+                                        checked={selectedStudentIds.includes(item.id)}
+                                        onCheckedChange={(checked) => handleSelectOne(checked as boolean, item.id)}
+                                        className="mx-auto"
+                                    />
                                 </TableCell>
                                 <TableCell className="font-semibold text-slate-800 text-sm align-top pt-4">{item.nisn || "-"}</TableCell>
                                 <TableCell className="text-sm text-slate-700 align-top pt-4">{item.nama || "-"}</TableCell>
@@ -330,13 +359,13 @@ export default function StudentListPage() {
             <div className="py-6 text-center space-y-4">
                 <p className="text-sm text-slate-600">Pilih aksi yang ingin dilakukan untuk seluruh siswa aktif di sekolah ini.</p>
                 <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setConfirmBatchAction({ type: 'promote', label: 'Proses naik kelas seluruh siswa?' })} disabled={batchTransitionMutation.isPending}>
+                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setConfirmBatchAction({ type: 'promote', label: selectedStudentIds.length > 0 ? `Proses naik kelas untuk ${selectedStudentIds.length} siswa terpilih?` : 'Proses naik kelas seluruh siswa?' })} disabled={batchTransitionMutation.isPending}>
                         <ArrowUpDown className="h-6 w-6 text-blue-500" />
-                        <span>Naik Kelas</span>
+                        <span>Naik Kelas {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
                     </Button>
-                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setConfirmBatchAction({ type: 'graduate', label: 'Luluskan seluruh siswa aktif?' })} disabled={batchTransitionMutation.isPending}>
-                        <GraduationCap className="h-6 w-6 text-orange-500" />
-                        <span>Luluskan</span>
+                    <Button variant="outline" className="h-20 flex-col gap-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100" onClick={() => setConfirmBatchAction({ type: 'graduate', label: selectedStudentIds.length > 0 ? `Proses kelulusan untuk ${selectedStudentIds.length} siswa terpilih?` : 'Proses kelulusan seluruh siswa?' })} disabled={batchTransitionMutation.isPending}>
+                        <GraduationCap className="h-6 w-6 text-emerald-600" />
+                        <span className="text-emerald-700 font-semibold">Lulus Massal {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
                     </Button>
                 </div>
             </div>

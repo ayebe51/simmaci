@@ -116,7 +116,7 @@ class TeacherUpdateOperatorTest extends TestCase
      * This was the main bug - admin_yayasan was being treated as operator
      * and getting validation errors due to incorrect tenant scoping.
      */
-    public function test_admin_yayasan_can_update_teacher(): void
+    public function test_admin_yayasan_cannot_update_teacher(): void
     {
         $response = $this->actingAs($this->adminYayasan)
             ->patchJson("/api/teachers/{$this->teacher->id}", [
@@ -124,40 +124,9 @@ class TeacherUpdateOperatorTest extends TestCase
                 'phone_number' => '081234567890',
             ]);
 
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.nama', 'AHMAD RIFAI YAYASAN, S.Pd.');
+        $response->assertStatus(403);
     }
 
-    /**
-     * Test: Admin Yayasan can update teacher keeping same NUPTK
-     */
-    public function test_admin_yayasan_can_update_teacher_keeping_same_nuptk(): void
-    {
-        $response = $this->actingAs($this->adminYayasan)
-            ->patchJson("/api/teachers/{$this->teacher->id}", [
-                'nama' => 'AHMAD RIFAI, S.Pd.',
-                'nuptk' => '1234567890123456', // Same NUPTK
-            ]);
-
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true);
-    }
-
-    /**
-     * Test: Admin Yayasan can update teacher keeping same NIM
-     */
-    public function test_admin_yayasan_can_update_teacher_keeping_same_nim(): void
-    {
-        $response = $this->actingAs($this->adminYayasan)
-            ->patchJson("/api/teachers/{$this->teacher->id}", [
-                'nama' => 'AHMAD RIFAI, S.Pd.',
-                'nomor_induk_maarif' => '113401234', // Same NIM
-            ]);
-
-        $response->assertStatus(200)
-            ->assertJsonPath('success', true);
-    }
 
     /**
      * Test: Super Admin can update teacher

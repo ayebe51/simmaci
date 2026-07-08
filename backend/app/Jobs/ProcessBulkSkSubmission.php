@@ -237,56 +237,37 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 }
 
                 // Protect against data-entry typos: if identifier matches but name is completely different, don't overwrite!
+                // Protect against data-entry typos or cross-school conflicts.
                 if ($teacher) {
-                    // VALIDASI LINTAS SEKOLAH (Mencegah pencurian profil / Ghost SK)
-                    if ($teacher->school_id !== $schoolId) {
-                        $seq++;
-                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                        $createdDoc = SkDocument::create([
-                            'nomor_sk'         => $nomorSk,
-                            'nama'             => $doc['nama'],
-                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
-                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
-                            'school_id'        => $schoolId,
-                            'status'           => 'rejected',
-                            'rejection_reason' => 'NIM/NIP sudah terdaftar di unit kerja lain. Pengajuan ditolak untuk mencegah penimpaan profil (Ghost SK).',
-                            'created_by'       => $this->userEmail,
-                            'tanggal_penetapan'=> now()->format('Y-m-d'),
-                        ]);
-                        \App\Models\ApprovalHistory::create([
-                            'school_id' => $schoolId,
-                            'document_id' => $createdDoc->id,
-                            'document_type' => 'sk_document',
-                            'action' => 'reject',
-                            'from_status' => 'pending',
-                            'to_status' => 'rejected',
-                            'performed_by' => null,
-                            'performed_at' => now(),
-                            'comment' => 'Ditolak otomatis oleh sistem',
-                            'metadata' => ['rejection_reason' => 'NIM/NIP sudah terdaftar di unit kerja lain. Pengajuan ditolak untuk mencegah penimpaan profil (Ghost SK).'],
-                        ]);
-                        $skipped++;
-                        $rejectedRows[] = [
-                            'nama'   => $doc['nama'] ?? 'unknown',
-                            'alasan' => 'NIM/NIP sudah terdaftar di unit kerja lain (Mencegah Ghost SK).',
-                        ];
-                        continue;
-                    }
-
+                    $isDifferentSchool = ($teacher->school_id !== $schoolId);
+                    $isDifferentName = false;
+                    
                     $excelBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
                     $dbBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacher->nama)['name']), 'UTF-8');
                     
                     if ($excelBareName !== '' && $dbBareName !== '') {
                         similar_text($excelBareName, $dbBareName, $percent);
                         if ($percent < 60) {
-                            // Kita kembali ke Bypass: Jika namanya beda, kita buatkan profil baru!
-                            $teacher = null;
+                            $isDifferentName = true;
                         }
                     }
-                    
-                    // Bangkitkan dari tong sampah jika cocok (hanya jika namanya match >= 60%)
-                    if ($teacher && $teacher->trashed()) {
-                        $teacher->restore();
+
+                    if ($isDifferentSchool || $isDifferentName) {
+                        // Permintaan User: "ketika terdeteksi nim ada yang sama dengan di database, 
+                        // tetap diterima saja, tapi nim dikosongkan"
+                        // Kita kosongkan semua identifier yang berpotensi konflik agar tidak bentrok
+                        $teacherData['nomor_induk_maarif'] = null;
+                        if ($nimWasSynced) $teacherData['nip'] = null;
+                        
+                        if (isset($teacherData['nuptk']) && $teacher->nuptk === $teacherData['nuptk']) $teacherData['nuptk'] = null;
+                        if (isset($teacherData['nip']) && $teacher->nip === $teacherData['nip']) $teacherData['nip'] = null;
+                        
+                        $teacher = null; // Putuskan hubungan, perlakukan sebagai guru baru (atau dicari dari nama)
+                    } else {
+                        // Jika sekolah dan nama cocok, bangkitkan dari tong sampah jika perlu
+                        if ($teacher->trashed()) {
+                            $teacher->restore();
+                        }
                     }
                 }
 

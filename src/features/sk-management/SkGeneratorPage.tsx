@@ -1213,7 +1213,7 @@ export default function SkGeneratorPage() {
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">TTL</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">TMT</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Unit Kerja</TableHead>
-                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jenis SK</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Pendidikan Terakhir</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-right pr-8">Surat Permohonan</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -1250,7 +1250,7 @@ export default function SkGeneratorPage() {
                                     {t.tmt || t.teacher?.tmt ? new Date(t.tmt || t.teacher?.tmt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}
                                 </TableCell>
                                 <TableCell className="text-xs text-slate-600 font-bold">{t.unit_kerja || "-"}</TableCell>
-                                <TableCell className="text-xs text-slate-500 font-medium">{t.jenis_sk || "-"}</TableCell>
+                                <TableCell className="text-xs text-slate-500 font-medium">{t.pendidikan_terakhir || t.teacher?.pendidikan_terakhir || "-"}</TableCell>
                                 <TableCell className="text-right pr-8">
                                     <div className="text-[10px] text-slate-500 mb-1 font-medium">
                                         {t.nomor_permohonan || "-"} • {t.tanggal_permohonan ? new Date(t.tanggal_permohonan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : "-"}

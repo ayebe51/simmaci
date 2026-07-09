@@ -23,7 +23,7 @@ class CheckDuplicateNim extends Command
             ->where('nomor_induk_maarif', '!=', '')
             ->where('nomor_induk_maarif', '!=', '-')
             ->groupBy('nomor_induk_maarif')
-            ->having('count', '>', 1)
+            ->havingRaw('COUNT(*) > 1')
             ->get();
 
         if ($teacherDups->isEmpty()) {

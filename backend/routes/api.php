@@ -1,11 +1,105 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\StudentController;
+
+Route::get('/temp-check-nim', function () {
+    $teacherDups = \App\Models\Teacher::select('nomor_induk_maarif', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
+        ->whereNotNull('nomor_induk_maarif')
+        ->where('nomor_induk_maarif', '!=', '')
+        ->where('nomor_induk_maarif', '!=', '-')
+        ->groupBy('nomor_induk_maarif')
+        ->having('count', '>', 1)
+        ->get();
+    
+    $result = "=== GURU ===\n";
+    foreach ($teacherDups as $dup) {
+        $result .= $dup->nomor_induk_maarif . " (" . $dup->count . " data)\n";
+        $teachers = \App\Models\Teacher::with('school')->where('nomor_induk_maarif', $dup->nomor_induk_maarif)->get();
+        foreach ($teachers as $t) {
+            $schoolName = $t->school ? $t->school->nama : 'Tanpa Sekolah';
+            $result .= "  > [ID: {$t->id}] {$t->nama} - {$schoolName}\n";
+        }
+    }
+    
+    $schoolDups = \App\Models\School::select('kepala_nim', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
+        ->whereNotNull('kepala_nim')
+        ->where('kepala_nim', '!=', '')
+        ->where('kepala_nim', '!=', '-')
+        ->groupBy('kepala_nim')
+        ->having('count', '>', 1)
+        ->get();
+        
+    $result .= "\n=== SEKOLAH ===\n";
+    foreach ($schoolDups as $dup) {
+        $result .= $dup->kepala_nim . " (" . $dup->count . " data)\n";
+        $schools = \App\Models\School::where('kepala_nim', $dup->kepala_nim)->get();
+        foreach ($schools as $s) {
+            $result .= "  > [ID: {$s->id}] {$s->nama} (Kepala: {$s->kepala_madrasah})\n";
+        }
+    }
+    
+    return response($result)->header('Content-Type', 'text/plain');
+});
+
+Route::get('/temp-fix-missing-teachers', function () {
+    // Cari semua SK yang guru-nya sudah terhapus (soft delete)
+    $restored = 0;
+    $result = "Memeriksa Guru yang terkait SK namun berstatus soft-delete...\n";
+    
+    $sks = \App\Models\SkDocument::withoutGlobalScopes()->whereNotNull('teacher_id')->get();
+    foreach ($sks as $sk) {
+        $teacher = \App\Models\Teacher::withoutGlobalScopes()->withTrashed()->find($sk->teacher_id);
+        if ($teacher && $teacher->trashed()) {
+            $teacher->restore();
+            $result .= "♻️ [RESTORED] Guru dipulihkan: {$teacher->nama} (ID: {$teacher->id}, SK ID: {$sk->id})\n";
+            $restored++;
+        }
+    }
+    
+    // Juga cek yang yatim dan create baru jika belum ada
+    $orphanedSks = \App\Models\SkDocument::withoutGlobalScopes()->whereNull('teacher_id')->get();
+    $created = 0;
+    
+    foreach ($orphanedSks as $sk) {
+        if (!$sk->school_id || !$sk->nama) continue;
+        
+        $teacher = \App\Models\Teacher::withoutGlobalScopes()->withTrashed()
+            ->where("nama", $sk->nama)
+            ->where("school_id", $sk->school_id)
+            ->first();
+            
+        if ($teacher) {
+            if ($teacher->trashed()) {
+                $teacher->restore();
+                $result .= "♻️ [RESTORED & LINKED] Guru yatim dipulihkan: {$teacher->nama} (ID: {$teacher->id})\n";
+                $restored++;
+            }
+        } else {
+            $teacher = \App\Models\Teacher::create([
+                "nama" => $sk->nama,
+                "school_id" => $sk->school_id,
+                "unit_kerja" => $sk->unit_kerja,
+                "status" => "Draft", // status kepegawaian default
+                "is_verified" => false,
+                "is_active" => true,
+            ]);
+            $result .= "✅ [CREATED & LINKED] Guru baru dibuat: {$teacher->nama} (ID: {$teacher->id})\n";
+            $created++;
+        }
+        
+        $sk->teacher_id = $teacher->id;
+        $sk->save();
+    }
+
+    $result .= "\nSelesai. Total Dipulihkan: {$restored}, Total Dibuat Baru: {$created}\n";
+    return response($result)->header('Content-Type', 'text/plain');
+});
+
+use Illuminate\Http\Request;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SkDocumentController;

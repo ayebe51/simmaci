@@ -668,8 +668,9 @@ class SkDocumentController extends Controller
             // Block SK submission for non-RA schools (MI, MTs, MA, dll)
             $detectedJenjang = $this->detectJenjang($school, $data['unit_kerja']);
             if (in_array($detectedJenjang, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
-                // Pengecualian untuk MI Ma'arif 01 Sidaurip
-                if (stripos($data['unit_kerja'], 'sidaurip') === false) {
+                // Pengecualian untuk MI Ma'arif 01 Sidaurip dan MI Maarif 10 Mergawati
+                $isException = stripos($data['unit_kerja'], 'sidaurip') !== false || stripos($data['unit_kerja'], 'mergawati') !== false;
+                if (!$isException) {
                     return response()->json([
                         'message' => "Pengajuan SK untuk jenjang {$detectedJenjang} saat ini sudah ditutup. Pengajuan hanya dibuka untuk jenjang RA.",
                     ], 422);

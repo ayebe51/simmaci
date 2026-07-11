@@ -13,7 +13,7 @@ class SyncSkNames extends Command
      *
      * @var string
      */
-    protected $signature = 'sk:sync-names';
+    protected $signature = 'sk:sync-names {--dry-run : Lakukan simulasi tanpa menyimpan perubahan ke database}';
 
     /**
      * The console command description.
@@ -27,6 +27,12 @@ class SyncSkNames extends Command
      */
     public function handle()
     {
+        $isDryRun = $this->option('dry-run');
+
+        if ($isDryRun) {
+            $this->warn('--- DRY RUN MODE AKTIF --- (Tidak ada data yang diubah di database)');
+        }
+
         $this->info('Memulai sinkronisasi nama pengajuan SK dengan profil guru (beserta gelar)...');
         
         $sks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
@@ -42,16 +48,24 @@ class SyncSkNames extends Command
                 if ($sk->nama !== $sk->teacher->nama) {
                     $oldName = $sk->nama;
                     $sk->nama = $sk->teacher->nama;
-                    $sk->save();
+                    
+                    if (!$isDryRun) {
+                        $sk->save();
+                    }
                     $updatedCount++;
                     
-                    $this->line("- Mengupdate: {$oldName} -> {$sk->teacher->nama}");
+                    $this->line("- " . ($isDryRun ? "[DRY RUN] Akan mengupdate: " : "Mengupdate: ") . "{$oldName} -> {$sk->teacher->nama}");
                 }
             }
         }
         
         $this->info('');
         $this->info("✅ PROSES SELESAI!");
-        $this->info("Total data SK yang berhasil disinkronkan namanya: {$updatedCount}");
+        
+        if ($isDryRun) {
+            $this->info("Total data SK yang BISA disinkronkan namanya: {$updatedCount}");
+        } else {
+            $this->info("Total data SK yang berhasil disinkronkan namanya: {$updatedCount}");
+        }
     }
 }

@@ -102,10 +102,6 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 $doc['unit_kerja'] = $normalizationService->normalizeSchoolName($doc['unit_kerja'] ?? null);
                 $doc['nama'] = $normalizationService->normalizeTeacherName($doc['nama']);
 
-                // Enrich name with degrees from Teacher record if the submitted name lacks them.
-                $schoolIdForEnrich = $this->userRole === 'operator' ? $this->userSchoolId : null;
-                $doc['nama'] = $normalizationService->enrichNameFromTeacher($doc['nama'], $schoolIdForEnrich);
-
                 $schoolId = null;
 
                 // Force user's school if operator
@@ -125,6 +121,9 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     }
                     $schoolId = $schoolCache[$doc['unit_kerja']];
                 }
+
+                // Enrich name with degrees from Teacher record if the submitted name lacks them.
+                $doc['nama'] = $normalizationService->enrichNameFromTeacher($doc['nama'], $schoolId);
 
                 // --- Duplicate submission guard ---
                 $nowYear  = (int) now()->format('Y');

@@ -635,11 +635,6 @@ class SkDocumentController extends Controller
             $data['unit_kerja'] = $this->normalizationService->normalizeSchoolName($data['unit_kerja']);
             $data['nama'] = $this->normalizationService->normalizeTeacherName($data['nama']);
 
-            // Enrich name with degrees from Teacher record if the submitted name lacks them.
-            // e.g. "MAILID" → "MAILID, S.Pd." when the Teacher DB has the full name.
-            $schoolIdForEnrich = $request->user()->role === 'operator' ? $request->user()->school_id : null;
-            $data['nama'] = $this->normalizationService->enrichNameFromTeacher($data['nama'], $schoolIdForEnrich);
-
             // Track normalization changes for activity logging
             $normalizationChanges = [];
             if ($originalUnitKerja !== $data['unit_kerja']) {
@@ -665,6 +660,19 @@ class SkDocumentController extends Controller
             // Case-insensitive school lookup with normalized name
             $school = School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->first();
             
+            // Use database-agnostic case-insensitive comparison
+            $schoolId = $school?->id;
+
+            // Force school_id for operators
+            if ($request->user()->role === 'operator') {
+                $schoolId = $request->user()->school_id;
+            }
+            $data['school_id'] = $schoolId;
+
+            // Enrich name with degrees from Teacher record if the submitted name lacks them.
+            // e.g. "MAILID" → "MAILID, S.Pd." when the Teacher DB has the full name.
+            $data['nama'] = $this->normalizationService->enrichNameFromTeacher($data['nama'], $schoolId);
+
             // Block SK submission for non-RA schools (MI, MTs, MA, dll)
             $detectedJenjang = $this->detectJenjang($school, $data['unit_kerja']);
             if (in_array($detectedJenjang, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
@@ -685,9 +693,7 @@ class SkDocumentController extends Controller
                     'nama'                 => $data['nama'],
                     'jenis_sk'             => $data['jenis_sk'],
                     'unit_kerja'           => $data['unit_kerja'],
-                    'school_id'            => $request->user()->role === 'operator'
-                                                ? $request->user()->school_id
-                                                : (School::whereRaw('LOWER(nama) = LOWER(?)', [$data['unit_kerja']])->value('id')),
+                    'school_id'            => $schoolId,
                     'surat_permohonan_url' => $data['surat_permohonan_url'],
                     'status'               => 'rejected',
                     'rejection_reason'     => 'PTK berstatus PNS tidak dapat mengajukan SK melalui yayasan.',
@@ -699,15 +705,6 @@ class SkDocumentController extends Controller
                     'sk'      => $sk,
                 ], 422);
             }
-
-            // Use database-agnostic case-insensitive comparison
-            $schoolId = $school?->id;
-
-            // Force school_id for operators
-            if ($request->user()->role === 'operator') {
-                $schoolId = $request->user()->school_id;
-            }
-            $data['school_id'] = $schoolId;
 
             // --- Duplicate submission guard ---
             // Tahun ajaran selalu mengacu ke tahun berjalan → tahun berikutnya.

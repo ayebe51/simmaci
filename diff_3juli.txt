@@ -1,0 +1,1055 @@
+﻿commit ad075ec95e2e7d6f49d68bd64bed01dbb25b0b11
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 15:32:07 2026 +0700
+
+    feat(commands): add SyncSkNames command to sync SK names with teacher profiles
+
+diff --git a/backend/app/Console/Commands/SyncSkNames.php b/backend/app/Console/Commands/SyncSkNames.php
+new file mode 100644
+index 0000000..cf4eadc
+--- /dev/null
++++ b/backend/app/Console/Commands/SyncSkNames.php
+@@ -0,0 +1,57 @@
++<?php
++
++namespace App\Console\Commands;
++
++use Illuminate\Console\Command;
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++class SyncSkNames extends Command
++{
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'sk:sync-names';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Sync nama di sk_documents dengan nama lengkap beserta gelar di teachers';
++
++    /**
++     * Execute the console command.
++     */
++    public function handle()
++    {
++        $this->info('Memulai sinkronisasi nama pengajuan SK dengan profil guru (beserta gelar)...');
++        
++        $sks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++            ->whereNotNull('teacher_id')
++            ->with('teacher:id,nama')
++            ->get();
++            
++        $updatedCount = 0;
++        
++        foreach ($sks as $sk) {
++            if ($sk->teacher && $sk->teacher->nama) {
++                // Check if names are different
++                if ($sk->nama !== $sk->teacher->nama) {
++                    $oldName = $sk->nama;
++                    $sk->nama = $sk->teacher->nama;
++                    $sk->save();
++                    $updatedCount++;
++                    
++                    $this->line("- Mengupdate: {$oldName} -> {$sk->teacher->nama}");
++                }
++            }
++        }
++        
++        $this->info('');
++        $this->info("Γ£à PROSES SELESAI!");
++        $this->info("Total data SK yang berhasil disinkronkan namanya: {$updatedCount}");
++    }
++}
+
+commit 68db3a5ef6c4641c01022e9e6ec55b07e91233c8
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 15:29:07 2026 +0700
+
+    fix(commands): prioritize pending SKs with files when cleaning duplicates
+
+diff --git a/backend/app/Console/Commands/CleanDuplicatePendingSks.php b/backend/app/Console/Commands/CleanDuplicatePendingSks.php
+index 194422a..49d2c8e 100644
+--- a/backend/app/Console/Commands/CleanDuplicatePendingSks.php
++++ b/backend/app/Console/Commands/CleanDuplicatePendingSks.php
+@@ -59,15 +59,41 @@ public function handle()
+                 ->orderBy('created_at', 'desc')
+                 ->get();
+                 
+-            // We want to KEEP the one that has nomor_permohonan filled (or the latest one if none have it)
++            // We want to KEEP the one that has the most data:
++            // 1. Has file_url (PDF generated)
++            // 2. Has surat_permohonan_url (Uploaded letter)
++            // 3. Has nomor_permohonan
+             $keep = null;
++            
++            // Priority 1: file_url
+             foreach ($pendingSks as $sk) {
+-                if (!empty($sk->nomor_permohonan)) {
++                if (!empty($sk->file_url)) {
+                     $keep = $sk;
+                     break;
+                 }
+             }
+             
++            // Priority 2: surat_permohonan_url
++            if (!$keep) {
++                foreach ($pendingSks as $sk) {
++                    if (!empty($sk->surat_permohonan_url)) {
++                        $keep = $sk;
++                        break;
++                    }
++                }
++            }
++            
++            // Priority 3: nomor_permohonan
++            if (!$keep) {
++                foreach ($pendingSks as $sk) {
++                    if (!empty($sk->nomor_permohonan)) {
++                        $keep = $sk;
++                        break;
++                    }
++                }
++            }
++            
++            // Priority 4: just the newest one
+             if (!$keep) {
+                 $keep = $pendingSks->first();
+             }
+
+commit a81527eb4a075664a5100c9142eb7ac4bd041a32
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 14:59:18 2026 +0700
+
+    fix(frontend): exclude REQ SKs from Arsip SK Unit
+
+diff --git a/src/features/sk-management/MySkPage.tsx b/src/features/sk-management/MySkPage.tsx
+index da4cfa2..e0d2ef8 100644
+--- a/src/features/sk-management/MySkPage.tsx
++++ b/src/features/sk-management/MySkPage.tsx
+@@ -50,7 +50,8 @@ export default function MySkPage() {
+       status: 'approved',
+       search: searchTerm,
+       page: skPage,
+-      per_page: 10
++      per_page: 10,
++      exclude_req_nomor: true
+     })
+   })
+ 
+
+commit 4a72b09a555cd4ab2a9d75e2a94bd8a580e5a893
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 14:55:10 2026 +0700
+
+    feat(commands): add CleanDuplicatePendingSks command
+
+diff --git a/backend/app/Console/Commands/CleanDuplicatePendingSks.php b/backend/app/Console/Commands/CleanDuplicatePendingSks.php
+new file mode 100644
+index 0000000..194422a
+--- /dev/null
++++ b/backend/app/Console/Commands/CleanDuplicatePendingSks.php
+@@ -0,0 +1,89 @@
++<?php
++
++namespace App\Console\Commands;
++
++use Illuminate\Console\Command;
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++class CleanDuplicatePendingSks extends Command
++{
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'sk:clean-pending';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Clean duplicate pending SKs in the generator queue for the same teacher and jenis_sk';
++
++    /**
++     * Execute the console command.
++     */
++    public function handle()
++    {
++        $this->info('Mencari pengajuan SK ganda yang masih mengantre di Generator (belum dicetak)...');
++        
++        // Find teachers who have more than 1 pending SK of the same jenis_sk
++        $duplicates = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++            ->where(function ($q) {
++                $q->whereNull('file_url')->orWhere('file_url', '')
++                  ->orWhere('nomor_sk', 'like', 'REQ/%')
++                  ->orWhere('nomor_sk', 'like', 'DRAFT-%');
++            })
++            ->select('teacher_id', 'jenis_sk', DB::raw('COUNT(*) as count'))
++            ->whereNotNull('teacher_id')
++            ->groupBy('teacher_id', 'jenis_sk')
++            ->havingRaw('COUNT(*) > 1')
++            ->get();
++
++        $deletedCount = 0;
++        
++        foreach ($duplicates as $dup) {
++            $teacherName = DB::table('teachers')->where('id', $dup->teacher_id)->value('nama') ?? 'Guru ID ' . $dup->teacher_id;
++            
++            // Get all pending SKs for this teacher & jenis_sk
++            $pendingSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++                ->where('teacher_id', $dup->teacher_id)
++                ->where('jenis_sk', $dup->jenis_sk)
++                ->where(function ($q) {
++                    $q->whereNull('file_url')->orWhere('file_url', '')
++                      ->orWhere('nomor_sk', 'like', 'REQ/%')
++                      ->orWhere('nomor_sk', 'like', 'DRAFT-%');
++                })
++                ->orderBy('created_at', 'desc')
++                ->get();
++                
++            // We want to KEEP the one that has nomor_permohonan filled (or the latest one if none have it)
++            $keep = null;
++            foreach ($pendingSks as $sk) {
++                if (!empty($sk->nomor_permohonan)) {
++                    $keep = $sk;
++                    break;
++                }
++            }
++            
++            if (!$keep) {
++                $keep = $pendingSks->first();
++            }
++            
++            // Delete the rest
++            foreach ($pendingSks as $sk) {
++                if ($sk->id !== $keep->id) {
++                    $sk->delete();
++                    $deletedCount++;
++                    $this->line("- Menghapus antrean ganda (Kosong) untuk: {$teacherName} ({$dup->jenis_sk})");
++                }
++            }
++        }
++
++        $this->info('');
++        $this->info("Γ£à PROSES SELESAI!");
++        $this->info("Total Antrean SK ganda yang belum dicetak yang berhasil dibersihkan: {$deletedCount}");
++    }
++}
+
+commit 2a1c6f4fae4749185720590e159529813b4fcd88
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 14:23:31 2026 +0700
+
+    fix(commands): allow deduplication of SKs with null tahun_ajaran
+
+diff --git a/backend/app/Console/Commands/RestoreTeacherData.php b/backend/app/Console/Commands/RestoreTeacherData.php
+index 8cb2729..9e09125 100644
+--- a/backend/app/Console/Commands/RestoreTeacherData.php
++++ b/backend/app/Console/Commands/RestoreTeacherData.php
+@@ -184,11 +184,14 @@ public function handle()
+         $deduplicatedCount = 0;
+ 
+         foreach ($printedSks as $printedSk) {
+-            // Find unprinted (REQ/DRAFT) SKs for the same teacher, same jenis_sk, AND same tahun_ajaran
++            // Find unprinted (REQ/DRAFT) SKs for the same teacher, same jenis_sk
+             $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                 ->where('id', '!=', $printedSk->id)
+                 ->where('jenis_sk', $printedSk->jenis_sk)
+-                ->where('tahun_ajaran', $printedSk->tahun_ajaran)
++                ->where(function ($q) use ($printedSk) {
++                    $q->where('tahun_ajaran', $printedSk->tahun_ajaran)
++                      ->orWhereNull('tahun_ajaran');
++                })
+                 ->where(function ($q) {
+                     $q->whereNull('file_url')->orWhere('file_url', '')
+                       ->orWhere('nomor_sk', 'like', 'REQ/%')
+
+commit b5942cd1d092999c85458653abed64272e18ea1b
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 13:50:06 2026 +0700
+
+    fix(commands): fix overzealous deduplication deleting pending SKs from different years
+
+diff --git a/backend/app/Console/Commands/RestoreTeacherData.php b/backend/app/Console/Commands/RestoreTeacherData.php
+index 06010e1..8cb2729 100644
+--- a/backend/app/Console/Commands/RestoreTeacherData.php
++++ b/backend/app/Console/Commands/RestoreTeacherData.php
+@@ -177,16 +177,18 @@ public function handle()
+         $printedSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+             ->whereNotNull('file_url')
+             ->where('file_url', '!=', '')
+-            ->whereNotIn('nomor_sk', ['REQ/%', 'DRAFT-%']) // Ensure it's a real SK number
++            ->where('nomor_sk', 'not like', 'REQ/%')
++            ->where('nomor_sk', 'not like', 'DRAFT-%')
+             ->get();
+ 
+         $deduplicatedCount = 0;
+ 
+         foreach ($printedSks as $printedSk) {
+-            // Find unprinted (REQ/DRAFT) SKs for the same teacher and same jenis_sk
++            // Find unprinted (REQ/DRAFT) SKs for the same teacher, same jenis_sk, AND same tahun_ajaran
+             $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                 ->where('id', '!=', $printedSk->id)
+                 ->where('jenis_sk', $printedSk->jenis_sk)
++                ->where('tahun_ajaran', $printedSk->tahun_ajaran)
+                 ->where(function ($q) {
+                     $q->whereNull('file_url')->orWhere('file_url', '')
+                       ->orWhere('nomor_sk', 'like', 'REQ/%')
+
+commit 548f5b93ad2323e940c1b707003c53e97890800c
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 13:30:26 2026 +0700
+
+    fix(commands): fix pgsql invalid datetime format error when querying tanggal_permohonan
+
+diff --git a/backend/app/Console/Commands/RestoreTeacherData.php b/backend/app/Console/Commands/RestoreTeacherData.php
+index c69fdc6..06010e1 100644
+--- a/backend/app/Console/Commands/RestoreTeacherData.php
++++ b/backend/app/Console/Commands/RestoreTeacherData.php
+@@ -128,8 +128,7 @@ public function handle()
+             ->where(function ($q) {
+                 $q->whereNull('nomor_permohonan')
+                   ->orWhere('nomor_permohonan', '')
+-                  ->orWhereNull('tanggal_permohonan')
+-                  ->orWhere('tanggal_permohonan', '');
++                  ->orWhereNull('tanggal_permohonan');
+             })
+             ->get();
+ 
+
+commit 8f403fdfc3928c6562dceec4c869718c7f68f9e7
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:50:52 2026 +0700
+
+    feat(commands): add SK document deduplication and permohonan restoration to teacher:restore-data command
+
+diff --git a/backend/app/Console/Commands/RestoreTeacherData.php b/backend/app/Console/Commands/RestoreTeacherData.php
+index 7a0d8d0..c69fdc6 100644
+--- a/backend/app/Console/Commands/RestoreTeacherData.php
++++ b/backend/app/Console/Commands/RestoreTeacherData.php
+@@ -120,9 +120,101 @@ public function handle()
+             }
+         }
+ 
++        // === PART 2: RESTORE MISSING SK DOCUMENT DATA ===
++        $this->info('');
++        $this->info('Memulai proses pemulihan data pengajuan SK yang hilang...');
++        $activeSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++            ->whereNull('deleted_at')
++            ->where(function ($q) {
++                $q->whereNull('nomor_permohonan')
++                  ->orWhere('nomor_permohonan', '')
++                  ->orWhereNull('tanggal_permohonan')
++                  ->orWhere('tanggal_permohonan', '');
++            })
++            ->get();
++
++        $recoveredSkFieldsCount = 0;
++        foreach ($activeSks as $sk) {
++            // Find soft-deleted SKs for the same teacher (or same name/school_id if teacher_id is null)
++            $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)->onlyTrashed();
++            
++            if ($sk->teacher_id) {
++                $query->where('teacher_id', $sk->teacher_id);
++            } else {
++                $query->where(DB::raw('LOWER(TRIM(nama))'), strtolower(trim($sk->nama)))
++                      ->where('school_id', $sk->school_id);
++            }
++
++            $deletedSkMatches = $query->get();
++            $restoredSkFields = [];
++
++            foreach ($deletedSkMatches as $deletedSk) {
++                if (empty($sk->nomor_permohonan) && !empty($deletedSk->nomor_permohonan)) {
++                    $sk->nomor_permohonan = $deletedSk->nomor_permohonan;
++                    $restoredSkFields[] = 'Nomor Permohonan';
++                }
++                if (empty($sk->tanggal_permohonan) && !empty($deletedSk->tanggal_permohonan)) {
++                    $sk->tanggal_permohonan = $deletedSk->tanggal_permohonan;
++                    $restoredSkFields[] = 'Tanggal Permohonan';
++                }
++                if (empty($sk->surat_permohonan_url) && !empty($deletedSk->surat_permohonan_url)) {
++                    $sk->surat_permohonan_url = $deletedSk->surat_permohonan_url;
++                    $restoredSkFields[] = 'Surat Permohonan URL';
++                }
++            }
++
++            if (count($restoredSkFields) > 0) {
++                $sk->save();
++                $recoveredSkFieldsCount++;
++                $this->line("- Berhasil memulihkan [" . implode(', ', array_unique($restoredSkFields)) . "] untuk SK: {$sk->nama}");
++            }
++        }
++
++        // === PART 3: DEDUPLICATE PENDING SK DOCUMENTS ===
++        $this->info('');
++        $this->info('Memulai proses pembersihan antrean SK ganda (Deduplikasi)...');
++        
++        // Find all teachers who have a printed SK (file_url is not null)
++        $printedSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++            ->whereNotNull('file_url')
++            ->where('file_url', '!=', '')
++            ->whereNotIn('nomor_sk', ['REQ/%', 'DRAFT-%']) // Ensure it's a real SK number
++            ->get();
++
++        $deduplicatedCount = 0;
++
++        foreach ($printedSks as $printedSk) {
++            // Find unprinted (REQ/DRAFT) SKs for the same teacher and same jenis_sk
++            $query = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++                ->where('id', '!=', $printedSk->id)
++                ->where('jenis_sk', $printedSk->jenis_sk)
++                ->where(function ($q) {
++                    $q->whereNull('file_url')->orWhere('file_url', '')
++                      ->orWhere('nomor_sk', 'like', 'REQ/%')
++                      ->orWhere('nomor_sk', 'like', 'DRAFT-%');
++                });
++                
++            if ($printedSk->teacher_id) {
++                $query->where('teacher_id', $printedSk->teacher_id);
++            } else {
++                $query->where(DB::raw('LOWER(TRIM(nama))'), strtolower(trim($printedSk->nama)))
++                      ->where('school_id', $printedSk->school_id);
++            }
++
++            $duplicateUnprinted = $query->get();
++
++            foreach ($duplicateUnprinted as $dup) {
++                $dup->delete(); // Soft delete the duplicate pending request
++                $deduplicatedCount++;
++                $this->line("- Menghapus SK Ganda di antrean untuk: {$dup->nama} ({$dup->jenis_sk})");
++            }
++        }
++
+         $this->info('');
+         $this->info("Γ£à PROSES SELESAI!");
+         $this->info("Total Guru yang berhasil diselamatkan datanya: {$recoveredCount}");
+-        $this->info("Total Dokumen SK yang berhasil dikaitkan ulang: {$recoveredSkCount}");
++        $this->info("Total Dokumen SK yang berhasil dikaitkan ulang ke guru: {$recoveredSkCount}");
++        $this->info("Total Dokumen SK yang berhasil dipulihkan data permohonannya: {$recoveredSkFieldsCount}");
++        $this->info("Total Antrean SK ganda yang berhasil dibersihkan: {$deduplicatedCount}");
+     }
+ }
+
+commit f9590d2d2ef3a6c252100318c1895b1283d14687
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:44:28 2026 +0700
+
+    fix(sk-management): update MySkPage download logic to use sk_templates instead of settings table to fix corrupted ZIP errors
+
+diff --git a/src/features/sk-management/MySkPage.tsx b/src/features/sk-management/MySkPage.tsx
+index 7801e34..da4cfa2 100644
+--- a/src/features/sk-management/MySkPage.tsx
++++ b/src/features/sk-management/MySkPage.tsx
+@@ -7,7 +7,7 @@ import { Download, FileText, Search, Loader2 } from "lucide-react"
+ import { useState, useMemo } from "react"
+ import { Input } from "@/components/ui/input"
+ import { useQuery } from "@tanstack/react-query"
+-import { skApi, headmasterApi, authApi, settingApi, getFileUrl } from "@/lib/api"
++import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/api"
+ import { getSkVerificationUrl } from "@/utils/verification"
+ 
+ // DOCX Generation Imports
+@@ -67,17 +67,25 @@ export default function MySkPage() {
+     try {
+       const teacherData = sk.teacher || {}
+       const jenis = (sk.jenis_sk || "").toLowerCase()
+-      let templateId = "sk_template_tendik"
+-      if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "sk_template_gty";
+-      else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "sk_template_gtt";
+-      else if (jenis.includes("kepala") || jenis.includes("kamad")) templateId = "sk_template_kamad_nonpns";
++      let templateId = "tendik"
++      if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "gty";
++      else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "gtt";
++      else if (jenis.includes("kepala") || jenis.includes("kamad")) templateId = "kamad";
+ 
+-      const res = await settingApi.get(templateId)
+-      if (!res?.value) throw new Error("Template tidak ditemukan")
++      let fileUrl = `/templates/sk-${templateId}-template.docx`;
++      try {
++          const res = await skTemplateApi.getActive(templateId);
++          if (res?.file_url) {
++              fileUrl = getFileUrl(res.file_url);
++          }
++      } catch (err: any) {
++          if (err.response?.status !== 404) {
++              console.warn("Failed to fetch active template from db, falling back to static", err);
++          }
++      }
+ 
+-      const fileUrl = getFileUrl(res.value)
+       const resp = await fetch(fileUrl)
+-      if (!resp.ok) throw new Error("Gagal mengunduh file template")
++      if (!resp.ok) throw new Error(`Gagal mengunduh file template (${resp.status})`)
+       
+       const arrayBuffer = await resp.arrayBuffer()
+       const bytes = new Uint8Array(arrayBuffer)
+
+commit 33b90defd1b787addc619c55e0e6276919d0df22
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:25:12 2026 +0700
+
+    feat(commands): add teacher:restore-data command to recover missing TMT, TTL, NIM, and Unit Kerja from soft-deleted duplicate teachers
+
+diff --git a/backend/app/Console/Commands/RestoreTeacherData.php b/backend/app/Console/Commands/RestoreTeacherData.php
+new file mode 100644
+index 0000000..7a0d8d0
+--- /dev/null
++++ b/backend/app/Console/Commands/RestoreTeacherData.php
+@@ -0,0 +1,128 @@
++<?php
++
++namespace App\Console\Commands;
++
++use Illuminate\Console\Command;
++use App\Models\Teacher;
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++class RestoreTeacherData extends Command
++{
++    /**
++     * The name and signature of the console command.
++     *
++     * @var string
++     */
++    protected $signature = 'teacher:restore-data';
++
++    /**
++     * The console command description.
++     *
++     * @var string
++     */
++    protected $description = 'Restores missing NIM, TTL, TMT, and School ID from soft-deleted duplicate teachers';
++
++    /**
++     * Execute the console command.
++     */
++    public function handle()
++    {
++        $this->info('Memulai proses pemulihan data guru yang hilang...');
++
++        // Find active teachers missing crucial data
++        $activeTeachers = Teacher::whereNull('deleted_at')
++            ->where(function ($q) {
++                $q->whereNull('nomor_induk_maarif')
++                  ->orWhere('nomor_induk_maarif', '')
++                  ->orWhereNull('tmt')
++                  ->orWhere('tmt', '')
++                  ->orWhereNull('tempat_lahir')
++                  ->orWhere('tempat_lahir', '')
++                  ->orWhereNull('tanggal_lahir')
++                  ->orWhereNull('school_id');
++            })
++            ->get();
++
++        $this->info("Ditemukan {$activeTeachers->count()} guru aktif yang datanya tidak lengkap.");
++
++        $recoveredCount = 0;
++        $recoveredSkCount = 0;
++
++        foreach ($activeTeachers as $teacher) {
++            // Find soft-deleted duplicates with the same name
++            $deletedMatches = Teacher::onlyTrashed()
++                ->where(DB::raw('LOWER(TRIM(nama))'), strtolower(trim($teacher->nama)))
++                ->get();
++
++            if ($deletedMatches->isEmpty()) {
++                continue; // No deleted duplicate found to restore from
++            }
++
++            $restoredFields = [];
++
++            // Iterate over deleted matches to harvest missing data
++            foreach ($deletedMatches as $deleted) {
++                if (empty($teacher->nomor_induk_maarif) && !empty($deleted->nomor_induk_maarif)) {
++                    $teacher->nomor_induk_maarif = $deleted->nomor_induk_maarif;
++                    $restoredFields[] = 'NIM';
++                }
++                if (empty($teacher->tmt) && !empty($deleted->tmt)) {
++                    $teacher->tmt = $deleted->tmt;
++                    $restoredFields[] = 'TMT';
++                }
++                if (empty($teacher->tempat_lahir) && !empty($deleted->tempat_lahir)) {
++                    $teacher->tempat_lahir = $deleted->tempat_lahir;
++                    $restoredFields[] = 'Tempat Lahir';
++                }
++                if (empty($teacher->tanggal_lahir) && !empty($deleted->tanggal_lahir)) {
++                    $teacher->tanggal_lahir = $deleted->tanggal_lahir;
++                    $restoredFields[] = 'Tanggal Lahir';
++                }
++                if (empty($teacher->pendidikan_terakhir) && !empty($deleted->pendidikan_terakhir)) {
++                    $teacher->pendidikan_terakhir = $deleted->pendidikan_terakhir;
++                    $restoredFields[] = 'Pendidikan';
++                }
++                if (empty($teacher->school_id) && !empty($deleted->school_id)) {
++                    $teacher->school_id = $deleted->school_id;
++                    $restoredFields[] = 'Unit Kerja (School ID)';
++                }
++            }
++
++            if (count($restoredFields) > 0) {
++                $teacher->save();
++                $recoveredCount++;
++                $this->line("- Berhasil memulihkan [" . implode(', ', array_unique($restoredFields)) . "] untuk guru: {$teacher->nama}");
++            }
++
++            // Also check SK documents pointing to the deleted teachers and re-point them to the active teacher
++            foreach ($deletedMatches as $deleted) {
++                $affectedSks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
++                    ->where('teacher_id', $deleted->id)
++                    ->get();
++                
++                foreach ($affectedSks as $sk) {
++                    $sk->teacher_id = $teacher->id;
++                    
++                    // Also restore school_id and unit_kerja on SK if it's missing
++                    if (empty($sk->school_id) && !empty($teacher->school_id)) {
++                        $sk->school_id = $teacher->school_id;
++                        $schoolName = DB::table('schools')->where('id', $teacher->school_id)->value('nama');
++                        if ($schoolName) {
++                            $sk->unit_kerja = $schoolName;
++                        }
++                    }
++                    
++                    $sk->save();
++                    $recoveredSkCount++;
++                    $this->line("  -> SK ({$sk->nomor_sk}) berhasil dikaitkan ulang ke guru aktif ini.");
++                }
++            }
++        }
++
++        $this->info('');
++        $this->info("Γ£à PROSES SELESAI!");
++        $this->info("Total Guru yang berhasil diselamatkan datanya: {$recoveredCount}");
++        $this->info("Total Dokumen SK yang berhasil dikaitkan ulang: {$recoveredSkCount}");
++    }
++}
+
+commit 73488c86458042c9f61b4215cd27c4f0f04ebfe8
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:21:30 2026 +0700
+
+    fix(sk-management): revert filtering of incomplete data from generator so they can still receive SK numbers
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index bd7c056..affab6f 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -147,9 +147,8 @@ public function index(Request $request): JsonResponse
+         // Also compute is_guru_baru: TMT < 1 tahun AND belum punya NIM AND pengajuan manual
+         $oneYearAgo = now()->subYear()->toDateString();
+ 
+-        foreach ($paginated->items() as $sk) {
++        foreach ($paginated as $sk) {
+             $sk->makeHidden(['school_id']);
+-
+             $tmt = $sk->teacher?->tmt;
+             $nim = $sk->teacher?->nomor_induk_maarif;
+             $isManual = empty($sk->surat_permohonan_url);
+@@ -158,16 +157,6 @@ public function index(Request $request): JsonResponse
+             $sk->setAttribute('is_guru_baru', $isGuruBaru);
+         }
+ 
+-        if ($request->boolean('unprinted_only')) {
+-            $filteredItems = collect($paginated->items())->filter(function ($sk) {
+-                return !empty($sk->teacher?->tmt) &&
+-                       !empty($sk->teacher?->tempat_lahir) &&
+-                       !empty($sk->teacher?->tanggal_lahir);
+-            })->values();
+-            
+-            $paginated->setCollection($filteredItems);
+-        }
+-
+         return response()->json($paginated);
+     }
+ 
+
+commit 763a5781481b7fa3c078c5d919e9c81ed791b59f
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:19:14 2026 +0700
+
+    fix(sk-management): hide candidates with incomplete TTL or TMT from SK Generator to prevent broken templates
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index 30e4723..bd7c056 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -158,6 +158,16 @@ public function index(Request $request): JsonResponse
+             $sk->setAttribute('is_guru_baru', $isGuruBaru);
+         }
+ 
++        if ($request->boolean('unprinted_only')) {
++            $filteredItems = collect($paginated->items())->filter(function ($sk) {
++                return !empty($sk->teacher?->tmt) &&
++                       !empty($sk->teacher?->tempat_lahir) &&
++                       !empty($sk->teacher?->tanggal_lahir);
++            })->values();
++            
++            $paginated->setCollection($filteredItems);
++        }
++
+         return response()->json($paginated);
+     }
+ 
+
+commit d0b25f08666b20475239059699abba31ee8e3131
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:14:27 2026 +0700
+
+    fix(sk-management): explicitly sort SK generator candidates by created_at asc so older requests get lower numbers
+
+diff --git a/src/features/sk-management/SkGeneratorPage.tsx b/src/features/sk-management/SkGeneratorPage.tsx
+index c0f69d7..a2e7163 100644
+--- a/src/features/sk-management/SkGeneratorPage.tsx
++++ b/src/features/sk-management/SkGeneratorPage.tsx
+@@ -276,6 +276,8 @@ export default function SkGeneratorPage() {
+       search: searchTerm,
+       page: page,
+       per_page: itemsPerPage,
++      sort_by: 'created_at',
++      sort_dir: 'asc',
+       unprinted_only: true
+     })
+   })
+
+commit 70682ec08485365ad2ba6db7c7b215442373ddc5
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 11:01:12 2026 +0700
+
+    fix(sk-management): properly convert ArrayBuffer to binary string before passing to PizZip in MySkPage
+
+diff --git a/src/features/sk-management/MySkPage.tsx b/src/features/sk-management/MySkPage.tsx
+index 118c452..7801e34 100644
+--- a/src/features/sk-management/MySkPage.tsx
++++ b/src/features/sk-management/MySkPage.tsx
+@@ -80,6 +80,12 @@ export default function MySkPage() {
+       if (!resp.ok) throw new Error("Gagal mengunduh file template")
+       
+       const arrayBuffer = await resp.arrayBuffer()
++      const bytes = new Uint8Array(arrayBuffer)
++      let binary = ''
++      for (let b = 0; b < bytes.byteLength; b++) {
++          binary += String.fromCharCode(bytes[b])
++      }
++
+       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
+       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
+ 
+@@ -91,7 +97,7 @@ export default function MySkPage() {
+         qrcode: qrDataUrl
+       }
+ 
+-      const pzip = new PizZip(arrayBuffer)
++      const pzip = new PizZip(binary)
+       const doc = new Docxtemplater(pzip, {
+         paragraphLoop: true,
+         linebreaks: true,
+
+commit e4ff2eb7b746564fb59a4f8b71e32030e379feaa
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 10:59:08 2026 +0700
+
+    fix(sk-management): ensure REQ documents are always included as generator candidates regardless of file_url state
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index 1f83381..30e4723 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -57,7 +57,10 @@ public function index(Request $request): JsonResponse
+ 
+         if ($request->boolean('unprinted_only')) {
+             $query->where(function($q) {
+-                $q->whereNull('file_url')->orWhere('file_url', '');
++                $q->whereNull('file_url')
++                  ->orWhere('file_url', '')
++                  ->orWhere('nomor_sk', 'like', 'REQ/%')
++                  ->orWhere('nomor_sk', 'like', 'DRAFT-%');
+             });
+         }
+ 
+
+commit 5e881860afeb6a87ba08cb1b8122210c5f0338a6
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 10:12:25 2026 +0700
+
+    fix(sk-management): fix download SK error by fetching template as ArrayBuffer
+
+diff --git a/src/features/sk-management/MySkPage.tsx b/src/features/sk-management/MySkPage.tsx
+index 7ff53f2..118c452 100644
+--- a/src/features/sk-management/MySkPage.tsx
++++ b/src/features/sk-management/MySkPage.tsx
+@@ -7,7 +7,7 @@ import { Download, FileText, Search, Loader2 } from "lucide-react"
+ import { useState, useMemo } from "react"
+ import { Input } from "@/components/ui/input"
+ import { useQuery } from "@tanstack/react-query"
+-import { skApi, headmasterApi, authApi, settingApi } from "@/lib/api"
++import { skApi, headmasterApi, authApi, settingApi, getFileUrl } from "@/lib/api"
+ import { getSkVerificationUrl } from "@/utils/verification"
+ 
+ // DOCX Generation Imports
+@@ -75,9 +75,11 @@ export default function MySkPage() {
+       const res = await settingApi.get(templateId)
+       if (!res?.value) throw new Error("Template tidak ditemukan")
+ 
+-      const base64 = res.value.split(";base64,")[1] || res.value
+-      const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, "")
+-
++      const fileUrl = getFileUrl(res.value)
++      const resp = await fetch(fileUrl)
++      if (!resp.ok) throw new Error("Gagal mengunduh file template")
++      
++      const arrayBuffer = await resp.arrayBuffer()
+       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
+       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
+ 
+@@ -89,7 +91,7 @@ export default function MySkPage() {
+         qrcode: qrDataUrl
+       }
+ 
+-      const pzip = new PizZip(cleanBase64, { base64: true })
++      const pzip = new PizZip(arrayBuffer)
+       const doc = new Docxtemplater(pzip, {
+         paragraphLoop: true,
+         linebreaks: true,
+
+commit c49c62b8f74c00bbcb75fd9515aa562da58215b2
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 10:09:16 2026 +0700
+
+    feat(sk-management): enable searching by nomor_sk in API
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index 1ee636b..1f83381 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -39,7 +39,8 @@ public function index(Request $request): JsonResponse
+         if ($request->search) {
+             $query->where(function ($q) use ($request) {
+                 $q->where('nama', 'ilike', "%{$request->search}%")
+-                  ->orWhere('unit_kerja', 'ilike', "%{$request->search}%");
++                  ->orWhere('unit_kerja', 'ilike', "%{$request->search}%")
++                  ->orWhere('nomor_sk', 'ilike', "%{$request->search}%");
+             });
+         }
+         if ($request->status && $request->status !== 'all') {
+
+commit d83289371b4e6ffcd8a609d55d9e423e1f2d901b
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 10:07:43 2026 +0700
+
+    feat(sk-management): push REQ and DRAFT documents to the bottom of all lists and change default sort to desc
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index 5388e1d..1ee636b 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -74,8 +74,13 @@ public function index(Request $request): JsonResponse
+         }
+ 
+         $sortBy = in_array($request->sort_by, ['id', 'created_at', 'updated_at', 'nomor_sk']) ? $request->sort_by : 'created_at';
+-        $sortDir = strtolower($request->sort_dir ?? 'asc');
+-        $paginated = $query->orderBy($sortBy, $sortDir)->orderBy('id', $sortDir)->paginate($request->integer('per_page', 25));
++        $sortDir = strtolower($request->sort_dir ?? 'desc'); // Ubah default jadi desc agar yang terbaru tampil di atas
++        
++        $paginated = $query
++            ->orderByRaw("CASE WHEN nomor_sk LIKE 'REQ/%' OR nomor_sk LIKE 'DRAFT-%' THEN 1 ELSE 0 END ASC")
++            ->orderBy($sortBy, $sortDir)
++            ->orderBy('id', $sortDir)
++            ->paginate($request->integer('per_page', 25));
+ 
+         // Enrich NIM and TMT: for items whose teacher has no nomor_induk_maarif or tmt,
+         // resolve matching teachers using SQL-level case-insensitive comparison
+
+commit 2c3cadff0286ae51c6edba8171e2a0472e20609c
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 10:05:15 2026 +0700
+
+    fix(sk-generator): exclude DRAFT- prefix in queries to prevent it from outranking valid numbers in descending sort
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index fe3d8da..5388e1d 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -61,7 +61,8 @@ public function index(Request $request): JsonResponse
+         }
+ 
+         if ($request->boolean('exclude_req_nomor')) {
+-            $query->where('nomor_sk', 'not like', 'REQ/%');
++            $query->where('nomor_sk', 'not like', 'REQ/%')
++                  ->where('nomor_sk', 'not like', 'DRAFT-%');
+         }
+ 
+         // --- Tenant Isolation ---
+
+commit f9b48a2217d88a22318b2a2b71185009ee3f3c3f
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 10:03:08 2026 +0700
+
+    fix(sk-generator): revert status parameter to string to avoid serialization issues, backend already includes active in approved status
+
+diff --git a/src/features/sk-management/SkGeneratorPage.tsx b/src/features/sk-management/SkGeneratorPage.tsx
+index 76209fd..c0f69d7 100644
+--- a/src/features/sk-management/SkGeneratorPage.tsx
++++ b/src/features/sk-management/SkGeneratorPage.tsx
+@@ -290,7 +290,7 @@ export default function SkGeneratorPage() {
+     queryKey: ['last-sk-number'],
+     queryFn: () => skApi.list({ 
+       per_page: 50, 
+-      status: ['approved', 'active'], 
++      status: 'approved', 
+       sort_by: 'nomor_sk', 
+       sort_dir: 'desc',
+       exclude_req_nomor: true
+@@ -436,6 +436,7 @@ export default function SkGeneratorPage() {
+         // --- Batched generation with progress and cancellation ---
+         const BATCH_SIZE = 5
+         const generationFailuresList: FailedDoc[] = []
++        let currentSeqIndex = parseInt(nomorMulai) || 1
+ 
+         for (let i = 0; i < selectedTeachers.length; i++) {
+             // Check cancellation before processing each teacher
+@@ -522,7 +523,7 @@ export default function SkGeneratorPage() {
+             }
+ 
+             // 3. Prepare Mapping Data
+-            const currentSeq = (parseInt(nomorMulai) || 1) + i
++            const currentSeq = currentSeqIndex
+             const seqStr = String(currentSeq).padStart(4, '0')
+ 
+             const tmtRaw = t.tmt || teacher.tmt
+@@ -837,6 +838,9 @@ export default function SkGeneratorPage() {
+                     errorMsg: errMsg,
+                 })
+             }
++            
++            // Increment only if document was successfully generated
++            currentSeqIndex++
+ 
+           } catch (docErr: any) {
+             // Partial failure: record this teacher's failure and continue
+
+commit 63aa231150a1e497d813c4d20a981dbe6826c9ef
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 09:34:53 2026 +0700
+
+    fix(sk-generator): include active status in last-sk-number query to prevent duplicate numbers
+
+diff --git a/src/features/sk-management/SkGeneratorPage.tsx b/src/features/sk-management/SkGeneratorPage.tsx
+index 0cd3cae..76209fd 100644
+--- a/src/features/sk-management/SkGeneratorPage.tsx
++++ b/src/features/sk-management/SkGeneratorPage.tsx
+@@ -289,8 +289,8 @@ export default function SkGeneratorPage() {
+   const { data: lastSkData } = useQuery({
+     queryKey: ['last-sk-number'],
+     queryFn: () => skApi.list({ 
+-      per_page: 1, 
+-      status: 'approved', 
++      per_page: 50, 
++      status: ['approved', 'active'], 
+       sort_by: 'nomor_sk', 
+       sort_dir: 'desc',
+       exclude_req_nomor: true
+
+commit 1f5620b99bf58e9ec0fbee60381aef05663a13bb
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 08:23:26 2026 +0700
+
+    fix: resolve inaccurate max SK number fetch due to updated_at ordering bias after bulk ops
+
+diff --git a/backend/app/Http/Controllers/Api/SkDocumentController.php b/backend/app/Http/Controllers/Api/SkDocumentController.php
+index c108e93..fe3d8da 100644
+--- a/backend/app/Http/Controllers/Api/SkDocumentController.php
++++ b/backend/app/Http/Controllers/Api/SkDocumentController.php
+@@ -60,6 +60,10 @@ public function index(Request $request): JsonResponse
+             });
+         }
+ 
++        if ($request->boolean('exclude_req_nomor')) {
++            $query->where('nomor_sk', 'not like', 'REQ/%');
++        }
++
+         // --- Tenant Isolation ---
+         $user = $request->user();
+         if ($user->role === 'operator' && $user->school_id) {
+diff --git a/src/features/sk-management/SkGeneratorPage.tsx b/src/features/sk-management/SkGeneratorPage.tsx
+index 1cfb4da..0cd3cae 100644
+--- a/src/features/sk-management/SkGeneratorPage.tsx
++++ b/src/features/sk-management/SkGeneratorPage.tsx
+@@ -285,10 +285,16 @@ export default function SkGeneratorPage() {
+   const filteredCandidates = candidatesData
+ 
+   // 2. Last SK Number for Auto-Increment
+-  // Only fetch approved/active SK documents (not pending requests with REQ/YYYY/XXXX format)
++  // Fetch the absolute highest SK number by sorting nomor_sk descending
+   const { data: lastSkData } = useQuery({
+     queryKey: ['last-sk-number'],
+-    queryFn: () => skApi.list({ per_page: 100, status: 'approved', sort_by: 'updated_at', sort_dir: 'desc' })
++    queryFn: () => skApi.list({ 
++      per_page: 1, 
++      status: 'approved', 
++      sort_by: 'nomor_sk', 
++      sort_dir: 'desc',
++      exclude_req_nomor: true
++    })
+   })
+ 
+   useEffect(() => {
+
+commit 1a6c25f224a40aa00209b52a8e33087b4188fcb1
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Fri Jul 3 08:15:54 2026 +0700
+
+    fix: resolve PizZip parsing error on SK download by using native base64 param instead of atob
+
+diff --git a/src/features/sk-management/MySkPage.tsx b/src/features/sk-management/MySkPage.tsx
+index 8190d3a..7ff53f2 100644
+--- a/src/features/sk-management/MySkPage.tsx
++++ b/src/features/sk-management/MySkPage.tsx
+@@ -77,7 +77,6 @@ export default function MySkPage() {
+ 
+       const base64 = res.value.split(";base64,")[1] || res.value
+       const cleanBase64 = base64.replace(/[^A-Za-z0-9+/=]/g, "")
+-      const content = atob(cleanBase64)
+ 
+       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
+       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
+@@ -90,7 +89,7 @@ export default function MySkPage() {
+         qrcode: qrDataUrl
+       }
+ 
+-      const pzip = new PizZip(content)
++      const pzip = new PizZip(cleanBase64, { base64: true })
+       const doc = new Docxtemplater(pzip, {
+         paragraphLoop: true,
+         linebreaks: true,
+diff --git a/src/features/sk-management/SkDetailPage.tsx b/src/features/sk-management/SkDetailPage.tsx
+index 578b034..f6b7fac 100644
+--- a/src/features/sk-management/SkDetailPage.tsx
++++ b/src/features/sk-management/SkDetailPage.tsx
+@@ -165,13 +165,13 @@ export default function SkDetailPage() {
+ 
+       const block = base64Template.split(";base64,");
+       const realData = block[1] ? block[1] : base64Template;
+-      const content = atob(realData);
++      const cleanBase64 = realData.replace(/[^A-Za-z0-9+/=]/g, "");
+ 
+       // Generate QR
+       const verificationUrl = getSkVerificationUrl(skDoc.nomor_sk);
+       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
+ 
+-      const pzip = new PizZip(content);
++      const pzip = new PizZip(cleanBase64, { base64: true });
+       const imageOpts = {
+         getImage: (tagValue: string) => base64DataURLToArrayBuffer(tagValue),
+         getSize: () => [100, 100],

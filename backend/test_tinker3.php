@@ -1,0 +1,1 @@
+<?php $teachers = \App\Models\Teacher::withoutGlobalScopes()->where("nama", "like", "%FUTIKHATUL%")->get(); foreach($teachers as $t) { echo $t->nama . " - school_id: " . $t->school_id . " - is_active: " . $t->is_active . " - deleted_at: " . $t->deleted_at . "\n"; } ?>

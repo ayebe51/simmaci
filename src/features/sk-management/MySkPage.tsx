@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useQuery } from "@tanstack/react-query"
 import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
+import { deriveEndDate } from "@/features/sk-management/utils/skDateUtils"
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater"
@@ -100,22 +101,46 @@ export default function MySkPage() {
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
-      const formatDate = (dateStr: string) => {
+      const formatDate = (dateStr: string | null | undefined) => {
           if (!dateStr) return "";
+          // Handle YYYY-MM-DD explicitly to avoid timezone shifts
+          if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              const [y, m, d] = dateStr.split('-').map(Number);
+              const bulan = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+              return `${d} ${bulan[m - 1]} ${y}`;
+          }
           const d = new Date(dateStr);
           if (isNaN(d.getTime())) return dateStr;
           return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
       }
+
+      // Hitung tanggal berakhir dari tahun ajaran (misal "2025/2026" → tahun 2025 → 1 Juli 2026)
+      const tahunAjaranStr: string = sk.tahun_ajaran || ""
+      const tahunSkNum: number = tahunAjaranStr
+          ? parseInt(tahunAjaranStr.split("/")[0], 10)
+          : (sk.tanggal_penetapan ? new Date(sk.tanggal_penetapan).getFullYear() : new Date().getFullYear())
+      const tglBerakhir = isNaN(tahunSkNum) ? null : deriveEndDate(tahunSkNum)
+      const tanggalBerakhirStr = tglBerakhir
+          ? tglBerakhir.toISOString().split('T')[0]
+          : ""
+
+      // Data sekolah untuk tembusan
+      const schoolData = sk.school || {}
+      const kecamatan: string = schoolData.kecamatan || teacherData.kecamatan || ""
+      const unitKerja: string = sk.unit_kerja || ""
 
       const renderData = {
         ...teacherData,
         ...sk,
         // Compatibility with various template placeholders
         "NAMA": sk.nama?.toUpperCase(),
-        "NOMOR_SURAT": sk.nomor_sk,
+        "NOMOR SK": sk.nomor_sk || "",
+        "NOMOR_SK": sk.nomor_sk || "",
+        "NOMOR_SURAT": sk.nomor_sk || "",
+        "NOMOR SURAT": sk.nomor_sk || "",
         "TEMPAT_LAHIR": teacherData.tempat_lahir || "",
         "TANGGAL_LAHIR": formatDate(teacherData.tanggal_lahir),
-        "TEMPAT/TANGGAL LAHIR": `${teacherData.tempat_lahir || "-"} / ${formatDate(teacherData.tanggal_lahir)}`,
+        "TEMPAT/TANGGAL LAHIR": `${teacherData.tempat_lahir || "-"}, ${formatDate(teacherData.tanggal_lahir)}`,
         "NOMOR_INDUK": teacherData.nuptk || teacherData.nip || teacherData.nomor_induk_maarif || "",
         "NOMOR_INDUK_MAARIF": teacherData.nomor_induk_maarif || "",
         "NOMOR INDUK MAARIF": teacherData.nomor_induk_maarif || "",
@@ -123,24 +148,38 @@ export default function MySkPage() {
         "NIM": teacherData.nomor_induk_maarif || "",
         "PENDIDIKAN_TERAKHIR": teacherData.pendidikan_terakhir || "",
         "PENDIDIKAN": teacherData.pendidikan_terakhir || "",
-        "UNIT_KERJA": sk.unit_kerja || "",
-        "UNIT KERJA": sk.unit_kerja || "",
+        "PENDIDIKAN TERAKHIR": teacherData.pendidikan_terakhir || "",
+        "UNIT_KERJA": unitKerja,
+        "UNIT KERJA": unitKerja,
         "TMT": formatDate(teacherData.tmt),
+        "TANGGAL MULAI TUGAS": formatDate(teacherData.tmt),
         "TANGGAL_PENETAPAN": formatDate(sk.tanggal_penetapan),
         "TANGGAL PENETAPAN": formatDate(sk.tanggal_penetapan),
         "NOMOR SURAT PERMOHONAN": sk.nomor_permohonan || "-",
         "TANGGAL SURAT PERMOHONAN": formatDate(sk.tanggal_permohonan),
-        "TAHUN PELAJARAN": sk.tahun_ajaran || "",
-        "TAHUN": sk.tahun_ajaran ? sk.tahun_ajaran.split("/")[0] : new Date().getFullYear().toString(),
+        "TAHUN PELAJARAN": tahunAjaranStr,
+        "TAHUN": tahunAjaranStr ? tahunAjaranStr.split("/")[0] : String(tahunSkNum),
         "PERIODE": "-",
         "TANGGAL LENGKAP": formatDate(sk.tanggal_penetapan),
-        "TANGGAL_BERAKHIR": "", 
-        
+        "TANGGAL_BERAKHIR": formatDate(tanggalBerakhirStr),
+        "TANGGAL BERAKHIR": formatDate(tanggalBerakhirStr),
+        "KECAMATAN": kecamatan,
+
         // Lowercase overrides for formatted dates
         tanggal_lahir: formatDate(teacherData.tanggal_lahir),
         tanggal_penetapan: formatDate(sk.tanggal_penetapan),
         tmt: formatDate(teacherData.tmt),
-        
+
+        // Array tembusan — dipakai jika template menggunakan {#tembusan}{nomor}. {isi}{/tembusan}
+        "tembusan": [
+          { nomor: 1, isi: "LP Ma'arif NU PWNU Jawa Tengah" },
+          { nomor: 2, isi: "PCNU Cilacap" },
+          { nomor: 3, isi: `Perwakilan LP Ma'arif NU MWCNU Kecamatan ${kecamatan}`.trim() },
+          { nomor: 4, isi: `Kepala ${unitKerja}`.trim() },
+          { nomor: 5, isi: `BP3MNU ${unitKerja}`.trim() },
+          { nomor: 6, isi: "Arsip" },
+        ],
+
         qrcode: qrDataUrl
       }
 

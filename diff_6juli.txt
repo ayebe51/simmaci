@@ -1,0 +1,4784 @@
+﻿commit ada08d5c6e80c5f6c2cbca23770f7862e85e56a4
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:34:30 2026 +0700
+
+    add check_twins_ana.php
+
+diff --git a/backend/check_twins_ana.php b/backend/check_twins_ana.php
+new file mode 100644
+index 0000000..dc8d95f
+--- /dev/null
++++ b/backend/check_twins_ana.php
+@@ -0,0 +1,40 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++echo "=== CEK GURU KEMBAR: ANA WAHAYU ===\n\n";
++
++$name = 'ANA WAHAYU';
++$teachers = Teacher::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++
++echo "Total Data Guru ditemukan: {$teachers->count()}\n";
++foreach ($teachers as $t) {
++    $schoolName = $t->school ? $t->school->nama : 'KOSONG';
++    echo "  - GURU ID: {$t->id} | NPK/NUPTK: {$t->nuptk} | NIM: {$t->nomor_induk_maarif} | Unit Kerja: {$t->unit_kerja} | School ID: {$t->school_id} ({$schoolName})\n";
++    
++    $sks = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->get();
++    if ($sks->count() > 0) {
++        echo "    -> Punya {$sks->count()} SK:\n";
++        foreach ($sks as $sk) {
++            $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++            echo "       - SK ID {$sk->id} | Status: {$sk->status} | School ID: {$sk->school_id} ({$skSchoolName}) | No Permohonan: {$sk->nomor_permohonan}\n";
++        }
++    } else {
++        echo "    -> Tidak punya SK yang terhubung dengan Teacher ID ini.\n";
++    }
++}
++
++// Cek jika ada guru di Bulusari yang bernama ANA WAHAYU
++echo "\n=== MENCARI GURU DI BULUSARI (68) ===\n";
++$teachers68 = Teacher::withoutGlobalScopes()->where('school_id', 68)->get();
++$found = false;
++foreach ($teachers68 as $t) {
++    if (stripos($t->nama, 'ANA') !== false) {
++        echo "GURU DI BULUSARI MENGANDUNG 'ANA': ID {$t->id} | {$t->nama} | NIM: {$t->nomor_induk_maarif}\n";
++        $found = true;
++    }
++}
++if (!$found) {
++    echo "Tidak ditemukan guru bernama 'ANA...' di Bulusari.\n";
++}
+
+commit c04795670a927550371ef8b5bf8cf739869f9253
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:31:43 2026 +0700
+
+    add check_twins.php
+
+diff --git a/backend/check_twins.php b/backend/check_twins.php
+new file mode 100644
+index 0000000..4956ff4
+--- /dev/null
++++ b/backend/check_twins.php
+@@ -0,0 +1,51 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++echo "=== CEK GURU KEMBAR: ANA WAHAYU, MAFTUHIN, INTIHAUS, DLL ===\n\n";
++
++$namesToCheck = [
++    'ANA WAHAYU',
++    'MAFTUHIN',
++    'INTIHA\'US SANGADAH',
++    'DANY RAMADHAN',
++    'TRI OKTA',
++    'DIN AZIZAH',
++    'KARTINI SURATMI',
++    'AAN RUSLIANA'
++];
++
++foreach ($namesToCheck as $name) {
++    echo "PENCARIAN UNTUK: {$name}\n";
++    $teachers = Teacher::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++    
++    echo "Total Data Guru ditemukan: {$teachers->count()}\n";
++    foreach ($teachers as $t) {
++        $schoolName = $t->school ? $t->school->nama : 'KOSONG';
++        echo "  - GURU ID: {$t->id} | NPK/NUPTK: {$t->nuptk_npk} | NIM: {$t->nim} | Unit Kerja: {$t->unit_kerja} | School ID: {$t->school_id} ({$schoolName})\n";
++        
++        $sks = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->get();
++        if ($sks->count() > 0) {
++            echo "    -> Punya {$sks->count()} SK:\n";
++            foreach ($sks as $sk) {
++                $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++                echo "       - SK ID {$sk->id} | Status: {$sk->status} | School ID: {$sk->school_id} ({$skSchoolName}) | No Permohonan: {$sk->nomor_permohonan}\n";
++            }
++        } else {
++            echo "    -> Tidak punya SK yang terhubung dengan Teacher ID ini.\n";
++        }
++    }
++    
++    // Cek juga apakah ada SK atas nama ini yang tidak terhubung ke Teacher ID yang tepat
++    $sksByName = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++    foreach ($sksByName as $sk) {
++        if (!in_array($sk->teacher_id, $teachers->pluck('id')->toArray())) {
++            echo "  ΓÜá∩╕Å Ditemukan SK dengan nama ini TAPI Teacher ID berbeda / Kosong!\n";
++            $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++            echo "     - SK ID {$sk->id} | Teacher ID: {$sk->teacher_id} | School ID: {$sk->school_id} ({$skSchoolName})\n";
++        }
++    }
++    
++    echo "--------------------------------------------------\n";
++}
+
+commit 76c0adfc16224eb1cd9563cab877dc44e5a4c4c4
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:26:34 2026 +0700
+
+    add execute_final_cleanup_dryrun_detailed.php
+
+diff --git a/backend/execute_final_cleanup_dryrun_detailed.php b/backend/execute_final_cleanup_dryrun_detailed.php
+new file mode 100644
+index 0000000..63c67c3
+--- /dev/null
++++ b/backend/execute_final_cleanup_dryrun_detailed.php
+@@ -0,0 +1,92 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use App\Models\School;
++use Illuminate\Support\Facades\DB;
++
++echo "=== DRY RUN (DETAILED): EKSEKUSI FINAL MEMBERSIHKAN MISMATCH & HANTU ===\n";
++echo "*(Tidak ada data yang benar-benar dirubah di database pada mode ini)*\n\n";
++
++DB::beginTransaction();
++try {
++    // 1. UPDATE SCHOOL ID DI TABEL GURU (KARENA TYPO/SALAH INPUT)
++    echo "--- 1. UPDATE ID SEKOLAH PADA TABEL GURU ---\n";
++    $updatesTeacher = [
++        1575 => 33,  // Solikhun -> Kalisabuk
++        867  => 64,  // Fathurrohman -> Layansari
++        389  => 120, // Ahmad Fauzi -> Tambaksari
++    ];
++
++    foreach ($updatesTeacher as $teacherId => $newSchoolId) {
++        $teacher = Teacher::withoutGlobalScopes()->with('school')->find($teacherId);
++        $newSchool = School::withoutGlobalScopes()->find($newSchoolId);
++        if ($teacher && $newSchool) {
++            $old = $teacher->school_id;
++            $oldName = $teacher->school ? $teacher->school->nama : 'KOSONG';
++            
++            $teacher->school_id = $newSchoolId;
++            $teacher->save();
++            
++            echo "[SIMULASI UPDATE]\n";
++            echo "  Guru       : {$teacher->nama} (ID: {$teacherId})\n";
++            echo "  Teks Input : '{$teacher->unit_kerja}'\n";
++            echo "  School ID  : {$old} ({$oldName}) ---> {$newSchoolId} ({$newSchool->nama})\n\n";
++        }
++    }
++
++    echo "--- 2. PENGHAPUSAN SK HANTU / NYASAR ---\n";
++    $deleteSkIds = [
++        1190, // Dany Ramadhan (nyasar ke Kedungreja)
++        1403, // Tri Okta (nyasar ke Bantarsari)
++        1357, // Tri Okta (nyasar ke Gentasari)
++        1067, // Din Azizah (nyasar ke Tambaksari)
++        658,  // Kartini Suratmi (nyasar ke Gandrungmangu)
++        1399, // Aan Rusliana (nyasar ke Bantarsari)
++        960,  // Intiha'us (nyasar ke Sidasari)
++        1019, // Maftuhin (nyasar ke Kutasari)
++        1441, // Ana Wahayu (nyasar ke Bulusari)
++    ];
++
++    foreach ($deleteSkIds as $skId) {
++        $sk = SkDocument::withoutGlobalScopes()->with('teacher', 'school')->find($skId);
++        if ($sk && $sk->teacher) {
++            $nama = $sk->nama;
++            $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++            $teacherSchoolName = $sk->teacher->school ? $sk->teacher->school->nama : 'KOSONG';
++            
++            echo "[SIMULASI HAPUS SK ID {$skId}]\n";
++            echo "  Guru             : {$nama}\n";
++            echo "  SK Tercatat di   : School ID {$sk->school_id} ({$skSchoolName})\n";
++            echo "  Asal Guru Asli   : School ID {$sk->teacher->school_id} ({$teacherSchoolName})\n";
++            echo "  Tindakan         : SK ini adalah Hantu dan DIHAPUS.\n\n";
++            
++            $sk->delete();
++        }
++    }
++
++    echo "--- 3. PERBAIKAN NOMOR SK PRIMAWANTI ---\n";
++    $primawantiSk = SkDocument::withoutGlobalScopes()->with('teacher', 'school')->find(893);
++    if ($primawantiSk) {
++        $oldNum = $primawantiSk->nomor_permohonan;
++        $newNum = '025/MI.KDRJ/SP.SK.Mrf/V/2026';
++        $schoolName = $primawantiSk->school ? $primawantiSk->school->nama : 'KOSONG';
++        
++        $primawantiSk->nomor_permohonan = $newNum;
++        $primawantiSk->save();
++        
++        echo "[SIMULASI PERBAIKAN]\n";
++        echo "  Guru        : {$primawantiSk->nama} (SK ID: 893)\n";
++        echo "  Sekolah     : {$primawantiSk->school_id} ({$schoolName})\n";
++        echo "  Nomor Lama  : {$oldNum} (Nomor MTs Wanareja yang nyasar)\n";
++        echo "  Nomor Baru  : {$newNum} (Nomor asli MI Kedungreja)\n";
++    }
++
++    // MEMBATALKAN SEMUA PERUBAHAN AGAR AMAN (DRY RUN)
++    DB::rollBack();
++    echo "\n=== DRY RUN SELESAI! SEMUA PERUBAHAN TELAH DIBATALKAN KEMBALI ===\n";
++
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit 8c99fa4eb802978f306dcf419b744db9d32ac664
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:25:02 2026 +0700
+
+    add execute_final_cleanup_dryrun.php
+
+diff --git a/backend/execute_final_cleanup_dryrun.php b/backend/execute_final_cleanup_dryrun.php
+new file mode 100644
+index 0000000..0a64b24
+--- /dev/null
++++ b/backend/execute_final_cleanup_dryrun.php
+@@ -0,0 +1,73 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "=== DRY RUN: EKSEKUSI FINAL MEMBERSIHKAN MISMATCH & HANTU ===\n";
++echo "*(Tidak ada data yang benar-benar dirubah di database pada mode ini)*\n\n";
++
++DB::beginTransaction();
++try {
++    // 1. UPDATE SCHOOL ID DI TABEL GURU (KARENA TYPO/SALAH INPUT)
++    $updatesTeacher = [
++        1575 => 33,  // Solikhun -> Kalisabuk
++        867  => 64,  // Fathurrohman -> Layansari
++        389  => 120, // Ahmad Fauzi -> Tambaksari
++    ];
++
++    foreach ($updatesTeacher as $teacherId => $newSchoolId) {
++        $teacher = Teacher::withoutGlobalScopes()->find($teacherId);
++        if ($teacher) {
++            $old = $teacher->school_id;
++            $teacher->school_id = $newSchoolId;
++            $teacher->save();
++            echo "[SIMULASI] Γ£à Guru ID {$teacherId} ({$teacher->nama}) school_id diupdate: {$old} -> {$newSchoolId}\n";
++        }
++    }
++
++    echo "\n";
++
++    // 2. HAPUS SK HANTU / NYASAR
++    $deleteSkIds = [
++        1190, // Dany Ramadhan (nyasar ke Kedungreja)
++        1403, // Tri Okta (nyasar ke Bantarsari)
++        1357, // Tri Okta (nyasar ke Gentasari)
++        1067, // Din Azizah (nyasar ke Tambaksari)
++        658,  // Kartini Suratmi (nyasar ke Gandrungmangu)
++        1399, // Aan Rusliana (nyasar ke Bantarsari)
++        960,  // Intiha'us (nyasar ke Sidasari)
++        1019, // Maftuhin (nyasar ke Kutasari)
++        1441, // Ana Wahayu (nyasar ke Bulusari)
++    ];
++
++    foreach ($deleteSkIds as $skId) {
++        $sk = SkDocument::withoutGlobalScopes()->find($skId);
++        if ($sk) {
++            $nama = $sk->nama;
++            $sk->delete();
++            echo "[SIMULASI] ≡ƒùæ∩╕Å SK Hantu ID {$skId} milik {$nama} DIHAPUS.\n";
++        }
++    }
++
++    echo "\n";
++
++    // 3. PERBAIKI NOMOR SK PRIMAWANTI (KORBAN TYPO MASSAL)
++    $primawantiSk = SkDocument::withoutGlobalScopes()->find(893);
++    if ($primawantiSk) {
++        $oldNum = $primawantiSk->nomor_permohonan;
++        $newNum = '025/MI.KDRJ/SP.SK.Mrf/V/2026';
++        $primawantiSk->nomor_permohonan = $newNum;
++        $primawantiSk->save();
++        echo "[SIMULASI] Γ£à SK Primawanti (ID 893) diperbaiki:\n";
++        echo "   [{$oldNum}] ---> [{$newNum}]\n";
++    }
++
++    // MEMBATALKAN SEMUA PERUBAHAN AGAR AMAN (DRY RUN)
++    DB::rollBack();
++    echo "\n=== DRY RUN SELESAI! SEMUA PERUBAHAN TELAH DIBATALKAN KEMBALI ===\n";
++
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit f39995fa87c80adbe58fb319af5dcde235bcc473
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:22:49 2026 +0700
+
+    add execute_final_cleanup.php
+
+diff --git a/backend/execute_final_cleanup.php b/backend/execute_final_cleanup.php
+new file mode 100644
+index 0000000..7a94738
+--- /dev/null
++++ b/backend/execute_final_cleanup.php
+@@ -0,0 +1,71 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "=== EKSEKUSI FINAL: MEMBERSIHKAN MISMATCH & HANTU ===\n\n";
++
++DB::beginTransaction();
++try {
++    // 1. UPDATE SCHOOL ID DI TABEL GURU (KARENA TYPO/SALAH INPUT)
++    $updatesTeacher = [
++        1575 => 33,  // Solikhun -> Kalisabuk
++        867  => 64,  // Fathurrohman -> Layansari
++        389  => 120, // Ahmad Fauzi -> Tambaksari
++    ];
++
++    foreach ($updatesTeacher as $teacherId => $newSchoolId) {
++        $teacher = Teacher::withoutGlobalScopes()->find($teacherId);
++        if ($teacher) {
++            $old = $teacher->school_id;
++            $teacher->school_id = $newSchoolId;
++            $teacher->save();
++            echo "Γ£à Guru ID {$teacherId} ({$teacher->nama}) school_id diupdate: {$old} -> {$newSchoolId}\n";
++        }
++    }
++
++    echo "\n";
++
++    // 2. HAPUS SK HANTU / NYASAR
++    $deleteSkIds = [
++        1190, // Dany Ramadhan (nyasar ke Kedungreja)
++        1403, // Tri Okta (nyasar ke Bantarsari)
++        1357, // Tri Okta (nyasar ke Gentasari)
++        1067, // Din Azizah (nyasar ke Tambaksari)
++        658,  // Kartini Suratmi (nyasar ke Gandrungmangu)
++        1399, // Aan Rusliana (nyasar ke Bantarsari)
++        960,  // Intiha'us (nyasar ke Sidasari)
++        1019, // Maftuhin (nyasar ke Kutasari)
++        1441, // Ana Wahayu (nyasar ke Bulusari)
++    ];
++
++    foreach ($deleteSkIds as $skId) {
++        $sk = SkDocument::withoutGlobalScopes()->find($skId);
++        if ($sk) {
++            $nama = $sk->nama;
++            $sk->delete();
++            echo "≡ƒùæ∩╕Å SK Hantu ID {$skId} milik {$nama} berhasil DIHAPUS.\n";
++        }
++    }
++
++    echo "\n";
++
++    // 3. PERBAIKI NOMOR SK PRIMAWANTI (KORBAN TYPO MASSAL)
++    $primawantiSk = SkDocument::withoutGlobalScopes()->find(893);
++    if ($primawantiSk) {
++        $oldNum = $primawantiSk->nomor_permohonan;
++        $newNum = '025/MI.KDRJ/SP.SK.Mrf/V/2026';
++        $primawantiSk->nomor_permohonan = $newNum;
++        $primawantiSk->save();
++        echo "Γ£à SK Primawanti (ID 893) berhasil diperbaiki:\n";
++        echo "   [{$oldNum}] ---> [{$newNum}]\n";
++    }
++
++    DB::commit();
++    echo "\n=== SELESAI! SEMUA PENYAKIT TELAH DISEMBUHKAN ===\n";
++
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit f8ae10c72780950eafa068674f022d37ebb21c80
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:19:56 2026 +0700
+
+    add analyze_mismatches.php
+
+diff --git a/backend/analyze_mismatches.php b/backend/analyze_mismatches.php
+new file mode 100644
+index 0000000..50d813e
+--- /dev/null
++++ b/backend/analyze_mismatches.php
+@@ -0,0 +1,55 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MENGANALISIS 12 DATA MISMATCH ===\n\n";
++
++$sksActive = SkDocument::withoutGlobalScopes()
++    ->where('status', 'active')
++    ->with('teacher', 'school')
++    ->get();
++
++foreach ($sksActive as $sk) {
++    if (!$sk->teacher) continue;
++    
++    $skSchoolId = $sk->school_id;
++    $teacherSchoolId = $sk->teacher->school_id;
++    
++    if ($skSchoolId != $teacherSchoolId && $skSchoolId !== null && $teacherSchoolId !== null) {
++        $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++        $teacherSchoolName = $sk->teacher->school ? $sk->teacher->school->nama : 'KOSONG';
++        $teacherUnitKerja = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $sk->teacher->unit_kerja));
++        $skSchoolNameClean = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $skSchoolName));
++        
++        echo "GURU: {$sk->nama} (Teacher ID: {$sk->teacher->id})\n";
++        echo "  [SK] School: {$skSchoolId} ({$skSchoolName})\n";
++        echo "  [GURU] School: {$teacherSchoolId} ({$teacherSchoolName}) | Teks: {$sk->teacher->unit_kerja}\n";
++        
++        // 1. Cek apakah ini bagian dari MTs Wanareja Ghost
++        if ($teacherSchoolId == 164) {
++            echo "  => DIAGNOSIS: Ini adalah HANTU MTs Wanareja. SK ini (ID {$sk->id}) nyasar ke {$skSchoolName} dan harus dihapus.\n";
++        }
++        // 2. Cek apakah Unit Kerja Text guru cocok dengan SK School Name
++        elseif (strpos($skSchoolNameClean, $teacherUnitKerja) !== false || strpos($teacherUnitKerja, $skSchoolNameClean) !== false) {
++            echo "  => DIAGNOSIS: Teks Unit Kerja guru cocok dengan SK. Berarti school_id di tabel Guru SALAH. Harus diupdate menjadi {$skSchoolId}.\n";
++        }
++        // 3. Kasus lain (Teks guru cocok dengan School ID guru, tapi SK beda)
++        else {
++            echo "  => DIAGNOSIS: Teks guru cocok dengan school_id guru, tapi SK beda. Mari kita cari apakah guru ini punya SK lain di {$teacherSchoolName}:\n";
++            $otherSks = SkDocument::withoutGlobalScopes()
++                ->where('teacher_id', $sk->teacher->id)
++                ->where('id', '!=', $sk->id)
++                ->get();
++            if ($otherSks->count() > 0) {
++                foreach ($otherSks as $o) {
++                    echo "     - Ditemukan SK lain ID {$o->id} di school_id {$o->school_id} (Status: {$o->status})\n";
++                }
++                echo "     KESIMPULAN: SK ID {$sk->id} ini kemungkinan adalah Hantu/Mantan sekolah lama. Bisa dihapus.\n";
++            } else {
++                echo "     KESIMPULAN: Tidak ada SK lain. Kita perlu konfirmasi manual ke user, sekolah asli guru ini di mana?\n";
++            }
++        }
++        echo "--------------------------------------------------\n";
++    }
++}
+
+commit c15ce4df6ec79893fdaeba9232610da590275005
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:15:46 2026 +0700
+
+    add fix_ghosts_final.php
+
+diff --git a/backend/fix_ghosts_final.php b/backend/fix_ghosts_final.php
+new file mode 100644
+index 0000000..20dd652
+--- /dev/null
++++ b/backend/fix_ghosts_final.php
+@@ -0,0 +1,50 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MEMBERSIHKAN SISA HANTU & MEMPERBAIKI PRIMAWANTI ===\n\n";
++
++DB::beginTransaction();
++try {
++    // 1. Perbaiki Nomor SK Primawanti
++    $primawantiSk = SkDocument::withoutGlobalScopes()->find(893);
++    if ($primawantiSk) {
++        $oldNum = $primawantiSk->nomor_permohonan;
++        $newNum = '025/MI.KDRJ/SP.SK.Mrf/V/2026';
++        $primawantiSk->nomor_permohonan = $newNum;
++        $primawantiSk->save();
++        echo "Γ£à SK Primawanti (ID 893) berhasil diperbaiki:\n";
++        echo "   [{$oldNum}] ---> [{$newNum}]\n\n";
++    }
++
++    // 2. Hapus SK Nyasar / Hantu (12 SK yang school_id-nya beda dengan school_id guru)
++    $sksActive = SkDocument::withoutGlobalScopes()
++        ->where('status', 'active')
++        ->with('teacher')
++        ->get();
++
++    $deletedCount = 0;
++    foreach ($sksActive as $sk) {
++        if (!$sk->teacher) continue;
++        
++        $skSchoolId = $sk->school_id;
++        $teacherSchoolId = $sk->teacher->school_id;
++        
++        // Jika SK terdaftar di sekolah yang BUKAN sekolah asli gurunya
++        if ($skSchoolId != $teacherSchoolId && $skSchoolId !== null && $teacherSchoolId !== null) {
++            echo "Menghapus SK Hantu ID {$sk->id} ({$sk->nama}) dari School ID {$skSchoolId}...\n";
++            $sk->delete();
++            $deletedCount++;
++        }
++    }
++    
++    DB::commit();
++    echo "\n=== SELESAI ===\n";
++    echo "Total SK Hantu yang dihapus: {$deletedCount}\n";
++    echo "Dany Ramadhan Syah sekarang sudah lenyap dari MI Al Ma'arif Kedungreja!\n";
++
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit 0550419b3d2851367798da6e1f8d3a8db7001eaa
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:09:30 2026 +0700
+
+    add check_consistency.php
+
+diff --git a/backend/check_consistency.php b/backend/check_consistency.php
+new file mode 100644
+index 0000000..135da90
+--- /dev/null
++++ b/backend/check_consistency.php
+@@ -0,0 +1,47 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\School;
++use App\Models\SkDocument;
++
++echo "=== CEK KONSISTENSI DATA GURU & SK ===\n\n";
++
++echo "1. CEK GURU: PRIMAWANTI & DANY\n";
++$names = ['PRIMAWANTI', 'DANY RAMADHAN SYAH'];
++foreach ($names as $name) {
++    echo "GURU: {$name}\n";
++    $teachers = Teacher::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++    foreach ($teachers as $t) {
++        $schoolName = $t->school ? $t->school->nama : 'KOSONG';
++        echo "  - DATA GURU: ID {$t->id} | School ID: {$t->school_id} ({$schoolName}) | Unit Kerja: {$t->unit_kerja}\n";
++    }
++    
++    $sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++    foreach ($sks as $sk) {
++        $schoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++        echo "  - DATA SK  : ID {$sk->id} | School ID: {$sk->school_id} ({$schoolName}) | No Permohonan: {$sk->nomor_permohonan} | Status: {$sk->status} | Tanggal: {$sk->tanggal_permohonan}\n";
++    }
++    echo "--------------------------------------------------\n";
++}
++
++// Cek semua guru yang namanya tidak cocok dengan nama sekolahnya
++echo "\n2. CEK SELURUH TABEL GURU (SCHOOL ID vs UNIT KERJA)\n";
++$mismatchedTeachers = 0;
++$teachers = Teacher::withoutGlobalScopes()->with('school')->get();
++foreach ($teachers as $t) {
++    if (!$t->school) continue;
++    
++    // Normalisasi string untuk perbandingan
++    $schoolName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $t->school->nama));
++    $unitKerja = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $t->unit_kerja));
++    
++    // Cek jika berbeda jauh (tidak mengandung satu sama lain)
++    if (strpos($schoolName, $unitKerja) === false && strpos($unitKerja, $schoolName) === false) {
++        echo "GURU ID: {$t->id} | {$t->nama}\n";
++        echo "  - School ID  : {$t->school_id} ({$t->school->nama})\n";
++        echo "  - Unit Kerja : {$t->unit_kerja}\n";
++        $mismatchedTeachers++;
++    }
++}
++echo "Total Guru dengan School ID & Unit Kerja Mismatch: {$mismatchedTeachers}\n";
++
+
+commit 72410d86222077c062aa1cc0260f55a7689519d4
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 15:00:25 2026 +0700
+
+    add check_mismatched_sks_v2.php
+
+diff --git a/backend/check_mismatched_sks_v2.php b/backend/check_mismatched_sks_v2.php
+new file mode 100644
+index 0000000..e7fca0c
+--- /dev/null
++++ b/backend/check_mismatched_sks_v2.php
+@@ -0,0 +1,33 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== CEK SK 'ACTIVE' YANG TIDAK SESUAI UNIT KERJA ===\n\n";
++
++$sksActive = SkDocument::withoutGlobalScopes()
++    ->where('status', 'active')
++    ->with('teacher', 'school')
++    ->get();
++
++$mismatchCountActive = 0;
++
++foreach ($sksActive as $sk) {
++    if (!$sk->teacher) continue;
++    
++    $skSchoolId = $sk->school_id;
++    $teacherSchoolId = $sk->teacher->school_id;
++    
++    if ($skSchoolId != $teacherSchoolId && $skSchoolId !== null && $teacherSchoolId !== null) {
++        $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++        $teacherSchoolName = $sk->teacher->school ? $sk->teacher->school->nama : 'KOSONG';
++        
++        echo "SK ID: {$sk->id} | Guru: {$sk->nama}\n";
++        echo "  [SK]   School ID: {$skSchoolId} ({$skSchoolName}) | Unit Kerja: '{$sk->unit_kerja}'\n";
++        echo "  [GURU] School ID: {$teacherSchoolId} ({$teacherSchoolName}) | Unit Kerja: '{$sk->teacher->unit_kerja}'\n";
++        echo "--------------------------------------------------\n";
++        
++        $mismatchCountActive++;
++    }
++}
++echo "Total pengajuan SK 'active' yang tidak sesuai: {$mismatchCountActive}\n";
+
+commit 263d703d5a85e27cc422374a811d358a4df60e9a
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:55:32 2026 +0700
+
+    add check_mismatched_sks.php
+
+diff --git a/backend/check_mismatched_sks.php b/backend/check_mismatched_sks.php
+new file mode 100644
+index 0000000..4d4fe68
+--- /dev/null
++++ b/backend/check_mismatched_sks.php
+@@ -0,0 +1,69 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== CEK SK 'APPROVED' YANG TIDAK SESUAI UNIT KERJA ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('status', 'approved')
++    ->with('teacher', 'school')
++    ->get();
++
++$mismatchCount = 0;
++
++foreach ($sks as $sk) {
++    if (!$sk->teacher) {
++        continue;
++    }
++    
++    $skSchoolId = $sk->school_id;
++    $teacherSchoolId = $sk->teacher->school_id;
++    
++    // Check if the school IDs do not match
++    if ($skSchoolId != $teacherSchoolId && $skSchoolId !== null && $teacherSchoolId !== null) {
++        $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++        $teacherSchoolName = $sk->teacher->school ? $sk->teacher->school->nama : 'KOSONG';
++        
++        echo "SK ID: {$sk->id} | Guru: {$sk->nama}\n";
++        echo "  - School ID di SK    : {$skSchoolId} ({$skSchoolName})\n";
++        echo "  - School ID di Guru  : {$teacherSchoolId} ({$teacherSchoolName})\n";
++        echo "  - Unit Kerja Text SK : {$sk->unit_kerja}\n";
++        echo "  - Unit Kerja Txt Guru: {$sk->teacher->unit_kerja}\n";
++        echo "--------------------------------------------------\n";
++        
++        $mismatchCount++;
++    }
++}
++
++echo "Total pengajuan SK 'approved' yang tidak sesuai: {$mismatchCount}\n";
++
++// Mari kita cek juga untuk status 'active' untuk berjaga-jaga
++echo "\n=== CEK SK 'ACTIVE' YANG TIDAK SESUAI UNIT KERJA ===\n\n";
++
++$sksActive = SkDocument::withoutGlobalScopes()
++    ->where('status', 'active')
++    ->with('teacher', 'school')
++    ->get();
++
++$mismatchCountActive = 0;
++
++foreach ($sksActive as $sk) {
++    if (!$sk->teacher) continue;
++    
++    $skSchoolId = $sk->school_id;
++    $teacherSchoolId = $sk->teacher->school_id;
++    
++    if ($skSchoolId != $teacherSchoolId && $skSchoolId !== null && $teacherSchoolId !== null) {
++        $skSchoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++        $teacherSchoolName = $sk->teacher->school ? $sk->teacher->school->nama : 'KOSONG';
++        
++        echo "SK ID: {$sk->id} | Guru: {$sk->nama}\n";
++        echo "  - School ID di SK    : {$skSchoolId} ({$skSchoolName})\n";
++        echo "  - School ID di Guru  : {$teacherSchoolId} ({$teacherSchoolName})\n";
++        echo "--------------------------------------------------\n";
++        
++        $mismatchCountActive++;
++    }
++}
++echo "Total pengajuan SK 'active' yang tidak sesuai: {$mismatchCountActive}\n";
+
+commit 589745e6adf61e883d07bbf1884595912c47ca4e
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:43:38 2026 +0700
+
+    add delete_supriyatun_684.php
+
+diff --git a/backend/delete_supriyatun_684.php b/backend/delete_supriyatun_684.php
+new file mode 100644
+index 0000000..f5f6f41
+--- /dev/null
++++ b/backend/delete_supriyatun_684.php
+@@ -0,0 +1,23 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MENGHAPUS SK DUPLIKAT SUPRIYATUN ===\n\n";
++
++DB::beginTransaction();
++try {
++    $sk = SkDocument::withoutGlobalScopes()->find(684);
++    if ($sk) {
++        $sk->delete();
++        echo "Γ£à SK ID 684 (Nomor Permohonan 65) milik Supriyatun berhasil dihapus!\n";
++        echo "Sekarang sistem hanya akan membaca SK ID 1950 yang valid dengan file surat yang benar.\n";
++    } else {
++        echo "Γ¥î SK ID 684 tidak ditemukan (mungkin sudah dihapus sebelumnya).\n";
++    }
++    
++    DB::commit();
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit a218f6f4cffc7608f24894d2377449ed90fe7207
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:41:40 2026 +0700
+
+    add check_supriyatun_files.php
+
+diff --git a/backend/check_supriyatun_files.php b/backend/check_supriyatun_files.php
+new file mode 100644
+index 0000000..2acdd56
+--- /dev/null
++++ b/backend/check_supriyatun_files.php
+@@ -0,0 +1,14 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== CEK FILE URL SUPRIYATUN ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->get();
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id}\n";
++    echo "  - No Permohonan: {$sk->nomor_permohonan}\n";
++    echo "  - File URL: " . ($sk->file_url ?: 'KOSONG') . "\n";
++    echo "  - Surat Permohonan URL: " . ($sk->surat_permohonan_url ?: 'KOSONG') . "\n";
++    echo "--------------------------------------------------\n";
++}
+
+commit b689a1c86f9151c904a3ae50001a6e3611d62f71
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:39:47 2026 +0700
+
+    add force_update_sks_3.php
+
+diff --git a/backend/force_update_sks_3.php b/backend/force_update_sks_3.php
+new file mode 100644
+index 0000000..a860cf8
+--- /dev/null
++++ b/backend/force_update_sks_3.php
+@@ -0,0 +1,34 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== FIXING NOMOR SK SESUAI INSTRUKSI (TANPA SUPRIYATUN) ===\n\n";
++
++$updates = [
++    // 684 => '045/MI.NU10/34.13/SP/VI/2026', // SUPRIYATUN (DIPENDING)
++    687 => '31/MTs.MF/33.24/V/2026',       // KARTINI SURATMI
++    688 => '31/MTs.MF/33.24/V/2026',       // DIN AZIZAH
++    689 => '31/MTs.MF/33.24/V/2026',       // AAN RUSLIANA
++];
++
++DB::beginTransaction();
++try {
++    foreach ($updates as $id => $nomorBaru) {
++        $sk = SkDocument::withoutGlobalScopes()->find($id);
++        if ($sk) {
++            $nomorLama = $sk->nomor_permohonan;
++            $sk->nomor_permohonan = $nomorBaru;
++            $sk->save();
++            echo "Γ£à SK ID {$id} ({$sk->nama}) berhasil diupdate:\n";
++            echo "   [{$nomorLama}] ---> [{$nomorBaru}]\n\n";
++        } else {
++            echo "Γ¥î SK ID {$id} tidak ditemukan!\n";
++        }
++    }
++    DB::commit();
++    echo "=== SELESAI! TIGA DATA TELAH DIPERBARUI. ===\n";
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit 6f043a54972f597bbd8ca4c926e35e628d7f4266
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:38:00 2026 +0700
+
+    add force_update_sks.php
+
+diff --git a/backend/force_update_sks.php b/backend/force_update_sks.php
+new file mode 100644
+index 0000000..291c548
+--- /dev/null
++++ b/backend/force_update_sks.php
+@@ -0,0 +1,35 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== FIXING NOMOR SK SESUAI INSTRUKSI ===\n\n";
++
++$updates = [
++    684 => '045/MI.NU10/34.13/SP/VI/2026', // SUPRIYATUN
++    687 => '31/MTs.MF/33.24/V/2026',       // KARTINI SURATMI
++    688 => '31/MTs.MF/33.24/V/2026',       // DIN AZIZAH
++    689 => '31/MTs.MF/33.24/V/2026',       // AAN RUSLIANA
++];
++
++DB::beginTransaction();
++try {
++    foreach ($updates as $id => $nomorBaru) {
++        $sk = SkDocument::withoutGlobalScopes()->find($id);
++        if ($sk) {
++            $nomorLama = $sk->nomor_permohonan;
++            $sk->nomor_permohonan = $nomorBaru;
++            // Kita juga hapus spasi/karakter kosong jika ada
++            $sk->save();
++            echo "Γ£à SK ID {$id} ({$sk->nama}) berhasil diupdate:\n";
++            echo "   [{$nomorLama}] ---> [{$nomorBaru}]\n\n";
++        } else {
++            echo "Γ¥î SK ID {$id} tidak ditemukan!\n";
++        }
++    }
++    DB::commit();
++    echo "=== SELESAI! SEMUA DATA TELAH DIPERBARUI. ===\n";
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit 61e5ed95db440d6257fd511f7f280539b4fd13ae
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:30:18 2026 +0700
+
+    add investigate_teachers.php
+
+diff --git a/backend/investigate_teachers.php b/backend/investigate_teachers.php
+new file mode 100644
+index 0000000..6e9e100
+--- /dev/null
++++ b/backend/investigate_teachers.php
+@@ -0,0 +1,24 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++echo "=== INVESTIGASI ASAL USUL KARTINI, DIN AZIZAH, AAN ===\n\n";
++
++$names = ['KARTINI SURATMI', 'DIN AZIZAH', 'AAN RUSLIANA'];
++
++foreach ($names as $name) {
++    echo "GURU: {$name}\n";
++    $teachers = Teacher::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++    foreach ($teachers as $t) {
++        $schoolName = $t->school ? $t->school->nama : 'KOSONG';
++        echo "  - DATA GURU: ID {$t->id} | School ID: {$t->school_id} ({$schoolName}) | Unit Kerja Text: {$t->unit_kerja}\n";
++    }
++    
++    $sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', "%{$name}%")->get();
++    foreach ($sks as $sk) {
++        $schoolName = $sk->school ? $sk->school->nama : 'KOSONG';
++        echo "  - DATA SK  : ID {$sk->id} | School ID: {$sk->school_id} ({$schoolName}) | No Permohonan: {$sk->nomor_permohonan} | Status: {$sk->status}\n";
++    }
++    echo "--------------------------------------------------\n";
++}
+
+commit f0116b668395b5080ef51c0093ad719251ff8dc7
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:28:07 2026 +0700
+
+    add get_valid_sks.php
+
+diff --git a/backend/get_valid_sks.php b/backend/get_valid_sks.php
+new file mode 100644
+index 0000000..196fee3
+--- /dev/null
++++ b/backend/get_valid_sks.php
+@@ -0,0 +1,27 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== DAFTAR NOMOR VALID UNTUK KARTINI, DIN AZIZAH, AAN ===\n\n";
++
++$teachers = ['KARTINI SURATMI', 'DIN AZIZAH', 'AAN RUSLIANA'];
++
++foreach ($teachers as $name) {
++    $sks = SkDocument::withoutGlobalScopes()
++        ->where('nama', 'LIKE', '%' . $name . '%')
++        ->whereNotNull('nomor_permohonan')
++        ->where('nomor_permohonan', '!=', '65')
++        ->where('nomor_permohonan', '!=', '')
++        ->orderBy('id', 'desc')
++        ->get();
++        
++    echo "Guru: {$name}\n";
++    if ($sks->count() > 0) {
++        foreach ($sks as $sk) {
++            echo "  - SK ID: {$sk->id} | Nomor Valid: {$sk->nomor_permohonan} | Status: {$sk->status} | Tanggal: {$sk->tanggal_permohonan}\n";
++        }
++    } else {
++        echo "  - [!] TIDAK DITEMUKAN NOMOR VALID LAINNYA.\n";
++    }
++    echo "--------------------------------------------------\n";
++}
+
+commit f958210d9005a738fd148da91790792c41460456
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:27:05 2026 +0700
+
+    add fix_sk_65.php
+
+diff --git a/backend/fix_sk_65.php b/backend/fix_sk_65.php
+new file mode 100644
+index 0000000..33dfaed
+--- /dev/null
++++ b/backend/fix_sk_65.php
+@@ -0,0 +1,60 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== FIXING NOMOR PERMOHONAN UNTUK SK NOMOR '65' ===\n\n";
++
++$sks65 = SkDocument::withoutGlobalScopes()
++    ->where('nomor_permohonan', '65')
++    ->get();
++
++$fixedCount = 0;
++$skippedCount = 0;
++
++DB::beginTransaction();
++try {
++    foreach ($sks65 as $sk) {
++        // Cari SK lain milik guru ini yang nomor permohonannya valid (lengkap)
++        $validSk = SkDocument::withoutGlobalScopes()
++            ->where('teacher_id', $sk->teacher_id)
++            ->where('id', '!=', $sk->id)
++            ->whereNotNull('nomor_permohonan')
++            ->where('nomor_permohonan', '!=', '65')
++            ->where('nomor_permohonan', '!=', '')
++            ->orderBy('id', 'desc')
++            ->first();
++            
++        echo "SK ID {$sk->id} | Guru: {$sk->nama}\n";
++        
++        if ($validSk) {
++            echo "  --> Ditemukan nomor yang benar: {$validSk->nomor_permohonan}\n";
++            $sk->nomor_permohonan = $validSk->nomor_permohonan;
++            
++            if (!empty($validSk->tanggal_permohonan)) {
++                $sk->tanggal_permohonan = $validSk->tanggal_permohonan;
++            }
++            
++            $sk->save();
++            $fixedCount++;
++            echo "  --> Γ£à BERHASIL DIUPDATE.\n";
++            
++            // Opsional: Hapus SK valid tersebut agar tidak menjadi duplikat?
++            // User hanya minta "difixing nomornya", jadi kita biarkan dulu kecuali user minta hapus duplikatnya.
++            // $validSk->delete();
++        } else {
++            echo "  --> Γ¥î GAGAL: Tidak ditemukan SK lain yang valid sebagai referensi.\n";
++            $skippedCount++;
++        }
++        echo "--------------------------------------------------\n";
++    }
++    
++    DB::commit();
++    echo "\n=== RINGKASAN ===\n";
++    echo "Total SK yang difix: {$fixedCount}\n";
++    echo "Total SK yang dilewati: {$skippedCount}\n";
++    
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit 86e49b23a03cfaa7611dbaad3f96a3d30de69ebb
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:24:08 2026 +0700
+
+    add delete_sk_65.php
+
+diff --git a/backend/delete_sk_65.php b/backend/delete_sk_65.php
+new file mode 100644
+index 0000000..5256106
+--- /dev/null
++++ b/backend/delete_sk_65.php
+@@ -0,0 +1,48 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MENCARI SK PENGGANTI UNTUK 'NOMOR 65' ===\n\n";
++
++$sks65 = SkDocument::withoutGlobalScopes()
++    ->where('nomor_permohonan', '65')
++    ->get();
++
++$deletedCount = 0;
++
++DB::beginTransaction();
++try {
++    foreach ($sks65 as $sk) {
++        $otherSks = SkDocument::withoutGlobalScopes()
++            ->where('teacher_id', $sk->teacher_id)
++            ->where('id', '!=', $sk->id)
++            ->whereNotNull('nomor_permohonan')
++            ->where('nomor_permohonan', '!=', '65')
++            ->where('nomor_permohonan', '!=', '')
++            ->get();
++            
++        echo "Guru: {$sk->nama} (SK 65 ID: {$sk->id})\n";
++        
++        if ($otherSks->count() > 0) {
++            echo "  --> Ditemukan {$otherSks->count()} SK lain:\n";
++            foreach ($otherSks as $o) {
++                echo "      - SK ID: {$o->id} | Nomor: {$o->nomor_permohonan} | Status: {$o->status}\n";
++            }
++            // Delete the invalid SK 65
++            $sk->delete();
++            $deletedCount++;
++            echo "  --> [!] SK ID {$sk->id} (nomor 65) BERHASIL DIHAPUS.\n";
++        } else {
++            echo "  --> TIDAK ADA SK LAIN! (Aman untuk dibiarkan atau perlu diupdate?)\n";
++        }
++        echo "--------------------------------------------------\n";
++    }
++    
++    DB::commit();
++    echo "\n=== SELESAI: {$deletedCount} SK 'Nomor 65' berhasil dihapus! ===\n";
++    
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "ERROR: " . $e->getMessage() . "\n";
++}
+
+commit 224c335c30888e26f9a1233e46fab2ea9cf920b7
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:22:44 2026 +0700
+
+    add check_sk_65.php
+
+diff --git a/backend/check_sk_65.php b/backend/check_sk_65.php
+new file mode 100644
+index 0000000..723e2d3
+--- /dev/null
++++ b/backend/check_sk_65.php
+@@ -0,0 +1,15 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== MENCARI SK DENGAN NOMOR PERMOHONAN '65' ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('nomor_permohonan', '65')
++    ->get();
++
++echo "Ditemukan: {$sks->count()} SK\n";
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id} | Guru: {$sk->nama} | School ID: {$sk->school_id} | Status: {$sk->status} | No Permohonan: {$sk->nomor_permohonan} | Tanggal: {$sk->tanggal_permohonan}\n";
++}
+
+commit e9c9abf41898e50f1fde1b7818c1d192a68b9604
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:20:14 2026 +0700
+
+    add check_db_state.php
+
+diff --git a/backend/check_db_state.php b/backend/check_db_state.php
+new file mode 100644
+index 0000000..56d4586
+--- /dev/null
++++ b/backend/check_db_state.php
+@@ -0,0 +1,26 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++echo "=== CEK STATUS DATABASE ===\n\n";
++
++$ghostCount = Teacher::withoutGlobalScopes()
++    ->whereNull('school_id')
++    ->whereNotNull('unit_kerja')
++    ->count();
++
++echo "Jumlah Guru Hantu saat ini: {$ghostCount}\n";
++
++$supriyatun = Teacher::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->first();
++if ($supriyatun) {
++    echo "School ID Supriyatun: " . ($supriyatun->school_id ?? 'KOSONG') . "\n";
++    echo "Unit Kerja Supriyatun: {$supriyatun->unit_kerja}\n";
++}
++
++$sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->get();
++echo "Jumlah SK Supriyatun: {$sks->count()}\n";
++foreach ($sks as $sk) {
++    $schoolName = $sk->school ? $sk->school->nama : 'KOSONG/TIDAK ADA';
++    echo "  - SK ID: {$sk->id} | School ID: {$sk->school_id} ({$schoolName}) | Status: {$sk->status} | No Permohonan: {$sk->nomor_permohonan} | No SK: {$sk->nomor_sk}\n";
++}
+
+commit 2eba9a306587c81745d0f7d6b6a96f901315acb1
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:19:19 2026 +0700
+
+    fix check_db_restored.php
+
+diff --git a/backend/check_db_restored.php b/backend/check_db_restored.php
+index 487f8a4..afd9fa4 100644
+--- a/backend/check_db_restored.php
++++ b/backend/check_db_restored.php
+@@ -7,12 +7,9 @@
+ 
+ $ghostCount = Teacher::withoutGlobalScopes()
+     ->where(function($q) {
+-        $q->whereNull('school_id')
+-          ->orWhere('school_id', '')
+-          ->orWhere('school_id', 0);
++        $q->whereNull('school_id');
+     })
+     ->whereNotNull('unit_kerja')
+-    ->where('unit_kerja', '!=', '')
+     ->count();
+ 
+ echo "Jumlah Guru Hantu saat ini: {$ghostCount}\n";
+@@ -26,5 +23,7 @@
+ $sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->get();
+ echo "Jumlah SK Supriyatun: {$sks->count()}\n";
+ foreach ($sks as $sk) {
+-    echo "  - SK ID: {$sk->id} | School ID: {$sk->school_id} | Nomor: {$sk->nomor_sk}\n";
++    $school = $sk->school_id ? \App\Models\School::find($sk->school_id) : null;
++    $schoolName = $school ? $school->nama : 'KOSONG/TIDAK ADA';
++    echo "  - SK ID: {$sk->id} | School ID: {$sk->school_id} ({$schoolName}) | Nomor: {$sk->nomor_sk} | Status: {$sk->status} | Nomor Permohonan: {$sk->nomor_permohonan}\n";
+ }
+
+commit 2c0ec84738ad7ff2633d261810539ba0ad1efaa2
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:17:59 2026 +0700
+
+    add check_db_restored.php
+
+diff --git a/backend/check_db_restored.php b/backend/check_db_restored.php
+new file mode 100644
+index 0000000..487f8a4
+--- /dev/null
++++ b/backend/check_db_restored.php
+@@ -0,0 +1,30 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++echo "=== CEK STATUS DATABASE (APAKAH TER-RESTORE?) ===\n\n";
++
++$ghostCount = Teacher::withoutGlobalScopes()
++    ->where(function($q) {
++        $q->whereNull('school_id')
++          ->orWhere('school_id', '')
++          ->orWhere('school_id', 0);
++    })
++    ->whereNotNull('unit_kerja')
++    ->where('unit_kerja', '!=', '')
++    ->count();
++
++echo "Jumlah Guru Hantu saat ini: {$ghostCount}\n";
++
++$supriyatun = Teacher::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->first();
++if ($supriyatun) {
++    echo "School ID Supriyatun: " . ($supriyatun->school_id ?? 'KOSONG') . "\n";
++    echo "Unit Kerja Supriyatun: {$supriyatun->unit_kerja}\n";
++}
++
++$sks = SkDocument::withoutGlobalScopes()->where('nama', 'LIKE', '%SUPRIYATUN%')->get();
++echo "Jumlah SK Supriyatun: {$sks->count()}\n";
++foreach ($sks as $sk) {
++    echo "  - SK ID: {$sk->id} | School ID: {$sk->school_id} | Nomor: {$sk->nomor_sk}\n";
++}
+
+commit fb44ddbb545baf0cc804cdded0261c11991be97f
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:16:27 2026 +0700
+
+    add check_supriyatun.php
+
+diff --git a/backend/check_supriyatun.php b/backend/check_supriyatun.php
+new file mode 100644
+index 0000000..6904b1c
+--- /dev/null
++++ b/backend/check_supriyatun.php
+@@ -0,0 +1,19 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== CEK SK SUPRIYATUN & AAN ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->whereIn('nama', ['SUPRIYATUN, S.Pd.I', 'AAN RUSLIANA, S.Pd.I'])
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id} | Nama: {$sk->nama}\n";
++    echo "  - School ID: {$sk->school_id}\n";
++    echo "  - Unit Kerja: {$sk->unit_kerja}\n";
++    echo "  - Status: {$sk->status}\n";
++    echo "  - Nomor: {$sk->nomor_sk} (Permohonan: {$sk->nomor_permohonan})\n";
++    echo "--------------------------------------------------\n";
++}
+
+commit 84e1ca04bc96b5f28b2e34777182d1177743e056
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 14:03:11 2026 +0700
+
+    add execute_delete_incomplete_sks.php
+
+diff --git a/backend/execute_delete_incomplete_sks.php b/backend/execute_delete_incomplete_sks.php
+new file mode 100644
+index 0000000..051da8a
+--- /dev/null
++++ b/backend/execute_delete_incomplete_sks.php
+@@ -0,0 +1,54 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== EKSEKUSI PENGHAPUSAN SK DUPLIKAT YANG TIDAK LENGKAP ===\n\n";
++
++$query = SkDocument::withoutGlobalScopes()
++    ->where('status', 'active')
++    ->where(function ($q) {
++        $q->whereNull('nomor_permohonan')
++          ->orWhere('nomor_permohonan', '')
++          ->orWhereNull('tanggal_permohonan');
++    });
++
++$incompleteSks = $query->get();
++$deletedCount = 0;
++$skippedCount = 0;
++
++DB::beginTransaction();
++try {
++    foreach ($incompleteSks as $incompleteSk) {
++        // Cari SK pengganti
++        $completeSks = SkDocument::withoutGlobalScopes()
++            ->where('teacher_id', $incompleteSk->teacher_id)
++            ->where('school_id', $incompleteSk->school_id)
++            ->where('id', '!=', $incompleteSk->id)
++            ->whereNotNull('nomor_permohonan')
++            ->where('nomor_permohonan', '!=', '')
++            ->whereNotNull('tanggal_permohonan')
++            ->get();
++            
++        if ($completeSks->count() > 0) {
++            echo "Menghapus SK Incomplete ID {$incompleteSk->id} (Guru: {$incompleteSk->nama})... ";
++            // Delete the incomplete one permanently (or soft delete)
++            $incompleteSk->delete();
++            $deletedCount++;
++            echo "Γ£à BERHASIL\n";
++        } else {
++            echo "Melewati SK Incomplete ID {$incompleteSk->id} (Guru: {$incompleteSk->nama}) karena TIDAK ADA PENGGANTI.\n";
++            $skippedCount++;
++        }
++    }
++    
++    DB::commit();
++    echo "\n=== RINGKASAN EKSEKUSI ===\n";
++    echo "- Total SK duplikat (kosong) yang berhasil dihapus: {$deletedCount}\n";
++    echo "- Total SK yang dilewati (karena tidak punya pengganti): {$skippedCount}\n";
++    echo "- Selesai!\n";
++    
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "\nΓ¥î TERJADI KESALAHAN: " . $e->getMessage() . "\n";
++}
+
+commit 80a929963963d4af86261bf89a7efd8457f27bd5
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:59:05 2026 +0700
+
+    add find_complete_sks.php
+
+diff --git a/backend/find_complete_sks.php b/backend/find_complete_sks.php
+new file mode 100644
+index 0000000..2ce06dc
+--- /dev/null
++++ b/backend/find_complete_sks.php
+@@ -0,0 +1,41 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== MENCARI PASANGAN SK LENGKAP UNTUK 29 DATA INCOMPLETE ===\n\n";
++
++$query = SkDocument::withoutGlobalScopes()
++    ->where('status', 'active')
++    ->where(function ($q) {
++        $q->whereNull('nomor_permohonan')
++          ->orWhere('nomor_permohonan', '')
++          ->orWhereNull('tanggal_permohonan');
++    });
++
++$incompleteSks = $query->get();
++
++foreach ($incompleteSks as $incompleteSk) {
++    // Cari SK lain atas nama guru yang sama, di sekolah yang sama, tapi datanya LENGKAP
++    $completeSks = SkDocument::withoutGlobalScopes()
++        ->where('teacher_id', $incompleteSk->teacher_id)
++        ->where('school_id', $incompleteSk->school_id)
++        ->where('id', '!=', $incompleteSk->id)
++        ->whereNotNull('nomor_permohonan')
++        ->where('nomor_permohonan', '!=', '')
++        ->whereNotNull('tanggal_permohonan')
++        ->get();
++        
++    $schoolName = $incompleteSk->school ? $incompleteSk->school->nama : ($incompleteSk->unit_kerja ?? 'TIDAK DIKETAHUI');
++    
++    echo "SK INCOMPLETE ID: {$incompleteSk->id} | Guru: {$incompleteSk->nama} | Sekolah: {$schoolName}\n";
++    
++    if ($completeSks->count() > 0) {
++        echo "  --> DITEMUKAN {$completeSks->count()} SK LENGKAP sebagai pengganti/referensi:\n";
++        foreach ($completeSks as $c) {
++            echo "      - SK ID: {$c->id} | Nomor: {$c->nomor_permohonan} | Tanggal: {$c->tanggal_permohonan} | Status: {$c->status}\n";
++        }
++    } else {
++        echo "  --> TIDAK DITEMUKAN SK lengkap di sekolah yang sama untuk guru ini.\n";
++    }
++    echo "--------------------------------------------------\n";
++}
+
+commit ee3c9aee8d871d028b1f56c7f55028495ac0c0f6
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:54:58 2026 +0700
+
+    add check_missing_surat_active.php
+
+diff --git a/backend/check_missing_surat_active.php b/backend/check_missing_surat_active.php
+new file mode 100644
+index 0000000..263e144
+--- /dev/null
++++ b/backend/check_missing_surat_active.php
+@@ -0,0 +1,29 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== DAFTAR SEMUA SK 'ACTIVE' TANPA NOMOR/TANGGAL SURAT ===\n\n";
++
++$query = SkDocument::withoutGlobalScopes()
++    ->where('status', 'active')
++    ->where(function ($q) {
++        $q->whereNull('nomor_permohonan')
++          ->orWhere('nomor_permohonan', '')
++          ->orWhereNull('tanggal_permohonan');
++    });
++
++$sks = $query->get();
++$total = $sks->count();
++echo "Total SK 'Active' yang metadatanya tidak lengkap: {$total}\n\n";
++
++if ($total > 0) {
++    foreach ($sks as $index => $sk) {
++        $schoolName = $sk->school ? $sk->school->nama : ($sk->unit_kerja ?? 'TIDAK DIKETAHUI');
++        $no = $index + 1;
++        echo "{$no}. SK ID: {$sk->id} | Nama: {$sk->nama}\n";
++        echo "   - Sekolah: {$schoolName} (School ID: " . ($sk->school_id ?? 'KOSONG') . ")\n";
++        echo "   - Nomor Surat: " . ($sk->nomor_permohonan ?: "[KOSONG]") . "\n";
++        echo "   - Tanggal Surat: " . ($sk->tanggal_permohonan ?: "[KOSONG]") . "\n";
++        echo "--------------------------------------------------\n";
++    }
++}
+
+commit 647bea9eb5b3b15a0dd3e49f8d39b12320b137af
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:53:20 2026 +0700
+
+    add check_tuti.php
+
+diff --git a/backend/check_tuti.php b/backend/check_tuti.php
+new file mode 100644
+index 0000000..8e19ffc
+--- /dev/null
++++ b/backend/check_tuti.php
+@@ -0,0 +1,22 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== CEK SK TUTI ROHAYATI ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('nama', 'LIKE', '%TUTI ROHAYATI%')
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id}\n";
++    echo "  - Nama Guru: {$sk->nama}\n";
++    echo "  - Asal Sekolah: {$sk->unit_kerja} (School ID: {$sk->school_id})\n";
++    echo "  - Status SK: {$sk->status}\n";
++    echo "  - Nomor Surat: [" . $sk->nomor_permohonan . "]\n";
++    echo "  - Tanggal Surat: [" . $sk->tanggal_permohonan . "]\n";
++    
++    // Hex dump to check for hidden spaces/characters
++    echo "  - Nomor Surat (HEX): " . bin2hex($sk->nomor_permohonan ?? '') . "\n";
++    echo "--------------------------------------------------\n";
++}
+
+commit 242aa812b55c083c041089f8444d354d2002e8cd
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:51:42 2026 +0700
+
+    add check_missing_surat_approved.php
+
+diff --git a/backend/check_missing_surat_approved.php b/backend/check_missing_surat_approved.php
+new file mode 100644
+index 0000000..777799b
+--- /dev/null
++++ b/backend/check_missing_surat_approved.php
+@@ -0,0 +1,31 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== DAFTAR SEMUA SK 'APPROVED' TANPA NOMOR & TANGGAL SURAT ===\n\n";
++
++$query = SkDocument::withoutGlobalScopes()
++    ->where('status', 'approved')
++    ->where(function ($q) {
++        $q->whereNull('nomor_permohonan')
++          ->orWhere('nomor_permohonan', '')
++          ->orWhereNull('tanggal_permohonan');
++    });
++
++$sks = $query->get();
++$total = $sks->count();
++echo "Total SK 'Approved' yang metadatanya tidak lengkap: {$total}\n\n";
++
++if ($total > 0) {
++    foreach ($sks as $index => $sk) {
++        $schoolName = $sk->school ? $sk->school->nama : ($sk->unit_kerja ?? 'TIDAK DIKETAHUI');
++        $no = $index + 1;
++        echo "{$no}. SK ID: {$sk->id} | Nama: {$sk->nama}\n";
++        echo "   - Sekolah: {$schoolName} (School ID: " . ($sk->school_id ?? 'KOSONG') . ")\n";
++        echo "   - Nomor Surat: " . ($sk->nomor_permohonan ?: "[KOSONG]") . "\n";
++        echo "   - Tanggal Surat: " . ($sk->tanggal_permohonan ?: "[KOSONG]") . "\n";
++        echo "--------------------------------------------------\n";
++    }
++} else {
++    echo "Luar biasa! Tidak ada SK dengan status 'approved' yang metadatanya kosong.\n";
++}
+
+commit 5e6447b6d412da0954e10a89bc19d04f90885969
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:50:12 2026 +0700
+
+    add check_missing_surat_v2.php
+
+diff --git a/backend/check_missing_surat_v2.php b/backend/check_missing_surat_v2.php
+new file mode 100644
+index 0000000..fc1463b
+--- /dev/null
++++ b/backend/check_missing_surat_v2.php
+@@ -0,0 +1,29 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== CEK SK TANPA NOMOR & TANGGAL SURAT (V2) ===\n\n";
++
++// Use whereRaw to bypass any Eloquent weirdness with dates
++$query = SkDocument::withoutGlobalScopes()
++    ->whereRaw("(nomor_permohonan IS NULL OR nomor_permohonan = '') OR (tanggal_permohonan IS NULL)");
++
++$total = $query->count();
++echo "Total Pengajuan SK yang tidak lengkap (Nomor/Tanggal kosong): {$total}\n\n";
++
++if ($total > 0) {
++    echo "Menampilkan 10 data teratas:\n";
++    $sks = $query->limit(10)->get();
++    
++    foreach ($sks as $sk) {
++        $schoolName = $sk->school ? $sk->school->nama : ($sk->unit_kerja ?? 'TIDAK DIKETAHUI');
++        echo "SK ID: {$sk->id}\n";
++        echo "  - Nama Guru: {$sk->nama}\n";
++        echo "  - Asal Sekolah: {$schoolName} (School ID: " . ($sk->school_id ?? 'KOSONG') . ")\n";
++        echo "  - Status SK: {$sk->status}\n";
++        echo "  - Nomor Surat: " . ($sk->nomor_permohonan ?: "[KOSONG]") . "\n";
++        echo "  - Tanggal Surat: " . ($sk->tanggal_permohonan ?: "[KOSONG]") . "\n";
++        echo "--------------------------------------------------\n";
++    }
++}
+
+commit b457e006ad3931bb15772bfd9619adc6c8992ed9
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:47:27 2026 +0700
+
+    fix check_missing_surat.php
+
+diff --git a/backend/check_missing_surat.php b/backend/check_missing_surat.php
+index dc11f87..d418531 100644
+--- a/backend/check_missing_surat.php
++++ b/backend/check_missing_surat.php
+@@ -9,8 +9,7 @@
+     ->where(function ($q) {
+         $q->whereNull('nomor_permohonan')
+           ->orWhere('nomor_permohonan', '')
+-          ->orWhereNull('tanggal_permohonan')
+-          ->orWhere('tanggal_permohonan', '');
++          ->orWhereNull('tanggal_permohonan');
+     });
+ 
+ $total = $query->count();
+
+commit 13b8688ba75457e2986c075c317e5a2f7f784c29
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:45:16 2026 +0700
+
+    add check_missing_surat.php
+
+diff --git a/backend/check_missing_surat.php b/backend/check_missing_surat.php
+new file mode 100644
+index 0000000..dc11f87
+--- /dev/null
++++ b/backend/check_missing_surat.php
+@@ -0,0 +1,33 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== CEK SK TANPA NOMOR & TANGGAL SURAT ===\n\n";
++
++// Query for SKs that are missing BOTH or EITHER of nomor_permohonan / tanggal_permohonan
++$query = SkDocument::withoutGlobalScopes()
++    ->where(function ($q) {
++        $q->whereNull('nomor_permohonan')
++          ->orWhere('nomor_permohonan', '')
++          ->orWhereNull('tanggal_permohonan')
++          ->orWhere('tanggal_permohonan', '');
++    });
++
++$total = $query->count();
++echo "Total Pengajuan SK yang tidak lengkap (Nomor/Tanggal kosong): {$total}\n\n";
++
++if ($total > 0) {
++    echo "Menampilkan 10 data teratas:\n";
++    $sks = $query->limit(10)->get();
++    
++    foreach ($sks as $sk) {
++        $schoolName = $sk->school ? $sk->school->nama : ($sk->unit_kerja ?? 'TIDAK DIKETAHUI');
++        echo "SK ID: {$sk->id}\n";
++        echo "  - Nama Guru: {$sk->nama}\n";
++        echo "  - Asal Sekolah: {$schoolName} (School ID: " . ($sk->school_id ?? 'KOSONG') . ")\n";
++        echo "  - Status SK: {$sk->status}\n";
++        echo "  - Nomor Surat: " . ($sk->nomor_permohonan ?: "[KOSONG]") . "\n";
++        echo "  - Tanggal Surat: " . ($sk->tanggal_permohonan ?: "[KOSONG]") . "\n";
++        echo "--------------------------------------------------\n";
++    }
++}
+
+commit 0d3586da6e9216ab5bcc72522bd5dbc4da5e0339
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:39:32 2026 +0700
+
+    add check_aan.php
+
+diff --git a/backend/check_aan.php b/backend/check_aan.php
+new file mode 100644
+index 0000000..f8810b7
+--- /dev/null
++++ b/backend/check_aan.php
+@@ -0,0 +1,19 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== DAFTAR SEMUA SK AAN RUSLIANA ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('nama', 'LIKE', '%AAN RUSLIANA%')
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id}\n";
++    echo "  Nomor SK: {$sk->nomor_sk}\n";
++    echo "  School ID: {$sk->school_id}\n";
++    echo "  Unit Kerja Text: {$sk->unit_kerja}\n";
++    echo "  Status: {$sk->status}\n";
++    echo "--------------------------------------------------\n";
++}
+
+commit 4507258f17410d83eee35a3176d3ab6f6626559b
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:36:03 2026 +0700
+
+    add check_anomalous_sks.php
+
+diff --git a/backend/check_anomalous_sks.php b/backend/check_anomalous_sks.php
+new file mode 100644
+index 0000000..06765ef
+--- /dev/null
++++ b/backend/check_anomalous_sks.php
+@@ -0,0 +1,24 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\School;
++
++echo "=== CEK SK ANEH ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->whereIn('id', [658, 1399, 1190, 1067])
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id}\n";
++    echo "  Nama di SK: {$sk->nama}\n";
++    echo "  Nomor SK: {$sk->nomor_sk}\n";
++    echo "  School ID di tabel SK: {$sk->school_id}\n";
++    echo "  Teacher ID di tabel SK: {$sk->teacher_id}\n";
++    echo "  Dibuat pada: {$sk->created_at}\n";
++    echo "  Diupdate pada: {$sk->updated_at}\n";
++    
++    $school = School::find($sk->school_id);
++    echo "  Nama Sekolah tujuan: " . ($school ? $school->nama : "TIDAK DITEMUKAN") . "\n";
++    echo "--------------------------------------------------\n";
++}
+
+commit 4bd498bcd1af44f1f1c3e266db5bd4b54570a9f2
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:34:11 2026 +0700
+
+    add analyze_13_teachers.php
+
+diff --git a/backend/analyze_13_teachers.php b/backend/analyze_13_teachers.php
+new file mode 100644
+index 0000000..6ccf3de
+--- /dev/null
++++ b/backend/analyze_13_teachers.php
+@@ -0,0 +1,44 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\School;
++use App\Models\SkDocument;
++
++echo "=== ANALISA 13 GURU MTs MA'ARIF WANAREJA ===\n\n";
++
++$teacherNames = [
++    "KARTINI SURATMI", "DIN AZIZAH", "AAN RUSLIANA", "NASTITI",
++    "SITI ZAHROTUL MAKIYAH", "NURFAIZIN", "SITI PARTIMAH",
++    "IMAM BAEHAKI", "ZAENAL MUFTI", "TOHIRIN", "MURSIATI",
++    "DANY RAMADHAN SYAH", "SITI MUZAYANAH"
++];
++
++$teachers = Teacher::withoutGlobalScopes()
++    ->whereIn(DB::raw("REPLACE(nama, ',', '')"), array_map(function($n) { return $n; }, $teacherNames))
++    ->orWhereIn(DB::raw("SPLIT_PART(nama, ',', 1)"), $teacherNames) // PostgreSQL split_part to ignore titles
++    ->get();
++
++foreach ($teachers as $t) {
++    echo "GURU: {$t->nama}\n";
++    echo "  - School ID: {$t->school_id}\n";
++    echo "  - Unit Kerja Text: {$t->unit_kerja}\n";
++    echo "  - TMT: {$t->tmt}\n";
++    
++    // Cek anomali 1: Apakah ada duplikat di DB?
++    $dups = Teacher::withoutGlobalScopes()->where('nama', $t->nama)->where('id', '!=', $t->id)->count();
++    if ($dups > 0) {
++        echo "  [!] PERINGATAN: Ada {$dups} guru lain dengan nama yang sama di database!\n";
++    }
++    
++    // Cek anomali 2: Apakah SK-nya ada di sekolah lain?
++    $sks = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->get();
++    foreach ($sks as $sk) {
++        if ($sk->school_id != 164) {
++            echo "  [!] PERINGATAN: SK ID {$sk->id} ({$sk->nomor_sk}) terdaftar di School ID {$sk->school_id}!\n";
++        }
++    }
++    
++    echo "--------------------------------------------------\n";
++}
++
++echo "Total Guru Dianalisa: " . $teachers->count() . "\n";
+
+commit 77e4055cc8caa1ad9c22f5388c91c6446af78b6c
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:28:39 2026 +0700
+
+    add undo_purwasari.php
+
+diff --git a/backend/undo_purwasari.php b/backend/undo_purwasari.php
+new file mode 100644
+index 0000000..789f530
+--- /dev/null
++++ b/backend/undo_purwasari.php
+@@ -0,0 +1,66 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++use App\Models\School;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MENGEMBALIKAN GURU MI MA'ARIF PURWASARI ===\n\n";
++
++// Nama-nama guru MI yang tidak sengaja terbawa ke MTs
++$miTeachersNames = [
++    "M. HAMAM NASIR, S.Pd.I",
++    "SUYATMI, S.Pd.I",
++    "IDA FARIDA, S.Pd.I",
++    "SRI ROHAYANTI, S.Pd.",
++    "ASA NORMA TIYAS, S.Pd.",
++    "AHMADI, S.Pd.I",
++    "MUTI AZIZAH, S.Pd."
++];
++
++// Cari School ID untuk MI Ma'arif Purwasari
++$miSchool = School::whereRaw("LOWER(nama) LIKE '%mi ma%purwasari%'")->first();
++$miSchoolId = $miSchool ? $miSchool->id : null;
++$miSchoolName = $miSchool ? $miSchool->nama : "MI Ma'arif Purwasari";
++
++echo "School ID MI Purwasari ditemukan: " . ($miSchoolId ?? "TIDAK DITEMUKAN, MENGGUNAKAN TEKS SAJA") . "\n";
++
++DB::beginTransaction();
++try {
++    $tCount = 0;
++    $skCount = 0;
++    
++    foreach ($miTeachersNames as $name) {
++        $teachers = Teacher::withoutGlobalScopes()->where('nama', $name)->get();
++        
++        foreach ($teachers as $t) {
++            $t->unit_kerja = $miSchoolName;
++            if ($miSchoolId) {
++                $t->school_id = $miSchoolId;
++            } else {
++                $t->school_id = null; // Biar jadi ghost lagi kalau sekolah tidak ada, daripada numpuk di MTs
++            }
++            $t->save();
++            $tCount++;
++            
++            // Kembalikan juga SK-nya
++            $sks = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->get();
++            foreach ($sks as $sk) {
++                $sk->unit_kerja = $miSchoolName;
++                if ($miSchoolId) {
++                    $sk->school_id = $miSchoolId;
++                }
++                $sk->save();
++                $skCount++;
++            }
++        }
++    }
++    
++    DB::commit();
++    echo "Γ£à SUKSES UNDO!\n";
++    echo "- Berhasil memulihkan {$tCount} profil Guru kembali ke {$miSchoolName}.\n";
++    echo "- Berhasil memulihkan {$skCount} dokumen SK kembali ke {$miSchoolName}.\n";
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "Γ¥î GAGAL: " . $e->getMessage() . "\n";
++}
+
+commit 0bce0cce19364607e5a0f7d65e50f4540382c8a3
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:24:38 2026 +0700
+
+    add rename_purwasari.php
+
+diff --git a/backend/rename_purwasari.php b/backend/rename_purwasari.php
+new file mode 100644
+index 0000000..77ad718
+--- /dev/null
++++ b/backend/rename_purwasari.php
+@@ -0,0 +1,44 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MENGGANTI TEKS PURWASARI MENJADI WANAREJA ===\n\n";
++
++DB::beginTransaction();
++try {
++    // 1. Update Tabel Teachers
++    $teachers = Teacher::withoutGlobalScopes()
++        ->whereRaw("LOWER(unit_kerja) LIKE '%purwasari%'")
++        ->get();
++        
++    $tCount = 0;
++    foreach ($teachers as $t) {
++        $t->unit_kerja = "MTs Ma'arif Wanareja";
++        $t->school_id = 164; // Pastikan juga terhubung ke Wanareja
++        $t->save();
++        $tCount++;
++    }
++    
++    // 2. Update Tabel SK Documents
++    $sks = SkDocument::withoutGlobalScopes()
++        ->whereRaw("LOWER(unit_kerja) LIKE '%purwasari%'")
++        ->get();
++        
++    $skCount = 0;
++    foreach ($sks as $sk) {
++        $sk->unit_kerja = "MTs Ma'arif Wanareja";
++        $sk->school_id = 164; // Pastikan juga terhubung ke Wanareja
++        $sk->save();
++        $skCount++;
++    }
++    
++    DB::commit();
++    echo "Γ£à SUKSES!\n";
++    echo "- Berhasil mengubah {$tCount} teks pada profil Guru.\n";
++    echo "- Berhasil mengubah {$skCount} teks pada dokumen SK.\n";
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "Γ¥î GAGAL: " . $e->getMessage() . "\n";
++}
+
+commit b8781dca6781d7a5cfc65de51c44e0556ff90a45
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:22:26 2026 +0700
+
+    add fix_sk_text_labels.php
+
+diff --git a/backend/fix_sk_text_labels.php b/backend/fix_sk_text_labels.php
+new file mode 100644
+index 0000000..a265c3c
+--- /dev/null
++++ b/backend/fix_sk_text_labels.php
+@@ -0,0 +1,29 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\School;
++
++echo "=== MEMBERSIHKAN LABEL TEKS (UNIT KERJA) PADA SK NYASAR ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->get();
++$count = 0;
++
++foreach ($sks as $sk) {
++    if (!$sk->school_id) continue;
++    
++    $school = School::find($sk->school_id);
++    if (!$school) continue;
++    
++    // Jika teks unit_kerja di SK tidak sama dengan nama resmi sekolahnya (berarti labelnya usang)
++    if (strtolower(trim($sk->unit_kerja)) !== strtolower(trim($school->nama))) {
++        echo "Mengupdate label SK ID {$sk->id} ({$sk->nama}):\n";
++        echo "  - Label Lama: '{$sk->unit_kerja}'\n";
++        echo "  - Label Baru: '{$school->nama}' (Berdasarkan School ID {$sk->school_id})\n";
++        
++        $sk->unit_kerja = $school->nama;
++        $sk->save();
++        $count++;
++    }
++}
++
++echo "\nBerhasil memperbarui label teks untuk {$count} dokumen SK!\n";
+
+commit 8dcbde80042072431c829bb6ac4e2cff2632d203
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:21:44 2026 +0700
+
+    add check_sk_unit_kerja.php
+
+diff --git a/backend/check_sk_unit_kerja.php b/backend/check_sk_unit_kerja.php
+new file mode 100644
+index 0000000..4f9dba8
+--- /dev/null
++++ b/backend/check_sk_unit_kerja.php
+@@ -0,0 +1,23 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== CEK SK KHALIMATUS SA'DIYAH & TEMAN-TEMANNYA ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->whereIn('nama', [
++        "KHALIMATUS SA'DIYAH, S.Pd.",
++        "SUPRIYATUN, S.Pd.I",
++        "PRIMAWANTI, S.Pd.",
++        "AHMAD MAFTUH, S.Pd.",
++        "DASINI, S.Pd.I"
++    ])
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id}\n";
++    echo "  Nama: {$sk->nama}\n";
++    echo "  Unit Kerja di tabel SK: '{$sk->unit_kerja}'\n";
++    echo "  School ID di tabel SK: {$sk->school_id}\n";
++    echo "--------------------------------------------------\n";
++}
+
+commit 80ececc5ee1bda7757fe0d0fda783af9363aea3b
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:20:34 2026 +0700
+
+    add check_null_teacher_sks.php
+
+diff --git a/backend/check_null_teacher_sks.php b/backend/check_null_teacher_sks.php
+new file mode 100644
+index 0000000..f24432a
+--- /dev/null
++++ b/backend/check_null_teacher_sks.php
+@@ -0,0 +1,16 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== MENCARI SK TANPA TEACHER_ID DI SCHOOL 164 ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('school_id', 164)
++    ->whereNull('teacher_id')
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id} | Nama: {$sk->nama} | Status: {$sk->status} | Unit Kerja DB: {$sk->unit_kerja}\n";
++}
++
++echo "\nTotal: " . $sks->count() . "\n";
+
+commit fed2e304a9bd223cab6b03452fddaecaba82207e
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:20:05 2026 +0700
+
+    add check_generator_query.php
+
+diff --git a/backend/check_generator_query.php b/backend/check_generator_query.php
+new file mode 100644
+index 0000000..00770f8
+--- /dev/null
++++ b/backend/check_generator_query.php
+@@ -0,0 +1,17 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MENSIMULASIKAN QUERY GENERATOR SK MASAL UNTUK SCHOOL 164 ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('school_id', 164)
++    ->whereIn('status', ['pending', 'draft'])
++    ->get();
++
++echo "Jumlah SK yang dikembalikan oleh DB: " . $sks->count() . "\n\n";
++
++foreach ($sks as $sk) {
++    echo "- SK ID: {$sk->id} | Nama: {$sk->nama} | Unit Kerja DB: {$sk->unit_kerja} | School ID: {$sk->school_id}\n";
++}
+
+commit 76be8c468121dd34764359fcbad840b44ce439ee
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:17:49 2026 +0700
+
+    add fix_purwasari_wanareja.php
+
+diff --git a/backend/fix_purwasari_wanareja.php b/backend/fix_purwasari_wanareja.php
+new file mode 100644
+index 0000000..168f2dc
+--- /dev/null
++++ b/backend/fix_purwasari_wanareja.php
+@@ -0,0 +1,31 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\School;
++
++echo "=== MENGUBAH PURWASARI MENJADI WANAREJA ===\n\n";
++
++$teachers = Teacher::withoutGlobalScopes()
++    ->whereRaw("LOWER(unit_kerja) LIKE '%purwasari%'")
++    ->get();
++
++$count = 0;
++foreach ($teachers as $t) {
++    echo "Update Guru: {$t->nama} (ID: {$t->id})\n";
++    echo "  - Unit Kerja Lama: {$t->unit_kerja}\n";
++    echo "  - School ID Lama: " . ($t->school_id ?? 'KOSONG') . "\n";
++    
++    // Ganti School ID ke 164 (MTs Ma'arif Wanareja)
++    $t->school_id = 164;
++    
++    // Opsional: Ganti teks unit_kerja agar seragam
++    $t->unit_kerja = "MTs Ma'arif Wanareja";
++    
++    $t->save();
++    $count++;
++    
++    echo "  -> BERHASIL diubah ke MTs Ma'arif Wanareja (School ID 164)\n";
++    echo "---------------------------------------\n";
++}
++
++echo "Total {$count} guru berhasil disatukan ke MTs Ma'arif Wanareja!\n";
+
+commit 8de4d1a1ca80bb4b7f46c026bdee02148b414451
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:16:09 2026 +0700
+
+    add check_purwasari.php
+
+diff --git a/backend/check_purwasari.php b/backend/check_purwasari.php
+new file mode 100644
+index 0000000..4b46ead
+--- /dev/null
++++ b/backend/check_purwasari.php
+@@ -0,0 +1,12 @@
++<?php
++
++use App\Models\School;
++
++$schools = School::whereRaw("LOWER(nama) LIKE '%purwasari%'")->get();
++if ($schools->isEmpty()) {
++    echo "TIDAK ADA SEKOLAH DENGAN KATA 'purwasari'\n";
++} else {
++    foreach ($schools as $s) {
++        echo "School ID: {$s->id}, Nama: {$s->nama}\n";
++    }
++}
+
+commit c49a6a27f9b1a0fcb8de987659ceb112127a0484
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:13:23 2026 +0700
+
+    add check_164.php
+
+diff --git a/backend/check_164.php b/backend/check_164.php
+new file mode 100644
+index 0000000..7a5fc49
+--- /dev/null
++++ b/backend/check_164.php
+@@ -0,0 +1,30 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== DAFTAR SK DI MTs MA'ARIF WANAREJA (164) ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('school_id', 164)
++    ->whereNull('deleted_at')
++    ->get();
++
++foreach ($sks as $sk) {
++    echo "SK ID: {$sk->id}\n";
++    echo "  Nama di SK: {$sk->nama}\n";
++    echo "  Teacher ID di SK: " . ($sk->teacher_id ?? "NULL") . "\n";
++    
++    if ($sk->teacher_id) {
++        $teacher = Teacher::withoutGlobalScopes()->withTrashed()->find($sk->teacher_id);
++        if ($teacher) {
++            echo "  Data Guru:\n";
++            echo "    - Status: " . ($teacher->trashed() ? "TRASHED" : "AKTIF") . "\n";
++            echo "    - School ID Guru: {$teacher->school_id}\n";
++            echo "    - Unit Kerja Guru: {$teacher->unit_kerja}\n";
++        } else {
++            echo "  Data Guru: TIDAK DITEMUKAN SAMA SEKALI!\n";
++        }
++    }
++    echo "--------------------------------------------------\n";
++}
+
+commit 4f147d4bcf9ee28c01ec9a7c389f12ef66aaae09
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:09:20 2026 +0700
+
+    add show_moved_sks.php
+
+diff --git a/backend/show_moved_sks.php b/backend/show_moved_sks.php
+new file mode 100644
+index 0000000..60899d4
+--- /dev/null
++++ b/backend/show_moved_sks.php
+@@ -0,0 +1,25 @@
++<?php
++
++use App\Models\SkDocument;
++use Carbon\Carbon;
++
++echo "=== DAFTAR 9 SK YANG BERHASIL DISELAMATKAN ===\n\n";
++
++// Cari SK yang baru saja diupdate dalam 10 menit terakhir
++$recentSks = SkDocument::withoutGlobalScopes()
++    ->where('updated_at', '>=', Carbon::now()->subMinutes(10))
++    ->get();
++
++foreach ($recentSks as $sk) {
++    $teacher = $sk->teacher()->withoutGlobalScopes()->first();
++    $school = $sk->school;
++    
++    echo "SK ID: {$sk->id}\n";
++    echo "  Nama Guru: {$sk->nama}\n";
++    echo "  Nomor SK: {$sk->nomor_sk}\n";
++    echo "  Sekarang Berada di: " . ($school ? $school->nama : "Unknown") . " (School ID: {$sk->school_id})\n";
++    if ($teacher) {
++        echo "  Teks Unit Kerja (Asal Muasal): {$teacher->unit_kerja}\n";
++    }
++    echo "--------------------------------------------------\n";
++}
+
+commit 3f1a049f220c8f33cd59ba323475bf61c50b5e16
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:07:41 2026 +0700
+
+    add execute_ghost_teachers_recovery.php
+
+diff --git a/backend/execute_ghost_teachers_recovery.php b/backend/execute_ghost_teachers_recovery.php
+new file mode 100644
+index 0000000..9876c05
+--- /dev/null
++++ b/backend/execute_ghost_teachers_recovery.php
+@@ -0,0 +1,66 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\School;
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== EKSEKUSI PEMULIHAN 469 GURU HANTU & SK NYASAR ===\n\n";
++
++$ghostTeachers = Teacher::withoutGlobalScopes()->whereRaw("(school_id IS NULL OR school_id = 0)")
++    ->whereRaw("unit_kerja IS NOT NULL AND unit_kerja != ''")->get();
++
++$allSchools = School::all();
++$schoolMap = [];
++foreach ($allSchools as $s) {
++    $normalized = strtolower(trim(str_replace(['ΓÇÖ', "'", '.', ','], '', $s->nama)));
++    $schoolMap[$normalized] = $s->id;
++}
++
++$successCount = 0;
++$skMovedCount = 0;
++
++DB::beginTransaction();
++try {
++    foreach ($ghostTeachers as $t) {
++        $unitKerjaNorm = strtolower(trim(str_replace(['ΓÇÖ', "'", '.', ','], '', $t->unit_kerja)));
++        
++        $correctSchoolId = null;
++        if (isset($schoolMap[$unitKerjaNorm])) {
++            $correctSchoolId = $schoolMap[$unitKerjaNorm];
++        } else {
++            // Coba partial match
++            foreach ($allSchools as $s) {
++                $sNorm = strtolower(trim(str_replace(['ΓÇÖ', "'", '.', ','], '', $s->nama)));
++                if (strpos($unitKerjaNorm, $sNorm) !== false || strpos($sNorm, $unitKerjaNorm) !== false) {
++                    $correctSchoolId = $s->id;
++                    break;
++                }
++            }
++        }
++        
++        if ($correctSchoolId) {
++            // 1. Pulihkan Profil Guru
++            $t->school_id = $correctSchoolId;
++            $t->save();
++            $successCount++;
++            
++            // 2. Tarik Paksa SK Nyasar
++            $sks = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->get();
++            foreach ($sks as $sk) {
++                if ($sk->school_id != $correctSchoolId) {
++                    $sk->school_id = $correctSchoolId;
++                    $sk->save();
++                    $skMovedCount++;
++                }
++            }
++        }
++    }
++    DB::commit();
++    echo "Γ£à SUKSES!\n";
++    echo "Berhasil memulihkan {$successCount} Guru Hantu kembali ke sekolah asalnya.\n";
++    echo "Berhasil menarik paksa {$skMovedCount} SK Nyasar dari sekolah lain.\n";
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "Γ¥î GAGAL: " . $e->getMessage() . "\n";
++}
+
+commit 051ede4e245e72dde7a034f689f456cd21540999
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 13:01:59 2026 +0700
+
+    fix query syntax for postgres
+
+diff --git a/backend/identify_ghost_teachers.php b/backend/identify_ghost_teachers.php
+index 7b8dea6..f3de9bc 100644
+--- a/backend/identify_ghost_teachers.php
++++ b/backend/identify_ghost_teachers.php
+@@ -6,9 +6,8 @@
+ 
+ echo "=== MENCARI GURU HANTU (SCHOOL_ID KOSONG) & SK NYASAR MEREKA ===\n\n";
+ 
+-$ghostTeachers = Teacher::withoutGlobalScopes()->where(function ($q) {
+-    $q->whereNull('school_id')->orWhere('school_id', 0);
+-})->whereNotNull('unit_kerja')->where('unit_kerja', '!=', '')->get();
++$ghostTeachers = Teacher::withoutGlobalScopes()->whereRaw("(school_id IS NULL OR school_id = 0)")
++    ->whereRaw("unit_kerja IS NOT NULL AND unit_kerja != ''")->get();
+ 
+ $allSchools = School::all();
+ $schoolMap = [];
+
+commit 962448b3fa4577ec31d17f734c458a6a75bd3c6e
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 12:01:08 2026 +0700
+
+    fix postgres bigint type error
+
+diff --git a/backend/identify_ghost_teachers.php b/backend/identify_ghost_teachers.php
+index b427f12..7b8dea6 100644
+--- a/backend/identify_ghost_teachers.php
++++ b/backend/identify_ghost_teachers.php
+@@ -7,7 +7,7 @@
+ echo "=== MENCARI GURU HANTU (SCHOOL_ID KOSONG) & SK NYASAR MEREKA ===\n\n";
+ 
+ $ghostTeachers = Teacher::withoutGlobalScopes()->where(function ($q) {
+-    $q->whereNull('school_id')->orWhere('school_id', '')->orWhere('school_id', 0);
++    $q->whereNull('school_id')->orWhere('school_id', 0);
+ })->whereNotNull('unit_kerja')->where('unit_kerja', '!=', '')->get();
+ 
+ $allSchools = School::all();
+
+commit a14ad83b2ba778d6e73402c9356afbac5ec2a5af
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 12:00:06 2026 +0700
+
+    add identify_ghost_teachers.php
+
+diff --git a/backend/identify_ghost_teachers.php b/backend/identify_ghost_teachers.php
+new file mode 100644
+index 0000000..b427f12
+--- /dev/null
++++ b/backend/identify_ghost_teachers.php
+@@ -0,0 +1,60 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\School;
++use App\Models\SkDocument;
++
++echo "=== MENCARI GURU HANTU (SCHOOL_ID KOSONG) & SK NYASAR MEREKA ===\n\n";
++
++$ghostTeachers = Teacher::withoutGlobalScopes()->where(function ($q) {
++    $q->whereNull('school_id')->orWhere('school_id', '')->orWhere('school_id', 0);
++})->whereNotNull('unit_kerja')->where('unit_kerja', '!=', '')->get();
++
++$allSchools = School::all();
++$schoolMap = [];
++foreach ($allSchools as $s) {
++    $normalized = strtolower(trim(str_replace(['ΓÇÖ', "'", '.', ','], '', $s->nama)));
++    $schoolMap[$normalized] = $s->id;
++}
++
++$fixableCount = 0;
++$unfixableCount = 0;
++
++foreach ($ghostTeachers as $t) {
++    $unitKerjaNorm = strtolower(trim(str_replace(['ΓÇÖ', "'", '.', ','], '', $t->unit_kerja)));
++    
++    $correctSchoolId = null;
++    if (isset($schoolMap[$unitKerjaNorm])) {
++        $correctSchoolId = $schoolMap[$unitKerjaNorm];
++    } else {
++        // Coba partial match
++        foreach ($allSchools as $s) {
++            $sNorm = strtolower(trim(str_replace(['ΓÇÖ', "'", '.', ','], '', $s->nama)));
++            if (strpos($unitKerjaNorm, $sNorm) !== false || strpos($sNorm, $unitKerjaNorm) !== false) {
++                $correctSchoolId = $s->id;
++                break;
++            }
++        }
++    }
++    
++    if ($correctSchoolId) {
++        $fixableCount++;
++        echo "Γ£à GURU ID {$t->id} ({$t->nama}):\n";
++        echo "   - Unit Kerja Text: '{$t->unit_kerja}'\n";
++        echo "   - Akan dipulihkan ke School ID: {$correctSchoolId}\n";
++        
++        $sks = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->get();
++        foreach ($sks as $sk) {
++            if ($sk->school_id != $correctSchoolId) {
++                echo "   - SK NYASAR DITEMUKAN: SK ID {$sk->id} (Saat ini di School ID {$sk->school_id})\n";
++                echo "     -> SK ini akan ditarik paksa ke School ID {$correctSchoolId}\n";
++            }
++        }
++        echo "--------------------------------------------------------\n";
++    } else {
++        $unfixableCount++;
++    }
++}
++
++echo "\nTotal Guru Hantu yang BISA dipulihkan: {$fixableCount}\n";
++echo "Total Guru Hantu yang GAGAL dipulihkan (Sekolah tidak ditemukan): {$unfixableCount}\n";
+
+commit a0541c80c8a0481b33c12169f79a87f6342335f0
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:58:17 2026 +0700
+
+    add check_sk_mismatch_v2.php
+
+diff --git a/backend/check_sk_mismatch_v2.php b/backend/check_sk_mismatch_v2.php
+new file mode 100644
+index 0000000..22a0068
+--- /dev/null
++++ b/backend/check_sk_mismatch_v2.php
+@@ -0,0 +1,47 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use App\Models\School;
++
++echo "=== MENCARI SEMUA SK NYASAR (TERMASUK GURU TERHAPUS) ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$mismatchCount = 0;
++$ghostSkCount = 0;
++
++foreach ($sks as $sk) {
++    if (empty($sk->teacher_id)) {
++        $ghostSkCount++;
++        continue;
++    }
++    
++    // PENTING: Gunakan withTrashed() untuk menemukan guru yang sudah dihapus
++    $teacher = Teacher::withoutGlobalScopes()->withTrashed()->find($sk->teacher_id);
++    
++    if (!$teacher) {
++        $ghostSkCount++;
++        continue;
++    }
++    
++    // Cek apakah school_id di SK berbeda dengan school_id di tabel Teacher
++    if ($sk->school_id != $teacher->school_id && !empty($teacher->school_id)) {
++        $mismatchCount++;
++        
++        $status = $teacher->trashed() ? "[TERHAPUS/TRASH]" : "[AKTIF]";
++        $schoolTeacher = School::find($teacher->school_id);
++        $schoolTeacherName = $schoolTeacher ? $schoolTeacher->nama : "Unknown";
++        
++        $schoolSk = School::find($sk->school_id);
++        $schoolSkName = $schoolSk ? $schoolSk->nama : "Unknown";
++        
++        echo "SK ID {$sk->id} ({$sk->nama}):\n";
++        echo "  - SK tertaut di School ID: {$sk->school_id} ({$schoolSkName})\n";
++        echo "  - Profil Guru {$status} ada di School ID: {$teacher->school_id} ({$schoolTeacherName})\n";
++        echo "  - Teks Unit Kerja Guru: {$teacher->unit_kerja}\n";
++        echo "-----------------------------------------\n";
++    }
++}
++
++echo "Total SK Nyasar (Beda Server): {$mismatchCount}\n";
++echo "Total SK Hantu (Teacher ID kosong/hilang permanen): {$ghostSkCount}\n";
+
+commit d0d0d8c5388b81747d65f37e276ecd0fd339106a
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:54:37 2026 +0700
+
+    add check_sk_mismatch.php
+
+diff --git a/backend/check_sk_mismatch.php b/backend/check_sk_mismatch.php
+new file mode 100644
+index 0000000..bde594a
+--- /dev/null
++++ b/backend/check_sk_mismatch.php
+@@ -0,0 +1,27 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MENCARI SK NYASAR (SK SCHOOL_ID != TEACHER SCHOOL_ID) ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++
++$mismatchCount = 0;
++foreach ($sks as $sk) {
++    if (empty($sk->teacher_id)) continue;
++    
++    $teacher = Teacher::withoutGlobalScopes()->find($sk->teacher_id);
++    if (!$teacher) continue;
++    
++    // Cek apakah school_id di SK berbeda dengan school_id di tabel Teacher
++    if ($sk->school_id != $teacher->school_id && !empty($teacher->school_id)) {
++        $mismatchCount++;
++        echo "SK ID {$sk->id} ({$sk->nama}):\n";
++        echo "  - SK tertaut di School ID: {$sk->school_id}\n";
++        echo "  - Tapi Profil Guru ada di School ID: {$teacher->school_id} ({$teacher->unit_kerja})\n";
++        echo "-----------------------------------------\n";
++    }
++}
++
++echo "Total SK Nyasar (Beda Server): {$mismatchCount}\n";
+
+commit b9659df432cc4e078664eae2e9aa29a5c3bcb4ab
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:54:15 2026 +0700
+
+    add check_khalimatus.php
+
+diff --git a/backend/check_khalimatus.php b/backend/check_khalimatus.php
+new file mode 100644
+index 0000000..fdc7744
+--- /dev/null
++++ b/backend/check_khalimatus.php
+@@ -0,0 +1,24 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++echo "=== CEK KHALIMATUS SA'DIYAH ===\n";
++
++$teacher = Teacher::withoutGlobalScopes()->whereRaw("LOWER(nama) LIKE '%khalimatus%'")->first();
++if ($teacher) {
++    echo "GURU:\n";
++    echo "  ID: {$teacher->id}\n";
++    echo "  Nama: {$teacher->nama}\n";
++    echo "  Unit Kerja: {$teacher->unit_kerja}\n";
++    echo "  School ID: {$teacher->school_id}\n";
++}
++
++$sks = SkDocument::withoutGlobalScopes()->whereRaw("LOWER(nama) LIKE '%khalimatus%'")->get();
++foreach ($sks as $sk) {
++    echo "\nSK:\n";
++    echo "  ID: {$sk->id}\n";
++    echo "  Nama di SK: {$sk->nama}\n";
++    echo "  School ID di SK: {$sk->school_id}\n";
++    echo "  Teacher ID di SK: {$sk->teacher_id}\n";
++}
+
+commit a8741fa1631a009921dbef8579d5f3c96fe5ae30
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:50:35 2026 +0700
+
+    add check_wanareja_sk_teachers.php
+
+diff --git a/backend/check_wanareja_sk_teachers.php b/backend/check_wanareja_sk_teachers.php
+new file mode 100644
+index 0000000..f81533c
+--- /dev/null
++++ b/backend/check_wanareja_sk_teachers.php
+@@ -0,0 +1,37 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== CEK STATUS GURU DI SK WANAREJA ===\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('school_id', 164)
++    ->whereNull('deleted_at')
++    ->get();
++
++$activeTeacherCount = 0;
++$trashedTeacherCount = 0;
++$nullTeacherCount = 0;
++
++foreach ($sks as $sk) {
++    $teacher = $sk->teacher()->withoutGlobalScopes()->withTrashed()->first();
++    
++    echo "- SK: {$sk->nama} | Nomor: {$sk->nomor_permohonan}\n";
++    if (!$teacher) {
++        echo "  -> GURU TIDAK DITEMUKAN SAMA SEKALI (Null)\n";
++        $nullTeacherCount++;
++    } else {
++        if ($teacher->trashed()) {
++            echo "  -> GURU SUDAH DIHAPUS (Trashed) | Teacher ID: {$teacher->id}\n";
++            $trashedTeacherCount++;
++        } else {
++            echo "  -> GURU AKTIF | Teacher ID: {$teacher->id}\n";
++            $activeTeacherCount++;
++        }
++    }
++}
++
++echo "\nRingkasan dari " . $sks->count() . " SK Aktif:\n";
++echo "- Guru Aktif: {$activeTeacherCount}\n";
++echo "- Guru Terhapus: {$trashedTeacherCount}\n";
++echo "- Guru Null/Kosong: {$nullTeacherCount}\n";
+
+commit 6a3dd912988b01d2b5ce66a9031686d2a14943ae
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:46:00 2026 +0700
+
+    add fix_wanareja_numbers.php
+
+diff --git a/backend/fix_wanareja_numbers.php b/backend/fix_wanareja_numbers.php
+new file mode 100644
+index 0000000..a09fc70
+--- /dev/null
++++ b/backend/fix_wanareja_numbers.php
+@@ -0,0 +1,53 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "=== PERBAIKAN NOMOR SURAT MTs MA'ARIF WANAREJA & PEMULIHAN SUPRIYATUN ===\n\n";
++
++DB::beginTransaction();
++try {
++    // 1. Membetulkan Nomor Surat Kartini, Din Azizah, Aan Rusliana, dan Supriyatun (SK ID 684)
++    $targetNames = ['KARTINI SURATMI', 'DIN AZIZAH', 'AAN RUSLIANA', 'SUPRIYATUN'];
++    $correctNumber = '31/MTs.MF/33.24/V/2026';
++    $schoolWanarejaId = 164;
++    
++    $sks = SkDocument::withoutGlobalScopes()
++        ->where('school_id', $schoolWanarejaId)
++        ->where('nomor_permohonan', '65')
++        ->whereNull('deleted_at')
++        ->get();
++        
++    $fixedSkCount = 0;
++    foreach ($sks as $sk) {
++        $bareName = strtoupper(trim(explode(',', $sk->nama)[0]));
++        foreach ($targetNames as $target) {
++            if (strpos($bareName, $target) !== false) {
++                $sk->nomor_permohonan = $correctNumber;
++                $sk->save();
++                echo "Γ£à Berhasil memperbaiki Nomor Surat untuk: {$sk->nama} (SK ID: {$sk->id})\n";
++                $fixedSkCount++;
++                break;
++            }
++        }
++    }
++    
++    echo "\n";
++    
++    // 2. Memulihkan School ID Ibu Supriyatun (Guru ID 1076)
++    // Karena Unit Kerjanya adalah 'MI MaΓÇÖarif NU 10 Bantarsari' (School ID 50), kita kembalikan dia ke sana.
++    $supriyatun = Teacher::withoutGlobalScopes()->find(1076);
++    if ($supriyatun && empty($supriyatun->school_id)) {
++        $supriyatun->school_id = 50;
++        $supriyatun->save();
++        echo "Γ£à Berhasil memulihkan profil hantu SUPRIYATUN, S.Pd.I (Guru ID 1076)\n";
++        echo "   -> School ID yang tadinya KOSONG sekarang diisi menjadi: 50 (MI NU 10)\n";
++    }
++
++    DB::commit();
++    echo "\nEKSEKUSI SELESAI! Semua perbaikan berhasil disimpan ke database.\n";
++} catch (\Exception $e) {
++    DB::rollBack();
++    echo "Γ¥î GAGAL: " . $e->getMessage() . "\n";
++}
+
+commit 366476655649ca9bbfdf6e0d20f5a177e9158877
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:44:05 2026 +0700
+
+    add check_guru_supriyatun.php
+
+diff --git a/backend/check_guru_supriyatun.php b/backend/check_guru_supriyatun.php
+new file mode 100644
+index 0000000..ef1c2e6
+--- /dev/null
++++ b/backend/check_guru_supriyatun.php
+@@ -0,0 +1,16 @@
++<?php
++
++use App\Models\Teacher;
++
++echo "=== CARI GURU SUPRIYATUN ===\n";
++$teachers = Teacher::withoutGlobalScopes()->withTrashed()->whereRaw("LOWER(nama) LIKE '%supriyatun%'")->get();
++
++foreach ($teachers as $t) {
++    $status = $t->trashed() ? "[TERHAPUS]" : "[AKTIF]";
++    echo "ID: {$t->id} {$status}\n";
++    echo "  Nama: {$t->nama}\n";
++    echo "  School ID di DB: {$t->school_id}\n";
++    echo "  Unit Kerja Text: {$t->unit_kerja}\n";
++    echo "  NIM: " . ($t->nomor_induk_maarif ?: 'KOSONG') . "\n";
++    echo "-------------------\n";
++}
+
+commit 4333de06996e0bef40c15f5e97612a4e7a397deb
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:38:15 2026 +0700
+
+    add check_wanareja_submissions.php
+
+diff --git a/backend/check_wanareja_submissions.php b/backend/check_wanareja_submissions.php
+new file mode 100644
+index 0000000..08fe07e
+--- /dev/null
++++ b/backend/check_wanareja_submissions.php
+@@ -0,0 +1,24 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== RIWAYAT PENGAJUAN SK MTs MA'ARIF WANAREJA (School ID: 164) ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->withTrashed()->where('school_id', 164)->orderBy('created_at', 'asc')->get();
++
++if ($sks->count() == 0) {
++    echo "TIDAK ADA DATA.\n";
++} else {
++    foreach ($sks as $sk) {
++        $status = $sk->trashed() ? "[TERHAPUS/TRASH]" : "[AKTIF]";
++        $date = $sk->created_at ? $sk->created_at->format('Y-m-d H:i') : 'Unknown Date';
++        
++        echo "Tgl Submit: {$date} | SK ID: {$sk->id} {$status}\n";
++        echo "  Nama Guru: {$sk->nama}\n";
++        echo "  Nomor Permohonan: {$sk->nomor_permohonan}\n";
++        echo "  File Lampiran: " . ($sk->file_url ? 'ADA' : 'TIDAK ADA') . "\n";
++        echo "--------------------------------------------------------\n";
++    }
++}
++
++echo "\nTotal Pengajuan (Aktif & Terhapus): " . $sks->count() . "\n";
+
+commit 59fbdad17f83ced4c7e363dbe2190275774ea07d
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:32:52 2026 +0700
+
+    add check_sk_supriyatun.php
+
+diff --git a/backend/check_sk_supriyatun.php b/backend/check_sk_supriyatun.php
+new file mode 100644
+index 0000000..fa24aff
+--- /dev/null
++++ b/backend/check_sk_supriyatun.php
+@@ -0,0 +1,17 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== CARI SK SUPRIYATUN ===\n";
++
++$sks = SkDocument::withoutGlobalScopes()->withTrashed()->whereRaw("LOWER(nama) LIKE '%supriyatun%'")->get();
++
++foreach ($sks as $sk) {
++    $status = $sk->trashed() ? "[TERHAPUS]" : "[AKTIF]";
++    echo "SK ID: {$sk->id} {$status}\n";
++    echo "  Nama: {$sk->nama}\n";
++    echo "  School ID: {$sk->school_id}\n";
++    echo "  Nomor Permohonan: {$sk->nomor_permohonan}\n";
++    echo "  Nomor SK: {$sk->nomor_sk}\n";
++    echo "-------------------\n";
++}
+
+commit af0a005ca88f48257ca3fd9327cdb3ffcb7a0518
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:31:27 2026 +0700
+
+    update safe_cleanup.php with nomor_permohonan score
+
+diff --git a/backend/safe_cleanup.php b/backend/safe_cleanup.php
+index de798ad..1f4bfb3 100644
+--- a/backend/safe_cleanup.php
++++ b/backend/safe_cleanup.php
+@@ -54,6 +54,18 @@
+         if (!empty($sk->jabatan)) $score += 5;
+         if (!empty($sk->tugas_mengajar)) $score += 5;
+         
++        // 6. Kualitas Nomor Permohonan (Menghukum nomor yang terlalu singkat seperti "65")
++        if (!empty($sk->nomor_permohonan)) {
++            $len = strlen($sk->nomor_permohonan);
++            if ($len > 15) {
++                $score += 40; // Nomor super lengkap (contoh: 0223/PC.L/A.II/...)
++            } elseif ($len > 5) {
++                $score += 20; // Nomor standar
++            } else {
++                $score -= 20; // Nomor mencurigakan / terlalu pendek (contoh: "65")
++            }
++        }
++        
+         $scoredSks[] = [
+             'sk' => $sk,
+             'score' => $score,
+
+commit 0a61d55b56a72739c4708163e04fa337f52cb6cb
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:29:37 2026 +0700
+
+    add check_lost_teachers.php
+
+diff --git a/backend/check_lost_teachers.php b/backend/check_lost_teachers.php
+new file mode 100644
+index 0000000..8cc39da
+--- /dev/null
++++ b/backend/check_lost_teachers.php
+@@ -0,0 +1,35 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\SkDocument;
++
++// Cari guru yang kehilangan school_id dan unit_kerja
++$lostTeachers = Teacher::withoutGlobalScopes()
++    ->where(function ($q) {
++        $q->whereNull('school_id')->orWhere('school_id', '')->orWhere('school_id', 0);
++    })
++    ->where(function ($q) {
++        $q->whereNull('unit_kerja')->orWhere('unit_kerja', '');
++    })
++    ->get();
++
++$totalLost = $lostTeachers->count();
++echo "=== PENGECEKAN GURU YANG KEHILANGAN UNIT KERJA & SCHOOL ID ===\n\n";
++echo "Total Guru yang hilang arah (tanpa school_id dan tanpa unit_kerja): {$totalLost}\n\n";
++
++if ($totalLost > 0) {
++    echo "Daftar 20 Guru Pertama:\n";
++    $count = 0;
++    foreach ($lostTeachers as $t) {
++        $count++;
++        if ($count > 20) break;
++        
++        // Cek apakah guru ini terkait dengan SK apapun?
++        $sk = SkDocument::withoutGlobalScopes()->where('teacher_id', $t->id)->first();
++        $skInfo = $sk ? "Terkait SK ID {$sk->id} (School ID: {$sk->school_id})" : "TIDAK ADA SK";
++        
++        $status = $t->trashed() ? "[TERHAPUS/TRASH]" : "[AKTIF]";
++        echo "{$count}. ID: {$t->id} | Nama: {$t->nama} {$status}\n";
++        echo "   -> NIM: " . ($t->nomor_induk_maarif ?: 'KOSONG') . " | {$skInfo}\n";
++    }
++}
+
+commit 7a29fa976962cf106989ea321885845ec227c0cc
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:24:53 2026 +0700
+
+    add execute_jamiyyah_mismatch.php
+
+diff --git a/backend/execute_jamiyyah_mismatch.php b/backend/execute_jamiyyah_mismatch.php
+new file mode 100644
+index 0000000..2c61f27
+--- /dev/null
++++ b/backend/execute_jamiyyah_mismatch.php
+@@ -0,0 +1,95 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use App\Models\School;
++use Illuminate\Support\Facades\DB;
++
++echo "=== EKSEKUSI PEMULANGAN GURU NYASAR (KHUSUS JAM'IYYAH) ===\n\n";
++
++// Ambil semua SK aktif
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$executedCount = 0;
++
++foreach ($sks as $sk) {
++    $school = $sk->school;
++    if (!$school) continue;
++    
++    // FOKUS HANYA JAMIYYAH
++    $statusJamiyyah = strtolower($school->status_jamiyyah ?? '');
++    $status = strtolower($school->status ?? '');
++    if ($statusJamiyyah !== 'jamiyyah' && $status !== 'jamiyyah' && $statusJamiyyah !== "jam'iyyah" && $status !== "jam'iyyah") {
++        continue;
++    }
++
++    $currentT = $sk->teacher;
++    // Cek apakah data kosong
++    $isDataMissing = !$currentT || empty($currentT->tmt) || empty($currentT->tanggal_lahir);
++    if (!$isDataMissing) {
++        continue; 
++    }
++
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameLower = strtolower($bareName);
++    
++    // Cari Wanderer: Guru dengan nama sama di sekolah manapun, yang punya data lengkap
++    $wanderers = Teacher::withoutGlobalScopes()
++        ->withTrashed() // Nyasar sampai ke tong sampah pun kita cari
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $bareNameLower . '%'])
++        ->get();
++        
++    $bestWanderer = null;
++    
++    foreach ($wanderers as $wt) {
++        if ($wt->school_id == $sk->school_id) continue; // Harus beda school_id (berarti nyasar)
++        if (empty($wt->tmt) || empty($wt->tanggal_lahir)) continue; // HARUS punya data yang lumayan lengkap
++        
++        // KUNCI KEAMANAN: Teks unit_kerja harus cocok dengan nama sekolah
++        $wtUnitKerja = strtolower(trim(str_replace(['ΓÇÖ', "'"], '', $wt->unit_kerja)));
++        $schoolName = strtolower(trim(str_replace(['ΓÇÖ', "'"], '', $school->nama)));
++        
++        if ($wtUnitKerja === $schoolName || strpos($schoolName, $wtUnitKerja) !== false || strpos($wtUnitKerja, $schoolName) !== false) {
++            $bestWanderer = $wt;
++            break; // Ketemu!
++        }
++    }
++    
++    if ($bestWanderer) {
++        DB::beginTransaction();
++        try {
++            $executedCount++;
++            echo "Γ£à MEMULANGKAN GURU: {$sk->nama} (SK ID: {$sk->id})\n";
++            
++            // 1. Jika terhapus (di tong sampah), pulihkan dulu (Restore)
++            if ($bestWanderer->trashed()) {
++                $bestWanderer->restore();
++            }
++
++            // 2. Pulangkan ke sekolah asalnya (Update school_id)
++            $bestWanderer->school_id = $school->id;
++            $bestWanderer->save();
++            echo "   -> Berhasil mengubah School ID Guru ID {$bestWanderer->id} menjadi {$school->id}\n";
++            
++            // 3. Tautkan SK ke Guru yang sudah dipulangkan
++            $sk->teacher_id = $bestWanderer->id;
++            $sk->save();
++            echo "   -> Berhasil menautkan SK ID {$sk->id} ke Guru ID {$bestWanderer->id}\n";
++            
++            // 4. Hapus profil kosong lama agar tidak dobel
++            if ($currentT && $currentT->id !== $bestWanderer->id) {
++                $currentT->delete();
++                echo "   -> Berhasil menghapus profil kosong lama (Guru ID {$currentT->id})\n";
++            }
++            
++            echo "\n";
++            DB::commit();
++        } catch (\Exception $e) {
++            DB::rollBack();
++            echo "Γ¥î GAGAL MEMULANGKAN: {$sk->nama} - " . $e->getMessage() . "\n\n";
++        }
++    }
++}
++
++echo "======================================================\n";
++echo "EKSEKUSI SELESAI!\n";
++echo "Total Guru Jam'iyyah yang BERHASIL dipulangkan ke sekolah asalnya: {$executedCount}\n";
+
+commit 436599581cb2d7be048840558772380057814247
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:21:33 2026 +0700
+
+    add fix_jamiyyah_mismatch.php
+
+diff --git a/backend/fix_jamiyyah_mismatch.php b/backend/fix_jamiyyah_mismatch.php
+new file mode 100644
+index 0000000..ecb245d
+--- /dev/null
++++ b/backend/fix_jamiyyah_mismatch.php
+@@ -0,0 +1,77 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use App\Models\School;
++
++echo "=== [DRY RUN] PEMULANGAN GURU NYASAR (KHUSUS JAM'IYYAH) ===\n";
++echo "Peringatan: Ini hanya simulasi. Tidak ada data yang diubah.\n\n";
++
++// Ambil semua SK aktif
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$simulatedCount = 0;
++
++foreach ($sks as $sk) {
++    $school = $sk->school;
++    if (!$school) continue;
++    
++    // FOKUS HANYA JAMIYYAH
++    $statusJamiyyah = strtolower($school->status_jamiyyah ?? '');
++    $status = strtolower($school->status ?? '');
++    if ($statusJamiyyah !== 'jamiyyah' && $status !== 'jamiyyah' && $statusJamiyyah !== "jam'iyyah" && $status !== "jam'iyyah") {
++        continue;
++    }
++
++    $currentT = $sk->teacher;
++    // Cek apakah data kosong
++    $isDataMissing = !$currentT || empty($currentT->tmt) || empty($currentT->tanggal_lahir);
++    if (!$isDataMissing) {
++        continue; 
++    }
++
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameLower = strtolower($bareName);
++    
++    // Cari Wanderer: Guru dengan nama sama di sekolah manapun, yang punya data lengkap
++    $wanderers = Teacher::withoutGlobalScopes()
++        ->withTrashed()
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $bareNameLower . '%'])
++        ->get();
++        
++    $bestWanderer = null;
++    
++    foreach ($wanderers as $wt) {
++        // Harus beda school_id (berarti nyasar)
++        if ($wt->school_id == $sk->school_id) continue;
++        
++        // HARUS punya data yang lumayan lengkap
++        if (empty($wt->tmt) || empty($wt->tanggal_lahir)) continue;
++        
++        // KUNCI KEAMANAN: Teks unit_kerja harus sama persis dengan nama sekolah SK
++        $wtUnitKerja = strtolower(trim(str_replace(['ΓÇÖ', "'"], '', $wt->unit_kerja)));
++        $schoolName = strtolower(trim(str_replace(['ΓÇÖ', "'"], '', $school->nama)));
++        
++        if ($wtUnitKerja === $schoolName || strpos($schoolName, $wtUnitKerja) !== false || strpos($wtUnitKerja, $schoolName) !== false) {
++            $bestWanderer = $wt;
++            break; // Ketemu!
++        }
++    }
++    
++    if ($bestWanderer) {
++        $simulatedCount++;
++        echo "Γ£à GURU NYASAR DITEMUKAN: {$sk->nama} (SK ID: {$sk->id})\n";
++        echo "   -> Profil guru ini terjebak di School ID {$bestWanderer->school_id} walau unit_kerjanya '{$bestWanderer->unit_kerja}'\n";
++        echo "   -> AKAN DIPULANGKAN KE: {$school->nama} (School ID: {$school->id})\n";
++        echo "   -> Skenario Aksi:\n";
++        echo "      1. Update school_id Guru ID {$bestWanderer->id} menjadi {$school->id}\n";
++        echo "      2. Tautkan SK ID {$sk->id} ke Guru ID {$bestWanderer->id}\n";
++        if ($currentT) {
++            echo "      3. Hapus profil kosong lama (Guru ID {$currentT->id})\n";
++        }
++        echo "\n";
++    }
++}
++
++echo "======================================================\n";
++echo "SIMULASI SELESAI!\n";
++echo "Total Guru Jam'iyyah yang akan dipulangkan ke sekolah asalnya: {$simulatedCount}\n";
+
+commit f17d0b00544a2cc0d7755c9ba4530fe99744bc6b
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:19:29 2026 +0700
+
+    add check_mismatch.php
+
+diff --git a/backend/check_mismatch.php b/backend/check_mismatch.php
+new file mode 100644
+index 0000000..22ff35d
+--- /dev/null
++++ b/backend/check_mismatch.php
+@@ -0,0 +1,29 @@
++<?php
++
++use App\Models\Teacher;
++use App\Models\School;
++
++$teachers = Teacher::withoutGlobalScopes()->get();
++$mismatchCount = 0;
++
++foreach ($teachers as $t) {
++    if (empty($t->unit_kerja)) continue;
++    
++    $school = School::find($t->school_id);
++    if (!$school) continue;
++    
++    // Normalisasi string untuk perbandingan
++    $schoolName = strtolower(trim(str_replace(['ΓÇÖ', "'"], '', $school->nama)));
++    $unitKerja = strtolower(trim(str_replace(['ΓÇÖ', "'"], '', $t->unit_kerja)));
++    
++    if ($schoolName !== $unitKerja) {
++        $mismatchCount++;
++        if ($mismatchCount <= 10) {
++            echo "Mismatch ID {$t->id} ({$t->nama}):\n";
++            echo "  - Di DB tertaut ke School ID {$school->id} ({$school->nama})\n";
++            echo "  - Tapi text unit_kerja adalah '{$t->unit_kerja}'\n";
++        }
++    }
++}
++
++echo "\nTotal Guru yang salah kamar (Mismatch): {$mismatchCount}\n";
+
+commit 58a288adb4998f7e8efaab7b0c32104eaf5fdafa
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:13:41 2026 +0700
+
+    add super_sync_dry_run.php
+
+diff --git a/backend/super_sync_dry_run.php b/backend/super_sync_dry_run.php
+new file mode 100644
+index 0000000..0c71ee9
+--- /dev/null
++++ b/backend/super_sync_dry_run.php
+@@ -0,0 +1,62 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== [DRY RUN] SIMULASI SUPER SYNC LINTAS SEKOLAH ===\n";
++echo "Peringatan: Ini hanya simulasi, tidak ada data yang disimpan ke database.\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$simulatedCount = 0;
++
++foreach ($sks as $sk) {
++    $currentT = $sk->teacher;
++    
++    // Jika guru saat ini sudah ada dan datanya lumayan lengkap, lewati
++    if ($currentT && !empty($currentT->tmt) && !empty($currentT->tanggal_lahir)) {
++        continue;
++    }
++
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameLower = strtolower($bareName);
++    
++    // Cari "Wanderer" (Profil kembar yang nyasar di seluruh penjuru database, termasuk tong sampah)
++    $wanderers = Teacher::withoutGlobalScopes()
++        ->withTrashed()
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $bareNameLower . '%'])
++        ->get();
++        
++    $bestWanderer = null;
++    $bestScore = -1;
++    
++    foreach ($wanderers as $wt) {
++        $score = 0;
++        if (!empty($wt->nomor_induk_maarif)) $score += 20;
++        if (!empty($wt->tmt)) $score += 20;
++        if (!empty($wt->tanggal_lahir)) $score += 20;
++        if (!empty($wt->tempat_lahir)) $score += 20;
++        
++        if ($score > $bestScore) {
++            $bestScore = $score;
++            $bestWanderer = $wt;
++        }
++    }
++    
++    if ($bestWanderer && $bestScore > 0) {
++        // Jika kita menemukan data!
++        $simulatedCount++;
++        echo "Γ£à DITEMUKAN DATA LENGKAP UNTUK: {$sk->nama} (SK ID: {$sk->id})\n";
++        echo "   -> Sumber Data: Guru ID {$bestWanderer->id} yang nyasar di School ID {$bestWanderer->school_id}\n";
++        
++        if ($currentT) {
++            echo "   -> AKSI: Meng-COPY data NIM/TTL/TMT ke Profil Guru yang benar di School ID {$sk->school_id}\n";
++        } else {
++            echo "   -> AKSI: Membuat Profil Guru BARU di School ID {$sk->school_id} dan mengisinya dengan data hasil Copy-Paste.\n";
++        }
++        echo "   -> Data yang akan disalin: NIM ({$bestWanderer->nomor_induk_maarif}), TTL ({$bestWanderer->tempat_lahir}, {$bestWanderer->tanggal_lahir})\n\n";
++    }
++}
++
++echo "======================================================\n";
++echo "SIMULASI SELESAI!\n";
++echo "Total Guru yang akan diselamatkan datanya lewat Super Sync: {$simulatedCount}\n";
+
+commit 06b6e5eaf81d455fb267cbeec6ae17afa32a6bee
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:11:30 2026 +0700
+
+    add check_uswatuns.php
+
+diff --git a/backend/check_uswatuns.php b/backend/check_uswatuns.php
+new file mode 100644
+index 0000000..df6962a
+--- /dev/null
++++ b/backend/check_uswatuns.php
+@@ -0,0 +1,13 @@
++<?php
++
++use App\Models\Teacher;
++
++$t1 = Teacher::where('nomor_induk_maarif', '113401967')->first();
++echo "T1 (NIM 113401967):\n";
++echo "  - school_id: " . ($t1 ? $t1->school_id : 'NOT FOUND') . "\n";
++echo "  - unit_kerja: " . ($t1 ? $t1->unit_kerja : 'NOT FOUND') . "\n";
++
++$t2 = Teacher::where('nomor_induk_maarif', '113404073')->first();
++echo "T2 (NIM 113404073):\n";
++echo "  - school_id: " . ($t2 ? $t2->school_id : 'NOT FOUND') . "\n";
++echo "  - unit_kerja: " . ($t2 ? $t2->unit_kerja : 'NOT FOUND') . "\n";
+
+commit 9f4870f50092cd8aeb923f4024675a46c679703a
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:08:05 2026 +0700
+
+    add check_teacher_1264.php
+
+diff --git a/backend/check_teacher_1264.php b/backend/check_teacher_1264.php
+new file mode 100644
+index 0000000..87e1528
+--- /dev/null
++++ b/backend/check_teacher_1264.php
+@@ -0,0 +1,8 @@
++<?php
++
++use App\Models\Teacher;
++
++$t = Teacher::find(1264);
++echo "Name: " . $t->nama . "\n";
++echo "unit_kerja: " . $t->unit_kerja . "\n";
++echo "school_id: " . $t->school_id . "\n";
+
+commit bd90ce48236fc32ff25976d26b41744cfe55a756
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:06:26 2026 +0700
+
+    add check_schools.php
+
+diff --git a/backend/check_schools.php b/backend/check_schools.php
+new file mode 100644
+index 0000000..92389b4
+--- /dev/null
++++ b/backend/check_schools.php
+@@ -0,0 +1,7 @@
++<?php
++
++use App\Models\School;
++
++echo "School 62: " . School::find(62)->nama . "\n";
++echo "School 72: " . School::find(72)->nama . "\n";
++echo "School 149: " . School::find(149)->nama . "\n";
+
+commit 7c10b52c1bab0720cc68c827544be92439f7890a
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 11:05:40 2026 +0700
+
+    add check_2050.php
+
+diff --git a/backend/check_2050.php b/backend/check_2050.php
+new file mode 100644
+index 0000000..db85199
+--- /dev/null
++++ b/backend/check_2050.php
+@@ -0,0 +1,15 @@
++<?php
++
++use App\Models\SkDocument;
++
++$sk = SkDocument::find(2050);
++echo "SK Nama: " . $sk->nama . "\n";
++echo "Teacher ID in SK: " . $sk->teacher_id . "\n";
++echo "Teacher Object from Relation:\n";
++print_r($sk->teacher ? $sk->teacher->toArray() : "NULL");
++
++echo "\nDashboard Condition check:\n";
++$cond1 = empty($sk->teacher?->nomor_induk_maarif);
++$cond2 = empty($sk->teacher?->tmt);
++echo "Is NIM empty? " . ($cond1 ? 'Yes' : 'No') . "\n";
++echo "Is TMT empty? " . ($cond2 ? 'Yes' : 'No') . "\n";
+
+commit f82c39828691558639776c3840794eec13b49b0d
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:52:04 2026 +0700
+
+    add search_data.php
+
+diff --git a/backend/search_data.php b/backend/search_data.php
+new file mode 100644
+index 0000000..c1f93f9
+--- /dev/null
++++ b/backend/search_data.php
+@@ -0,0 +1,54 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++function searchData($keyword) {
++    echo "=== PENCARIAN DATA UNTUK: {$keyword} ===\n\n";
++
++    $keywordLower = strtolower($keyword);
++
++    echo "[1] MENCARI DI TABEL PROFIL GURU (TEACHERS) ...\n";
++    $teachers = Teacher::withoutGlobalScopes()->withTrashed()
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $keywordLower . '%'])
++        ->get();
++
++    if ($teachers->isEmpty()) {
++        echo "   -> Tidak ditemukan profil guru dengan nama tersebut.\n";
++    } else {
++        foreach ($teachers as $t) {
++            $status = $t->trashed() ? "[TERHAPUS/TRASH]" : "[AKTIF]";
++            echo "   -> ID: {$t->id} | Nama: {$t->nama} | School ID: {$t->school_id} {$status}\n";
++            echo "      NIM: " . ($t->nomor_induk_maarif ?: 'KOSONG') . " | TMT: " . ($t->tmt ?: 'KOSONG') . " | TTL: " . ($t->tempat_lahir ?: 'KOSONG') . ", " . ($t->tanggal_lahir ?: 'KOSONG') . "\n";
++        }
++    }
++
++    echo "\n[2] MENCARI DI TABEL PENGAJUAN SK (SK_DOCUMENTS) ...\n";
++    $sks = SkDocument::withoutGlobalScopes()->withTrashed()
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $keywordLower . '%'])
++        ->get();
++
++    if ($sks->isEmpty()) {
++        echo "   -> Tidak ditemukan pengajuan SK dengan nama tersebut.\n";
++    } else {
++        foreach ($sks as $sk) {
++            $status = $sk->trashed() ? "[TERHAPUS/TRASH]" : "[AKTIF]";
++            echo "   -> SK ID: {$sk->id} | Nama: {$sk->nama} | School ID: {$sk->school_id} {$status}\n";
++            echo "      Nomor SK: {$sk->nomor_sk} | Teacher ID: " . ($sk->teacher_id ?: 'NULL') . "\n";
++            
++            $rev = is_string($sk->revision_data) ? json_decode($sk->revision_data, true) : $sk->revision_data;
++            if (is_array($rev) && (!empty($rev['tempat_lahir']) || !empty($rev['tanggal_lahir']))) {
++                echo "      * REVISION DATA MEMILIKI TTL: {$rev['tempat_lahir']}, {$rev['tanggal_lahir']}\n";
++            } else {
++                echo "      * REVISION DATA KOSONG/TIDAK ADA TTL\n";
++            }
++        }
++    }
++    
++    echo "\n=============================================\n";
++}
++
++// Check if we are running from CLI with an argument
++if (php_sapi_name() === 'cli' && isset($argv[1])) {
++    searchData($argv[1]);
++}
+
+commit 4eec07b342acac2f65044f137b6a70e215633ba9
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:50:04 2026 +0700
+
+    add sync_teacher_data_v2_dry_run.php
+
+diff --git a/backend/sync_teacher_data_v2_dry_run.php b/backend/sync_teacher_data_v2_dry_run.php
+new file mode 100644
+index 0000000..94df7a5
+--- /dev/null
++++ b/backend/sync_teacher_data_v2_dry_run.php
+@@ -0,0 +1,92 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== [DRY RUN] SIMULASI SINKRONISASI TAHAP 2 ===\n";
++echo "Peringatan: Ini hanya simulasi. Tidak ada data yang benar-benar diubah di database.\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$simulatedCount = 0;
++
++foreach ($sks as $sk) {
++    $currentT = $sk->teacher;
++    if (!$currentT) {
++        continue; 
++    }
++
++    $willBeUpdated = false;
++    $updatedFields = [];
++
++    // 1. CARI DARI REVISION DATA SK ITU SENDIRI (Atau SK duplikat di tong sampah)
++    $allTwinSks = SkDocument::withoutGlobalScopes()
++        ->withTrashed()
++        ->where('school_id', $sk->school_id)
++        ->where('nama', $sk->nama)
++        ->get();
++
++    foreach ($allTwinSks as $twin) {
++        if (!empty($twin->revision_data)) {
++            $rev = is_string($twin->revision_data) ? json_decode($twin->revision_data, true) : $twin->revision_data;
++            if (is_array($rev)) {
++                if (empty($currentT->nomor_induk_maarif) && !empty($rev['nomor_induk_maarif'])) { 
++                    $updatedFields['NIM'] = $rev['nomor_induk_maarif'];
++                    $willBeUpdated = true; 
++                }
++                if (empty($currentT->tmt) && !empty($rev['tmt'])) { 
++                    $updatedFields['TMT'] = $rev['tmt'];
++                    $willBeUpdated = true; 
++                }
++                if (empty($currentT->tanggal_lahir) && !empty($rev['tanggal_lahir'])) { 
++                    $updatedFields['Tanggal Lahir'] = $rev['tanggal_lahir'];
++                    $willBeUpdated = true; 
++                }
++                if (empty($currentT->tempat_lahir) && !empty($rev['tempat_lahir'])) { 
++                    $updatedFields['Tempat Lahir'] = $rev['tempat_lahir'];
++                    $willBeUpdated = true; 
++                }
++            }
++        }
++    }
++
++    // 2. CARI DARI PROFIL GURU DI TONG SAMPAH
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameLower = strtolower($bareName);
++    
++    $trashedTeachers = Teacher::withoutGlobalScopes()
++        ->onlyTrashed()
++        ->where('school_id', $sk->school_id)
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $bareNameLower . '%'])
++        ->get();
++
++    foreach ($trashedTeachers as $tt) {
++        if (empty($currentT->nomor_induk_maarif) && !empty($tt->nomor_induk_maarif)) { 
++            $updatedFields['NIM'] = $tt->nomor_induk_maarif;
++            $willBeUpdated = true; 
++        }
++        if (empty($currentT->tmt) && !empty($tt->tmt)) { 
++            $updatedFields['TMT'] = $tt->tmt;
++            $willBeUpdated = true; 
++        }
++        if (empty($currentT->tanggal_lahir) && !empty($tt->tanggal_lahir)) { 
++            $updatedFields['Tanggal Lahir'] = $tt->tanggal_lahir;
++            $willBeUpdated = true; 
++        }
++        if (empty($currentT->tempat_lahir) && !empty($tt->tempat_lahir)) { 
++            $updatedFields['Tempat Lahir'] = $tt->tempat_lahir;
++            $willBeUpdated = true; 
++        }
++    }
++
++    if ($willBeUpdated) {
++        $fieldsStr = implode(", ", array_keys($updatedFields));
++        echo "≡ƒöì [SIMULASI] Guru: {$currentT->nama}\n";
++        echo "   -> Akan diisi datanya yang kosong: {$fieldsStr}\n";
++        
++        $simulatedCount++;
++    }
++}
++
++echo "\n======================================================\n";
++echo "SIMULASI SELESAI!\n";
++echo "Total data profil guru yang AKAN diselamatkan: {$simulatedCount}\n";
+
+commit 2c28c7d7dbb285878cca38bf22e0eb52e9d07564
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:47:17 2026 +0700
+
+    add sync_teacher_data_v2.php
+
+diff --git a/backend/sync_teacher_data_v2.php b/backend/sync_teacher_data_v2.php
+new file mode 100644
+index 0000000..33c68c6
+--- /dev/null
++++ b/backend/sync_teacher_data_v2.php
+@@ -0,0 +1,67 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== SINKRONISASI TAHAP 2 (MENYISIR TONG SAMPAH & REVISI) ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$syncedCount = 0;
++
++foreach ($sks as $sk) {
++    $currentT = $sk->teacher;
++    if (!$currentT) {
++        continue; // Jika tidak ada guru tertaut, dilewati dulu (harus ditautkan dulu)
++    }
++
++    $updated = false;
++
++    // 1. CARI DARI REVISION DATA SK ITU SENDIRI (Atau SK duplikat di tong sampah)
++    // Coba ambil semua SK kembar (termasuk yang di tong sampah)
++    $allTwinSks = SkDocument::withoutGlobalScopes()
++        ->withTrashed()
++        ->where('school_id', $sk->school_id)
++        ->where('nama', $sk->nama)
++        ->get();
++
++    foreach ($allTwinSks as $twin) {
++        if (!empty($twin->revision_data)) {
++            $rev = is_string($twin->revision_data) ? json_decode($twin->revision_data, true) : $twin->revision_data;
++            if (is_array($rev)) {
++                if (empty($currentT->nomor_induk_maarif) && !empty($rev['nomor_induk_maarif'])) { $currentT->nomor_induk_maarif = $rev['nomor_induk_maarif']; $updated = true; }
++                if (empty($currentT->tmt) && !empty($rev['tmt'])) { $currentT->tmt = $rev['tmt']; $updated = true; }
++                if (empty($currentT->tanggal_lahir) && !empty($rev['tanggal_lahir'])) { $currentT->tanggal_lahir = $rev['tanggal_lahir']; $updated = true; }
++                if (empty($currentT->tempat_lahir) && !empty($rev['tempat_lahir'])) { $currentT->tempat_lahir = $rev['tempat_lahir']; $updated = true; }
++                if (empty($currentT->pendidikan_terakhir) && !empty($rev['pendidikan_terakhir'])) { $currentT->pendidikan_terakhir = $rev['pendidikan_terakhir']; $updated = true; }
++            }
++        }
++    }
++
++    // 2. CARI DARI PROFIL GURU DI TONG SAMPAH
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameLower = strtolower($bareName);
++    
++    $trashedTeachers = Teacher::withoutGlobalScopes()
++        ->onlyTrashed()
++        ->where('school_id', $sk->school_id)
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $bareNameLower . '%'])
++        ->get();
++
++    foreach ($trashedTeachers as $tt) {
++        if (empty($currentT->nomor_induk_maarif) && !empty($tt->nomor_induk_maarif)) { $currentT->nomor_induk_maarif = $tt->nomor_induk_maarif; $updated = true; }
++        if (empty($currentT->tmt) && !empty($tt->tmt)) { $currentT->tmt = $tt->tmt; $updated = true; }
++        if (empty($currentT->tanggal_lahir) && !empty($tt->tanggal_lahir)) { $currentT->tanggal_lahir = $tt->tanggal_lahir; $updated = true; }
++        if (empty($currentT->tempat_lahir) && !empty($tt->tempat_lahir)) { $currentT->tempat_lahir = $tt->tempat_lahir; $updated = true; }
++        if (empty($currentT->pendidikan_terakhir) && !empty($tt->pendidikan_terakhir)) { $currentT->pendidikan_terakhir = $tt->pendidikan_terakhir; $updated = true; }
++    }
++
++    if ($updated) {
++        $currentT->save();
++        echo "≡ƒôÑ RECOVERY DATA BERHASIL: Menyalin data TTL/NIM/TMT yang hilang kembali ke Profil Guru [{$currentT->nama}]\n";
++        $syncedCount++;
++    }
++}
++
++echo "\n======================================================\n";
++echo "PROSES SELESAI!\n";
++echo "Total data profil guru yang berhasil diselamatkan/dilengkapi: {$syncedCount}\n";
+
+commit 275bbb6add230b7bd5c70ce7d8d9b48ec2e8d006
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:41:57 2026 +0700
+
+    add sync_teacher_data.php
+
+diff --git a/backend/sync_teacher_data.php b/backend/sync_teacher_data.php
+new file mode 100644
+index 0000000..f742a0b
+--- /dev/null
++++ b/backend/sync_teacher_data.php
+@@ -0,0 +1,69 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== SINKRONISASI SK DENGAN PROFIL GURU TERLENGKAP ===\n\n";
++
++// Mengambil seluruh SK yang aktif
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$syncedCount = 0;
++
++foreach ($sks as $sk) {
++    // 1. Ambil nama bersih tanpa gelar (contoh: "BUDI SANTOSO, S.Pd" -> "BUDI SANTOSO")
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameLower = strtolower($bareName);
++    
++    // 2. Cari semua profil guru di sekolah yang sama dengan nama tersebut
++    $teachers = Teacher::withoutGlobalScopes()
++        ->where('school_id', $sk->school_id)
++        ->whereNull('deleted_at')
++        ->whereRaw('LOWER(nama) LIKE ?', ['%' . $bareNameLower . '%'])
++        ->get();
++        
++    if ($teachers->isEmpty()) {
++        continue;
++    }
++    
++    // 3. Dari semua guru kembar/mirip tersebut, cari yang datanya PALING LENGKAP
++    $bestTeacher = null;
++    $bestScore = -1;
++    
++    foreach ($teachers as $t) {
++        $score = 0;
++        
++        // Cek kelengkapan data kunci
++        if (!empty($t->nomor_induk_maarif)) $score += 20;
++        if (!empty($t->tmt)) $score += 20;
++        if (!empty($t->tanggal_lahir)) $score += 20;
++        if (!empty($t->tempat_lahir)) $score += 20;
++        
++        // Bonus jika namanya persis sama huruf-per-huruf dengan di SK
++        if (strtolower(trim($t->nama)) === strtolower(trim($sk->nama))) {
++            $score += 10;
++        }
++        
++        // Jika skornya mengalahkan yang sebelumnya, jadikan kandidat terbaik
++        if ($score > $bestScore) {
++            $bestScore = $score;
++            $bestTeacher = $t;
++        }
++    }
++    
++    // 4. Jika kandidat terbaik ditemukan, punya data (skor > 0), dan belum ditautkan ke SK ini
++    if ($bestTeacher && $bestScore > 0 && $sk->teacher_id !== $bestTeacher->id) {
++        $oldId = $sk->teacher_id ?: 'TIDAK ADA';
++        
++        // Lakukan sinkronisasi (Update relasi SK -> Teacher)
++        $sk->teacher_id = $bestTeacher->id;
++        $sk->save();
++        
++        $syncedCount++;
++        echo "≡ƒöù SINKRONISASI BERHASIL: {$sk->nama} \n";
++        echo "   -> Pindah dari Guru ID [{$oldId}] ke Guru ID [{$bestTeacher->id}] (Memiliki NIM/TTL/TMT)\n";
++    }
++}
++
++echo "\n======================================================\n";
++echo "PROSES SELESAI!\n";
++echo "Total pengajuan SK yang berhasil disinkronkan ke profil guru lengkap: {$syncedCount}\n";
+
+commit c9866e49210747290dcb11e2428ad49613cc31e7
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:35:31 2026 +0700
+
+    add check_empty_permohonan.php
+
+diff --git a/backend/check_empty_permohonan.php b/backend/check_empty_permohonan.php
+new file mode 100644
+index 0000000..b0f0b37
+--- /dev/null
++++ b/backend/check_empty_permohonan.php
+@@ -0,0 +1,32 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== MENGECEK PENGAJUAN DENGAN NOMOR & TANGGAL SURAT KOSONG ===\n\n";
++
++$query = SkDocument::withoutGlobalScopes()
++    ->whereNull('deleted_at')
++    ->where(function($q) {
++        $q->whereNull('nomor_permohonan')
++          ->orWhere('nomor_permohonan', '')
++          ->orWhereNull('tanggal_permohonan');
++    });
++
++$count = $query->count();
++$samples = $query->take(10)->get();
++
++echo "Total pengajuan SK yang nomor/tanggal surat permohonannya kosong: {$count}\n\n";
++
++if ($count > 0) {
++    echo "Berikut adalah 10 sampel data teratas:\n";
++    echo "---------------------------------------------------\n";
++    foreach ($samples as $index => $sk) {
++        $no = $index + 1;
++        echo "{$no}. Nama: {$sk->nama}\n";
++        echo "   Nomor SK         : {$sk->nomor_sk}\n";
++        echo "   Status           : {$sk->status}\n";
++        echo "   Nomor Permohonan : " . ($sk->nomor_permohonan ?: '(KOSONG)') . "\n";
++        echo "   Tgl Permohonan   : " . ($sk->tanggal_permohonan ?: '(KOSONG)') . "\n";
++        echo "---------------------------------------------------\n";
++    }
++}
+
+commit 44dcf5ca8eada0b6462712d9b6d66f53ae5877db
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:28:29 2026 +0700
+
+    add safe_cleanup.php
+
+diff --git a/backend/safe_cleanup.php b/backend/safe_cleanup.php
+new file mode 100644
+index 0000000..de798ad
+--- /dev/null
++++ b/backend/safe_cleanup.php
+@@ -0,0 +1,102 @@
++<?php
++
++use App\Models\SkDocument;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MENGHAPUS SK GANDA DENGAN METODE SCORING (AMAN) ===\n\n";
++
++// Mengambil semua SK yang aktif
++$allSks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++
++// Mengelompokkan berdasarkan school_id dan NAMA GURU
++// Menggunakan strtolower(trim()) agar case-insensitive
++$groupedSks = $allSks->groupBy(function($sk) {
++    // Kita pecah nama dan gelar (ambil bagian nama saja jika ada koma)
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    return $sk->school_id . '|' . strtolower($bareName);
++});
++
++$totalDeleted = 0;
++$totalGroupsCleaned = 0;
++
++foreach ($groupedSks as $groupKey => $sksInGroup) {
++    // Jika jumlah SK <= 1, tidak ada ganda. Lanjut.
++    if ($sksInGroup->count() <= 1) {
++        continue;
++    }
++    
++    // Memberikan skor pada masing-masing SK
++    $scoredSks = [];
++    foreach ($sksInGroup as $sk) {
++        $score = 0;
++        
++        // 1. Nomor SK Asli (+100 poin)
++        if (strpos($sk->nomor_sk, 'REQ') !== 0 && strpos($sk->nomor_sk, 'DRAFT') !== 0) {
++            $score += 100;
++        }
++        
++        // 2. Status (+50 poin)
++        if (in_array($sk->status, ['approved', 'active', 'published'])) {
++            $score += 50;
++        }
++        
++        // 3. Revisi Admin (+30 poin)
++        if (!empty($sk->revision_data)) {
++            $score += 30;
++        }
++        
++        // 4. Ada file pendukung (+10 poin)
++        if (!empty($sk->file_url)) {
++            $score += 10;
++        }
++        
++        // 5. Data jabatan (+5 poin)
++        if (!empty($sk->jabatan)) $score += 5;
++        if (!empty($sk->tugas_mengajar)) $score += 5;
++        
++        $scoredSks[] = [
++            'sk' => $sk,
++            'score' => $score,
++            // Kita butuh timestamp untuk tie-breaker (pilih yang terlama atau terbaru?)
++            // Jika skornya sama persis (misal sama-sama masih kosong & REQ),
++            // kita pertahankan yang terbaru di-upload.
++            'time' => strtotime($sk->created_at)
++        ];
++    }
++    
++    // Mengurutkan berdasarkan:
++    // 1. Skor (Descending - paling tinggi di atas)
++    // 2. Waktu Upload (Descending - paling baru di atas jika skor sama)
++    usort($scoredSks, function($a, $b) {
++        if ($a['score'] === $b['score']) {
++            return $b['time'] <=> $a['time'];
++        }
++        return $b['score'] <=> $a['score'];
++    });
++    
++    // SK di urutan 0 adalah sang "Pemenang" yang paling lengkap
++    $winner = $scoredSks[0]['sk'];
++    $winnerScore = $scoredSks[0]['score'];
++    
++    // SK lainnya kita hapus (Soft Delete)
++    $deletedCountForThisGroup = 0;
++    for ($i = 1; $i < count($scoredSks); $i++) {
++        $loser = $scoredSks[$i]['sk'];
++        $loserScore = $scoredSks[$i]['score'];
++        
++        $loser->delete();
++        $totalDeleted++;
++        $deletedCountForThisGroup++;
++    }
++    
++    if ($deletedCountForThisGroup > 0) {
++        $totalGroupsCleaned++;
++        echo "Γ£à " . $winner->nama . " (Skor: {$winnerScore}) DIPERTAHANKAN.\n";
++        echo "   -> {$deletedCountForThisGroup} pengajuan ganda lainnya dihapus ke tong sampah.\n";
++    }
++}
++
++echo "\n===============================================\n";
++echo "PEMBERSIHAN SELESAI!\n";
++echo "Total Guru yang dibersihkan pengajuan gandanya : {$totalGroupsCleaned}\n";
++echo "Total SK Kosong/Ganda yang berhasil dihapus    : {$totalDeleted}\n";
+
+commit 7dd87c5db44ee97e56b0cc120961c759d935efa3
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:18:59 2026 +0700
+
+    add count_guru.php
+
+diff --git a/backend/count_guru.php b/backend/count_guru.php
+new file mode 100644
+index 0000000..3b03d92
+--- /dev/null
++++ b/backend/count_guru.php
+@@ -0,0 +1,18 @@
++<?php
++use App\Models\Teacher;
++
++echo "=== MENGHITUNG DATA GURU (MADRASAH JAM'IYYAH) ===\n\n";
++
++$count = Teacher::whereHas('school', function ($q) {
++    // Kita asumsikan field-nya status_jamiyyah atau status
++    $q->where('status_jamiyyah', 'Jam\'iyyah')
++      ->orWhere('status_jamiyyah', 'jamiyyah')
++      ->orWhere('status_jamiyyah', 'JAMIYYAH')
++      ->orWhere('status', 'Jam\'iyyah')
++      ->orWhere('status', 'jamiyyah');
++})->count();
++
++$totalAll = Teacher::count();
++
++echo "Total seluruh guru di database: " . $totalAll . "\n";
++echo "Total guru di madrasah berstatus Jam'iyyah: " . $count . "\n";
+
+commit 33c4463e16600b3fd769c541c46d66fb8c1fbb08
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:16:55 2026 +0700
+
+    add investigate_data.php
+
+diff --git a/backend/investigate_data.php b/backend/investigate_data.php
+new file mode 100644
+index 0000000..b333b12
+--- /dev/null
++++ b/backend/investigate_data.php
+@@ -0,0 +1,104 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MENCARI KASUS DATA HILANG ===\n\n";
++
++// Kita akan mencari SK Aktif yang tidak punya TTL, 
++// namun sebenarnya ada jejak TTL di tempat lain.
++
++$sks = SkDocument::withoutGlobalScopes()->whereNull('deleted_at')->get();
++$issuesFound = 0;
++
++foreach ($sks as $sk) {
++    // 1. Cek apakah SK ini punya TTL dari relasi Teacher
++    $hasTtlInTeacher = false;
++    $teacher = $sk->teacher;
++    if ($teacher && (!empty($teacher->tempat_lahir) || !empty($teacher->tanggal_lahir))) {
++        $hasTtlInTeacher = true;
++    }
++    if (!$teacher) {
++        $activeT = Teacher::where('school_id', $sk->school_id)
++            ->whereRaw('LOWER(TRIM(nama)) = ?', [strtolower(trim($sk->nama))])
++            ->whereNull('deleted_at')
++            ->first();
++        if ($activeT && (!empty($activeT->tempat_lahir) || !empty($activeT->tanggal_lahir))) {
++            $hasTtlInTeacher = true;
++        }
++    }
++
++    // 2. Cek apakah SK ini punya TTL dari revision_data
++    $hasTtlInRev = false;
++    if (!empty($sk->revision_data)) {
++        $rev = is_string($sk->revision_data) ? json_decode($sk->revision_data, true) : $sk->revision_data;
++        if (is_array($rev) && (!empty($rev['tempat_lahir']) || !empty($rev['tanggal_lahir']))) {
++            $hasTtlInRev = true;
++        }
++    }
++
++    // Jika SK ini SEKARANG KOSONG (tidak punya TTL di Teacher maupun di Revision)
++    if (!$hasTtlInTeacher && !$hasTtlInRev) {
++        
++        $reason = [];
++
++        // ALASAN A: Ada SK Aktif lain (Duplikat) yang punya data
++        $duplicateSk = SkDocument::withoutGlobalScopes()
++            ->whereNull('deleted_at')
++            ->where('school_id', $sk->school_id)
++            ->where('nama', $sk->nama)
++            ->where('id', '!=', $sk->id)
++            ->get();
++
++        foreach ($duplicateSk as $d) {
++            $drev = is_string($d->revision_data) ? json_decode($d->revision_data, true) : $d->revision_data;
++            if (is_array($drev) && (!empty($drev['tempat_lahir']) || !empty($drev['tanggal_lahir']))) {
++                $reason[] = "-> DATA TIDAK HILANG, tapi ada di SK Duplikatnya yang Aktif (ID: {$d->id})";
++                break;
++            }
++        }
++
++        // ALASAN B: Datanya ada di SK yang terhapus (Tong Sampah)
++        $trashedSk = SkDocument::withoutGlobalScopes()
++            ->onlyTrashed()
++            ->where('school_id', $sk->school_id)
++            ->where('nama', $sk->nama)
++            ->get();
++            
++        foreach ($trashedSk as $t) {
++            $trev = is_string($t->revision_data) ? json_decode($t->revision_data, true) : $t->revision_data;
++            if (is_array($trev) && (!empty($trev['tempat_lahir']) || !empty($trev['tanggal_lahir']))) {
++                $reason[] = "-> DATA ADA di SK yang terhapus di tong sampah (ID: {$t->id})";
++                break;
++            }
++        }
++
++        // ALASAN C: Datanya ada di Profil Guru yang terhapus
++        $trashedTeacher = Teacher::withoutGlobalScopes()
++            ->onlyTrashed()
++            ->where('school_id', $sk->school_id)
++            ->where('nama', $sk->nama)
++            ->first();
++            
++        if ($trashedTeacher && (!empty($trashedTeacher->tempat_lahir) || !empty($trashedTeacher->tanggal_lahir))) {
++            $reason[] = "-> DATA ADA di Profil Guru (Teacher ID: {$trashedTeacher->id}) yang berstatus Terhapus (Trash)";
++        }
++
++        if (!empty($reason)) {
++            echo "Γ¥î KASUS DITEMUKAN PADA: {$sk->nama} (SK ID: {$sk->id}, Nomor: {$sk->nomor_sk})\n";
++            foreach ($reason as $r) {
++                echo $r . "\n";
++            }
++            echo "---------------------------------------------------\n";
++            $issuesFound++;
++            if ($issuesFound >= 5) break;
++        }
++    }
++}
++
++if ($issuesFound == 0) {
++    echo "PENCARIAN SELESAI: Tidak ditemukan SK yang TTL-nya kosong namun datanya tersimpan di duplikat/tong sampah.\n";
++    echo "Kemungkinan TTL/NIM memang dari awal tidak pernah terisi untuk nama-nama tersebut.\n";
++} else {
++    echo "PENCARIAN SELESAI: Ditemukan {$issuesFound} sampel kasus.\n";
++}
+
+commit 6e8e5230749b16f699a6f4d205327e5b658498b0
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:06:50 2026 +0700
+
+    add emergency_undo.php
+
+diff --git a/backend/emergency_undo.php b/backend/emergency_undo.php
+new file mode 100644
+index 0000000..64cdf4c
+--- /dev/null
++++ b/backend/emergency_undo.php
+@@ -0,0 +1,23 @@
++<?php
++use App\Models\SkDocument;
++
++echo "=== EMERGENCY ROLLBACK: MEMBATALKAN SEMUA PENGHAPUSAN HARI INI ===\n\n";
++
++// Mengembalikan semua SK yang terhapus sejak hari ini (6 Juli 2026)
++// Ini akan membatalkan efek dari cleanup_duplicates.php dan restore_sks.php
++// Sehingga SEMUA SK (baik yang ganda maupun yang asli) akan kembali muncul di dashboard persis seperti kondisi tadi pagi.
++
++$trashedToday = SkDocument::withoutGlobalScopes()
++    ->onlyTrashed()
++    ->where('deleted_at', '>=', '2026-07-06 00:00:00')
++    ->get();
++
++$count = 0;
++foreach ($trashedToday as $sk) {
++    $sk->restore();
++    $count++;
++}
++
++echo "Γ£à ROLLBACK BERHASIL!\n";
++echo "Sebanyak {$count} SK yang tidak sengaja terhapus/terganti hari ini telah dipulihkan 100% ke kondisi aktif.\n";
++echo "Silakan refresh dashboard Bapak, SK yang tercetak sudah kembali normal.\n";
+
+commit 728e1ec96121c5e2ece0ec5d897c47dbf220c394
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 10:03:30 2026 +0700
+
+    add restore_sks.php
+
+diff --git a/backend/restore_sks.php b/backend/restore_sks.php
+new file mode 100644
+index 0000000..cfa298a
+--- /dev/null
++++ b/backend/restore_sks.php
+@@ -0,0 +1,63 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== MENGEMBALIKAN SK YANG SEBELUMNYA LENGKAP ===\n\n";
++
++$trashedSks = SkDocument::withoutGlobalScopes()->onlyTrashed()->get();
++$restoredCount = 0;
++$deletedBadCount = 0;
++
++foreach ($trashedSks as $trashedSk) {
++    // Cari SK Aktif yang mengambil alih posisinya (teacher_id sama)
++    $activeSk = SkDocument::withoutGlobalScopes()
++        ->where('teacher_id', $trashedSk->teacher_id)
++        ->whereNull('deleted_at')
++        ->first();
++        
++    if (!$activeSk) {
++        continue;
++    }
++
++    $shouldRestore = false;
++
++    // KRITERIA 1: SK lama punya Nomor SK Asli, SK baru cuma REQ/DRAFT
++    $trashedHasRealNomor = (strpos($trashedSk->nomor_sk, 'REQ') !== 0 && strpos($trashedSk->nomor_sk, 'DRAFT') !== 0);
++    $activeHasFakeNomor = (strpos($activeSk->nomor_sk, 'REQ') === 0 || strpos($activeSk->nomor_sk, 'DRAFT') === 0);
++    
++    if ($trashedHasRealNomor && $activeHasFakeNomor) {
++        $shouldRestore = true;
++    }
++
++    // KRITERIA 2: SK lama statusnya sudah diproses, SK baru masih pending
++    if (in_array($trashedSk->status, ['approved', 'active', 'published']) && in_array($activeSk->status, ['pending', 'draft'])) {
++        $shouldRestore = true;
++    }
++
++    // KRITERIA 3: SK lama punya hasil editan Admin (revision_data), SK baru masih perawan/kosong
++    if (!empty($trashedSk->revision_data) && empty($activeSk->revision_data)) {
++        $shouldRestore = true;
++    }
++
++    // KRITERIA 4: Jika SK lama punya jabatan/unit_kerja yang lebih lengkap
++    if (empty($activeSk->jabatan) && !empty($trashedSk->jabatan)) {
++        $shouldRestore = true;
++    }
++
++    if ($shouldRestore) {
++        // Hapus SK yang jelek/kosong
++        $activeSk->delete();
++        $deletedBadCount++;
++        
++        // Pulihkan SK yang bagus/lengkap
++        $trashedSk->restore();
++        $restoredCount++;
++        
++        echo "Γ£à RESTORED: {$trashedSk->nama} | Nomor SK Dikembalikan: {$trashedSk->nomor_sk} (Menggantikan: {$activeSk->nomor_sk})\n";
++    }
++}
++
++echo "\n============================================\n";
++echo "Total SK Lengkap yang berhasil dipulihkan : {$restoredCount}\n";
++echo "Total SK Kosong yang dihapus sebagai ganti: {$deletedBadCount}\n";
++echo "Selesai!\n";
+
+commit ef664dfce340f5a565d65ef9b25f48932e8c4090
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:53:12 2026 +0700
+
+    add final_polish.php
+
+diff --git a/backend/final_polish.php b/backend/final_polish.php
+new file mode 100644
+index 0000000..5330735
+--- /dev/null
++++ b/backend/final_polish.php
+@@ -0,0 +1,51 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MEMULAI PERBAIKAN FINAL (FINAL POLISH) ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->get();
++$relinkedTrashed = 0;
++$relinkedNull = 0;
++
++foreach ($sks as $sk) {
++    if ($sk->teacher_id) {
++        // KASUS 1: Teacher ada di tong sampah (soft-deleted)
++        $trashedTeacher = Teacher::withoutGlobalScopes()->withTrashed()->where('id', $sk->teacher_id)->whereNotNull('deleted_at')->first();
++        if ($trashedTeacher) {
++            // Cari guru yang AKTIF dengan nama yang sama di sekolah yang sama
++            $activeTeacher = Teacher::where('school_id', $trashedTeacher->school_id)
++                ->where('nama', $trashedTeacher->nama)
++                ->first();
++            
++            if ($activeTeacher) {
++                $sk->teacher_id = $activeTeacher->id;
++                $sk->save();
++                $relinkedTrashed++;
++                echo "ΓÖ╗∩╕Å SK {$sk->nama} (ID: {$sk->id}) dialihkan dari guru yang terhapus ke Guru Aktif (ID: {$activeTeacher->id})\n";
++            }
++        }
++    } else {
++        // KASUS 3: Teacher ID kosong (NULL)
++        $bareName = strtoupper(trim(explode(',', $sk->nama)[0]));
++        $activeTeacher = Teacher::where('school_id', $sk->school_id)
++            ->where(function($q) use ($bareName) {
++                $q->where('nama', 'LIKE', "%{$bareName}%")
++                  ->orWhereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [$bareName]);
++            })
++            ->first();
++            
++        if ($activeTeacher) {
++            $sk->teacher_id = $activeTeacher->id;
++            $sk->save();
++            $relinkedNull++;
++            echo "≡ƒöù SK {$sk->nama} (ID: {$sk->id}) yang putus berhasil ditautkan ke Guru Aktif (ID: {$activeTeacher->id})\n";
++        }
++    }
++}
++
++echo "\n=== KESIMPULAN ===\n";
++echo "Berhasil menyelamatkan {$relinkedTrashed} SK dari guru yang terhapus.\n";
++echo "Berhasil menautkan {$relinkedNull} SK yang sempat terputus.\n";
++echo "Selesai!\n";
+
+commit 344ff5234f655beaba35f59b5739524d014974e2
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:51:11 2026 +0700
+
+    add diagnose_empty.php
+
+diff --git a/backend/diagnose_empty.php b/backend/diagnose_empty.php
+new file mode 100644
+index 0000000..e103240
+--- /dev/null
++++ b/backend/diagnose_empty.php
+@@ -0,0 +1,41 @@
++<?php
++
++use App\Models\SkDocument;
++
++echo "=== MENDIAGNOSIS SK DENGAN DATA KOSONG ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()->get();
++$emptyCount = 0;
++
++foreach ($sks as $sk) {
++    $teacher = $sk->teacher; // Load relasi teacher
++
++    // Cek apakah relasi teacher kosong, ATAU data-data pentingnya kosong
++    if (!$teacher || empty($teacher->tempat_lahir) || empty($teacher->tanggal_lahir)) {
++        $emptyCount++;
++        echo "SK ID: {$sk->id} (Nama di SK: {$sk->nama})\n";
++        echo "-> Teacher ID: " . ($sk->teacher_id ?? 'NULL') . "\n";
++        
++        if (!$teacher && $sk->teacher_id) {
++            echo "-> PENYEBAB: Teacher ID {$sk->teacher_id} terhapus (soft-delete) atau hilang dari tabel guru!\n";
++            // Cek apakah ada di soft-deleted
++            $trashedTeacher = \App\Models\Teacher::withoutGlobalScopes()->withTrashed()->find($sk->teacher_id);
++            if ($trashedTeacher) {
++                echo "   (Fakta: Guru ini ada di TONG SAMPAH / Ter-Soft Delete!)\n";
++            }
++        } elseif ($teacher) {
++            echo "-> PENYEBAB: Data di Profil Guru tersebut memang masih kosong (Belum diisi oleh sekolah).\n";
++        } else {
++            echo "-> PENYEBAB: Teacher ID kosong (NULL). Belum terkait dengan guru manapun.\n";
++        }
++        echo "----------------------------------------\n";
++        
++        // Batasi output agar tidak terlalu panjang
++        if ($emptyCount >= 15) {
++            echo "... dan masih banyak lagi.\n";
++            break;
++        }
++    }
++}
++
++echo "\nTotal SK bermasalah (Data kosong): {$emptyCount} (sampel)\n";
+
+commit 1e7b480ddfe09d89746b086408890d765da2b2cd
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:44:52 2026 +0700
+
+    fix sql alias in having
+
+diff --git a/backend/cleanup_duplicates.php b/backend/cleanup_duplicates.php
+index 46b49c3..5233298 100644
+--- a/backend/cleanup_duplicates.php
++++ b/backend/cleanup_duplicates.php
+@@ -38,7 +38,7 @@
+     ->select('teacher_id', DB::raw('count(*) as count'))
+     ->whereNotNull('teacher_id')
+     ->groupBy('teacher_id')
+-    ->having('count', '>', 1)
++    ->havingRaw('count(*) > 1')
+     ->get();
+ 
+ $deletedCount = 0;
+
+commit e25afa50146e6110de2dcb285d33e772ca4deb85
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:41:08 2026 +0700
+
+    add check_bulupayung.php
+
+diff --git a/backend/check_bulupayung.php b/backend/check_bulupayung.php
+new file mode 100644
+index 0000000..8a15b74
+--- /dev/null
++++ b/backend/check_bulupayung.php
+@@ -0,0 +1,33 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MEMBONGKAR RAHASIA BULUPAYUNG ===\n\n";
++
++// Ambil SEMUA SK di Bulupayung (ID 126), urutkan berdasarkan ID
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('school_id', 126)
++    ->orderBy('id', 'asc')
++    ->get();
++
++echo "Total SK di Bulupayung: " . $sks->count() . "\n\n";
++
++$no = 1;
++foreach ($sks as $sk) {
++    echo "SK #" . $no . " (ID: {$sk->id})\n";
++    echo "Tertulis saat ini: {$sk->nama} (Teacher ID: " . ($sk->teacher_id ?? 'NULL') . ")\n";
++    
++    // Cek asal sekolah dari teacher_id tersebut
++    if ($sk->teacher_id) {
++        $teacher = Teacher::withoutGlobalScopes()->find($sk->teacher_id);
++        if ($teacher) {
++            echo "   -> Berasal dari Sekolah ID: {$teacher->school_id}\n";
++            if ($teacher->school_id != 126) {
++                echo "   -> ≡ƒÜ¿ CROSS-SCHOOL BUG DETECTED!\n";
++            }
++        }
++    }
++    echo "----------------------------------------\n";
++    $no++;
++}
+
+commit 8458d4b837f550bca96f9e67b3d3773dfba81ac6
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:34:09 2026 +0700
+
+    add investigate_mahrum_v2.php
+
+diff --git a/backend/investigate_mahrum_v2.php b/backend/investigate_mahrum_v2.php
+new file mode 100644
+index 0000000..5562088
+--- /dev/null
++++ b/backend/investigate_mahrum_v2.php
+@@ -0,0 +1,35 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use App\Models\School;
++
++echo "=== INVESTIGASI MENDALAM KASUS AHMAD MAHRUM ===\n\n";
++
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('nama', 'like', '%AHMAD MAHRUM%')
++    ->get();
++
++foreach ($sks as $sk) {
++    $school = School::find($sk->school_id);
++    $schoolName = $school ? $school->nama : "Unknown (ID: {$sk->school_id})";
++    
++    echo "SK ID: {$sk->id}\n";
++    echo "Sekolah: {$schoolName} (ID: {$sk->school_id})\n";
++    echo "Nama di SK: {$sk->nama}\n";
++    echo "Teacher ID di SK: " . ($sk->teacher_id ?? 'NULL') . "\n";
++    
++    if ($sk->teacher_id) {
++        $teacher = Teacher::withoutGlobalScopes()->find($sk->teacher_id);
++        if ($teacher) {
++            echo "-> NAMA ASLI DI MASTER GURU: {$teacher->nama}\n";
++            echo "-> Nomer Surat Guru: {$teacher->nomor_surat_permohonan}\n";
++            echo "-> File Surat Guru: " . basename($teacher->surat_permohonan_url) . "\n";
++        } else {
++            echo "-> WARNING: Teacher ID {$sk->teacher_id} tidak ditemukan di database!\n";
++        }
++    }
++    
++    echo "File Surat SK: " . basename($sk->surat_permohonan_url) . "\n";
++    echo "----------------------------------------\n";
++}
+
+commit 2595954f489ea88180c8b7d3f2a7e6d0ed278ffc
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:32:01 2026 +0700
+
+    fix investigate_mahrum.php
+
+diff --git a/backend/investigate_mahrum.php b/backend/investigate_mahrum.php
+index 6cfa30b..5562088 100644
+--- a/backend/investigate_mahrum.php
++++ b/backend/investigate_mahrum.php
+@@ -4,44 +4,32 @@
+ use App\Models\Teacher;
+ use App\Models\School;
+ 
+-echo "=== INVESTIGASI KASUS AHMAD MAHRUM DI BULUPAYUNG ===\n\n";
++echo "=== INVESTIGASI MENDALAM KASUS AHMAD MAHRUM ===\n\n";
+ 
+-// 1. Cari data SK Ahmad Mahrum
+ $sks = SkDocument::withoutGlobalScopes()
+     ->where('nama', 'like', '%AHMAD MAHRUM%')
+-    ->get(['id', 'school_id', 'nama', 'surat_permohonan_url', 'nomor_surat_permohonan']);
++    ->get();
+ 
+ foreach ($sks as $sk) {
+     $school = School::find($sk->school_id);
+     $schoolName = $school ? $school->nama : "Unknown (ID: {$sk->school_id})";
+     
+     echo "SK ID: {$sk->id}\n";
+-    echo "Sekolah: {$schoolName}\n";
+-    echo "Nomor Surat: {$sk->nomor_surat_permohonan}\n";
+-    echo "File PDF / Gambar Surat: " . basename($sk->surat_permohonan_url) . "\n";
+-    echo "----------------------------------------\n";
+-}
+-
+-echo "\n=== MENCARI KORBAN ASLI DI BULUPAYUNG ===\n";
+-// ID Sekolah Bulupayung adalah 68 (dari history sebelumnya).
+-$sksBulupayung = $sks->where('school_id', 68)->first();
+-
+-if ($sksBulupayung) {
+-    // Cari guru di Bulupayung yang TIDAK PUNYA SK
+-    $teachersWithoutSk = Teacher::withoutGlobalScopes()
+-        ->where('school_id', 68)
+-        ->where('is_active', true)
+-        ->whereDoesntHave('skDocuments')
+-        ->get(['id', 'nama']);
+-
+-    if ($teachersWithoutSk->count() > 0) {
+-        echo "Ternyata ada {$teachersWithoutSk->count()} Guru di Bulupayung yang KEHILANGAN SK-nya!\n";
+-        echo "Kandidat pemilik asli SK Ahmad Mahrum (Bulupayung) tersebut adalah:\n";
+-        foreach ($teachersWithoutSk as $t) {
+-            echo "- {$t->nama} (ID: {$t->id})\n";
++    echo "Sekolah: {$schoolName} (ID: {$sk->school_id})\n";
++    echo "Nama di SK: {$sk->nama}\n";
++    echo "Teacher ID di SK: " . ($sk->teacher_id ?? 'NULL') . "\n";
++    
++    if ($sk->teacher_id) {
++        $teacher = Teacher::withoutGlobalScopes()->find($sk->teacher_id);
++        if ($teacher) {
++            echo "-> NAMA ASLI DI MASTER GURU: {$teacher->nama}\n";
++            echo "-> Nomer Surat Guru: {$teacher->nomor_surat_permohonan}\n";
++            echo "-> File Surat Guru: " . basename($teacher->surat_permohonan_url) . "\n";
++        } else {
++            echo "-> WARNING: Teacher ID {$sk->teacher_id} tidak ditemukan di database!\n";
+         }
+-    } else {
+-        echo "Aneh! Semua guru di Bulupayung SUDAH PUNYA SK.\n";
+-        echo "Berarti ini murni salah ketik Kepala Sekolah saat input dari awal.\n";
+     }
++    
++    echo "File Surat SK: " . basename($sk->surat_permohonan_url) . "\n";
++    echo "----------------------------------------\n";
+ }
+
+commit 2d0ba5fa86bb03cc54ba0e3e8eb7cc29607afb23
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:30:38 2026 +0700
+
+    add investigate_mahrum.php
+
+diff --git a/backend/investigate_mahrum.php b/backend/investigate_mahrum.php
+new file mode 100644
+index 0000000..6cfa30b
+--- /dev/null
++++ b/backend/investigate_mahrum.php
+@@ -0,0 +1,47 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use App\Models\School;
++
++echo "=== INVESTIGASI KASUS AHMAD MAHRUM DI BULUPAYUNG ===\n\n";
++
++// 1. Cari data SK Ahmad Mahrum
++$sks = SkDocument::withoutGlobalScopes()
++    ->where('nama', 'like', '%AHMAD MAHRUM%')
++    ->get(['id', 'school_id', 'nama', 'surat_permohonan_url', 'nomor_surat_permohonan']);
++
++foreach ($sks as $sk) {
++    $school = School::find($sk->school_id);
++    $schoolName = $school ? $school->nama : "Unknown (ID: {$sk->school_id})";
++    
++    echo "SK ID: {$sk->id}\n";
++    echo "Sekolah: {$schoolName}\n";
++    echo "Nomor Surat: {$sk->nomor_surat_permohonan}\n";
++    echo "File PDF / Gambar Surat: " . basename($sk->surat_permohonan_url) . "\n";
++    echo "----------------------------------------\n";
++}
++
++echo "\n=== MENCARI KORBAN ASLI DI BULUPAYUNG ===\n";
++// ID Sekolah Bulupayung adalah 68 (dari history sebelumnya).
++$sksBulupayung = $sks->where('school_id', 68)->first();
++
++if ($sksBulupayung) {
++    // Cari guru di Bulupayung yang TIDAK PUNYA SK
++    $teachersWithoutSk = Teacher::withoutGlobalScopes()
++        ->where('school_id', 68)
++        ->where('is_active', true)
++        ->whereDoesntHave('skDocuments')
++        ->get(['id', 'nama']);
++
++    if ($teachersWithoutSk->count() > 0) {
++        echo "Ternyata ada {$teachersWithoutSk->count()} Guru di Bulupayung yang KEHILANGAN SK-nya!\n";
++        echo "Kandidat pemilik asli SK Ahmad Mahrum (Bulupayung) tersebut adalah:\n";
++        foreach ($teachersWithoutSk as $t) {
++            echo "- {$t->nama} (ID: {$t->id})\n";
++        }
++    } else {
++        echo "Aneh! Semua guru di Bulupayung SUDAH PUNYA SK.\n";
++        echo "Berarti ini murni salah ketik Kepala Sekolah saat input dari awal.\n";
++    }
++}
+
+commit 92433dd843353454cb11bb399584299a0b75a97c
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:28:42 2026 +0700
+
+    add cleanup_duplicates.php
+
+diff --git a/backend/cleanup_duplicates.php b/backend/cleanup_duplicates.php
+new file mode 100644
+index 0000000..46b49c3
+--- /dev/null
++++ b/backend/cleanup_duplicates.php
+@@ -0,0 +1,68 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "=== MEMULAI SAPU BERSIH: HAPUS PENGAJUAN GANDA ===\n\n";
++
++// LANGKAH 1: MENAUTKAN TYPO YANG TERSISA (SEPERTI YASIN)
++echo "Langkah 1: Mencari SK yang TMT-nya kosong karena typo nama...\n";
++$orphanedSks = SkDocument::withoutGlobalScopes()->whereNull('teacher_id')->get();
++$relinkedCount = 0;
++
++foreach ($orphanedSks as $sk) {
++    $bareName = strtoupper(trim(explode(',', $sk->nama)[0]));
++    
++    $teacherInSchool = Teacher::withTrashed()
++        ->withoutGlobalScopes()
++        ->where('school_id', $sk->school_id)
++        ->where(function($q) use ($bareName) {
++            $q->where('nama', 'LIKE', "%{$bareName}%")
++              ->orWhereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [$bareName]);
++        })
++        ->first();
++
++    if ($teacherInSchool) {
++        $sk->teacher_id = $teacherInSchool->id;
++        $sk->save();
++        $relinkedCount++;
++        echo "   ≡ƒæë Berhasil menautkan SK {$sk->nama} (ID: {$sk->id}) ke Guru ID: {$teacherInSchool->id}\n";
++    }
++}
++echo "Total SK Typo yang berhasil ditautkan otomatis: {$relinkedCount}\n\n";
++
++// LANGKAH 2: MENGHAPUS PENGAJUAN GANDA
++echo "Langkah 2: Menghapus pengajuan ganda di setiap sekolah...\n";
++$duplicates = SkDocument::withoutGlobalScopes()
++    ->select('teacher_id', DB::raw('count(*) as count'))
++    ->whereNotNull('teacher_id')
++    ->groupBy('teacher_id')
++    ->having('count', '>', 1)
++    ->get();
++
++$deletedCount = 0;
++
++foreach ($duplicates as $dup) {
++    // Ambil semua SK untuk guru ini
++    $sks = SkDocument::withoutGlobalScopes()
++        ->where('teacher_id', $dup->teacher_id)
++        ->orderByRaw("CASE WHEN status = 'approved' OR is_sk_generated = true THEN 1 ELSE 2 END") // Prioritaskan yang sudah disetujui
++        ->orderBy('created_at', 'desc') // Prioritaskan yang paling baru
++        ->get();
++
++    // Pertahankan yang pertama (index 0), hapus sisanya (index 1 ke atas)
++    $keptSk = $sks->first();
++    echo "   ≡ƒæñ Guru ID {$dup->teacher_id} punya {$dup->count} SK. Mempertahankan SK ID {$keptSk->id}...\n";
++
++    $sksToDelete = $sks->slice(1);
++    foreach ($sksToDelete as $skToDel) {
++        $skToDel->delete(); // Soft delete
++        $deletedCount++;
++        echo "      ≡ƒùæ∩╕Å Dihapus: SK ID {$skToDel->id} (Status: {$skToDel->status})\n";
++    }
++}
++
++echo "\n=== KESIMPULAN ===\n";
++echo "Total Pengajuan Ganda yang dibersihkan: {$deletedCount} SK\n";
++echo "Dashboard madrasah sekarang sudah 100% rapi dan bebas nama ganda!\n";
+
+commit 338138eac73c9fb4ccacfe9ed2d9b9db1ff02e7f
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:16:19 2026 +0700
+
+    add dump_july.php
+
+diff --git a/backend/dump_july.php b/backend/dump_july.php
+new file mode 100644
+index 0000000..4e7fb5c
+--- /dev/null
++++ b/backend/dump_july.php
+@@ -0,0 +1,20 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MEMULAI PENYELAMATAN DATA DATABASE HARI INI ===\n";
++
++$backupData = [
++    'sk_documents' => SkDocument::withoutGlobalScopes()->get()->toArray(),
++    'teachers' => Teacher::withoutGlobalScopes()->get()->toArray(),
++];
++
++$backupJson = json_encode($backupData, JSON_PRETTY_PRINT);
++$backupPath = storage_path('app/public/simmaci_backup_db_6juli.json');
++
++file_put_contents($backupPath, $backupJson);
++
++echo "Γ£à Berhasil men-dump ".count($backupData['sk_documents'])." SK dan ".count($backupData['teachers'])." Guru.\n";
++echo "File tersimpan di: {$backupPath}\n";
++echo "Silakan lanjut ke proses ZIP (compress) folder public!\n";
+
+commit 98a90cfa120c08b870a61acb0d551da0d634f613
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:11:34 2026 +0700
+
+    add final_resolution.php
+
+diff --git a/backend/final_resolution.php b/backend/final_resolution.php
+new file mode 100644
+index 0000000..c9b20a1
+--- /dev/null
++++ b/backend/final_resolution.php
+@@ -0,0 +1,41 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== MEMULAI BEDAH PRESISI (FINAL RESOLUTION) ===\n\n";
++
++// DAFTAR TYPO YANG AKAN KITA LURUSKAN
++$typoFixes = [
++    // NANI WIDIANINGSIH DEWI
++    ['sk_ids' => [796, 797], 'correct_teacher_id' => 1389],
++    
++    // HJ. ANIS KURNIASIH
++    ['sk_ids' => [601], 'correct_teacher_id' => 155],
++    
++    // AYUSROSIBAWAIHI
++    ['sk_ids' => [1755, 1748], 'correct_teacher_id' => 157],
++    
++    // 'TUTI ROHAYATI
++    ['sk_ids' => [322, 333], 'correct_teacher_id' => 1169],
++];
++
++$fixedCount = 0;
++
++foreach ($typoFixes as $fix) {
++    $sks = SkDocument::withoutGlobalScopes()->whereIn('id', $fix['sk_ids'])->get();
++    $teacher = Teacher::withoutGlobalScopes()->find($fix['correct_teacher_id']);
++    
++    if ($teacher) {
++        foreach ($sks as $sk) {
++            $sk->teacher_id = $teacher->id;
++            $sk->nama = $teacher->nama; // Samakan namanya 100% agar tidak masalah lagi
++            $sk->save();
++            $fixedCount++;
++            echo "Γ£à BERHASIL MEMPERBAIKI: SK ID {$sk->id} ditautkan ke {$teacher->nama}\n";
++        }
++    }
++}
++
++echo "\nTotal SK Typo yang berhasil disembuhkan: {$fixedCount}\n";
++echo "Catatan: SK Hantu (Kholisin dkk) DIBIARKAN UTUH karena itu adalah bukti bahwa Master Guru mereka belum diinput/hilang!\n";
+
+commit 71af38a8b6bb27ebbb5f91a1f10ffc543ed396e3
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 09:04:23 2026 +0700
+
+    add audit_sks.php
+
+diff --git a/backend/audit_sks.php b/backend/audit_sks.php
+new file mode 100644
+index 0000000..8f54a45
+--- /dev/null
++++ b/backend/audit_sks.php
+@@ -0,0 +1,64 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++
++echo "=== ALAT AUDIT SK (MENCARI KASUS ALFINA TERSEMBUNYI) ===\n\n";
++
++// Ambil semua SK yang tidak punya teacher_id (unlinked / ghost)
++$orphanedSks = SkDocument::withoutGlobalScopes()
++    ->whereNull('teacher_id')
++    ->get();
++
++$ghostCount = 0;
++$alfinaSuspects = 0;
++
++foreach ($orphanedSks as $sk) {
++    $bareName = strtoupper(trim(explode(',', $sk->nama)[0]));
++
++    // Coba cari guru di sekolah yang sama, pakai pencarian LIKE untuk toleransi typo
++    $teacherInSchool = Teacher::withTrashed()
++        ->withoutGlobalScopes()
++        ->where('school_id', $sk->school_id)
++        ->where(function($q) use ($bareName) {
++            $q->where('nama', 'LIKE', "%{$bareName}%")
++              ->orWhereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [$bareName]);
++        })
++        ->first();
++
++    // Jika KETEMU, berarti ini BUKAN kasus Alfina. Ini cuma SK asli yang gurunya typo/beda gelar.
++    if ($teacherInSchool) {
++        continue;
++    }
++
++    // JIKA TIDAK KETEMU, berarti SK ini murni GHOST atau ALFINA CASE!
++    
++    // Mari cari siapa korban di sekolah ini (Guru yang tidak punya SK sama sekali)
++    $teachersWithoutSk = Teacher::withoutGlobalScopes()
++        ->where('school_id', $sk->school_id)
++        ->where('is_active', true)
++        ->whereDoesntHave('skDocuments') // Guru yang tidak punya relasi SK
++        ->get(['id', 'nama']);
++
++    echo "ΓÜá∩╕Å [TERSANGKA] SK ID {$sk->id} (Nama di SK: {$sk->nama})\n";
++    echo "   ≡ƒôì Lokasi: Sekolah ID {$sk->school_id}\n";
++    echo "   ≡ƒæë Status: TIDAK DITEMUKAN guru bernama mirip '{$bareName}' di sekolah ini.\n";
++
++    if ($teachersWithoutSk->count() > 0) {
++        $alfinaSuspects++;
++        echo "   ≡ƒÜ¿ INDIKASI KORBAN (KASUS ALFINA): Ada {$teachersWithoutSk->count()} guru di sekolah ini yang TIDAK PUNYA SK!\n";
++        echo "   Kandidat Pemilik Asli:\n";
++        foreach ($teachersWithoutSk as $korban) {
++            echo "      - {$korban->nama} (ID: {$korban->id})\n";
++        }
++    } else {
++        $ghostCount++;
++        echo "   ≡ƒæ╗ MURNI SK HANTU/GANDA: Semua guru di sekolah ini SUDAH PUNYA SK.\n";
++        echo "      (SK ini dipastikan 100% aman untuk dihapus)\n";
++    }
++    echo "------------------------------------------------------\n";
++}
++
++echo "\n=== KESIMPULAN ===\n";
++echo "Total SK Murni Hantu (Aman Dihapus): {$ghostCount}\n";
++echo "Total SK Terduga Korban Salah Nama (Kasus Alfina): {$alfinaSuspects}\n";
+
+commit bae11b95ab93f8d25ac1703e9dda2b111256d2ee
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 08:55:51 2026 +0700
+
+    add script to restore deleted sks
+
+diff --git a/backend/restore_deleted_sks.php b/backend/restore_deleted_sks.php
+new file mode 100644
+index 0000000..581d7c0
+--- /dev/null
++++ b/backend/restore_deleted_sks.php
+@@ -0,0 +1,21 @@
++<?php
++
++use App\Models\SkDocument;
++use Carbon\Carbon;
++
++echo "Memulai proses pembatalan penghapusan (RESTORE) SK yang terhapus hari ini...\n";
++
++// Ambil semua SK yang di-soft-delete dalam 1 jam terakhir
++$recentDeletions = SkDocument::onlyTrashed()
++    ->where('deleted_at', '>=', Carbon::now()->subHour())
++    ->get();
++
++$restoredCount = 0;
++
++foreach ($recentDeletions as $sk) {
++    $sk->restore();
++    $restoredCount++;
++}
++
++echo "Γ£à BERHASIL MENGEMBALIKAN (RESTORE) {$restoredCount} SK yang tidak sengaja terhapus!\n";
++echo "Semua SK Bapak kini sudah kembali ke tempat asalnya.\n";
+
+commit 984587cd0baf9494c6dfca9e85aa7fd96e0bcec4
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 08:48:07 2026 +0700
+
+    add script to delete ghost sks
+
+diff --git a/backend/delete_ghost_sks.php b/backend/delete_ghost_sks.php
+new file mode 100644
+index 0000000..fb0d09d
+--- /dev/null
++++ b/backend/delete_ghost_sks.php
+@@ -0,0 +1,35 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "Memulai pembersihan SK Hantu (Ghost SKs)...\n";
++
++// Ambil semua SK yang aktif (tidak di-soft-delete)
++$sks = SkDocument::withoutGlobalScopes()->get();
++
++$deletedCount = 0;
++
++foreach ($sks as $sk) {
++    $bareName = trim(explode(',', $sk->nama)[0]);
++    $bareNameUpper = strtoupper($bareName);
++
++    // Cari apakah ADA guru dengan nama ini di sekolah milik SK tersebut (termasuk yang di tong sampah)
++    $teacherInSameSchool = Teacher::withTrashed()
++        ->withoutGlobalScopes()
++        ->whereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [$bareNameUpper])
++        ->where('school_id', $sk->school_id)
++        ->first();
++
++    if (!$teacherInSameSchool) {
++        // Jika tidak ada guru bernama ini di sekolah tersebut, berarti SK ini nyasar/duplikat!
++        // Hapus (soft-delete) SK ini
++        $sk->delete();
++        $deletedCount++;
++        echo "≡ƒùæ∩╕Å [DELETED] SK ID {$sk->id} ({$sk->nama}) dihapus dari Sekolah {$sk->school_id} karena tidak ada guru dengan nama tersebut di sekolah ini.\n";
++    }
++}
++
++echo "\n--- SELESAI ---\n";
++echo "Total SK Hantu yang berhasil disapu bersih: {$deletedCount}\n";
+
+commit 00d03feb45e0f8bce0fc349dc8cc9855c7205eec
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 08:37:40 2026 +0700
+
+    add script to restore inadvertently unlinked SKs
+
+diff --git a/backend/restore_unlinked_sks.php b/backend/restore_unlinked_sks.php
+new file mode 100644
+index 0000000..8afc7b3
+--- /dev/null
++++ b/backend/restore_unlinked_sks.php
+@@ -0,0 +1,39 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "Memulai pemulihan data SK yang tidak sengaja ter-unlink...\n";
++
++// Ambil semua SK yang saat ini teacher_id nya NULL
++$orphanedSks = SkDocument::withoutGlobalScopes()->whereNull('teacher_id')->get();
++
++$restored = 0;
++$stillOrphaned = 0;
++
++foreach ($orphanedSks as $sk) {
++    $bareName = trim(explode(',', $sk->nama)[0]);
++
++    // Cari guru dengan nama yang sama persis (abaikan school_id)
++    // Urutkan berdasarkan yang memiliki school_id sama dengan SK (jika ada), lalu yang school_id nya NULL, lalu lainnya.
++    $correctTeacher = Teacher::withoutGlobalScopes()
++        ->whereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [strtoupper($bareName)])
++        ->orderByRaw("CASE WHEN school_id = ? THEN 1 WHEN school_id IS NULL THEN 2 ELSE 3 END", [$sk->school_id])
++        ->orderBy('updated_at', 'desc')
++        ->first();
++
++    if ($correctTeacher) {
++        $sk->teacher_id = $correctTeacher->id;
++        $sk->save();
++        $restored++;
++        echo "Γ£à [RESTORED] SK ID {$sk->id} ({$sk->nama}) dikembalikan ke Guru ID {$correctTeacher->id} (Sekolah Guru: " . ($correctTeacher->school_id ?? 'NULL') . ")\n";
++    } else {
++        $stillOrphaned++;
++        echo "Γ¥î [NOT FOUND] SK ID {$sk->id} ({$sk->nama}) tetap yatim karena Master Guru tidak ditemukan sama sekali.\n";
++    }
++}
++
++echo "\n--- SELESAI ---\n";
++echo "Total SK berhasil dipulihkan (TMT akan kembali muncul): {$restored}\n";
++echo "Total SK tetap kosong (Guru benar-benar sudah tidak ada): {$stillOrphaned}\n";
+
+commit 08bb15eced2ae5e5fc46a990573b616628514e96
+Author: ayebe51 <alayyubi612@gmail.com>
+Date:   Mon Jul 6 08:25:42 2026 +0700
+
+    add script to fix cross-school SK corruption
+
+diff --git a/backend/fix_cross_school.php b/backend/fix_cross_school.php
+new file mode 100644
+index 0000000..2c10e2c
+--- /dev/null
++++ b/backend/fix_cross_school.php
+@@ -0,0 +1,86 @@
++<?php
++
++use App\Models\SkDocument;
++use App\Models\Teacher;
++use Illuminate\Support\Facades\DB;
++
++echo "Memulai perbaikan data silang antar-sekolah (Cross-School)...\n";
++
++// 1. Jalankan force fix dulu untuk 4 SK yang gagal sebelumnya
++$failed = [
++    [
++        'wrongName' => 'ALFINA AMANATUL FAUZAH, S.Pd.',
++        'trueName' => 'KHALIMATUS SA\'DIYAH, S.Pd.'
++    ],
++    [
++        'wrongName' => 'AHMAD ALFARIQI',
++        'trueName' => 'DWI YULIYANTI, S.Pd.'
++    ],
++    [
++        'wrongName' => 'ULIN NABILLAH',
++        'trueName' => 'NANI WIDIANINGSIH DEWI'
++    ],
++    [
++        'wrongName' => 'MAFTUHIN, S.Pd.I',
++        'trueName' => 'INTIHA\'US SANGADAH, S.Pd.'
++    ]
++];
++
++foreach ($failed as $f) {
++    $sk = SkDocument::withoutGlobalScopes()
++        ->where('nama', $f['wrongName'])
++        ->orderBy('updated_at', 'desc')
++        ->first();
++        
++    if ($sk) {
++        $sk->nama = $f['trueName'];
++        $sk->teacher_id = null; 
++        $sk->save();
++        echo "Γ£à [FORCE FIX] Berhasil memperbaiki paksa SK ID {$sk->id} menjadi {$f['trueName']}\n";
++    }
++}
++
++// 2. Fix Cross-School
++$sks = DB::table('sk_documents as sk')
++    ->join('teachers as t', 'sk.teacher_id', '=', 't.id')
++    ->select('sk.id as sk_id', 'sk.nama as sk_nama', 'sk.school_id as sk_school', 'sk.teacher_id as sk_t_id', 't.school_id as t_school')
++    ->whereNotNull('sk.teacher_id')
++    ->where(function($q) {
++        $q->whereColumn('sk.school_id', '!=', 't.school_id')
++          ->orWhereNull('t.school_id');
++    })
++    ->get();
++
++$fixedToTeacher = 0;
++$fixedToNull = 0;
++
++foreach ($sks as $row) {
++    $sk = SkDocument::withoutGlobalScopes()->find($row->sk_id);
++    if (!$sk) continue;
++
++    $bareName = trim(explode(',', $sk->nama)[0]);
++
++    // Cari guru dengan nama yang sama di sekolah asalnya (school_id milik SK)
++    $correctTeacher = Teacher::withoutGlobalScopes()
++        ->whereRaw("UPPER(TRIM(SPLIT_PART(nama, ',', 1))) = ?", [strtoupper($bareName)])
++        ->where('school_id', $sk->school_id)
++        ->first();
++
++    if ($correctTeacher) {
++        $sk->teacher_id = $correctTeacher->id;
++        $sk->save();
++        $fixedToTeacher++;
++        echo "Γ£à [RE-LINK] SK ID {$sk->id} (Nama: {$sk->nama}) dikembalikan ke Guru ID {$correctTeacher->id} (Sekolah {$sk->school_id})\n";
++    } else {
++        // Jika tidak ditemukan di sekolahnya, berarti guru ini sudah terhapus permanen
++        // Kita kosongkan teacher_id nya agar tidak nyasar ke sekolah lain
++        $sk->teacher_id = null;
++        $sk->save();
++        $fixedToNull++;
++        echo "ΓÜá∩╕Å [UN-LINK] SK ID {$sk->id} (Nama: {$sk->nama}): Guru tidak ditemukan di Sekolah {$sk->school_id}. ID Guru dikosongkan.\n";
++    }
++}
++
++echo "\n--- SELESAI ---\n";
++echo "Total SK dikembalikan ke Guru yang benar: {$fixedToTeacher}\n";
++echo "Total SK dikosongkan (Un-link) karena Guru terhapus: {$fixedToNull}\n";

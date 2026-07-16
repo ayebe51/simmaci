@@ -597,14 +597,14 @@ export default function SkGeneratorPage() {
             }
 
             const inferPendidikan = (nama: string) => {
-                if (!nama) return "-";
+                if (!nama) return "SMA";
                 const lower = nama.toLowerCase();
                 // Check degrees from highest to lowest
                 if (lower.includes("dr.") || lower.includes("ph.d")) return "S3";
                 if (lower.match(/\bm\.[a-z]{1,4}\b/i)) return "S2";
                 if (lower.match(/\bs\.[a-z]{1,4}\b/i) || lower.match(/\bs\.[a-z]{1,4}\.[a-z]{1,4}\b/i)) return "S1";
                 if (lower.includes("a.md") || lower.includes("a.ma") || lower.includes("d.iii") || lower.includes("d.iv")) return "D3";
-                return "-";
+                return "SMA"; // default jika tidak ada gelar yang terdeteksi
             };
 
             const formatPendidikan = (pend?: string) => {

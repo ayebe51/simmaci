@@ -1059,6 +1059,16 @@ class TeacherController extends Controller
             ->map(fn($n) => (int) substr($n, 4))
             ->max();
 
+        // Jika MAX di bawah scan start, tidak ada NIM di range yang relevan
+        // → langsung kembalikan scan start sebagai NIM berikutnya
+        if ($maxSeq < $scanStartSeq) {
+            return $this->successResponse([
+                'nim'         => '1134' . str_pad($scanStartSeq, 5, '0', STR_PAD_LEFT),
+                'current_max' => '1134' . str_pad($maxSeq, 5, '0', STR_PAD_LEFT),
+                'has_gap'     => true,
+            ]);
+        }
+
         // Scan dari scanStartSeq s/d MAX, cari gap pertama
         $gapSeq = null;
         for ($seq = $scanStartSeq; $seq <= $maxSeq; $seq++) {

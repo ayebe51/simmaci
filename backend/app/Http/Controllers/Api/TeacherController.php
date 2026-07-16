@@ -1018,48 +1018,68 @@ class TeacherController extends Controller
      * Preview the next NIM that would be generated. Does NOT save anything.
      * Format: 1134XXXXX (prefix "1134" = Cilacap code + 5-digit zero-padded sequence)
      *
-     * Feature: nim-generator-sk, Property 1: NIM generate = MAX sequence + 1
+     * Feature: nim-generator-sk, Property 1: NIM generate = gap-fill (cari nomor kosong pertama)
+     *
+     * Logika: daripada selalu MAX+1, sistem mencari gap pertama yang kosong
+     * dalam rentang 113400001 s/d MAX. Ini mengisi celah akibat hapus/restore
+     * teacher. Jika tidak ada gap, fallback ke MAX+1.
      */
     public function previewNim(): JsonResponse
     {
         $driver = \DB::connection()->getDriverName();
 
-        // Query globally (across all tenants) for the highest NIM matching the 1134XXXXX format.
-        // The ORDER BY uses a numeric cast so that "113400139" > "113400050" (not lexicographic).
-        $query = Teacher::withoutTenantScope()
+        // Ambil semua NIM aktif format 1134XXXXX secara global (lintas tenant).
+        // Di-load ke PHP sebagai Set untuk lookup O(1) saat iterasi gap.
+        $baseQuery = Teacher::withoutTenantScope()
             ->where('nomor_induk_maarif', 'like', '1134%')
             ->whereRaw("LENGTH(nomor_induk_maarif) = 9");
 
         if ($driver === 'pgsql') {
-            // PostgreSQL: use regex to ensure purely numeric and cast to BIGINT for ordering
-            $query->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
-                  ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC");
+            $baseQuery->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'");
         } else {
-            // SQLite (tests) / other: filter non-numeric via GLOB and order as integer
-            $query->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'")
-                  ->orderByRaw("CAST(nomor_induk_maarif AS INTEGER) DESC");
+            $baseQuery->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
         }
 
-        $lastNim = $query->value('nomor_induk_maarif');
+        // Pluck semua NIM aktif sekaligus — lebih efisien dari N query WHERE EXISTS
+        $allNims = $baseQuery->pluck('nomor_induk_maarif')->flip()->all(); // flip → hash set
 
-        if ($lastNim) {
-            $lastSeq = (int) substr($lastNim, 4); // extract 5-digit sequence
-            $newSeq  = $lastSeq + 1;
+        if (empty($allNims)) {
+            // Belum ada NIM sama sekali
+            return $this->successResponse([
+                'nim'         => '113400001',
+                'current_max' => null,
+            ]);
+        }
+
+        // Cari MAX untuk tahu batas atas iterasi
+        $maxSeq = collect(array_keys($allNims))
+            ->map(fn($n) => (int) substr($n, 4))
+            ->max();
+
+        // Cari gap pertama dari urutan 1 s/d MAX
+        $gapSeq = null;
+        for ($seq = 1; $seq <= $maxSeq; $seq++) {
+            $candidate = '1134' . str_pad($seq, 5, '0', STR_PAD_LEFT);
+            if (!isset($allNims[$candidate])) {
+                $gapSeq = $seq;
+                break;
+            }
+        }
+
+        if ($gapSeq !== null) {
+            // Ada gap — gunakan gap pertama
+            $nextNim  = '1134' . str_pad($gapSeq, 5, '0', STR_PAD_LEFT);
         } else {
-            $newSeq = 1;
+            // Tidak ada gap — lanjut dari MAX+1
+            $nextNim  = '1134' . str_pad($maxSeq + 1, 5, '0', STR_PAD_LEFT);
         }
 
-        $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
-
-        // Handle gaps: ensure the candidate NIM is not already taken
-        while (Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nextNim)->exists()) {
-            $newSeq++;
-            $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
-        }
+        $currentMax = '1134' . str_pad($maxSeq, 5, '0', STR_PAD_LEFT);
 
         return $this->successResponse([
             'nim'         => $nextNim,
-            'current_max' => $lastNim,
+            'current_max' => $currentMax,
+            'has_gap'     => $gapSeq !== null,
         ]);
     }
 

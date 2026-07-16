@@ -143,6 +143,25 @@ export default function MySkPage() {
       // Contoh: "1304/PC.L/A.II/H-34.8/24.29/7/7/2026" → "1304"
       const nomorUrut: string = (sk.nomor_sk || "").split("/")[0] || ""
 
+      // Normalisasi pendidikan — strip jurusan, hanya tampilkan jenjang (S1, S2, D3, SMA, dll)
+      const formatPendidikan = (pend?: string): string => {
+        if (!pend || pend.trim() === "" || pend.trim() === "-") return "-"
+        const upper = pend.trim().toUpperCase()
+        if (upper.startsWith("S1") || upper.startsWith("SI ") || upper === "SI") return "S1"
+        if (upper.startsWith("S2") || upper.startsWith("SII ") || upper === "SII") return "S2"
+        if (upper.startsWith("S3") || upper.startsWith("SIII ") || upper === "SIII") return "S3"
+        if (upper.startsWith("D1") || upper.startsWith("D-1") || upper.startsWith("DI ") || upper === "DI") return "D1"
+        if (upper.startsWith("D2") || upper.startsWith("D-2") || upper.startsWith("DII ") || upper === "DII") return "D2"
+        if (upper.startsWith("D3") || upper.startsWith("D-3") || upper.startsWith("DIII ") || upper === "DIII") return "D3"
+        if (upper.startsWith("D4") || upper.startsWith("D-4") || upper.startsWith("DIV ") || upper === "DIV") return "D4"
+        if (upper.startsWith("SMA") || upper.startsWith("SMK") || upper.startsWith("MA ") || upper === "MA") return upper.split(" ")[0]
+        if (upper.startsWith("SMP") || upper.startsWith("MTS")) return upper.split(" ")[0]
+        if (upper.startsWith("SD") || upper.startsWith("MI ") || upper === "MI") return upper.split(" ")[0]
+        return pend
+      }
+
+      const pendidikanFormatted = formatPendidikan(teacherData.pendidikan_terakhir)
+
       const renderData = {
         ...teacherData,
         ...sk,
@@ -161,9 +180,9 @@ export default function MySkPage() {
         "NOMOR INDUK MAARIF": teacherData.nomor_induk_maarif || "",
         "NOMOR INDUK MA'ARIF": teacherData.nomor_induk_maarif || "",
         "NIM": teacherData.nomor_induk_maarif || "",
-        "PENDIDIKAN_TERAKHIR": teacherData.pendidikan_terakhir || "",
-        "PENDIDIKAN": teacherData.pendidikan_terakhir || "",
-        "PENDIDIKAN TERAKHIR": teacherData.pendidikan_terakhir || "",
+        "PENDIDIKAN_TERAKHIR": pendidikanFormatted,
+        "PENDIDIKAN": pendidikanFormatted,
+        "PENDIDIKAN TERAKHIR": pendidikanFormatted,
         "UNIT_KERJA": unitKerja,
         "UNIT KERJA": unitKerja,
         "TMT": formatDate(teacherData.tmt),

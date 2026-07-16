@@ -373,6 +373,8 @@ class SkDocumentController extends Controller
         $created = 0;
         $errors = [];
         $schoolCache = [];
+        // Cache teacher lookups per school to avoid redundant queries
+        $teacherCache = [];
 
         foreach ($request->documents as $doc) {
             try {
@@ -382,10 +384,26 @@ class SkDocumentController extends Controller
                         ?? ($schoolCache[$doc['unit_kerja']] = School::where('nama', $doc['unit_kerja'])->value('id'));
                 }
 
+                // Resolve teacher_id by matching name (case-insensitive, trimmed) within the same school.
+                // This ensures TTL/TMT/NIM are available when the SK document is displayed.
+                $teacherId = null;
+                if (!empty($doc['nama']) && $schoolId) {
+                    $cacheKey = $schoolId . '|' . mb_strtolower(trim($doc['nama']));
+                    if (!array_key_exists($cacheKey, $teacherCache)) {
+                        $teacherCache[$cacheKey] = Teacher::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
+                            ->whereRaw('LOWER(TRIM(nama)) = ?', [mb_strtolower(trim($doc['nama']))])
+                            ->where('school_id', $schoolId)
+                            ->whereNull('deleted_at')
+                            ->value('id');
+                    }
+                    $teacherId = $teacherCache[$cacheKey];
+                }
+
                 $existing = SkDocument::where('nomor_sk', $doc['nomor_sk'])->first();
                 if (! $existing) {
                     SkDocument::create(array_merge($doc, [
                         'school_id' => $schoolId,
+                        'teacher_id' => $teacherId,
                         'status' => $doc['status'] ?? 'active',
                         'created_by' => $request->user()->email,
                     ]));

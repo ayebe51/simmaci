@@ -13,7 +13,7 @@ use Tests\TestCase;
  * Feature: nim-generator-sk
  *
  * Properties tested:
- *   Property 1: NIM generate = MAX sequence + 1 (1134XXXXX format)
+ *   Property 1: NIM generate = gap-fill mulai dari 113403832, fallback MAX+1
  *   Property 3: Global uniqueness — no two teachers may share the same NIM
  *   Property 5: Format validation — non-numeric NIM rejected
  *
@@ -22,6 +22,10 @@ use Tests\TestCase;
 class NimGeneratorTest extends TestCase
 {
     use RefreshDatabase;
+
+    // Titik awal scan gap — harus sama dengan $scanStartSeq di TeacherController::previewNim()
+    private const SCAN_START_SEQ = 3832;
+    private const SCAN_START_NIM = '113403832';
 
     private School $school;
 
@@ -32,16 +36,10 @@ class NimGeneratorTest extends TestCase
         $this->school = School::factory()->create(['nama' => 'MI Nurul Huda']);
     }
 
-    // ── Property 1: NIM generate = MAX sequence + 1 ───────────────────────────
+    // ── Property 1: NIM generate = gap-fill dari scan start ──────────────────
 
     /**
      * Property 1 — data provider: various existing NIM sets → expected next NIM
-     *
-     * FOR ANY set of existing NIMs matching 1134XXXXX format, the generated NIM
-     * must be 1134 + (max_seq + 1, zero-padded 5 digits).
-     * If no valid NIMs exist, the first generated NIM must be "113400001".
-     *
-     * Validates: Requirements 2.2, 7.4, 11.3
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('nimSequenceProvider')]
     public function test_generated_nim_is_max_plus_one(array $existingNims, string $expectedNext): void
@@ -62,23 +60,27 @@ class NimGeneratorTest extends TestCase
     public static function nimSequenceProvider(): array
     {
         return [
-            'empty database'          => [[], '113400001'],
-            'single nim 001'          => [['113400001'], '113400002'],
-            'single nim 139'          => [['113400139'], '113400140'],
-            'multiple nims'           => [['113400001', '113400050', '113400139'], '113400140'],
-            'large sequence'          => [['113499998'], '113499999'],
-            'non-sequential nims'     => [['113400001', '113400999', '113400500'], '113401000'],
-            'only non-1134 nims'      => [['999900001', '888800001'], '113400001'],
-            'with gaps'               => [['113400001', '113400003'], '113400004'],
-            'very large sequence'     => [['113450000', '113450001', '113450002'], '113450003'],
+            // Kosong / di bawah scan start → kembalikan scan start
+            'empty database'              => [[], self::SCAN_START_NIM],
+            'only non-1134 nims'          => [['999900001', '888800001'], self::SCAN_START_NIM],
+            'nims below scan start'       => [['113400001', '113400050', '113400139'], self::SCAN_START_NIM],
+            'large sequence below start'  => [['113403831'], self::SCAN_START_NIM],
+
+            // Di atas scan start: gap fill
+            'scan start exists'           => [['113403832'], '113403833'],
+            'gap at scan start'           => [['113403833'], '113403832'],
+            'contiguous from start'       => [['113403832', '113403833', '113403834'], '113403835'],
+            'gap in middle of range'      => [['113403832', '113403834'], '113403833'],
+            'large sequence above start'  => [['113403832', '113499998'], '113403833'],
+            'non-sequential above start'  => [['113403832', '113403900', '113403850'], '113403833'],
+
+            // Khusus: NIM di bawah start dan di atas start
+            'mix below and above start'   => [['113400001', '113403832', '113403834'], '113403833'],
         ];
     }
 
     /**
-     * Property 1 — Property: For ANY valid NIM set, generated NIM = MAX + 1
-     *
-     * This test uses a comprehensive set of inputs to verify the MAX + 1 property
-     * holds across various scenarios.
+     * Property 1 — Property: generated NIM format always valid, behaviour follows gap-fill
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('nimSetProvider')]
     public function test_property_nim_generation_follows_max_plus_one(array $existingNims): void
@@ -98,30 +100,38 @@ class NimGeneratorTest extends TestCase
         // Verify format: 1134 + 5 digits
         $this->assertMatchesRegularExpression('/^1134[0-9]{5}$/', $generatedNim);
 
-        if (empty($existingNims)) {
-            // No existing NIMs → first NIM must be 113400001
-            $this->assertSame('113400001', $generatedNim);
+        // Filter only valid 1134XXXXX NIMs at/above scan start
+        $validNims = array_filter($existingNims, function ($nim) {
+            return preg_match('/^1134[0-9]{5}$/', $nim)
+                && (int) substr($nim, 4) >= self::SCAN_START_SEQ;
+        });
+
+        if (empty($validNims)) {
+            // No NIMs at/above scan start → must return scan start
+            $this->assertSame(self::SCAN_START_NIM, $generatedNim);
         } else {
-            // With existing NIMs → generated = MAX + 1
-            // Extract sequence numbers from existing NIMs (last 5 digits)
-            $sequences = array_map(function($nim) {
-                return (int) substr($nim, 4, 5);
-            }, $existingNims);
-            $maxSeq = max($sequences);
-            $expectedNext = '1134' . str_pad((string)($maxSeq + 1), 5, '0', STR_PAD_LEFT);
-            $this->assertSame($expectedNext, $generatedNim);
+            // There are NIMs in scan range — result must be a valid 1134XXXXX not in existing set
+            $this->assertNotContains($generatedNim, $existingNims,
+                "Generated NIM must not already exist");
+            // And must be >= scan start
+            $this->assertGreaterThanOrEqual(
+                (int) self::SCAN_START_NIM,
+                (int) $generatedNim,
+                "Generated NIM must be >= scan start"
+            );
         }
     }
 
     public static function nimSetProvider(): array
     {
         return [
-            'empty set' => [[]],
-            'single nim' => [['113400001']],
-            'two nims' => [['113400001', '113400002']],
-            'many nims' => [['113400001', '113400100', '113400200', '113400300', '113400400']],
-            'random order' => [['113400500', '113400001', '113400999', '113400250']],
-            'consecutive' => [['113400001', '113400002', '113400003', '113400004', '113400005']],
+            'empty set'       => [[]],
+            'below start'     => [['113400001']],
+            'at start'        => [['113403832']],
+            'above start'     => [['113403832', '113403833']],
+            'many nims'       => [['113403832', '113403833', '113403834', '113403835']],
+            'random order'    => [['113403900', '113403832', '113403999', '113403850']],
+            'consecutive'     => [['113403832', '113403833', '113403834', '113403835', '113403836']],
         ];
     }
 

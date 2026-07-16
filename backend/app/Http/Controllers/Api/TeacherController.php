@@ -1223,36 +1223,54 @@ class TeacherController extends Controller
         \DB::transaction(function () use ($teachers, &$generatedCount, &$results, $request) {
             $driver = \DB::connection()->getDriverName();
 
-            // Find current MAX NIM
-            $q = Teacher::withoutTenantScope()
+            // Titik awal scan gap — harus sama dengan $scanStartSeq di previewNim()
+            $scanStartSeq = 3832;
+
+            // Load semua NIM aktif format 1134XXXXX ke hash set untuk lookup O(1)
+            $baseQuery = Teacher::withoutTenantScope()
                 ->where('nomor_induk_maarif', 'like', '1134%')
                 ->whereRaw("LENGTH(nomor_induk_maarif) = 9");
 
             if ($driver === 'pgsql') {
-                $q->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'")
-                  ->orderByRaw("CAST(nomor_induk_maarif AS BIGINT) DESC");
+                $baseQuery->whereRaw("nomor_induk_maarif ~ '^[0-9]+$'");
             } else {
-                $q->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'")
-                  ->orderByRaw("CAST(nomor_induk_maarif AS INTEGER) DESC");
+                $baseQuery->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
             }
 
-            $lastNim = $q->value('nomor_induk_maarif');
-            $lastSeq = $lastNim ? (int) substr($lastNim, 4) : 0;
-            $newSeq = $lastSeq;
+            // Hash set: NIM → true, untuk lookup O(1) tanpa N+1 query
+            $usedNims = $baseQuery->pluck('nomor_induk_maarif')->flip()->all();
+
+            // Cari MAX sequence
+            $maxSeq = empty($usedNims)
+                ? 0
+                : collect(array_keys($usedNims))->map(fn($n) => (int) substr($n, 4))->max();
+
+            // Pointer untuk scan gap, mulai dari scanStartSeq
+            $scanPtr = $scanStartSeq;
 
             foreach ($teachers as $teacher) {
-                // Find next available
-                do {
-                    $newSeq++;
-                    $nextNim = '1134' . str_pad($newSeq, 5, '0', STR_PAD_LEFT);
-                } while (Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nextNim)->exists());
+                // Cari NIM berikutnya: gap-fill dari scanPtr, fallback ke MAX+1
+                while (isset($usedNims['1134' . str_pad($scanPtr, 5, '0', STR_PAD_LEFT)])) {
+                    $scanPtr++;
+                }
+
+                // Jika scanPtr masih dalam range <= MAX, ambil gap ini
+                // Jika sudah melewati MAX, scanPtr = MAX+1 (sudah increment di atas)
+                $nextNim = '1134' . str_pad($scanPtr, 5, '0', STR_PAD_LEFT);
+
+                // Tandai NIM ini sebagai terpakai di hash set (untuk iterasi berikutnya)
+                $usedNims[$nextNim] = true;
+                if ($scanPtr > $maxSeq) {
+                    $maxSeq = $scanPtr;
+                }
+                $scanPtr++;
 
                 $teacher->update(['nomor_induk_maarif' => $nextNim]);
-                
+
                 $results[] = [
-                    'id' => $teacher->id,
+                    'id'   => $teacher->id,
                     'nama' => $teacher->nama,
-                    'nim' => $nextNim
+                    'nim'  => $nextNim,
                 ];
                 $generatedCount++;
             }

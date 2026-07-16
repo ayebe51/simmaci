@@ -1018,18 +1018,21 @@ class TeacherController extends Controller
      * Preview the next NIM that would be generated. Does NOT save anything.
      * Format: 1134XXXXX (prefix "1134" = Cilacap code + 5-digit zero-padded sequence)
      *
-     * Feature: nim-generator-sk, Property 1: NIM generate = gap-fill (cari nomor kosong pertama)
+     * Feature: nim-generator-sk, Property 1: NIM generate = gap-fill mulai dari 113403832
      *
-     * Logika: daripada selalu MAX+1, sistem mencari gap pertama yang kosong
-     * dalam rentang 113400001 s/d MAX. Ini mengisi celah akibat hapus/restore
-     * teacher. Jika tidak ada gap, fallback ke MAX+1.
+     * Logika: cari NIM kosong pertama mulai dari urutan 3832 (113403832) ke atas.
+     * Gap sebelum 3832 diabaikan (dianggap sudah tidak relevan).
+     * Jika semua terisi s/d MAX, fallback ke MAX+1.
      */
     public function previewNim(): JsonResponse
     {
         $driver = \DB::connection()->getDriverName();
 
+        // Titik awal pencarian gap — urutan 5-digit setelah prefix "1134"
+        // Sesuai permintaan: mulai scan dari 113403832
+        $scanStartSeq = 3832;
+
         // Ambil semua NIM aktif format 1134XXXXX secara global (lintas tenant).
-        // Di-load ke PHP sebagai Set untuk lookup O(1) saat iterasi gap.
         $baseQuery = Teacher::withoutTenantScope()
             ->where('nomor_induk_maarif', 'like', '1134%')
             ->whereRaw("LENGTH(nomor_induk_maarif) = 9");
@@ -1040,25 +1043,25 @@ class TeacherController extends Controller
             $baseQuery->whereRaw("nomor_induk_maarif GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
         }
 
-        // Pluck semua NIM aktif sekaligus — lebih efisien dari N query WHERE EXISTS
-        $allNims = $baseQuery->pluck('nomor_induk_maarif')->flip()->all(); // flip → hash set
+        // Load ke hash set untuk lookup O(1)
+        $allNims = $baseQuery->pluck('nomor_induk_maarif')->flip()->all();
 
         if (empty($allNims)) {
-            // Belum ada NIM sama sekali
             return $this->successResponse([
-                'nim'         => '113400001',
+                'nim'         => '1134' . str_pad($scanStartSeq, 5, '0', STR_PAD_LEFT),
                 'current_max' => null,
+                'has_gap'     => false,
             ]);
         }
 
-        // Cari MAX untuk tahu batas atas iterasi
+        // Cari MAX sequence untuk tahu batas atas iterasi
         $maxSeq = collect(array_keys($allNims))
             ->map(fn($n) => (int) substr($n, 4))
             ->max();
 
-        // Cari gap pertama dari urutan 1 s/d MAX
+        // Scan dari scanStartSeq s/d MAX, cari gap pertama
         $gapSeq = null;
-        for ($seq = 1; $seq <= $maxSeq; $seq++) {
+        for ($seq = $scanStartSeq; $seq <= $maxSeq; $seq++) {
             $candidate = '1134' . str_pad($seq, 5, '0', STR_PAD_LEFT);
             if (!isset($allNims[$candidate])) {
                 $gapSeq = $seq;
@@ -1067,18 +1070,16 @@ class TeacherController extends Controller
         }
 
         if ($gapSeq !== null) {
-            // Ada gap — gunakan gap pertama
-            $nextNim  = '1134' . str_pad($gapSeq, 5, '0', STR_PAD_LEFT);
+            // Ada gap di range scanStart s/d MAX
+            $nextNim = '1134' . str_pad($gapSeq, 5, '0', STR_PAD_LEFT);
         } else {
-            // Tidak ada gap — lanjut dari MAX+1
-            $nextNim  = '1134' . str_pad($maxSeq + 1, 5, '0', STR_PAD_LEFT);
+            // Tidak ada gap di range itu — lanjut dari MAX+1
+            $nextNim = '1134' . str_pad($maxSeq + 1, 5, '0', STR_PAD_LEFT);
         }
-
-        $currentMax = '1134' . str_pad($maxSeq, 5, '0', STR_PAD_LEFT);
 
         return $this->successResponse([
             'nim'         => $nextNim,
-            'current_max' => $currentMax,
+            'current_max' => '1134' . str_pad($maxSeq, 5, '0', STR_PAD_LEFT),
             'has_gap'     => $gapSeq !== null,
         ]);
     }

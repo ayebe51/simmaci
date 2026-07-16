@@ -4,6 +4,7 @@ namespace App\Http\Requests\Teacher;
 
 use App\Rules\UniqueForTenant;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTeacherRequest extends FormRequest
 {
@@ -19,7 +20,15 @@ class UpdateTeacherRequest extends FormRequest
         return [
             'nama'                 => 'sometimes|string|max:255',
             'nuptk'                => ['nullable', 'string', 'unique:teachers,nuptk,' . $teacherId],
-            'nomor_induk_maarif'   => ['nullable', 'string', 'unique:teachers,nomor_induk_maarif,' . $teacherId],
+            // Ignore soft-deleted records — the DB partial unique index also excludes deleted_at IS NOT NULL,
+            // so the validation rule must be consistent with it to avoid false "already taken" errors.
+            'nomor_induk_maarif'   => [
+                'nullable',
+                'string',
+                Rule::unique('teachers', 'nomor_induk_maarif')
+                    ->ignore($teacherId)
+                    ->whereNull('deleted_at'),
+            ],
             'nip'                  => 'nullable|string',
             'jenis_kelamin'        => 'nullable|in:L,P',
             'tempat_lahir'         => 'nullable|string|max:100',

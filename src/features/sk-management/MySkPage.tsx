@@ -129,11 +129,26 @@ export default function MySkPage() {
       const kecamatan: string = schoolData.kecamatan || teacherData.kecamatan || ""
       const unitKerja: string = sk.unit_kerja || ""
 
+      // Hitung PERIODE (tahun pengabdian) dari TMT ke tanggal penetapan
+      const periodeValue: number = (() => {
+        if (!teacherData.tmt || !sk.tanggal_penetapan) return 0
+        const tmt = new Date(teacherData.tmt)
+        const penetapan = new Date(sk.tanggal_penetapan)
+        if (isNaN(tmt.getTime()) || isNaN(penetapan.getTime())) return 0
+        const diffMs = penetapan.getTime() - tmt.getTime()
+        return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25))
+      })()
+
+      // Ekstrak nomor urut dari nomor SK (bagian sebelum /)
+      // Contoh: "1304/PC.L/A.II/H-34.8/24.29/7/7/2026" → "1304"
+      const nomorUrut: string = (sk.nomor_sk || "").split("/")[0] || ""
+
       const renderData = {
         ...teacherData,
         ...sk,
         // Compatibility with various template placeholders
         "NAMA": sk.nama?.toUpperCase(),
+        "NOMOR": nomorUrut,                       // {NOMOR} — urutan SK
         "NOMOR SK": sk.nomor_sk || "",
         "NOMOR_SK": sk.nomor_sk || "",
         "NOMOR_SURAT": sk.nomor_sk || "",
@@ -159,8 +174,9 @@ export default function MySkPage() {
         "TANGGAL SURAT PERMOHONAN": formatDate(sk.tanggal_permohonan),
         "TAHUN PELAJARAN": tahunAjaranStr,
         "TAHUN": tahunAjaranStr ? tahunAjaranStr.split("/")[0] : String(tahunSkNum),
-        "PERIODE": "-",
+        "PERIODE": String(periodeValue),           // dihitung dari TMT, bukan hardcoded "-"
         "TANGGAL LENGKAP": formatDate(sk.tanggal_penetapan),
+        "TANGGAL_LENGKAP": formatDate(sk.tanggal_penetapan),
         "TANGGAL_BERAKHIR": formatDate(tanggalBerakhirStr),
         "TANGGAL BERAKHIR": formatDate(tanggalBerakhirStr),
         "KECAMATAN": kecamatan,
@@ -191,6 +207,20 @@ export default function MySkPage() {
            getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
            getSize: () => [100, 100]
         })],
+        // Case-insensitive parser — sama dengan SkGeneratorPage
+        // Tanpa ini, {NOMOR}, {TANGGAL PENETAPAN}, dll tidak ketemu karena case mismatch
+        parser: (tag: string) => {
+          const cleanTag = tag.replace(/^[%#/]/, "").trim().toLowerCase()
+          return {
+            get(scope: any) {
+              if (cleanTag === ".") return scope
+              for (const k in scope) {
+                if (k.toLowerCase() === cleanTag) return scope[k]
+              }
+              return ""
+            }
+          }
+        },
         nullGetter: () => ""
       })
 

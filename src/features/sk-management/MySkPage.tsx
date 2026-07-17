@@ -92,14 +92,19 @@ export default function MySkPage() {
         templateId = "gtt" // default jika ada gelar tapi jenis tidak dikenali
       }
 
-      // Kata pengangkatan berdasarkan template
-      const kataMap: Record<string, string> = {
-        gty:    "diangkat sebagai Guru Tetap Yayasan",
-        gtt:    "diangkat sebagai Guru Tidak Tetap",
-        kamad:  "diangkat sebagai Kepala Madrasah",
-        tendik: "diangkat sebagai Tenaga Kependidikan",
-      }
-      const kataPengangkatan = kataMap[templateId] ?? ""
+      // Kata pengangkatan — sama dengan logika SkGeneratorPage
+      // Guru baru (TMT < 11 bulan ke tanggal penetapan) atau periode pertama GTY (2 tahun)
+      // → "diangkat sebagai", selain itu → "diangkat kembali sebagai"
+      const kataPengangkatan: string = (() => {
+        if (!teacherData.tmt || !sk.tanggal_penetapan) return "diangkat sebagai"
+        const tmt = new Date(teacherData.tmt)
+        const penetapan = new Date(sk.tanggal_penetapan)
+        if (isNaN(tmt.getTime()) || isNaN(penetapan.getTime())) return "diangkat sebagai"
+        const diffDays = Math.ceil((penetapan.getTime() - tmt.getTime()) / (1000 * 60 * 60 * 24))
+        const isUnder11Months = diffDays <= 330
+        const isFirstGty = templateId === "gty" && periodeValue === 2
+        return (isUnder11Months || isFirstGty) ? "diangkat sebagai" : "diangkat kembali sebagai"
+      })()
 
       let fileUrl = `/templates/sk-${templateId}-template.docx`;
       try {

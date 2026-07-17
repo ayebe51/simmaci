@@ -84,12 +84,25 @@ export default function MySkPage() {
       } else if (!hasGelar) {
         // Tidak ada gelar / pendidikan di bawah S1 → Tendik
         templateId = "tendik"
-      } else if (jenis.includes("gty") || jenis.includes("tetap yayasan")) {
+      } else if (jenis.includes("gty") || jenis.includes("tetap yayasan") || jenis.includes("guru tetap")) {
         templateId = "gty"
       } else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) {
         templateId = "gtt"
-      } else {
-        templateId = "gtt" // default jika ada gelar tapi jenis tidak dikenali
+      } else if (hasGelar) {
+        // Ada gelar tapi jenis_sk tidak dikenali → hitung dari TMT + tanggal penetapan
+        // Periode >= 2 tahun → GTY, < 2 tahun → GTT
+        if (teacherData.tmt && sk.tanggal_penetapan) {
+          const tmtDate = new Date(teacherData.tmt)
+          const penetapanDate = new Date(sk.tanggal_penetapan)
+          if (!isNaN(tmtDate.getTime()) && !isNaN(penetapanDate.getTime())) {
+            const diffYears = (penetapanDate.getTime() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+            templateId = diffYears >= 2 ? "gty" : "gtt"
+          } else {
+            templateId = "gtt"
+          }
+        } else {
+          templateId = "gtt"
+        }
       }
 
       // Kata pengangkatan — sama dengan logika SkGeneratorPage

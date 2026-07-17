@@ -163,8 +163,10 @@ export default function MySkPage() {
       const pendidikanFormatted = formatPendidikan(teacherData.pendidikan_terakhir)
 
       const renderData = {
+        // Spread dulu sebagai base, key eksplisit di bawah akan override
         ...teacherData,
         ...sk,
+        // ── Override eksplisit — harus di BAWAH spread agar menang ──
         // Compatibility with various template placeholders
         "NAMA": sk.nama?.toUpperCase(),
         "NOMOR": nomorUrut,                       // {NOMOR} — urutan SK
@@ -187,23 +189,26 @@ export default function MySkPage() {
         "UNIT KERJA": unitKerja,
         "TMT": formatDate(teacherData.tmt),
         "TANGGAL MULAI TUGAS": formatDate(teacherData.tmt),
+        // Tanggal penetapan — override spread ...sk agar diformat Indonesia
         "TANGGAL_PENETAPAN": formatDate(sk.tanggal_penetapan),
         "TANGGAL PENETAPAN": formatDate(sk.tanggal_penetapan),
+        "tanggal_penetapan": formatDate(sk.tanggal_penetapan),
         "NOMOR SURAT PERMOHONAN": sk.nomor_permohonan || "-",
         "TANGGAL SURAT PERMOHONAN": formatDate(sk.tanggal_permohonan),
+        // Tahun pelajaran — override spread ...sk
         "TAHUN PELAJARAN": tahunAjaranStr,
+        "tahun_ajaran": tahunAjaranStr,
         "TAHUN": tahunAjaranStr ? tahunAjaranStr.split("/")[0] : String(tahunSkNum),
-        "PERIODE": String(periodeValue),           // dihitung dari TMT, bukan hardcoded "-"
+        "PERIODE": String(periodeValue),
+        // Tanggal lengkap — alias tanggal penetapan yang sudah diformat
         "TANGGAL LENGKAP": formatDate(sk.tanggal_penetapan),
         "TANGGAL_LENGKAP": formatDate(sk.tanggal_penetapan),
         "TANGGAL_BERAKHIR": formatDate(tanggalBerakhirStr),
         "TANGGAL BERAKHIR": formatDate(tanggalBerakhirStr),
         "KECAMATAN": kecamatan,
-
         // Lowercase overrides for formatted dates
-        tanggal_lahir: formatDate(teacherData.tanggal_lahir),
-        tanggal_penetapan: formatDate(sk.tanggal_penetapan),
-        tmt: formatDate(teacherData.tmt),
+        "tanggal_lahir": formatDate(teacherData.tanggal_lahir),
+        "tmt": formatDate(teacherData.tmt),
 
         // Array tembusan — dipakai jika template menggunakan {#tembusan}{nomor}. {isi}{/tembusan}
         "tembusan": [

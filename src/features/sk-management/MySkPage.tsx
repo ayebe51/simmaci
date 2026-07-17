@@ -71,10 +71,35 @@ export default function MySkPage() {
     try {
       const teacherData = sk.teacher || {}
       const jenis = (sk.jenis_sk || "").toLowerCase()
+      const pendidikan = (teacherData.pendidikan_terakhir || "").toLowerCase()
+
+      // Cek apakah pendidikan S1+ (untuk menentukan GTY/GTT vs Tendik)
+      const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
+      const isPendidikanTinggi = PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
+      const hasGelar = (sk.nama || "").includes(",") || isPendidikanTinggi
+
       let templateId = "tendik"
-      if (jenis.includes("gty") || jenis.includes("tetap yayasan")) templateId = "gty";
-      else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) templateId = "gtt";
-      else if (jenis.includes("kepala") || jenis.includes("kamad")) templateId = "kamad";
+      if (jenis.includes("kepala") || jenis.includes("kamad")) {
+        templateId = "kamad"
+      } else if (!hasGelar) {
+        // Tidak ada gelar / pendidikan di bawah S1 → Tendik
+        templateId = "tendik"
+      } else if (jenis.includes("gty") || jenis.includes("tetap yayasan")) {
+        templateId = "gty"
+      } else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) {
+        templateId = "gtt"
+      } else {
+        templateId = "gtt" // default jika ada gelar tapi jenis tidak dikenali
+      }
+
+      // Kata pengangkatan berdasarkan template
+      const kataMap: Record<string, string> = {
+        gty:    "diangkat sebagai Guru Tetap Yayasan",
+        gtt:    "diangkat sebagai Guru Tidak Tetap",
+        kamad:  "diangkat sebagai Kepala Madrasah",
+        tendik: "diangkat sebagai Tenaga Kependidikan",
+      }
+      const kataPengangkatan = kataMap[templateId] ?? ""
 
       let fileUrl = `/templates/sk-${templateId}-template.docx`;
       try {
@@ -189,6 +214,9 @@ export default function MySkPage() {
         "UNIT KERJA": unitKerja,
         "TMT": formatDate(teacherData.tmt),
         "TANGGAL MULAI TUGAS": formatDate(teacherData.tmt),
+        // Kata pengangkatan
+        "KATA_PENGANGKATAN": kataPengangkatan,
+        "kata_pengangkatan": kataPengangkatan,
         // Tanggal penetapan — override spread ...sk agar diformat Indonesia
         "TANGGAL_PENETAPAN": formatDate(sk.tanggal_penetapan),
         "TANGGAL PENETAPAN": formatDate(sk.tanggal_penetapan),

@@ -257,6 +257,24 @@ export default function MySkPage() {
       }
 
       const pzip = new PizZip(binary)
+
+      // Patch XML — inject bold ke run yang berisi {NAMA}, sama seperti SkGeneratorPage
+      const docFile = pzip.file("word/document.xml")
+      if (docFile) {
+        let docXmlStr = docFile.asText()
+        docXmlStr = docXmlStr.replace(
+          /(<w:r\b[^>]*>)((?:(?!<\/w:r>)[\s\S])*?\{[\s]*NAMA[\s]*\}[\s\S]*?<\/w:r>)/g,
+          (match, openTag, rest) => {
+            if (rest.includes('<w:b/>') || rest.includes('<w:b w:val')) return match
+            if (!rest.includes('<w:rPr>') && !rest.includes('<w:rPr ')) {
+              return `${openTag}<w:rPr><w:b/><w:bCs/></w:rPr>${rest}`
+            }
+            return match.replace(/<w:rPr([\s\S]*?)>/, '<w:rPr$1><w:b/><w:bCs/>')
+          }
+        )
+        pzip.file("word/document.xml", docXmlStr)
+      }
+
       const doc = new Docxtemplater(pzip, {
         paragraphLoop: true,
         linebreaks: true,

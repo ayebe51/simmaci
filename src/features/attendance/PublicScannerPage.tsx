@@ -1301,18 +1301,26 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
 
     } catch (e: any) {
       setFaceVerificationStatus('failed');
-      toast.error(e?.response?.data?.message || 'Terjadi kesalahan saat memverifikasi QR/Wajah.');
+      const msg = e?.response?.data?.message || e?.message || 'Terjadi kesalahan saat verifikasi.'
+      toast.error(msg)
+      // Reset setelah 3 detik agar scanner bisa digunakan lagi
+      setTimeout(() => {
+        setScanResult(null)
+        setFaceVerificationStatus('idle')
+      }, 3000)
     }
   };
 
   const submitAttendance = async (qrCode: string, faceVerified: boolean = false) => {
-    if (!location && attendanceType === 'Kantor') {
-      toast.error('Menunggu lokasi GPS...');
+    if (!location && attendanceType === 'Kantor' && isGeolocationEnabled) {
+      toast.error('Lokasi GPS belum terdeteksi. Aktifkan izin lokasi dan coba lagi.')
+      setScanResult(null)
+      setFaceVerificationStatus('idle')
       return;
     }
 
     // Capture photo if needed
-    let photoData = undefined;
+    let photoData: string | undefined = undefined;
     if (isPhotoEnabled || isFaceVerificationEnabled) {
        if (!videoRef.current) {
           videoRef.current = document.querySelector('#reader-staff video') as HTMLVideoElement;
@@ -1341,9 +1349,22 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         photo: photoData,
         jenis_absen: attendanceType
       });
-      toast.success(res.message || 'Absen berhasil.');
+      toast.success(res.message || 'Absen berhasil dicatat.')
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Gagal melakukan absensi.');
+      // Tampilkan pesan spesifik dari server, atau pesan generik yang lebih informatif
+      const status = error?.response?.status
+      const serverMsg = error?.response?.data?.message
+      if (status === 422) {
+        toast.error(serverMsg || 'Data tidak valid. Pastikan QR Code Anda belum kadaluarsa.')
+      } else if (status === 404) {
+        toast.error('Staff tidak ditemukan. Pastikan ID Card Anda terdaftar di sistem.')
+      } else if (status === 409 || serverMsg?.toLowerCase().includes('sudah')) {
+        toast.warning(serverMsg || 'Anda sudah melakukan absensi hari ini.')
+      } else if (!navigator.onLine) {
+        toast.error('Tidak ada koneksi internet. Periksa jaringan Anda dan coba lagi.')
+      } else {
+        toast.error(serverMsg || 'Gagal melakukan absensi. Coba lagi beberapa saat.')
+      }
     } finally {
       setScanResult(null);
       setFaceVerificationStatus('idle');

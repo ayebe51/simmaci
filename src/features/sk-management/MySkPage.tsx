@@ -227,25 +227,32 @@ export default function MySkPage() {
       const doc = new Docxtemplater(pzip, {
         paragraphLoop: true,
         linebreaks: true,
-        modules: [new ImageModule({
-           getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
-           getSize: () => [100, 100]
-        })],
-        // Case-insensitive parser — sama dengan SkGeneratorPage
-        // Tanpa ini, {NOMOR}, {TANGGAL PENETAPAN}, dll tidak ketemu karena case mismatch
+        // Case-insensitive parser dengan normalisasi spasi — menangani:
+        // 1. Perbedaan case: {TANGGAL PENETAPAN} vs key uppercase
+        // 2. Non-breaking space (U+00A0) dari editor Word
+        // 3. Multiple spaces
         parser: (tag: string) => {
-          const cleanTag = tag.replace(/^[%#/]/, "").trim().toLowerCase()
+          const normalizeTag = (t: string) =>
+            t.replace(/^[%#/]/, "").trim()
+              .replace(/\u00A0/g, " ")
+              .replace(/\s+/g, " ")
+              .toLowerCase()
+          const cleanTag = normalizeTag(tag)
           return {
             get(scope: any) {
               if (cleanTag === ".") return scope
               for (const k in scope) {
-                if (k.toLowerCase() === cleanTag) return scope[k]
+                if (normalizeTag(k) === cleanTag) return scope[k]
               }
               return ""
             }
           }
         },
-        nullGetter: () => ""
+        nullGetter: () => "",
+        modules: [new ImageModule({
+           getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
+           getSize: () => [100, 100]
+        })],
       })
 
       doc.render(renderData)

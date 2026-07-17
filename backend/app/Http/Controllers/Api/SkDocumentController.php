@@ -35,6 +35,8 @@ class SkDocumentController extends Controller
             ->with(['teacher' => function ($q) {
                 $q->withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
                   ->select(['id', 'nomor_induk_maarif', 'tmt', 'tempat_lahir', 'tanggal_lahir', 'pendidikan_terakhir']);
+            }, 'school' => function ($q) {
+                $q->select(['id', 'nama', 'kecamatan', 'alamat']);
             }]);
 
         if ($request->search) {

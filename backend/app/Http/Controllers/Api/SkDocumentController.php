@@ -30,6 +30,7 @@ class SkDocumentController extends Controller
                 'id', 'nomor_sk', 'nama', 'jenis_sk', 'status',
                 'unit_kerja', 'created_at', 'school_id', 'teacher_id',
                 'nomor_permohonan', 'tanggal_permohonan', 'surat_permohonan_url', 'file_url',
+                'tanggal_penetapan', 'tahun_ajaran',
             ])
             ->with(['teacher' => function ($q) {
                 $q->withoutGlobalScope(\App\Models\Scopes\TenantScope::class)

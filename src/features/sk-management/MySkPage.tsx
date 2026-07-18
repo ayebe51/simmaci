@@ -105,6 +105,17 @@ export default function MySkPage() {
         }
       }
 
+      // Hitung PERIODE (tahun pengabdian) dari TMT ke tanggal penetapan
+      // Harus dideklarasikan SEBELUM kataPengangkatan karena dipakai di dalamnya
+      const periodeValue: number = (() => {
+        if (!teacherData.tmt || !sk.tanggal_penetapan) return 0
+        const tmt = new Date(teacherData.tmt)
+        const penetapan = new Date(sk.tanggal_penetapan)
+        if (isNaN(tmt.getTime()) || isNaN(penetapan.getTime())) return 0
+        const diffMs = penetapan.getTime() - tmt.getTime()
+        return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25))
+      })()
+
       // Kata pengangkatan — sama dengan logika SkGeneratorPage
       // Guru baru (TMT < 11 bulan ke tanggal penetapan) atau periode pertama GTY (2 tahun)
       // → "diangkat sebagai", selain itu → "diangkat kembali sebagai"
@@ -171,16 +182,6 @@ export default function MySkPage() {
       const schoolData = sk.school || {}
       const kecamatan: string = schoolData.kecamatan || teacherData.kecamatan || ""
       const unitKerja: string = sk.unit_kerja || ""
-
-      // Hitung PERIODE (tahun pengabdian) dari TMT ke tanggal penetapan
-      const periodeValue: number = (() => {
-        if (!teacherData.tmt || !sk.tanggal_penetapan) return 0
-        const tmt = new Date(teacherData.tmt)
-        const penetapan = new Date(sk.tanggal_penetapan)
-        if (isNaN(tmt.getTime()) || isNaN(penetapan.getTime())) return 0
-        const diffMs = penetapan.getTime() - tmt.getTime()
-        return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25))
-      })()
 
       // Ekstrak nomor urut dari nomor SK (bagian sebelum /)
       // Contoh: "1304/PC.L/A.II/H-34.8/24.29/7/7/2026" → "1304"

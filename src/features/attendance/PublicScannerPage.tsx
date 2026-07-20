@@ -1112,6 +1112,7 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
 
 function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () => void }) {
   const [scanning, setScanning] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // loading state saat API call
   const [cameraError, setCameraError] = useState<{ title: string; detail: string } | null>(null);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -1343,6 +1344,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
        }
     }
 
+    setSubmitting(true);
     try {
       const res = await staffAttendanceApi.scan({
         qr_code: qrCode,
@@ -1368,6 +1370,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         toast.error(serverMsg || 'Gagal melakukan absensi. Coba lagi beberapa saat.')
       }
     } finally {
+      setSubmitting(false);
       setScanResult(null);
       setFaceVerificationStatus('idle');
       // Restart scanner otomatis setelah selesai (sukses maupun gagal)
@@ -1406,8 +1409,16 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         <div className="relative rounded-3xl overflow-hidden bg-black border-4 border-slate-800 shadow-2xl flex-1 flex flex-col justify-center min-h-[300px]">
           <div id="staff-qr-reader" className="w-full shrink-0" style={{ minHeight: scanning ? 300 : 0 }} />
 
+          {/* Loading overlay saat submit API */}
+          {submitting && (
+            <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 gap-4 z-20">
+              <Loader2 className="h-10 w-10 text-blue-400 animate-spin" />
+              <p className="text-blue-300 font-bold text-sm">Memproses absensi...</p>
+            </div>
+          )}
+
           {/* Default Screen */}
-          {!scanning && !scanResult && faceVerificationStatus === 'idle' && (
+          {!scanning && !scanResult && !submitting && faceVerificationStatus === 'idle' && (
             <div className="flex flex-col items-center justify-center p-6 text-center gap-4">
               <div className="flex bg-slate-900 p-1 rounded-xl w-full border border-slate-800">
                 <button

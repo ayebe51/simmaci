@@ -1173,7 +1173,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   const startScanner = async () => {
     if (isGeolocationEnabled && attendanceType === 'Kantor') {
       if (!location && !locationError) {
-        toast.warning('Menunggu lokasi GPS...');
+        toast.warning('Menunggu lokasi GPS... Coba lagi dalam beberapa detik.');
         return;
       }
       if (locationError) {
@@ -1316,6 +1316,8 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       toast.error('Lokasi GPS belum terdeteksi. Aktifkan izin lokasi dan coba lagi.')
       setScanResult(null)
       setFaceVerificationStatus('idle')
+      // Restart scanner otomatis agar user tidak perlu tekan tombol lagi
+      setTimeout(() => startScanner(), 500)
       return;
     }
 
@@ -1368,6 +1370,9 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
     } finally {
       setScanResult(null);
       setFaceVerificationStatus('idle');
+      // Restart scanner otomatis setelah selesai (sukses maupun gagal)
+      // agar user tidak perlu tekan tombol "Mulai Scan" lagi
+      setTimeout(() => startScanner(), 1500);
     }
   };
 

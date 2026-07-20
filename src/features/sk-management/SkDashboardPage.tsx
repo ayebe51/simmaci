@@ -372,7 +372,7 @@ export default function SkDashboardPage() {
                           className="hover:bg-slate-50/50 border-b border-slate-50 transition-colors group"
                         >
                           <TableCell className="pl-8">
-                              {status === 'draft' && (
+                              {statusFilter === 'draft' && (
                                   <Checkbox
                                       checked={selectedIds.has(item.id)}
                                       onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}

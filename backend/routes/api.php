@@ -250,6 +250,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('schools/autocomplete', [SchoolController::class, 'autocomplete']);
     Route::patch('schools/{school}/sk-submission-unlock', [SchoolController::class, 'toggleSkSubmission'])
         ->middleware('role:super_admin,admin_yayasan');
+    Route::patch('schools/sk-submission-reset-all', [SchoolController::class, 'resetAllSkSubmission'])
+        ->middleware('role:super_admin,admin_yayasan');
     Route::apiResource('schools', SchoolController::class);
 
 

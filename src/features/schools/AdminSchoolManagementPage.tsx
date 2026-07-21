@@ -100,6 +100,17 @@ export default function AdminSchoolManagementPage() {
     },
     onError: () => toast.error('Gagal mengubah status pengajuan SK'),
   })
+
+  // Mutation untuk reset semua SK submission ke null (locked)
+  const resetAllSkMutation = useMutation({
+    mutationFn: () => schoolApi.resetAllSkSubmission(),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-schools'] })
+      toast.success(data?.message || 'Semua izin pengajuan SK berhasil direset')
+    },
+    onError: () => toast.error('Gagal mereset izin pengajuan SK'),
+  })
+
   const isAuthorized = user?.role === "super_admin" || user?.role === "admin_yayasan"
   
   useEffect(() => {
@@ -187,6 +198,28 @@ export default function AdminSchoolManagementPage() {
         description="Manajemen profil kepala madrasah untuk seluruh sekolah di lingkungan LP Ma'arif NU Cilacap"
         actions={[]}
       />
+
+      {/* Tombol bulk action pengajuan SK */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={resetAllSkMutation.isPending}
+          onClick={() => {
+            if (window.confirm('Reset semua izin pengajuan SK yang sudah dibuka ke default (ditutup)? Madrasah yang sudah dibuka akan perlu dibuka lagi satu per satu.')) {
+              resetAllSkMutation.mutate()
+            }
+          }}
+          className="h-9 px-4 rounded-xl border-red-200 text-red-600 hover:bg-red-50 font-black uppercase tracking-widest text-[10px] flex items-center gap-2"
+        >
+          {resetAllSkMutation.isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Lock className="h-3.5 w-3.5" />
+          )}
+          Tutup Semua Pengajuan SK
+        </Button>
+      </div>
 
       <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white/80 backdrop-blur-md">
         <CardHeader className="p-6 border-b border-slate-100">

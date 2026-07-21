@@ -496,6 +496,33 @@ class SchoolController extends Controller
     }
 
     /**
+     * PATCH /api/schools/sk-submission-reset-all
+     * Reset sk_submission_unlocked ke NULL untuk semua madrasah non-RA/TK.
+     * Efeknya: semua yang sudah dibuka akan kembali ke default (locked).
+     */
+    public function resetAllSkSubmission(Request $request): JsonResponse
+    {
+        $updated = School::whereNotIn('jenjang', ['RA', 'TK'])
+            ->whereNotNull('sk_submission_unlocked')
+            ->update(['sk_submission_unlocked' => null]);
+
+        ActivityLog::log(
+            description: "Reset semua izin SK submission ke default ({$updated} madrasah)",
+            event: 'update_school',
+            logName: 'school',
+            subject: null,
+            causer: $request->user(),
+            schoolId: null,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$updated} madrasah berhasil direset ke status default (pengajuan ditutup).",
+            'data'    => ['updated_count' => $updated],
+        ]);
+    }
+
+    /**
      * PATCH /api/schools/{school}/sk-submission-unlock
      * Toggle izin pengajuan SK untuk madrasah tertentu.
      * null  = ikuti aturan global (RA/TK buka, MI ke atas tutup)

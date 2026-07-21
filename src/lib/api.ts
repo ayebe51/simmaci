@@ -283,6 +283,8 @@ export const schoolApi = {
   generateAccounts: (schoolId?: number) => apiClient.post('/schools/generate-accounts', schoolId ? { school_id: schoolId } : {}).then((r) => r.data),
   toggleSkSubmission: (schoolId: number, unlocked: boolean | null) =>
     apiClient.patch(`/schools/${schoolId}/sk-submission-unlock`, { sk_submission_unlocked: unlocked }).then((r) => r.data),
+  resetAllSkSubmission: () =>
+    apiClient.patch('/schools/sk-submission-reset-all').then((r) => r.data),
 };
 
 

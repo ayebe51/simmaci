@@ -86,6 +86,7 @@ export default function AdminSchoolManagementPage() {
       search: debouncedSearchTerm || undefined,
       kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan,
     }),
+    staleTime: 0, // selalu fetch fresh — kolom sk_submission_unlocked harus up-to-date
   })
 
   // Mutation untuk toggle SK submission

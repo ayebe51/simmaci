@@ -494,4 +494,48 @@ class SchoolController extends Controller
             'message'  => 'Berhasil generate ' . count($accounts) . ' akun. ' . $skipped . ' sudah ada.',
         ]);
     }
+
+    /**
+     * PATCH /api/schools/{school}/sk-submission-unlock
+     * Toggle izin pengajuan SK untuk madrasah tertentu.
+     * null  = ikuti aturan global (RA/TK buka, MI ke atas tutup)
+     * true  = paksa buka (sudah menghubungi pengurus)
+     * false = paksa tutup
+     *
+     * Hanya super_admin dan admin_yayasan yang bisa mengakses.
+     */
+    public function toggleSkSubmission(Request $request, School $school): JsonResponse
+    {
+        $data = $request->validate([
+            // null = reset ke default global, true = unlock, false = lock
+            'sk_submission_unlocked' => 'nullable|boolean',
+        ]);
+
+        $school->update(['sk_submission_unlocked' => $data['sk_submission_unlocked']]);
+
+        $statusLabel = match ($school->sk_submission_unlocked) {
+            true  => 'dibuka (unlocked oleh admin)',
+            false => 'ditutup paksa',
+            null  => 'mengikuti aturan global',
+        };
+
+        ActivityLog::log(
+            description: "Toggle SK submission {$school->nama}: {$statusLabel}",
+            event: 'update_school',
+            logName: 'school',
+            subjectType: School::class,
+            subjectId: $school->id,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Status pengajuan SK {$school->nama} berhasil diubah: {$statusLabel}",
+            'data'    => [
+                'id'                     => $school->id,
+                'nama'                   => $school->nama,
+                'jenjang'                => $school->jenjang,
+                'sk_submission_unlocked' => $school->sk_submission_unlocked,
+            ],
+        ]);
+    }
 }

@@ -138,6 +138,25 @@ export default function SkSubmissionPage() {
     }
   }, [schoolProfile])
 
+  // Tentukan apakah pengajuan SK dikunci untuk operator ini
+  // Logic:
+  // - super_admin/admin_yayasan: selalu bisa
+  // - operator RA/TK: selalu bisa
+  // - operator MI ke atas:
+  //     sk_submission_unlocked === true  → admin sudah buka khusus → bisa
+  //     sk_submission_unlocked === null  → ikuti default → dikunci (per 1 Juli 2026)
+  //     sk_submission_unlocked === false → dikunci paksa
+  const isSkLocked = (() => {
+    if (!isOperator) return false // admin selalu bisa
+    if (!schoolProfile) return false // belum load, jangan blokir dulu
+    const jenjang = (schoolProfile.jenjang || "").toUpperCase()
+    const isRaTk = jenjang === "RA" || jenjang === "TK" || jenjang.includes("RA") || jenjang.includes("TK")
+    if (isRaTk) return false // RA/TK selalu bisa
+    // MI ke atas: cek flag khusus
+    if (schoolProfile.sk_submission_unlocked === true) return false // sudah dibuka admin
+    return true // default: dikunci
+  })()
+
   // Mutations
   const createRequestMutation = useMutation({
     mutationFn: (data: any) => skApi.submitRequest(data),
@@ -267,9 +286,8 @@ export default function SkSubmissionPage() {
       {isOperator && schoolProfile && (() => {
         const jenjang = (schoolProfile.jenjang || "").toUpperCase()
         const isRaTk = jenjang === "RA" || jenjang === "TK" || jenjang.includes("RA") || jenjang.includes("TK")
-        
+
         if (isRaTk) {
-          // RA/TK: pengajuan dibuka
           return (
             <div className="flex items-start gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-4">
               <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mt-0.5">
@@ -278,28 +296,47 @@ export default function SkSubmissionPage() {
               <div>
                 <p className="text-sm font-black text-emerald-900 uppercase tracking-wide">Pengajuan SK Dibuka</p>
                 <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                  Pengajuan SK untuk jenjang <strong>RA/TK</strong> saat ini <strong>dibuka</strong>. Silakan ajukan SK melalui formulir di bawah.
-                </p>
-              </div>
-            </div>
-          )
-        } else {
-          // MI ke atas: tampilkan banner informasi, tapi pengajuan tetap bisa dilakukan
-          return (
-            <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center mt-0.5">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-amber-900 uppercase tracking-wide">Informasi Pengajuan SK Jenjang {schoolProfile.jenjang || "MI ke Atas"}</p>
-                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                  Pengajuan SK untuk jenjang <strong>{schoolProfile.jenjang || "MI ke atas"}</strong> saat ini <strong>sedang dalam proses verifikasi data</strong> oleh LP Ma'arif NU Cilacap. 
-                  Pengajuan dapat tetap dilakukan dan akan diproses setelah verifikasi selesai.
+                  Pengajuan SK untuk jenjang <strong>RA/TK</strong> saat ini <strong>dibuka</strong>. Silakan ajukan melalui formulir di bawah.
                 </p>
               </div>
             </div>
           )
         }
+
+        if (schoolProfile.sk_submission_unlocked === true) {
+          // Admin sudah membuka khusus untuk madrasah ini
+          return (
+            <div className="flex items-start gap-4 bg-blue-50 border border-blue-200 rounded-2xl px-6 py-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mt-0.5">
+                <CheckCircle className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-blue-900 uppercase tracking-wide">Pengajuan Diizinkan oleh LP Ma'arif NU Cilacap</p>
+                <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+                  Madrasah ini telah mendapatkan izin khusus dari pengurus LP Ma'arif NU Cilacap untuk mengajukan SK. Silakan lanjutkan pengajuan.
+                </p>
+              </div>
+            </div>
+          )
+        }
+
+        // MI ke atas, dikunci
+        return (
+          <div className="flex items-start gap-4 bg-red-50 border border-red-200 rounded-2xl px-6 py-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center mt-0.5">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-red-900 uppercase tracking-wide">
+                Pengajuan SK Ditutup — Per 1 Juli 2026
+              </p>
+              <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                Pengajuan SK untuk jenjang <strong>{schoolProfile.jenjang || "MI ke atas"}</strong> telah ditutup per <strong>1 Juli 2026</strong>.
+                Apabila memiliki keperluan mendesak, silakan hubungi pengurus <strong>LP Ma'arif NU Cilacap</strong> untuk mendapatkan izin pengajuan.
+              </p>
+            </div>
+          </div>
+        )
       })()}
 
       <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -307,7 +344,6 @@ export default function SkSubmissionPage() {
           <TabsTrigger value="single" className="rounded-xl px-10 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Input Satuan</TabsTrigger>
           <TabsTrigger value="collective" className="rounded-xl px-10 py-3 text-xs font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">Import Kolektif (Excel)</TabsTrigger>
         </TabsList>
-        
         <TabsContent value="single">
           <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
             <CardHeader className="px-10 pt-10 pb-2">
@@ -463,9 +499,14 @@ export default function SkSubmissionPage() {
 
                 <div className="flex justify-end gap-3 pt-10 border-t border-slate-50">
                     <Button type="button" variant="ghost" className="rounded-2xl h-12 px-8 font-black uppercase tracking-widest text-xs" onClick={() => navigate("/dashboard/sk")}>Batal</Button>
-                    <Button type="submit" disabled={isSubmitting || isUploading} className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-10 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-100">
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting || isUploading || isSkLocked}
+                      onClick={isSkLocked ? (e) => { e.preventDefault(); toast.error("Pengajuan SK ditutup. Hubungi LP Ma'arif NU Cilacap untuk izin.") } : undefined}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl h-12 px-10 font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                         {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Simpan & Ajukan
+                        {isSkLocked ? "Pengajuan Ditutup" : "Simpan & Ajukan"}
                     </Button>
                 </div>
               </form>
@@ -474,7 +515,24 @@ export default function SkSubmissionPage() {
         </TabsContent>
 
         <TabsContent value="collective">
+          {isSkLocked ? (
+            <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+              <CardContent className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
+                  <AlertTriangle className="h-8 w-8 text-red-500" />
+                </div>
+                <div className="text-center">
+                  <p className="font-black text-slate-800 uppercase tracking-tight">Pengajuan Ditutup</p>
+                  <p className="text-xs text-slate-500 mt-2 max-w-xs leading-relaxed">
+                    Import kolektif tidak tersedia karena pengajuan SK untuk madrasah ini telah ditutup per 1 Juli 2026.
+                    Hubungi LP Ma'arif NU Cilacap untuk mendapatkan izin pengajuan.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
             <BulkSkSubmission />
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { schoolApi, School, authApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -14,10 +15,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Building2, Loader2, Edit, ArrowLeft, MapPin } from "lucide-react"
+import { Search, Building2, Loader2, Edit, ArrowLeft, MapPin, LockOpen, Lock } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import HeadmasterProfileForm from "./components/HeadmasterProfileForm"
+import { toast } from "sonner"
 
 // Extended School interface with headmaster fields
 interface SchoolWithHeadmaster extends School {
@@ -27,6 +29,7 @@ interface SchoolWithHeadmaster extends School {
   kepala_whatsapp?: string | null
   kepala_jabatan_mulai?: string | null
   kepala_jabatan_selesai?: string | null
+  sk_submission_unlocked?: boolean | null
 }
 
 // Skeleton loader for table rows - moved outside component to avoid recreation on each render
@@ -85,7 +88,18 @@ export default function AdminSchoolManagementPage() {
     }),
   })
 
-  // Role-based access control: only super_admin and admin_yayasan can access
+  // Mutation untuk toggle SK submission
+  const queryClient = useQueryClient()
+  const toggleSkMutation = useMutation({
+    mutationFn: ({ schoolId, unlocked }: { schoolId: number; unlocked: boolean | null }) =>
+      schoolApi.toggleSkSubmission(schoolId, unlocked),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-schools'] })
+      const label = variables.unlocked === true ? 'dibuka' : variables.unlocked === false ? 'ditutup paksa' : 'direset ke default'
+      toast.success(`Pengajuan SK berhasil ${label}`)
+    },
+    onError: () => toast.error('Gagal mengubah status pengajuan SK'),
+  })
   const isAuthorized = user?.role === "super_admin" || user?.role === "admin_yayasan"
   
   useEffect(() => {
@@ -232,6 +246,9 @@ export default function AdminSchoolManagementPage() {
                 <TableHead className="py-3 px-4 font-bold text-blue-800">
                   Masa Jabatan
                 </TableHead>
+                <TableHead className="py-3 px-4 font-bold text-blue-800 text-center">
+                  Pengajuan SK
+                </TableHead>
                 <TableHead className="py-3 px-4 font-bold text-blue-800 text-right rounded-tr-xl">
                   Aksi
                 </TableHead>
@@ -242,7 +259,7 @@ export default function AdminSchoolManagementPage() {
                 <TableSkeleton />
               ) : schools.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center">
+                  <TableCell colSpan={6} className="h-32 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <Building2 className="h-12 w-12 text-slate-300" />
                       <p className="text-slate-400 font-medium">
@@ -294,6 +311,44 @@ export default function AdminSchoolManagementPage() {
                           "-"
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const jenjang = (school.jenjang || "").toUpperCase()
+                        const isRaTk = jenjang === "RA" || jenjang === "TK" || jenjang.includes("RA") || jenjang.includes("TK")
+                        if (isRaTk) {
+                          return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">Selalu Buka</Badge>
+                        }
+                        const isUnlocked = school.sk_submission_unlocked === true
+                        const isPending = toggleSkMutation.isPending
+                        return (
+                          <div className="flex flex-col items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isPending}
+                              onClick={() => toggleSkMutation.mutate({
+                                schoolId: school.id,
+                                unlocked: isUnlocked ? null : true
+                              })}
+                              className={`h-7 px-3 rounded-lg text-[10px] font-black uppercase tracking-wide ${
+                                isUnlocked
+                                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                  : 'bg-red-50 text-red-600 hover:bg-red-100'
+                              }`}
+                            >
+                              {isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : isUnlocked ? (
+                                <><LockOpen className="h-3 w-3 mr-1" />Dibuka</>
+                              ) : (
+                                <><Lock className="h-3 w-3 mr-1" />Ditutup</>
+                              )}
+                            </Button>
+                            <span className="text-[9px] text-slate-400">klik untuk toggle</span>
+                          </div>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell className="px-4 py-3 text-right">
                       <Button

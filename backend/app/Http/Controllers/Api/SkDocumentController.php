@@ -694,14 +694,21 @@ class SkDocumentController extends Controller
             // e.g. "MAILID" → "MAILID, S.Pd." when the Teacher DB has the full name.
             $data['nama'] = $this->normalizationService->enrichNameFromTeacher($data['nama'], $schoolId);
 
-            // Block SK submission for non-RA schools (MI, MTs, MA, dll)
+            // Block SK submission for non-RA/TK schools (MI, MTs, MA, dll)
+            // kecuali madrasah yang sudah di-unlock secara khusus oleh admin
             $detectedJenjang = $this->detectJenjang($school, $data['unit_kerja']);
             if (in_array($detectedJenjang, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
-                // Pengecualian untuk MI Ma'arif 01 Sidaurip dan MI Maarif 10 Mergawati
-                $isException = stripos($data['unit_kerja'], 'sidaurip') !== false || stripos($data['unit_kerja'], 'mergawati') !== false;
-                if (!$isException) {
+                // Cek apakah madrasah sudah dibuka khusus oleh admin
+                $isUnlocked = $school && $school->sk_submission_unlocked === true;
+
+                // Legacy exception: MI Sidaurip dan Mergawati selalu dikecualikan
+                $isLegacyException = stripos($data['unit_kerja'], 'sidaurip') !== false
+                    || stripos($data['unit_kerja'], 'mergawati') !== false;
+
+                if (! $isUnlocked && ! $isLegacyException) {
                     return response()->json([
-                        'message' => "Pengajuan SK untuk jenjang {$detectedJenjang} saat ini sudah ditutup. Pengajuan hanya dibuka untuk jenjang RA.",
+                        'message' => "Pengajuan SK untuk jenjang {$detectedJenjang} saat ini sudah ditutup per 1 Juli 2026. "
+                            . 'Hubungi LP Ma\'arif NU Cilacap untuk mendapatkan izin pengajuan.',
                     ], 422);
                 }
             }
@@ -1049,6 +1056,7 @@ class SkDocumentController extends Controller
         $skipped      = 0;
         $rejectedRows = []; // detail guru yang ditolak (PNS) atau error
         $schoolCache  = [];
+        $schoolObjectCache = []; // cache School model untuk cek sk_submission_unlocked
         $year         = now()->year;
 
         // Get the highest existing REQ/{year}/NNNN sequence number in one query,
@@ -1126,6 +1134,27 @@ class SkDocumentController extends Controller
                     $schoolCache[$doc['unit_kerja']] = School::where('nama', 'ILIKE', $doc['unit_kerja'])->value('id');
                 }
                 $schoolId = $schoolCache[$doc['unit_kerja']];
+            }
+
+            // --- Cek lock jenjang untuk operator ---
+            if ($request->user()->role === 'operator') {
+                $schoolForCheck = $schoolId
+                    ? ($schoolObjectCache[$schoolId] ?? ($schoolObjectCache[$schoolId] = School::find($schoolId)))
+                    : null;
+                $detectedJenjangBulk = $this->detectJenjang($schoolForCheck, $doc['unit_kerja'] ?? '');
+                if (in_array($detectedJenjangBulk, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
+                    $isUnlockedBulk = $schoolForCheck && $schoolForCheck->sk_submission_unlocked === true;
+                    $isLegacyExceptionBulk = stripos($doc['unit_kerja'] ?? '', 'sidaurip') !== false
+                        || stripos($doc['unit_kerja'] ?? '', 'mergawati') !== false;
+                    if (! $isUnlockedBulk && ! $isLegacyExceptionBulk) {
+                        $skipped++;
+                        $rejectedRows[] = [
+                            'nama'   => $doc['nama'] ?? 'unknown',
+                            'alasan' => "Pengajuan SK untuk jenjang {$detectedJenjangBulk} ditutup per 1 Juli 2026. Hubungi LP Ma'arif NU Cilacap.",
+                        ];
+                        continue;
+                    }
+                }
             }
 
             // --- Duplicate submission guard ---

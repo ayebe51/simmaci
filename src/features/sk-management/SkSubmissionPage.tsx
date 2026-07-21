@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save, FileText, Upload, Loader2, Download } from "lucide-react"
+import { ArrowLeft, Save, FileText, Upload, Loader2, Download, AlertTriangle, CheckCircle } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
@@ -263,7 +263,44 @@ export default function SkSubmissionPage() {
         </Button>
       </div>
 
-      {/* Banner informasi penutupan SK — dihapus: pengajuan dibuka untuk semua madrasah */}
+      {/* Banner informasi pengajuan SK berdasarkan jenjang */}
+      {isOperator && schoolProfile && (() => {
+        const jenjang = (schoolProfile.jenjang || "").toUpperCase()
+        const isRaTk = jenjang === "RA" || jenjang === "TK" || jenjang.includes("RA") || jenjang.includes("TK")
+        
+        if (isRaTk) {
+          // RA/TK: pengajuan dibuka
+          return (
+            <div className="flex items-start gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mt-0.5">
+                <CheckCircle className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-emerald-900 uppercase tracking-wide">Pengajuan SK Dibuka</p>
+                <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                  Pengajuan SK untuk jenjang <strong>RA/TK</strong> saat ini <strong>dibuka</strong>. Silakan ajukan SK melalui formulir di bawah.
+                </p>
+              </div>
+            </div>
+          )
+        } else {
+          // MI ke atas: tampilkan banner informasi, tapi pengajuan tetap bisa dilakukan
+          return (
+            <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center mt-0.5">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-amber-900 uppercase tracking-wide">Informasi Pengajuan SK Jenjang {schoolProfile.jenjang || "MI ke Atas"}</p>
+                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                  Pengajuan SK untuk jenjang <strong>{schoolProfile.jenjang || "MI ke atas"}</strong> saat ini <strong>sedang dalam proses verifikasi data</strong> oleh LP Ma'arif NU Cilacap. 
+                  Pengajuan dapat tetap dilakukan dan akan diproses setelah verifikasi selesai.
+                </p>
+              </div>
+            </div>
+          )
+        }
+      })()}
 
       <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-slate-100 p-1 rounded-2xl h-auto mb-8">

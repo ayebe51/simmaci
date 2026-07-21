@@ -26,6 +26,7 @@ class BulkSkRequestTest extends TestCase
         $this->school = School::factory()->create([
             'nama' => 'MI Ma\'arif NU 03 Karangsembung',
             'nsm'  => '111233010003',
+            'sk_submission_unlocked' => true, // unlock for testing
         ]);
 
         $this->operator = User::factory()->create([

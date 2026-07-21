@@ -42,6 +42,7 @@ class BulkSkImportPreservationTest extends TestCase
 
         $this->school = School::factory()->create([
             'nama' => 'MI Ma\'arif NU 01 Preservation Test',
+            'sk_submission_unlocked' => true,
         ]);
 
         $this->operator = User::factory()->create([

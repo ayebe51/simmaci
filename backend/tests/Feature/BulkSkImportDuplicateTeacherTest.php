@@ -51,10 +51,12 @@ class BulkSkImportDuplicateTeacherTest extends TestCase
 
         $this->school = School::factory()->create([
             'nama' => 'MI Ma\'arif NU 01 Testschool',
+            'sk_submission_unlocked' => true,
         ]);
 
         $this->schoolB = School::factory()->create([
             'nama' => 'MI Ma\'arif NU 02 Otherschool',
+            'sk_submission_unlocked' => true,
         ]);
 
         $this->operator = User::factory()->create([

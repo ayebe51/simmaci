@@ -523,8 +523,9 @@ class SchoolController extends Controller
             description: "Toggle SK submission {$school->nama}: {$statusLabel}",
             event: 'update_school',
             logName: 'school',
-            subjectType: School::class,
-            subjectId: $school->id,
+            subject: $school,
+            causer: $request->user(),
+            schoolId: $school->id,
         );
 
         return response()->json([

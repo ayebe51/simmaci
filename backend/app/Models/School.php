@@ -17,7 +17,15 @@ class School extends Model
         'akreditasi', 'status', 'status_jamiyyah', 'npsm_nu', 'jenjang',
         'kepala_nim', 'kepala_nuptk', 'kepala_whatsapp',
         'kepala_jabatan_mulai', 'kepala_jabatan_selesai',
+        'sk_submission_unlocked',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'sk_submission_unlocked' => 'boolean',
+        ];
+    }
 
     // ── Relationships ──
 

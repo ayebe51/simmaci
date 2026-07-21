@@ -281,6 +281,8 @@ export const schoolApi = {
   import: (schools: any[]) => apiClient.post('/schools/import', { schools }).then((r) => r.data),
   deleteAll: () => apiClient.delete('/schools/delete-all').then((r) => r.data),
   generateAccounts: (schoolId?: number) => apiClient.post('/schools/generate-accounts', schoolId ? { school_id: schoolId } : {}).then((r) => r.data),
+  toggleSkSubmission: (schoolId: number, unlocked: boolean | null) =>
+    apiClient.patch(`/schools/${schoolId}/sk-submission-unlock`, { sk_submission_unlocked: unlocked }).then((r) => r.data),
 };
 
 

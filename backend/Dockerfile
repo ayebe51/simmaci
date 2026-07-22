@@ -73,6 +73,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 
 # Create startup script
 RUN printf '#!/bin/sh\n\
+set -e\n\
+\n\
 # Fix Windows CRLF line endings on mounted .env file\n\
 if [ -f /var/www/html/.env ]; then\n\
   sed -i "s/\\r$//" /var/www/html/.env\n\
@@ -88,15 +90,26 @@ if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then\n\
   php artisan key:generate --force\n\
 fi\n\
 \n\
-# Cache config for production performance\n\
-if [ "$APP_ENV" = "production" ]; then\n\
-  php artisan config:cache 2>/dev/null || true\n\
-  php artisan route:cache 2>/dev/null || true\n\
-  php artisan view:cache 2>/dev/null || true\n\
-fi\n\
+# Wait for DB to be ready (max 60s)\n\
+echo "Waiting for database..."\n\
+for i in $(seq 1 30); do\n\
+  php artisan db:show 2>/dev/null && break\n\
+  echo "DB not ready, retry $i/30..."\n\
+  sleep 2\n\
+done\n\
 \n\
 # Run pending migrations\n\
-php artisan migrate --force 2>/dev/null || true\n\
+echo "Running migrations..."\n\
+php artisan migrate --force || { echo "Migration failed, aborting"; exit 1; }\n\
+\n\
+# Cache config for production performance\n\
+if [ "$APP_ENV" = "production" ]; then\n\
+  php artisan config:cache || true\n\
+  php artisan route:cache || true\n\
+  php artisan view:cache || true\n\
+fi\n\
+\n\
+echo "Startup complete, launching supervisor..."\n\
 \n\
 # Start supervisor\n\
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\

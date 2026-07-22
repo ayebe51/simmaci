@@ -481,7 +481,16 @@ export default function SkGeneratorPage() {
             const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
             const isPendidikanTinggi = PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
 
-            const hasGelar = hasGelarDepan || hasGelarBelakang || isPendidikanTinggi
+            // Cek apakah gelar belakang adalah diploma saja (A.Md/A.Ma → Tendik)
+            // Jika nama mengandung koma tapi gelarnya hanya diploma, tetap Tendik
+            const gelarBelakangStr = hasGelarBelakang
+                ? namaLengkap.substring(namaLengkap.indexOf(',') + 1).trim()
+                : ""
+            const isGelarDiplomaOnly = hasGelarBelakang
+                && /^(A\.Ma|A\.Md|Amd|AMD)/i.test(gelarBelakangStr)
+                && !/\b(S\.|M\.|Dr\.|Drs\.|Dra\.|Prof\.)/i.test(gelarBelakangStr)
+
+            const hasGelar = (hasGelarDepan || (hasGelarBelakang && !isGelarDiplomaOnly) || isPendidikanTinggi)
 
             let templateId = "sk_template_tendik" // Default
 

@@ -775,6 +775,11 @@ class NormalizationService
                 str_contains($upper, 'YAYASAN')                       => 'GTY', // "Yayasan" → GTY
                 default                                               => 'GTT', // safe fallback
             };
+        } elseif (in_array($trimmed, ['GTY', 'GTT'], true) && $tmt !== null) {
+            // Re-evaluate TMT-based status even for already-valid GTY/GTT values.
+            // This corrects cases like: status=GTT but TMT ≥ 2 years (should be GTY),
+            // or status=GTY but TMT < 2 years (should be GTT).
+            $resolvedStatus = $this->resolveAktif($tmt);
         }
 
         // Business rule: If a teacher has no academic degrees (no prefixes and no suffixes),

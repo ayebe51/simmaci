@@ -1173,6 +1173,102 @@ class TeacherController extends Controller
     }
 
     /**
+     * POST /api/teachers/recalculate-status
+     * Batch re-evaluate GTY/GTT/Tendik status for all teachers based on:
+     * - TMT (Tanggal Mulai Tugas): GTY if ≥ 2 years, GTT if < 2 years
+     * - Gelar akademik: no degree → Tendik, diploma only → Tendik
+     * - pendidikan_terakhir: D3/D2/D1/SMA or below → Tendik
+     *
+     * Only recalculates non-PNS teachers (PNS status is final).
+     * Supports ?dry_run=true for preview without saving.
+     */
+    public function recalculateStatuses(Request $request): JsonResponse
+    {
+        if (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return $this->errorResponse('Anda tidak memiliki akses.', 403);
+        }
+
+        $isDryRun = $request->boolean('dry_run', false);
+        $schoolId = $request->input('school_id');
+
+        $query = Teacher::withoutTenantScope()
+            ->whereNotIn('status', ['PNS', 'PPPK'])  // PNS/PPPK are final
+            ->whereNotNull('status');
+
+        // Scope to specific school if requested (for operator-level batch)
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        } elseif (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            $query->where('school_id', $request->user()->school_id);
+        }
+
+        $updated = 0;
+        $total   = 0;
+        $changes = [];
+
+        $query->chunk(500, function ($teachers) use (&$updated, &$total, &$changes, $isDryRun) {
+            foreach ($teachers as $teacher) {
+                $total++;
+                $originalStatus = $teacher->status;
+
+                // Parse TMT
+                $tmt = null;
+                if ($teacher->tmt) {
+                    try {
+                        $tmt = \Carbon\Carbon::parse((string) $teacher->tmt);
+                    } catch (\Exception $e) {
+                        $tmt = null;
+                    }
+                }
+
+                $newStatus = $this->normalizationService->normalizeEmploymentStatus(
+                    $originalStatus,
+                    $tmt,
+                    $teacher->nama,
+                    $teacher->pendidikan_terakhir
+                );
+
+                if ($newStatus !== $originalStatus) {
+                    if (!$isDryRun) {
+                        $teacher->update(['status' => $newStatus]);
+                    }
+                    $changes[] = [
+                        'id'       => $teacher->id,
+                        'nama'     => $teacher->nama,
+                        'tmt'      => $teacher->tmt,
+                        'dari'     => $originalStatus,
+                        'menjadi'  => $newStatus,
+                    ];
+                    $updated++;
+                }
+            }
+        });
+
+        if (!$isDryRun && $updated > 0) {
+            ActivityLog::create([
+                'description' => "Recalculate status kepegawaian: {$updated} dari {$total} guru diperbarui.",
+                'event'       => 'recalculate_teacher_status',
+                'log_name'    => 'master',
+                'causer_id'   => $request->user()->id,
+                'causer_type' => get_class($request->user()),
+                'school_id'   => null,
+                'properties'  => ['updated' => $updated, 'total' => $total],
+            ]);
+        }
+
+        $message = $isDryRun
+            ? "Preview: {$updated} dari {$total} guru akan diperbarui statusnya."
+            : "Selesai: {$updated} dari {$total} guru berhasil diperbarui statusnya.";
+
+        return $this->successResponse([
+            'total'    => $total,
+            'updated'  => $updated,
+            'dry_run'  => $isDryRun,
+            'changes'  => $isDryRun ? $changes : array_slice($changes, 0, 50), // limit detail in live mode
+        ], $message);
+    }
+
+    /**
      * Generate user accounts for teachers who don't have one.
      * Username: email (from NUPTK@maarif.nu if no email), Password: tanggal_lahir (ddmmyyyy).
      */

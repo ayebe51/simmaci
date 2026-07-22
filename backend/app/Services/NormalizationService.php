@@ -430,6 +430,46 @@ class NormalizationService
     {
         $map = $this->getDegreeMap();
 
+        // Pre-process: protect name abbreviations at the start of the name from being
+        // mistakenly parsed as academic degrees.
+        //
+        // Pattern: "ST. SARINGATUN, S.Pd.I" — "ST." is a 2-letter name abbreviation
+        // (singkatan nama), NOT the academic degree S.T. (Sarjana Teknik).
+        //
+        // Heuristic: if the string starts with a 2-3 letter token followed by ". "
+        // (dot + space), AND the next token is ≥4 pure letters (looks like a real name),
+        // AND the degree map ALSO contains that 2-3 letter key,
+        // AND it is NOT a recognized prefix degree (Dr., Dra., Prof.) —
+        // then protect it by joining with a sentinel so the parser won't treat it as a degree.
+        //
+        // e.g. "ST. SARINGATUN, S.Pd.I" → pre-process marks "ST." as protected → parsed
+        //      correctly as name abbreviation, not S.T. degree.
+        $fullName = preg_replace_callback(
+            '/^([A-Za-z]{2,3})\.\s+([A-Za-z]{4,}(?:\s|,|$))/u',
+            function ($matches) use ($map) {
+                $abbrevKey  = mb_strtoupper($matches[1], 'UTF-8');
+                $nameWord   = $matches[2];
+                $nameKey    = mb_strtoupper(preg_replace('/[\s.,]+/', '', trim($nameWord)), 'UTF-8');
+                // Only protect if:
+                // 1. The abbreviation IS a known degree key (otherwise no conflict to resolve)
+                // 2. The following word is NOT a degree key (i.e. it's a real name word)
+                // 3. The abbreviation is NOT a prefix degree (Dr., Dra., Prof. must still work)
+                if (
+                    isset($map[$abbrevKey]) &&
+                    !isset($map[$nameKey]) &&
+                    !in_array($abbrevKey, self::PREFIX_DEGREES, true)
+                ) {
+                    // Replace the space between abbreviation and name with a zero-width sentinel
+                    // so they become a single token, preventing degree detection.
+                    // We use \x1A (SUB control character) as separator; it will be replaced
+                    // back to a space in the name cleanup step.
+                    return $matches[1] . ".\x1A" . $nameWord;
+                }
+                return $matches[0]; // leave unchanged
+            },
+            trim($fullName)
+        );
+
         // Pre-process: ensure there is a space before degrees that start with S., M., Dr., Dra., etc.
         // e.g. "BudiS.E." -> "Budi S.E."
         $fullName = preg_replace('/([a-zA-Z]{3,})(S\.|M\.|A\.Md\.|A\.Ma\.|Dr\.|Dra\.|Prof\.)/i', '$1 $2', $fullName);
@@ -492,11 +532,17 @@ class NormalizationService
             }
         }
 
-        // Clean up name: remove stray dots/commas, collapse spaces
+        // Clean up name: remove stray commas, replace sentinel, collapse spaces.
+        // The '\x1A' sentinel was inserted during pre-processing to protect name
+        // abbreviations like "ST." from being parsed as degrees; replace it with a space.
         $name = implode(' ', $nameTokens);
-        $name = preg_replace('/[.,]+/', '', $name);
+        $name = str_replace("\x1A", ' ', $name);
+        // Remove stray commas (not part of names); keep dots intact because they may
+        // be part of legitimate name abbreviations (e.g. "ST.", "H.", "Hj.").
+        $name = str_replace(',', '', $name);
+        // Remove standalone dot tokens (single "." with spaces on both sides or at ends)
+        $name = preg_replace('/(?:^|\s)\.(?:\s|$)/', ' ', $name);
         $name = preg_replace('/\s+/', ' ', $name);
-        $name = trim($name);
 
         // Add dots to single-letter abbreviations (e.g., A -> A.)
         $name = preg_replace('/\b([A-Za-z])(\s|$)/i', '$1.$2', $name);

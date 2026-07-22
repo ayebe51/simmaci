@@ -875,6 +875,38 @@ class NormalizationServiceTest extends TestCase
     /**
      * @test
      * @group degree-recognition
+     *
+     * Regression test: "ST." at the start of a name (singkatan nama, name abbreviation)
+     * must NOT be treated as the academic degree S.T. (Sarjana Teknik).
+     *
+     * Real-world case: "ST. SARINGATUN, S.Pd.I" — the "ST." here stands for "Siti" or
+     * another name abbreviation, not Sarjana Teknik.
+     *
+     * Expected: name stays as-is, only suffix degrees are normalized.
+     */
+    public function it_does_not_treat_name_abbreviation_st_as_degree(): void
+    {
+        $testCases = [
+            // Basic case: "ST." abbreviation + name + suffix degree
+            'ST. SARINGATUN, S.Pd.I'    => 'ST. SARINGATUN, S.Pd.I',
+            'ST. SARINGATUN S.Pd.I'     => 'ST. SARINGATUN, S.Pd.I',
+            // Multiple suffix degrees
+            'ST. SARINGATUN, S.Pd.I, M.Pd.I' => 'ST. SARINGATUN, S.Pd.I, M.Pd.I',
+            // Lowercase variant
+            'st. saringatun s.pd.i'     => 'ST. SARINGATUN, S.Pd.I',
+            // Another common abbreviation: "H." (Haji) at start — not a degree
+            'H. AHMAD, S.Pd.'           => 'H. AHMAD, S.Pd.',
+        ];
+
+        foreach ($testCases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Name abbreviation incorrectly treated as degree for: {$input}");
+        }
+    }
+
+    /**
+     * @test
+     * @group degree-recognition
      */
     public function it_does_not_confuse_shi_with_sh(): void
     {

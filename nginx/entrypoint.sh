@@ -1,12 +1,9 @@
 #!/bin/sh
-# Replace BACKEND_UPSTREAM placeholder with actual backend URL from env var
-# Default: http://backend (for docker-compose usage)
+# BACKEND_URL env var is kept for documentation purposes.
+# nginx/default.conf uses hardcoded "http://backend:80" (docker-compose service name).
+# No runtime substitution needed since service name is fixed.
 BACKEND_URL="${BACKEND_URL:-http://backend}"
-
-echo "Starting nginx with backend URL: ${BACKEND_URL}"
-
-# Replace placeholder in nginx config
-sed -i "s|BACKEND_UPSTREAM|${BACKEND_URL}|g" /etc/nginx/conf.d/default.conf
+echo "Starting nginx (backend upstream: ${BACKEND_URL})"
 
 # Start nginx
 exec nginx -g "daemon off;"

@@ -745,6 +745,65 @@ class NormalizationService
      * @param  \Carbon\Carbon|null  $tmt     TMT date (used only for 'Aktif' resolution)
      * @return string|null
      */
+
+    /**
+     * Infer pendidikan_terakhir from academic degrees detected in the teacher's name.
+     *
+     * Rules (highest degree wins):
+     *   Prof.           → S3
+     *   Dr.             → S3
+     *   Dra.            → S3  (Doktoranda = setara S3 dalam konteks ini)
+     *   M.*  (Magister) → S2
+     *   S.*  (Sarjana)  → S1
+     *   A.Md. / A.Ma.   → D3
+     *   (no degree)     → null (cannot infer)
+     *
+     * Returns null when the name has no detectable degree so the existing value
+     * is preserved (never overwrite with null).
+     */
+    public function inferPendidikanFromName(?string $teacherName): ?string
+    {
+        if ($teacherName === null || trim($teacherName) === '') {
+            return null;
+        }
+
+        $parsed = $this->parseAcademicDegrees($teacherName);
+
+        // Check prefix degrees first (Prof., Dr., Dra.)
+        foreach ($parsed['prefix_degrees'] as $deg) {
+            $key = $this->degreeKey($deg);
+            if ($key === 'PROF') return 'S3';
+            if ($key === 'DR')   return 'S3';
+            if ($key === 'DRA')  return 'S3';
+        }
+
+        // Check suffix degrees — scan for highest level
+        $highest = null; // null < D3 < S1 < S2 < S3
+        $levelOrder = ['D3' => 1, 'S1' => 2, 'S2' => 3, 'S3' => 4];
+
+        foreach ($parsed['suffix_degrees'] as $deg) {
+            $key = $this->degreeKey($deg);
+            $level = match (true) {
+                // Magister (S2)
+                str_starts_with($key, 'M')  && strlen($key) >= 2 => 'S2',
+                // Sarjana (S1) — starts with S but not SS (S.S. = Sarjana Sastra, masih S1)
+                str_starts_with($key, 'S')  && strlen($key) >= 2 => 'S1',
+                // Diploma
+                str_starts_with($key, 'AMD') || str_starts_with($key, 'AMA') => 'D3',
+                str_starts_with($key, 'DIII') || $key === 'DII' || $key === 'DIV' || $key === 'DI' => 'D3',
+                default => null,
+            };
+
+            if ($level !== null) {
+                if ($highest === null || ($levelOrder[$level] ?? 0) > ($levelOrder[$highest] ?? 0)) {
+                    $highest = $level;
+                }
+            }
+        }
+
+        return $highest;
+    }
+
     public function normalizeEmploymentStatus(?string $status, ?\Carbon\Carbon $tmt = null, ?string $teacherName = null, ?string $pendidikan = null): ?string
     {
         if ($status === null || trim($status) === '') {

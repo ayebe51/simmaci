@@ -241,6 +241,16 @@ class NormalizeData extends Command
                             $teacher->pendidikan_terakhir
                         );
 
+                        // Auto-fill pendidikan_terakhir jika kosong, infer dari gelar di nama
+                        $originalPendidikan = $teacher->pendidikan_terakhir;
+                        $normalizedPendidikan = $originalPendidikan;
+                        if (empty(trim((string) $originalPendidikan))) {
+                            $inferred = $this->normalizationService->inferPendidikanFromName($normalizedName);
+                            if ($inferred !== null) {
+                                $normalizedPendidikan = $inferred;
+                            }
+                        }
+
                         $changes = [];
                         $logChanges = [];
                         
@@ -284,6 +294,16 @@ class NormalizeData extends Command
                                 'normalized' => $normalizedStatus
                             ];
                         }
+                        if ($originalPendidikan !== $normalizedPendidikan) {
+                            $changes['pendidikan_terakhir'] = $normalizedPendidikan;
+                            $logChanges[] = [
+                                'table' => 'teachers',
+                                'record_id' => $teacher->id,
+                                'field' => 'pendidikan_terakhir',
+                                'original' => $originalPendidikan,
+                                'normalized' => $normalizedPendidikan
+                            ];
+                        }
 
                         if (!empty($changes)) {
                             if (!$isDryRun) {
@@ -298,6 +318,9 @@ class NormalizeData extends Command
                                 }
                                 if (isset($changes['status'])) {
                                     $this->line("  [{$teacher->id}] Status: {$originalStatus} → {$normalizedStatus}");
+                                }
+                                if (isset($changes['pendidikan_terakhir'])) {
+                                    $this->line("  [{$teacher->id}] Pendidikan: (kosong) → {$normalizedPendidikan}");
                                 }
                             }
                             $updated++;

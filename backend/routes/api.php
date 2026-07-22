@@ -277,6 +277,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('teachers/import/preview', [TeacherController::class, 'importPreview']);
         Route::post('teachers/import/commit', [TeacherController::class, 'importCommit']);
         Route::post('teachers/deduplicate', [TeacherController::class, 'deduplicate']);
+        Route::post('teachers/recalculate-status', [TeacherController::class, 'recalculateStatuses']);
         // NIM routes must be registered before apiResource to avoid {teacher} wildcard conflict
         Route::get('teachers/nim/generate', [TeacherController::class, 'previewNim']);
         Route::post('teachers/nim/bulk-generate', [TeacherController::class, 'bulkGenerateNim']);

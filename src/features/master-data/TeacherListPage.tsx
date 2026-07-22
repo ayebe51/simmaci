@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle, Fingerprint } from "lucide-react"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle, Fingerprint, RefreshCw } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
@@ -343,6 +343,31 @@ export default function TeacherListPage() {
     onError: (e: any) => toast.error('Gagal menggabungkan: ' + (e.response?.data?.message || e.message))
   })
 
+  // ── Recalculate Status ──
+  const [isRecalcOpen, setIsRecalcOpen] = useState(false)
+  const [recalcResult, setRecalcResult] = useState<any>(null)
+
+  const recalcDryRunMutation = useMutation({
+    mutationFn: () => teacherApi.recalculateStatus({ dry_run: true }),
+    onSuccess: (res: any) => {
+      setRecalcResult(res.data ?? res)
+      setIsRecalcOpen(true)
+    },
+    onError: (e: any) => toast.error('Gagal memeriksa status: ' + (e.response?.data?.message || e.message))
+  })
+
+  const recalcMutation = useMutation({
+    mutationFn: () => teacherApi.recalculateStatus({ dry_run: false }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] })
+      const updated = res.data?.updated ?? res.updated ?? 0
+      toast.success(`Selesai! ${updated} status guru berhasil dikoreksi.`)
+      setIsRecalcOpen(false)
+      setRecalcResult(null)
+    },
+    onError: (e: any) => toast.error('Gagal koreksi status: ' + (e.response?.data?.message || e.message))
+  })
+
 
 
   return (
@@ -355,6 +380,7 @@ export default function TeacherListPage() {
 
           ...(isSuperAdmin && canEdit ? [
               { label: 'Generate NIM', onClick: () => { setGenerateNimResult([]); setIsGenerateNimOpen(true) }, variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
+              { label: 'Koreksi Status', onClick: () => recalcDryRunMutation.mutate(), variant: 'teal', icon: recalcDryRunMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />, disabled: recalcDryRunMutation.isPending },
               { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'red', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
           ...(canEdit ? [
@@ -1046,6 +1072,95 @@ export default function TeacherListPage() {
         variant="default"
         onConfirm={() => deduplicateMutation.mutate()}
       />
+
+      {/* ── Koreksi Status Dialog ── */}
+      <Dialog open={isRecalcOpen} onOpenChange={(v) => { if (!recalcMutation.isPending) setIsRecalcOpen(v) }}>
+        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="items-center text-center">
+            <div className="w-14 h-14 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3">
+              <RefreshCw className="h-6 w-6 text-teal-600" />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800">Koreksi Status Kepegawaian</DialogTitle>
+            <DialogDescription className="text-slate-500 text-sm mt-1">
+              Preview perubahan status sebelum diterapkan.
+            </DialogDescription>
+          </DialogHeader>
+
+          {recalcResult && (
+            <div className="mt-4 space-y-4">
+              {/* Summary */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-2xl p-4 text-center">
+                  <div className="text-2xl font-black text-slate-700">{recalcResult.total ?? 0}</div>
+                  <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">Total Diperiksa</div>
+                </div>
+                <div className={`rounded-2xl p-4 text-center ${(recalcResult.updated ?? 0) > 0 ? 'bg-teal-50' : 'bg-emerald-50'}`}>
+                  <div className={`text-2xl font-black ${(recalcResult.updated ?? 0) > 0 ? 'text-teal-600' : 'text-emerald-600'}`}>
+                    {recalcResult.updated ?? 0}
+                  </div>
+                  <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wide">Akan Dikoreksi</div>
+                </div>
+              </div>
+
+              {/* Changes list */}
+              {(recalcResult.changes?.length ?? 0) > 0 ? (
+                <div className="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+                  <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-3">
+                    Daftar Perubahan ({recalcResult.changes.length} ditampilkan)
+                  </p>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                    {recalcResult.changes.map((c: any, i: number) => (
+                      <div key={i} className="flex items-center gap-3 text-xs bg-white rounded-xl px-3 py-2 shadow-sm">
+                        <div className="flex-1 font-semibold text-slate-700 truncate">{c.nama}</div>
+                        <div className="shrink-0 text-slate-400 text-[11px]">{c.tmt || '–'}</div>
+                        <div className="shrink-0 flex items-center gap-1.5">
+                          <Badge className={`text-[10px] px-1.5 py-0 rounded-lg font-bold border-0 ${c.dari === 'GTY' ? 'bg-emerald-100 text-emerald-700' : c.dari === 'PNS' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {c.dari}
+                          </Badge>
+                          <span className="text-slate-400">→</span>
+                          <Badge className={`text-[10px] px-1.5 py-0 rounded-lg font-bold border-0 ${c.menjadi === 'GTY' ? 'bg-emerald-500 text-white' : c.menjadi === 'Tendik' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-700'}`}>
+                            {c.menjadi}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-5 text-center">
+                  <Check className="h-8 w-8 text-emerald-500 mx-auto mb-2" strokeWidth={2.5} />
+                  <p className="text-sm font-semibold text-emerald-700">Semua status sudah tepat, tidak ada yang perlu dikoreksi.</p>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400 text-center">
+                Aturan: GTT → GTY jika TMT ≥ 2 tahun · GTY → GTT jika TMT &lt; 2 tahun · Tanpa gelar → Tendik
+              </p>
+            </div>
+          )}
+
+          <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+            <button
+              onClick={() => { setIsRecalcOpen(false); setRecalcResult(null) }}
+              disabled={recalcMutation.isPending}
+              className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              Batal
+            </button>
+            {(recalcResult?.updated ?? 0) > 0 && (
+              <button
+                onClick={() => recalcMutation.mutate()}
+                disabled={recalcMutation.isPending}
+                className="flex-1 h-12 rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+              >
+                {recalcMutation.isPending
+                  ? <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  : `Terapkan ${recalcResult.updated} Koreksi`}
+              </button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

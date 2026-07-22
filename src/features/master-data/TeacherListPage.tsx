@@ -1121,6 +1121,11 @@ export default function TeacherListPage() {
                           <Badge className={`text-[10px] px-1.5 py-0 rounded-lg font-bold border-0 ${c.menjadi === 'GTY' ? 'bg-emerald-500 text-white' : c.menjadi === 'Tendik' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-700'}`}>
                             {c.menjadi}
                           </Badge>
+                          {c.pendidikan_baru && (
+                            <Badge className="text-[10px] px-1.5 py-0 rounded-lg font-bold border-0 bg-sky-100 text-sky-700">
+                              +{c.pendidikan_baru}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1134,7 +1139,7 @@ export default function TeacherListPage() {
               )}
 
               <p className="text-xs text-slate-400 text-center">
-                Aturan: GTT → GTY jika TMT ≥ 2 tahun · GTY → GTT jika TMT &lt; 2 tahun · Tanpa gelar → Tendik
+                Aturan: GTT → GTY jika TMT ≥ 2 tahun · GTY → GTT jika TMT &lt; 2 tahun · Tanpa gelar → Tendik · Badge biru = pendidikan terisi otomatis dari gelar
               </p>
             </div>
           )}

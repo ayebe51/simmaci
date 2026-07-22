@@ -1209,7 +1209,8 @@ class TeacherController extends Controller
         $query->chunk(500, function ($teachers) use (&$updated, &$total, &$changes, $isDryRun) {
             foreach ($teachers as $teacher) {
                 $total++;
-                $originalStatus = $teacher->status;
+                $originalStatus     = $teacher->status;
+                $originalPendidikan = $teacher->pendidikan_terakhir;
 
                 // Parse TMT
                 $tmt = null;
@@ -1221,24 +1222,52 @@ class TeacherController extends Controller
                     }
                 }
 
+                // Auto-infer pendidikan_terakhir jika kosong
+                $newPendidikan = $originalPendidikan;
+                if (empty(trim((string) $originalPendidikan))) {
+                    $inferred = $this->normalizationService->inferPendidikanFromName($teacher->nama);
+                    if ($inferred !== null) {
+                        $newPendidikan = $inferred;
+                    }
+                }
+
                 $newStatus = $this->normalizationService->normalizeEmploymentStatus(
                     $originalStatus,
                     $tmt,
                     $teacher->nama,
-                    $teacher->pendidikan_terakhir
+                    $newPendidikan ?? $originalPendidikan
                 );
 
-                if ($newStatus !== $originalStatus) {
+                $statusChanged    = $newStatus !== $originalStatus;
+                $pendidikanChanged = $newPendidikan !== $originalPendidikan;
+
+                if ($statusChanged || $pendidikanChanged) {
+                    $toUpdate = [];
+                    if ($statusChanged)    $toUpdate['status']             = $newStatus;
+                    if ($pendidikanChanged) $toUpdate['pendidikan_terakhir'] = $newPendidikan;
+
                     if (!$isDryRun) {
-                        $teacher->update(['status' => $newStatus]);
+                        $teacher->update($toUpdate);
                     }
-                    $changes[] = [
-                        'id'       => $teacher->id,
-                        'nama'     => $teacher->nama,
-                        'tmt'      => $teacher->tmt,
-                        'dari'     => $originalStatus,
-                        'menjadi'  => $newStatus,
-                    ];
+                    if ($statusChanged) {
+                        $changes[] = [
+                            'id'      => $teacher->id,
+                            'nama'    => $teacher->nama,
+                            'tmt'     => $teacher->tmt,
+                            'dari'    => $originalStatus,
+                            'menjadi' => $newStatus,
+                            'pendidikan_baru' => $pendidikanChanged ? $newPendidikan : null,
+                        ];
+                    } elseif ($pendidikanChanged) {
+                        $changes[] = [
+                            'id'      => $teacher->id,
+                            'nama'    => $teacher->nama,
+                            'tmt'     => $teacher->tmt,
+                            'dari'    => $originalStatus,
+                            'menjadi' => $newStatus,
+                            'pendidikan_baru' => $newPendidikan,
+                        ];
+                    }
                     $updated++;
                 }
             }

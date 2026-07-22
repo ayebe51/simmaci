@@ -782,15 +782,39 @@ class NormalizationService
             $resolvedStatus = $this->resolveAktif($tmt);
         }
 
-        // Business rule: If a teacher has no academic degrees (no prefixes and no suffixes),
-        // they should be classified as 'Tendik' instead of 'GTY' or 'GTT'.
+        // ── Aturan Tendik / GTY / GTT ──
+        //
+        // Prioritas:
+        // 1. Gelar dari nama (lebih terpercaya — data resmi):
+        //    - Tidak ada gelar → Tendik
+        //    - Semua gelar Diploma (A.Md./A.Ma.) → Tendik
+        //    - Ada gelar S1+ (S.Pd., M.Ag., Dr., dll.) → lanjut cek TMT
+        // 2. Jika nama tidak punya gelar sama sekali, gunakan pendidikan_terakhir
+        //    sebagai fallback: D3/SMA/SMP/SD → Tendik
+        // 3. TMT menentukan GTY vs GTT (sudah ditangani di atas via resolveAktif)
+        //
+        // Note: jika nama punya S.Pd. tapi pendidikan_terakhir='D3', nama menang
+        //       karena nama resmi lebih dapat dipercaya daripada kolom pendidikan.
+
         if ($teacherName !== null && in_array($resolvedStatus, ['GTY', 'GTT'], true)) {
             $parsedName = $this->parseAcademicDegrees($teacherName);
-            if (empty($parsedName['prefix_degrees']) && empty($parsedName['suffix_degrees'])) {
+            $hasDegree  = !empty($parsedName['prefix_degrees']) || !empty($parsedName['suffix_degrees']);
+
+            if (!$hasDegree) {
+                // Tidak ada gelar di nama — coba fallback ke pendidikan_terakhir
+                if ($pendidikan !== null) {
+                    $p = preg_replace('/[^a-z0-9]/', '', mb_strtolower(trim($pendidikan), 'UTF-8'));
+                    // Pendidikan S1/S2/S3 → tetap GTY/GTT (bukan Tendik)
+                    if (in_array($p, ['s1', 's2', 's3', 'strata1', 'strata2', 'strata3', 'sarjana', 'magister', 'doktor'])) {
+                        // Nama mungkin belum mencantumkan gelar — biarkan status GTY/GTT
+                        return $resolvedStatus;
+                    }
+                }
+                // Tidak ada gelar di nama DAN pendidikan bukan S1+ → Tendik
                 return 'Tendik';
             }
-            
-            // Check if all suffix degrees are diploma (A.Md, A.Ma)
+
+            // Ada gelar — cek apakah semuanya diploma
             if (!empty($parsedName['suffix_degrees'])) {
                 $isAllDiploma = true;
                 foreach ($parsedName['suffix_degrees'] as $deg) {
@@ -799,14 +823,14 @@ class NormalizationService
                         break;
                     }
                 }
+                // Prefix-only (Dr./Dra./Prof.) tanpa suffix → bukan diploma, lanjut
                 if ($isAllDiploma) {
                     return 'Tendik';
                 }
             }
-        }
-
-        // Check explicit pendidikan column
-        if ($pendidikan !== null && in_array($resolvedStatus, ['GTY', 'GTT'], true)) {
+            // Gelar S1+ terdeteksi → status GTY/GTT sudah benar, return as-is
+        } elseif ($teacherName === null && $pendidikan !== null && in_array($resolvedStatus, ['GTY', 'GTT'], true)) {
+            // Tidak ada nama untuk dicek gelarnya, gunakan pendidikan sebagai satu-satunya sinyal
             $p = preg_replace('/[^a-z0-9]/', '', mb_strtolower(trim($pendidikan), 'UTF-8'));
             if (in_array($p, ['d3', 'diii', 'd2', 'd1', 'sma', 'smp', 'sd', 'slta', 'sltp'])) {
                 return 'Tendik';

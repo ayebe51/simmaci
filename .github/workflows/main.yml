@@ -141,7 +141,7 @@ jobs:
           ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-to: type=gha,mode=max,ignore-error=true
 
     # Frontend Image (Root context)
     - name: Build and Push Frontend
@@ -154,7 +154,7 @@ jobs:
           ${{ env.IMAGE_FRONTEND }}:${{ github.sha }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-to: type=gha,mode=max,ignore-error=true
 
   # 4. ── Deployment (Template) ──────────────────────────
   # Commented out until VPS is ready. 

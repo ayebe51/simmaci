@@ -21,7 +21,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { skApi, authApi, skTemplateApi } from "@/lib/api";
+import { skApi, authApi, skTemplateApi, API_URL } from "@/lib/api";
 import { getSkVerificationUrl } from "@/utils/verification";
 import {
   Dialog,
@@ -386,10 +386,28 @@ export default function SkRevisionListPage() {
               </h4>
               {selectedItem?.ijazah_url ? (
                 <a
-                  href={`/api/minio/${selectedItem.ijazah_url}`}
+                  href={`${API_URL}/files/view/${selectedItem.ijazah_url.replace(/^\/?(storage\/|api\/minio\/)?/, '').split('/').map(encodeURIComponent).join('/')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+                  onClick={(e) => {
+                    // Pass auth token via header is not possible for direct links,
+                    // so we fetch and create object URL instead
+                    e.preventDefault()
+                    const token = localStorage.getItem('auth_token')
+                    const path = selectedItem.ijazah_url.replace(/^\/?(storage\/|api\/minio\/)?/, '')
+                    const url = `${API_URL}/files/view/${path.split('/').map(encodeURIComponent).join('/')}`
+                    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+                      .then(r => {
+                        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+                        return r.blob()
+                      })
+                      .then(blob => {
+                        const objUrl = URL.createObjectURL(blob)
+                        window.open(objUrl, '_blank')
+                      })
+                      .catch(() => toast.error('Gagal membuka ijazah. File mungkin tidak tersedia.'))
+                  }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

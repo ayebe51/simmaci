@@ -76,7 +76,19 @@ export default function MySkPage() {
       // Cek apakah pendidikan S1+ (untuk menentukan GTY/GTT vs Tendik)
       const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
       const isPendidikanTinggi = PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
-      const hasGelar = (sk.nama || "").includes(",") || isPendidikanTinggi
+
+      // Cek apakah gelar belakang hanya diploma (A.Ma/A.Md → Tendik, bukan GTY/GTT)
+      const namaLengkap = sk.nama || ""
+      const hasKoma = namaLengkap.includes(",")
+      const gelarBelakangStr = hasKoma
+        ? namaLengkap.substring(namaLengkap.indexOf(",") + 1).trim()
+        : ""
+      const isGelarDiplomaOnly = hasKoma
+        && /^(A\.Ma|A\.Md|Amd|AMD)/i.test(gelarBelakangStr)
+        && !/\b(S\.|M\.|Dr\.|Drs\.|Dra\.|Prof\.)/i.test(gelarBelakangStr)
+
+      const hasGelarDepan = /^(Drs\.|Dra\.|Ir\.|Dr\.|Prof\.)/i.test(namaLengkap)
+      const hasGelar = hasGelarDepan || (hasKoma && !isGelarDiplomaOnly) || isPendidikanTinggi
 
       let templateId = "tendik"
       if (jenis.includes("kepala") || jenis.includes("kamad")) {

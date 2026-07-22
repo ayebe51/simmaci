@@ -224,11 +224,17 @@ class NormalizeDataCommandTest extends TestCase
             'nama' => 'ahmad dahlan, s.pd', // needs normalization
             'unit_kerja' => 'MI Test School', // already normalized - won't add to count
             'school_id' => $school->id,
+            'pendidikan_terakhir' => 'S1', // deterministik: S1 tidak berubah ke Tendik
+            'status' => 'GTY',
+            'tmt' => now()->subYears(3)->format('Y-m-d'), // TMT 3 tahun → GTY konsisten
         ]);
         Teacher::factory()->create([
             'nama' => 'ALREADY NORMALIZED TEACHER, S.Pd.', // already normalized, has degree
             'unit_kerja' => 'MA Already Normalized', // already normalized
             'school_id' => $school->id,
+            'pendidikan_terakhir' => 'S1', // deterministik: S1 tidak berubah ke Tendik
+            'status' => 'GTY',
+            'tmt' => now()->subYears(3)->format('Y-m-d'), // TMT 3 tahun → GTY konsisten
         ]);
 
         // Run the normalization command and capture output
@@ -388,12 +394,17 @@ class NormalizeDataCommandTest extends TestCase
      */
     public function test_command_with_already_normalized_data(): void
     {
-        // Create test data with already normalized names
+        // Create test data with already normalized names.
+        // Use deterministik pendidikan_terakhir=S1, status=GTY, tmt=3 tahun lalu
+        // agar status tidak berubah ketika command dijalankan.
         $school = School::factory()->create(['nama' => 'MI Already Normalized']);
         $teacher = Teacher::factory()->create([
             'nama' => 'ALREADY NORMALIZED TEACHER, S.Pd.',
             'unit_kerja' => 'MA Already Normalized',
             'school_id' => $school->id,
+            'pendidikan_terakhir' => 'S1',
+            'status' => 'GTY',
+            'tmt' => now()->subYears(3)->format('Y-m-d'),
         ]);
         $skDocument = SkDocument::factory()->create([
             'nama' => 'ALREADY NORMALIZED TEACHER, S.Pd.',

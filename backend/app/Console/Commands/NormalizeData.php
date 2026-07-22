@@ -234,7 +234,12 @@ class NormalizeData extends Command
                                 $tmt = null;
                             }
                         }
-                        $normalizedStatus = $this->normalizationService->normalizeEmploymentStatus($originalStatus, $tmt, $originalName);
+                        $normalizedStatus = $this->normalizationService->normalizeEmploymentStatus(
+                            $originalStatus,
+                            $tmt,
+                            $normalizedName,  // gunakan nama yang sudah dinormalisasi agar gelar terdeteksi
+                            $teacher->pendidikan_terakhir
+                        );
 
                         $changes = [];
                         $logChanges = [];

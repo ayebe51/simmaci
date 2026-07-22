@@ -16,7 +16,8 @@ class TeacherFactory extends Factory
     public function definition(): array
     {
         $tmt = fake()->dateTimeBetween('-10 years', '-1 year');
-        $diffYears = now()->diffInYears($tmt);
+        // diffInYears: from $tmt (past) to now → positive value
+        $diffYears = \Carbon\Carbon::instance($tmt)->diffInYears(\Carbon\Carbon::now());
         $status = $diffYears >= 2 ? 'GTY' : 'GTT';
 
         return [

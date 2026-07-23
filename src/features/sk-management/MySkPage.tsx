@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query"
 import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
 import { deriveEndDate } from "@/features/sk-management/utils/skDateUtils"
+import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater"
@@ -104,11 +105,10 @@ export default function MySkPage() {
         // jenis_sk TIDAK dipakai untuk GTY/GTT karena operator sering salah input.
         // TMT < 2 tahun → GTT, TMT >= 2 tahun → GTY.
         if (teacherData.tmt && sk.tanggal_penetapan) {
-          const tmtDate = new Date(teacherData.tmt)
           const penetapanDate = new Date(sk.tanggal_penetapan)
-          if (!isNaN(tmtDate.getTime()) && !isNaN(penetapanDate.getTime())) {
-            const diffYears = (penetapanDate.getTime() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
-            templateId = diffYears >= 2 ? "gty" : "gtt"
+          if (!isNaN(penetapanDate.getTime())) {
+            const periode = calculatePeriode(teacherData.tmt, penetapanDate)
+            templateId = periode >= 2 ? "gty" : "gtt"
           } else {
             // tanggal tidak valid → safe default GTT
             templateId = "gtt"
@@ -120,14 +120,13 @@ export default function MySkPage() {
       }
 
       // Hitung PERIODE (tahun pengabdian) dari TMT ke tanggal penetapan
-      // Harus dideklarasikan SEBELUM kataPengangkatan karena dipakai di dalamnya
+      // Menggunakan calculatePeriode — selisih tahun kalender saja (bulan/hari diabaikan),
+      // sama persis dengan logika SkGeneratorPage. Minimal 1.
       const periodeValue: number = (() => {
         if (!teacherData.tmt || !sk.tanggal_penetapan) return 0
-        const tmt = new Date(teacherData.tmt)
         const penetapan = new Date(sk.tanggal_penetapan)
-        if (isNaN(tmt.getTime()) || isNaN(penetapan.getTime())) return 0
-        const diffMs = penetapan.getTime() - tmt.getTime()
-        return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365.25))
+        if (isNaN(penetapan.getTime())) return 0
+        return calculatePeriode(teacherData.tmt, penetapan)
       })()
 
       // Kata pengangkatan — sama dengan logika SkGeneratorPage

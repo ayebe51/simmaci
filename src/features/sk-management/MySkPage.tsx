@@ -90,19 +90,19 @@ export default function MySkPage() {
       const hasGelarDepan = /^(Drs\.|Dra\.|Ir\.|Dr\.|Prof\.)/i.test(namaLengkap)
       const hasGelar = hasGelarDepan || (hasKoma && !isGelarDiplomaOnly) || isPendidikanTinggi
 
+      const isKamad = jenis.includes("kepala") || jenis.includes("kamad")
+
       let templateId = "tendik"
-      if (jenis.includes("kepala") || jenis.includes("kamad")) {
-        templateId = "kamad"
+      if (isKamad) {
+        // Kamad = GTY
+        templateId = "gty"
       } else if (!hasGelar) {
         // Tidak ada gelar / pendidikan di bawah S1 → Tendik
         templateId = "tendik"
-      } else if (jenis.includes("gty") || jenis.includes("tetap yayasan") || jenis.includes("guru tetap")) {
-        templateId = "gty"
-      } else if (jenis.includes("gtt") || jenis.includes("tidak tetap")) {
-        templateId = "gtt"
-      } else if (hasGelar) {
-        // Ada gelar tapi jenis_sk tidak dikenali → hitung dari TMT + tanggal penetapan
-        // Periode >= 2 tahun → GTY, < 2 tahun → GTT
+      } else {
+        // Punya gelar → penentuan murni dari TMT (sama dengan SkGeneratorPage)
+        // jenis_sk TIDAK dipakai untuk GTY/GTT karena operator sering salah input.
+        // TMT < 2 tahun → GTT, TMT >= 2 tahun → GTY.
         if (teacherData.tmt && sk.tanggal_penetapan) {
           const tmtDate = new Date(teacherData.tmt)
           const penetapanDate = new Date(sk.tanggal_penetapan)
@@ -110,9 +110,11 @@ export default function MySkPage() {
             const diffYears = (penetapanDate.getTime() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
             templateId = diffYears >= 2 ? "gty" : "gtt"
           } else {
+            // tanggal tidak valid → safe default GTT
             templateId = "gtt"
           }
         } else {
+          // TMT atau tanggal_penetapan tidak ada → safe default GTT
           templateId = "gtt"
         }
       }

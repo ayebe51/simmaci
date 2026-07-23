@@ -695,6 +695,10 @@ class NormalizationService
         // A.Ma.Pd. SD → A.Ma.Pd.SD  (Ahli Madya Pendidikan Sekolah Dasar)
         $name = preg_replace('/\bA\.?\s*Ma\.?\s*Pd\.?\s+SD\.?\b/i', 'A.Ma.Pd.SD', $name);
 
+        // SD[,] A.Ma.Pd. → A.Ma.Pd.SD  (reversed: "ATIK RAMATIKA SD, A.Ma.Pd.")
+        // Data Excel sering menulis gelar compound dalam urutan terbalik
+        $name = preg_replace('/\bSD[,\s]+A\.?\s*Ma\.?\s*Pd\.?\b/i', 'A.Ma.Pd.SD', $name);
+
         // A.Ma. Pust → A.Ma.Pust  (Ahli Madya Pustakawan)
         $name = preg_replace('/\bA\.?\s*Ma\.?\s+Pust\.?\b/i', 'A.Ma.Pust', $name);
 

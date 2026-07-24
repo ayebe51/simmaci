@@ -1075,4 +1075,55 @@ class NormalizationServiceTest extends TestCase
         $this->assertNull($this->service->parseIndonesianDate(''));
         $this->assertNull($this->service->parseIndonesianDate('   '));
     }
+
+    /**
+     * @test
+     * @group teacher-normalization
+     *
+     * Bug: "Mei Rahayu Ningsih, S.E." diubah menjadi "RAHAYU NINGSIH, M.E.I., S.E."
+     * karena token "Mei" (tanpa titik) cocok dengan key "MEI" di DEGREE_MAP
+     * (Magister Ekonomi Islam) sebelum nama dimulai (nameStarted = false).
+     *
+     * Fix: token tanpa titik TIDAK boleh dianggap gelar jika nameStarted = false
+     * dan token tersebut bukan prefix degree (Dr./Dra./Prof.).
+     */
+    public function it_does_not_parse_plain_name_words_as_degrees_before_name_starts(): void
+    {
+        // Kasus utama yang dilaporkan
+        $result = $this->service->normalizeTeacherName('Mei Rahayu Ningsih, S.E.');
+        $this->assertEquals(
+            'MEI RAHAYU NINGSIH, S.E.',
+            $result,
+            '"Mei" harus dianggap nama, bukan gelar M.E.I.'
+        );
+
+        // Variasi tanpa koma
+        $result = $this->service->normalizeTeacherName('Mei Rahayu Ningsih S.E.');
+        $this->assertEquals(
+            'MEI RAHAYU NINGSIH, S.E.',
+            $result,
+            '"Mei" (tanpa koma) harus tetap dianggap nama'
+        );
+
+        // Nama lain yang kata pertamanya cocok dengan degree key
+        // "Ari" → bukan degree, "Ida" → bukan degree, "Lusi" → bukan degree
+        $cases = [
+            'Ari Wibowo, S.Pd.'     => 'ARI WIBOWO, S.Pd.',    // ARI bukan degree
+            'Ida Ayu, S.Ag.'        => 'IDA AYU, S.Ag.',        // IDA bukan degree
+            'Sari Dewi, M.Pd.'      => 'SARI DEWI, M.Pd.',      // SARI bukan degree
+        ];
+        foreach ($cases as $input => $expected) {
+            $result = $this->service->normalizeTeacherName($input);
+            $this->assertEquals($expected, $result, "Failed for: {$input}");
+        }
+
+        // Memastikan M.E.I. (dengan titik) tetap dikenali sebagai gelar setelah nama
+        $result = $this->service->normalizeTeacherName('Ahmad M.E.I.');
+        $this->assertStringContainsString('M.E.I', $result);
+        $this->assertStringStartsWith('AHMAD', $result);
+
+        // Memastikan prefix degree tanpa titik tetap bekerja (Dr, Dra, Prof)
+        $this->assertEquals('Dr. AHMAD', $this->service->normalizeTeacherName('Dr. Ahmad'));
+        $this->assertEquals('Dra. SITI', $this->service->normalizeTeacherName('Dra. Siti'));
+    }
 }

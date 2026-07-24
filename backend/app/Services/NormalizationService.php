@@ -502,10 +502,32 @@ class NormalizationService
             $matched = false;
             for ($window = min(4, $n - $i); $window >= 1; $window--) {
                 $slice = array_slice($tokens, $i, $window);
-                $key   = $this->degreeKey(implode('', $slice));
+                $raw   = implode('', $slice);
+                $key   = $this->degreeKey($raw);
                 if (isset($map[$key])) {
+                    // Guard: a plain word without any dot (e.g. "Mei", "Ari", "Ida")
+                    // must NOT be parsed as a degree if the name has not started yet
+                    // (nameStarted = false means we are still before the first name token).
+                    //
+                    // Proper academic degrees in Indonesian always contain a dot
+                    // ("S.E.", "M.E.I.", "S.Pd.", "Dr.") or are recognised prefix degrees.
+                    // A plain word can only be a degree abbreviation AFTER the name has been
+                    // established — e.g. "BUDI SAG" where SAG follows the name "BUDI".
+                    //
+                    // Counter-example that MUST still work:
+                    //   "Dr. Andi"  → Dr. is a prefix degree (PREFIX_DEGREES list), not a name
+                    //   "Andi S.E." → S.E. has a dot → parsed as suffix degree ✓
+                    //   "Andi SEI"  → SEI has no dot, nameStarted=true → parsed as suffix ✓
+                    //   "Mei Rahayu Ningsih, S.E." → MEI has no dot, nameStarted=false → SKIP ✓
+                    $isPrefix = in_array($key, self::PREFIX_DEGREES, true);
+                    $hasDot   = str_contains($raw, '.');
+
+                    if (!$hasDot && !$nameStarted && !$isPrefix) {
+                        // Plain word before any name token — treat as name, not degree
+                        break;
+                    }
+
                     $canonical = $map[$key];
-                    $isPrefix  = in_array($key, self::PREFIX_DEGREES, true);
 
                     if ($isPrefix && !$nameStarted) {
                         $prefixDegrees[] = $canonical;

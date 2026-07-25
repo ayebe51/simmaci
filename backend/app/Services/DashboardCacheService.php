@@ -388,21 +388,38 @@ class DashboardCacheService
 
     private function computeSkTrend(User $user, int $months): array
     {
-        $trendData = [];
-
+        // Build month range
+        $monthKeys = [];
+        $monthLabels = [];
         for ($i = $months - 1; $i >= 0; $i--) {
             $date = now()->subMonths($i);
-            $monthKey = $date->format('Y-m');
-            $monthName = $date->translatedFormat('M Y');
+            $key = $date->format('Y-m');
+            $monthKeys[$key] = $date->translatedFormat('M Y');
+        }
 
-            $query = DB::table('sk_documents')->whereNull('deleted_at');
+        // Single GROUP BY query instead of N individual queries
+        $query = DB::table('sk_documents')
+            ->whereNull('deleted_at')
+            ->whereRaw("created_at >= ?", [now()->subMonths($months)->startOfMonth()])
+            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month_key, COUNT(*) as count")
+            ->groupByRaw("TO_CHAR(created_at, 'YYYY-MM')")
+            ->pluck('count', 'month_key');
 
-            if ($user->role === 'operator' && $user->school_id) {
-                $query->where('school_id', $user->school_id);
-            }
+        if ($user->role === 'operator' && $user->school_id) {
+            // Re-run scoped version
+            $query = DB::table('sk_documents')
+                ->whereNull('deleted_at')
+                ->where('school_id', $user->school_id)
+                ->whereRaw("created_at >= ?", [now()->subMonths($months)->startOfMonth()])
+                ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month_key, COUNT(*) as count")
+                ->groupByRaw("TO_CHAR(created_at, 'YYYY-MM')")
+                ->pluck('count', 'month_key');
+        }
 
-            $count = $query->whereRaw("TO_CHAR(created_at, 'YYYY-MM') = ?", [$monthKey])->count();
-            $trendData[] = ['month' => $monthName, 'count' => $count];
+        // Fill in zeros for months with no data, preserving order
+        $trendData = [];
+        foreach ($monthKeys as $key => $label) {
+            $trendData[] = ['month' => $label, 'count' => (int) ($query[$key] ?? 0)];
         }
 
         return $trendData;

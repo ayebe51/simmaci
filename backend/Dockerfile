@@ -1,7 +1,8 @@
 FROM php:8.3-fpm
 WORKDIR /var/www/html
 
-# Install system dependencies (Debian Bullseye/Bookworm)
+# Install system dependencies and PHP extensions in one layer
+# Use pre-built redis extension via install-php-extensions to avoid long pecl compile
 RUN apt-get update && apt-get install -y \
     bash \
     curl \
@@ -20,9 +21,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
+# Use install-php-extensions script for redis (pre-built binary, much faster than pecl compile)
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_pgsql mbstring zip gd intl bcmath exif pcntl opcache \
-    && pecl install redis && docker-php-ext-enable redis
+    && install-php-extensions redis
 
 # PHP configuration for file uploads and memory
 RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \

@@ -1607,6 +1607,55 @@ class SkDocumentController extends Controller
     }
 
     /**
+     * POST /api/sk-documents/reserve-nomor
+     *
+     * Atomically fetch the current MAX nomor urut SK resmi (format NNNN/...)
+     * for the given year and return the next starting sequence number.
+     *
+     * Uses a PostgreSQL advisory lock so that concurrent requests from different
+     * browser sessions cannot read the same MAX simultaneously.
+     *
+     * The frontend MUST call this right before starting a generation batch,
+     * NOT on page mount — to ensure the freshest MAX is used.
+     *
+     * Request body: { year?: number, count?: number }
+     * Response:     { next_nomor: number, next_nomor_str: string, year: number }
+     */
+    public function reserveNomor(Request $request): JsonResponse
+    {
+        $year  = (int) ($request->input('year') ?? now()->year);
+        $count = max(1, (int) ($request->input('count') ?? 1));
+
+        // PostgreSQL advisory lock key derived from year — prevents concurrent reads
+        // of the same MAX value. The lock is released automatically when the
+        // transaction ends (even on error).
+        $lockKey = 20260000 + $year; // e.g. 20262026
+
+        $nextSeq = DB::transaction(function () use ($year, $lockKey) {
+            // Acquire session-level advisory lock (blocks other sessions trying the same key)
+            DB::statement("SELECT pg_advisory_xact_lock(?)", [$lockKey]);
+
+            // MAX across ALL nomor SK resmi (starting with digit) for this year
+            $raw = DB::selectOne("
+                SELECT COALESCE(MAX(SPLIT_PART(nomor_sk, '/', 1)::int), 0) AS max_seq
+                FROM sk_documents
+                WHERE nomor_sk ~ '^\d'
+                  AND nomor_sk LIKE ?
+                  AND deleted_at IS NULL
+            ", ["%/{$year}"]);
+
+            return (int) ($raw->max_seq ?? 0) + 1;
+        });
+
+        return response()->json([
+            'next_nomor'     => $nextSeq,
+            'next_nomor_str' => str_pad($nextSeq, 4, '0', STR_PAD_LEFT),
+            'year'           => $year,
+            'reserved_count' => $count,
+        ]);
+    }
+
+    /**
      * Find the operator user who submitted the SK.
      * Primary: lookup by email in created_by field.
      * Fallback: find active operator for the same school.

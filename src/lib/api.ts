@@ -308,6 +308,13 @@ export const skApi = {
   getRevisions: () => apiClient.get('/sk-documents-revisions').then((r) => r.data),
   countByStatus: (params?: Record<string, any>) =>
     apiClient.get('/sk-documents-count', { params }).then((r) => r.data),
+  /**
+   * Fetch next available nomor urut SK secara atomic dari backend.
+   * Selalu dipanggil tepat sebelum Generate — bukan saat page mount.
+   * Backend menggunakan PostgreSQL advisory lock untuk mencegah race condition.
+   */
+  reserveNomor: (year: number, count: number = 1): Promise<{ next_nomor: number; next_nomor_str: string; year: number }> =>
+    apiClient.post('/sk-documents/reserve-nomor', { year, count }).then((r) => r.data),
 };
 
 // ── Users API ──

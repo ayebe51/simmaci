@@ -438,7 +438,28 @@ export default function SkGeneratorPage() {
         // --- Batched generation with progress and cancellation ---
         const BATCH_SIZE = 5
         const generationFailuresList: FailedDoc[] = []
-        let currentSeqIndex = parseInt(nomorMulai) || 1
+
+        // FIX: Selalu fetch nomor urut terbaru dari backend tepat sebelum generate dimulai.
+        // Ini mencegah race condition jika dua session/tab generate bersamaan — backend
+        // menggunakan PostgreSQL advisory lock sehingga hanya satu session yang bisa
+        // membaca MAX pada satu waktu.
+        let currentSeqIndex: number
+        if (nomorFormat.includes('{NOMOR}')) {
+            try {
+                const reserved = await skApi.reserveNomor(tahunSk, selectedTeachers.length)
+                currentSeqIndex = reserved.next_nomor
+                // Sync state agar field "Nomor Mulai" di UI juga update
+                setNomorMulai(String(currentSeqIndex).padStart(4, '0'))
+                console.info(`[SK Generator] Nomor urut dari backend: ${currentSeqIndex} (tahun ${tahunSk})`)
+            } catch (reserveErr) {
+                // Fallback ke nomorMulai state jika backend tidak tersedia (misal offline)
+                console.warn('[SK Generator] Gagal fetch nomor dari backend, pakai nomorMulai state:', reserveErr)
+                currentSeqIndex = parseInt(nomorMulai) || 1
+            }
+        } else {
+            // Format nomor tidak pakai {NOMOR} — langsung pakai state
+            currentSeqIndex = parseInt(nomorMulai) || 1
+        }
 
         for (let i = 0; i < selectedTeachers.length; i++) {
             // Check cancellation before processing each teacher

@@ -291,6 +291,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('students', StudentController::class);
 
         // SK Documents — specific routes MUST come before apiResource
+        Route::post('sk-documents/reserve-nomor',   [SkDocumentController::class, 'reserveNomor']);
         Route::post('sk-documents/submit-request',  [SkDocumentController::class, 'submitRequest']);
         Route::post('sk-documents/bulk-request',    [SkDocumentController::class, 'bulkRequest']);
         Route::patch('sk-documents/batch-status',   [SkDocumentController::class, 'batchUpdateStatus']);

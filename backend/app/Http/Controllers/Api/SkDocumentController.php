@@ -1632,19 +1632,27 @@ class SkDocumentController extends Controller
         $lockKey = 20260000 + $year; // e.g. 20262026
 
         $nextSeq = DB::transaction(function () use ($year, $lockKey) {
-            // Acquire session-level advisory lock (blocks other sessions trying the same key)
-            DB::statement("SELECT pg_advisory_xact_lock(?)", [$lockKey]);
+            // Acquire session-level advisory lock (blocks concurrent reads of the same MAX value).
+            // Only available on PostgreSQL — skip silently on other drivers (e.g. SQLite in tests).
+            if (DB::getDriverName() === 'pgsql') {
+                DB::statement("SELECT pg_advisory_xact_lock(?)", [$lockKey]);
+            }
 
-            // MAX across ALL nomor SK resmi (starting with digit) for this year
-            $raw = DB::selectOne("
-                SELECT COALESCE(MAX(SPLIT_PART(nomor_sk, '/', 1)::int), 0) AS max_seq
-                FROM sk_documents
-                WHERE nomor_sk ~ '^\d'
-                  AND nomor_sk LIKE ?
-                  AND deleted_at IS NULL
-            ", ["%/{$year}"]);
+            // Fetch all official nomor SK for this year, extract sequence in PHP.
+            // Avoids SPLIT_PART / regex casting which can throw on unexpected formats.
+            $nomorList = SkDocument::withoutTenantScope()
+                ->whereNull('deleted_at')
+                ->where('nomor_sk', 'like', "%/{$year}")
+                ->whereRaw("nomor_sk NOT LIKE 'REQ/%'")
+                ->pluck('nomor_sk');
 
-            return (int) ($raw->max_seq ?? 0) + 1;
+            $maxSeq = $nomorList->map(function ($nomor) {
+                $parts = explode('/', $nomor);
+                $first = $parts[0] ?? '';
+                return is_numeric($first) ? (int) $first : 0;
+            })->max() ?? 0;
+
+            return $maxSeq + 1;
         });
 
         return response()->json([

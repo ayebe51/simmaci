@@ -199,6 +199,7 @@ class NormalizationService
         'PHD'       => 'Ph.D.',
 
         // ── Profesi / Spesialis ───────────────────────────────────────────
+        'GR'        => 'Gr.',   // Guru Penggerak
         'NS'        => 'Ns.',
         'LC'        => 'Lc.',
         'SH1'       => 'S.H.',   // alias

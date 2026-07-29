@@ -55,7 +55,7 @@ class SkReserveNomorTest extends TestCase
         }
     }
 
-    private function call(array $body = []): \Illuminate\Testing\TestResponse
+    private function reserveNomor(array $body = []): \Illuminate\Testing\TestResponse
     {
         return $this->actingAs($this->superAdmin)
             ->postJson('/api/sk-documents/reserve-nomor', $body);
@@ -71,7 +71,7 @@ class SkReserveNomorTest extends TestCase
         // Hanya ada REQ/... — harus diabaikan
         $this->makeSkWithNomor("REQ/{$year}/0001");
 
-        $response = $this->call(['year' => $year]);
+        $response = $this->reserveNomor(['year' => $year]);
 
         $response->assertOk()
             ->assertJsonPath('next_nomor', 1)
@@ -88,7 +88,7 @@ class SkReserveNomorTest extends TestCase
         $this->makeSkWithNomor("0150/PC.L/A.II/H-34.B/24.29/2/{$year}");
         $this->makeSkWithNomor("0099/PC.L/A.II/H-34.B/24.29/3/{$year}");
 
-        $response = $this->call(['year' => $year]);
+        $response = $this->reserveNomor(['year' => $year]);
 
         $response->assertOk()
             ->assertJsonPath('next_nomor', 151)
@@ -104,7 +104,7 @@ class SkReserveNomorTest extends TestCase
         // Nomor 0500 soft-deleted — tidak boleh mempengaruhi MAX
         $this->makeSkWithNomor("0500/PC.L/A.II/H-34.B/24.29/1/{$year}", now()->toDateTimeString());
 
-        $response = $this->call(['year' => $year]);
+        $response = $this->reserveNomor(['year' => $year]);
 
         $response->assertOk()
             ->assertJsonPath('next_nomor', 201);
@@ -118,7 +118,7 @@ class SkReserveNomorTest extends TestCase
         // Hanya REQ format
         $this->makeSkWithNomor("REQ/{$year}/9999");
 
-        $response = $this->call(['year' => $year]);
+        $response = $this->reserveNomor(['year' => $year]);
 
         $response->assertOk()
             ->assertJsonPath('next_nomor', 1);
@@ -135,7 +135,7 @@ class SkReserveNomorTest extends TestCase
         // SK tahun ini — nomor kecil
         $this->makeSkWithNomor("0050/PC.L/A.II/H-34.B/24.29/1/{$currentYear}");
 
-        $response = $this->call(['year' => $currentYear]);
+        $response = $this->reserveNomor(['year' => $currentYear]);
 
         // Harus kembalikan 51 (tahun ini), bukan 1001 (tahun lalu)
         $response->assertOk()
@@ -148,8 +148,8 @@ class SkReserveNomorTest extends TestCase
         $year = now()->year;
         $this->makeSkWithNomor("0300/PC.L/A.II/H-34.B/24.29/1/{$year}");
 
-        $r1 = $this->call(['year' => $year]);
-        $r2 = $this->call(['year' => $year]);
+        $r1 = $this->reserveNomor(['year' => $year]);
+        $r2 = $this->reserveNomor(['year' => $year]);
 
         $r1->assertOk();
         $r2->assertOk();
@@ -164,7 +164,7 @@ class SkReserveNomorTest extends TestCase
     {
         $year = now()->year;
 
-        $response = $this->call(['year' => $year]);
+        $response = $this->reserveNomor(['year' => $year]);
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -182,7 +182,7 @@ class SkReserveNomorTest extends TestCase
         $this->makeSkWithNomor("0010/PC.L/A.II/H-34.B/24.29/1/{$year}");
 
         // Tanpa year parameter
-        $response = $this->call([]);
+        $response = $this->reserveNomor([]);
 
         $response->assertOk()
             ->assertJsonPath('year', $year)

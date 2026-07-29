@@ -21,8 +21,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-# Use install-php-extensions script for redis (pre-built binary, much faster than pecl compile)
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+# Pin specific version of install-php-extensions for reproducible builds
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/download/2.7.12/install-php-extensions /usr/local/bin/
 
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_pgsql mbstring zip gd intl bcmath exif pcntl opcache \

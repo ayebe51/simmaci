@@ -45,7 +45,7 @@ class BulkSkImportDuplicateTeacherTest extends TestCase
     private User $operator;
     private User $operatorB;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

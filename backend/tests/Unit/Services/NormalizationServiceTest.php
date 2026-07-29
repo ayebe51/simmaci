@@ -9,7 +9,7 @@ class NormalizationServiceTest extends TestCase
 {
     private NormalizationService $service;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = new NormalizationService();

@@ -33,7 +33,7 @@ class BatchApprovalIntegrationTest extends TestCase
     private User $admin;
     private User $operator;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

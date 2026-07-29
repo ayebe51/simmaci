@@ -24,7 +24,7 @@ class TeacherNimUpdateTest extends TestCase
     private School $school;
     private Teacher $teacher;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

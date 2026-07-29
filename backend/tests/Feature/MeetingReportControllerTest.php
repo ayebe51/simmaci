@@ -24,7 +24,7 @@ class MeetingReportControllerTest extends TestCase
     private User $operator;
     private Meeting $meeting;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

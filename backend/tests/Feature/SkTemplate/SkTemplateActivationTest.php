@@ -17,7 +17,7 @@ class SkTemplateActivationTest extends TestCase
     private SkTemplateService $service;
     private User $admin;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         

@@ -33,7 +33,7 @@ class WaBlastControllerTest extends TestCase
     private School $school;
     private WaBlastConfig $config;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

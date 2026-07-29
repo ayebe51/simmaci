@@ -19,7 +19,7 @@ class RecipientCompilerServiceTest extends TestCase
     /** Minimum iterations for property-based tests */
     private const PROPERTY_ITERATIONS = 100;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->phoneNormalizer = new PhoneNormalizerService();

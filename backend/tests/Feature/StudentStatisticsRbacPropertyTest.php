@@ -23,7 +23,7 @@ class StudentStatisticsRbacPropertyTest extends TestCase
 
     private StudentStatisticsService $service;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = app(StudentStatisticsService::class);

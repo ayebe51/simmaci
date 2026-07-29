@@ -38,7 +38,7 @@ class SkSubmissionBugExplorationTest extends TestCase
     private User $operator;
     private User $operatorWithNullSchool;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

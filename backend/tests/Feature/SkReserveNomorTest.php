@@ -25,7 +25,7 @@ class SkReserveNomorTest extends TestCase
     private User $superAdmin;
     private School $school;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

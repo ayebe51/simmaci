@@ -27,7 +27,7 @@ class SkListPaginationPropertyTest extends TestCase
     private User $user;
     private School $school;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

@@ -43,7 +43,7 @@ class SkTemplatePropertyTest extends TestCase
     private User $operator;
     private User $adminYayasan;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

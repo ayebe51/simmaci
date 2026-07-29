@@ -807,7 +807,7 @@ class SkDocumentController extends Controller
             // Merge personal data fields only when provided — avoid overwriting existing
             // Teacher data with empty values (e.g. if operator re-submits without filling them)
             if (!empty($data['tempat_lahir'])) {
-                $teacherData['tempat_lahir'] = $data['tempat_lahir'];
+                $teacherData['tempat_lahir'] = $this->normalizationService->normalizePlaceOfBirth($data['tempat_lahir']);
             }
             if (!empty($data['tanggal_lahir'])) {
                 $teacherData['tanggal_lahir'] = $data['tanggal_lahir'];
@@ -1228,6 +1228,11 @@ class SkDocumentController extends Controller
                     $parsed = $this->normalizationService->parseIndonesianDate($teacherData[$dateField]);
                     $teacherData[$dateField] = $parsed; // null if unparseable — safer than bad string
                 }
+            }
+
+            // Normalize tempat_lahir to Title Case
+            if (!empty($teacherData['tempat_lahir'])) {
+                $teacherData['tempat_lahir'] = $this->normalizationService->normalizePlaceOfBirth($teacherData['tempat_lahir']);
             }
 
             // Normalize employment status if provided

@@ -198,6 +198,11 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     }
                 }
 
+                // Normalize tempat_lahir to Title Case
+                if (!empty($teacherData['tempat_lahir'])) {
+                    $teacherData['tempat_lahir'] = $normalizationService->normalizePlaceOfBirth($teacherData['tempat_lahir']);
+                }
+
                 // Normalize employment status if provided
                 if (isset($teacherData['status'])) {
                     $tmtForStatus = isset($teacherData['tmt']) ? \Carbon\Carbon::parse($teacherData['tmt']) : null;

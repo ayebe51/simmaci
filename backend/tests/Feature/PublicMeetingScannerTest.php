@@ -28,7 +28,7 @@ class PublicMeetingScannerTest extends TestCase
     private MeetingQrService $qrService;
     private User $creator;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

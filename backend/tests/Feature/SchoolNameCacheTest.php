@@ -31,7 +31,7 @@ class SchoolNameCacheTest extends TestCase
 
     private DashboardCacheService $service;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = new DashboardCacheService();

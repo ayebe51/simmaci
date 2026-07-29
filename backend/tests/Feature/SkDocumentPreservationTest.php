@@ -36,7 +36,7 @@ class SkDocumentPreservationTest extends TestCase
     private User $operator;
     private User $superAdmin;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

@@ -15,7 +15,7 @@ class SkTemplateDownloadTest extends TestCase
 
     protected User $superAdmin;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

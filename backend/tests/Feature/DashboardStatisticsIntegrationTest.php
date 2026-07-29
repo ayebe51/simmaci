@@ -24,7 +24,7 @@ class DashboardStatisticsIntegrationTest extends TestCase
     private User $operator;
     private School $operatorSchool;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

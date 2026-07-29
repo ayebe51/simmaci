@@ -24,7 +24,7 @@ class SendMeetingReminderJobTest extends TestCase
     private User $superAdmin;
     private Meeting $meeting;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

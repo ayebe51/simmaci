@@ -36,7 +36,7 @@ class BulkSkImportPreservationTest extends TestCase
     private School $school;
     private User $operator;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

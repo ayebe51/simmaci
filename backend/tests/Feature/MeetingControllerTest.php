@@ -25,7 +25,7 @@ class MeetingControllerTest extends TestCase
     private School $school1;
     private School $school2;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

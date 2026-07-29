@@ -25,7 +25,7 @@ class SkDocumentNotificationTest extends TestCase
 
     private SkDocumentController $controller;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $normalizationService = $this->app->make(NormalizationService::class);

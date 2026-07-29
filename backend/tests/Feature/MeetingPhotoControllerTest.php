@@ -30,7 +30,7 @@ class MeetingPhotoControllerTest extends TestCase
     private School $school2;
     private Meeting $meeting;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

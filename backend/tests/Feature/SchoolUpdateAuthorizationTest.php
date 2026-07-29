@@ -22,7 +22,7 @@ class SchoolUpdateAuthorizationTest extends TestCase
     private School $operatorSchool;
     private School $otherSchool;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

@@ -28,7 +28,7 @@ class MeetingQrServiceTest extends TestCase
     private MeetingQrService $service;
     private Meeting $meeting;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = new MeetingQrService();

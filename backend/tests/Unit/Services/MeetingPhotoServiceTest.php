@@ -26,7 +26,7 @@ class MeetingPhotoServiceTest extends TestCase
     private Meeting $meeting;
     private User $user;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

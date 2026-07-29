@@ -46,7 +46,7 @@ class AttendanceIntegrationTest extends TestCase
     private Student $student1;
     private Student $student2;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

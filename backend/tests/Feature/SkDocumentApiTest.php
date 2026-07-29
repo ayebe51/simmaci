@@ -16,7 +16,7 @@ class SkDocumentApiTest extends TestCase
     private User $operator;
     private School $school;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

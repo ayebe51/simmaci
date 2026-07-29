@@ -16,7 +16,7 @@ class SchoolNameNormalizationTest extends TestCase
 
     private NormalizationService $normalizationService;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->normalizationService = new NormalizationService();

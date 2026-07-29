@@ -25,7 +25,7 @@ class WaBlastConfigControllerTest extends TestCase
     private User $adminYayasan;
     private User $operator;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

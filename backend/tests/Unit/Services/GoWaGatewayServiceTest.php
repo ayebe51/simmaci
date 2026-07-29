@@ -25,7 +25,7 @@ class GoWaGatewayServiceTest extends TestCase
 {
     private GoWaGatewayService $service;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->service = new GoWaGatewayService();

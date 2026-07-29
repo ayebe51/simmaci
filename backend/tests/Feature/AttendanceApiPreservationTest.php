@@ -47,7 +47,7 @@ class AttendanceApiPreservationTest extends TestCase
     private Subject $subject1;
     private Subject $subject2;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

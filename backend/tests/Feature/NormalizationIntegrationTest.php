@@ -20,7 +20,7 @@ class NormalizationIntegrationTest extends TestCase
     private School $school;
     private NormalizationService $normalizationService;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

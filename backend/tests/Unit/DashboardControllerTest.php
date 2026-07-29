@@ -16,7 +16,7 @@ class DashboardControllerTest extends TestCase
 
     private DashboardController $controller;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
         $this->controller = new DashboardController(

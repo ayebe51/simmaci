@@ -22,7 +22,7 @@ class SkVerificationTest extends TestCase
 
     private School $school;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
         parent::setUp();
 

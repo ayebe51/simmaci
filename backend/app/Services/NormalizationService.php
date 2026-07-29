@@ -750,7 +750,8 @@ class NormalizationService
      */
     protected function degreeKey(string $raw): string
     {
-        $clean = preg_replace('/[\s.,]+/', '', $raw);
+        // Strip dots, spaces, commas, and slashes (e.g. "S.Pd.SD/I" → "SPDSDI")
+        $clean = preg_replace('/[\s.,\/]+/', '', $raw);
         return mb_strtoupper($clean, 'UTF-8');
     }
 

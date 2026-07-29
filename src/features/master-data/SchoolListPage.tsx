@@ -132,12 +132,22 @@ export default function SchoolListPage() {
     "Cilacap Selatan", "Cilacap Tengah", "Cilacap Utara", "Kesugihan", "Adipala", "Maos", "Kroya", "Binangun", "Nusawungu", "Sampang", "Karangpucung", "Cimanggu", "Majenang", "Wanareja", "Dayeuhluhur", "Gandrungmangu", "Sidareja", "Kedungreja", "Patimuan", "Bantarsari", "Kawunganten", "Jeruklegi", "Kampung Laut", "Cipari"
   ].sort()
 
-  // ── Export Excel (client-side) ──
+  // ── Export Excel (client-side, grouped by kecamatan) ──
   const handleExportExcel = async () => {
     setIsExporting(true)
     try {
-      const res = await schoolApi.list({ per_page: 9999 })
-      const rows = (res.data || []).map((s: any, i: number) => ({
+      const res = await schoolApi.paginate({ page: 1, per_page: 9999 })
+      const allSchools: any[] = res.data || []
+
+      if (allSchools.length === 0) {
+        toast.error('Tidak ada data lembaga untuk diekspor')
+        return
+      }
+
+      const wb = XLSX.utils.book_new()
+
+      // Sheet 1: Semua data
+      const allRows = allSchools.map((s: any, i: number) => ({
         No: i + 1,
         NSM: s.nsm || '',
         NPSN: s.npsn || '',
@@ -151,13 +161,39 @@ export default function SchoolListPage() {
         Email: s.email || '',
         Telepon: s.telepon || '',
       }))
-      const ws = XLSX.utils.json_to_sheet(rows)
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Data Lembaga')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allRows), 'Semua Lembaga')
+
+      // Sheet per kecamatan
+      const byKecamatan: Record<string, any[]> = {}
+      allSchools.forEach((s: any) => {
+        const kec = s.kecamatan || 'Tidak Diketahui'
+        if (!byKecamatan[kec]) byKecamatan[kec] = []
+        byKecamatan[kec].push(s)
+      })
+
+      Object.entries(byKecamatan)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([kecamatan, schools]) => {
+          const rows = schools.map((s: any, i: number) => ({
+            No: i + 1,
+            NSM: s.nsm || '',
+            NPSN: s.npsn || '',
+            'Nama Sekolah': s.nama,
+            'Kepala Madrasah': s.kepala_madrasah || '',
+            Akreditasi: s.akreditasi || '',
+            Status: s.status_jamiyyah || '',
+            Alamat: s.alamat || '',
+            Telepon: s.telepon || '',
+          }))
+          // Sheet name max 31 chars, strip invalid chars
+          const sheetName = kecamatan.slice(0, 31).replace(/[:\\/?*\[\]]/g, '')
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetName)
+        })
+
       XLSX.writeFile(wb, `Data_Lembaga_${new Date().toISOString().slice(0, 10)}.xlsx`)
-      toast.success(`Berhasil export ${rows.length} data lembaga!`)
+      toast.success(`Berhasil export ${allSchools.length} data lembaga dalam ${Object.keys(byKecamatan).length} kecamatan!`)
     } catch (e: any) {
-      toast.error('Gagal export: ' + e.message)
+      toast.error('Gagal export: ' + (e.response?.data?.message || e.message))
     } finally {
       setIsExporting(false)
     }

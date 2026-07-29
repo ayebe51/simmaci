@@ -39,6 +39,7 @@ class NormalizationService
         'SPDAUDI'   => 'S.Pd.AUD.I',
         'SPDAUD'    => 'S.Pd.AUD.',
         'SPDSDI'    => 'S.Pd.SD.I',
+        'SPDSD/I'   => 'S.Pd.SD/I',  // S.Pd.SD/I — Sarjana Pendidikan SD Islam (notasi slash resmi)
         'SPDSD'     => 'S.Pd.SD.',
         'SPDKI'     => 'S.Pd.K.I',
         'SPDK'      => 'S.Pd.K.',
@@ -750,8 +751,9 @@ class NormalizationService
      */
     protected function degreeKey(string $raw): string
     {
-        // Strip dots, spaces, commas, and slashes (e.g. "S.Pd.SD/I" → "SPDSDI")
-        $clean = preg_replace('/[\s.,\/]+/', '', $raw);
+        // Strip dots, spaces, and commas — but PRESERVE slash
+        // because slash is part of some official degree notations (e.g. S.Pd.SD/I)
+        $clean = preg_replace('/[\s.,]+/', '', $raw);
         return mb_strtoupper($clean, 'UTF-8');
     }
 

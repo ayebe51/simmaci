@@ -9,6 +9,7 @@ use App\Models\SkDocument;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Services\NormalizationService;
+use App\Services\SkPemberhentianService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -28,9 +29,10 @@ class SkDocumentNotificationTest extends TestCase
     public function setUp(): void
     {
         parent::setUp();
-        $normalizationService = $this->app->make(NormalizationService::class);
+        $normalizationService  = $this->app->make(NormalizationService::class);
         $dashboardCacheService = $this->app->make(\App\Services\DashboardCacheService::class);
-        $this->controller = new SkDocumentController($normalizationService, $dashboardCacheService);
+        $pemberhentianService  = $this->app->make(SkPemberhentianService::class);
+        $this->controller = new SkDocumentController($normalizationService, $dashboardCacheService, $pemberhentianService);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

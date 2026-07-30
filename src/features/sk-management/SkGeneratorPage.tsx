@@ -113,6 +113,19 @@ const toRoman = (num: number): string => {
     return str
 }
 
+// Helper format alasan pemberhentian dari enum ke label Indonesia
+const formatAlasanPemberhentian = (alasan?: string): string => {
+  const labels: Record<string, string> = {
+    pengunduran_diri:     'Pengunduran Diri',
+    pensiun:              'Pensiun',
+    meninggal_dunia:      'Meninggal Dunia',
+    pelanggaran_disiplin: 'Pelanggaran Disiplin',
+    habis_kontrak:        'Habis Kontrak',
+    lainnya:              'Lainnya',
+  }
+  return alasan ? (labels[alasan] ?? alasan) : '-'
+}
+
 /**
  * Resolve surat permohonan URL to an authenticated fetch URL
  */
@@ -258,12 +271,14 @@ export default function SkGeneratorPage() {
   const skTemplateGtt = useSkTemplate('gtt')
   const skTemplateKamad = useSkTemplate('kamad')
   const skTemplateTendik = useSkTemplate('tendik')
+  const skTemplatePemberhentian = useSkTemplate('pemberhentian')
 
   const skTemplateByType: Record<string, ReturnType<typeof useSkTemplate>> = {
     sk_template_gty: skTemplateGty,
     sk_template_gtt: skTemplateGtt,
     sk_template_kamad: skTemplateKamad,
     sk_template_tendik: skTemplateTendik,
+    sk_template_pemberhentian: skTemplatePemberhentian,
   }
 
   // 🔥 REST API QUERIES
@@ -408,7 +423,8 @@ export default function SkGeneratorPage() {
             'sk_template_gty': 'Guru_Tetap_Yayasan',
             'sk_template_gtt': 'Guru_Tidak_Tetap',
             'sk_template_kamad': 'Kepala_Madrasah',
-            'sk_template_tendik': 'Tenaga_Kependidikan'
+            'sk_template_tendik': 'Tenaga_Kependidikan',
+            'sk_template_pemberhentian': 'Pemberhentian',
         }
 
         // Custom parser to handle spaces inside braces { NAMA } -> {NAMA}
@@ -491,41 +507,43 @@ export default function SkGeneratorPage() {
             // 1. Determine Template
             const jenis = (t.jenis_sk || "").toLowerCase()
             const isKamad = jenis.includes("kamad") || jenis.includes("kepala")
-            
-            // 1. Abaikan status dari excel karena operator sering salah input
-            // 2. Cek apakah memiliki gelar atau pendidikan S1+
-            const namaLengkap = (t.nama || teacher.nama || "")
-            const hasGelarDepan = /^(Drs\.|Dra\.|Ir\.|Dr\.|Prof\.)/i.test(namaLengkap)
-            const hasGelarBelakang = namaLengkap.includes(',')
-            
-            const pendidikan = (t.pendidikan_terakhir || teacher.pendidikan_terakhir || "").toLowerCase()
-            const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
-            const isPendidikanTinggi = PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
+            const isPemberhentianSk = jenis.includes("pemberhentian")
 
-            // Cek apakah gelar belakang adalah diploma saja (A.Md/A.Ma → Tendik)
-            // Jika nama mengandung koma tapi gelarnya hanya diploma, tetap Tendik
-            const gelarBelakangStr = hasGelarBelakang
-                ? namaLengkap.substring(namaLengkap.indexOf(',') + 1).trim()
-                : ""
-            const isGelarDiplomaOnly = hasGelarBelakang
-                && /^(A\.Ma|A\.Md|Amd|AMD)/i.test(gelarBelakangStr)
-                && !/\b(S\.|M\.|Dr\.|Drs\.|Dra\.|Prof\.)/i.test(gelarBelakangStr)
+            let templateId: string
 
-            const hasGelar = (hasGelarDepan || (hasGelarBelakang && !isGelarDiplomaOnly) || isPendidikanTinggi)
-
-            let templateId = "sk_template_tendik" // Default
-
-            if (isKamad) {
-                // Kamad is GTY — SK massal for Kamad uses GTY template
-                templateId = "sk_template_gty"
-            } else if (!hasGelar) {
-                // Tidak ada gelar/pendidikan tinggi otomatis Tendik
-                templateId = "sk_template_tendik"
+            if (isPemberhentianSk) {
+                // SK Pemberhentian selalu pakai template sendiri
+                templateId = "sk_template_pemberhentian"
             } else {
-                // Punya gelar, penentuan murni dari TMT
-                const tmtForTemplate = t.tmt || teacher.tmt
-                const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanPerGuru) : 0
-                templateId = periodeForTemplate >= 2 ? "sk_template_gty" : "sk_template_gtt"
+                // 1. Abaikan status dari excel karena operator sering salah input
+                // 2. Cek apakah memiliki gelar atau pendidikan S1+
+                const namaLengkap = (t.nama || teacher.nama || "")
+                const hasGelarDepan = /^(Drs\.|Dra\.|Ir\.|Dr\.|Prof\.)/i.test(namaLengkap)
+                const hasGelarBelakang = namaLengkap.includes(',')
+                
+                const pendidikan = (t.pendidikan_terakhir || teacher.pendidikan_terakhir || "").toLowerCase()
+                const PENDIDIKAN_TINGGI = ["s1", "s2", "s3", "d4", "s1/d4", "strata"]
+                const isPendidikanTinggi = PENDIDIKAN_TINGGI.some(p => pendidikan.includes(p))
+
+                // Cek apakah gelar belakang adalah diploma saja (A.Md/A.Ma → Tendik)
+                const gelarBelakangStr = hasGelarBelakang
+                    ? namaLengkap.substring(namaLengkap.indexOf(',') + 1).trim()
+                    : ""
+                const isGelarDiplomaOnly = hasGelarBelakang
+                    && /^(A\.Ma|A\.Md|Amd|AMD)/i.test(gelarBelakangStr)
+                    && !/\b(S\.|M\.|Dr\.|Drs\.|Dra\.|Prof\.)/i.test(gelarBelakangStr)
+
+                const hasGelar = (hasGelarDepan || (hasGelarBelakang && !isGelarDiplomaOnly) || isPendidikanTinggi)
+
+                if (isKamad) {
+                    templateId = "sk_template_gty"
+                } else if (!hasGelar) {
+                    templateId = "sk_template_tendik"
+                } else {
+                    const tmtForTemplate = t.tmt || teacher.tmt
+                    const periodeForTemplate = tmtForTemplate ? calculatePeriode(tmtForTemplate, tglPenetapanPerGuru) : 0
+                    templateId = periodeForTemplate >= 2 ? "sk_template_gty" : "sk_template_gtt"
+                }
             }
             
             // 2. Fetch Template if not cached
@@ -747,6 +765,7 @@ export default function SkGeneratorPage() {
                 "TANGGAL_MULAI_TUGAS": identity.tmt,
                 "tanggal_mulai_tugas": identity.tmt,
                 "TANGGAL PENETAPAN": formatDateIndo(tanggalPenetapanPerGuru),
+                "TANGGAL_PENETAPAN": formatDateIndo(tanggalPenetapanPerGuru),
                 "TAHUN PELAJARAN": tahunAjaran,
                 "TANGGAL LENGKAP": formatDateIndo(tanggalPenetapanPerGuru),
                 "TANGGAL_BERAKHIR": formatDateIndo(tglBerakhirVal.toISOString()),
@@ -758,6 +777,12 @@ export default function SkGeneratorPage() {
                 "qrcode": qrCodeData,
                 "image": qrCodeData,
                 "PERIODE": periodeStr,
+                // SK Pemberhentian placeholders (safe to include for all templates — unused ones are ignored)
+                "ALASAN_PEMBERHENTIAN": formatAlasanPemberhentian(t.alasan_pemberhentian) || "-",
+                "KETERANGAN_PEMBERHENTIAN": t.keterangan_pemberhentian || "-",
+                "TANGGAL_EFEKTIF": formatDateIndo(t.tanggal_efektif_pemberhentian) || "-",
+                "TANGGAL EFEKTIF": formatDateIndo(t.tanggal_efektif_pemberhentian) || "-",
+                "TANGGAL_EFEKTIF_PEMBERHENTIAN": formatDateIndo(t.tanggal_efektif_pemberhentian) || "-",
                 // Array tembusan dengan nomor eksplisit — dipakai jika template menggunakan
                 // {#tembusan}{nomor}. {isi}{/tembusan} (plain paragraf, bukan numbered list Word)
                 // Ini satu-satunya cara agar nomor tembusan selalu reset ke 1 di mode gabung

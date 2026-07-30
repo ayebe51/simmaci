@@ -54,6 +54,10 @@ class SkVerificationController extends Controller
             'status'             => strtolower($sk->status),
             'is_expired'         => $isExpired,
             'school'             => $sk->school ? ['nama' => $sk->school->nama] : null,
+            // SK Pemberhentian fields — null for non-pemberhentian SK
+            'alasan_pemberhentian'          => $sk->alasan_pemberhentian,
+            'keterangan_pemberhentian'      => $sk->keterangan_pemberhentian,
+            'tanggal_efektif_pemberhentian' => $sk->tanggal_efektif_pemberhentian?->toDateString(),
         ];
 
         return $this->successResponse($data, 'Dokumen SK ditemukan.');

@@ -51,7 +51,7 @@ const uploadFormSchema = z.object({
       'File harus berformat .docx, .doc, atau .pdf'
     )
     .refine((f) => f.size <= 10 * 1024 * 1024, 'Ukuran file maksimal 10 MB'),
-  sk_type: z.enum(['gty', 'gtt', 'kamad', 'tendik', 'surat_permohonan'], {
+  sk_type: z.enum(['gty', 'gtt', 'kamad', 'tendik', 'surat_permohonan', 'pemberhentian'], {
     required_error: 'Pilih jenis SK',
   }),
 })
@@ -65,6 +65,7 @@ const SK_TYPES = [
   { value: 'gtt', label: 'GTT', fullLabel: 'Guru Tidak Tetap' },
   { value: 'kamad', label: 'Kamad', fullLabel: 'Kepala Madrasah' },
   { value: 'tendik', label: 'Tendik', fullLabel: 'Tenaga Kependidikan' },
+  { value: 'pemberhentian', label: 'Pemberhentian', fullLabel: 'SK Pemberhentian' },
 ] as const
 
 // ── Helpers ────────────────────────────────────────────────────────────────

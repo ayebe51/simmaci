@@ -20,6 +20,10 @@ class SkDocument extends Model
         'created_by', 'archived_at', 'archived_by', 'archive_reason',
         'nomor_permohonan', 'tanggal_permohonan', 'rejection_reason',
         'ijazah_url',
+        // SK Pemberhentian fields
+        'alasan_pemberhentian',
+        'keterangan_pemberhentian',
+        'tanggal_efektif_pemberhentian',
     ];
 
     protected function casts(): array
@@ -27,6 +31,7 @@ class SkDocument extends Model
         return [
             'revision_data' => 'array',
             'archived_at' => 'datetime',
+            'tanggal_efektif_pemberhentian' => 'date',
         ];
     }
 

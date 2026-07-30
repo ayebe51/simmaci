@@ -20,6 +20,19 @@ import {
   School,
 } from "lucide-react";
 
+// Helper — format nilai enum alasan pemberhentian ke label Indonesia
+const formatAlasanPemberhentian = (alasan?: string): string => {
+  const labels: Record<string, string> = {
+    pengunduran_diri:     'Pengunduran Diri',
+    pensiun:              'Pensiun',
+    meninggal_dunia:      'Meninggal Dunia',
+    pelanggaran_disiplin: 'Pelanggaran Disiplin',
+    habis_kontrak:        'Habis Kontrak',
+    lainnya:              'Lainnya',
+  }
+  return alasan ? (labels[alasan] ?? alasan) : '-'
+}
+
 interface SkData {
   nomor_sk: string;
   nama: string;
@@ -33,6 +46,10 @@ interface SkData {
   school?: {
     nama: string;
   };
+  // SK Pemberhentian fields
+  alasan_pemberhentian?: string;
+  keterangan_pemberhentian?: string;
+  tanggal_efektif_pemberhentian?: string;
 }
 
 export default function VerifySkPage() {
@@ -273,6 +290,42 @@ export default function VerifySkPage() {
               </div>
             </div>
           </div>
+
+          {/* SK Pemberhentian info — tampil hanya jika ada */}
+          {skData.alasan_pemberhentian && (
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3">
+              <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Detail Pemberhentian</p>
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-black text-red-500">!</span>
+                </div>
+                <div className="space-y-1.5">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alasan</p>
+                    <p className="text-sm font-bold text-red-700">
+                      {formatAlasanPemberhentian(skData.alasan_pemberhentian)}
+                    </p>
+                  </div>
+                  {skData.keterangan_pemberhentian && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Keterangan</p>
+                      <p className="text-sm font-bold text-slate-700">{skData.keterangan_pemberhentian}</p>
+                    </div>
+                  )}
+                  {skData.tanggal_efektif_pemberhentian && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal Efektif</p>
+                      <p className="text-sm font-bold text-slate-700">
+                        {new Date(skData.tanggal_efektif_pemberhentian).toLocaleDateString("id-ID", {
+                          day: "2-digit", month: "long", year: "numeric"
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Expired notice */}
           {isExpired && (

@@ -36,7 +36,20 @@ type SkFormValues = {
   status_kepegawaian?: string
   nomor_surat_permohonan?: string
   tanggal_surat_permohonan?: string
+  // SK Pemberhentian
+  alasan_pemberhentian?: string
+  keterangan_pemberhentian?: string
+  tanggal_efektif_pemberhentian?: string
 }
+
+const ALASAN_PEMBERHENTIAN_OPTIONS = [
+  { value: 'pengunduran_diri',    label: 'Pengunduran Diri' },
+  { value: 'pensiun',             label: 'Pensiun' },
+  { value: 'meninggal_dunia',     label: 'Meninggal Dunia' },
+  { value: 'pelanggaran_disiplin', label: 'Pelanggaran Disiplin' },
+  { value: 'habis_kontrak',       label: 'Habis Kontrak' },
+  { value: 'lainnya',             label: 'Lainnya' },
+] as const
 
 export default function SkSubmissionPage() {
   const navigate = useNavigate()
@@ -114,7 +127,20 @@ export default function SkSubmissionPage() {
     status_kepegawaian: z.string().optional(),
     nomor_surat_permohonan: z.string().optional(),
     tanggal_surat_permohonan: z.string().optional(),
-  })
+    // SK Pemberhentian fields
+    alasan_pemberhentian: z.string().optional(),
+    keterangan_pemberhentian: z.string().max(1000).optional(),
+    tanggal_efektif_pemberhentian: z.string().optional(),
+  }).refine(
+    (data) => data.jenisSk !== 'SK Pemberhentian' || !!data.alasan_pemberhentian,
+    { message: 'Alasan pemberhentian wajib diisi', path: ['alasan_pemberhentian'] }
+  ).refine(
+    (data) => data.jenisSk !== 'SK Pemberhentian' || !!data.tanggal_efektif_pemberhentian,
+    { message: 'Tanggal efektif pemberhentian wajib diisi', path: ['tanggal_efektif_pemberhentian'] }
+  ).refine(
+    (data) => data.alasan_pemberhentian !== 'lainnya' || !!data.keterangan_pemberhentian,
+    { message: 'Keterangan wajib diisi jika alasan adalah "Lainnya"', path: ['keterangan_pemberhentian'] }
+  )
 
   const form = useForm<SkFormValues>({
     resolver: zodResolver(skSchema),
@@ -124,6 +150,10 @@ export default function SkSubmissionPage() {
     },
     mode: "onChange" // Enable validation on change to show errors immediately
   })
+
+  const watchedJenisSk = form.watch("jenisSk")
+  const watchedAlasan = form.watch("alasan_pemberhentian")
+  const isPemberhentian = watchedJenisSk === 'SK Pemberhentian'
 
   // Auto-fill unit_kerja for operator from school profile
   const { data: schoolProfile } = useQuery({
@@ -227,7 +257,13 @@ export default function SkSubmissionPage() {
         surat_permohonan_url: fileUrl,
         nomor_surat_permohonan: data.nomor_surat_permohonan || undefined,
         tanggal_surat_permohonan: data.tanggal_surat_permohonan || undefined,
-        status_kepegawaian: data.status_kepegawaian || (data.jenisSk?.includes("GTY") ? "GTY" : "GTT")
+        status_kepegawaian: data.status_kepegawaian || (data.jenisSk?.includes("GTY") ? "GTY" : "GTT"),
+        // SK Pemberhentian fields
+        ...(data.jenisSk === 'SK Pemberhentian' && {
+          alasan_pemberhentian: data.alasan_pemberhentian,
+          keterangan_pemberhentian: data.keterangan_pemberhentian || undefined,
+          tanggal_efektif_pemberhentian: data.tanggal_efektif_pemberhentian,
+        }),
       })
     } catch (err: any) {
       toast.error("Gagal menyimpan pengajuan: " + (err.response?.data?.message || err.message || "Terjadi kesalahan"))
@@ -368,6 +404,7 @@ export default function SkSubmissionPage() {
                                 <SelectItem value="SK Guru Tetap Yayasan">SK Guru Tetap Yayasan (GTY)</SelectItem>
                                 <SelectItem value="SK Guru Tidak Tetap">SK Guru Tidak Tetap (GTT)</SelectItem>
                                 <SelectItem value="SK Tenaga Kependidikan">SK Tenaga Kependidikan</SelectItem>
+                                <SelectItem value="SK Pemberhentian">SK Pemberhentian</SelectItem>
                             </SelectContent>
                         </Select>
                         <p className="text-[9px] text-slate-400 font-medium italic">
@@ -495,6 +532,67 @@ export default function SkSubmissionPage() {
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Keterangan / Catatan</Label>
                         <Textarea placeholder="Berikan catatan tambahan jika diperlukan..." {...form.register("keterangan")} className="rounded-xl bg-slate-50 border-0 focus:ring-blue-500 min-h-[120px]" />
                     </div>
+
+                    {/* ── SK Pemberhentian Fields ── */}
+                    {isPemberhentian && (
+                      <div className="md:col-span-2 space-y-6 border-l-2 border-red-200 pl-6 py-2">
+                        <p className="text-xs font-black uppercase text-red-500 tracking-widest">Detail Pemberhentian</p>
+
+                        {/* Alasan Pemberhentian */}
+                        <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                            Alasan Pemberhentian <span className="text-red-500">*</span>
+                          </Label>
+                          <Select onValueChange={(val) => form.setValue("alasan_pemberhentian", val, { shouldValidate: true })}>
+                            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-red-500 font-bold text-slate-700">
+                              <SelectValue placeholder="Pilih alasan pemberhentian..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              {ALASAN_PEMBERHENTIAN_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {form.formState.errors.alasan_pemberhentian && (
+                            <p className="text-xs text-red-500 font-medium">{form.formState.errors.alasan_pemberhentian.message as string}</p>
+                          )}
+                        </div>
+
+                        {/* Keterangan (hanya jika alasan = lainnya) */}
+                        {watchedAlasan === 'lainnya' && (
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                              Keterangan <span className="text-red-500">*</span>
+                            </Label>
+                            <Textarea
+                              {...form.register("keterangan_pemberhentian")}
+                              placeholder="Jelaskan alasan pemberhentian secara lengkap..."
+                              maxLength={1000}
+                              className="rounded-xl bg-slate-50 border-0 focus:ring-red-500 min-h-[100px]"
+                            />
+                            {form.formState.errors.keterangan_pemberhentian && (
+                              <p className="text-xs text-red-500 font-medium">{form.formState.errors.keterangan_pemberhentian.message as string}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Tanggal Efektif */}
+                        <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                            Tanggal Efektif Pemberhentian <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            type="date"
+                            {...form.register("tanggal_efektif_pemberhentian")}
+                            min={new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                            className="h-12 rounded-xl bg-slate-50 border-0 focus:ring-red-500"
+                          />
+                          {form.formState.errors.tanggal_efektif_pemberhentian && (
+                            <p className="text-xs text-red-500 font-medium">{form.formState.errors.tanggal_efektif_pemberhentian.message as string}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 <div className="flex justify-end gap-3 pt-10 border-t border-slate-50">

@@ -164,6 +164,8 @@ export default function TeacherListPage() {
   const [isGenerateNimOpen, setIsGenerateNimOpen] = useState(false)
   const [isGeneratingNim, setIsGeneratingNim] = useState(false)
   const [generateNimResult, setGenerateNimResult] = useState<any[]>([])
+  const [nimPreviewList, setNimPreviewList] = useState<any[]>([])
+  const [isLoadingNimPreview, setIsLoadingNimPreview] = useState(false)
 
   const handleGenerateAccounts = async () => {
     setIsGenerating(true)
@@ -180,6 +182,24 @@ export default function TeacherListPage() {
     }
   }
 
+  const handleOpenGenerateNim = async () => {
+    setGenerateNimResult([])
+    setNimPreviewList([])
+    setIsGenerateNimOpen(true)
+    // Load preview: guru yang akan di-assign NIM
+    setIsLoadingNimPreview(true)
+    try {
+      const res = await teacherApi.previewBulkNim(
+        selectedTeacherIds.size > 0 ? Array.from(selectedTeacherIds) : undefined
+      )
+      setNimPreviewList(res.teachers || [])
+    } catch {
+      // fallback: tidak tampilkan preview, tetap bisa generate
+    } finally {
+      setIsLoadingNimPreview(false)
+    }
+  }
+
   const handleGenerateNim = async () => {
     setIsGeneratingNim(true)
     try {
@@ -193,6 +213,7 @@ export default function TeacherListPage() {
         setGenerateNimResult(res.results || [])
         toast.success(res.message || `Berhasil generate ${res.results?.length || 0} NIM baru.`)
         queryClient.invalidateQueries({ queryKey: ["teachers"] })
+        setSelectedTeacherIds(new Set())
     } catch (err: any) {
         toast.error("Gagal generate NIM: " + (err.response?.data?.message || err.message))
     } finally {
@@ -379,7 +400,7 @@ export default function TeacherListPage() {
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
 
           ...(isSuperAdmin && canEdit ? [
-              { label: 'Generate NIM', onClick: () => { setGenerateNimResult([]); setIsGenerateNimOpen(true) }, variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
+              { label: 'Generate NIM', onClick: () => handleOpenGenerateNim(), variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
               { label: 'Koreksi Status', onClick: () => recalcDryRunMutation.mutate(), variant: 'teal', icon: recalcDryRunMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />, disabled: recalcDryRunMutation.isPending },
               { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'red', icon: <Trash2 className="h-4 w-4" /> },
           ] : []),
@@ -458,10 +479,47 @@ export default function TeacherListPage() {
            </div>
         </CardHeader>
         <CardContent className="p-0 border-x-0">
+            {/* ── Bulk Action Bar ── */}
+            {selectedTeacherIds.size > 0 && (
+              <div className="flex items-center gap-3 px-5 py-3 bg-emerald-50 border-b border-emerald-100">
+                <div className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+                  <BadgeCheck className="h-4 w-4" />
+                  {selectedTeacherIds.size} guru dipilih
+                </div>
+                <div className="flex-1" />
+                {isSuperAdmin && canEdit && (
+                  <button
+                    onClick={() => handleOpenGenerateNim()}
+                    className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs uppercase tracking-wide transition-colors"
+                  >
+                    <Fingerprint className="h-3.5 w-3.5" />
+                    Generate NIM ({selectedTeacherIds.size})
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedTeacherIds(new Set())}
+                  className="flex items-center gap-1 h-8 px-3 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100 font-semibold text-xs transition-colors"
+                >
+                  <X className="h-3 w-3" /> Batal Pilih
+                </button>
+              </div>
+            )}
             <Table>
                 <TableHeader className="bg-emerald-50/50">
                     <TableRow className="border-b-0 hover:bg-transparent">
-                        <TableHead className="w-[36px] pl-4 rounded-tl-xl text-emerald-800"><Checkbox className="border-emerald-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white" /></TableHead>
+                        <TableHead className="w-[36px] pl-4 rounded-tl-xl text-emerald-800">
+                            <Checkbox
+                              className="border-emerald-300 data-[state=checked]:bg-emerald-500 data-[state=checked]:text-white"
+                              checked={teachers.length > 0 && teachers.every((t: Teacher) => selectedTeacherIds.has(t.id))}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedTeacherIds(new Set(teachers.map((t: Teacher) => t.id)))
+                                } else {
+                                  setSelectedTeacherIds(new Set())
+                                }
+                              }}
+                            />
+                        </TableHead>
                         <TableHead className="py-3 px-3 font-bold text-emerald-800">Nomor Induk</TableHead>
                         <TableHead className="py-3 px-3 font-bold text-emerald-800">Nama</TableHead>
                         <TableHead className="py-3 px-3 font-bold text-emerald-800 text-center">Status</TableHead>
@@ -909,8 +967,8 @@ export default function TeacherListPage() {
       <Dialog open={isGenerateNimOpen} onOpenChange={(v) => { if (!isGeneratingNim) setIsGenerateNimOpen(v) }}>
         <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="items-center text-center">
-            <div className="bg-emerald-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
-              <Fingerprint className="h-8 w-8 text-emerald-500" />
+            <div className="bg-purple-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
+              <Fingerprint className="h-8 w-8 text-purple-500" />
             </div>
             <DialogTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Generate NIM Massal</DialogTitle>
             <DialogDescription className="text-sm font-medium text-slate-500 pt-2">
@@ -921,6 +979,7 @@ export default function TeacherListPage() {
           </DialogHeader>
 
           {generateNimResult.length > 0 ? (
+            /* ── Hasil Generate ── */
             <div className="mt-4 space-y-3">
               <p className="text-xs font-black uppercase tracking-widest text-emerald-600 text-center">{generateNimResult.length} NIM Berhasil Dibuat</p>
               <div className="border rounded-xl overflow-hidden">
@@ -956,21 +1015,77 @@ export default function TeacherListPage() {
               </button>
             </div>
           ) : (
-            <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
-              <button
-                onClick={() => setIsGenerateNimOpen(false)}
-                className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleGenerateNim}
-                disabled={isGeneratingNim}
-                className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
-              >
-                {isGeneratingNim ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Generate Sekarang'}
-              </button>
-            </DialogFooter>
+            /* ── Preview & Konfirmasi ── */
+            <>
+              {/* Preview daftar guru yang akan di-assign NIM */}
+              <div className="mt-4">
+                {isLoadingNimPreview ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-400">
+                    <Loader2 className="h-6 w-6 animate-spin mb-2 text-purple-400" />
+                    <span className="text-xs font-medium">Memuat daftar guru...</span>
+                  </div>
+                ) : nimPreviewList.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                      {nimPreviewList.length} guru akan menerima NIM baru
+                    </p>
+                    <div className="border rounded-xl overflow-hidden max-h-[300px] overflow-y-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-purple-50 sticky top-0">
+                          <tr>
+                            <th className="text-left px-4 py-2.5 font-black text-purple-700">Nama Guru</th>
+                            <th className="text-left px-4 py-2.5 font-black text-purple-700">Sekolah</th>
+                            <th className="text-left px-4 py-2.5 font-black text-purple-700">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nimPreviewList.map((t: any, i: number) => (
+                            <tr key={t.id ?? i} className="border-t border-slate-100 hover:bg-slate-50">
+                              <td className="px-4 py-2 font-semibold text-slate-700">{t.nama}</td>
+                              <td className="px-4 py-2 text-slate-500 max-w-[160px] truncate">{t.unit_kerja || t.school?.nama || '—'}</td>
+                              <td className="px-4 py-2">
+                                <Badge variant="outline" className={`rounded-lg px-1.5 py-0 text-[10px] font-bold border-0 ${t.status === 'GTY' ? 'bg-emerald-100 text-emerald-700' : t.status === 'PNS' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                                  {t.status || '—'}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      * Hanya guru Jam'iyyah non-PNS yang belum memiliki NIM. Format: <span className="font-mono text-purple-600">1134XXXXX</span>
+                    </p>
+                  </div>
+                ) : nimPreviewList.length === 0 && !isLoadingNimPreview ? (
+                  <div className="flex flex-col items-center py-8 text-slate-400">
+                    <Check className="h-10 w-10 text-emerald-400 mb-2" strokeWidth={1.5} />
+                    <p className="text-sm font-semibold text-slate-500">Tidak ada guru yang perlu di-generate NIM</p>
+                    <p className="text-xs text-slate-400 mt-1">Semua guru yang memenuhi syarat sudah memiliki NIM.</p>
+                  </div>
+                ) : null}
+              </div>
+
+              <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+                <button
+                  onClick={() => setIsGenerateNimOpen(false)}
+                  className="flex-1 h-12 rounded-2xl border border-slate-200 font-black uppercase tracking-widest text-xs text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleGenerateNim}
+                  disabled={isGeneratingNim || nimPreviewList.length === 0}
+                  className="flex-1 h-12 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-colors"
+                >
+                  {isGeneratingNim
+                    ? <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    : nimPreviewList.length > 0
+                      ? `Generate ${nimPreviewList.length} NIM Sekarang`
+                      : 'Generate Sekarang'}
+                </button>
+              </DialogFooter>
+            </>
           )}
         </DialogContent>
       </Dialog>

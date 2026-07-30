@@ -1416,6 +1416,53 @@ class TeacherController extends Controller
         ]);
     }
 
+    /**
+     * POST /api/teachers/nim/bulk-generate/preview
+     * Preview daftar guru yang akan menerima NIM dari bulkGenerateNim (tidak menyimpan).
+     * Berguna untuk konfirmasi sebelum generate massal.
+     */
+    public function previewBulkGenerateNim(Request $request): JsonResponse
+    {
+        if (!in_array($request->user()->role, ['super_admin', 'admin_yayasan'])) {
+            return response()->json(['message' => 'Anda tidak memiliki akses.'], 403);
+        }
+
+        $teacherIds = $request->input('teacher_ids');
+
+        $query = Teacher::with('school')
+            ->where(function ($q) {
+                $q->whereNull('nomor_induk_maarif')
+                  ->orWhere('nomor_induk_maarif', '')
+                  ->orWhere('nomor_induk_maarif', '-');
+            })
+            ->whereHas('school', function ($q) {
+                $q->whereRaw("LOWER(status_jamiyyah) LIKE '%jam%iyyah%'");
+            })
+            ->where(function ($q) {
+                $q->whereRaw("LOWER(status) NOT LIKE '%pns%'")
+                  ->orWhereNull('status');
+            });
+
+        if ($teacherIds && count($teacherIds) > 0) {
+            $query->whereIn('id', $teacherIds);
+        }
+
+        $teachers = $query->orderBy('nama', 'asc')
+            ->get(['id', 'nama', 'status', 'unit_kerja', 'school_id']);
+
+        return response()->json([
+            'success' => true,
+            'count' => $teachers->count(),
+            'teachers' => $teachers->map(fn($t) => [
+                'id'        => $t->id,
+                'nama'      => $t->nama,
+                'status'    => $t->status,
+                'unit_kerja'=> $t->unit_kerja,
+                'school'    => $t->school ? ['nama' => $t->school->nama] : null,
+            ]),
+        ]);
+    }
+
     public function generateAccounts(Request $request): JsonResponse
     {
         $teacherIds = $request->input('teacher_ids');

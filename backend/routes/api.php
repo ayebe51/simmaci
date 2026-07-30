@@ -281,6 +281,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // NIM routes must be registered before apiResource to avoid {teacher} wildcard conflict
         Route::get('teachers/nim/generate', [TeacherController::class, 'previewNim']);
         Route::post('teachers/nim/bulk-generate', [TeacherController::class, 'bulkGenerateNim']);
+        Route::post('teachers/nim/bulk-generate/preview', [TeacherController::class, 'previewBulkGenerateNim']);
         Route::patch('teachers/{teacher}/nim', [TeacherController::class, 'updateNim']);
         Route::apiResource('teachers', TeacherController::class);
 

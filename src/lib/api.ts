@@ -200,6 +200,13 @@ export const teacherApi = {
   bulkGenerateNim: (teacherIds?: number[]): Promise<any> =>
     apiClient.post('/teachers/nim/bulk-generate', { teacher_ids: teacherIds }).then((r) => r.data),
 
+  /**
+   * Preview daftar guru yang akan di-assign NIM oleh bulkGenerateNim (tidak menyimpan).
+   * Returns { teachers: Teacher[], count: number }
+   */
+  previewBulkNim: (teacherIds?: number[]): Promise<{ teachers: any[]; count: number }> =>
+    apiClient.post('/teachers/nim/bulk-generate/preview', { teacher_ids: teacherIds }).then((r) => r.data),
+
   recalculateStatus: (params?: { dry_run?: boolean; school_id?: number }): Promise<any> =>
     apiClient.post('/teachers/recalculate-status', {}, { params }).then((r) => r.data),
 };

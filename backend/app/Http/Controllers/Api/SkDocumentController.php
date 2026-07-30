@@ -11,8 +11,10 @@ use App\Models\School;
 use App\Models\SkDocument;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Http\Requests\SkDocument\StoreSkPemberhentianRequest;
 use App\Services\DashboardCacheService;
 use App\Services\NormalizationService;
+use App\Services\SkPemberhentianService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,7 @@ class SkDocumentController extends Controller
     public function __construct(
         private NormalizationService $normalizationService,
         private DashboardCacheService $dashboardCacheService,
+        private SkPemberhentianService $pemberhentianService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -327,6 +330,15 @@ class SkDocumentController extends Controller
                 ]);
             }
 
+            // Trigger deaktivasi guru untuk SK Pemberhentian yang disetujui
+            if ($oldStatus !== $newStatus
+                && $newStatus === 'approved'
+                && $skDocument->jenis_sk === 'SK Pemberhentian'
+            ) {
+                $freshSk = $skDocument->fresh()->load('teacher');
+                $this->pemberhentianService->onApproved($freshSk, $request->user());
+            }
+
             // Invalidate dashboard cache when SK status changes
             if ($oldStatus !== $skDocument->status && $skDocument->school_id) {
                 $this->dashboardCacheService->invalidateForSchool($skDocument->school_id);
@@ -570,6 +582,11 @@ class SkDocumentController extends Controller
                         );
                     }
 
+                    // Trigger deaktivasi guru untuk SK Pemberhentian yang disetujui
+                    if ($isApproved && $oldStatus !== $newStatus && $sk->jenis_sk === 'SK Pemberhentian') {
+                        $this->pemberhentianService->onApproved($sk, $user);
+                    }
+
                     $succeeded[] = $sk->id;
                 } catch (\Throwable $e) {
                     $failed[] = ['id' => $sk->id, 'reason' => $e->getMessage()];
@@ -647,7 +664,18 @@ class SkDocumentController extends Controller
                 'pendidikan_terakhir' => 'nullable|string',
                 'tmt' => 'nullable|string',
                 'nomor_induk_maarif' => 'nullable|string|max:20',
+                // SK Pemberhentian fields
+                'alasan_pemberhentian' => 'nullable|string|in:pengunduran_diri,pensiun,meninggal_dunia,pelanggaran_disiplin,habis_kontrak,lainnya',
+                'keterangan_pemberhentian' => 'nullable|string|max:1000',
+                'tanggal_efektif_pemberhentian' => 'nullable|date',
             ]);
+
+            // Validasi tambahan khusus SK Pemberhentian
+            if (($data['jenis_sk'] ?? '') === 'SK Pemberhentian') {
+                $pemberhentianRequest = app(StoreSkPemberhentianRequest::class);
+                $pemberhentianRequest->merge($request->all());
+                $pemberhentianRequest->validateResolved();
+            }
 
             // Normalize school name and teacher name before processing
             $originalUnitKerja = $data['unit_kerja'];
@@ -870,39 +898,47 @@ class SkDocumentController extends Controller
             // 3.3: Wrap SK document creation in try-catch block
             try {
                 $sk = SkDocument::create([
-                    'nomor_sk'             => $nomorSk,
-                    'teacher_id'           => $teacher->id,
-                    'nama'                 => $data['nama'],
-                    'jenis_sk'             => $data['jenis_sk'],
-                    'unit_kerja'           => $data['unit_kerja'],
-                    'school_id'            => $schoolId,
-                    'jabatan'              => $data['jabatan'] ?? null,
-                    'surat_permohonan_url' => $data['surat_permohonan_url'],
-                    'nomor_permohonan'     => $data['nomor_surat_permohonan'] ?? null,
-                    'tanggal_permohonan'   => $data['tanggal_surat_permohonan'] ?? null,
-                    'status'               => 'pending',
-                    'created_by'           => $request->user()->email,
-                    'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
-                    'tahun_ajaran'         => $activeTahunAjaran,
+                    'nomor_sk'                      => $nomorSk,
+                    'teacher_id'                    => $teacher->id,
+                    'nama'                          => $data['nama'],
+                    'jenis_sk'                      => $data['jenis_sk'],
+                    'unit_kerja'                    => $data['unit_kerja'],
+                    'school_id'                     => $schoolId,
+                    'jabatan'                       => $data['jabatan'] ?? null,
+                    'surat_permohonan_url'          => $data['surat_permohonan_url'],
+                    'nomor_permohonan'              => $data['nomor_surat_permohonan'] ?? null,
+                    'tanggal_permohonan'            => $data['tanggal_surat_permohonan'] ?? null,
+                    'status'                        => 'pending',
+                    'created_by'                    => $request->user()->email,
+                    'tanggal_penetapan'             => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                    'tahun_ajaran'                  => $activeTahunAjaran,
+                    // SK Pemberhentian fields (null for other jenis_sk)
+                    'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
+                    'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
+                    'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                 // Race condition on nomor_sk — re-fetch and retry once
                 $nomorSk = SkDocument::generateNomorSk();
                 $sk = SkDocument::create([
-                    'nomor_sk'             => $nomorSk,
-                    'teacher_id'           => $teacher->id,
-                    'nama'                 => $data['nama'],
-                    'jenis_sk'             => $data['jenis_sk'],
-                    'unit_kerja'           => $data['unit_kerja'],
-                    'school_id'            => $schoolId,
-                    'jabatan'              => $data['jabatan'] ?? null,
-                    'surat_permohonan_url' => $data['surat_permohonan_url'],
-                    'nomor_permohonan'     => $data['nomor_surat_permohonan'] ?? null,
-                    'tanggal_permohonan'   => $data['tanggal_surat_permohonan'] ?? null,
-                    'status'               => 'pending',
-                    'created_by'           => $request->user()->email,
-                    'tanggal_penetapan'    => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
-                    'tahun_ajaran'         => $activeTahunAjaran,
+                    'nomor_sk'                      => $nomorSk,
+                    'teacher_id'                    => $teacher->id,
+                    'nama'                          => $data['nama'],
+                    'jenis_sk'                      => $data['jenis_sk'],
+                    'unit_kerja'                    => $data['unit_kerja'],
+                    'school_id'                     => $schoolId,
+                    'jabatan'                       => $data['jabatan'] ?? null,
+                    'surat_permohonan_url'          => $data['surat_permohonan_url'],
+                    'nomor_permohonan'              => $data['nomor_surat_permohonan'] ?? null,
+                    'tanggal_permohonan'            => $data['tanggal_surat_permohonan'] ?? null,
+                    'status'                        => 'pending',
+                    'created_by'                    => $request->user()->email,
+                    'tanggal_penetapan'             => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                    'tahun_ajaran'                  => $activeTahunAjaran,
+                    // SK Pemberhentian fields (null for other jenis_sk)
+                    'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
+                    'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
+                    'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
                 ]);
             } catch (\Illuminate\Database\QueryException $e) {
                 \Log::error('SK document creation failed', ['exception' => $e, 'data' => [

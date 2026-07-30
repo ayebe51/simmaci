@@ -304,6 +304,7 @@ export default function SkDashboardPage() {
                             <SelectItem value="SK Guru Tetap Yayasan">SK GTY</SelectItem>
                             <SelectItem value="SK Guru Tidak Tetap">SK GTT</SelectItem>
                             <SelectItem value="SK Tenaga Kependidikan">SK Tendik</SelectItem>
+                            <SelectItem value="SK Pemberhentian">SK Pemberhentian</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

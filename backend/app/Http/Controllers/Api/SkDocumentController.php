@@ -262,6 +262,21 @@ class SkDocumentController extends Controller
                 'ijazah_url', 'tahun_ajaran',
             ]));
 
+            // Auto-activate: Jika nomor SK sudah resmi (bukan REQ/ atau DRAFT-) dan file PDF sudah ada,
+            // serta status masih 'approved', otomatis naikkan ke 'active'.
+            // Ini memastikan konsistensi data — SK yang sudah diterbitkan tidak stuck di status 'approved'.
+            $currentNomor = $skDocument->nomor_sk;
+            $isNomorResmi = !str_starts_with($currentNomor, 'REQ/')
+                         && !str_starts_with($currentNomor, 'DRAFT-');
+            if (
+                $isNomorResmi
+                && !empty($skDocument->file_url)
+                && $skDocument->status === 'approved'
+                && $skDocument->jenis_sk !== 'SK Pemberhentian'
+            ) {
+                $skDocument->update(['status' => 'active']);
+            }
+
             ActivityLog::log(
                 description: "SK {$skDocument->nomor_sk} diperbarui" .
                     ($oldStatus !== $skDocument->status ? " (status: {$oldStatus} → {$skDocument->status})" : ''),

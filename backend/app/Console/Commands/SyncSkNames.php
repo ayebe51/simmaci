@@ -37,7 +37,7 @@ class SyncSkNames extends Command
         
         $sks = SkDocument::withoutGlobalScope(\App\Models\Scopes\TenantScope::class)
             ->whereNotNull('teacher_id')
-            ->with('teacher:id,nama')
+            ->with('teacher:id,nama,school_id,unit_kerja')
             ->get();
             
         $updatedCount = 0;
@@ -47,14 +47,30 @@ class SyncSkNames extends Command
                 // Check if names are different
                 if ($sk->nama !== $sk->teacher->nama) {
                     $oldName = $sk->nama;
-                    $sk->nama = $sk->teacher->nama;
+                    $newName = $sk->teacher->nama;
+
+                    // Safeguard 1: Pastikan guru dan dokumen SK berada di Unit Kerja / Sekolah yang sama
+                    // Jika beda sekolah, maka kemungkinan besar teacher_id ini merujuk ke orang yang salah
+                    if ($sk->school_id && $sk->teacher->school_id && $sk->school_id !== $sk->teacher->school_id) {
+                        $this->warn("- [ANOMALI] Dilewati: {$oldName} (SK) beda unit kerja (sekolah) dengan {$newName} (Teacher).");
+                        continue;
+                    }
+
+                    // Safeguard 2: Cek kemiripan nama untuk mencegah salah timpa orang yang berbeda di dalam sekolah yang sama
+                    similar_text(strtolower(trim($oldName)), strtolower(trim($newName)), $similarityPercent);
+                    if ($similarityPercent < 40) {
+                        $this->warn("- [ANOMALI] Dilewati: {$oldName} (SK) sangat berbeda dengan {$newName} (Teacher). Cek kebenaran teacher_id!");
+                        continue;
+                    }
+                    
+                    $sk->nama = $newName;
                     
                     if (!$isDryRun) {
                         $sk->save();
                     }
                     $updatedCount++;
                     
-                    $this->line("- " . ($isDryRun ? "[DRY RUN] Akan mengupdate: " : "Mengupdate: ") . "{$oldName} -> {$sk->teacher->nama}");
+                    $this->line("- " . ($isDryRun ? "[DRY RUN] Akan mengupdate: " : "Mengupdate: ") . "{$oldName} -> {$newName}");
                 }
             }
         }

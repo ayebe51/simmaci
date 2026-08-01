@@ -855,7 +855,7 @@ export default function SkGeneratorPage() {
                     parser: customParser,
                     modules: [new ImageModule({
                         getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
-                        getSize: () => [120, 120]
+                        getSize: () => [100, 100]
                     })],
                     nullGetter: () => ""
                 })
@@ -1019,7 +1019,7 @@ export default function SkGeneratorPage() {
                         parser: customParser,
                         modules: [new ImageModule({
                             getImage: (tag: string) => base64DataURLToArrayBuffer(tag),
-                            getSize: () => [120, 120]
+                            getSize: () => [100, 100]
                         })],
                         nullGetter: () => ""
                     })

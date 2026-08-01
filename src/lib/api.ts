@@ -506,15 +506,66 @@ export const approvalApi = {
 };
 
 export const eventApi = {
-  list: () => apiClient.get('/events').then((r) => r.data),
+  list: (params?: Record<string, any>) => apiClient.get('/events', { params }).then((r) => r.data),
   get: (id: number) => apiClient.get(`/events/${id}`).then((r) => r.data),
   create: (data: any) => apiClient.post('/events', data).then((r) => r.data),
   update: (id: number, data: any) => apiClient.put(`/events/${id}`, data).then((r) => r.data),
   delete: (id: number) => apiClient.delete(`/events/${id}`).then((r) => r.data),
+  tally: (eventId: number) => apiClient.get(`/events/${eventId}/tally`).then((r) => r.data),
+
+  // Competitions
+  competitions: {
+    list: (eventId: number) => apiClient.get(`/events/${eventId}/competitions`).then((r) => r.data),
+    get: (id: number) => apiClient.get(`/competitions/${id}`).then((r) => r.data),
+    create: (eventId: number, data: any) => apiClient.post(`/events/${eventId}/competitions`, data).then((r) => r.data),
+    update: (id: number, data: any) => apiClient.put(`/competitions/${id}`, data).then((r) => r.data),
+    delete: (id: number) => apiClient.delete(`/competitions/${id}`).then((r) => r.data),
+  },
+
+  // Participants
+  participants: {
+    list: (competitionId: number) => apiClient.get(`/competitions/${competitionId}/participants`).then((r) => r.data),
+    create: (competitionId: number, data: any) => apiClient.post(`/competitions/${competitionId}/participants`, data).then((r) => r.data),
+    update: (id: number, data: any) => apiClient.put(`/participants/${id}`, data).then((r) => r.data),
+    delete: (id: number) => apiClient.delete(`/participants/${id}`).then((r) => r.data),
+  },
+
+  // Results
+  results: {
+    save: (competitionId: number, data: any) => apiClient.post(`/competitions/${competitionId}/results`, data).then((r) => r.data),
+    saveBulk: (competitionId: number, results: any[]) => apiClient.post(`/competitions/${competitionId}/results/bulk`, { results }).then((r) => r.data),
+    import: (competitionId: number, file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient.post(`/competitions/${competitionId}/results/import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then((r) => r.data);
+    },
+  },
+
+  // Anugerah Registrations
+  anugerah: {
+    list: (params?: Record<string, any>) => apiClient.get('/anugerah-registrations', { params }).then((r) => r.data),
+    get: (id: number) => apiClient.get(`/anugerah-registrations/${id}`).then((r) => r.data),
+    create: (data: any) => apiClient.post('/anugerah-registrations', data).then((r) => r.data),
+    update: (id: number, data: any) => apiClient.put(`/anugerah-registrations/${id}`, data).then((r) => r.data),
+    delete: (id: number) => apiClient.delete(`/anugerah-registrations/${id}`).then((r) => r.data),
+    submit: (id: number) => apiClient.post(`/anugerah-registrations/${id}/submit`).then((r) => r.data),
+    review: (id: number, data: any) => apiClient.post(`/anugerah-registrations/${id}/review`, data).then((r) => r.data),
+    previewScore: (prestasiList: any[]) => apiClient.post('/anugerah-registrations/preview-score', { prestasi_list: prestasiList }).then((r) => r.data),
+  },
+
+  // Jury PIN management
+  juryPin: {
+    get: (competitionId: number) => apiClient.get(`/competitions/${competitionId}/jury-pin`).then((r) => r.data),
+    set: (competitionId: number, pin: string) => apiClient.post(`/competitions/${competitionId}/jury-pin`, { pin }).then((r) => r.data),
+  },
+
+  // Legacy compat
   importCompetitionResults: (competitionId: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return apiClient.post(`/events/competitions/${competitionId}/results/import`, formData, {
+    return apiClient.post(`/competitions/${competitionId}/results/import`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data);
   },

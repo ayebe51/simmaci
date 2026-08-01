@@ -67,6 +67,10 @@ const EventsPage = lazy(() => import("./features/events/EventsPage"))
 const CreateEventPage = lazy(() => import("./features/events/CreateEventPage"))
 const EventDetailPage = lazy(() => import("./features/events/EventDetailPage"))
 const CompetitionDetailPage = lazy(() => import("./features/events/CompetitionDetailPage"))
+const AnugerahRegistrationPage = lazy(() => import("./features/events/AnugerahRegistrationPage"))
+const PublicEventRegistrationPage = lazy(() => import("./features/events/public/PublicEventRegistrationPage"))
+const JuryScoringPage = lazy(() => import("./features/events/public/JuryScoringPage"))
+const PublicScoreboardPage = lazy(() => import("./features/events/public/PublicScoreboardPage"))
 
 // ── Approval ──────────────────────────────────────────────────────────────────
 const YayasanApprovalPage = lazy(() => import("./features/approval/YayasanApprovalPage"))
@@ -168,6 +172,15 @@ export default function App() {
             {/* Public Meeting Check-In — accessible without login (signed URL protected) */}
             <Route path="/meetings/:id/check-in" element={<MeetingCheckInPage />} />
 
+            {/* Public Event Registration — no login required */}
+            <Route path="/daftar/:eventId" element={<PublicEventRegistrationPage />} />
+
+            {/* Jury Scoring Panel — PIN protected, no login required */}
+            <Route path="/juri" element={<JuryScoringPage />} />
+
+            {/* Public Scoreboard — no login required */}
+            <Route path="/papan-skor/:eventId/:competitionId" element={<PublicScoreboardPage />} />
+
             {/* Protected Routes Wrapper */}
             <Route
               path="/dashboard/*"
@@ -216,6 +229,7 @@ export default function App() {
                           <Route path="events" element={<EventsPage />} />
                           <Route path="events/new" element={<CreateEventPage />} />
                           <Route path="events/:id" element={<EventDetailPage />} />
+                          <Route path="events/:eventId/anugerah/daftar" element={<AnugerahRegistrationPage />} />
                           <Route path="competitions/:competitionId" element={<CompetitionDetailPage />} />
                           <Route path="sk/:id/print" element={<SkPrintPage />} />
                           <Route path="approval/yayasan" element={<YayasanApprovalPage />} />

@@ -1,138 +1,153 @@
 import { useState, useEffect } from 'react';
-import { API_URL } from '@/lib/api';
+import { eventApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Save, CheckCircle2 } from 'lucide-react';
+import { Save, CheckCircle2, Loader2, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
+import ExcelImportModal from '@/features/master-data/components/ExcelImportModal';
 
-interface Result {
-  participantId: string;
-  score?: number;
-  rank?: number;
-  notes?: string;
-}
+interface Criterion { component: string; weight: number; }
 
-interface Participant {
-  id: string;
-  name: string;
-  institution: string;
-}
-
-interface ResultInputProps {
+interface Props {
   competitionId: string;
-  participants: Participant[];
-  results: Result[];
+  participants: any[];
+  results: any[];
+  criteria?: Criterion[];
 }
 
-export default function ResultInput({ competitionId, participants, results: initialResults }: ResultInputProps) {
-  const [resultsMap, setResultsMap] = useState<Record<string, Result>>({});
-  const [saving, setSaving] = useState(false);
+export default function ResultInput({ competitionId, participants, results: initial, criteria = [] }: Props) {
+  const [map, setMap] = useState<Record<string, any>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const map: Record<string, Result> = {};
-    if (initialResults) {
-      initialResults.forEach(r => {
-        map[r.participantId] = r;
-      });
-    }
-    setResultsMap(map);
-  }, [initialResults]);
+    const m: Record<string, any> = {};
+    (initial ?? []).forEach(r => { m[r.participant_id ?? r.participantId] = r; });
+    setMap(m);
+  }, [initial]);
 
-  const handleChange = (participantId: string, field: keyof Result, value: string) => {
-    setResultsMap(prev => ({
-      ...prev,
-      [participantId]: {
-        ...prev[participantId],
-        participantId,
-        [field]: value
-      }
-    }));
-  };
+  const set = (pid: string | number, field: string, value: string) =>
+    setMap(p => ({ ...p, [pid]: { ...p[pid], participant_id: pid, [field]: value } }));
 
-  const handleSave = async (participantId: string) => {
-    setSaving(true);
-    const data = resultsMap[participantId] || {};
+  const handleSave = async (pid: string | number) => {
+    setSavingId(String(pid));
+    const item = map[pid] ?? {};
     try {
-      await fetch(`${API_URL}/events/competitions/${competitionId}/results`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          participantId,
-          score: data.score ? Number(data.score) : undefined,
-          rank: data.rank ? Number(data.rank) : undefined,
-          notes: data.notes,
-        }),
+      await eventApi.results.save(Number(competitionId), {
+        participant_id: Number(pid),
+        score: item.score ? Number(item.score) : undefined,
+        rank: item.rank ? Number(item.rank) : undefined,
+        notes: item.notes,
       });
-      toast.success(`Nilai untuk "${participants.find(p => p.id === participantId)?.name}" tersimpan`, {
-          icon: <CheckCircle2 className="h-4 w-4 text-green-600" />
-      });
-    } catch (error) {
-      console.error(error);
+      const name = participants.find(p => p.id == pid)?.name ?? '';
+      toast.success(`Nilai "${name}" tersimpan`, { icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> });
+    } catch {
       toast.error('Gagal menyimpan nilai');
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
+  };
+
+  const handleImport = async (file: File) => {
+    try {
+      const res = await eventApi.results.import(Number(competitionId), file);
+      toast.success(`${res.imported ?? '?'} hasil berhasil diimport`);
+      window.location.reload();
+    } catch {
+      toast.error('Gagal mengimport file');
+    }
+  };
+
+  const getRankEmoji = (rank?: number) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return null;
   };
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama Peserta</TableHead>
-              <TableHead className="w-[150px]">Skor / Nilai</TableHead>
-              <TableHead className="w-[100px]">Ranking</TableHead>
-              <TableHead>Catatan</TableHead>
-              <TableHead className="w-[100px]">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {participants.map((p) => {
-              const res = resultsMap[p.id] || {};
-              return (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <div>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-gray-500">{p.institution}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={res.score || ''}
-                      onChange={(e) => handleChange(p.id, 'score', e.target.value)}
-                      placeholder="0"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      type="number"
-                      value={res.rank || ''}
-                      onChange={(e) => handleChange(p.id, 'rank', e.target.value)}
-                      placeholder="-"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={res.notes || ''}
-                      onChange={(e) => handleChange(p.id, 'notes', e.target.value)}
-                      placeholder="Catatan..."
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button size="sm" onClick={() => handleSave(p.id)} disabled={saving}>
-                      <Save size={14} className="mr-1" /> Simpan
-                    </Button>
+      <CardContent className="p-6 space-y-4">
+        {/* Scoring criteria reference */}
+        {criteria.length > 0 && (
+          <div className="p-3 bg-slate-50 rounded-xl border text-xs space-y-1">
+            <p className="font-bold text-slate-600 uppercase">Bobot Penilaian</p>
+            <div className="flex flex-wrap gap-2">
+              {criteria.map((c, i) => (
+                <span key={i} className="bg-white border rounded-lg px-2 py-1 text-slate-700">
+                  {c.component} <span className="font-black text-blue-600">({c.weight}%)</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <ExcelImportModal
+            title="Import Hasil Kompetisi"
+            description="Upload file Excel (.xlsx). Kolom: Juara, Nama, Lembaga, Nilai."
+            triggerLabel="Import Hasil (Excel)"
+            onFileImport={handleImport}
+          />
+        </div>
+
+        <div className="rounded-xl border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead>Nama Peserta</TableHead>
+                <TableHead className="w-[120px]">Skor / Nilai</TableHead>
+                <TableHead className="w-[90px]">Juara ke-</TableHead>
+                <TableHead>Catatan</TableHead>
+                <TableHead className="w-[90px]">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {participants.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-slate-400">
+                    Tambahkan peserta terlebih dahulu.
                   </TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+              ) : participants.map(p => {
+                const r = map[p.id] ?? {};
+                const isSaving = savingId === String(p.id);
+                const emoji = getRankEmoji(r.rank ? Number(r.rank) : undefined);
+                return (
+                  <TableRow key={p.id} className={r.rank == 1 ? 'bg-amber-50/40' : r.rank == 2 ? 'bg-slate-50/50' : r.rank == 3 ? 'bg-orange-50/30' : ''}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium flex items-center gap-1.5">
+                          {emoji && <span>{emoji}</span>}
+                          {p.name}
+                        </div>
+                        <div className="text-xs text-slate-500">{p.institution}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input type="number" value={r.score ?? ''} onChange={e => set(p.id, 'score', e.target.value)} placeholder="—" className="h-8 text-sm" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-0.5">
+                        <Input type="number" min="1" max="10" value={r.rank ?? ''} onChange={e => set(p.id, 'rank', e.target.value)} placeholder="—" className="h-8 text-sm" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input value={r.notes ?? ''} onChange={e => set(p.id, 'notes', e.target.value)} placeholder="Catatan..." className="h-8 text-sm" />
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => handleSave(p.id)} disabled={isSaving}>
+                        {isSaving ? <Loader2 size={11} className="animate-spin"/> : <Save size={11}/>}
+                        Simpan
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,182 +1,179 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Calendar, MapPin, Trophy, Layout, ShieldCheck, ArrowLeft, Sparkles, Zap } from 'lucide-react';
+import { Loader2, ArrowLeft, Trophy, Calendar, MapPin, Info } from 'lucide-react';
 import { useMutation } from "@tanstack/react-query";
 import { eventApi } from "@/lib/api";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+
+// Pre-fill for Anugerah Pendidikan Harlah LP Ma'arif ke-97
+const PRESET_ANUGERAH = {
+  name: 'Anugerah Pendidikan & Festival Aswaja LP Ma\'arif NU Cilacap 2026',
+  category: 'Anugerah Pendidikan',
+  type: 'Individual',
+  date: '2026-09-22',
+  location: 'Inn ASTON Hotel Cilacap',
+  description: 'Penyelenggaraan Anugerah Guru Berprestasi, Madrasah/Sekolah Berprestasi, dan Festival Aswaja Siswa dalam rangka Harlah LP Ma\'arif NU ke-97 Tahun 2026.',
+  status: 'OPEN',
+  registration_start: '2026-08-01',
+  registration_end: '2026-09-07',
+  video_deadline: '2026-09-11T23:59',
+  announcement_date: '2026-09-22',
+  announcement_place: 'Inn ASTON Hotel Cilacap',
+  contact_name: 'Umar Fatoni',
+  contact_phone: '082324900550',
+};
 
 export default function CreateEventPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    type: 'Individual',
-    date: '',
-    location: '',
-    description: '',
+  const [form, setForm] = useState({
+    name: '', category: '', type: 'Individual', date: '', location: '',
+    description: '', status: 'OPEN',
+    registration_start: '', registration_end: '', video_deadline: '',
+    announcement_date: '', announcement_place: '',
+    contact_name: '', contact_phone: '',
   });
 
-  const createEventMutation = useMutation({
+  const setF = (key: string, val: string) => setForm(p => ({...p, [key]: val}));
+
+  const mutation = useMutation({
     mutationFn: (data: any) => eventApi.create(data),
-    onSuccess: () => {
-        toast.success("Event successfully cataloged in systemic registry.");
-        navigate('/dashboard/events');
+    onSuccess: (res) => {
+      toast.success('Event berhasil dibuat');
+      navigate(`/dashboard/events/${res.id ?? res.data?.id}`);
     },
-    onError: (error: any) => {
-        toast.error(error.response?.data?.message || "Internal failure during event creation.");
-        setLoading(false);
-    }
+    onError: (e: any) => toast.error(e.response?.data?.message || 'Gagal membuat event'),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePreset = () => setForm(PRESET_ANUGERAH);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    createEventMutation.mutate(formData);
+    mutation.mutate({ ...form, video_deadline: form.video_deadline || null, registration_start: form.registration_start || null, registration_end: form.registration_end || null });
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Premium Header */}
-      <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-14 w-14 rounded-2xl bg-white shadow-sm border border-slate-50 hover:bg-slate-50">
-                  <ArrowLeft className="h-5 w-5 text-slate-600" />
-              </Button>
-              <div className="flex flex-col gap-1">
-                  <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic leading-none flex items-center gap-3">
-                      <Trophy className="w-8 h-8 text-amber-500" /> Inisiasi Event Baru
-                  </h1>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 italic">
-                      <Sparkles className="w-3 h-3 text-blue-500" /> Digital competition node creation
-                  </p>
-              </div>
-          </div>
-          <div className="h-14 px-8 rounded-2xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-3 shadow-sm">
-              <ShieldCheck className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Protocol Secured</span>
-          </div>
+    <div className="max-w-2xl mx-auto p-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="h-9 w-9 rounded-xl"><ArrowLeft size={16}/></Button>
+        <div>
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2"><Trophy size={20} className="text-amber-500"/> Buat Event Baru</h1>
+          <p className="text-xs text-slate-500">Lomba, festival, atau anugerah pendidikan</p>
+        </div>
       </div>
 
-      <Card className="border-0 shadow-2xl bg-white rounded-[2.5rem] overflow-hidden">
-        <CardHeader className="p-10 border-b bg-slate-50/50">
-          <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-widest italic flex items-center gap-2">
-              <Zap className="w-5 h-5 text-amber-400" /> Parameter Lomba / Acara
-          </CardTitle>
-          <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Definisikan spesifikasi teknis untuk node event ini.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-10">
-          <form onSubmit={handleSubmit} className="space-y-10">
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nama Event / Lomba</Label>
-              <Input
-                required
-                className="h-14 rounded-2xl border-slate-100 bg-slate-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-slate-800 placeholder:text-slate-300 px-6"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Contoh: PORSENI MADRASAH KABUPATEN"
-              />
-            </div>
+      {/* Preset button for Harlah */}
+      <div className="p-4 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-3">
+        <Info size={16} className="text-green-600 flex-shrink-0 mt-0.5"/>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-green-800">Preset: Anugerah Pendidikan Harlah LP Ma'arif NU ke-97</p>
+          <p className="text-xs text-green-600 mt-0.5">Isi otomatis data sesuai Juknis resmi 2026</p>
+        </div>
+        <Button size="sm" variant="outline" className="border-green-300 text-green-700 hover:bg-green-100 flex-shrink-0" onClick={handlePreset}>
+          Gunakan Preset
+        </Button>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2">
-                    <Layout className="w-3 h-3" /> Kategori
-                </Label>
-                <Input 
-                   required
-                   className="h-14 rounded-2xl border-slate-100 bg-slate-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-slate-800 px-6"
-                   value={formData.category}
-                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                   placeholder="OLAH RAGA / SENI"
-                />
+      <form onSubmit={handleSubmit}>
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="border-b pb-4">
+            <CardTitle className="text-sm font-bold uppercase text-slate-600">Informasi Utama</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase text-slate-500">Nama Event / Lomba *</Label>
+              <Input required value={form.name} onChange={e => setF('name', e.target.value)} placeholder="Anugerah Pendidikan Ma'arif NU Cilacap 2026" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Kategori *</Label>
+                <Input required value={form.category} onChange={e => setF('category', e.target.value)} placeholder="Anugerah Pendidikan / Festival" />
               </div>
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Tipe Peserta</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(val) => setFormData({ ...formData, type: val })}
-                >
-                  <SelectTrigger className="h-14 rounded-2xl border-slate-100 bg-slate-50/30 focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-slate-800 px-6">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl border-slate-100 p-2">
-                    <SelectItem value="Individual" className="rounded-xl py-3 font-bold text-xs uppercase">Individu / Perorangan</SelectItem>
-                    <SelectItem value="Team" className="rounded-xl py-3 font-bold text-xs uppercase">Tim / Beregu Cluster</SelectItem>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Status</Label>
+                <Select value={form.status} onValueChange={v => setF('status', v)}>
+                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OPEN">OPEN</SelectItem>
+                    <SelectItem value="CLOSED">CLOSED</SelectItem>
+                    <SelectItem value="FINISHED">FINISHED</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2">
-                    <Calendar className="w-3 h-3" /> Tanggal Pelaksanaan
-                </Label>
-                <Input
-                  type="date"
-                  required
-                  className="h-14 rounded-2xl border-slate-100 bg-slate-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-slate-800 px-6"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1"><Calendar size={11}/>Tanggal Pelaksanaan *</Label>
+                <Input type="date" required value={form.date} onChange={e => setF('date', e.target.value)} />
               </div>
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2">
-                    <MapPin className="w-3 h-3" /> Alokasi Lokasi
-                </Label>
-                <Input
-                  className="h-14 rounded-2xl border-slate-100 bg-slate-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-slate-800 px-6"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="Titik infrastruktur pelaksanaan"
-                />
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-1"><MapPin size={11}/>Lokasi</Label>
+                <Input value={form.location} onChange={e => setF('location', e.target.value)} placeholder="Inn ASTON Hotel Cilacap" />
               </div>
             </div>
-
-            <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Narasi Deskripsi / Keterangan</Label>
-              <Textarea
-                className="min-h-[120px] rounded-[2rem] border-slate-100 bg-slate-50/30 focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all font-bold text-slate-800 px-6 py-6"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Rincian tambahan mengenai node event ini..."
-              />
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase text-slate-500">Deskripsi</Label>
+              <Textarea value={form.description} onChange={e => setF('description', e.target.value)} placeholder="Keterangan event..." className="min-h-[80px]"/>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="flex justify-end gap-6 pt-6">
-              <Button type="button" variant="ghost" onClick={() => navigate(-1)} className="h-14 px-10 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400">
-                Cancel System
-              </Button>
-              <Button type="submit" disabled={loading} className="h-14 px-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-100 transition-all active:scale-95">
-                {loading ? <Loader2 className="animate-spin h-5 w-5 mr-3" /> : <Save className="h-5 w-5 mr-3" />}
-                Dispatch Event Node
-              </Button>
+        <Card className="border-0 shadow-sm rounded-2xl mt-4">
+          <CardHeader className="border-b pb-4">
+            <CardTitle className="text-sm font-bold uppercase text-slate-600">Jadwal & Kontak (Juknis)</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Mulai Pendaftaran</Label>
+                <Input type="date" value={form.registration_start} onChange={e => setF('registration_start', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Tutup Pendaftaran</Label>
+                <Input type="date" value={form.registration_end} onChange={e => setF('registration_end', e.target.value)} />
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-      
-      <div className="p-8 bg-amber-600 rounded-[2.5rem] shadow-xl shadow-amber-100 text-white relative overflow-hidden group/alert">
-           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/alert:rotate-12 transition-transform duration-700">
-               <Trophy className="w-32 h-32 -mr-16 -mt-16" />
-           </div>
-           <h3 className="font-black uppercase italic tracking-tight mb-2 flex items-center gap-2">
-               <ShieldCheck className="w-5 h-5 text-amber-200" /> Data Integrity Clause
-           </h3>
-           <p className="text-[10px] font-bold uppercase opacity-80 leading-relaxed max-w-xl">Semua data event yang dikirimkan akan diverifikasi oleh sistem pusat untuk memastikan sinkronisasi data antar sekolah tetap akurat dan konsisten.</p>
-      </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold uppercase text-slate-500">Batas Akhir Pengiriman Video</Label>
+              <Input type="datetime-local" value={form.video_deadline} onChange={e => setF('video_deadline', e.target.value)} />
+              <p className="text-[10px] text-slate-400">Festival Aswaja: Jum'at, 11 September 2026 pukul 23.59 WIB</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Tanggal Pengumuman</Label>
+                <Input type="date" value={form.announcement_date} onChange={e => setF('announcement_date', e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Tempat Pengumuman</Label>
+                <Input value={form.announcement_place} onChange={e => setF('announcement_place', e.target.value)} placeholder="Inn ASTON Hotel" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">Nama Kontak</Label>
+                <Input value={form.contact_name} onChange={e => setF('contact_name', e.target.value)} placeholder="Umar Fatoni" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase text-slate-500">No. HP Kontak</Label>
+                <Input value={form.contact_phone} onChange={e => setF('contact_phone', e.target.value)} placeholder="082324900550" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-3 pt-4">
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Batal</Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending && <Loader2 size={14} className="animate-spin mr-1.5"/>}
+            Buat Event
+          </Button>
+        </div>
+      </form>
     </div>
   );
-}
-
-function Save({ className }: { className?: string }) {
-    return <Zap className={className} />
 }

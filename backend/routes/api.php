@@ -129,6 +129,9 @@ use App\Http\Controllers\Api\MeetingReportController;
 use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\MeetingPhotoController;
 use App\Http\Controllers\Api\PublicMeetingScannerController;
+use App\Http\Controllers\Api\CompetitionController;
+use App\Http\Controllers\Api\AnugerahRegistrationController;
+use App\Http\Controllers\Api\PublicEventController;
 use App\Http\Controllers\Api\StudentStatisticsController;
 
 /*
@@ -367,6 +370,39 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Events
         Route::apiResource('events', EventController::class);
+        Route::get('events/{event}/tally', [EventController::class, 'tally']);
+
+        // Competitions (sub-resource of events)
+        Route::get('events/{event}/competitions', [CompetitionController::class, 'index']);
+        Route::post('events/{event}/competitions', [CompetitionController::class, 'store']);
+        Route::get('competitions/{competition}', [CompetitionController::class, 'show']);
+        Route::put('competitions/{competition}', [CompetitionController::class, 'update']);
+        Route::delete('competitions/{competition}', [CompetitionController::class, 'destroy']);
+
+        // Participants
+        Route::get('competitions/{competition}/participants', [CompetitionController::class, 'participantsIndex']);
+        Route::post('competitions/{competition}/participants', [CompetitionController::class, 'participantsStore']);
+        Route::put('participants/{participant}', [CompetitionController::class, 'participantsUpdate']);
+        Route::delete('participants/{participant}', [CompetitionController::class, 'participantsDestroy']);
+
+        // Results
+        Route::post('competitions/{competition}/results', [CompetitionController::class, 'resultsStore']);
+        Route::post('competitions/{competition}/results/bulk', [CompetitionController::class, 'resultsBulkStore']);
+        Route::post('competitions/{competition}/results/import', [CompetitionController::class, 'resultsImport']);
+
+        // Jury PIN management (authenticated admin/operator)
+        Route::get('competitions/{competition}/jury-pin', [CompetitionController::class, 'getJuryPin']);
+        Route::post('competitions/{competition}/jury-pin', [CompetitionController::class, 'setJuryPin']);
+
+        // Anugerah Pendidikan Registrations (Guru & Madrasah Berprestasi)
+        Route::get('anugerah-registrations', [AnugerahRegistrationController::class, 'index']);
+        Route::post('anugerah-registrations', [AnugerahRegistrationController::class, 'store']);
+        Route::get('anugerah-registrations/{anugerahRegistration}', [AnugerahRegistrationController::class, 'show']);
+        Route::put('anugerah-registrations/{anugerahRegistration}', [AnugerahRegistrationController::class, 'update']);
+        Route::delete('anugerah-registrations/{anugerahRegistration}', [AnugerahRegistrationController::class, 'destroy']);
+        Route::post('anugerah-registrations/{anugerahRegistration}/submit', [AnugerahRegistrationController::class, 'submit']);
+        Route::post('anugerah-registrations/preview-score', [AnugerahRegistrationController::class, 'previewScore']);
+        Route::post('anugerah-registrations/{anugerahRegistration}/review', [AnugerahRegistrationController::class, 'review']);
 
         // Approval History
         Route::get('approval-history', [ApprovalHistoryController::class, 'index']);
@@ -483,6 +519,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/madrasah/{id}/per-kelas', [StudentStatisticsController::class, 'perKelas']);
             Route::get('/madrasah/{id}/per-kelas/export', [StudentStatisticsController::class, 'exportPerKelas']);
         });
+});
+
+// ── Public Events & Jury (no auth) ──────────────────────────────────────────
+Route::prefix('public/events')->group(function () {
+    Route::get('{event}', [PublicEventController::class, 'show']);
+    Route::post('{event}/daftar', [PublicEventController::class, 'register']);
+    Route::get('{event}/scoreboard/{competition}', [PublicEventController::class, 'scoreboard']);
+});
+
+// Jury panel (PIN-gated, no auth token needed)
+Route::prefix('public/jury')->group(function () {
+    Route::post('verify-pin', [PublicEventController::class, 'juryVerifyPin']);
+    Route::get('{token}/participants', [PublicEventController::class, 'juryParticipants']);
+    Route::post('{token}/score', [PublicEventController::class, 'juryScore']);
 });
 
 // ── Public Meeting Check-In Routes (No Auth — Route names used for QR URL generation) ──

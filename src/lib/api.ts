@@ -520,6 +520,8 @@ export const eventApi = {
     create: (eventId: number, data: any) => apiClient.post(`/events/${eventId}/competitions`, data).then((r) => r.data),
     update: (id: number, data: any) => apiClient.put(`/competitions/${id}`, data).then((r) => r.data),
     delete: (id: number) => apiClient.delete(`/competitions/${id}`).then((r) => r.data),
+    /** Buat semua cabang lomba Harlah ke-97 sekaligus (idempotent) */
+    seedHarlah97: (eventId: number) => apiClient.post(`/events/${eventId}/seed-harlah97`).then((r) => r.data),
   },
 
   // Participants

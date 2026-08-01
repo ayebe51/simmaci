@@ -1,353 +1,362 @@
 import React, { useEffect, useState } from 'react';
-import { API_URL } from '@/lib/api';
-import { useParams, Link } from 'react-router-dom';
+import { eventApi } from '@/lib/api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Trophy, Calendar, MapPin, ChevronRight, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Plus, Trophy, Calendar, MapPin, ChevronRight, Loader2,
+  Users, Video, Award, Edit, ClipboardList,
+} from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import MedalTally from './components/MedalTally';
+import AnugerahRegistrationList from './components/AnugerahRegistrationList';
+
+const LOMBA_TYPES = [
+  { value: 'mars_maarif',         label: 'Mars Ma\'arif NU', jenjang: 'MTs/SMP,MA/SMA/SMK' },
+  { value: 'mtq_pa',              label: 'MTQ Putra',        jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
+  { value: 'mtq_pi',              label: 'MTQ Putri',        jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
+  { value: 'puji_pujian',         label: 'Puji-Pujian Jawa', jenjang: 'MI/SD' },
+  { value: 'film_dokumenter',     label: 'Film Dokumenter NU', jenjang: 'MTs/SMP,MA/SMA/SMK' },
+  { value: 'guru_berprestasi',    label: 'Guru Berprestasi', jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
+  { value: 'madrasah_berprestasi',label: 'Madrasah/Sekolah Berprestasi', jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
+  { value: 'oskanu',              label: 'OSKANU Lolos Provinsi', jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
+  { value: 'lainnya',             label: 'Lainnya / Umum',   jenjang: '' },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  OPEN:     'bg-emerald-100 text-emerald-800 border-emerald-200',
+  CLOSED:   'bg-slate-100 text-slate-700 border-slate-200',
+  FINISHED: 'bg-blue-100 text-blue-800 border-blue-200',
+};
 
 export default function EventDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newCompetition, setNewCompetition] = useState({
-      name: '',
-      category: 'Olahraga',
-      type: 'Individual',
-      date: '',
-      location: ''
+  const [saving, setSaving] = useState(false);
+  const [newComp, setNewComp] = useState({
+    name: '', category: 'Keagamaan', type: 'Individual',
+    jenjang: '', lomba_type: '', date: '', location: '',
+    deadline: '', max_per_school: '',
   });
 
-  const fetchEvent = () => {
-      setLoading(true);
-      fetch(`${API_URL}/events/${id}`)
-        .then(res => res.json())
-        .then(data => setEvent(data))
-        .catch(err => console.error(err))
-        .finally(() => setLoading(false));
+  const fetchEvent = async () => {
+    setLoading(true);
+    try {
+      const data = await eventApi.get(Number(id));
+      setEvent(data);
+    } catch {
+      toast.error('Gagal memuat data event');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    fetchEvent();
-     
-  }, [id]);
+  useEffect(() => { fetchEvent(); }, [id]);
 
-  const [isBulk, setIsBulk] = useState(false);
-  const [bulkNames, setBulkNames] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  // ... (useEffect remains same)
-
-  const handleCreateCompetition = async () => {
-      setSaving(true);
-      try {
-          if (isBulk) {
-              const names = bulkNames.split('\n').filter(n => n.trim().length > 0);
-              const promises = names.map(name => 
-                  fetch(`${API_URL}/events/${id}/competitions`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                          ...newCompetition,
-                          name: name.trim(),
-                          date: newCompetition.date || null, // Sanitize empty string to null
-                          location: newCompetition.location || null
-                      })
-                  })
-              );
-              await Promise.all(promises);
-          } else {
-              await fetch(`${API_URL}/events/${id}/competitions`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      ...newCompetition,
-                      date: newCompetition.date || null, // Sanitize empty string to null
-                      location: newCompetition.location || null
-                  })
-              });
-          }
-          
-          setIsCreateOpen(false);
-          setNewCompetition({ name: '', category: 'Olahraga', type: 'Individual', date: '', location: '' });
-          setBulkNames('');
-          setIsBulk(false);
-          fetchEvent();
-      } catch (error) {
-          console.error(error);
-      } finally {
-          setSaving(false);
-      }
+  const handleLombaTypeChange = (val: string) => {
+    const found = LOMBA_TYPES.find(l => l.value === val);
+    setNewComp(p => ({
+      ...p,
+      lomba_type: val,
+      name: found ? found.label : p.name,
+      jenjang: found ? found.jenjang : p.jenjang,
+      category: val.startsWith('mtq') || val === 'mars_maarif' || val === 'puji_pujian' || val === 'film_dokumenter'
+        ? 'Keagamaan'
+        : val === 'guru_berprestasi' || val === 'madrasah_berprestasi'
+          ? 'Akademik'
+          : p.category,
+      type: val === 'mars_maarif' || val === 'puji_pujian' || val === 'film_dokumenter' || val === 'madrasah_berprestasi'
+        ? 'Beregu'
+        : 'Individual',
+    }));
   };
 
-  if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
-  if (!event) return <div>Event tidak ditemukan.</div>;
+  const handleCreate = async () => {
+    if (!newComp.name.trim()) { toast.error('Nama lomba wajib diisi'); return; }
+    setSaving(true);
+    try {
+      await eventApi.competitions.create(Number(id), {
+        ...newComp,
+        date: newComp.date || null,
+        deadline: newComp.deadline || null,
+        max_per_school: newComp.max_per_school ? Number(newComp.max_per_school) : null,
+      });
+      toast.success('Cabang lomba berhasil ditambahkan');
+      setIsCreateOpen(false);
+      setNewComp({ name: '', category: 'Keagamaan', type: 'Individual', jenjang: '', lomba_type: '', date: '', location: '', deadline: '', max_per_school: '' });
+      fetchEvent();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Gagal menambah cabang lomba');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin w-8 h-8 text-slate-400" /></div>;
+  if (!event)  return <div className="p-8 text-center text-slate-500">Event tidak ditemukan.</div>;
+
+  const hasFestival  = event.competitions?.some((c: any) => ['mars_maarif','mtq_pa','mtq_pi','puji_pujian','film_dokumenter'].includes(c.lomba_type));
+  const hasAnugerah  = event.competitions?.some((c: any) => ['guru_berprestasi','madrasah_berprestasi'].includes(c.lomba_type));
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-start">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{event.name}</h1>
-          <p className="text-gray-500 mt-1 flex items-center gap-2">
-             <Calendar size={14} /> {event.date && !isNaN(new Date(event.date).getTime()) ? new Date(event.date).toLocaleDateString('id-ID', { dateStyle: 'full' }) : '-'}
-             <span className="mx-2">•</span>
-             <MapPin size={14} /> {event.location}
-          </p>
-          <p className="text-gray-600 mt-2">{event.description}</p>
+          <div className="flex items-center gap-3 mb-2">
+            <Badge className={`text-[10px] font-bold uppercase ${STATUS_COLORS[event.status] ?? STATUS_COLORS.OPEN}`}>
+              {event.status}
+            </Badge>
+            <span className="text-xs font-bold text-slate-400 uppercase">{event.category}</span>
+          </div>
+          <h1 className="text-2xl font-black text-slate-900">{event.name}</h1>
+          <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500">
+            {event.date && <span className="flex items-center gap-1"><Calendar size={14}/>{new Date(event.date).toLocaleDateString('id-ID',{dateStyle:'full'})}</span>}
+            {event.location && <span className="flex items-center gap-1"><MapPin size={14}/>{event.location}</span>}
+          </div>
+          {event.description && <p className="mt-2 text-sm text-slate-600 max-w-2xl">{event.description}</p>}
+          {/* Juknis dates */}
+          <div className="flex flex-wrap gap-3 mt-3">
+            {event.registration_start && (
+              <div className="text-xs bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
+                <span className="font-bold text-green-700">Pendaftaran:</span>
+                <span className="ml-1 text-green-600">
+                  {new Date(event.registration_start).toLocaleDateString('id-ID',{day:'numeric',month:'short'})} – {event.registration_end ? new Date(event.registration_end).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '?'}
+                </span>
+              </div>
+            )}
+            {event.video_deadline && (
+              <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                <span className="font-bold text-amber-700">Batas Video:</span>
+                <span className="ml-1 text-amber-600">{new Date(event.video_deadline).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</span>
+              </div>
+            )}
+            {event.announcement_date && (
+              <div className="text-xs bg-purple-50 border border-purple-200 rounded-lg px-3 py-1.5">
+                <span className="font-bold text-purple-700">Pengumuman:</span>
+                <span className="ml-1 text-purple-600">{new Date(event.announcement_date).toLocaleDateString('id-ID',{dateStyle:'medium'})} {event.announcement_place ? `di ${event.announcement_place}` : ''}</span>
+              </div>
+            )}
+            {event.contact_name && (
+              <div className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+                <span className="font-bold text-slate-700">Kontak:</span>
+                <span className="ml-1 text-slate-600">{event.contact_name} {event.contact_phone ? `(${event.contact_phone})` : ''}</span>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2">
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus size={16} className="mr-2" /> Tambah Cabang Lomba
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Tambah Cabang Lomba</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="flex items-center space-x-2 pb-2 border-b">
-                            <input 
-                                type="checkbox" 
-                                id="bulkMode" 
-                                className="rounded border-gray-300"
-                                checked={isBulk}
-                                onChange={e => setIsBulk(e.target.checked)}
-                            />
-                            <label htmlFor="bulkMode" className="text-sm cursor-pointer select-none">
-                                Mode Input Banyak (Bulk Insert)
-                            </label>
-                        </div>
-
-                        {isBulk ? (
-                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Daftar Nama Lomba (Satu per baris)</label>
-                                <textarea 
-                                    className="flex min-h-[150px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    value={bulkNames}
-                                    onChange={e => setBulkNames(e.target.value)}
-                                    placeholder={`Lari 100m Putri\nLari 100m Putra\nPidato Bahasa Arab\nPidato Bahasa Inggris`}
-                                />
-                                <p className="text-xs text-muted-foreground">Setiap baris akan menjadi satu cabang lomba dengan pengaturan yang sama di bawah ini.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Nama Lomba</label>
-                                <Input 
-                                    value={newCompetition.name} 
-                                    onChange={e => setNewCompetition({...newCompetition, name: e.target.value})}
-                                    placeholder="Contoh: Lari 100m Putri"
-                                />
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Kategori</label>
-                                <Select 
-                                    value={newCompetition.category} 
-                                    onValueChange={v => setNewCompetition({...newCompetition, category: v})}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Olahraga">Olahraga</SelectItem>
-                                        <SelectItem value="Seni">Seni</SelectItem>
-                                        <SelectItem value="Akademik">Akademik</SelectItem>
-                                        <SelectItem value="Keagamaan">Keagamaan</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Jenis</label>
-                                <Select 
-                                    value={newCompetition.type} 
-                                    onValueChange={v => setNewCompetition({...newCompetition, type: v})}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Individual">Individual</SelectItem>
-                                        <SelectItem value="Beregu">Beregu</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Jadwal (Opsional)</label>
-                            <Input 
-                                type="datetime-local"
-                                value={newCompetition.date} 
-                                onChange={e => setNewCompetition({...newCompetition, date: e.target.value})}
-                            />
-                        </div>
-                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Lokasi (Opsional)</label>
-                            <Input 
-                                value={newCompetition.location} 
-                                onChange={e => setNewCompetition({...newCompetition, location: e.target.value})}
-                                placeholder="Contoh: Lapangan Utama"
-                            />
-                        </div>
-                        <Button onClick={handleCreateCompetition} className="w-full" disabled={saving}>
-                            {saving ? <Loader2 className="animate-spin mr-2" size={16} /> : null}
-                            Simpan {isBulk ? 'Semua' : ''}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+        <div className="flex gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/events/${id}/edit`)}>
+            <Edit size={14} className="mr-1.5"/> Edit Event
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm"><Plus size={14} className="mr-1.5"/> Tambah Cabang Lomba</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Tambah Cabang Lomba</DialogTitle></DialogHeader>
+              <AddCompetitionForm comp={newComp} setComp={setNewComp} onLombaTypeChange={handleLombaTypeChange} onSave={handleCreate} saving={saving} onCancel={() => setIsCreateOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      <Tabs defaultValue="competitions" className="space-y-4">
-          <TabsList>
-              <TabsTrigger value="competitions">Daftar Cabang Lomba</TabsTrigger>
-              <TabsTrigger value="medals">Perolehan Medali</TabsTrigger>
-          </TabsList>
+      {/* Tabs */}
+      <Tabs defaultValue="competitions">
+        <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="competitions" className="gap-1.5"><Trophy size={14}/>Cabang Lomba ({event.competitions?.length ?? 0})</TabsTrigger>
+          {hasFestival  && <TabsTrigger value="festival"  className="gap-1.5"><Video size={14}/>Festival Aswaja</TabsTrigger>}
+          {hasAnugerah  && <TabsTrigger value="anugerah"  className="gap-1.5"><Award size={14}/>Anugerah Pendidikan</TabsTrigger>}
+          <TabsTrigger value="medals" className="gap-1.5"><Award size={14}/>Perolehan Medali</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="competitions" className="space-y-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Trophy size={20} className="text-blue-500" /> Daftar Cabang Lomba
-              </h2>
-              
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {event.competitions?.length === 0 && (
-                      <div className="col-span-full text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                          Belum ada cabang lomba. Silakan tambahkan lomba baru.
-                      </div>
-                  )}
-                  {event.competitions?.map((comp: any) => (
-                      <Link to={`/dashboard/competitions/${comp.id}`} key={comp.id}>
-                        <Card className="hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 cursor-pointer border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl overflow-hidden rounded-2xl relative z-10 hover:-translate-y-1">
-                            <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-blue-400/10 blur-[50px] pointer-events-none rounded-full" />
-                            <CardHeader className="pb-2 relative z-10">
-                                <CardTitle className="text-lg flex justify-between font-bold text-slate-800">
-                                    {comp.name}
-                                    <ChevronRight size={16} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="relative z-10 pt-2">
-                                <div className="flex gap-2 text-[10px] font-bold tracking-wider uppercase mb-4">
-                                    <span className="px-2 py-1 bg-blue-100/50 text-blue-800 rounded-full backdrop-blur-sm">{comp.category}</span>
-                                    <span className="px-2 py-1 bg-slate-100/80 text-slate-600 rounded-full backdrop-blur-sm">{comp.type}</span>
-                                </div>
-                                <div className="space-y-2.5 text-sm text-slate-600">
-                                    <p className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg w-fit pr-3">
-                                        <div className="bg-blue-100/50 p-1 rounded-md">
-                                            <Calendar size={14} className="text-blue-600" />
-                                        </div> 
-                                        <span className="font-medium text-xs">
-                                        {comp.date && !isNaN(new Date(comp.date).getTime())
-                                            ? new Date(comp.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) 
-                                            : 'Jadwal belum diatur'}
-                                        </span>
-                                    </p>
-                                    <p className="flex items-center gap-2 bg-white/40 p-1.5 rounded-lg w-fit pr-3">
-                                        <div className="bg-amber-100/50 p-1 rounded-md">
-                                            <MapPin size={14} className="text-amber-600" />
-                                        </div>
-                                        <span className="font-medium text-xs truncate max-w-[200px]">
-                                        {comp.location || 'Lokasi belum diatur'}
-                                        </span>
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                      </Link>
-                  ))}
-              </div>
-          </TabsContent>
+        <TabsContent value="competitions" className="mt-4">
+          <CompetitionGrid competitions={event.competitions ?? []} />
+        </TabsContent>
 
-          <TabsContent value="medals">
-              <MedalTally eventId={id!} />
+        {hasFestival && (
+          <TabsContent value="festival" className="mt-4">
+            <FestivalGrid competitions={(event.competitions ?? []).filter((c: any) =>
+              ['mars_maarif','mtq_pa','mtq_pi','puji_pujian','film_dokumenter'].includes(c.lomba_type)
+            )} />
           </TabsContent>
+        )}
+
+        {hasAnugerah && (
+          <TabsContent value="anugerah" className="mt-4">
+            <AnugerahRegistrationList eventId={Number(id)} competitions={(event.competitions ?? []).filter((c: any) =>
+              ['guru_berprestasi','madrasah_berprestasi'].includes(c.lomba_type)
+            )} />
+          </TabsContent>
+        )}
+
+        <TabsContent value="medals" className="mt-4">
+          <MedalTally eventId={Number(id)} />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function MedalTally({ eventId }: { eventId: string }) {
-    const [tally, setTally] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+// ── Sub-components ────────────────────────────────────────────────────────────
 
-    const fetchTally = () => {
-        setLoading(true);
-        fetch(`${API_URL}/events/${eventId}/tally`)
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch');
-                return res.json();
-            })
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTally(data);
-                } else {
-                    console.error("Invalid tally data", data);
-                    setTally([]);
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                setTally([]);
-            })
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        // fetchTally should be a useCallback or defined here
-        fetchTally();
-    }, [eventId]);
-
-    if (loading) return <div className="py-8 text-center text-gray-500"><Loader2 className="animate-spin inline mr-2" /> Memuat data medali...</div>;
-
+function CompetitionGrid({ competitions }: { competitions: any[] }) {
+  if (competitions.length === 0)
     return (
-        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 backdrop-blur-xl rounded-2xl relative z-10 overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-white/60 bg-white/40">
-                <CardTitle className="text-lg font-bold text-slate-800">Klasemen Perolehan Medali</CardTitle>
-                <Button variant="outline" size="sm" onClick={fetchTally} className="bg-white/50 hover:bg-white/80 rounded-xl transition-all shadow-sm">
-                    🔄 Refresh
-                </Button>
-            </CardHeader>
-            <CardContent className="pt-4">
-                <div className="rounded-2xl border-0 shadow-[0_4px_15px_rgb(0,0,0,0.02)] overflow-hidden bg-white/40">
-                    <table className="w-full text-sm">
-                        <thead className="bg-slate-100/50 border-b border-white/60 backdrop-blur-sm tracking-wide">
-                            <tr>
-                                <th className="h-12 px-4 text-left font-bold text-slate-500">Peringkat</th>
-                                <th className="h-12 px-4 text-left font-bold text-slate-500">Lembaga / Sekolah</th>
-                                <th className="h-12 px-4 text-center font-bold text-amber-600">Emas</th>
-                                <th className="h-12 px-4 text-center font-bold text-slate-600">Perak</th>
-                                <th className="h-12 px-4 text-center font-bold text-orange-600">Perunggu</th>
-                                <th className="h-12 px-4 text-center font-bold text-emerald-700">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tally.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="h-24 text-center text-slate-500 font-medium italic">Belum ada data perolehan medali.</td>
-                                </tr>
-                            ) : (
-                                tally.map((item, index) => (
-                                    <tr key={index} className="border-b border-white/50 hover:bg-white/60 transition-colors last:border-0">
-                                        <td className="p-4 font-bold text-slate-700">
-                                            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200/50 text-xs">
-                                                {index + 1}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 font-semibold text-slate-800">{item.institution}</td>
-                                        <td className="p-4 text-center font-black text-amber-500 bg-amber-50/30">{item.gold}</td>
-                                        <td className="p-4 text-center font-black text-slate-500 bg-slate-50/30">{item.silver}</td>
-                                        <td className="p-4 text-center font-black text-orange-500 bg-orange-50/30">{item.bronze}</td>
-                                        <td className="p-4 text-center font-black text-emerald-600 bg-emerald-50/30">{item.total}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </CardContent>
-        </Card>
+      <div className="text-center py-16 text-slate-400 border-2 border-dashed rounded-2xl">
+        <Trophy size={32} className="mx-auto mb-3 opacity-40" />
+        <p className="font-medium">Belum ada cabang lomba.</p>
+        <p className="text-sm mt-1">Klik "Tambah Cabang Lomba" untuk memulai.</p>
+      </div>
     );
+
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {competitions.map((comp: any) => (
+        <Link to={`/dashboard/competitions/${comp.id}`} key={comp.id}>
+          <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer rounded-2xl border-0 shadow-sm bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-wrap gap-1 mb-1">
+                  <Badge variant="secondary" className="text-[9px] font-bold uppercase">{comp.category}</Badge>
+                  {comp.lomba_type && <Badge className="text-[9px] font-bold uppercase bg-green-100 text-green-800 hover:bg-green-100">{comp.lomba_type.replace(/_/g,' ')}</Badge>}
+                </div>
+                <ChevronRight size={16} className="text-slate-300 mt-1 flex-shrink-0"/>
+              </div>
+              <CardTitle className="text-base font-bold text-slate-800 leading-tight">{comp.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="flex items-center gap-1"><Users size={12}/>{comp.participants_count ?? 0} peserta</span>
+                {comp.jenjang && <span className="bg-slate-100 px-2 py-0.5 rounded-full">{comp.jenjang}</span>}
+              </div>
+              {comp.deadline && (
+                <p className="mt-2 text-[10px] text-amber-600 font-semibold">
+                  Batas: {new Date(comp.deadline).toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'})}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function FestivalGrid({ competitions }: { competitions: any[] }) {
+  const FESTIVAL_INFO: Record<string, { icon: string; desc: string }> = {
+    mars_maarif:     { icon: '🎼', desc: 'Paduan Suara 8–15 orang, backing track karaoke, Batik Ma\'arif NU' },
+    mtq_pa:          { icon: '📖', desc: 'Perorangan Putra, maqra\' bebas, live record' },
+    mtq_pi:          { icon: '📖', desc: 'Perorangan Putri, maqra\' bebas, live record' },
+    puji_pujian:     { icon: '🕌', desc: 'Kelompok 3–5 anak MI/SD, syi\'iran Jawa tradisi pesantren' },
+    film_dokumenter: { icon: '🎬', desc: 'Tim maks 5 orang, full HD 1080p, tema tokoh/tradisi NU' },
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-4 bg-green-50 border border-green-200 rounded-2xl text-sm text-green-800">
+        <p className="font-bold mb-1">📋 Ketentuan Umum Festival Aswaja</p>
+        <ul className="list-disc list-inside space-y-1 text-xs">
+          <li>Video harus baru, orisinal, belum dipublikasikan/dilombakan sebelumnya</li>
+          <li>Pengambilan video: live record, tanpa lip sync, tanpa auto-tune</li>
+          <li>Kirim link Google Drive (akses publik) via formulir: <strong>s.id/Harlah97MaarifCilacap</strong></li>
+        </ul>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {competitions.map((comp: any) => {
+          const info = FESTIVAL_INFO[comp.lomba_type] ?? { icon: '🏆', desc: '' };
+          return (
+            <Link to={`/dashboard/competitions/${comp.id}`} key={comp.id}>
+              <Card className="hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer rounded-2xl border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <div className="text-2xl mb-1">{info.icon}</div>
+                  <CardTitle className="text-base font-bold text-slate-800">{comp.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-2">
+                  <p className="text-xs text-slate-500 leading-relaxed">{info.desc}</p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="flex items-center gap-1 text-slate-500"><Users size={12}/>{comp.participants_count ?? 0} peserta</span>
+                    {comp.jenjang && <Badge variant="outline" className="text-[9px] py-0">{comp.jenjang}</Badge>}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AddCompetitionForm({ comp, setComp, onLombaTypeChange, onSave, saving, onCancel }: any) {
+  return (
+    <div className="space-y-4 py-2">
+      <div className="space-y-1.5">
+        <Label className="text-xs font-bold uppercase text-slate-500">Tipe Lomba (Preset)</Label>
+        <Select value={comp.lomba_type} onValueChange={onLombaTypeChange}>
+          <SelectTrigger><SelectValue placeholder="Pilih preset atau isi manual..."/></SelectTrigger>
+          <SelectContent>
+            {LOMBA_TYPES.map(l => <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-bold uppercase text-slate-500">Nama Lomba *</Label>
+        <Input value={comp.name} onChange={e => setComp((p: any) => ({...p, name: e.target.value}))} placeholder="Nama cabang lomba..." />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold uppercase text-slate-500">Kategori</Label>
+          <Select value={comp.category} onValueChange={v => setComp((p: any) => ({...p, category: v}))}>
+            <SelectTrigger><SelectValue/></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Keagamaan">Keagamaan</SelectItem>
+              <SelectItem value="Akademik">Akademik</SelectItem>
+              <SelectItem value="Seni">Seni</SelectItem>
+              <SelectItem value="Olahraga">Olahraga</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold uppercase text-slate-500">Tipe</Label>
+          <Select value={comp.type} onValueChange={v => setComp((p: any) => ({...p, type: v}))}>
+            <SelectTrigger><SelectValue/></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Individual">Individual</SelectItem>
+              <SelectItem value="Beregu">Beregu / Tim</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs font-bold uppercase text-slate-500">Jenjang</Label>
+        <Input value={comp.jenjang} onChange={e => setComp((p: any) => ({...p, jenjang: e.target.value}))} placeholder="MI/SD, MTs/SMP, MA/SMA/SMK" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold uppercase text-slate-500">Batas Pendaftaran</Label>
+          <Input type="datetime-local" value={comp.deadline} onChange={e => setComp((p: any) => ({...p, deadline: e.target.value}))} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-bold uppercase text-slate-500">Maks. Peserta/Sekolah</Label>
+          <Input type="number" min="1" value={comp.max_per_school} onChange={e => setComp((p: any) => ({...p, max_per_school: e.target.value}))} placeholder="—" />
+        </div>
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button variant="ghost" onClick={onCancel} className="flex-1">Batal</Button>
+        <Button onClick={onSave} disabled={saving} className="flex-1">
+          {saving ? <Loader2 size={14} className="animate-spin mr-2"/> : null} Simpan
+        </Button>
+      </div>
+    </div>
+  );
 }

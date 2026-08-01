@@ -54,7 +54,17 @@ export default function CreateEventPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate({ ...form, video_deadline: form.video_deadline || null, registration_start: form.registration_start || null, registration_end: form.registration_end || null });
+    // Normalize datetime-local format (2026-09-11T23:59) to full datetime (2026-09-11 23:59:00)
+    const normalizeDateTime = (val: string) => {
+      if (!val) return null;
+      return val.replace('T', ' ') + (val.length === 16 ? ':00' : '');
+    };
+    mutation.mutate({
+      ...form,
+      video_deadline:     normalizeDateTime(form.video_deadline),
+      registration_start: form.registration_start || null,
+      registration_end:   form.registration_end || null,
+    });
   };
 
   return (

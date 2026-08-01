@@ -37,12 +37,20 @@ class EventController extends Controller
             'status'             => 'nullable|string|in:OPEN,CLOSED,FINISHED',
             'registration_start' => 'nullable|date',
             'registration_end'   => 'nullable|date|after_or_equal:registration_start',
-            'video_deadline'     => 'nullable|date',
+            'video_deadline'     => ['nullable', 'date_format:Y-m-d H:i:s,Y-m-d H:i,Y-m-d\TH:i,Y-m-d'],
             'announcement_date'  => 'nullable|date',
             'announcement_place' => 'nullable|string|max:255',
             'contact_name'       => 'nullable|string|max:100',
             'contact_phone'      => 'nullable|string|max:30',
         ]);
+
+        // Normalize video_deadline to Y-m-d H:i:s for DB storage
+        if (! empty($data['video_deadline'])) {
+            $data['video_deadline'] = str_replace('T', ' ', $data['video_deadline']);
+            if (strlen($data['video_deadline']) === 16) {
+                $data['video_deadline'] .= ':00';
+            }
+        }
 
         $data['school_id'] = Auth::user()?->school_id;
 

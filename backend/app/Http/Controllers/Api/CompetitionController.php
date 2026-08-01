@@ -277,6 +277,170 @@ class CompetitionController extends Controller
         }
     }
 
+    // ─────────────────────── SEED HARLAH 97 ──────────────────────────────────
+
+    /**
+     * POST /events/{event}/seed-harlah97
+     * Buat semua cabang lomba Anugerah Pendidikan & Festival Aswaja
+     * sesuai Juknis LP Ma'arif NU Cilacap Harlah ke-97 Tahun 2026.
+     * Idempotent — lomba yang sudah ada (berdasarkan lomba_type) dilewati.
+     */
+    public function seedHarlah97(Event $event): JsonResponse
+    {
+        $VIDEO_DEADLINE = '2026-09-11 23:59:00';
+        $REG_DEADLINE   = '2026-09-07 23:59:00';
+
+        $template = [
+            // ── Festival Aswaja Siswa ──────────────────────────────────────
+            [
+                'name'             => 'Mars Ma\'arif NU',
+                'category'         => 'Keagamaan',
+                'type'             => 'Beregu',
+                'jenjang'          => 'MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'mars_maarif',
+                'deadline'         => $VIDEO_DEADLINE,
+                'max_per_school'   => 1,
+                'scoring_criteria' => [
+                    ['component' => 'Teknik Vokal',             'weight' => 35],
+                    ['component' => 'Harmonisasi & Keselarasan','weight' => 35],
+                    ['component' => 'Penjiwaan & Ekspresi',     'weight' => 30],
+                ],
+            ],
+            [
+                'name'             => 'MTQ Putra',
+                'category'         => 'Keagamaan',
+                'type'             => 'Individual',
+                'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'mtq_pa',
+                'deadline'         => $VIDEO_DEADLINE,
+                'max_per_school'   => 1,
+                'scoring_criteria' => [
+                    ['component' => 'Tajwid',            'weight' => 45],
+                    ['component' => 'Lagu & Irama',      'weight' => 35],
+                    ['component' => 'Adab & Penampilan', 'weight' => 20],
+                ],
+            ],
+            [
+                'name'             => 'MTQ Putri',
+                'category'         => 'Keagamaan',
+                'type'             => 'Individual',
+                'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'mtq_pi',
+                'deadline'         => $VIDEO_DEADLINE,
+                'max_per_school'   => 1,
+                'scoring_criteria' => [
+                    ['component' => 'Tajwid',            'weight' => 45],
+                    ['component' => 'Lagu & Irama',      'weight' => 35],
+                    ['component' => 'Adab & Penampilan', 'weight' => 20],
+                ],
+            ],
+            [
+                'name'             => 'Puji-Pujian Jawa',
+                'category'         => 'Keagamaan',
+                'type'             => 'Beregu',
+                'jenjang'          => 'MI/SD',
+                'lomba_type'       => 'puji_pujian',
+                'deadline'         => $VIDEO_DEADLINE,
+                'max_per_school'   => 1,
+                'scoring_criteria' => [
+                    ['component' => 'Makhraj & Artikulasi Bahasa Jawa', 'weight' => 35],
+                    ['component' => 'Penjiwaan & Penghayatan',          'weight' => 30],
+                    ['component' => 'Harmonisasi Suara & Irama',        'weight' => 25],
+                    ['component' => 'Adab & Penampilan',                'weight' => 10],
+                ],
+            ],
+            [
+                'name'             => 'Film Dokumenter NU',
+                'category'         => 'Keagamaan',
+                'type'             => 'Beregu',
+                'jenjang'          => 'MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'film_dokumenter',
+                'deadline'         => $VIDEO_DEADLINE,
+                'max_per_school'   => 1,
+                'scoring_criteria' => [
+                    ['component' => 'Kesesuaian Tema & Kedalaman Konten', 'weight' => 35],
+                    ['component' => 'Alur Cerita & Struktur Narasi',      'weight' => 25],
+                    ['component' => 'Sinematografi & Editing',            'weight' => 25],
+                    ['component' => 'Kreativitas & Estetika',             'weight' => 15],
+                ],
+            ],
+            // ── Anugerah Pendidikan ────────────────────────────────────────
+            [
+                'name'             => 'Anugerah Guru Berprestasi',
+                'category'         => 'Akademik',
+                'type'             => 'Individual',
+                'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'guru_berprestasi',
+                'deadline'         => $REG_DEADLINE,
+                'max_per_school'   => null,
+                'scoring_criteria' => [
+                    ['component' => 'Akumulasi Skor Kejuaraan / Prestasi',              'weight' => 40],
+                    ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30],
+                    ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15],
+                    ['component' => 'Presentasi, Wawancara, & Deep Interview',          'weight' => 15],
+                ],
+            ],
+            [
+                'name'             => 'Anugerah Madrasah/Sekolah Berprestasi',
+                'category'         => 'Akademik',
+                'type'             => 'Individual',
+                'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'madrasah_berprestasi',
+                'deadline'         => $REG_DEADLINE,
+                'max_per_school'   => null,
+                'scoring_criteria' => [
+                    ['component' => 'Akumulasi Skor Kejuaraan Lembaga',                        'weight' => 45],
+                    ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja',       'weight' => 25],
+                    ['component' => 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', 'weight' => 15],
+                    ['component' => 'Presentasi Kepala Madrasah & Visitasi / Fact Checking',   'weight' => 15],
+                ],
+            ],
+            // ── OSKANU ────────────────────────────────────────────────────
+            [
+                'name'             => 'OSKANU Lolos Provinsi',
+                'category'         => 'Akademik',
+                'type'             => 'Individual',
+                'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
+                'lomba_type'       => 'oskanu',
+                'deadline'         => $REG_DEADLINE,
+                'max_per_school'   => null,
+                'scoring_criteria' => [],
+            ],
+        ];
+
+        $created = [];
+        $skipped = [];
+
+        foreach ($template as $item) {
+            // Idempotent: skip jika lomba_type sudah ada di event ini
+            $exists = Competition::where('event_id', $event->id)
+                ->where('lomba_type', $item['lomba_type'])
+                ->exists();
+
+            if ($exists) {
+                $skipped[] = $item['name'];
+                continue;
+            }
+
+            $comp = Competition::create(array_merge($item, [
+                'event_id' => $event->id,
+                'status'   => 'OPEN',
+            ]));
+
+            $created[] = [
+                'id'         => $comp->id,
+                'name'       => $comp->name,
+                'lomba_type' => $comp->lomba_type,
+            ];
+        }
+
+        return $this->success(
+            ['created' => $created, 'skipped' => $skipped],
+            count($created) . ' cabang lomba berhasil dibuat' .
+                (count($skipped) ? ', ' . count($skipped) . ' dilewati (sudah ada).' : '.')
+        );
+    }
+
     // ─────────────────────── JURY PIN ─────────────────────────────────────────
 
     /**

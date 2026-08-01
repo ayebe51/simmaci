@@ -375,6 +375,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Competitions (sub-resource of events)
         Route::get('events/{event}/competitions', [CompetitionController::class, 'index']);
         Route::post('events/{event}/competitions', [CompetitionController::class, 'store']);
+        Route::post('events/{event}/seed-harlah97', [CompetitionController::class, 'seedHarlah97']);
         Route::get('competitions/{competition}', [CompetitionController::class, 'show']);
         Route::put('competitions/{competition}', [CompetitionController::class, 'update']);
         Route::delete('competitions/{competition}', [CompetitionController::class, 'destroy']);

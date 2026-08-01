@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Plus, Trophy, Calendar, MapPin, ChevronRight, Loader2,
-  Users, Video, Award, Edit, ClipboardList,
+  Users, Video, Award, Edit, ClipboardList, Sparkles,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -158,6 +158,7 @@ export default function EventDetailPage() {
           <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/events/${id}/edit`)}>
             <Edit size={14} className="mr-1.5"/> Edit Event
           </Button>
+          <SeedHarlah97Button eventId={Number(id)} onDone={fetchEvent} />
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus size={14} className="mr-1.5"/> Tambah Cabang Lomba</Button>
@@ -358,5 +359,114 @@ function AddCompetitionForm({ comp, setComp, onLombaTypeChange, onSave, saving, 
         </Button>
       </div>
     </div>
+  );
+}
+
+// ── SeedHarlah97Button ────────────────────────────────────────────────────────
+
+function SeedHarlah97Button({ eventId, onDone }: { eventId: number; onDone: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const LOMBA_LIST = [
+    { icon: '🎼', name: 'Mars Ma\'arif NU',                 jenjang: 'MTs/SMP, MA/SMA/SMK',  tipe: 'Beregu (8–15 org)' },
+    { icon: '📖', name: 'MTQ Putra',                        jenjang: 'MI/SD, MTs/SMP, MA',   tipe: 'Individual (maks 1/sekolah)' },
+    { icon: '📖', name: 'MTQ Putri',                        jenjang: 'MI/SD, MTs/SMP, MA',   tipe: 'Individual (maks 1/sekolah)' },
+    { icon: '🕌', name: 'Puji-Pujian Jawa',                 jenjang: 'MI/SD',                 tipe: 'Beregu (3–5 anak)' },
+    { icon: '🎬', name: 'Film Dokumenter NU',               jenjang: 'MTs/SMP, MA/SMA/SMK',  tipe: 'Tim (maks 5 org)' },
+    { icon: '👨‍🏫', name: 'Anugerah Guru Berprestasi',       jenjang: 'Semua jenjang',         tipe: 'Individual' },
+    { icon: '🏫', name: 'Anugerah Madrasah Berprestasi',    jenjang: 'Semua jenjang',         tipe: 'Per lembaga' },
+    { icon: '🏆', name: 'OSKANU Lolos Provinsi',            jenjang: 'Semua jenjang',         tipe: 'Individual' },
+  ];
+
+  const handleSeed = async () => {
+    setLoading(true);
+    try {
+      const res = await eventApi.competitions.seedHarlah97(eventId);
+      const created = res.created?.length ?? 0;
+      const skipped = res.skipped?.length ?? 0;
+      if (created > 0) {
+        toast.success(`${created} cabang lomba berhasil dibuat!${skipped > 0 ? ` (${skipped} dilewati karena sudah ada)` : ''}`);
+      } else {
+        toast.info('Semua cabang lomba sudah ada, tidak ada yang ditambahkan.');
+      }
+      setOpen(false);
+      onDone();
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Gagal membuat cabang lomba');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50">
+          <Sparkles size={14} className="text-green-500" />
+          Seed Lomba Harlah 97
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles size={18} className="text-green-500" />
+            Buat Semua Cabang Lomba Harlah ke-97
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-slate-600">
+            Klik tombol di bawah untuk membuat <strong>8 cabang lomba</strong> sekaligus sesuai
+            Juknis Anugerah Pendidikan LP Ma'arif NU Cilacap 2026. Proses ini <strong>idempotent</strong> —
+            lomba yang sudah ada tidak akan diduplikat.
+          </p>
+
+          <div className="rounded-xl border overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50 border-b">
+                <tr>
+                  <th className="px-3 py-2 text-left font-bold text-slate-500 uppercase">Cabang Lomba</th>
+                  <th className="px-3 py-2 text-left font-bold text-slate-500 uppercase">Jenjang</th>
+                  <th className="px-3 py-2 text-left font-bold text-slate-500 uppercase">Tipe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {LOMBA_LIST.map((l, i) => (
+                  <tr key={i} className="border-b last:border-0 hover:bg-slate-50/50">
+                    <td className="px-3 py-2 font-medium text-slate-800">
+                      <span className="mr-1.5">{l.icon}</span>{l.name}
+                    </td>
+                    <td className="px-3 py-2 text-slate-500">{l.jenjang}</td>
+                    <td className="px-3 py-2 text-slate-500">{l.tipe}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            ⚡ Kriteria penilaian, deadline pengiriman video (11 Sep 2026 23.59), dan batas peserta
+            per sekolah sudah diisi otomatis sesuai Juknis.
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <Button variant="ghost" size="sm" className="flex-1" onClick={() => setOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 bg-green-600 hover:bg-green-700 gap-1.5"
+              onClick={handleSeed}
+              disabled={loading}
+            >
+              {loading
+                ? <><Loader2 size={13} className="animate-spin" /> Membuat...</>
+                : <><Sparkles size={13} /> Buat Semua Lomba</>
+              }
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

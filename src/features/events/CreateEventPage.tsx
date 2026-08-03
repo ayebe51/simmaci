@@ -45,9 +45,14 @@ export default function CreateEventPage() {
     mutationFn: (data: any) => eventApi.create(data),
     onSuccess: (res) => {
       toast.success('Event berhasil dibuat');
-      navigate(`/dashboard/events/${res.id ?? res.data?.id}`);
+      const id = res?.id ?? res?.data?.id;
+      if (id) {
+        navigate(`/dashboard/events/${id}`);
+      } else {
+        navigate('/dashboard/events');
+      }
     },
-    onError: (e: any) => toast.error(e.response?.data?.message || 'Gagal membuat event'),
+    onError: (e: any) => toast.error(e.response?.data?.message || e.response?.data?.errors ? JSON.stringify(e.response?.data?.errors) : 'Gagal membuat event'),
   });
 
   const handlePreset = () => setForm(PRESET_ANUGERAH);

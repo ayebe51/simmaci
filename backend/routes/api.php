@@ -6,21 +6,6 @@ use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\StudentController;
 
-// ── TEMP: Force run pending migrations (DELETE AFTER USE) ──
-// Usage: GET /api/temp-run-migrations?secret=maarif2026
-Route::get('/temp-run-migrations', function (\Illuminate\Http\Request $request) {
-    if ($request->query('secret') !== 'maarif2026') {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-    try {
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        $output = \Illuminate\Support\Facades\Artisan::output();
-        return response()->json(['success' => true, 'output' => $output]);
-    } catch (\Throwable $e) {
-        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
-    }
-});
-
 Route::get('/temp-check-nim', function () {
     $teacherDups = \App\Models\Teacher::select('nomor_induk_maarif', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
         ->whereNotNull('nomor_induk_maarif')

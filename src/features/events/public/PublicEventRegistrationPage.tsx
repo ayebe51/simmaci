@@ -12,8 +12,15 @@ import { Loader2, CheckCircle2, Trophy, Calendar, MapPin, Phone, Users, Video, A
 import { toast } from 'sonner';
 
 const api = {
-  getEvent: (id: string) => axios.get(`${API_URL}/public/events/${id}`).then(r => r.data?.data ?? r.data),
-  register: (id: string, data: any) => axios.post(`${API_URL}/public/events/${id}/daftar`, data).then(r => r.data),
+  getEvent: (idOrSlug: string) => {
+    // Try by slug first if not numeric
+    const isNumeric = /^\d+$/.test(idOrSlug);
+    const url = isNumeric
+      ? `${API_URL}/public/events/${idOrSlug}`
+      : `${API_URL}/public/events/by-slug/${idOrSlug}`;
+    return axios.get(url).then(r => r.data?.data ?? r.data);
+  },
+  register: (idOrSlug: string, data: any) => axios.post(`${API_URL}/public/events/${idOrSlug}/daftar`, data).then(r => r.data),
 };
 
 const LOMBA_ICONS: Record<string, string> = {

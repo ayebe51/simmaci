@@ -152,6 +152,19 @@ export default function EventDetailPage() {
                 <span className="ml-1 text-slate-600">{event.contact_name} {event.contact_phone ? `(${event.contact_phone})` : ''}</span>
               </div>
             )}
+            {/* Public registration link */}
+            {event.slug && (
+              <div className="flex items-center gap-2 text-xs bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
+                <span className="font-bold text-green-700">📝 Link Daftar:</span>
+                <code className="text-green-600 font-mono truncate max-w-xs">{window.location.origin}/daftar/{event.slug}</code>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/daftar/${event.slug}`); toast.success('Link disalin!'); }}
+                  className="ml-1 px-2 py-0.5 bg-green-600 text-white rounded text-[10px] font-bold hover:bg-green-700 flex-shrink-0"
+                >
+                  Salin
+                </button>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">

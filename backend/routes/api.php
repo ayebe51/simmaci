@@ -539,6 +539,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // ── Public Events & Jury (no auth) ──────────────────────────────────────────
 Route::prefix('public/events')->group(function () {
+    Route::get('by-slug/{slug}', [PublicEventController::class, 'showBySlug']);
     Route::get('{event}', [PublicEventController::class, 'show']);
     Route::post('{event}/daftar', [PublicEventController::class, 'register']);
     Route::get('{event}/scoreboard/{competition}', [PublicEventController::class, 'scoreboard']);

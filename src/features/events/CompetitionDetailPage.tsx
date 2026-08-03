@@ -195,8 +195,9 @@ function JuryAccessPanel({ competition }: { competition: any }) {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const juryUrl   = `${window.location.origin}/juri`;
-  const daftarUrl = `${window.location.origin}/daftar/${competition.event?.id ?? ''}`;
+  const juryUrl      = `${window.location.origin}/juri`;
+  const eventSlug    = competition.event?.slug ?? competition.event?.id ?? '';
+  const daftarUrl    = `${window.location.origin}/daftar/${eventSlug}`;
   const scoreboardUrl = `${window.location.origin}/papan-skor/${competition.event?.id ?? ''}/${competition.id}`;
 
   const copy = (text: string, key: string) => {

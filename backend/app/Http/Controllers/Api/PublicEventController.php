@@ -42,6 +42,7 @@ class PublicEventController extends Controller
         return $this->success([
             'id'                 => $event->id,
             'name'               => $event->name,
+            'slug'               => $event->slug,
             'category'           => $event->category,
             'date'               => $event->date,
             'location'           => $event->location,
@@ -56,6 +57,16 @@ class PublicEventController extends Controller
             'contact_phone'      => $event->contact_phone,
             'competitions'       => $event->competitions,
         ]);
+    }
+
+    /**
+     * Resolve event by slug (redirect-compatible).
+     * GET /public/events/by-slug/{slug}
+     */
+    public function showBySlug(string $slug): JsonResponse
+    {
+        $event = Event::where('slug', $slug)->firstOrFail();
+        return $this->show($event);
     }
 
     // ── 2. Public registration ─────────────────────────────────────────────────

@@ -17,6 +17,7 @@ class CompetitionParticipant extends Model
         'teacher_id',
         'group_name',
         'member_count',
+        'members',
         'gender_category',
         'contact_person',
         'contact_phone',
@@ -58,3 +59,4 @@ class CompetitionParticipant extends Model
         return $this->belongsTo(Teacher::class);
     }
 }
+

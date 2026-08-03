@@ -5,30 +5,37 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Competition;
 use App\Models\Event;
-use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * EventController — menggunakan response()->json() langsung
+ * (tidak bergantung pada ApiResponse trait agar OPcache tidak jadi masalah)
+ */
 class EventController extends Controller
 {
-    use ApiResponse;
+    private function ok(mixed $data, string $message = '', int $code = 200): JsonResponse
+    {
+        $body = ['success' => true, 'data' => $data];
+        if ($message) {
+            $body['message'] = $message;
+        }
+        return response()->json($body, $code);
+    }
 
     public function index(Request $request): JsonResponse
     {
         try {
             $events = Event::with(['competitions' => function ($q) {
                 $q->withCount('participants')->withCount('results');
-            }])
-                ->orderByDesc('date')
-                ->get();
+            }])->orderByDesc('date')->get();
         } catch (\Throwable $e) {
-            // Fallback jika tabel competitions belum ada (migration pending)
-            \Log::warning('EventController::index competitions relation failed, falling back', ['error' => $e->getMessage()]);
+            \Illuminate\Support\Facades\Log::warning('EventController::index competitions relation failed', ['error' => $e->getMessage()]);
             $events = Event::orderByDesc('date')->get();
         }
 
-        return $this->success($events);
+        return $this->ok($events);
     }
 
     public function store(Request $request): JsonResponse
@@ -42,7 +49,7 @@ class EventController extends Controller
             'description'        => 'nullable|string',
             'status'             => 'nullable|string|in:OPEN,CLOSED,FINISHED',
             'registration_start' => 'nullable|date',
-            'registration_end'   => 'nullable|date|after_or_equal:registration_start',
+            'registration_end'   => 'nullable|date',
             'video_deadline'     => 'nullable|string|max:30',
             'announcement_date'  => 'nullable|date',
             'announcement_place' => 'nullable|string|max:255',
@@ -50,7 +57,7 @@ class EventController extends Controller
             'contact_phone'      => 'nullable|string|max:30',
         ]);
 
-        // Normalize video_deadline to Y-m-d H:i:s for DB storage
+        // Normalize video_deadline: "2026-09-11T23:59" -> "2026-09-11 23:59:00"
         if (! empty($data['video_deadline'])) {
             $data['video_deadline'] = str_replace('T', ' ', $data['video_deadline']);
             if (strlen($data['video_deadline']) === 16) {
@@ -60,30 +67,30 @@ class EventController extends Controller
 
         $data['school_id'] = Auth::user()?->school_id;
 
+        $event = Event::create($data);
+
         try {
-            $event = Event::create($data);
-            return $this->success($event->load('competitions'), 'Event berhasil dibuat', 201);
+            $event->load('competitions');
         } catch (\Throwable $e) {
-            // Fallback jika tabel competitions belum ada
-            \Log::warning('EventController::store load competitions failed, returning without relation', ['error' => $e->getMessage()]);
-            $event = Event::create($data);
-            return $this->success($event, 'Event berhasil dibuat', 201);
+            // competitions table might not exist yet — return without relation
         }
+
+        return $this->ok($event, 'Event berhasil dibuat', 201);
     }
 
     public function show(Event $event): JsonResponse
     {
-        $event->load([
-            'competitions' => function ($q) {
-                $q->withCount('participants')->withCount('results')
-                  ->orderBy('name');
-            },
-        ]);
+        try {
+            $event->load([
+                'competitions' => function ($q) {
+                    $q->withCount('participants')->withCount('results')->orderBy('name');
+                },
+            ]);
+        } catch (\Throwable $e) {
+            // graceful fallback
+        }
 
-        // Medal tally summary for quick display
-        $event->append([]);
-
-        return $this->success($event);
+        return $this->ok($event);
     }
 
     public function update(Request $request, Event $event): JsonResponse
@@ -98,7 +105,7 @@ class EventController extends Controller
             'status'             => 'nullable|string|in:OPEN,CLOSED,FINISHED',
             'registration_start' => 'nullable|date',
             'registration_end'   => 'nullable|date',
-            'video_deadline'     => 'nullable|date',
+            'video_deadline'     => 'nullable|string|max:30',
             'announcement_date'  => 'nullable|date',
             'announcement_place' => 'nullable|string|max:255',
             'contact_name'       => 'nullable|string|max:100',
@@ -107,13 +114,19 @@ class EventController extends Controller
 
         $event->update($data);
 
-        return $this->success($event->load('competitions'));
+        try {
+            $event->load('competitions');
+        } catch (\Throwable $e) {
+            // graceful fallback
+        }
+
+        return $this->ok($event);
     }
 
     public function destroy(Event $event): JsonResponse
     {
         $event->delete();
-        return $this->success(null, 'Event berhasil dihapus');
+        return $this->ok(null, 'Event berhasil dihapus');
     }
 
     // ── Medal Tally ────────────────────────────────────────────────────────────
@@ -138,6 +151,6 @@ class EventController extends Controller
             ->sortByDesc('gold')
             ->values();
 
-        return $this->success($tally);
+        return $this->ok($tally);
     }
 }

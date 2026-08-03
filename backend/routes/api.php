@@ -541,7 +541,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('public/events')->group(function () {
     Route::get('by-slug/{slug}', [PublicEventController::class, 'showBySlug']);
     Route::get('{event}', [PublicEventController::class, 'show']);
-    Route::post('{event}/daftar', [PublicEventController::class, 'register']);
+    // POST daftar: {idOrSlug} bisa ID angka atau slug
+    Route::post('{idOrSlug}/daftar', [PublicEventController::class, 'registerByIdOrSlug']);
     Route::get('{event}/scoreboard/{competition}', [PublicEventController::class, 'scoreboard']);
 });
 

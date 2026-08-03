@@ -71,6 +71,19 @@ class PublicEventController extends Controller
 
     // ── 2. Public registration ─────────────────────────────────────────────────
 
+    /**
+     * Wrapper that resolves event by ID or slug before calling register().
+     * POST /public/events/{idOrSlug}/daftar
+     */
+    public function registerByIdOrSlug(Request $request, string $idOrSlug): JsonResponse
+    {
+        $event = is_numeric($idOrSlug)
+            ? Event::findOrFail($idOrSlug)
+            : Event::where('slug', $idOrSlug)->firstOrFail();
+
+        return $this->register($request, $event);
+    }
+
     public function register(Request $request, Event $event): JsonResponse
     {
         if ($event->status !== 'OPEN') {

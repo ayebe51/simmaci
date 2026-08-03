@@ -43,7 +43,7 @@ class EventController extends Controller
             'status'             => 'nullable|string|in:OPEN,CLOSED,FINISHED',
             'registration_start' => 'nullable|date',
             'registration_end'   => 'nullable|date|after_or_equal:registration_start',
-            'video_deadline'     => ['nullable', 'date_format:Y-m-d H:i:s,Y-m-d H:i,Y-m-d\TH:i,Y-m-d'],
+            'video_deadline'     => 'nullable|string|max:30',
             'announcement_date'  => 'nullable|date',
             'announcement_place' => 'nullable|string|max:255',
             'contact_name'       => 'nullable|string|max:100',

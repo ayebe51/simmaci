@@ -30,14 +30,8 @@ const toTitleCase = (str: string) => {
   );
 };
 import { toast } from "sonner"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { useDebounce } from "@/hooks/useDebounce"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { NimDialog } from "@/features/sk-management/components/NimDialog"
 import type { TeacherForNim } from "@/features/sk-management/components/NimDialog"
 import type { FailedDoc } from "@/features/sk-management/utils/generateSkBatched"
@@ -158,6 +152,7 @@ export default function SkGeneratorPage() {
   const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role)
 
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [page, setPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [isGenerating, setIsGenerating] = useState(false)
@@ -285,10 +280,10 @@ export default function SkGeneratorPage() {
   
   // 1. SK Request Candidates (Approved but not yet printed)
   const { data: candidatesData, isLoading: isCandidatesLoading } = useQuery({
-    queryKey: ['sk-candidates-generator', searchTerm, page],
+    queryKey: ['sk-candidates-generator', debouncedSearchTerm, page],
     queryFn: () => skApi.list({
       status: 'approved',
-      search: searchTerm,
+      search: debouncedSearchTerm,
       page: page,
       per_page: itemsPerPage,
       sort_by: 'created_at',

@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { parseIndonesianDate, formatIndonesianDateDisplay } from './utils/skDateUtils'
 import { useNavigate } from "react-router-dom"
 import { useState, useMemo } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi } from "@/lib/api"
@@ -66,6 +67,7 @@ export default function SkDashboardPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [filterType, setFilterType] = useState("all")
   const [statusFilter, setStatusFilter] = useState("draft") // draft (candidates), approved, rejected, all
   const [page, setPage] = useState(1)
@@ -145,11 +147,11 @@ export default function SkDashboardPage() {
   
   // 1. SK Documents (Approved/Rejected/Issued)
   const { data: skDocsData, isLoading: isSkLoading } = useQuery({
-    queryKey: ['sk-documents', statusFilter, filterType, searchTerm, page],
+    queryKey: ['sk-documents', statusFilter, filterType, debouncedSearchTerm, page],
     queryFn: () => skApi.list({
       status: statusFilter === 'all' ? undefined : statusFilter,
       jenis_sk: filterType === 'all' ? undefined : filterType,
-      search: searchTerm,
+      search: debouncedSearchTerm,
       page: page,
       per_page: 10
     }),

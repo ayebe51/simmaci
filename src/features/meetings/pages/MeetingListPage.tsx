@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -49,6 +50,7 @@ const statusColor: Record<MeetingStatus, string> = {
 export default function MeetingListPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [status, setStatus] = useState<MeetingStatus | 'all'>('all');
   const [page, setPage] = useState(1);
 
@@ -58,7 +60,7 @@ export default function MeetingListPage() {
   const isAdmin = ['super_admin', 'admin_yayasan'].includes(user?.role);
 
   const params: MeetingListParams = {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     status: status === 'all' ? undefined : status,
     page,
     per_page: 20,

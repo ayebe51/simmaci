@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, CreditCard, User, Printer, Loader2, Settings, Image as ImageIcon, Trash2 } from "lucide-react";
@@ -11,6 +12,7 @@ import { teacherApi } from "@/lib/api";
 
 export default function KtaGeneratorPage() {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -42,14 +44,14 @@ export default function KtaGeneratorPage() {
   const teachers = teachersData?.data || [];
   
   const filteredTeachers = useMemo(() => {
-    return search 
+    return debouncedSearch 
       ? teachers.filter((t: any) => 
-          t.nama?.toLowerCase().includes(search.toLowerCase()) || 
-          t.nuptk?.includes(search) ||
-          t.nip?.includes(search)
+          t.nama?.toLowerCase().includes(debouncedSearch.toLowerCase()) || 
+          t.nuptk?.includes(debouncedSearch) ||
+          t.nip?.includes(debouncedSearch)
         )
       : teachers;
-  }, [teachers, search]);
+  }, [teachers, debouncedSearch]);
 
   const handlePrintAll = () => {
     window.print();

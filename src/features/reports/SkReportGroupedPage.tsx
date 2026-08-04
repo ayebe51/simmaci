@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { reportApi, authApi, type SkBelumMengajukanResponse, type SkBelumMengajukanParams } from '@/lib/api'
@@ -25,15 +26,6 @@ import { Download, Printer, Loader2, Search, X, School, AlertCircle, RefreshCw, 
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
-// ── Debounce Hook ──
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-  return debouncedValue
-}
 
 const JENJANG_OPTIONS = ['TK/RA', 'RA', 'MI', 'MTs', 'MA', 'SMA', 'SMK'] as const
 

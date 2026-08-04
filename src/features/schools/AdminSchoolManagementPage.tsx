@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { schoolApi, School, authApi } from "@/lib/api"
@@ -53,21 +54,11 @@ export default function AdminSchoolManagementPage() {
   
   // State declarations - must be before any conditional returns
   const [searchTerm, setSearchTerm] = useState("")
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [filterKecamatan, setFilterKecamatan] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedSchool, setSelectedSchool] = useState<SchoolWithHeadmaster | null>(null)
   const itemsPerPage = 15
-
-  // Debounce search input to optimize API calls
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm)
-      setCurrentPage(1) // Reset to first page on search
-    }, 300) // 300ms debounce delay
-
-    return () => clearTimeout(timer)
-  }, [searchTerm])
 
   // List of kecamatan in Cilacap
   const uniqueKecamatan = [
@@ -233,7 +224,7 @@ export default function AdminSchoolManagementPage() {
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
-                  // Debouncing is handled by useEffect
+                  setCurrentPage(1)
                 }}
               />
             </div>

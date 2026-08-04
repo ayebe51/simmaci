@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { teacherApi, schoolApi, headmasterApi, mediaApi, authApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -41,7 +42,9 @@ export default function HeadmasterSubmissionPage() {
   const [openTeacher, setOpenTeacher] = useState(false)
   const [openSchool, setOpenSchool] = useState(false)
   const [schoolSearch, setSchoolSearch] = useState("") 
+  const debouncedSchoolSearch = useDebounce(schoolSearch, 500)
   const [teacherSearch, setTeacherSearch] = useState("")
+  const debouncedTeacherSearch = useDebounce(teacherSearch, 500)
 
   // Get current user
   const user = authApi.getStoredUser()
@@ -67,24 +70,24 @@ export default function HeadmasterSubmissionPage() {
 
   // 🔥 REST API QUERIES
   const { data: teachersData, isLoading: isLoadingTeachers } = useQuery({
-    queryKey: ['teachers-all', teacherSearch],
+    queryKey: ['teachers-all', debouncedTeacherSearch],
     queryFn: () => {
       const params: any = { 
         is_certified: true,  // Only show certified teachers (sudah sertifikasi)
         per_page: 100 
       }
       // Only add search if not empty
-      if (teacherSearch && teacherSearch.trim()) {
-        params.search = teacherSearch
+      if (debouncedTeacherSearch && debouncedTeacherSearch.trim()) {
+        params.search = debouncedTeacherSearch
       }
       return teacherApi.list(params)
     }
   })
 
   const { data: schoolsData } = useQuery({
-    queryKey: ['schools-all', schoolSearch],
+    queryKey: ['schools-all', debouncedSchoolSearch],
     queryFn: () => schoolApi.list({ 
-      search: schoolSearch || undefined, 
+      search: debouncedSchoolSearch || undefined, 
       per_page: 100 
     }),
     enabled: !isOperator // Only fetch schools for admin yayasan

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { reportApi, type SkBelumMengajukanResponse, type SkBelumMengajukanParams } from '@/lib/api'
@@ -17,17 +18,7 @@ import {
 import { RefreshCw, School, AlertCircle, Search, X, Download, Printer, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// ── Debounce Hook ──
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-
-  return debouncedValue
-}
 
 const JENJANG_OPTIONS = ['TK/RA', 'RA', 'MI', 'MTs', 'MA', 'SMA', 'SMK'] as const
 

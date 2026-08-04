@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, CreditCard, Printer, School, Layers, Loader2 } from "lucide-react";
@@ -20,6 +21,7 @@ import { studentApi, schoolApi, attendanceApi } from "@/lib/api";
 
 export default function StudentCardPage() {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 500);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("all");
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
@@ -71,13 +73,13 @@ export default function StudentCardPage() {
   const students = Array.isArray(studentsData) ? studentsData : (studentsData?.data || []);
 
   const filteredStudents = useMemo(() => {
-    if (!search) return students;
-    const query = search.toLowerCase();
+    if (!debouncedSearch) return students;
+    const query = debouncedSearch.toLowerCase();
     return students.filter((s: any) => 
       s.nama?.toLowerCase().includes(query) || 
       s.nisn?.includes(query)
     );
-  }, [students, search]);
+  }, [students, debouncedSearch]);
 
   const handlePrintAll = () => {
     window.print();

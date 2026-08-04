@@ -18,6 +18,7 @@ import {
 import { Search, FileEdit, CheckCircle, XCircle, Loader2, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export default function SkRevisionListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -213,8 +215,8 @@ export default function SkRevisionListPage() {
     
     // Normalize and filter based on search
     let results = list;
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase().trim();
+    if (debouncedSearchTerm) {
+      const term = debouncedSearchTerm.toLowerCase().trim();
       results = results.filter(
         (item: any) =>
           item.nama?.toLowerCase().includes(term) ||
@@ -224,7 +226,7 @@ export default function SkRevisionListPage() {
       );
     }
     return results;
-  }, [revisionsList, searchTerm]);
+  }, [revisionsList, debouncedSearchTerm, isAdmin, user?.id]);
 
   return (
     <div className="space-y-6">

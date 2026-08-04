@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Search, FileText, Plus } from "lucide-react";
 import {
   Dialog,
@@ -21,11 +22,12 @@ interface TemplatePickerModalProps {
 export function TemplatePickerModal({ onSelect }: TemplatePickerModalProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { data: templates, isLoading } = useWaBlastTemplates();
 
   const safeTemplates = Array.isArray(templates) ? templates : [];
   const filteredTemplates = safeTemplates.filter((template) =>
-    template.name.toLowerCase().includes(searchQuery.toLowerCase())
+    template.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
   );
 
   const handleSelectTemplate = (template: WaBlastTemplate) => {

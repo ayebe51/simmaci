@@ -13,6 +13,7 @@ import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Tra
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -58,6 +59,7 @@ interface Teacher {
 export default function TeacherListPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [filterKecamatan, setFilterKecamatan] = useState("all")
   const [filterSchool, setFilterSchool] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -97,11 +99,11 @@ export default function TeacherListPage() {
 
   // 🔥 REST API QUERY
   const { data: teachersData, isLoading } = useQuery({
-    queryKey: ['teachers', currentPage, searchTerm, filterKecamatan, filterSchool, filterStatus, activeFilter],
+    queryKey: ['teachers', currentPage, debouncedSearchTerm, filterKecamatan, filterSchool, filterStatus, activeFilter],
     queryFn: () => teacherApi.list({
       page: currentPage,
       per_page: itemsPerPage,
-      search: searchTerm || undefined,
+      search: debouncedSearchTerm || undefined,
       kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan,
       school_id: filterSchool === "all" ? undefined : filterSchool,
       status: filterStatus === "all" ? undefined : filterStatus,

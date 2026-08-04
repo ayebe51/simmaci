@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { reportApi, schoolApi, authApi } from '@/lib/api'
@@ -37,6 +38,7 @@ export default function SkReportPageSimple() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [openSchool, setOpenSchool] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -195,7 +197,7 @@ export default function SkReportPageSimple() {
                                 <div onClick={() => { setSelectedSchool("all"); setOpenSchool(false); handleFilterChange() }} className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100 ${selectedSchool === 'all' ? 'bg-blue-50 text-blue-600' : ''}`}>
                                     <Check className={`mr-2 h-4 w-4 ${selectedSchool === 'all' ? 'opacity-100' : 'opacity-0'}`} /> Semua Sekolah
                                 </div>
-                                {schools.filter(s => s.nama.toLowerCase().includes(searchQuery.toLowerCase())).map(s => (
+                                {schools.filter(s => s.nama?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())).map(s => (
                                     <div key={s.id} onClick={() => { setSelectedSchool(s.id.toString()); setOpenSchool(false); handleFilterChange() }} className={`flex items-center px-4 py-3 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-100 ${selectedSchool === s.id.toString() ? 'bg-blue-50 text-blue-600' : ''}`}>
                                         <Check className={`mr-2 h-4 w-4 ${selectedSchool === s.id.toString() ? 'opacity-100' : 'opacity-0'}`} /> {s.nama}
                                     </div>

@@ -4,7 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Save, CheckCircle2, Loader2, Trophy } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Save, CheckCircle2, Loader2, Trophy, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import ExcelImportModal from '@/features/master-data/components/ExcelImportModal';
 
@@ -20,6 +21,7 @@ interface Props {
 export default function ResultInput({ competitionId, participants, results: initial, criteria = [] }: Props) {
   const [map, setMap] = useState<Record<string, any>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [filterJenjang, setFilterJenjang] = useState<string>('all');
 
   useEffect(() => {
     const m: Record<string, any> = {};
@@ -35,7 +37,7 @@ export default function ResultInput({ competitionId, participants, results: init
     const item = map[pid] ?? {};
     try {
       await eventApi.results.save(Number(competitionId), {
-        participant_id: Number(pid),
+        participant_id: typeof pid === 'string' && pid.startsWith('reg_') ? pid : Number(pid),
         score: item.score ? Number(item.score) : undefined,
         rank: item.rank ? Number(item.rank) : undefined,
         notes: item.notes,
@@ -83,7 +85,21 @@ export default function ResultInput({ competitionId, participants, results: init
           </div>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-between items-end">
+          <div className="space-y-1.5 w-[200px]">
+            <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
+              <Filter size={12} /> Filter Jenjang
+            </label>
+            <Select value={filterJenjang} onValueChange={setFilterJenjang}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Semua Jenjang" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Jenjang</SelectItem>
+                <SelectItem value="MI/SD">MI / SD</SelectItem>
+                <SelectItem value="MTs/SMP">MTs / SMP</SelectItem>
+                <SelectItem value="MA/SMA/SMK">MA / SMA / SMK</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <ExcelImportModal
             title="Import Hasil Kompetisi"
             description="Upload file Excel (.xlsx). Kolom: Juara, Nama, Lembaga, Nilai."
@@ -104,13 +120,13 @@ export default function ResultInput({ competitionId, participants, results: init
               </TableRow>
             </TableHeader>
             <TableBody>
-              {participants.length === 0 ? (
+              {participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-10 text-slate-400">
-                    Tambahkan peserta terlebih dahulu.
+                    Belum ada peserta {filterJenjang !== 'all' ? `untuk jenjang ${filterJenjang}` : ''}.
                   </TableCell>
                 </TableRow>
-              ) : participants.map(p => {
+              ) : participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).map(p => {
                 const r = map[p.id] ?? {};
                 const isSaving = savingId === String(p.id);
                 const emoji = getRankEmoji(r.rank ? Number(r.rank) : undefined);
@@ -122,7 +138,9 @@ export default function ResultInput({ competitionId, participants, results: init
                           {emoji && <span>{emoji}</span>}
                           {p.name}
                         </div>
-                        <div className="text-xs text-slate-500">{p.institution}</div>
+                        <div className="text-xs text-slate-500">
+                          {p.institution} {p.jenjang && <span className="text-[10px] ml-1 bg-slate-100 px-1.5 rounded">{p.jenjang}</span>}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

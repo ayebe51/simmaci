@@ -38,15 +38,17 @@ class AnugerahRegistration extends Model
         'total_score',
         'rank',
         'reviewer_notes',
+        'score_breakdown',
         'submitted_at',
         'reviewed_at',
     ];
 
     protected $casts = [
-        'prestasi_list'  => 'array',
-        'mulai_bertugas' => 'date',
-        'submitted_at'   => 'datetime',
-        'reviewed_at'    => 'datetime',
+        'prestasi_list'   => 'array',
+        'score_breakdown' => 'array',
+        'mulai_bertugas'  => 'date',
+        'submitted_at'    => 'datetime',
+        'reviewed_at'     => 'datetime',
     ];
 
     public function event()

@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2 } from 'lucide-react';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
 import VideoSubmissionList from './components/VideoSubmissionList';
-import { eventApi } from '@/lib/api';
+import { eventApi, apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 
 const JUKNIS_CRITERIA: Record<string, { component: string; weight: number }[]> = {
@@ -200,7 +200,7 @@ export default function CompetitionDetailPage() {
 
         {isAnugerah && competition.anugerah_registrations?.length >= 0 && (
           <TabsContent value="pendaftar" className="pt-4">
-            <AnnugerahRegistrantList registrations={competition.anugerah_registrations ?? []} />
+            <AnnugerahRegistrantList registrations={competition.anugerah_registrations ?? []} onReload={load} />
           </TabsContent>
         )}
       </Tabs>
@@ -382,7 +382,7 @@ function JuryAccessPanel({ competition }: { competition: any }) {
 
 // ── AnnugerahRegistrantList ───────────────────────────────────────────────────
 
-function AnnugerahRegistrantList({ registrations }: { registrations: any[] }) {
+function AnnugerahRegistrantList({ registrations, onReload }: { registrations: any[], onReload: () => void }) {
   const STATUS_MAP: Record<string, { label: string; color: string }> = {
     draft:        { label: 'Draft',       color: 'bg-slate-100 text-slate-600' },
     submitted:    { label: 'Disubmit',    color: 'bg-blue-100 text-blue-700' },
@@ -403,7 +403,7 @@ function AnnugerahRegistrantList({ registrations }: { registrations: any[] }) {
       {registrations.map((reg: any, i: number) => {
         const st = STATUS_MAP[reg.status] ?? STATUS_MAP.draft;
         return (
-          <div key={reg.id} className="flex items-center gap-4 p-4 bg-white rounded-xl border shadow-sm">
+          <div key={reg.id} className="flex items-center gap-4 p-4 bg-white rounded-xl border shadow-sm group">
             <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 flex-shrink-0">{i + 1}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -419,6 +419,26 @@ function AnnugerahRegistrantList({ registrations }: { registrations: any[] }) {
                 {reg.rank && <p className="text-xs text-slate-400">Juara {reg.rank}</p>}
               </div>
             )}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 px-2"
+                onClick={async () => {
+                  if (confirm(`Yakin ingin menghapus peserta ${reg.applicant_name}?`)) {
+                    try {
+                      await apiClient.delete(`/anugerah-registrations/${reg.id}`);
+                      toast.success('Peserta berhasil dihapus');
+                      onReload();
+                    } catch (e: any) {
+                      toast.error('Gagal menghapus: ' + (e.response?.data?.message || e.message));
+                    }
+                  }
+                }}
+              >
+                <Trash2 size={16} />
+              </Button>
+            </div>
           </div>
         );
       })}

@@ -250,7 +250,7 @@ class PublicEventController extends Controller
         ])->findOrFail($competitionId);
 
         $lombaType = $competition->lomba_type;
-        $criteria  = $this->getCriteria($lombaType);
+        $criteria  = $competition->scoring_criteria ?? [];
 
         // For anugerah types, merge from anugerah_registrations
         $isAnugerah = in_array($lombaType, ['guru_berprestasi', 'madrasah_berprestasi']);
@@ -272,7 +272,12 @@ class PublicEventController extends Controller
                 'status'      => $r->status,
                 'total_score' => $r->total_score,
                 'video_url'   => null,
-                'result'      => $r->rank ? ['rank' => $r->rank, 'score' => $r->total_score, 'notes' => $r->reviewer_notes] : null,
+                'result'      => $r->rank || $r->total_score || $r->score_breakdown ? [
+                    'rank' => $r->rank, 
+                    'score' => $r->total_score, 
+                    'notes' => $r->reviewer_notes,
+                    'score_breakdown' => $r->score_breakdown,
+                ] : null,
                 'type'        => 'anugerah',
                 'reg_id'      => $r->id,
             ]);
@@ -335,9 +340,10 @@ class PublicEventController extends Controller
                 ->firstOrFail();
 
             $reg->update([
-                'rank'           => $data['rank'] ?? $reg->rank,
-                'reviewer_notes' => $data['notes'] ?? $reg->reviewer_notes,
-                'total_score'    => $data['score'] !== null ? (int) $data['score'] : $reg->total_score,
+                'rank'            => $data['rank'] ?? $reg->rank,
+                'reviewer_notes'  => $data['notes'] ?? $reg->reviewer_notes,
+                'total_score'     => $data['score'] !== null ? (float) $data['score'] : $reg->total_score,
+                'score_breakdown' => $data['score_breakdown'] ?? $reg->score_breakdown,
             ]);
 
             return $this->success([
@@ -411,12 +417,14 @@ class PublicEventController extends Controller
 
     private function getCriteria(string $lombaType): array
     {
+        // Legacy fallback method. New competitions should use scoring_criteria column.
         $map = [
             'mars_maarif'     => [['component'=>'Teknik Vokal','weight'=>35],['component'=>'Harmonisasi & Keselarasan','weight'=>35],['component'=>'Penjiwaan & Ekspresi','weight'=>30]],
+            'mtq'             => [['component'=>'Tajwid','weight'=>45],['component'=>'Lagu & Irama','weight'=>35],['component'=>'Adab & Penampilan','weight'=>20]],
             'mtq_pa'          => [['component'=>'Tajwid','weight'=>45],['component'=>'Lagu & Irama','weight'=>35],['component'=>'Adab & Penampilan','weight'=>20]],
             'mtq_pi'          => [['component'=>'Tajwid','weight'=>45],['component'=>'Lagu & Irama','weight'=>35],['component'=>'Adab & Penampilan','weight'=>20]],
-            'puji_pujian'     => [['component'=>'Makhraj & Artikulasi','weight'=>35],['component'=>'Penjiwaan & Penghayatan','weight'=>30],['component'=>'Harmonisasi','weight'=>25],['component'=>'Adab & Penampilan','weight'=>10]],
-            'film_dokumenter' => [['component'=>'Kesesuaian Tema & Konten','weight'=>35],['component'=>'Alur Cerita & Narasi','weight'=>25],['component'=>'Sinematografi & Editing','weight'=>25],['component'=>'Kreativitas & Estetika','weight'=>15]],
+            'puji_pujian'     => [['component'=>'Makhraj & Artikulasi Bahasa Jawa','weight'=>35],['component'=>'Penjiwaan & Penghayatan','weight'=>30],['component'=>'Harmonisasi Suara & Irama','weight'=>25],['component'=>'Adab & Penampilan','weight'=>10]],
+            'film_dokumenter' => [['component'=>'Kesesuaian Tema & Kedalaman Konten','weight'=>35],['component'=>'Alur Cerita & Struktur Narasi','weight'=>25],['component'=>'Sinematografi & Editing','weight'=>25],['component'=>'Kreativitas & Estetika','weight'=>15]],
         ];
         return $map[$lombaType] ?? [];
     }

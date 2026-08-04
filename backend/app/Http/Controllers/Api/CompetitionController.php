@@ -213,9 +213,10 @@ class CompetitionController extends Controller
                 ->firstOrFail();
 
             $reg->update([
-                'rank'           => $data['rank'] ?? null,
-                'total_score'    => $data['score'] ?? null,
-                'reviewer_notes' => $data['notes'] ?? null,
+                'rank'            => $data['rank'] ?? null,
+                'total_score'     => $data['score'] ?? null,
+                'reviewer_notes'  => $data['notes'] ?? null,
+                'score_breakdown' => $data['score_breakdown'] ?? null,
             ]);
 
             return $this->success([
@@ -247,11 +248,12 @@ class CompetitionController extends Controller
     public function resultsBulkStore(Request $request, Competition $competition): JsonResponse
     {
         $request->validate([
-            'results'                   => 'required|array',
-            'results.*.participant_id'  => 'required', // Can be integer or string (reg_X)
-            'results.*.rank'            => 'nullable|integer|min:1',
-            'results.*.score'           => 'nullable|numeric|min:0',
-            'results.*.notes'           => 'nullable|string',
+            'results'                           => 'required|array',
+            'results.*.participant_id'          => 'required', // Can be integer or string (reg_X)
+            'results.*.rank'                    => 'nullable|integer|min:1',
+            'results.*.score'                   => 'nullable|numeric|min:0',
+            'results.*.notes'                   => 'nullable|string',
+            'results.*.score_breakdown'         => 'nullable|array',
         ]);
 
         DB::transaction(function () use ($request, $competition) {
@@ -262,9 +264,10 @@ class CompetitionController extends Controller
                     \App\Models\AnugerahRegistration::where('id', $regId)
                         ->where('competition_id', $competition->id)
                         ->update([
-                            'rank'        => $item['rank'] ?? null,
-                            'total_score' => $item['score'] ?? null,
-                            'reviewer_notes' => $item['notes'] ?? null,
+                            'rank'            => $item['rank'] ?? null,
+                            'total_score'     => $item['score'] ?? null,
+                            'reviewer_notes'  => $item['notes'] ?? null,
+                            'score_breakdown' => $item['score_breakdown'] ?? null,
                         ]);
                 } else {
                     CompetitionResult::updateOrCreate(
@@ -273,9 +276,10 @@ class CompetitionController extends Controller
                             'participant_id' => (int) $pId,
                         ],
                         [
-                            'rank'  => $item['rank'] ?? null,
-                            'score' => $item['score'] ?? null,
-                            'notes' => $item['notes'] ?? null,
+                            'rank'            => $item['rank'] ?? null,
+                            'score'           => $item['score'] ?? null,
+                            'notes'           => $item['notes'] ?? null,
+                            'score_breakdown' => $item['score_breakdown'] ?? null,
                         ]
                     );
                 }

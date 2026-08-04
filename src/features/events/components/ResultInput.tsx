@@ -32,15 +32,41 @@ export default function ResultInput({ competitionId, participants, results: init
   const set = (pid: string | number, field: string, value: string) =>
     setMap(p => ({ ...p, [pid]: { ...p[pid], participant_id: pid, [field]: value } }));
 
+  const setBreakdown = (pid: string | number, component: string, value: string) => {
+    setMap(p => {
+      const item = p[pid] ?? { participant_id: pid };
+      const currentBreakdown = item.score_breakdown ?? {};
+      return {
+        ...p,
+        [pid]: {
+          ...item,
+          score_breakdown: { ...currentBreakdown, [component]: value }
+        }
+      };
+    });
+  };
+
+  const calcWeightedScore = (pid: string | number) => {
+    const brk = map[pid]?.score_breakdown;
+    if (!brk || criteria.length === 0) return '';
+    let total = 0;
+    for (const c of criteria) {
+      const val = Number(brk[c.component]) || 0;
+      total += val * (c.weight / 100);
+    }
+    return total.toFixed(2);
+  };
+
   const handleSave = async (pid: string | number) => {
     setSavingId(String(pid));
     const item = map[pid] ?? {};
     try {
       await eventApi.results.save(Number(competitionId), {
         participant_id: typeof pid === 'string' && pid.startsWith('reg_') ? pid : Number(pid),
-        score: item.score ? Number(item.score) : undefined,
+        score: criteria.length > 0 ? Number(calcWeightedScore(pid)) : (item.score ? Number(item.score) : undefined),
         rank: item.rank ? Number(item.rank) : undefined,
         notes: item.notes,
+        score_breakdown: item.score_breakdown,
       });
       const name = participants.find(p => p.id == pid)?.name ?? '';
       toast.success(`Nilai "${name}" tersimpan`, { icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> });
@@ -113,7 +139,14 @@ export default function ResultInput({ competitionId, participants, results: init
             <TableHeader>
               <TableRow className="bg-slate-50">
                 <TableHead>Nama Peserta</TableHead>
-                <TableHead className="w-[120px]">Skor / Nilai</TableHead>
+                {criteria.length > 0 ? (
+                  criteria.map(c => (
+                    <TableHead key={c.component} className="w-[100px] text-xs leading-tight">
+                      {c.component} ({c.weight}%)
+                    </TableHead>
+                  ))
+                ) : null}
+                <TableHead className="w-[120px]">{criteria.length > 0 ? 'Total Skor' : 'Skor / Nilai'}</TableHead>
                 <TableHead className="w-[90px]">Juara ke-</TableHead>
                 <TableHead>Catatan</TableHead>
                 <TableHead className="w-[90px]">Aksi</TableHead>
@@ -143,8 +176,28 @@ export default function ResultInput({ competitionId, participants, results: init
                         </div>
                       </div>
                     </TableCell>
+                    {criteria.length > 0 ? (
+                      criteria.map(c => (
+                        <TableCell key={c.component} className="p-2">
+                          <Input
+                            type="number" min="0" max="100" step="0.5"
+                            value={r.score_breakdown?.[c.component] ?? ''}
+                            onChange={e => setBreakdown(p.id, c.component, e.target.value)}
+                            placeholder="0-100"
+                            className="h-8 text-sm px-2 text-center"
+                          />
+                        </TableCell>
+                      ))
+                    ) : null}
                     <TableCell>
-                      <Input type="number" value={r.score ?? ''} onChange={e => set(p.id, 'score', e.target.value)} placeholder="—" className="h-8 text-sm" />
+                      <Input 
+                        type="number" 
+                        value={criteria.length > 0 ? calcWeightedScore(p.id) : (r.score ?? '')} 
+                        onChange={e => { if (criteria.length === 0) set(p.id, 'score', e.target.value); }} 
+                        readOnly={criteria.length > 0}
+                        placeholder="—" 
+                        className={`h-8 text-sm ${criteria.length > 0 ? 'bg-slate-50 font-bold text-slate-600' : ''}`} 
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">

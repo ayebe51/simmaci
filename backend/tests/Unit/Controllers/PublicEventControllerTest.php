@@ -68,9 +68,9 @@ class PublicEventControllerTest extends TestCase
         $this->assertCount(4, $criteria);
         $this->assertWeightSum($criteria, 100);
 
-        $this->assertCriterion($criteria[0], 'Makhraj & Artikulasi', 35);
+        $this->assertCriterion($criteria[0], 'Makhraj & Artikulasi Bahasa Jawa', 35);
         $this->assertCriterion($criteria[1], 'Penjiwaan & Penghayatan', 30);
-        $this->assertCriterion($criteria[2], 'Harmonisasi', 25);
+        $this->assertCriterion($criteria[2], 'Harmonisasi Suara & Irama', 25);
         $this->assertCriterion($criteria[3], 'Adab & Penampilan', 10);
     }
 
@@ -81,8 +81,8 @@ class PublicEventControllerTest extends TestCase
         $this->assertCount(4, $criteria);
         $this->assertWeightSum($criteria, 100);
 
-        $this->assertCriterion($criteria[0], 'Kesesuaian Tema & Konten', 35);
-        $this->assertCriterion($criteria[1], 'Alur Cerita & Narasi', 25);
+        $this->assertCriterion($criteria[0], 'Kesesuaian Tema & Kedalaman Konten', 35);
+        $this->assertCriterion($criteria[1], 'Alur Cerita & Struktur Narasi', 25);
         $this->assertCriterion($criteria[2], 'Sinematografi & Editing', 25);
         $this->assertCriterion($criteria[3], 'Kreativitas & Estetika', 15);
     }
@@ -96,7 +96,7 @@ class PublicEventControllerTest extends TestCase
 
     public function test_all_festival_types_have_weights_summing_to_100(): void
     {
-        $types = ['mars_maarif', 'mtq_pa', 'mtq_pi', 'puji_pujian', 'film_dokumenter'];
+        $types = ['mars_maarif', 'mtq', 'mtq_pa', 'mtq_pi', 'puji_pujian', 'film_dokumenter'];
 
         foreach ($types as $type) {
             $criteria = $this->getCriteria($type);

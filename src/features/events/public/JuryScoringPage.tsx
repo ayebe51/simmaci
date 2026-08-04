@@ -291,6 +291,15 @@ export default function JuryScoringPage() {
                             🎬 Lihat Video Kiriman
                           </a>
                         )}
+                        {p.documents && Object.keys(p.documents).length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {Object.entries(p.documents).map(([name, url]) => (
+                              <a key={name} href={url as string} target="_blank" rel="noreferrer" className="text-[10px] bg-slate-100 text-blue-600 px-2 py-1 rounded-md border border-slate-200 hover:bg-slate-200 transition-colors">
+                                📄 {name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {isSaved && <Badge className="bg-green-100 text-green-700 text-[9px]">✓ Tersimpan</Badge>}

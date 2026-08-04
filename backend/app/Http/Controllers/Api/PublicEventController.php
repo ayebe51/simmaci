@@ -271,6 +271,16 @@ class PublicEventController extends Controller
                 'kecamatan'   => $r->kecamatan,
                 'status'      => $r->status,
                 'total_score' => $r->total_score,
+                'documents'   => array_filter([
+                    'Surat Rekomendasi' => $r->surat_rekomendasi_url,
+                    'Esai Reflektif' => $r->esai_reflektif_url,
+                    'Karya Ilmiah / Best Practice' => $r->karya_ilmiah_url,
+                    'Portofolio / Branding' => $r->portofolio_branding_url,
+                    'Dokumen PDCA' => $r->dokumen_pdca_url,
+                    'Rekap Prestasi' => $r->rekap_prestasi_url,
+                    'Bukti Prestasi' => $r->bukti_prestasi_url,
+                    'Dokumen Administratif' => $r->dokumen_admin_url,
+                ]),
                 'video_url'   => null,
                 'result'      => $r->rank || $r->total_score || $r->score_breakdown ? [
                     'rank' => $r->rank, 

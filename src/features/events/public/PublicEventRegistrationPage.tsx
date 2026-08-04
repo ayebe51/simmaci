@@ -334,10 +334,7 @@ export default function PublicEventRegistrationPage() {
                                 <Label className="text-[10px] text-slate-500">Nama Anggota {i + 1} *</Label>
                                 <Input value={m.name} onChange={e => setMember(i,'name',e.target.value)} placeholder="Nama lengkap..." className="h-8 text-sm" />
                               </div>
-                              <div className="w-36 space-y-1">
-                                <Label className="text-[10px] text-slate-500">NIM / No. Induk</Label>
-                                <Input value={m.nim} onChange={e => setMember(i,'nim',e.target.value)} placeholder="—" className="h-8 text-sm" />
-                              </div>
+
                               {members.length > 1 && (
                                 <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-400 hover:text-red-600" onClick={() => removeMember(i)}>
                                   <Trash2 size={13} />

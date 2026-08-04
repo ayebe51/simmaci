@@ -482,7 +482,7 @@ class CompetitionController extends Controller
      */
     public function getJuryPin(Competition $competition): JsonResponse
     {
-        $value = \App\Models\Setting::getValue("jury_pin_{$competition->id}");
+        $value = \App\Models\Setting::getValue("jury_pin_event_{$competition->event_id}");
         return $this->success(['pin' => $value, 'competition_id' => $competition->id]);
     }
 
@@ -492,11 +492,11 @@ class CompetitionController extends Controller
             'pin' => 'required|string|min:4|max:50',
         ]);
 
-        \App\Models\Setting::setValue("jury_pin_{$competition->id}", $data['pin']);
+        \App\Models\Setting::setValue("jury_pin_event_{$competition->event_id}", $data['pin']);
 
         return $this->success(
             ['pin' => $data['pin'], 'competition_id' => $competition->id],
-            'PIN Juri berhasil disimpan'
+            'PIN Juri berhasil disimpan dan berlaku untuk semua cabang lomba pada event ini.'
         );
     }
 }

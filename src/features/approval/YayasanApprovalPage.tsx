@@ -162,7 +162,8 @@ export default function YayasanApprovalPage() {
             "NOMOR SURAT PERMOHONAN": item.surat_permohonan_number || "-",
             "TANGGAL SURAT PERMOHONAN": item.surat_permohonan_date ? formatDateIndo(item.surat_permohonan_date) : "-",
             KABUPATEN: "Cilacap",
-            TAHUN_AJARAN: tahunAjaran
+            TAHUN_AJARAN: tahunAjaran,
+            PERIODE: item.periode || "-"
         }
 
         // 4. Generate DOCX
@@ -265,7 +266,7 @@ export default function YayasanApprovalPage() {
                                 </TableCell>
                                 <TableCell className="p-8 font-bold text-slate-500 text-xs">{item.school?.nama}</TableCell>
                                 <TableCell className="p-8 text-center font-black text-xs">
-                                     <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg">Ke-{item.period_number}</span>
+                                     <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg">Ke-{item.periode}</span>
                                 </TableCell>
                                 <TableCell className="p-8">
                                    <Badge className={cn("rounded-lg text-[9px] font-black uppercase px-3 py-1", 

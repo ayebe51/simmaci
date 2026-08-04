@@ -205,7 +205,7 @@ class PublicEventController extends Controller
     public function juryVerifyPin(Request $request): JsonResponse
     {
         $request->validate([
-            'competition_id' => 'required|integer|exists:competitions,id',
+            'competition_id' => 'required|integer|exists:competitions,id,deleted_at,NULL',
             'pin'            => 'required|string',
         ]);
 

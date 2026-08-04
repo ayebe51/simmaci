@@ -97,8 +97,8 @@ export default function HeadmasterSubmissionPage() {
     enabled: isOperator && !!userSchoolId
   })
   
-  const teachers = teachersData?.data || []
-  const schools = schoolsData?.data || []
+  const teachers = Array.isArray(teachersData) ? teachersData : (teachersData?.data || [])
+  const schools = Array.isArray(schoolsData) ? schoolsData : (schoolsData?.data || [])
 
   const form = useForm<HeadmasterForm>({
     resolver: zodResolver(headmasterSchema),

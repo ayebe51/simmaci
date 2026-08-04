@@ -10,8 +10,7 @@ import { toast } from 'sonner';
 
 const FILENAME_FORMAT: Record<string, string> = {
   mars_maarif:      'MARS_[JENJANG]_[NAMA MADRASAH]',
-  mtq_pa:           'MTQ_[JENJANG]_[NAMA PESERTA]_[NAMA MADRASAH]',
-  mtq_pi:           'MTQ_[JENJANG]_[NAMA PESERTA]_[NAMA MADRASAH]',
+  mtq:              'MTQ_[JENJANG]_[NAMA PESERTA]_[NAMA MADRASAH]',
   puji_pujian:      'PUJI_[NAMA GRUP]_[NAMA MI]',
   film_dokumenter:  'DOKUMENTER_[JENJANG]_[JUDUL FILM]_[NAMA MADRASAH]',
 };

@@ -115,6 +115,8 @@ class PublicEventController extends Controller
 
     private function registerFestival(Request $request, Event $event, Competition $competition): JsonResponse
     {
+        $isVideoBased = in_array($competition->lomba_type, ['mars_maarif', 'mtq', 'puji_pujian', 'film_dokumenter']);
+
         $data = $request->validate([
             'name'            => 'required|string|max:255',
             'institution'     => 'required|string|max:255',
@@ -126,7 +128,7 @@ class PublicEventController extends Controller
             'members.*.nim'   => 'nullable|string|max:50',
             'contact_person'  => 'nullable|string|max:100',
             'contact_phone'   => 'nullable|string|max:30',
-            'video_url'       => 'nullable|url|max:500',
+            'video_url'       => $isVideoBased ? 'required|url|max:500' : 'nullable|url|max:500',
             'video_filename'  => 'nullable|string|max:255',
         ]);
 
@@ -248,16 +250,32 @@ class PublicEventController extends Controller
         $lombaType = $competition->lomba_type;
         $criteria  = $this->getCriteria($lombaType);
 
-        return $this->success([
-            'competition' => [
-                'id'         => $competition->id,
-                'name'       => $competition->name,
-                'lomba_type' => $lombaType,
-                'jenjang'    => $competition->jenjang,
-                'event'      => $competition->event?->name,
-                'criteria'   => $criteria,
-            ],
-            'participants' => $competition->participants->map(fn ($p) => [
+        // For anugerah types, merge from anugerah_registrations
+        $isAnugerah = in_array($lombaType, ['guru_berprestasi', 'madrasah_berprestasi']);
+        $participants = collect();
+
+        if ($isAnugerah) {
+            $registrations = \App\Models\AnugerahRegistration::where('competition_id', $competitionId)
+                ->whereIn('status', ['submitted', 'under_review', 'finalis', 'winner', 'draft'])
+                ->orderBy('school_name')
+                ->orderBy('applicant_name')
+                ->get();
+
+            $participants = $registrations->map(fn ($r) => [
+                'id'          => 'reg_' . $r->id,
+                'name'        => $r->applicant_name,
+                'institution' => $r->school_name,
+                'jenjang'     => $r->jenjang,
+                'kecamatan'   => $r->kecamatan,
+                'status'      => $r->status,
+                'total_score' => $r->total_score,
+                'video_url'   => null,
+                'result'      => $r->rank ? ['rank' => $r->rank, 'score' => $r->total_score, 'notes' => $r->reviewer_notes] : null,
+                'type'        => 'anugerah',
+                'reg_id'      => $r->id,
+            ]);
+        } else {
+            $participants = $competition->participants->map(fn ($p) => [
                 'id'          => $p->id,
                 'name'        => $p->name,
                 'institution' => $p->institution,
@@ -269,7 +287,21 @@ class PublicEventController extends Controller
                     'notes'           => $p->result->notes,
                     'score_breakdown' => $p->result->score_breakdown,
                 ] : null,
-            ]),
+                'type' => 'competition',
+            ]);
+        }
+
+        return $this->success([
+            'competition' => [
+                'id'         => $competition->id,
+                'name'       => $competition->name,
+                'lomba_type' => $lombaType,
+                'jenjang'    => $competition->jenjang,
+                'event'      => $competition->event?->name,
+                'criteria'   => $criteria,
+                'is_anugerah' => $isAnugerah,
+            ],
+            'participants' => $participants,
         ]);
     }
 
@@ -277,6 +309,7 @@ class PublicEventController extends Controller
      * Jury saves score for a single participant.
      * POST /public/jury/{token}/score
      * Body: { participant_id, rank, score, notes, score_breakdown }
+     * participant_id can be numeric (competition_participant) or "reg_{id}" (anugerah_registration)
      */
     public function juryScore(Request $request, string $token): JsonResponse
     {
@@ -284,15 +317,36 @@ class PublicEventController extends Controller
         if (! $competitionId) return $this->error('Token juri tidak valid atau sudah kadaluarsa.', 401);
 
         $data = $request->validate([
-            'participant_id'  => 'required|integer|exists:competition_participants,id',
+            'participant_id'  => 'required|string',
             'rank'            => 'nullable|integer|min:1',
             'score'           => 'nullable|numeric|min:0|max:100',
             'notes'           => 'nullable|string|max:1000',
             'score_breakdown' => 'nullable|array',
         ]);
 
-        // Ensure participant belongs to this competition
-        $participant = CompetitionParticipant::where('id', $data['participant_id'])
+        // Anugerah registration (id prefixed with "reg_")
+        if (str_starts_with((string) $data['participant_id'], 'reg_')) {
+            $regId = (int) substr($data['participant_id'], 4);
+            $reg   = \App\Models\AnugerahRegistration::where('id', $regId)
+                ->where('competition_id', $competitionId)
+                ->firstOrFail();
+
+            $reg->update([
+                'rank'           => $data['rank'] ?? $reg->rank,
+                'reviewer_notes' => $data['notes'] ?? $reg->reviewer_notes,
+                'total_score'    => $data['score'] !== null ? (int) $data['score'] : $reg->total_score,
+            ]);
+
+            return $this->success([
+                'participant_id' => $data['participant_id'],
+                'name'           => $reg->applicant_name,
+                'rank'           => $reg->rank,
+                'score'          => $reg->total_score,
+            ], 'Nilai berhasil disimpan.');
+        }
+
+        // Regular competition participant
+        $participant = CompetitionParticipant::where('id', (int) $data['participant_id'])
             ->where('competition_id', $competitionId)
             ->firstOrFail();
 

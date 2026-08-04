@@ -24,13 +24,15 @@ const api = {
 };
 
 const LOMBA_ICONS: Record<string, string> = {
-  mars_maarif: '🎼', mtq_pa: '📖', mtq_pi: '📖',
+  mars_maarif: '🎼', mtq_pa: '📖', mtq_pi: '📖', mtq: '📖',
   puji_pujian: '🕌', film_dokumenter: '🎬',
   guru_berprestasi: '👨‍🏫', madrasah_berprestasi: '🏫', oskanu: '🏆',
 };
 const IS_BEREGU  = ['mars_maarif', 'puji_pujian', 'film_dokumenter'];
-const IS_FESTIVAL = ['mars_maarif', 'mtq_pa', 'mtq_pi', 'puji_pujian', 'film_dokumenter'];
+const IS_FESTIVAL = ['mars_maarif', 'mtq', 'puji_pujian', 'film_dokumenter'];
 const IS_ANUGERAH = ['guru_berprestasi', 'madrasah_berprestasi'];
+// MTQ types that show gender dropdown
+const IS_MTQ = ['mtq'];
 
 type Step = 'pilih_lomba' | 'isi_form' | 'sukses';
 interface Member { name: string; nim: string; }
@@ -291,10 +293,10 @@ export default function PublicEventRegistrationPage() {
                         <Label>Asal Madrasah/Sekolah *</Label>
                         <Input required value={form.institution} onChange={e => setF('institution', e.target.value)} placeholder="MTs Ma'arif 1 Cilacap" />
                       </div>
-                      {['mtq_pa','mtq_pi'].includes(selected.lomba_type) && (
+                      {['mtq_pa','mtq_pi','mtq'].includes(selected.lomba_type) && (
                         <div className="space-y-1.5">
-                          <Label>Jenis Kelamin</Label>
-                          <Select value={form.gender_category} onValueChange={v => setF('gender_category', v)}>
+                          <Label>Jenis Kelamin *</Label>
+                          <Select required value={form.gender_category} onValueChange={v => setF('gender_category', v)}>
                             <SelectTrigger><SelectValue placeholder="Pilih..." /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="pa">Putra (Pa)</SelectItem>
@@ -349,8 +351,8 @@ export default function PublicEventRegistrationPage() {
                       </div>
                       {IS_FESTIVAL.includes(selected.lomba_type) && (
                         <div className="space-y-1.5">
-                          <Label>Link Google Drive Video (opsional, bisa dikumpulkan nanti)</Label>
-                          <Input type="url" value={form.video_url} onChange={e => setF('video_url', e.target.value)} placeholder="https://drive.google.com/..." />
+                          <Label>Link Google Drive Video *</Label>
+                          <Input required type="url" value={form.video_url} onChange={e => setF('video_url', e.target.value)} placeholder="https://drive.google.com/..." />
                         </div>
                       )}
                     </>

@@ -246,7 +246,7 @@ function JuryAccessPanel({ competition }: { competition: any }) {
     try {
       await eventApi.juryPin.set(competition.id, pin);
       setSavedPin(pin);
-      toast.success('PIN Juri berhasil disimpan');
+      toast.success('PIN Juri berhasil disimpan (berlaku untuk semua lomba di event ini)');
     } catch {
       toast.error('Gagal menyimpan PIN');
     } finally {
@@ -280,12 +280,13 @@ function JuryAccessPanel({ competition }: { competition: any }) {
         <CardContent className="p-5 space-y-4">
           <p className="text-xs text-slate-500 leading-relaxed">
             PIN ini diberikan kepada Dewan Juri untuk mengakses panel penilaian.
-            Juri tidak perlu memiliki akun SIMMACI — cukup buka link juri dan masukkan PIN.
+            Juri tidak perlu memiliki akun SIMMACI — cukup buka link juri dan masukkan PIN. 
+            <br/><span className="text-amber-600 font-semibold">Catatan: PIN ini berlaku untuk semua cabang lomba pada Event ini.</span>
           </p>
           <div className="flex gap-2 items-end">
             <div className="flex-1 space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-slate-500">
-                PIN untuk Lomba: {competition.name}
+                PIN Dewan Juri (Global Event)
               </Label>
               <Input
                 value={pin}

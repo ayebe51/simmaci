@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Plus, Search, Trash2, Edit, AlertTriangle, XCircle, UserX, Download, Loader2, ShieldCheck, UserCircle2 } from "lucide-react"
 import { useState } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import * as XLSX from "xlsx"
@@ -36,6 +37,7 @@ export default function UserListPage() {
   const navigate = useNavigate()
 
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any>(null)
   const [confirmDelete, setConfirmDelete] = useState<any>(null)
@@ -43,8 +45,8 @@ export default function UserListPage() {
   
   // 🔥 REST API QUERIES
   const { data: usersRes, isLoading, refetch } = useQuery({
-    queryKey: ['users', searchTerm],
-    queryFn: () => userApi.list({ search: searchTerm, per_page: 100 })
+    queryKey: ['users', debouncedSearchTerm],
+    queryFn: () => userApi.list({ search: debouncedSearchTerm, per_page: 100 })
   })
 
   const { data: schoolsRes } = useQuery({

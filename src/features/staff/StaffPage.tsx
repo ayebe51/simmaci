@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { staffApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import * as faceapi from 'face-api.js';
 export default function StaffPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isQrOpen, setIsQrOpen] = useState(false);
@@ -34,8 +36,8 @@ export default function StaffPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['staffs', { search, page }],
-    queryFn: () => staffApi.list({ search, page }),
+    queryKey: ['staffs', { search: debouncedSearch, page }],
+    queryFn: () => staffApi.list({ search: debouncedSearch, page }),
   });
 
   const saveMutation = useMutation({

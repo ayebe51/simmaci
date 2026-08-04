@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle } from "lucide-react"
 import { useState } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate, Link } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
@@ -57,17 +58,18 @@ export default function SchoolListPage() {
   const isSuperAdmin = user?.role === "super_admin"
 
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [filterKecamatan, setFilterKecamatan] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 15
 
   // 🔥 REST API QUERY
   const { data: schoolsData, isLoading } = useQuery({
-    queryKey: ['schools', currentPage, searchTerm, filterKecamatan],
+    queryKey: ['schools', currentPage, debouncedSearchTerm, filterKecamatan],
     queryFn: () => schoolApi.paginate({
       page: currentPage,
       per_page: itemsPerPage,
-      search: searchTerm || undefined,
+      search: debouncedSearchTerm || undefined,
       kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan
     })
   })

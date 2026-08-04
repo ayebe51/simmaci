@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Download, FileText, Search, Loader2 } from "lucide-react"
 import { useState, useMemo } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { Input } from "@/components/ui/input"
 import { useQuery } from "@tanstack/react-query"
 import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/api"
@@ -40,6 +41,7 @@ function base64DataURLToArrayBuffer(dataURL: string) {
 
 export default function MySkPage() {
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [skPage, setSkPage] = useState(1)
   const [hmPage, setHmPage] = useState(1)
   
@@ -47,10 +49,10 @@ export default function MySkPage() {
 
   // 🔥 REST API QUERIES
   const { data: skData, isLoading: isSkLoading } = useQuery({
-    queryKey: ['my-sk-list', searchTerm, skPage],
+    queryKey: ['my-sk-list', debouncedSearchTerm, skPage],
     queryFn: () => skApi.list({
       status: 'approved',
-      search: searchTerm,
+      search: debouncedSearchTerm,
       page: skPage,
       per_page: 10,
       exclude_req_nomor: true,

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery, useMutation } from "@tanstack/react-query"
 import { teacherApi, mediaApi, authApi } from "@/lib/api"
 import { 
@@ -21,6 +22,7 @@ export function PengajuanRekomendasiKepalaPage() {
     const isOperator = user?.role === "operator"
 
     const [searchTerm, setSearchTerm] = useState("")
+    const debouncedSearchTerm = useDebounce(searchTerm, 500)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedTeacher, setSelectedTeacher] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -48,9 +50,9 @@ export function PengajuanRekomendasiKepalaPage() {
 
     // REST API QUERIES
     const { data: teachersRes, isLoading: loadingTeachers } = useQuery({
-        queryKey: ['teachers-headmaster-eligible', searchTerm],
+        queryKey: ['teachers-headmaster-eligible', debouncedSearchTerm],
         queryFn: () => teacherApi.list({ 
-            search: searchTerm || undefined,
+            search: debouncedSearchTerm || undefined,
             per_page: 50
         })
     })

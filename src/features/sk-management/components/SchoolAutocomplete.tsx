@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { useQuery } from "@tanstack/react-query"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -41,16 +42,7 @@ export function SchoolAutocomplete({
 }: SchoolAutocompleteProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-
-  // Debounce search input by 300ms
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [search])
+  const debouncedSearch = useDebounce(search, 500)
 
   // Fetch schools with debounced search query
   const { data: schools = [], isLoading } = useQuery({

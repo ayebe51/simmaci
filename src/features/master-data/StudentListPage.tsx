@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Plus, Search, Trash2, Edit, Download, FileSpreadsheet, Loader2, GraduationCap, ArrowUpDown } from "lucide-react"
 import { useState, useMemo } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { Label } from "@/components/ui/label"
@@ -51,6 +52,7 @@ interface Student {
 export default function StudentListPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
@@ -78,11 +80,11 @@ export default function StudentListPage() {
 
   // 🔥 REST API QUERY
   const { data: studentsData, isLoading } = useQuery({
-    queryKey: ['students', currentPage, searchTerm, statusFilter],
+    queryKey: ['students', currentPage, debouncedSearchTerm, statusFilter],
     queryFn: () => studentApi.list({
       page: currentPage,
       per_page: itemsPerPage,
-      search: searchTerm || undefined,
+      search: debouncedSearchTerm || undefined,
       status: statusFilter === "all" ? undefined : statusFilter
     })
   })

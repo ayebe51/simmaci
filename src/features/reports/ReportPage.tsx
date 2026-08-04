@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Printer, Search, Loader2, FileText, BarChart3, Users, Award, Building2, Download, X } from "lucide-react"
 import { useState, useMemo, useCallback } from "react"
+import { useDebounce } from "@/hooks/useDebounce"
 import { reportApi } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
@@ -53,20 +54,11 @@ interface ReportData {
 }
 
 export default function ReportPage() {
-  const [search, setSearch]             = useState("")
+  const [search, setSearch] = useState("")
+  const debouncedSearch = useDebounce(search, 500)
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterKec, setFilterKec]       = useState("all")
   const [filterCert, setFilterCert]     = useState("all")
-
-  // Debounced search for API
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-  const debounceTimer = useState<ReturnType<typeof setTimeout> | null>(null)
-
-  const handleSearchChange = useCallback((val: string) => {
-    setSearch(val)
-    if (debounceTimer[0]) clearTimeout(debounceTimer[0])
-    debounceTimer[0] = setTimeout(() => setDebouncedSearch(val), 400)
-  }, [debounceTimer])
 
   const queryParams = useMemo(() => {
     const p: Record<string, string> = {}
@@ -91,7 +83,6 @@ export default function ReportPage() {
 
   const clearFilters = () => {
     setSearch("")
-    setDebouncedSearch("")
     setFilterStatus("all")
     setFilterKec("all")
     setFilterCert("all")
@@ -254,7 +245,7 @@ export default function ReportPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
               <Input
                 value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Ketik nama atau NUPTK..."
                 className="pl-9 h-11 rounded-xl border-slate-200 font-medium text-sm"
               />

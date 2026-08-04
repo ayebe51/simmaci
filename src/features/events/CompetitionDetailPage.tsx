@@ -29,6 +29,11 @@ const JUKNIS_CRITERIA: Record<string, { component: string; weight: number }[]> =
     { component: 'Lagu & Irama', weight: 35 },
     { component: 'Adab & Penampilan', weight: 20 },
   ],
+  mtq: [
+    { component: 'Tajwid', weight: 45 },
+    { component: 'Lagu & Irama', weight: 35 },
+    { component: 'Adab & Penampilan', weight: 20 },
+  ],
   puji_pujian: [
     { component: 'Makhraj & Artikulasi Bahasa Jawa', weight: 35 },
     { component: 'Penjiwaan & Penghayatan', weight: 30 },
@@ -55,7 +60,7 @@ const JUKNIS_CRITERIA: Record<string, { component: string; weight: number }[]> =
   ],
 };
 
-const IS_VIDEO_BASED = ['mars_maarif', 'mtq_pa', 'mtq_pi', 'puji_pujian', 'film_dokumenter'];
+const IS_VIDEO_BASED = ['mars_maarif', 'mtq_pa', 'mtq_pi', 'mtq', 'puji_pujian', 'film_dokumenter'];
 const IS_ANUGERAH   = ['guru_berprestasi', 'madrasah_berprestasi'];
 
 export default function CompetitionDetailPage() {
@@ -139,12 +144,13 @@ export default function CompetitionDetailPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue={isAnugerah ? 'berkas' : 'participants'}>
+      <Tabs defaultValue={isAnugerah ? 'pendaftar' : 'participants'}>
         <TabsList>
           {!isAnugerah && <TabsTrigger value="participants" className="gap-1.5"><Users size={13}/>Peserta ({competition.participants?.length ?? 0})</TabsTrigger>}
           {isVideo && <TabsTrigger value="video" className="gap-1.5"><FileVideo size={13}/>Kiriman Video</TabsTrigger>}
           <TabsTrigger value="results" className="gap-1.5"><BarChart3 size={13}/>Hasil / Nilai</TabsTrigger>
           <TabsTrigger value="jury" className="gap-1.5"><Key size={13}/>Akses Juri</TabsTrigger>
+          {isAnugerah && <TabsTrigger value="pendaftar" className="gap-1.5"><Users size={13}/>Pendaftar ({competition.anugerah_registrations?.length ?? 0})</TabsTrigger>}
         </TabsList>
 
         {!isAnugerah && (
@@ -172,7 +178,16 @@ export default function CompetitionDetailPage() {
         <TabsContent value="results" className="pt-4">
           <ResultInput
             competitionId={String(competition.id)}
-            participants={competition.participants ?? []}
+            participants={
+              isAnugerah
+                ? (competition.anugerah_registrations ?? []).map((r: any) => ({
+                    id: 'reg_' + r.id,
+                    name: r.applicant_name,
+                    institution: r.school_name,
+                    result: r.rank ? { rank: r.rank, score: r.total_score, notes: r.reviewer_notes } : null,
+                  }))
+                : (competition.participants ?? [])
+            }
             results={competition.results ?? []}
             criteria={criteria}
           />
@@ -181,6 +196,12 @@ export default function CompetitionDetailPage() {
         <TabsContent value="jury" className="pt-4">
           <JuryAccessPanel competition={competition} />
         </TabsContent>
+
+        {isAnugerah && competition.anugerah_registrations?.length >= 0 && (
+          <TabsContent value="pendaftar" className="pt-4">
+            <AnnugerahRegistrantList registrations={competition.anugerah_registrations ?? []} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -353,6 +374,52 @@ function JuryAccessPanel({ competition }: { competition: any }) {
           </ol>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ── AnnugerahRegistrantList ───────────────────────────────────────────────────
+
+function AnnugerahRegistrantList({ registrations }: { registrations: any[] }) {
+  const STATUS_MAP: Record<string, { label: string; color: string }> = {
+    draft:        { label: 'Draft',       color: 'bg-slate-100 text-slate-600' },
+    submitted:    { label: 'Disubmit',    color: 'bg-blue-100 text-blue-700' },
+    under_review: { label: 'Direview',    color: 'bg-amber-100 text-amber-700' },
+    finalis:      { label: 'Finalis',     color: 'bg-purple-100 text-purple-700' },
+    winner:       { label: 'Pemenang',    color: 'bg-green-100 text-green-700' },
+    rejected:     { label: 'Ditolak',     color: 'bg-red-100 text-red-700' },
+  };
+
+  if (registrations.length === 0) return (
+    <div className="text-center py-16 text-slate-400 border-2 border-dashed rounded-2xl">
+      Belum ada pendaftar.
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      {registrations.map((reg: any, i: number) => {
+        const st = STATUS_MAP[reg.status] ?? STATUS_MAP.draft;
+        return (
+          <div key={reg.id} className="flex items-center gap-4 p-4 bg-white rounded-xl border shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 flex-shrink-0">{i + 1}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-slate-800 text-sm">{reg.applicant_name}</span>
+                <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
+                <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full uppercase">{reg.jenjang}</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">{reg.school_name}{reg.kecamatan ? ` · ${reg.kecamatan}` : ''}</p>
+            </div>
+            {reg.total_score != null && (
+              <div className="text-right flex-shrink-0">
+                <p className="text-sm font-bold text-emerald-600">{reg.total_score} poin</p>
+                {reg.rank && <p className="text-xs text-slate-400">Juara {reg.rank}</p>}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

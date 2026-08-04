@@ -19,8 +19,7 @@ import AnugerahRegistrationList from './components/AnugerahRegistrationList';
 
 const LOMBA_TYPES = [
   { value: 'mars_maarif',         label: 'Mars Ma\'arif NU', jenjang: 'MTs/SMP,MA/SMA/SMK' },
-  { value: 'mtq_pa',              label: 'MTQ Putra',        jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
-  { value: 'mtq_pi',              label: 'MTQ Putri',        jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
+  { value: 'mtq',                 label: 'MTQ', jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
   { value: 'puji_pujian',         label: 'Puji-Pujian Jawa', jenjang: 'MI/SD' },
   { value: 'film_dokumenter',     label: 'Film Dokumenter NU', jenjang: 'MTs/SMP,MA/SMA/SMK' },
   { value: 'guru_berprestasi',    label: 'Guru Berprestasi', jenjang: 'MI/SD,MTs/SMP,MA/SMA/SMK' },
@@ -104,7 +103,8 @@ export default function EventDetailPage() {
   if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin w-8 h-8 text-slate-400" /></div>;
   if (!event)  return <div className="p-8 text-center text-slate-500">Event tidak ditemukan.</div>;
 
-  const hasFestival  = event.competitions?.some((c: any) => ['mars_maarif','mtq_pa','mtq_pi','puji_pujian','film_dokumenter'].includes(c.lomba_type));
+  const IS_VIDEO_BASED = ['mars_maarif', 'mtq', 'puji_pujian', 'film_dokumenter'];
+  const hasFestival  = event.competitions?.some((c: any) => IS_VIDEO_BASED.includes(c.lomba_type));
   const hasAnugerah  = event.competitions?.some((c: any) => ['guru_berprestasi','madrasah_berprestasi'].includes(c.lomba_type));
 
   return (
@@ -383,8 +383,7 @@ function SeedHarlah97Button({ eventId, onDone }: { eventId: number; onDone: () =
 
   const LOMBA_LIST = [
     { icon: '🎼', name: 'Mars Ma\'arif NU',                 jenjang: 'MTs/SMP, MA/SMA/SMK',  tipe: 'Beregu (8–15 org)' },
-    { icon: '📖', name: 'MTQ Putra',                        jenjang: 'MI/SD, MTs/SMP, MA',   tipe: 'Individual (maks 1/sekolah)' },
-    { icon: '📖', name: 'MTQ Putri',                        jenjang: 'MI/SD, MTs/SMP, MA',   tipe: 'Individual (maks 1/sekolah)' },
+    { icon: '📖', name: 'MTQ (Musabaqah Tilawatil Qur\'an)',jenjang: 'MI/SD, MTs/SMP, MA',   tipe: 'Individual (maks 2/sekolah, ada pilihan Pa/Pi)' },
     { icon: '🕌', name: 'Puji-Pujian Jawa',                 jenjang: 'MI/SD',                 tipe: 'Beregu (3–5 anak)' },
     { icon: '🎬', name: 'Film Dokumenter NU',               jenjang: 'MTs/SMP, MA/SMA/SMK',  tipe: 'Tim (maks 5 org)' },
     { icon: '👨‍🏫', name: 'Anugerah Guru Berprestasi',       jenjang: 'Semua jenjang',         tipe: 'Individual' },

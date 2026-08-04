@@ -64,7 +64,19 @@ class CompetitionController extends Controller
             'results.participant',
         ]);
 
-        return $this->success($competition);
+        // For anugerah types, also load registrations
+        $anugerahRegistrations = [];
+        if (in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'])) {
+            $anugerahRegistrations = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                ->orderBy('school_name')->orderBy('applicant_name')
+                ->get(['id', 'applicant_name', 'school_name', 'jenjang', 'kecamatan', 'status', 'total_score', 'rank', 'category', 'submitted_at'])
+                ->toArray();
+        }
+
+        $data = $competition->toArray();
+        $data['anugerah_registrations'] = $anugerahRegistrations;
+
+        return $this->success($data);
     }
 
     // ── Update competition ─────────────────────────────────────────────────────
@@ -186,12 +198,35 @@ class CompetitionController extends Controller
     public function resultsStore(Request $request, Competition $competition): JsonResponse
     {
         $data = $request->validate([
-            'participant_id'  => 'required|integer|exists:competition_participants,id',
+            'participant_id'  => 'required', // Can be integer or string (reg_X)
             'rank'            => 'nullable|integer|min:1',
             'score'           => 'nullable|numeric|min:0',
             'notes'           => 'nullable|string',
             'score_breakdown' => 'nullable|array',
         ]);
+
+        $pId = $data['participant_id'];
+        if (is_string($pId) && str_starts_with($pId, 'reg_')) {
+            $regId = (int) substr($pId, 4);
+            $reg = \App\Models\AnugerahRegistration::where('id', $regId)
+                ->where('competition_id', $competition->id)
+                ->firstOrFail();
+
+            $reg->update([
+                'rank'           => $data['rank'] ?? null,
+                'total_score'    => $data['score'] ?? null,
+                'reviewer_notes' => $data['notes'] ?? null,
+            ]);
+
+            return $this->success([
+                'id'             => 'reg_' . $reg->id,
+                'participant_id' => 'reg_' . $reg->id,
+                'name'           => $reg->applicant_name,
+                'rank'           => $reg->rank,
+                'score'          => $reg->total_score,
+                'notes'          => $reg->reviewer_notes,
+            ], 'Nilai berhasil disimpan');
+        }
 
         $result = CompetitionResult::updateOrCreate(
             [
@@ -213,7 +248,7 @@ class CompetitionController extends Controller
     {
         $request->validate([
             'results'                   => 'required|array',
-            'results.*.participant_id'  => 'required|integer|exists:competition_participants,id',
+            'results.*.participant_id'  => 'required', // Can be integer or string (reg_X)
             'results.*.rank'            => 'nullable|integer|min:1',
             'results.*.score'           => 'nullable|numeric|min:0',
             'results.*.notes'           => 'nullable|string',
@@ -221,17 +256,29 @@ class CompetitionController extends Controller
 
         DB::transaction(function () use ($request, $competition) {
             foreach ($request->results as $item) {
-                CompetitionResult::updateOrCreate(
-                    [
-                        'competition_id' => $competition->id,
-                        'participant_id' => $item['participant_id'],
-                    ],
-                    [
-                        'rank'  => $item['rank'] ?? null,
-                        'score' => $item['score'] ?? null,
-                        'notes' => $item['notes'] ?? null,
-                    ]
-                );
+                $pId = $item['participant_id'];
+                if (is_string($pId) && str_starts_with($pId, 'reg_')) {
+                    $regId = (int) substr($pId, 4);
+                    \App\Models\AnugerahRegistration::where('id', $regId)
+                        ->where('competition_id', $competition->id)
+                        ->update([
+                            'rank'        => $item['rank'] ?? null,
+                            'total_score' => $item['score'] ?? null,
+                            'reviewer_notes' => $item['notes'] ?? null,
+                        ]);
+                } else {
+                    CompetitionResult::updateOrCreate(
+                        [
+                            'competition_id' => $competition->id,
+                            'participant_id' => (int) $pId,
+                        ],
+                        [
+                            'rank'  => $item['rank'] ?? null,
+                            'score' => $item['score'] ?? null,
+                            'notes' => $item['notes'] ?? null,
+                        ]
+                    );
+                }
             }
         });
 
@@ -307,27 +354,13 @@ class CompetitionController extends Controller
                 ],
             ],
             [
-                'name'             => 'MTQ Putra',
+                'name'             => 'MTQ (Musabaqah Tilawatil Qur\'an)',
                 'category'         => 'Keagamaan',
                 'type'             => 'Individual',
                 'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
-                'lomba_type'       => 'mtq_pa',
+                'lomba_type'       => 'mtq',
                 'deadline'         => $VIDEO_DEADLINE,
-                'max_per_school'   => 1,
-                'scoring_criteria' => [
-                    ['component' => 'Tajwid',            'weight' => 45],
-                    ['component' => 'Lagu & Irama',      'weight' => 35],
-                    ['component' => 'Adab & Penampilan', 'weight' => 20],
-                ],
-            ],
-            [
-                'name'             => 'MTQ Putri',
-                'category'         => 'Keagamaan',
-                'type'             => 'Individual',
-                'jenjang'          => 'MI/SD, MTs/SMP, MA/SMA/SMK',
-                'lomba_type'       => 'mtq_pi',
-                'deadline'         => $VIDEO_DEADLINE,
-                'max_per_school'   => 1,
+                'max_per_school'   => 2,
                 'scoring_criteria' => [
                     ['component' => 'Tajwid',            'weight' => 45],
                     ['component' => 'Lagu & Irama',      'weight' => 35],

@@ -119,6 +119,7 @@ class PublicEventController extends Controller
 
         $data = $request->validate([
             'name'            => 'required|string|max:255',
+            'jenjang'         => 'required|string|in:MI/SD,MTs/SMP,MA/SMA/SMK',
             'institution'     => 'required|string|max:255',
             'gender_category' => 'nullable|string|in:pa,pi,campuran',
             'group_name'      => 'nullable|string|max:255',
@@ -278,6 +279,7 @@ class PublicEventController extends Controller
             $participants = $competition->participants->map(fn ($p) => [
                 'id'          => $p->id,
                 'name'        => $p->name,
+                'jenjang'     => $p->jenjang,
                 'institution' => $p->institution,
                 'gender_category' => $p->gender_category,
                 'video_url'   => $p->video_url,

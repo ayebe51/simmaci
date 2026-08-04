@@ -13,6 +13,7 @@ class CompetitionParticipant extends Model
         'competition_id',
         'name',
         'institution',
+        'jenjang',
         'school_id',
         'teacher_id',
         'group_name',

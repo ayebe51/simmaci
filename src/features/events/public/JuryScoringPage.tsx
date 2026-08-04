@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw } from 'lucide-react';
+import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 const juryApi = {
@@ -31,6 +31,7 @@ export default function JuryScoringPage() {
   const [scores, setScores] = useState<Record<number, { rank: string; score: string; notes: string; breakdown: Record<string, string> }>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+  const [filterJenjang, setFilterJenjang] = useState<string>('all');
 
   // Reload participants (refresh scores from server)
   const loadParticipants = async (t: string) => {
@@ -235,14 +236,33 @@ export default function JuryScoringPage() {
           </div>
         )}
 
+        {/* Filter Jenjang */}
+        <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-slate-400" />
+            <span className="text-sm font-bold text-slate-700">Filter Jenjang</span>
+          </div>
+          <Select value={filterJenjang} onValueChange={setFilterJenjang}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Semua Jenjang" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Jenjang</SelectItem>
+              <SelectItem value="MI/SD">MI / SD</SelectItem>
+              <SelectItem value="MTs/SMP">MTs / SMP</SelectItem>
+              <SelectItem value="MA/SMA/SMK">MA / SMA / SMK</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Participants */}
         {loading && participants.length === 0 ? (
           <div className="flex justify-center py-16"><Loader2 className="animate-spin text-green-600 w-8 h-8" /></div>
-        ) : participants.length === 0 ? (
-          <div className="text-center py-16 text-slate-400">Belum ada peserta terdaftar.</div>
+        ) : participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).length === 0 ? (
+          <div className="text-center py-16 text-slate-400">Belum ada peserta {filterJenjang !== 'all' ? `untuk jenjang ${filterJenjang}` : ''}.</div>
         ) : (
           <div className="space-y-3">
-            {participants.map((p, idx) => {
+            {participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).map((p, idx) => {
               const s = scores[p.id] ?? { rank: '', score: '', notes: '', breakdown: {} };
               const isSaving = savingId === p.id;
               const isSaved = savedIds.has(p.id);
@@ -258,10 +278,14 @@ export default function JuryScoringPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-slate-500">#{idx + 1}</span>
                           {rankNum && <span className="text-lg">{getRankEmoji(rankNum)}</span>}
-                          <h3 className="font-bold text-slate-800">{p.name}</h3>
+                          <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            {p.name}
+                          </h3>
                           {p.gender_category && <Badge variant="outline" className="text-[9px] uppercase">{p.gender_category}</Badge>}
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5">{p.institution}</p>
+                        <p className="text-sm text-slate-500">
+                          {p.institution} {p.jenjang && <span className="text-[10px] ml-1 bg-slate-100 px-1.5 rounded">{p.jenjang}</span>}
+                        </p>
                         {p.video_url && (
                           <a href={p.video_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1 block">
                             🎬 Lihat Video Kiriman

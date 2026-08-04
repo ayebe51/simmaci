@@ -293,6 +293,17 @@ export default function PublicEventRegistrationPage() {
                         <Label>Asal Madrasah/Sekolah *</Label>
                         <Input required value={form.institution} onChange={e => setF('institution', e.target.value)} placeholder="MTs Ma'arif 1 Cilacap" />
                       </div>
+                      <div className="space-y-1.5">
+                        <Label>Jenjang *</Label>
+                        <Select required value={form.jenjang} onValueChange={v => setF('jenjang', v)}>
+                          <SelectTrigger><SelectValue placeholder="Pilih jenjang..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MI/SD">MI / SD</SelectItem>
+                            <SelectItem value="MTs/SMP">MTs / SMP</SelectItem>
+                            <SelectItem value="MA/SMA/SMK">MA / SMA / SMK</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       {['mtq_pa','mtq_pi','mtq'].includes(selected.lomba_type) && (
                         <div className="space-y-1.5">
                           <Label>Jenis Kelamin *</Label>

@@ -184,6 +184,7 @@ export default function CompetitionDetailPage() {
                     id: 'reg_' + r.id,
                     name: r.applicant_name,
                     institution: r.school_name,
+                    jenjang: r.jenjang,
                     result: r.rank ? { rank: r.rank, score: r.total_score, notes: r.reviewer_notes } : null,
                   }))
                 : (competition.participants ?? [])

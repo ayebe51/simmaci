@@ -108,22 +108,46 @@ export default function YayasanApprovalPage() {
   const handleGenerateSK = async (item: any) => {
     const loaderId = toast.loading("Menyiapkan Dokumen SK Kepala...")
     try {
-        // 1. Ambil template aktif untuk kamad
-        const templateRes = await skTemplateApi.getActive('kamad')
-        if (!templateRes?.file_url) throw new Error("Template SK Kamad belum diupload. Silakan upload di menu Pengaturan Template SK.")
+        // 1. Deteksi varian template Kamad berdasarkan jabatan dan status kepegawaian
+        const jabatan = (item.jabatan || item.teacher?.jabatan || "").toLowerCase()
+        const nip = (item.teacher?.nip || "").replace(/[^0-9]/g, "")
+        const statusKepegawaian = (item.teacher?.status_kepegawaian || "").toLowerCase()
+        const isPns = nip.length >= 18 || statusKepegawaian.includes("pns") || statusKepegawaian.includes("asn")
+        const isPlt = jabatan.includes("plt")
 
-        // 2. Fetch template sebagai binary
+        let kamadSkType: string
+        if (isPlt) {
+            kamadSkType = "kamad_plt"
+        } else if (isPns) {
+            kamadSkType = "kamad_pns"
+        } else {
+            kamadSkType = "kamad_nonpns"
+        }
+
+        // 2. Ambil template aktif sesuai varian, fallback ke kamad_nonpns jika tidak ada
+        let templateRes = await skTemplateApi.getActive(kamadSkType).catch(() => null)
+        if (!templateRes?.file_url) {
+            // Fallback: coba kamad_nonpns jika varian spesifik belum diupload
+            if (kamadSkType !== "kamad_nonpns") {
+                templateRes = await skTemplateApi.getActive("kamad_nonpns").catch(() => null)
+            }
+        }
+        if (!templateRes?.file_url) {
+            throw new Error(`Template SK Kamad (${kamadSkType}) belum diupload. Silakan upload di menu Template SK.`)
+        }
+
+        // 3. Fetch template sebagai binary
         const resp = await fetch(templateRes.file_url, {
             headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
         })
         if (!resp.ok) throw new Error("Gagal mengunduh template SK")
         const arrayBuffer = await resp.arrayBuffer()
 
-        // 3. QR Code
+        // 4. QR Code
         const verificationUrl = getSkVerificationUrl(item.id)
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
-        // 4. Format tanggal
+        // 5. Format tanggal
         const tglPenetapan = tanggalPenetapan || new Date().toISOString().split('T')[0]
         const datePenetapan = new Date(tglPenetapan)
         const bulanRomawi = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"]
@@ -138,14 +162,14 @@ export default function YayasanApprovalPage() {
             return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
         }
 
-        // 5. Build nomor SK
+        // 6. Build nomor SK
         let nomorSk = nomorFormat
             .replace(/{NOMOR}/g, nomorStart)
             .replace(/{BULAN}/g, bulan)
             .replace(/{BL_ROMA}/g, bulanRoma)
             .replace(/{TAHUN}/g, String(tahun))
 
-        // 6. Data untuk template
+        // 7. Data untuk template
         const docData = {
             qrcode: qrDataUrl,
             NAMA: item.teacher?.nama || item.teacher_name || "",
@@ -174,7 +198,7 @@ export default function YayasanApprovalPage() {
             PERIODE: `Ke-${item.periode}` || "-",
         }
 
-        // 7. Generate DOCX
+        // 8. Generate DOCX
         const zip = new PizZip(arrayBuffer)
 
         // Auto-fix tag QR di document.xml jika perlu
@@ -208,7 +232,8 @@ export default function YayasanApprovalPage() {
         const out = doc.getZip().generate({ type: "blob" })
         const namaFile = `SK_Kamad_${(item.teacher?.nama || item.teacher_name || 'kepala').replace(/\s+/g, '_')}.docx`
         saveAs(out, namaFile)
-        toast.success("SK Kepala Berhasil Dibuat!", { id: loaderId })
+        const varianLabel = isPlt ? "PLT" : isPns ? "PNS" : "Non-PNS"
+        toast.success(`SK Kepala (${varianLabel}) Berhasil Dibuat!`, { id: loaderId })
     } catch (e: any) {
         console.error(e)
         toast.error(e.message || "Gagal membuat SK", { id: loaderId })

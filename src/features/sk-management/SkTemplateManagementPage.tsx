@@ -51,7 +51,7 @@ const uploadFormSchema = z.object({
       'File harus berformat .docx, .doc, atau .pdf'
     )
     .refine((f) => f.size <= 10 * 1024 * 1024, 'Ukuran file maksimal 10 MB'),
-  sk_type: z.enum(['gty', 'gtt', 'kamad', 'tendik', 'surat_permohonan', 'pemberhentian'], {
+  sk_type: z.enum(['gty', 'gtt', 'kamad_nonpns', 'kamad_pns', 'kamad_plt', 'tendik', 'surat_permohonan', 'pemberhentian'], {
     required_error: 'Pilih jenis SK',
   }),
 })
@@ -61,11 +61,13 @@ type UploadFormValues = z.infer<typeof uploadFormSchema>
 // ── SK type config ─────────────────────────────────────────────────────────
 
 const SK_TYPES = [
-  { value: 'gty', label: 'GTY', fullLabel: 'Guru Tetap Yayasan' },
-  { value: 'gtt', label: 'GTT', fullLabel: 'Guru Tidak Tetap' },
-  { value: 'kamad', label: 'Kamad', fullLabel: 'Kepala Madrasah' },
-  { value: 'tendik', label: 'Tendik', fullLabel: 'Tenaga Kependidikan' },
-  { value: 'pemberhentian', label: 'Pemberhentian', fullLabel: 'SK Pemberhentian' },
+  { value: 'gty',         label: 'GTY',           fullLabel: 'Guru Tetap Yayasan' },
+  { value: 'gtt',         label: 'GTT',           fullLabel: 'Guru Tidak Tetap' },
+  { value: 'kamad_nonpns',label: 'Kamad Non-PNS', fullLabel: 'Kepala Madrasah (Non-PNS)' },
+  { value: 'kamad_pns',   label: 'Kamad PNS',     fullLabel: 'Kepala Madrasah (PNS/ASN)' },
+  { value: 'kamad_plt',   label: 'Kamad PLT',     fullLabel: 'Kepala Madrasah (PLT)' },
+  { value: 'tendik',      label: 'Tendik',        fullLabel: 'Tenaga Kependidikan' },
+  { value: 'pemberhentian',label: 'Pemberhentian',fullLabel: 'SK Pemberhentian' },
 ] as const
 
 // ── Helpers ────────────────────────────────────────────────────────────────

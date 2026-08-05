@@ -15,7 +15,7 @@ class StoreSkTemplateRequest extends FormRequest
     {
         return [
             'file'    => 'required|file|mimes:docx|max:10240',
-            'sk_type' => 'required|string|in:gty,gtt,kamad,tendik,surat_permohonan,pemberhentian',
+            'sk_type' => 'required|string|in:gty,gtt,kamad,kamad_nonpns,kamad_pns,kamad_plt,tendik,surat_permohonan,pemberhentian',
         ];
     }
 
@@ -29,7 +29,7 @@ class StoreSkTemplateRequest extends FormRequest
 
             'sk_type.required' => 'Jenis SK wajib dipilih.',
             'sk_type.string'   => 'Jenis SK harus berupa teks.',
-            'sk_type.in'       => 'Jenis SK tidak valid. Pilihan yang tersedia: gty, gtt, kamad, tendik, surat_permohonan, pemberhentian.',
+            'sk_type.in'       => 'Jenis SK tidak valid. Pilihan yang tersedia: gty, gtt, kamad, kamad_nonpns, kamad_pns, kamad_plt, tendik, surat_permohonan, pemberhentian.',
         ];
     }
 }

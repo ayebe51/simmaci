@@ -27,7 +27,7 @@ import ExcelImportModal from "./components/ExcelImportModal"
 import TeacherPhotoUpload from "./components/TeacherPhotoUpload"
 import KtaCard from "./components/KtaCard"
 import ImportPreviewModal from "./components/ImportPreviewModal"
-import * as XLSX from "xlsx"
+import * as XLSX from "xlsx-js-style"
 
 interface Teacher {
   id: number
@@ -286,36 +286,155 @@ export default function TeacherListPage() {
     }
   }
 
-  // ── Export Excel (client-side) ──
+  // ── Export Excel (client-side) dengan pengelompokan per kecamatan ──
   const handleExportExcel = async () => {
     setIsExporting(true)
     try {
       // Fetch ALL data (no pagination)
       const res = await teacherApi.list({ per_page: 9999, is_active: activeFilter === 'all' ? undefined : (activeFilter === 'active' ? 1 : 0) })
-      const rows = (res.data || []).map((t: any, i: number) => ({
-        No: i + 1,
-        NUPTK: t.nuptk || '',
-        NIP: t.nip || '',
-        Nama: t.nama,
-        Status: t.status || '',
-        Mapel: t.mapel || '',
-        'Unit Kerja': t.unit_kerja || '',
-        Kecamatan: t.kecamatan || '',
-        Pendidikan: t.pendidikan_terakhir || '',
-        Sertifikasi: t.is_certified ? 'Ya' : 'Tidak',
-        PDPKPNU: t.pdpkpnu || '',
-        'No HP': t.phone_number || '',
-        Email: t.email || '',
-        'TMT': t.tmt || '',
-        'Tempat Lahir': t.tempat_lahir || '',
-        'Tanggal Lahir': t.tanggal_lahir || '',
-        'Status Aktif': t.is_active ? 'Aktif' : 'Non-Aktif',
+      const allTeachers: any[] = res.data || []
+
+      // Kolom header (urutan: No, Unit Kerja, Nama, ...)
+      const HEADERS = [
+        'No', 'Unit Kerja', 'Nama', 'NUPTK', 'NIP', 'NIM',
+        'Status', 'Mapel', 'Kecamatan', 'Pendidikan', 'Sertifikasi',
+        'PDPKPNU', 'No HP', 'Email', 'TMT', 'Tempat Lahir', 'Tanggal Lahir', 'Status Aktif',
+      ]
+      const COL_COUNT = HEADERS.length
+
+      // Kelompokkan per kecamatan, sort kecamatan A-Z, lalu sort per unit_kerja A-Z
+      const grouped = new Map<string, any[]>()
+      for (const t of allTeachers) {
+        const kec = t.kecamatan || '(Kecamatan Tidak Diketahui)'
+        if (!grouped.has(kec)) grouped.set(kec, [])
+        grouped.get(kec)!.push(t)
+      }
+      // Sort kecamatan
+      const sortedKecamatan = [...grouped.keys()].sort((a, b) => a.localeCompare(b, 'id'))
+
+      // Build worksheet data as array-of-arrays
+      const wsData: any[][] = []
+      wsData.push(HEADERS) // baris header
+
+      let nomor = 1
+      // Track which rows are "kecamatan header" rows and which are "data" rows
+      const kecamatanRows: number[] = []   // 0-indexed row numbers (setelah wsData)
+      const dataRowStart = 1               // baris pertama data (0 = header)
+
+      for (const kec of sortedKecamatan) {
+        const teachers = grouped.get(kec)!
+        // Sort per unit_kerja A-Z, lalu nama A-Z
+        teachers.sort((a, b) => {
+          const ukA = (a.unit_kerja || '').localeCompare(b.unit_kerja || '', 'id')
+          if (ukA !== 0) return ukA
+          return (a.nama || '').localeCompare(b.nama || '', 'id')
+        })
+
+        // Baris header kecamatan (merge across all columns)
+        kecamatanRows.push(wsData.length)
+        wsData.push([`KECAMATAN: ${kec.toUpperCase()}`, ...Array(COL_COUNT - 1).fill('')])
+
+        for (const t of teachers) {
+          wsData.push([
+            nomor++,
+            t.unit_kerja || '',
+            t.nama || '',
+            t.nuptk || '',
+            t.nip || '',
+            t.nomor_induk_maarif || '',
+            t.status || '',
+            t.mapel || '',
+            t.kecamatan || '',
+            t.pendidikan_terakhir || '',
+            t.is_certified ? 'Ya' : 'Tidak',
+            t.pdpkpnu || '',
+            t.phone_number || '',
+            t.email || '',
+            t.tmt || '',
+            t.tempat_lahir || '',
+            t.tanggal_lahir || '',
+            t.is_active ? 'Aktif' : 'Non-Aktif',
+          ])
+        }
+      }
+
+      // Buat worksheet dari array-of-arrays
+      const ws = XLSX.utils.aoa_to_sheet(wsData)
+
+      // ── Lebar kolom otomatis ──
+      ws['!cols'] = [
+        { wch: 5 },   // No
+        { wch: 35 },  // Unit Kerja
+        { wch: 30 },  // Nama
+        { wch: 18 },  // NUPTK
+        { wch: 18 },  // NIP
+        { wch: 14 },  // NIM
+        { wch: 10 },  // Status
+        { wch: 22 },  // Mapel
+        { wch: 18 },  // Kecamatan
+        { wch: 14 },  // Pendidikan
+        { wch: 13 },  // Sertifikasi
+        { wch: 12 },  // PDPKPNU
+        { wch: 16 },  // No HP
+        { wch: 28 },  // Email
+        { wch: 14 },  // TMT
+        { wch: 18 },  // Tempat Lahir
+        { wch: 15 },  // Tanggal Lahir
+        { wch: 13 },  // Status Aktif
+      ]
+
+      // ── Merge kecamatan header row across all columns ──
+      ws['!merges'] = kecamatanRows.map((r) => ({
+        s: { r, c: 0 }, e: { r, c: COL_COUNT - 1 }
       }))
-      const ws = XLSX.utils.json_to_sheet(rows)
+
+      // Helper encode cell
+      const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c })
+
+      // ── Style border untuk semua sel ──
+      const borderStyle = {
+        top:    { style: 'thin', color: { rgb: 'BFBFBF' } },
+        bottom: { style: 'thin', color: { rgb: 'BFBFBF' } },
+        left:   { style: 'thin', color: { rgb: 'BFBFBF' } },
+        right:  { style: 'thin', color: { rgb: 'BFBFBF' } },
+      }
+
+      const totalRows = wsData.length
+      const kecamatanRowSet = new Set(kecamatanRows)
+
+      for (let r = 0; r < totalRows; r++) {
+        for (let c = 0; c < COL_COUNT; c++) {
+          const cellRef = enc(r, c)
+          if (!ws[cellRef]) ws[cellRef] = { t: 'z', v: '' }
+
+          const isHeaderRow = r === 0
+          const isKecRow = kecamatanRowSet.has(r)
+
+          ws[cellRef].s = {
+            border: borderStyle,
+            alignment: {
+              vertical: 'center',
+              wrapText: false,
+              horizontal: c === 0 ? 'center' : 'left',
+            },
+            ...(isHeaderRow ? {
+              font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+              fill: { fgColor: { rgb: '1F7A4D' } }, // hijau tua LP Maarif
+            } : isKecRow ? {
+              font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 },
+              fill: { fgColor: { rgb: '3B7DD8' } }, // biru untuk header kecamatan
+            } : {
+              font: { sz: 10 },
+              fill: { fgColor: { rgb: r % 2 === 0 ? 'FFFFFF' : 'F5F9FF' } }, // zebra stripe ringan
+            }),
+          }
+        }
+      }
+
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Data Guru')
       XLSX.writeFile(wb, `Data_Guru_Tendik_${new Date().toISOString().slice(0,10)}.xlsx`)
-      toast.success(`Berhasil export ${rows.length} data guru!`)
+      toast.success(`Berhasil export ${nomor - 1} data guru (${sortedKecamatan.length} kecamatan)!`)
     } catch (e: any) {
       toast.error('Gagal export: ' + e.message)
     } finally {

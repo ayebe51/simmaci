@@ -104,15 +104,6 @@ export default function HeadmasterSubmissionPage() {
   const teachers = Array.isArray(teachersData) ? teachersData : (teachersData?.data || [])
   const schools = Array.isArray(schoolsData) ? schoolsData : (schoolsData?.data || [])
 
-  // Deteksi apakah guru yang dipilih adalah PNS
-  const selectedTeacherId = form.watch("teacher_id")
-  const selectedTeacher = teachers.find((t: any) => t.id.toString() === selectedTeacherId)
-  const isPnsTeacher = selectedTeacher
-    ? (selectedTeacher.nip || "").replace(/\D/g, "").length >= 18
-      || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("pns")
-      || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("asn")
-    : false
-
   const form = useForm<HeadmasterForm>({
     resolver: zodResolver(headmasterSchema),
     defaultValues: {
@@ -120,6 +111,15 @@ export default function HeadmasterSubmissionPage() {
       school_id: isOperator && userSchoolId ? userSchoolId.toString() : undefined
     }
   })
+
+  // Deteksi apakah guru yang dipilih adalah PNS (setelah useForm agar form.watch tersedia)
+  const selectedTeacherId = form.watch("teacher_id")
+  const selectedTeacher = teachers.find((t: any) => t.id.toString() === selectedTeacherId)
+  const isPnsTeacher = selectedTeacher
+    ? (selectedTeacher.nip || "").replace(/\D/g, "").length >= 18
+      || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("pns")
+      || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("asn")
+    : false
 
   const createHeadmasterMutation = useMutation({
     mutationFn: (data: any) => headmasterApi.list().then(() => apiClient.post('/headmasters', data)), // Fallback post if headmasterApi.create missing

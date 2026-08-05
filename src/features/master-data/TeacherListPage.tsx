@@ -358,11 +358,15 @@ export default function TeacherListPage() {
 
       const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c })
 
+      // Helper: ambil kecamatan dari sekolah (lebih reliable), fallback ke kecamatan guru
+      const getKecamatan = (t: any): string =>
+        t.school?.kecamatan || t.kecamatan || ''
+
       // Helper: buat satu worksheet
       const buildSheet = (teachers: any[], headers: string[], colWidths: any[], includeKecamatan: boolean) => {
         const sorted = [...teachers].sort((a, b) => {
           if (includeKecamatan) {
-            const kecA = (a.kecamatan || '').localeCompare(b.kecamatan || '', 'id')
+            const kecA = getKecamatan(a).localeCompare(getKecamatan(b), 'id')
             if (kecA !== 0) return kecA
           }
           const ukA = (a.unit_kerja || '').localeCompare(b.unit_kerja || '', 'id')
@@ -375,7 +379,7 @@ export default function TeacherListPage() {
           const row = includeKecamatan
             ? [
                 i + 1,
-                t.kecamatan || '',
+                getKecamatan(t),
                 t.unit_kerja || '',
                 t.nama || '',
                 t.nuptk || '',
@@ -444,10 +448,10 @@ export default function TeacherListPage() {
         return ws
       }
 
-      // Kelompokkan per kecamatan
+      // Kelompokkan per kecamatan (ambil dari sekolah, bukan dari data guru)
       const grouped = new Map<string, any[]>()
       for (const t of allTeachers) {
-        const kec = t.kecamatan || '(Tidak Diketahui)'
+        const kec = getKecamatan(t) || '(Tidak Diketahui)'
         if (!grouped.has(kec)) grouped.set(kec, [])
         grouped.get(kec)!.push(t)
       }

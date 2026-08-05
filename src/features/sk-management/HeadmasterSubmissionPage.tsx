@@ -31,6 +31,7 @@ const headmasterSchema = z.object({
   surat_permohonan_date: z.string().optional(),
   nomor_surat_rekomendasi: z.string().optional(),
   tanggal_surat_rekomendasi: z.string().optional(),
+  golongan: z.string().optional(),
 })
 
 type HeadmasterForm = z.infer<typeof headmasterSchema>
@@ -103,6 +104,15 @@ export default function HeadmasterSubmissionPage() {
   const teachers = Array.isArray(teachersData) ? teachersData : (teachersData?.data || [])
   const schools = Array.isArray(schoolsData) ? schoolsData : (schoolsData?.data || [])
 
+  // Deteksi apakah guru yang dipilih adalah PNS
+  const selectedTeacherId = form.watch("teacher_id")
+  const selectedTeacher = teachers.find((t: any) => t.id.toString() === selectedTeacherId)
+  const isPnsTeacher = selectedTeacher
+    ? (selectedTeacher.nip || "").replace(/\D/g, "").length >= 18
+      || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("pns")
+      || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("asn")
+    : false
+
   const form = useForm<HeadmasterForm>({
     resolver: zodResolver(headmasterSchema),
     defaultValues: {
@@ -172,6 +182,7 @@ export default function HeadmasterSubmissionPage() {
             surat_permohonan_date: data.surat_permohonan_date,
             nomor_surat_rekomendasi: data.nomor_surat_rekomendasi,
             tanggal_surat_rekomendasi: data.tanggal_surat_rekomendasi,
+            golongan: data.golongan || null,
         };
 
         await submitHeadmaster(payload)
@@ -344,6 +355,44 @@ export default function HeadmasterSubmissionPage() {
                     {form.formState.errors.tmt && <p className="text-red-500 text-[10px] font-bold uppercase mt-1">{form.formState.errors.tmt.message}</p>}
                  </div>
             </div>
+
+            {/* Field Golongan — hanya muncul jika guru yang dipilih terdeteksi PNS */}
+            {isPnsTeacher && (
+              <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">
+                    🏛️ PNS / ASN
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Guru ini terdeteksi sebagai PNS. Isi golongan untuk dokumen SK.</span>
+                </div>
+                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                  Golongan / Ruang <span className="text-red-400">*</span>
+                </Label>
+                <Select onValueChange={(val) => form.setValue("golongan", val)} value={form.watch("golongan") || ""}>
+                  <SelectTrigger className="h-12 rounded-xl border-blue-200 bg-white font-bold">
+                    <SelectValue placeholder="Pilih Golongan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="II/a">II/a</SelectItem>
+                    <SelectItem value="II/b">II/b</SelectItem>
+                    <SelectItem value="II/c">II/c</SelectItem>
+                    <SelectItem value="II/d">II/d</SelectItem>
+                    <SelectItem value="III/a">III/a</SelectItem>
+                    <SelectItem value="III/b">III/b</SelectItem>
+                    <SelectItem value="III/c">III/c</SelectItem>
+                    <SelectItem value="III/d">III/d</SelectItem>
+                    <SelectItem value="IV/a">IV/a</SelectItem>
+                    <SelectItem value="IV/b">IV/b</SelectItem>
+                    <SelectItem value="IV/c">IV/c</SelectItem>
+                    <SelectItem value="IV/d">IV/d</SelectItem>
+                    <SelectItem value="IV/e">IV/e</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-blue-500 font-medium">
+                  Golongan akan dicetak pada dokumen SK Kepala Madrasah PNS.
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-6 md:grid-cols-2">
                  <div className="space-y-3">

@@ -16,7 +16,7 @@ class HeadmasterTenure extends Model
         'periode', 'start_date', 'end_date', 'status',
         'nomor_sk', 'sk_url', 'surat_permohonan_number', 'surat_permohonan_date',
         'nomor_surat_rekomendasi', 'tanggal_surat_rekomendasi',
-        'keterangan', 'approved_by', 'approved_at', 'created_by',
+        'keterangan', 'golongan', 'approved_by', 'approved_at', 'created_by',
     ];
 
     protected function casts(): array

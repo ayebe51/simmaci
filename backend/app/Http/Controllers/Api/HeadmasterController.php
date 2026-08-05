@@ -48,6 +48,7 @@ class HeadmasterController extends Controller
             'nomor_surat_rekomendasi' => 'nullable|string',
             'tanggal_surat_rekomendasi' => 'nullable|string',
             'keterangan' => 'nullable|string',
+            'golongan' => 'nullable|string|max:10',
         ]);
 
         $data['status'] = 'pending';

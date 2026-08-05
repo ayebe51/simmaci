@@ -111,10 +111,10 @@ class TeacherUpdateOperatorTest extends TestCase
     }
 
     /**
-     * Test: Admin Yayasan can update teacher without 422 error
+     * Test: Admin Yayasan dapat update data guru (akses dibuka sesuai kebutuhan operasional)
      * 
-     * This was the main bug - admin_yayasan was being treated as operator
-     * and getting validation errors due to incorrect tenant scoping.
+     * Sebelumnya admin_yayasan diblokir, tapi sekarang diizinkan untuk mengelola
+     * data guru di semua sekolah.
      */
     public function test_admin_yayasan_cannot_update_teacher(): void
     {
@@ -124,7 +124,9 @@ class TeacherUpdateOperatorTest extends TestCase
                 'phone_number' => '081234567890',
             ]);
 
-        $response->assertStatus(403);
+        // admin_yayasan kini diizinkan update guru (policy diubah: return true untuk semua ability)
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
     }
 
 

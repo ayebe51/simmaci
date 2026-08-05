@@ -174,6 +174,7 @@ export default function YayasanApprovalPage() {
             qrcode: qrDataUrl,
             NAMA: item.teacher?.nama || item.teacher_name || "",
             NIP: item.teacher?.nip || "-",
+            GOLONGAN: item.golongan || "-",
             "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${formatDateIndo(item.teacher?.tanggal_lahir)}`,
             "NOMOR INDUK MA'ARIF": item.teacher?.nomor_induk_maarif || item.teacher?.nuptk || "-",
             PENDIDIKAN: item.teacher?.pendidikan_terakhir || "-",

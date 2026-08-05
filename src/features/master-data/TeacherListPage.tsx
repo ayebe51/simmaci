@@ -293,23 +293,22 @@ export default function TeacherListPage() {
       const res = await teacherApi.list({ per_page: 9999, is_active: activeFilter === 'all' ? undefined : (activeFilter === 'active' ? 1 : 0) })
       const allTeachers: any[] = res.data || []
 
-      const HEADERS = [
-        'No', 'Unit Kerja', 'Nama', 'NUPTK', 'NIP', 'NIM',
-        'Status', 'Mapel', 'Kecamatan', 'Pendidikan', 'Sertifikasi',
+      // Sheet "Semua Kecamatan": Kecamatan muncul di kolom ke-2
+      const HEADERS_ALL = [
+        'No', 'Kecamatan', 'Unit Kerja', 'Nama Guru/Tendik', 'NUPTK', 'NIP', 'NIM',
+        'Status', 'Mapel', 'Pendidikan', 'Sertifikasi',
         'PDPKPNU', 'No HP', 'Email', 'TMT', 'Tempat Lahir', 'Tanggal Lahir', 'Status Aktif',
       ]
-      const COL_COUNT = HEADERS.length
-
-      const COL_WIDTHS = [
+      const COL_WIDTHS_ALL = [
         { wch: 5 },   // No
+        { wch: 18 },  // Kecamatan
         { wch: 35 },  // Unit Kerja
-        { wch: 30 },  // Nama
+        { wch: 30 },  // Nama Guru/Tendik
         { wch: 18 },  // NUPTK
         { wch: 18 },  // NIP
         { wch: 14 },  // NIM
         { wch: 10 },  // Status
         { wch: 22 },  // Mapel
-        { wch: 18 },  // Kecamatan
         { wch: 14 },  // Pendidikan
         { wch: 13 },  // Sertifikasi
         { wch: 12 },  // PDPKPNU
@@ -321,6 +320,35 @@ export default function TeacherListPage() {
         { wch: 13 },  // Status Aktif
       ]
 
+      // Sheet per kecamatan: tidak perlu kolom Kecamatan di depan
+      const HEADERS_KEC = [
+        'No', 'Unit Kerja', 'Nama Guru/Tendik', 'NUPTK', 'NIP', 'NIM',
+        'Status', 'Mapel', 'Pendidikan', 'Sertifikasi',
+        'PDPKPNU', 'No HP', 'Email', 'TMT', 'Tempat Lahir', 'Tanggal Lahir', 'Status Aktif',
+      ]
+      const COL_WIDTHS_KEC = [
+        { wch: 5 },   // No
+        { wch: 35 },  // Unit Kerja
+        { wch: 30 },  // Nama Guru/Tendik
+        { wch: 18 },  // NUPTK
+        { wch: 18 },  // NIP
+        { wch: 14 },  // NIM
+        { wch: 10 },  // Status
+        { wch: 22 },  // Mapel
+        { wch: 14 },  // Pendidikan
+        { wch: 13 },  // Sertifikasi
+        { wch: 12 },  // PDPKPNU
+        { wch: 16 },  // No HP
+        { wch: 28 },  // Email
+        { wch: 14 },  // TMT
+        { wch: 18 },  // Tempat Lahir
+        { wch: 15 },  // Tanggal Lahir
+        { wch: 13 },  // Status Aktif
+      ]
+
+      // Untuk kompatibilitas dengan buildSheet — gunakan alias
+      
+
       const borderStyle = {
         top:    { style: 'thin', color: { rgb: 'BFBFBF' } },
         bottom: { style: 'thin', color: { rgb: 'BFBFBF' } },
@@ -330,45 +358,69 @@ export default function TeacherListPage() {
 
       const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c })
 
-      // Helper: buat satu worksheet untuk satu kecamatan
-      const buildSheet = (teachers: any[]) => {
-        // Sort per unit_kerja A-Z, lalu nama A-Z
+      // Helper: buat satu worksheet
+      const buildSheet = (teachers: any[], headers: string[], colWidths: any[], includeKecamatan: boolean) => {
         const sorted = [...teachers].sort((a, b) => {
+          if (includeKecamatan) {
+            const kecA = (a.kecamatan || '').localeCompare(b.kecamatan || '', 'id')
+            if (kecA !== 0) return kecA
+          }
           const ukA = (a.unit_kerja || '').localeCompare(b.unit_kerja || '', 'id')
           if (ukA !== 0) return ukA
           return (a.nama || '').localeCompare(b.nama || '', 'id')
         })
 
-        const wsData: any[][] = [HEADERS]
+        const wsData: any[][] = [headers]
         sorted.forEach((t, i) => {
-          wsData.push([
-            i + 1,
-            t.unit_kerja || '',
-            t.nama || '',
-            t.nuptk || '',
-            t.nip || '',
-            t.nomor_induk_maarif || '',
-            t.status || '',
-            t.mapel || '',
-            t.kecamatan || '',
-            t.pendidikan_terakhir || '',
-            t.is_certified ? 'Ya' : 'Tidak',
-            t.pdpkpnu || '',
-            t.phone_number || '',
-            t.email || '',
-            t.tmt || '',
-            t.tempat_lahir || '',
-            t.tanggal_lahir || '',
-            t.is_active ? 'Aktif' : 'Non-Aktif',
-          ])
+          const row = includeKecamatan
+            ? [
+                i + 1,
+                t.kecamatan || '',
+                t.unit_kerja || '',
+                t.nama || '',
+                t.nuptk || '',
+                t.nip || '',
+                t.nomor_induk_maarif || '',
+                t.status || '',
+                t.mapel || '',
+                t.pendidikan_terakhir || '',
+                t.is_certified ? 'Ya' : 'Tidak',
+                t.pdpkpnu || '',
+                t.phone_number || '',
+                t.email || '',
+                t.tmt || '',
+                t.tempat_lahir || '',
+                t.tanggal_lahir || '',
+                t.is_active ? 'Aktif' : 'Non-Aktif',
+              ]
+            : [
+                i + 1,
+                t.unit_kerja || '',
+                t.nama || '',
+                t.nuptk || '',
+                t.nip || '',
+                t.nomor_induk_maarif || '',
+                t.status || '',
+                t.mapel || '',
+                t.pendidikan_terakhir || '',
+                t.is_certified ? 'Ya' : 'Tidak',
+                t.pdpkpnu || '',
+                t.phone_number || '',
+                t.email || '',
+                t.tmt || '',
+                t.tempat_lahir || '',
+                t.tanggal_lahir || '',
+                t.is_active ? 'Aktif' : 'Non-Aktif',
+              ]
+          wsData.push(row)
         })
 
         const ws = XLSX.utils.aoa_to_sheet(wsData)
-        ws['!cols'] = COL_WIDTHS
+        ws['!cols'] = colWidths
+        const numCols = headers.length
 
-        // Apply styles
         for (let r = 0; r < wsData.length; r++) {
-          for (let c = 0; c < COL_COUNT; c++) {
+          for (let c = 0; c < numCols; c++) {
             const cellRef = enc(r, c)
             if (!ws[cellRef]) ws[cellRef] = { t: 'z', v: '' }
             ws[cellRef].s = {
@@ -380,7 +432,7 @@ export default function TeacherListPage() {
               },
               ...(r === 0 ? {
                 font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-                fill: { fgColor: { rgb: '1F7A4D' } }, // hijau LP Maarif
+                fill: { fgColor: { rgb: '1F7A4D' } },
               } : {
                 font: { sz: 10 },
                 fill: { fgColor: { rgb: r % 2 !== 0 ? 'FFFFFF' : 'EEF4FF' } },
@@ -404,21 +456,13 @@ export default function TeacherListPage() {
       // Buat workbook — satu sheet per kecamatan
       const wb = XLSX.utils.book_new()
 
-      // Sheet pertama: "Semua Kecamatan" (ringkasan semua data)
-      const allSorted = [...allTeachers].sort((a, b) => {
-        const kecA = (a.kecamatan || '').localeCompare(b.kecamatan || '', 'id')
-        if (kecA !== 0) return kecA
-        const ukA = (a.unit_kerja || '').localeCompare(b.unit_kerja || '', 'id')
-        if (ukA !== 0) return ukA
-        return (a.nama || '').localeCompare(b.nama || '', 'id')
-      })
-      XLSX.utils.book_append_sheet(wb, buildSheet(allSorted), 'Semua Kecamatan')
+      // Sheet pertama: "Semua Kecamatan" — kolom: No, Kecamatan, Unit Kerja, Nama, ...
+      XLSX.utils.book_append_sheet(wb, buildSheet(allTeachers, HEADERS_ALL, COL_WIDTHS_ALL, true), 'Semua Kecamatan')
 
-      // Sheet per kecamatan
+      // Sheet per kecamatan — kolom: No, Unit Kerja, Nama, ... (tanpa kolom Kecamatan)
       for (const kec of sortedKecamatan) {
-        // Nama sheet max 31 karakter (batasan Excel), strip karakter invalid
         const sheetName = kec.replace(/[:\\/?*[\]]/g, '').slice(0, 31)
-        XLSX.utils.book_append_sheet(wb, buildSheet(grouped.get(kec)!), sheetName)
+        XLSX.utils.book_append_sheet(wb, buildSheet(grouped.get(kec)!, HEADERS_KEC, COL_WIDTHS_KEC, false), sheetName)
       }
 
       XLSX.writeFile(wb, `Data_Guru_Tendik_${new Date().toISOString().slice(0,10)}.xlsx`)

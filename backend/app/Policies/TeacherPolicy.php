@@ -14,10 +14,8 @@ class TeacherPolicy
         }
         
         if ($user->role === 'admin_yayasan') {
-            if (in_array($ability, ['viewAny', 'view'])) {
-                return true;
-            }
-            return false;
+            // admin_yayasan dapat melihat, mengedit, dan menghapus data guru di semua sekolah
+            return true;
         }
 
         return null;

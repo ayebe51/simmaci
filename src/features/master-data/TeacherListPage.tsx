@@ -88,7 +88,7 @@ export default function TeacherListPage() {
   })
   const isOperator = user?.role === "operator"
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "admin_yayasan"
-  const canEdit = user?.role !== "admin_yayasan"
+  const canEdit = true // semua role (operator, admin_yayasan, super_admin) dapat edit & delete data guru
 
   // Fetch schools for filter
   const { data: schoolsData } = useQuery({

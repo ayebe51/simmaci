@@ -69,6 +69,30 @@ class HeadmasterController extends Controller
         return response()->json($headmasterTenure->fresh());
     }
 
+    public function reject(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
+    {
+        $headmasterTenure->update([
+            'status' => 'rejected',
+            'keterangan' => $request->rejection_reason,
+        ]);
+
+        return response()->json($headmasterTenure->fresh());
+    }
+
+    public function update(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
+    {
+        $data = $request->validate([
+            'status'   => 'sometimes|string',
+            'nomor_sk' => 'sometimes|nullable|string',
+            'sk_url'   => 'sometimes|nullable|string',
+            'keterangan' => 'sometimes|nullable|string',
+        ]);
+
+        $headmasterTenure->update($data);
+
+        return response()->json($headmasterTenure->fresh());
+    }
+
     public function expiring(Request $request): JsonResponse
     {
         $limit = strtotime('+180 days'); // 6 bulan sebelum berakhir

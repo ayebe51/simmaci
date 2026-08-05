@@ -320,8 +320,9 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('slow_queries');
 
         // Headmasters
-        Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store']);
+        Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store', 'update']);
         Route::post('headmasters/{headmasterTenure}/approve', [HeadmasterController::class, 'approve']);
+        Route::post('headmasters/{headmasterTenure}/reject',  [HeadmasterController::class, 'reject']);
         Route::get('headmasters/expiring',                    [HeadmasterController::class, 'expiring']);
 
         // NUPTK Submissions

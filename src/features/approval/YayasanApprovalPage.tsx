@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { BadgeCheck, CheckCircle, Download, FileText, XCircle, Upload, Loader2, Search, Filter, Calendar, Settings2 } from "lucide-react"
-import { useState, useMemo } from "react"
-import { headmasterApi, mediaApi, authApi, settingApi } from "@/lib/api"
+import { BadgeCheck, Download, Upload, Loader2, Settings2 } from "lucide-react"
+import { useState } from "react"
+import { headmasterApi, mediaApi, authApi, skTemplateApi } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
 import { toast } from "sonner"
 import QRCode from "qrcode"
@@ -59,7 +59,7 @@ export default function YayasanApprovalPage() {
     setIsProcessing(true)
     try {
         await headmasterApi.approve(id, {
-            nomor_sk: nomorStart, // In a real app, this might be more complex
+            nomor_sk: nomorStart,
             tanggal_penetapan: tanggalPenetapan || new Date().toISOString().split('T')[0]
         })
         toast.success("SK Kepala Disetujui!")
@@ -90,8 +90,11 @@ export default function YayasanApprovalPage() {
     if (!selectedId) return
     setIsProcessing(true)
     try {
-        const media = await mediaApi.upload(file, 'sk-final')
-        await headmasterApi.update(selectedId, { sk_url: media.url, status: 'Approved' })
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('folder', 'sk-final')
+        const media = await mediaApi.upload(formData)
+        await headmasterApi.update(selectedId, { sk_url: media.url })
         toast.success("SK Final Berhasil Diunggah")
         setIsUploadModalOpen(false)
         refetch()
@@ -103,54 +106,57 @@ export default function YayasanApprovalPage() {
   }
 
   const handleGenerateSK = async (item: any) => {
-    const loaderId = toast.loading("Menyiapkan Dokumen...")
+    const loaderId = toast.loading("Menyiapkan Dokumen SK Kepala...")
     try {
-        // 1. Fetch Template from Backend
-        const settings = await settingApi.list();
-        const templateKey = 'sk_template_kamad'; // simplified logic
-        const templateBlob = settings.find((s: any) => s.key === templateKey)?.value;
+        // 1. Ambil template aktif untuk kamad
+        const templateRes = await skTemplateApi.getActive('kamad')
+        if (!templateRes?.file_url) throw new Error("Template SK Kamad belum diupload. Silakan upload di menu Pengaturan Template SK.")
 
-        if (!templateBlob) throw new Error("Template SK tidak ditemukan di pengaturan sistem")
+        // 2. Fetch template sebagai binary
+        const resp = await fetch(templateRes.file_url, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
+        })
+        if (!resp.ok) throw new Error("Gagal mengunduh template SK")
+        const arrayBuffer = await resp.arrayBuffer()
 
-        // 2. QR Code
-        const verificationUrl = getSkVerificationUrl(item.id);
-        const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 });
+        // 3. QR Code
+        const verificationUrl = getSkVerificationUrl(item.id)
+        const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
-        // 3. Format dates
+        // 4. Format tanggal
         const tglPenetapan = tanggalPenetapan || new Date().toISOString().split('T')[0]
         const datePenetapan = new Date(tglPenetapan)
-        const formatDateIndo = (dateStr: string) => {
-            if (!dateStr) return "-"
-            const d = new Date(dateStr)
-            const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-        }
-
-        // 4. Build nomor SK with format
-        const bulanRomawi = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
+        const bulanRomawi = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"]
         const bulan = String(datePenetapan.getMonth() + 1).padStart(2, '0')
         const bulanRoma = bulanRomawi[datePenetapan.getMonth()]
         const tahun = datePenetapan.getFullYear()
-        
+
+        const formatDateIndo = (dateStr: string | null | undefined) => {
+            if (!dateStr) return "-"
+            const d = new Date(dateStr)
+            const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+        }
+
+        // 5. Build nomor SK
         let nomorSk = nomorFormat
             .replace(/{NOMOR}/g, nomorStart)
             .replace(/{BULAN}/g, bulan)
             .replace(/{BL_ROMA}/g, bulanRoma)
             .replace(/{TAHUN}/g, String(tahun))
 
-        // 5. Prepare Data - LENGKAP sesuai template
+        // 6. Data untuk template
         const docData = {
             qrcode: qrDataUrl,
-            NAMA: item.teacher?.nama || "",
+            NAMA: item.teacher?.nama || item.teacher_name || "",
             NIP: item.teacher?.nip || "-",
-            "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${item.teacher?.tanggal_lahir ? formatDateIndo(item.teacher.tanggal_lahir) : "-"}`,
+            "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${formatDateIndo(item.teacher?.tanggal_lahir)}`,
             "NOMOR INDUK MA'ARIF": item.teacher?.nomor_induk_maarif || item.teacher?.nuptk || "-",
             PENDIDIKAN: item.teacher?.pendidikan_terakhir || "-",
-            "UNIT KERJA": item.school?.nama || "",
-            TMT: item.teacher?.tmt ? formatDateIndo(item.teacher.tmt) : "-", // TMT GURU (kapan mulai mengajar)
-            "TMT GURU": item.teacher?.tmt ? formatDateIndo(item.teacher.tmt) : "-", // Alias untuk TMT
-            "TANGGAL MULAI TUGAS": item.teacher?.tmt ? formatDateIndo(item.teacher.tmt) : "-", // Alias untuk TMT
-            "TMT KEPALA": formatDateIndo(item.start_date), // TMT sebagai Kepala (jika diperlukan di template lain)
+            "UNIT KERJA": item.school?.nama || item.school_name || "",
+            TMT: formatDateIndo(item.teacher?.tmt),
+            "TMT GURU": formatDateIndo(item.teacher?.tmt),
+            "TMT KEPALA": formatDateIndo(item.start_date),
             JABATAN: "Kepala Madrasah",
             MASA_BHAKTI: `${new Date(item.start_date).getFullYear()} - ${new Date(item.end_date).getFullYear()}`,
             "TANGGAL PENETAPAN": formatDateIndo(tglPenetapan),
@@ -158,25 +164,26 @@ export default function YayasanApprovalPage() {
             BULAN: bulan,
             BL_ROMA: bulanRoma,
             TAHUN: String(tahun),
-            KECAMATAN: item.school?.kecamatan || "Cilacap",
-            "NOMOR SURAT PERMOHONAN": item.surat_permohonan_number || "-",
-            "TANGGAL SURAT PERMOHONAN": item.surat_permohonan_date ? formatDateIndo(item.surat_permohonan_date) : "-",
+            KECAMATAN: item.school?.kecamatan || "-",
             KABUPATEN: "Cilacap",
+            "NOMOR SURAT PERMOHONAN": item.surat_permohonan_number || "-",
+            "TANGGAL SURAT PERMOHONAN": formatDateIndo(item.surat_permohonan_date),
+            "NOMOR SURAT REKOMENDASI": item.nomor_surat_rekomendasi || "-",
+            "TANGGAL SURAT REKOMENDASI": formatDateIndo(item.tanggal_surat_rekomendasi),
             TAHUN_AJARAN: tahunAjaran,
-            PERIODE: item.periode || "-"
+            PERIODE: `Ke-${item.periode}` || "-",
         }
 
-        // 4. Generate DOCX
-        const cleanBase64 = templateBlob.replace(/^data:.*?;base64,/, "");
-        const zip = new PizZip(cleanBase64, { base64: true });
-        
-        // Auto-fix tags for image module
-        const docFile = zip.file("word/document.xml");
+        // 7. Generate DOCX
+        const zip = new PizZip(arrayBuffer)
+
+        // Auto-fix tag QR di document.xml jika perlu
+        const docFile = zip.file("word/document.xml")
         if (docFile) {
-            let content = docFile.asText();
+            let content = docFile.asText()
             if (content.includes("qrcode") && !content.includes("%qrcode")) {
-                content = content.replace(/{qrcode}/g, "{%qrcode}");
-                zip.file("word/document.xml", content);
+                content = content.replace(/{qrcode}/g, "{%qrcode}")
+                zip.file("word/document.xml", content)
             }
         }
 
@@ -184,24 +191,26 @@ export default function YayasanApprovalPage() {
             modules: [new ImageModule({
                 centered: false,
                 getImage: (tagValue: string) => {
-                    const stringBase64 = tagValue.replace(/^data:image\/(png|jpg|svg|svg\+xml);base64,/, "");
-                    const binaryString = window.atob(stringBase64);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-                    return bytes.buffer;
+                    const b64 = tagValue.replace(/^data:image\/(png|jpg|svg|svg\+xml);base64,/, "")
+                    const bin = window.atob(b64)
+                    const bytes = new Uint8Array(bin.length)
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+                    return bytes.buffer
                 },
                 getSize: () => [100, 100]
             })],
             paragraphLoop: true,
             linebreaks: true,
             nullGetter: () => ""
-        });
+        })
 
-        doc.render(docData);
-        const out = doc.getZip().generate({ type: "blob" });
-        saveAs(out, `SK_Kamad_${item.teacher?.nama}.docx`);
-        toast.success("SK Berhasil Dibuat", { id: loaderId })
+        doc.render(docData)
+        const out = doc.getZip().generate({ type: "blob" })
+        const namaFile = `SK_Kamad_${(item.teacher?.nama || item.teacher_name || 'kepala').replace(/\s+/g, '_')}.docx`
+        saveAs(out, namaFile)
+        toast.success("SK Kepala Berhasil Dibuat!", { id: loaderId })
     } catch (e: any) {
+        console.error(e)
         toast.error(e.message || "Gagal membuat SK", { id: loaderId })
     }
   }
@@ -270,19 +279,23 @@ export default function YayasanApprovalPage() {
                                 </TableCell>
                                 <TableCell className="p-8">
                                    <Badge className={cn("rounded-lg text-[9px] font-black uppercase px-3 py-1", 
-                                       item.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' : 
-                                       item.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
-                                   )}>{item.status}</Badge>
+                                       item.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 
+                                       item.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                                   )}>
+                                     {item.status === 'active' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu'}
+                                   </Badge>
                                 </TableCell>
                                 <TableCell className="p-8 text-right">
                                     <div className="flex justify-end gap-2">
-                                        {item.status === 'Pending' && (
+                                        {item.status === 'pending' && (
                                             <>
-                                                <Button size="sm" onClick={() => handleApprove(item.id)} className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest px-6 shadow-lg shadow-emerald-100">Approve</Button>
+                                                <Button size="sm" onClick={() => handleApprove(item.id)} disabled={isProcessing} className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest px-6 shadow-lg shadow-emerald-100">
+                                                    {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve'}
+                                                </Button>
                                                 <Button variant="ghost" size="sm" onClick={() => { setSelectedId(item.id); setRejectReason(""); setIsRejectModalOpen(true)}} className="h-10 rounded-xl text-rose-600 font-black uppercase text-[10px] tracking-widest px-6 hover:bg-rose-50">Reject</Button>
                                             </>
                                         )}
-                                        {item.status === 'Approved' && (
+                                        {item.status === 'active' && (
                                             <Button variant="outline" size="sm" onClick={() => handleGenerateSK(item)} className="h-10 rounded-xl border-slate-200 font-black uppercase text-[10px] tracking-widest px-6 shadow-sm">
                                                 <Download className="w-4 h-4 mr-2 text-blue-500" /> Cetak SK
                                             </Button>

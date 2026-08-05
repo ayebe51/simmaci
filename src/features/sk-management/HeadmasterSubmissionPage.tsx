@@ -115,7 +115,7 @@ export default function HeadmasterSubmissionPage() {
     mutationFn: (data: any) => headmasterApi.list().then(() => apiClient.post('/headmasters', data)), // Fallback post if headmasterApi.create missing
     onSuccess: () => {
       toast.success("Pengajuan Kepala Madrasah Berhasil!")
-      navigate("/dashboard/sk")
+      navigate("/dashboard/approval/yayasan")
     },
     onError: (err: any) => toast.error("Gagal mengajukan: " + (err.response?.data?.message || err.message))
   })
@@ -176,7 +176,7 @@ export default function HeadmasterSubmissionPage() {
 
         await submitHeadmaster(payload)
         toast.success("Pengajuan Kepala Madrasah Berhasil!")
-        navigate("/dashboard/sk")
+        navigate("/dashboard/approval/yayasan")
     } catch (err: any) {
         console.error(err)
         toast.error(err.response?.data?.message || err.message || "Terjadi kesalahan")

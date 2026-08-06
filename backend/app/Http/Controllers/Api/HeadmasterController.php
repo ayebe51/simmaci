@@ -113,7 +113,7 @@ class HeadmasterController extends Controller
             schoolId: $headmasterTenure->school_id,
         );
 
-        $headmasterTenure->delete(); // soft delete via SoftDeletes trait
+        $headmasterTenure->forceDelete(); // Hard delete — tidak perlu restore untuk pengajuan kamad
 
         return response()->json(['message' => 'Pengajuan kepala madrasah berhasil dihapus.']);
     }

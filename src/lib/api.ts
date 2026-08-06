@@ -461,6 +461,7 @@ export const headmasterApi = {
   approve: (id: number, data?: Record<string, any>) => apiClient.post(`/headmasters/${id}/approve`, data ?? {}).then((r) => r.data),
   reject: (id: number, data?: Record<string, any>) => apiClient.post(`/headmasters/${id}/reject`, data ?? {}).then((r) => r.data),
   update: (id: number, data: Record<string, any>) => apiClient.patch(`/headmasters/${id}`, data).then((r) => r.data),
+  delete: (id: number) => apiClient.delete(`/headmasters/${id}`).then((r) => r.data),
 };
 
 // ── Verification API ──

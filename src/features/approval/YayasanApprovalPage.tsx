@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { BadgeCheck, Download, Upload, Loader2, Settings2 } from "lucide-react"
+import { BadgeCheck, Download, Upload, Loader2, Settings2, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { headmasterApi, mediaApi, authApi, skTemplateApi } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
@@ -39,6 +39,8 @@ export default function YayasanApprovalPage() {
   // --- UI STATES ---
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<any>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -54,6 +56,22 @@ export default function YayasanApprovalPage() {
     return m >= 7 ? `${y}/${y + 1}` : `${y - 1}/${y}`
   })
 
+
+  const handleDeleteTenure = async () => {
+    if (!deleteTarget) return
+    setIsProcessing(true)
+    try {
+        await headmasterApi.delete(deleteTarget.id)
+        toast.success(`Pengajuan ${deleteTarget.teacher?.nama || deleteTarget.teacher_name} berhasil dihapus.`)
+        setIsDeleteModalOpen(false)
+        setDeleteTarget(null)
+        refetch()
+    } catch (e: any) {
+        toast.error("Gagal hapus: " + (e.response?.data?.message || e.message))
+    } finally {
+        setIsProcessing(false)
+    }
+  }
 
   const handleApprove = async (id: number) => {
     setIsProcessing(true)
@@ -407,6 +425,17 @@ export default function YayasanApprovalPage() {
                                             </Button>
                                         )}
                                         <Button variant="ghost" size="sm" onClick={() => { setSelectedId(item.id); setIsUploadModalOpen(true)}} className="h-10 rounded-xl text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-100"><Upload className="w-4 h-4" /></Button>
+                                        {user?.role === 'super_admin' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                title="Hapus pengajuan"
+                                                onClick={() => { setDeleteTarget(item); setIsDeleteModalOpen(true) }}
+                                                className="h-10 w-10 rounded-xl text-rose-400 hover:text-rose-600 hover:bg-rose-50"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
@@ -440,8 +469,36 @@ export default function YayasanApprovalPage() {
             </DialogContent>
         </Dialog>
 
-        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-            <DialogContent className="rounded-[2.5rem] p-10 border-0 shadow-2xl">
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteModalOpen} onOpenChange={(v) => { if (!isProcessing) { setIsDeleteModalOpen(v); if (!v) setDeleteTarget(null) } }}>
+            <DialogContent className="rounded-[2.5rem] p-10 border-0 shadow-2xl sm:max-w-md">
+                <DialogHeader className="items-center text-center">
+                    <div className="bg-rose-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4 mx-auto">
+                        <Trash2 className="h-8 w-8 text-rose-500" />
+                    </div>
+                    <DialogTitle className="text-xl font-black uppercase tracking-tight text-rose-600">Hapus Pengajuan?</DialogTitle>
+                    <DialogDescription className="font-bold text-slate-500 text-xs pt-2">
+                        Pengajuan SK Kepala berikut akan dihapus permanen:
+                        <br />
+                        <span className="text-slate-800 font-black">{deleteTarget?.teacher?.nama || deleteTarget?.teacher_name}</span>
+                        <br />
+                        <span className="text-slate-500">{deleteTarget?.school?.nama || deleteTarget?.school_name} — Periode Ke-{deleteTarget?.periode}</span>
+                        <br /><br />
+                        Aktivitas ini tetap tercatat di log. Tindakan tidak dapat dibatalkan.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="mt-6 flex gap-3 sm:justify-center">
+                    <Button variant="outline" onClick={() => { setIsDeleteModalOpen(false); setDeleteTarget(null) }} disabled={isProcessing} className="flex-1 h-12 rounded-2xl font-black uppercase text-xs tracking-widest">
+                        Batal
+                    </Button>
+                    <Button onClick={handleDeleteTenure} disabled={isProcessing} className="flex-1 h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-rose-100">
+                        {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Ya, Hapus'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>            <DialogContent className="rounded-[2.5rem] p-10 border-0 shadow-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-black uppercase tracking-tight italic">Upload SK Final (Manual)</DialogTitle>
                     <DialogDescription className="font-bold text-slate-400 text-[10px] uppercase">Arsip PDF bertanda tangan basah</DialogDescription>

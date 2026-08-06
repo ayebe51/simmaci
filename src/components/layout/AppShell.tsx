@@ -116,7 +116,7 @@ export default function AppShell({ children }: AppShellProps) {
       title: "Manajemen SDM",
       items: [
         { label: "Pengajuan Rekomendasi Kepala", href: "/dashboard/sdm/rekomendasi-kepala/pengajuan", icon: Crown },
-        { label: "Pengajuan SK Kepala", href: "/dashboard/sk/headmaster/new", icon: Crown },
+        { label: "Pengajuan SK Kepala", href: "/dashboard/sdm/sk-kepala/new", icon: Crown },
         { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
         { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
         { label: "Laporan Guru", href: "/dashboard/reports", icon: FileBarChart },
@@ -246,7 +246,14 @@ export default function AppShell({ children }: AppShellProps) {
                   
                   <CollapsibleContent className="space-y-1 pt-1 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
                     {visibleItems.map((item, index) => {
-                      const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard')
+                      // isActive: exact match ATAU starts-with + bukan root dashboard.
+                      // Kecuali: jika ada nav item LAIN yang exact-match pathname (misalnya
+                      // /dashboard/sk/headmaster/new match persis ke item "Pengajuan SK Kepala"),
+                      // maka item saat ini TIDAK boleh dianggap aktif via startsWith.
+                      const allHrefs = navGroups.flatMap(g => g.items.map(i => i.href))
+                      const exactMatchExists = allHrefs.some(h => h === location.pathname)
+                      const isActive = location.pathname === item.href ||
+                        (!exactMatchExists && location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard')
 
                       if ((item as any).external) {
                         return (

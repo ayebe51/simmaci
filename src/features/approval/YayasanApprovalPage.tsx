@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import PizZip from "pizzip"
 import Docxtemplater from "docxtemplater"
 import ImageModule from "docxtemplater-image-module-free"
@@ -27,11 +27,13 @@ import { saveAs } from "file-saver"
 
 export default function YayasanApprovalPage() {
   const user = authApi.getStoredUser()
+  const queryClient = useQueryClient()
   
   // 🔥 REST API QUERY
   const { data: requestsRes, isLoading, refetch } = useQuery({
     queryKey: ['headmaster-approvals'],
-    queryFn: () => headmasterApi.list({ per_page: 100 })
+    queryFn: () => headmasterApi.list({ per_page: 100 }),
+    staleTime: 0, // Selalu fetch fresh — jangan pakai cache
   })
 
   const requests = requestsRes?.data || []
@@ -64,6 +66,8 @@ export default function YayasanApprovalPage() {
         await headmasterApi.delete(deleteTarget.id)
         setIsDeleteModalOpen(false)
         setDeleteTarget(null)
+        // Invalidate dan refetch paksa — buang semua cache headmaster
+        await queryClient.invalidateQueries({ queryKey: ['headmaster-approvals'] })
         await refetch()
         toast.success(`Pengajuan ${deleteTarget.teacher?.nama || deleteTarget.teacher_name} berhasil dihapus.`)
     } catch (e: any) {

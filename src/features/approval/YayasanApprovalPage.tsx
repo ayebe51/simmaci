@@ -150,7 +150,7 @@ export default function YayasanApprovalPage() {
         const verificationUrl = getSkVerificationUrl(item.id)
         const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })
 
-        // 5. Format tanggal
+        // 5. Format tanggal — parse manual YYYY-MM-DD untuk hindari timezone shift
         const tglPenetapan = tanggalPenetapan || new Date().toISOString().split('T')[0]
         const datePenetapan = new Date(tglPenetapan)
         const bulanRomawi = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"]
@@ -158,40 +158,74 @@ export default function YayasanApprovalPage() {
         const bulanRoma = bulanRomawi[datePenetapan.getMonth()]
         const tahun = datePenetapan.getFullYear()
 
+        // Parse tanggal dengan aman (hindari timezone shift untuk format YYYY-MM-DD)
         const formatDateIndo = (dateStr: string | null | undefined) => {
             if (!dateStr) return "-"
-            const d = new Date(dateStr)
             const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+            // Coba parse YYYY-MM-DD langsung (tanpa timezone shift)
+            const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+            if (isoMatch) {
+                const y = parseInt(isoMatch[1])
+                const m = parseInt(isoMatch[2]) - 1
+                const d = parseInt(isoMatch[3])
+                return `${d} ${months[m]} ${y}`
+            }
+            // Fallback untuk format lain
+            const d = new Date(dateStr)
+            if (isNaN(d.getTime())) return "-"
             return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
         }
 
-        // 6. Build nomor SK
-        let nomorSk = nomorFormat
+        // 6. Build nomor SK — NOMOR hanya nomor urut, NOMOR_LENGKAP = full string
+        const nomorSk = nomorFormat
             .replace(/{NOMOR}/g, nomorStart)
             .replace(/{BULAN}/g, bulan)
             .replace(/{BL_ROMA}/g, bulanRoma)
             .replace(/{TAHUN}/g, String(tahun))
+
+        const nim = item.teacher?.nomor_induk_maarif || "-"
+        const nuptk = item.teacher?.nuptk || "-"
+
+        // Tembusan standar SK Kepala Madrasah
+        const tembusan = [
+            "Ketua Pengurus Wilayah LP Ma'arif NU Jawa Tengah",
+            "Ketua Pengurus Cabang NU Cilacap",
+            "Kepala Kantor Kemenag Kabupaten Cilacap",
+            "Kepala Madrasah yang bersangkutan",
+            "Arsip",
+        ].join("\n")
 
         // 7. Data untuk template
         const docData = {
             qrcode: qrDataUrl,
             NAMA: item.teacher?.nama || item.teacher_name || "",
             NIP: item.teacher?.nip || "-",
-            GOLONGAN: item.golongan || "-",
+            GOLONGAN: item.teacher?.golongan || "-",
+            // Tempat, Tanggal Lahir — lengkap
             "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${formatDateIndo(item.teacher?.tanggal_lahir)}`,
-            "NOMOR INDUK MA'ARIF": item.teacher?.nomor_induk_maarif || item.teacher?.nuptk || "-",
+            TEMPAT_LAHIR: item.teacher?.tempat_lahir || "-",
+            TANGGAL_LAHIR: formatDateIndo(item.teacher?.tanggal_lahir),
+            // NIM — semua alias yang mungkin dipakai di template
+            NIM: nim,
+            "NOMOR INDUK MA'ARIF": nim,
+            NOMOR_INDUK_MAARIF: nim,
+            NUPTK: nuptk,
+            // Nomor SK — NOMOR = nomor urut saja, NOMOR_LENGKAP = full string
+            NOMOR: nomorStart,
+            NOMOR_LENGKAP: nomorSk,
+            BULAN: bulan,
+            BL_ROMA: bulanRoma,
+            TAHUN: String(tahun),
+            // Data lain
             PENDIDIKAN: item.teacher?.pendidikan_terakhir || "-",
             "UNIT KERJA": item.school?.nama || item.school_name || "",
+            UNIT_KERJA: item.school?.nama || item.school_name || "",
             TMT: formatDateIndo(item.teacher?.tmt),
             "TMT GURU": formatDateIndo(item.teacher?.tmt),
             "TMT KEPALA": formatDateIndo(item.start_date),
             JABATAN: "Kepala Madrasah",
             MASA_BHAKTI: `${new Date(item.start_date).getFullYear()} - ${new Date(item.end_date).getFullYear()}`,
             "TANGGAL PENETAPAN": formatDateIndo(tglPenetapan),
-            NOMOR: nomorSk,
-            BULAN: bulan,
-            BL_ROMA: bulanRoma,
-            TAHUN: String(tahun),
             KECAMATAN: item.school?.kecamatan || "-",
             KABUPATEN: "Cilacap",
             "NOMOR SURAT PERMOHONAN": item.surat_permohonan_number || "-",
@@ -200,6 +234,13 @@ export default function YayasanApprovalPage() {
             "TANGGAL SURAT REKOMENDASI": formatDateIndo(item.tanggal_surat_rekomendasi),
             TAHUN_AJARAN: tahunAjaran,
             PERIODE: `Ke-${item.periode}` || "-",
+            // Tembusan
+            TEMBUSAN: tembusan,
+            "TEMBUSAN 1": "Ketua Pengurus Wilayah LP Ma'arif NU Jawa Tengah",
+            "TEMBUSAN 2": "Ketua Pengurus Cabang NU Cilacap",
+            "TEMBUSAN 3": "Kepala Kantor Kemenag Kabupaten Cilacap",
+            "TEMBUSAN 4": "Kepala Madrasah yang bersangkutan",
+            "TEMBUSAN 5": "Arsip",
         }
 
         // 8. Generate DOCX

@@ -185,30 +185,37 @@ export default function YayasanApprovalPage() {
 
         const nim = item.teacher?.nomor_induk_maarif || "-"
         const nuptk = item.teacher?.nuptk || "-"
+        const schoolKecamatan = item.school?.kecamatan || "-"
+        const unitKerja = item.school?.nama || item.school_name || ""
 
-        // Tembusan standar SK Kepala Madrasah
-        const tembusan = [
-            "Ketua Pengurus Wilayah LP Ma'arif NU Jawa Tengah",
-            "Ketua Pengurus Cabang NU Cilacap",
-            "Kepala Kantor Kemenag Kabupaten Cilacap",
-            "Kepala Madrasah yang bersangkutan",
-            "Arsip",
-        ].join("\n")
+        // Tembusan standar SK Kepala Madrasah — array untuk mendukung {#tembusan} loop di template
+        const tembusanList = [
+            { nomor: 1, isi: "Ketua Pengurus Wilayah LP Ma'arif NU Jawa Tengah" },
+            { nomor: 2, isi: "Ketua Pengurus Cabang NU Cilacap" },
+            { nomor: 3, isi: "Kepala Kantor Kemenag Kabupaten Cilacap" },
+            { nomor: 4, isi: "Kepala Madrasah yang bersangkutan" },
+            { nomor: 5, isi: "Arsip" },
+        ]
 
         // 7. Data untuk template
         const docData = {
             qrcode: qrDataUrl,
             NAMA: item.teacher?.nama || item.teacher_name || "",
             NIP: item.teacher?.nip || "-",
-            GOLONGAN: item.teacher?.golongan || "-",
+            GOLONGAN: item.teacher?.golongan || item.golongan || "-",
             // Tempat, Tanggal Lahir — lengkap
             "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${formatDateIndo(item.teacher?.tanggal_lahir)}`,
             TEMPAT_LAHIR: item.teacher?.tempat_lahir || "-",
             TANGGAL_LAHIR: formatDateIndo(item.teacher?.tanggal_lahir),
-            // NIM — semua alias yang mungkin dipakai di template
+            // NIM — semua alias yang mungkin dipakai di template (case variants)
             NIM: nim,
+            "NIM": nim,
+            "Nomor Induk Ma'arif": nim,
             "NOMOR INDUK MA'ARIF": nim,
+            "NOMOR INDUK MAARIF": nim,
+            "Nomor Induk Maarif": nim,
             NOMOR_INDUK_MAARIF: nim,
+            "nomor_induk_maarif": nim,
             NUPTK: nuptk,
             // Nomor SK — NOMOR = nomor urut saja, NOMOR_LENGKAP = full string
             NOMOR: nomorStart,
@@ -218,15 +225,17 @@ export default function YayasanApprovalPage() {
             TAHUN: String(tahun),
             // Data lain
             PENDIDIKAN: item.teacher?.pendidikan_terakhir || "-",
-            "UNIT KERJA": item.school?.nama || item.school_name || "",
-            UNIT_KERJA: item.school?.nama || item.school_name || "",
+            "PENDIDIKAN TERAKHIR": item.teacher?.pendidikan_terakhir || "-",
+            "UNIT KERJA": unitKerja,
+            UNIT_KERJA: unitKerja,
             TMT: formatDateIndo(item.teacher?.tmt),
             "TMT GURU": formatDateIndo(item.teacher?.tmt),
             "TMT KEPALA": formatDateIndo(item.start_date),
             JABATAN: "Kepala Madrasah",
             MASA_BHAKTI: `${new Date(item.start_date).getFullYear()} - ${new Date(item.end_date).getFullYear()}`,
             "TANGGAL PENETAPAN": formatDateIndo(tglPenetapan),
-            KECAMATAN: item.school?.kecamatan || "-",
+            "TANGGAL_PENETAPAN": formatDateIndo(tglPenetapan),
+            KECAMATAN: schoolKecamatan,
             KABUPATEN: "Cilacap",
             "NOMOR SURAT PERMOHONAN": item.surat_permohonan_number || "-",
             "TANGGAL SURAT PERMOHONAN": formatDateIndo(item.surat_permohonan_date),
@@ -234,13 +243,16 @@ export default function YayasanApprovalPage() {
             "TANGGAL SURAT REKOMENDASI": formatDateIndo(item.tanggal_surat_rekomendasi),
             TAHUN_AJARAN: tahunAjaran,
             PERIODE: `Ke-${item.periode}` || "-",
-            // Tembusan
-            TEMBUSAN: tembusan,
-            "TEMBUSAN 1": "Ketua Pengurus Wilayah LP Ma'arif NU Jawa Tengah",
-            "TEMBUSAN 2": "Ketua Pengurus Cabang NU Cilacap",
-            "TEMBUSAN 3": "Kepala Kantor Kemenag Kabupaten Cilacap",
-            "TEMBUSAN 4": "Kepala Madrasah yang bersangkutan",
-            "TEMBUSAN 5": "Arsip",
+            // Tembusan — array untuk {#tembusan}{nomor}. {isi}{/tembusan} loop di template
+            tembusan: tembusanList,
+            // Fallback: individual placeholder jika template menggunakan {TEMBUSAN 1} dst
+            "TEMBUSAN 1": tembusanList[0].isi,
+            "TEMBUSAN 2": tembusanList[1].isi,
+            "TEMBUSAN 3": tembusanList[2].isi,
+            "TEMBUSAN 4": tembusanList[3].isi,
+            "TEMBUSAN 5": tembusanList[4].isi,
+            // Fallback satu blok teks (jika template pakai {TEMBUSAN} saja)
+            TEMBUSAN: tembusanList.map(t => `${t.nomor}. ${t.isi}`).join("\n"),
         }
 
         // 8. Generate DOCX
@@ -290,6 +302,12 @@ export default function YayasanApprovalPage() {
 
         const varianLabel = isPlt ? "PLT" : isPns ? "PNS" : "Non-PNS"
         toast.success(`SK Kepala (${varianLabel}) Berhasil Dibuat!`, { id: loaderId })
+
+        // Auto-increment nomorStart untuk cetak berikutnya
+        const currentNum = parseInt(nomorStart, 10)
+        if (!isNaN(currentNum)) {
+            setNomorStart(String(currentNum + 1).padStart(nomorStart.length, '0'))
+        }
     } catch (e: any) {
         console.error(e)
         toast.error(e.message || "Gagal membuat SK", { id: loaderId })

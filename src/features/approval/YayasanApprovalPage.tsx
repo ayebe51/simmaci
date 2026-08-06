@@ -111,9 +111,16 @@ export default function YayasanApprovalPage() {
         // 1. Deteksi varian template Kamad berdasarkan jabatan dan status kepegawaian
         const jabatan = (item.jabatan || item.teacher?.jabatan || "").toLowerCase()
         const nip = (item.teacher?.nip || "").replace(/[^0-9]/g, "")
-        const statusKepegawaian = (item.teacher?.status_kepegawaian || "").toLowerCase()
-        const isPns = nip.length >= 18 || statusKepegawaian.includes("pns") || statusKepegawaian.includes("asn")
+        const statusKepegawaian = (item.teacher?.status_kepegawaian || item.teacher?.status || "").toLowerCase()
+        const golongan = (item.golongan || item.teacher?.golongan || "").trim()
         const isPlt = jabatan.includes("plt")
+
+        // PNS jika: NIP 18 digit, ATAU status mengandung "pns"/"asn", ATAU golongan diisi
+        // (golongan hanya diisi di form pengajuan kamad untuk guru PNS/ASN)
+        const isPns = nip.length >= 18
+            || statusKepegawaian.includes("pns")
+            || statusKepegawaian.includes("asn")
+            || golongan.length > 0
 
         let kamadSkType: string
         if (isPlt) {

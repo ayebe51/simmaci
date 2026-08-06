@@ -144,6 +144,7 @@ use App\Http\Controllers\Api\MeetingReportController;
 use App\Http\Controllers\Api\MeetingMinutesController;
 use App\Http\Controllers\Api\MeetingPhotoController;
 use App\Http\Controllers\Api\PublicMeetingScannerController;
+use App\Http\Controllers\Api\PublicMeetingWalkInController;
 use App\Http\Controllers\Api\CompetitionController;
 use App\Http\Controllers\Api\AnugerahRegistrationController;
 use App\Http\Controllers\Api\PublicEventController;
@@ -555,10 +556,8 @@ Route::prefix('public/jury')->group(function () {
 });
 
 // ── Public Meeting Check-In Routes (No Auth — Route names used for QR URL generation) ──
-// Note: Self-service check-in has been removed. Check-in is only via panitia scanner.
-// These routes exist so that URL::temporarySignedRoute() can generate QR URLs,
-// and so participants can view their QR code on the frontend page.
 Route::prefix('public/meetings')->group(function () {
+    // GET — peserta personal: tampilkan QR code mereka (flow lama tetap berjalan)
     Route::get('{meeting}/check-in', function (\App\Models\Meeting $meeting, \Illuminate\Http\Request $request) {
         $participantId = $request->query('participant');
         $participant = $participantId ? \App\Models\MeetingParticipant::find($participantId) : null;
@@ -584,22 +583,49 @@ Route::prefix('public/meetings')->group(function () {
         ]);
     })->name('public.meetings.check-in.show');
 
+    // GET — walk-in: return info rapat + geolocation settings untuk form
     Route::get('{meeting}/walk-in', function (\App\Models\Meeting $meeting) {
+        // Validasi waktu: QR hanya berlaku H-24 hingga H+48
+        $now = now();
+        $startWindow = $meeting->started_at->copy()->subHours(24);
+        $endWindow   = $meeting->ended_at->copy()->addHours(48);
+
+        if ($now->isBefore($startWindow)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Check-in walk-in dibuka 24 jam sebelum rapat dimulai.',
+            ], 403);
+        }
+
+        if ($now->isAfter($endWindow)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'QR Code rapat sudah tidak berlaku (rapat telah berakhir).',
+            ], 410);
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Tunjukkan QR Code ini ke panitia untuk check-in.',
+            'message' => 'Silakan isi data kehadiran Anda.',
             'data' => [
                 'meeting' => [
-                    'id' => $meeting->id,
-                    'title' => $meeting->title,
-                    'location' => $meeting->location,
-                    'started_at' => $meeting->started_at->format('Y-m-d\TH:i:s'),
-                    'ended_at' => $meeting->ended_at->format('Y-m-d\TH:i:s'),
+                    'id'                       => $meeting->id,
+                    'title'                    => $meeting->title,
+                    'location'                 => $meeting->location,
+                    'started_at'               => $meeting->started_at->format('Y-m-d\TH:i:s'),
+                    'ended_at'                 => $meeting->ended_at->format('Y-m-d\TH:i:s'),
+                    'geolocation_enabled'      => $meeting->geolocation_enabled,
+                    'latitude'                 => $meeting->latitude,
+                    'longitude'                => $meeting->longitude,
+                    'geolocation_radius_meters' => $meeting->geolocation_radius_meters,
                 ],
                 'mode' => 'walk_in',
             ],
         ]);
     })->name('public.meetings.walk-in.show');
+
+    // POST — walk-in: peserta submit form kehadiran sendiri
+    Route::post('{meeting}/walk-in', [\App\Http\Controllers\Api\PublicMeetingWalkInController::class, 'store']);
 });
 
 // ── Emergency Backup & Restore (Temporary Routes) ──

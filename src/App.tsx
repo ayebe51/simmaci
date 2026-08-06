@@ -104,6 +104,7 @@ const MeetingCreatePage = lazy(() => import("./features/meetings/pages/MeetingCr
 const MeetingEditPage = lazy(() => import("./features/meetings/pages/MeetingEditPage"))
 const MeetingDetailPage = lazy(() => import("./features/meetings/MeetingDetailPage").then(m => ({ default: m.MeetingDetailPage })))
 const MeetingCheckInPage = lazy(() => import("./features/meetings/pages/MeetingCheckInPage"))
+const MeetingWalkInPage = lazy(() => import("./features/meetings/pages/MeetingWalkInPage"))
 
 // ── Staff ──────────────────────────────────────────────────────────────────
 const StaffPage = lazy(() => import("./features/staff/StaffPage"))
@@ -171,6 +172,9 @@ export default function App() {
 
             {/* Public Meeting Check-In — accessible without login (signed URL protected) */}
             <Route path="/meetings/:id/check-in" element={<MeetingCheckInPage />} />
+
+            {/* Public Meeting Walk-In — self-service check-in via QR Umum */}
+            <Route path="/meetings/:id/walk-in" element={<MeetingWalkInPage />} />
 
             {/* Public Event Registration — no login required */}
             <Route path="/daftar/:eventId" element={<PublicEventRegistrationPage />} />

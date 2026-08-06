@@ -130,7 +130,8 @@ export interface Meeting {
   latitude: number | null;
   longitude: number | null;
   geolocation_radius_meters: number | null;
-  qr_umum_url: string; // full signed URL for QR_Umum
+  qr_umum_url: string; // full signed URL for QR_Umum — alias of qr_umum_token from backend
+  qr_umum_token: string | null; // raw column name from backend serialization
   schools: School[];
   participants: MeetingParticipant[];
   attendance_stats: AttendanceStats;

@@ -20,9 +20,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   Edit2, ArrowLeft, Pencil, FileText, FileSpreadsheet,
-  MapPin, Clock, Users, CheckCircle2, XCircle, Send,
+  MapPin, Clock, Users, CheckCircle2, XCircle, Send, QrCode, ExternalLink,
 } from 'lucide-react';
 
 const statusColor: Record<string, string> = {
@@ -210,6 +211,46 @@ export const MeetingDetailPage: React.FC = () => {
 
         {/* Attendance Tab */}
         <TabsContent value="attendance" className="space-y-4">
+          {/* QR Umum untuk walk-in — tampilkan jika ada qr_umum_token */}
+          {(meeting?.qr_umum_token || meeting?.qr_umum_url) && (
+            <Card className="border-emerald-200 bg-emerald-50/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2 text-emerald-800">
+                  <QrCode className="h-4 w-4" />
+                  QR Code Absensi Walk-In
+                </CardTitle>
+                <p className="text-xs text-emerald-700">
+                  Tampilkan atau cetak QR ini di lokasi rapat. Peserta yang tidak terdaftar
+                  scan QR ini lalu isi data kehadiran mereka sendiri.
+                </p>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="bg-white p-3 rounded-xl border-2 border-emerald-200 shadow-sm shrink-0">
+                  <QRCodeSVG
+                    value={(meeting.qr_umum_token || meeting.qr_umum_url)!}
+                    size={140}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <div className="space-y-2 text-center sm:text-left">
+                  <p className="text-xs text-slate-600">
+                    Peserta scan QR ini → isi nama, jabatan, instansi, no HP → kehadiran langsung tercatat.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                    onClick={() => window.open((meeting.qr_umum_token || meeting.qr_umum_url)!, '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1.5" />
+                    Buka Link Walk-In
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {meeting && meeting.participants && meeting.participants.length > 0 ? (
             <Card>
               <CardHeader>

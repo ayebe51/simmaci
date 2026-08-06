@@ -354,6 +354,11 @@ class SkDocumentController extends Controller
                 $this->pemberhentianService->onApproved($freshSk, $request->user());
             }
 
+            // Sync profil kepala madrasah ke tabel schools setelah SK Kamad disetujui
+            if ($oldStatus !== $newStatus && $newStatus === 'approved' && $skDocument->school_id) {
+                $this->maybeSyncHeadmasterProfile($skDocument->fresh()->load('teacher'));
+            }
+
             // Invalidate dashboard cache when SK status changes
             if ($oldStatus !== $skDocument->status && $skDocument->school_id) {
                 $this->dashboardCacheService->invalidateForSchool($skDocument->school_id);
@@ -600,6 +605,11 @@ class SkDocumentController extends Controller
                     // Trigger deaktivasi guru untuk SK Pemberhentian yang disetujui
                     if ($isApproved && $oldStatus !== $newStatus && $sk->jenis_sk === 'SK Pemberhentian') {
                         $this->pemberhentianService->onApproved($sk, $user);
+                    }
+
+                    // Sync profil kepala madrasah ke tabel schools setelah SK Kamad disetujui
+                    if ($isApproved && $oldStatus !== $newStatus && $sk->school_id) {
+                        $this->maybeSyncHeadmasterProfile($sk);
                     }
 
                     $succeeded[] = $sk->id;
@@ -1764,6 +1774,57 @@ class SkDocumentController extends Controller
         $isPnsByStatus = (bool) preg_match('/^(pns|asn)\b/', $status);
 
         return $isPnsByStatus || strlen($nip) === 18;
+    }
+
+    /**
+     * Jika SK yang baru disetujui adalah SK Kepala Madrasah (jenis_sk mengandung 'kamad'),
+     * update otomatis profil kepala madrasah di tabel schools:
+     *   - kepala_madrasah        ← nama guru dari SK
+     *   - kepala_nim             ← nomor_induk_maarif guru (jika ada)
+     *   - kepala_nuptk           ← nuptk guru (jika ada)
+     *   - kepala_jabatan_mulai   ← tanggal_penetapan SK
+     *   - kepala_jabatan_selesai ← tanggal_penetapan + 4 tahun
+     */
+    private function maybeSyncHeadmasterProfile(\App\Models\SkDocument $sk): void
+    {
+        // Hanya untuk SK Kamad (semua varian: kamad_nonpns, kamad_pns, kamad_plt, dll.)
+        if (!str_contains(strtolower($sk->jenis_sk ?? ''), 'kamad')) {
+            return;
+        }
+
+        if (!$sk->school_id || !$sk->tanggal_penetapan) {
+            return;
+        }
+
+        $school = \App\Models\School::find($sk->school_id);
+        if (!$school) {
+            return;
+        }
+
+        // Hitung jabatan_selesai = tanggal_penetapan + 4 tahun
+        try {
+            $mulai   = \Carbon\Carbon::parse($sk->tanggal_penetapan);
+            $selesai = $mulai->copy()->addYears(4);
+        } catch (\Throwable) {
+            return;
+        }
+
+        // Ambil NIM dan NUPTK dari relasi teacher jika tersedia
+        $teacher = $sk->relationLoaded('teacher') ? $sk->teacher : \App\Models\Teacher::find($sk->teacher_id);
+
+        $school->update([
+            'kepala_madrasah'        => $sk->nama,
+            'kepala_nim'             => ($teacher?->nomor_induk_maarif) ?: $school->kepala_nim,
+            'kepala_nuptk'           => ($teacher?->nuptk) ?: $school->kepala_nuptk,
+            'kepala_jabatan_mulai'   => $mulai->toDateString(),
+            'kepala_jabatan_selesai' => $selesai->toDateString(),
+        ]);
+
+        \Log::info("Headmaster profile synced for school #{$sk->school_id} from SK #{$sk->id}", [
+            'nama'            => $sk->nama,
+            'jabatan_mulai'   => $mulai->toDateString(),
+            'jabatan_selesai' => $selesai->toDateString(),
+        ]);
     }
 
     /**

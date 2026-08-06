@@ -58,14 +58,14 @@ export default function YayasanApprovalPage() {
 
 
   const handleDeleteTenure = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || isProcessing) return
     setIsProcessing(true)
     try {
         await headmasterApi.delete(deleteTarget.id)
-        toast.success(`Pengajuan ${deleteTarget.teacher?.nama || deleteTarget.teacher_name} berhasil dihapus.`)
         setIsDeleteModalOpen(false)
         setDeleteTarget(null)
-        refetch()
+        await refetch()
+        toast.success(`Pengajuan ${deleteTarget.teacher?.nama || deleteTarget.teacher_name} berhasil dihapus.`)
     } catch (e: any) {
         toast.error("Gagal hapus: " + (e.response?.data?.message || e.message))
     } finally {

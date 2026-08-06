@@ -13,7 +13,8 @@ class HeadmasterController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = HeadmasterTenure::with(['teacher', 'school']);
+        $query = HeadmasterTenure::with(['teacher', 'school'])
+            ->whereNull('deleted_at'); // Explicit filter — safety net di atas SoftDeletes global scope
 
         if ($request->status) {
             $query->byStatus($request->status);

@@ -322,24 +322,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Headmasters — route statis HARUS sebelum apiResource agar tidak bentrok dengan {headmaster} parameter
         Route::get('headmasters/expiring',                    [HeadmasterController::class, 'expiring']);
-        Route::get('headmasters/debug-khusnul',               function() {
-            // Endpoint debug sementara — cek semua record termasuk yang sudah deleted
-            $records = \App\Models\HeadmasterTenure::withoutTenantScope()
-                ->withTrashed()
-                ->where('teacher_name', 'like', '%KHUSNUL%')
-                ->orWhere('teacher_name', 'like', '%Khusnul%')
-                ->get(['id', 'teacher_name', 'school_name', 'status', 'deleted_at', 'created_at']);
-            return response()->json($records);
-        });
-        Route::delete('headmasters/purge-khusnul',             function() {
-            // Endpoint debug sementara — hard delete SEMUA record khusnul
-            $deleted = \App\Models\HeadmasterTenure::withoutTenantScope()
-                ->withTrashed()
-                ->where('teacher_name', 'like', '%KHUSNUL%')
-                ->orWhere('teacher_name', 'like', '%Khusnul%')
-                ->forceDelete();
-            return response()->json(['deleted' => $deleted]);
-        });
         Route::post('headmasters/{headmasterTenure}/approve', [HeadmasterController::class, 'approve']);
         Route::post('headmasters/{headmasterTenure}/reject',  [HeadmasterController::class, 'reject']);
         Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store', 'update', 'destroy']);

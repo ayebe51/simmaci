@@ -95,6 +95,28 @@ class HeadmasterController extends Controller
         return response()->json($headmasterTenure->fresh());
     }
 
+    public function destroy(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
+    {
+        // Hanya super_admin yang boleh hapus
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['message' => 'Hanya super admin yang dapat menghapus pengajuan kepala madrasah.'], 403);
+        }
+
+        $info = "Pengajuan Kepala: {$headmasterTenure->teacher_name} — {$headmasterTenure->school_name} (Periode {$headmasterTenure->periode})";
+
+        \App\Models\ActivityLog::log(
+            description: "Hapus pengajuan SK Kepala: {$info}",
+            event: 'delete_headmaster_tenure',
+            logName: 'headmaster',
+            causer: $request->user(),
+            schoolId: $headmasterTenure->school_id,
+        );
+
+        $headmasterTenure->delete(); // soft delete via SoftDeletes trait
+
+        return response()->json(['message' => 'Pengajuan kepala madrasah berhasil dihapus.']);
+    }
+
     public function expiring(Request $request): JsonResponse
     {
         $limit = strtotime('+180 days'); // 6 bulan sebelum berakhir

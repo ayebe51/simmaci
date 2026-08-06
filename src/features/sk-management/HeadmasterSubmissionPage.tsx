@@ -356,23 +356,23 @@ export default function HeadmasterSubmissionPage() {
                  </div>
             </div>
 
-            {/* Field Golongan — hanya muncul jika guru yang dipilih terdeteksi PNS */}
-            {isPnsTeacher && (
-              <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
+            {/* Field Golongan — selalu tampil, wajib diisi jika PNS */}
+            <div className="space-y-3 rounded-2xl border border-blue-100 bg-blue-50/50 p-5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">
                     🏛️ PNS / ASN
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">Guru ini terdeteksi sebagai PNS. Isi golongan untuk dokumen SK.</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Isi golongan jika guru berstatus PNS/ASN. Kosongkan jika bukan PNS.</span>
                 </div>
                 <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                  Golongan / Ruang <span className="text-red-400">*</span>
+                  Golongan / Ruang <span className="text-slate-300">(opsional, untuk PNS)</span>
                 </Label>
-                <Select onValueChange={(val) => form.setValue("golongan", val)} value={form.watch("golongan") || ""}>
+                <Select onValueChange={(val) => form.setValue("golongan", val === "_none" ? "" : val)} value={form.watch("golongan") || ""}>
                   <SelectTrigger className="h-12 rounded-xl border-blue-200 bg-white font-bold">
-                    <SelectValue placeholder="Pilih Golongan..." />
+                    <SelectValue placeholder="Pilih Golongan (jika PNS)..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="_none">— Bukan PNS / Kosongkan —</SelectItem>
                     <SelectItem value="II/a">II/a</SelectItem>
                     <SelectItem value="II/b">II/b</SelectItem>
                     <SelectItem value="II/c">II/c</SelectItem>
@@ -389,10 +389,9 @@ export default function HeadmasterSubmissionPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-blue-500 font-medium">
-                  Golongan akan dicetak pada dokumen SK Kepala Madrasah PNS.
+                  Golongan yang diisi akan menentukan template SK yang digunakan (PNS atau Non-PNS) dan tercetak di dokumen SK.
                 </p>
               </div>
-            )}
 
             <div className="grid gap-6 md:grid-cols-2">
                  <div className="space-y-3">

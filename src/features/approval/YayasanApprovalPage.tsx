@@ -277,6 +277,17 @@ export default function YayasanApprovalPage() {
         const out = doc.getZip().generate({ type: "blob" })
         const namaFile = `SK_Kamad_${(item.teacher?.nama || item.teacher_name || 'kepala').replace(/\s+/g, '_')}.docx`
         saveAs(out, namaFile)
+
+        // Simpan nomor_sk dan tanggal_penetapan ke database untuk tracking masa jabatan
+        try {
+            await headmasterApi.update(item.id, {
+                nomor_sk: nomorSk,
+                tanggal_penetapan: tglPenetapan,
+            })
+        } catch (_) {
+            // tidak blokir proses cetak jika update gagal
+        }
+
         const varianLabel = isPlt ? "PLT" : isPns ? "PNS" : "Non-PNS"
         toast.success(`SK Kepala (${varianLabel}) Berhasil Dibuat!`, { id: loaderId })
     } catch (e: any) {

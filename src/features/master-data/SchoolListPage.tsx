@@ -146,54 +146,132 @@ export default function SchoolListPage() {
         return
       }
 
-      const wb = XLSX.utils.book_new()
+      // ── Header definitions ──────────────────────────────────────────
+      // Sheet "Semua Lembaga" — termasuk kolom Kecamatan
+      const HEADERS_ALL = [
+        'No', 'Kecamatan', 'Nama Sekolah', 'NSM', 'NPSN', 'NPSM-NU',
+        'Kepala Madrasah', 'No. HP', 'Akreditasi', 'Status',
+        'Alamat', 'Email',
+      ]
+      const COL_WIDTHS_ALL = [
+        { wch: 5 },   // No
+        { wch: 18 },  // Kecamatan
+        { wch: 35 },  // Nama Sekolah
+        { wch: 18 },  // NSM
+        { wch: 12 },  // NPSN
+        { wch: 14 },  // NPSM-NU
+        { wch: 30 },  // Kepala Madrasah
+        { wch: 16 },  // No. HP
+        { wch: 12 },  // Akreditasi
+        { wch: 18 },  // Status
+        { wch: 40 },  // Alamat
+        { wch: 28 },  // Email
+      ]
 
-      // Sheet 1: Semua data
-      const allRows = allSchools.map((s: any, i: number) => ({
-        No: i + 1,
-        NSM: s.nsm || '',
-        NPSN: s.npsn || '',
-        'NPSM-NU': s.npsm_nu || '',
-        'Nama Sekolah': s.nama,
-        Kecamatan: s.kecamatan || '',
-        'Kepala Madrasah': s.kepala_madrasah || '',
-        Akreditasi: s.akreditasi || '',
-        Status: s.status_jamiyyah || '',
-        Alamat: s.alamat || '',
-        Email: s.email || '',
-        Telepon: s.telepon || '',
-      }))
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allRows), 'Semua Lembaga')
+      // Sheet per kecamatan — tanpa kolom Kecamatan
+      const HEADERS_KEC = [
+        'No', 'Nama Sekolah', 'NSM', 'NPSN', 'NPSM-NU',
+        'Kepala Madrasah', 'No. HP', 'Akreditasi', 'Status',
+        'Alamat', 'Email',
+      ]
+      const COL_WIDTHS_KEC = [
+        { wch: 5 },   // No
+        { wch: 35 },  // Nama Sekolah
+        { wch: 18 },  // NSM
+        { wch: 12 },  // NPSN
+        { wch: 14 },  // NPSM-NU
+        { wch: 30 },  // Kepala Madrasah
+        { wch: 16 },  // No. HP
+        { wch: 12 },  // Akreditasi
+        { wch: 18 },  // Status
+        { wch: 40 },  // Alamat
+        { wch: 28 },  // Email
+      ]
 
-      // Sheet per kecamatan
-      const byKecamatan: Record<string, any[]> = {}
-      allSchools.forEach((s: any) => {
-        const kec = s.kecamatan || 'Tidak Diketahui'
-        if (!byKecamatan[kec]) byKecamatan[kec] = []
-        byKecamatan[kec].push(s)
-      })
+      const borderStyle = {
+        top:    { style: 'thin', color: { rgb: 'BFBFBF' } },
+        bottom: { style: 'thin', color: { rgb: 'BFBFBF' } },
+        left:   { style: 'thin', color: { rgb: 'BFBFBF' } },
+        right:  { style: 'thin', color: { rgb: 'BFBFBF' } },
+      }
+      const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c })
 
-      Object.entries(byKecamatan)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .forEach(([kecamatan, schools]) => {
-          const rows = schools.map((s: any, i: number) => ({
-            No: i + 1,
-            NSM: s.nsm || '',
-            NPSN: s.npsn || '',
-            'Nama Sekolah': s.nama,
-            'Kepala Madrasah': s.kepala_madrasah || '',
-            Akreditasi: s.akreditasi || '',
-            Status: s.status_jamiyyah || '',
-            Alamat: s.alamat || '',
-            Telepon: s.telepon || '',
-          }))
-          // Sheet name max 31 chars, strip invalid chars
-          const sheetName = kecamatan.slice(0, 31).replace(/[:\\/?*\[\]]/g, '')
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetName)
+      // ── Build one worksheet ──────────────────────────────────────────
+      const buildSheet = (schools: any[], headers: string[], colWidths: any[], includeKecamatan: boolean) => {
+        const sorted = [...schools].sort((a, b) => {
+          if (includeKecamatan) {
+            const kecCmp = (a.kecamatan || '').localeCompare(b.kecamatan || '', 'id')
+            if (kecCmp !== 0) return kecCmp
+          }
+          return (a.nama || '').localeCompare(b.nama || '', 'id')
         })
 
+        const wsData: any[][] = [headers]
+        sorted.forEach((s, i) => {
+          const base = [
+            s.nsm || '',
+            s.npsn || '',
+            s.npsm_nu || '',
+            s.kepala_madrasah || '',
+            s.telepon || '',
+            s.akreditasi || '',
+            s.status_jamiyyah || '',
+            s.alamat || '',
+            s.email || '',
+          ]
+          const row = includeKecamatan
+            ? [i + 1, s.kecamatan || '', s.nama || '', ...base]
+            : [i + 1, s.nama || '', ...base]
+          wsData.push(row)
+        })
+
+        const ws = XLSX.utils.aoa_to_sheet(wsData)
+        ws['!cols'] = colWidths
+        const numCols = headers.length
+
+        for (let r = 0; r < wsData.length; r++) {
+          for (let c = 0; c < numCols; c++) {
+            const cellRef = enc(r, c)
+            if (!ws[cellRef]) ws[cellRef] = { t: 'z', v: '' }
+            ws[cellRef].s = {
+              border: borderStyle,
+              alignment: {
+                vertical: 'center',
+                wrapText: c === (includeKecamatan ? 11 : 10), // wrap Alamat & Email
+                horizontal: c === 0 ? 'center' : 'left',
+              },
+              ...(r === 0 ? {
+                font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+                fill: { fgColor: { rgb: '1F7A4D' } }, // same green as teacher export
+              } : {
+                font: { sz: 10 },
+                fill: { fgColor: { rgb: r % 2 !== 0 ? 'FFFFFF' : 'EEF4FF' } },
+              }),
+            }
+          }
+        }
+        return ws
+      }
+
+      // ── Group by kecamatan ───────────────────────────────────────────
+      const grouped = new Map<string, any[]>()
+      for (const s of allSchools) {
+        const kec = s.kecamatan || '(Tidak Diketahui)'
+        if (!grouped.has(kec)) grouped.set(kec, [])
+        grouped.get(kec)!.push(s)
+      }
+      const sortedKecamatan = [...grouped.keys()].sort((a, b) => a.localeCompare(b, 'id'))
+
+      // ── Build workbook ───────────────────────────────────────────────
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, buildSheet(allSchools, HEADERS_ALL, COL_WIDTHS_ALL, true), 'Semua Lembaga')
+      for (const kec of sortedKecamatan) {
+        const sheetName = kec.replace(/[:\\/?*[\]]/g, '').slice(0, 31)
+        XLSX.utils.book_append_sheet(wb, buildSheet(grouped.get(kec)!, HEADERS_KEC, COL_WIDTHS_KEC, false), sheetName)
+      }
+
       XLSX.writeFile(wb, `Data_Lembaga_${new Date().toISOString().slice(0, 10)}.xlsx`)
-      toast.success(`Berhasil export ${allSchools.length} data lembaga dalam ${Object.keys(byKecamatan).length} kecamatan!`)
+      toast.success(`Berhasil export ${allSchools.length} lembaga dalam ${sortedKecamatan.length} kecamatan!`)
     } catch (e: any) {
       toast.error('Gagal export: ' + (e.response?.data?.message || e.message))
     } finally {

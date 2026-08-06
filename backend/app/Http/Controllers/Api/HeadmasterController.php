@@ -83,10 +83,11 @@ class HeadmasterController extends Controller
     public function update(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
     {
         $data = $request->validate([
-            'status'   => 'sometimes|string',
-            'nomor_sk' => 'sometimes|nullable|string',
-            'sk_url'   => 'sometimes|nullable|string',
-            'keterangan' => 'sometimes|nullable|string',
+            'status'             => 'sometimes|string',
+            'nomor_sk'           => 'sometimes|nullable|string',
+            'tanggal_penetapan'  => 'sometimes|nullable|date',
+            'sk_url'             => 'sometimes|nullable|string',
+            'keterangan'         => 'sometimes|nullable|string',
         ]);
 
         $headmasterTenure->update($data);
@@ -99,18 +100,31 @@ class HeadmasterController extends Controller
         $limit = strtotime('+180 days'); // 6 bulan sebelum berakhir
         $user = $request->user();
 
-        // 1. Data from formal tenures (SK)
+        // 1. Data from formal tenures (SK yang sudah disetujui)
         $tenureQuery = HeadmasterTenure::where('status', 'active')->with(['teacher', 'school']);
         if ($user->isOperator()) {
             $tenureQuery->where('school_id', $user->school_id);
         }
 
-        $tenures = $tenureQuery->get()->filter(function ($t) {
-            $end = strtotime($t->end_date);
-            return $end && $end <= strtotime('+180 days'); // 6 bulan
+        $tenures = $tenureQuery->get()->filter(function ($t) use ($limit) {
+            // Prioritas: end_date dari record, fallback: tanggal_penetapan + 4 tahun
+            $endStr = $t->end_date;
+            if (!$endStr && $t->tanggal_penetapan) {
+                $endStr = date('Y-m-d', strtotime($t->tanggal_penetapan . ' +4 years'));
+            }
+            $end = strtotime($endStr);
+            return $end && $end <= $limit;
+        })->map(function ($t) {
+            // Hitung end_date efektif
+            $endDate = $t->end_date;
+            if (!$endDate && $t->tanggal_penetapan) {
+                $endDate = date('Y-m-d', strtotime($t->tanggal_penetapan . ' +4 years'));
+            }
+            $t->end_date_effective = $endDate;
+            return $t;
         });
 
-        // 2. Data from School Profiles (Manual detect)
+        // 2. Data from School Profiles (legacy — data lama sebelum pakai SK digital)
         $schoolQuery = School::whereNotNull('kepala_jabatan_selesai');
         if ($user->isOperator()) {
             $schoolQuery->where('id', $user->school_id);
@@ -127,12 +141,20 @@ class HeadmasterController extends Controller
                 'periode' => 'Masa Jabatan Aktif',
                 'start_date' => $s->kepala_jabatan_mulai,
                 'end_date' => $s->kepala_jabatan_selesai,
+                'end_date_effective' => $s->kepala_jabatan_selesai,
+                'tanggal_penetapan' => null,
                 'status' => 'active',
-                'source' => 'profile'
+                'source' => 'profile',
             ];
         });
 
-        $combined = collect($tenures)->merge($schoolStats)->sortBy(fn($t) => is_array($t) ? strtotime($t['end_date']) : strtotime($t->end_date))->values();
+        $getEnd = fn($t) => is_array($t)
+            ? strtotime($t['end_date_effective'] ?? $t['end_date'])
+            : strtotime($t->end_date_effective ?? $t->end_date ?? '');
+
+        $combined = collect($tenures)->merge($schoolStats)
+            ->sortBy($getEnd)
+            ->values();
 
         return response()->json($combined);
     }

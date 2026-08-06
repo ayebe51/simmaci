@@ -462,13 +462,35 @@ class SchoolController extends Controller
         foreach ($schools as $school) {
             $nsm = $school->nsm ? strtolower(trim($school->nsm)) : null;
             $email = $nsm ? "{$nsm}@simmaci.com" : ('school' . $school->id . '@simmaci.com');
+            $passwordPlain = $school->nsm ?: ('school' . $school->id);
 
-            if (\App\Models\User::where('email', $email)->exists()) {
-                $skipped++;
+            // Cek berdasarkan school_id (bukan email) agar tidak duplikat
+            // meski NSM sekolah berubah setelah akun dibuat
+            $existingUser = \App\Models\User::where('school_id', $school->id)
+                ->where('role', 'operator')
+                ->first();
+
+            if ($existingUser) {
+                // Sinkronkan email & password jika NSM berubah
+                if ($existingUser->email !== $email) {
+                    $existingUser->update([
+                        'name'     => $school->nama,
+                        'email'    => $email,
+                        'password' => $passwordPlain,
+                    ]);
+
+                    $accounts[] = [
+                        'school_id'      => $school->id,
+                        'nama'           => $school->nama,
+                        'email'          => $email,
+                        'password_plain' => $passwordPlain,
+                        'updated'        => true,
+                    ];
+                } else {
+                    $skipped++;
+                }
                 continue;
             }
-
-            $passwordPlain = $school->nsm ?: ('school' . $school->id);
 
             \App\Models\User::create([
                 'name'      => $school->nama,

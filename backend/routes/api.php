@@ -319,11 +319,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('sk-documents', SkDocumentController::class)
             ->middleware('slow_queries');
 
-        // Headmasters
-        Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store', 'update']);
+        // Headmasters — route statis HARUS sebelum apiResource agar tidak bentrok dengan {headmaster} parameter
+        Route::get('headmasters/expiring',                    [HeadmasterController::class, 'expiring']);
         Route::post('headmasters/{headmasterTenure}/approve', [HeadmasterController::class, 'approve']);
         Route::post('headmasters/{headmasterTenure}/reject',  [HeadmasterController::class, 'reject']);
-        Route::get('headmasters/expiring',                    [HeadmasterController::class, 'expiring']);
+        Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store', 'update']);
 
         // NUPTK Submissions
         Route::apiResource('nuptk-submissions', NuptkSubmissionController::class)->only(['index', 'store']);

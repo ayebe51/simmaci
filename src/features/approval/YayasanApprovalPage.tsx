@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { BadgeCheck, Download, Upload, Loader2, Settings2, Trash2 } from "lucide-react"
 import { useState } from "react"
-import { headmasterApi, mediaApi, authApi, skTemplateApi } from "@/lib/api"
+import { headmasterApi, mediaApi, authApi, skTemplateApi, schoolApi } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
 import { toast } from "sonner"
 import QRCode from "qrcode"
@@ -331,7 +331,7 @@ export default function YayasanApprovalPage() {
         const namaFile = `SK_Kamad_${(item.teacher?.nama || item.teacher_name || 'kepala').replace(/\s+/g, '_')}.docx`
         saveAs(out, namaFile)
 
-        // Simpan nomor_sk dan tanggal_penetapan ke database untuk tracking masa jabatan
+        // Simpan nomor_sk dan tanggal_penetapan ke headmaster_tenures untuk tracking masa jabatan
         try {
             await headmasterApi.update(item.id, {
                 nomor_sk: nomorSk,
@@ -339,6 +339,22 @@ export default function YayasanApprovalPage() {
             })
         } catch (_) {
             // tidak blokir proses cetak jika update gagal
+        }
+
+        // Sinkronisasi ke profil sekolah — isi jabatan mulai/selesai otomatis dari data SK
+        try {
+            const schoolId = item.school_id ?? item.school?.id
+            if (schoolId) {
+                await schoolApi.update(schoolId, {
+                    kepala_madrasah: item.teacher?.nama || item.teacher_name || undefined,
+                    kepala_nim: item.teacher?.nomor_induk_maarif || undefined,
+                    kepala_nuptk: item.teacher?.nuptk || undefined,
+                    kepala_jabatan_mulai: item.start_date || tglPenetapan,
+                    kepala_jabatan_selesai: item.end_date || undefined,
+                })
+            }
+        } catch (_) {
+            // tidak blokir proses cetak jika sinkronisasi profil gagal
         }
 
         const varianLabel = isPlt ? "PLT" : isPns ? "PNS" : "Non-PNS"

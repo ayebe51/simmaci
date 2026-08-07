@@ -48,17 +48,33 @@ export default function YayasanApprovalPage() {
   const [rejectReason, setRejectReason] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // --- SK SETTINGS ---
-  const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/{BULAN}/{TAHUN}")
-  const [nomorStart, setNomorStart] = useState("0001")
-  const [tanggalPenetapan, setTanggalPenetapan] = useState("")
-  const [jenisKepala, setJenisKepala] = useState<"auto" | "nonpns" | "pns" | "plt">("auto")
+  // --- SK SETTINGS — persisten di localStorage ---
+  const [nomorFormat, setNomorFormat] = useState(() =>
+    localStorage.getItem('kamad_nomor_format') || "{NOMOR}/PC.L/A.II/H-34.B/{BULAN}/{TAHUN}"
+  )
+  const [nomorStart, setNomorStart] = useState(() =>
+    localStorage.getItem('kamad_nomor_start') || "0001"
+  )
+  const [tanggalPenetapan, setTanggalPenetapan] = useState(() =>
+    localStorage.getItem('kamad_tanggal_penetapan') || ""
+  )
+  const [jenisKepala, setJenisKepala] = useState<"auto" | "nonpns" | "pns" | "plt">(() =>
+    (localStorage.getItem('kamad_jenis_kepala') as any) || "auto"
+  )
   const [tahunAjaran, setTahunAjaran] = useState(() => {
+    if (localStorage.getItem('kamad_tahun_ajaran')) return localStorage.getItem('kamad_tahun_ajaran')!
     const now = new Date()
     const y = now.getFullYear()
     const m = now.getMonth() + 1
     return m >= 7 ? `${y}/${y + 1}` : `${y - 1}/${y}`
   })
+
+  // Simpan ke localStorage setiap kali berubah
+  const updateNomorFormat = (v: string) => { setNomorFormat(v); localStorage.setItem('kamad_nomor_format', v) }
+  const updateNomorStart  = (v: string) => { setNomorStart(v);  localStorage.setItem('kamad_nomor_start', v) }
+  const updateTanggal     = (v: string) => { setTanggalPenetapan(v); localStorage.setItem('kamad_tanggal_penetapan', v) }
+  const updateJenisKepala = (v: string) => { setJenisKepala(v as any); localStorage.setItem('kamad_jenis_kepala', v) }
+  const updateTahunAjaran = (v: string) => { setTahunAjaran(v); localStorage.setItem('kamad_tahun_ajaran', v) }
 
 
   const handleDeleteTenure = async () => {
@@ -132,15 +148,26 @@ export default function YayasanApprovalPage() {
   const handleGenerateSK = async (item: any) => {
     const loaderId = toast.loading("Menyiapkan Dokumen SK Kepala...")
     try {
+        // 0. Fetch data guru terbaru dulu — dipakai untuk deteksi PNS dan pengisian template
+        let teacherData: any = item.teacher || {}
+        if (item.teacher_id) {
+            try {
+                const { teacherApi } = await import("@/lib/api")
+                const freshTeacher = await teacherApi.get(item.teacher_id)
+                if (freshTeacher?.id) teacherData = freshTeacher
+            } catch (_) { /* fallback ke data relasi */ }
+        }
+
         // 1. Deteksi varian template Kamad berdasarkan jabatan dan status kepegawaian
-        const jabatan = (item.jabatan || item.teacher?.jabatan || "").toLowerCase()
-        const nip = (item.teacher?.nip || "").replace(/[^0-9]/g, "")
-        const statusKepegawaian = (item.teacher?.status_kepegawaian || item.teacher?.status || "").toLowerCase()
-        const golongan = (item.golongan || item.teacher?.golongan || "").trim()
+        const jabatan = (item.jabatan || teacherData?.jabatan || "").toLowerCase()
+        const nip = (teacherData?.nip || item.teacher?.nip || "").replace(/[^0-9]/g, "")
+        const statusKepegawaian = (teacherData?.status || item.teacher?.status || "").toLowerCase()
+        const golongan = (item.golongan || teacherData?.golongan || "").trim()
+
         const isPlt = jenisKepala === "plt"
             || (jenisKepala === "auto" && jabatan.includes("plt"))
 
-        // PNS jika override manual, atau deteksi otomatis
+        // PNS jika override manual, atau deteksi otomatis dari data guru fresh
         const isPns = jenisKepala === "pns"
             || (jenisKepala === "auto" && (
                 nip.length >= 18
@@ -217,16 +244,7 @@ export default function YayasanApprovalPage() {
             .replace(/{BL_ROMA}/g, bulanRoma)
             .replace(/{TAHUN}/g, String(tahun))
 
-        // Fetch data guru terbaru langsung dari API untuk memastikan NIM/NUPTK terkini
-        let teacherData = item.teacher || {}
-        if (item.teacher_id) {
-            try {
-                const { teacherApi } = await import("@/lib/api")
-                const freshTeacher = await teacherApi.get(item.teacher_id)
-                if (freshTeacher?.id) teacherData = freshTeacher
-            } catch (_) { /* fallback ke data relasi */ }
-        }
-
+        // Fetch data guru terbaru sudah dilakukan di awal fungsi (step 0)
         const nim = teacherData?.nomor_induk_maarif || item.teacher?.nomor_induk_maarif || ""
         const nuptk = teacherData?.nuptk || item.teacher?.nuptk || ""
         const schoolKecamatan = item.school?.kecamatan || "-"
@@ -254,7 +272,6 @@ export default function YayasanApprovalPage() {
             TANGGAL_LAHIR: formatDateIndo(teacherData?.tanggal_lahir || item.teacher?.tanggal_lahir),
             // NIM — semua alias termasuk Unicode right single quote (U+2019) yang dipakai template
             NIM: nim,
-            "NIM": nim,
             "Nomor Induk Ma\u2019arif": nim,
             "NOMOR INDUK MA\u2019ARIF": nim,   // ← ini yang ada di template .docx (U+2019)
             "Nomor Induk Ma'arif": nim,         // apostrof biasa fallback
@@ -367,10 +384,10 @@ export default function YayasanApprovalPage() {
         const varianLabel = isPlt ? "PLT" : isPns ? "PNS" : "Non-PNS"
         toast.success(`SK Kepala (${varianLabel}) Berhasil Dibuat!`, { id: loaderId })
 
-        // Auto-increment nomorStart untuk cetak berikutnya
+        // Auto-increment nomorStart untuk cetak berikutnya — simpan ke localStorage
         const currentNum = parseInt(nomorStart, 10)
         if (!isNaN(currentNum)) {
-            setNomorStart(String(currentNum + 1).padStart(nomorStart.length, '0'))
+            updateNomorStart(String(currentNum + 1).padStart(nomorStart.length, '0'))
         }
     } catch (e: any) {
         console.error(e)
@@ -398,21 +415,21 @@ export default function YayasanApprovalPage() {
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Penomoran Otomatis</Label>
                     <div className="flex gap-2">
-                        <Input value={nomorStart} onChange={e => setNomorStart(e.target.value)} className="w-24 h-12 rounded-xl font-black text-center border-slate-200" />
-                        <Input value={nomorFormat} onChange={e => setNomorFormat(e.target.value)} className="flex-1 h-12 rounded-xl font-bold text-xs border-slate-200" />
+                        <Input value={nomorStart} onChange={e => updateNomorStart(e.target.value)} className="w-24 h-12 rounded-xl font-black text-center border-slate-200" />
+                        <Input value={nomorFormat} onChange={e => updateNomorFormat(e.target.value)} className="flex-1 h-12 rounded-xl font-bold text-xs border-slate-200" />
                     </div>
                 </div>
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Tanggal Penetapan SK</Label>
-                    <Input type="date" value={tanggalPenetapan} onChange={e => setTanggalPenetapan(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
+                    <Input type="date" value={tanggalPenetapan} onChange={e => updateTanggal(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
                 </div>
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Tahun Ajaran Aktif</Label>
-                    <Input value={tahunAjaran} onChange={e => setTahunAjaran(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
+                    <Input value={tahunAjaran} onChange={e => updateTahunAjaran(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
                 </div>
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Jenis Kepala (Template)</Label>
-                    <Select value={jenisKepala} onValueChange={(v) => setJenisKepala(v as any)}>
+                    <Select value={jenisKepala} onValueChange={(v) => updateJenisKepala(v)}>
                         <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
                             <SelectValue />
                         </SelectTrigger>

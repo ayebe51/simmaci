@@ -227,13 +227,14 @@ export default function YayasanApprovalPage() {
         const schoolKecamatan = item.school?.kecamatan || "-"
         const unitKerja = item.school?.nama || item.school_name || ""
 
-        // Tembusan standar SK Kepala Madrasah — array untuk mendukung {#tembusan} loop di template
+        // Tembusan — samakan dengan generator SK biasa
         const tembusanList = [
-            { nomor: 1, isi: "Ketua Pengurus Wilayah LP Ma'arif NU Jawa Tengah" },
-            { nomor: 2, isi: "Ketua Pengurus Cabang NU Cilacap" },
-            { nomor: 3, isi: "Kepala Kantor Kemenag Kabupaten Cilacap" },
-            { nomor: 4, isi: "Kepala Madrasah yang bersangkutan" },
-            { nomor: 5, isi: "Arsip" },
+            { nomor: 1, isi: "LP Ma'arif NU PWNU Jawa Tengah" },
+            { nomor: 2, isi: "PCNU Cilacap" },
+            { nomor: 3, isi: `Perwakilan LP Ma'arif NU MWCNU Kecamatan ${schoolKecamatan}`.trim() },
+            { nomor: 4, isi: `Kepala ${unitKerja}`.trim() },
+            { nomor: 5, isi: `BP3MNU ${unitKerja}`.trim() },
+            { nomor: 6, isi: "Arsip" },
         ]
 
         // 7. Data untuk template
@@ -292,6 +293,7 @@ export default function YayasanApprovalPage() {
             "TEMBUSAN 3": tembusanList[2].isi,
             "TEMBUSAN 4": tembusanList[3].isi,
             "TEMBUSAN 5": tembusanList[4].isi,
+            "TEMBUSAN 6": tembusanList[5].isi,
             // Fallback satu blok teks (jika template pakai {TEMBUSAN} saja)
             TEMBUSAN: tembusanList.map(t => `${t.nomor}. ${t.isi}`).join("\n"),
         }

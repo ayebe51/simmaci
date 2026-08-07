@@ -1325,8 +1325,55 @@ class SkDocumentController extends Controller
                 $teacherData['status'] = $this->normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus, $teacherNameForStatus);
             }
 
+            // Validate NIM uniqueness: if NIM is provided and already used by a different teacher
+            // (different name), reject to prevent accidental data corruption.
+            if (!empty($teacherData['nomor_induk_maarif'])) {
+                $existingNimTeacher = Teacher::withoutTenantScope()
+                    ->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])
+                    ->whereNull('deleted_at')
+                    ->first();
 
+                if ($existingNimTeacher) {
+                    $excelBareName = mb_strtoupper(trim($this->normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
+                    $dbBareName   = mb_strtoupper(trim($this->normalizationService->parseAcademicDegreesPublic($existingNimTeacher->nama)['name']), 'UTF-8');
+                    $isSamePerson = ($excelBareName !== '' && $dbBareName !== '' && $excelBareName === $dbBareName)
+                        || ($existingNimTeacher->school_id == $schoolId && $excelBareName === $dbBareName);
 
+                    if (!$isSamePerson) {
+                        $seq++;
+                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                        SkDocument::create([
+                            'nomor_sk'         => $nomorSk,
+                            'nama'             => $doc['nama'],
+                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
+                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                            'school_id'        => $schoolId,
+                            'status'           => 'rejected',
+                            'rejection_reason' => "NIM {$teacherData['nomor_induk_maarif']} sudah digunakan oleh guru lain ({$existingNimTeacher->nama}).",
+                            'created_by'       => $request->user()->email,
+                            'tanggal_penetapan'=> now()->format('Y-m-d'),
+                        ]);
+                        \App\Models\ApprovalHistory::create([
+                            'school_id'    => $schoolId,
+                            'document_id'  => SkDocument::withoutTenantScope()->where('nomor_sk', $nomorSk)->value('id'),
+                            'document_type'=> 'sk_document',
+                            'action'       => 'reject',
+                            'from_status'  => 'pending',
+                            'to_status'    => 'rejected',
+                            'performed_by' => $request->user()->id,
+                            'performed_at' => now(),
+                            'comment'      => 'Ditolak otomatis oleh sistem',
+                            'metadata'     => ['rejection_reason' => "NIM sudah digunakan guru lain."],
+                        ]);
+                        $skipped++;
+                        $rejectedRows[] = [
+                            'nama'   => $doc['nama'] ?? 'unknown',
+                            'alasan' => "NIM {$teacherData['nomor_induk_maarif']} sudah digunakan oleh guru lain ({$existingNimTeacher->nama}).",
+                        ];
+                        continue;
+                    }
+                }
+            }
 
 
 

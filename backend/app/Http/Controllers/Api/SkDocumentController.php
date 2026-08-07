@@ -743,6 +743,13 @@ class SkDocumentController extends Controller
             }
             $data['school_id'] = $schoolId;
 
+            // If school lookup by name failed (e.g. name normalization mismatch), but we have
+            // a valid school_id (operator case), load the School model from ID so that
+            // jenjang detection and sk_submission_unlocked checks work correctly.
+            if ($school === null && $schoolId !== null) {
+                $school = School::find($schoolId);
+            }
+
             // Enrich name with degrees from Teacher record if the submitted name lacks them.
             // e.g. "MAILID" → "MAILID, S.Pd." when the Teacher DB has the full name.
             $data['nama'] = $this->normalizationService->enrichNameFromTeacher($data['nama'], $schoolId);
@@ -1057,7 +1064,17 @@ class SkDocumentController extends Controller
             return response()->json($sk, 201);
         } catch (\Exception $e) {
             // 3.5: Add generic exception handler
-            \Log::error('Unexpected error in submitRequest', ['exception' => $e, 'request' => $request->all()]);
+            \Log::error('Unexpected error in submitRequest', [
+                'exception'     => $e->getMessage(),
+                'exception_class' => get_class($e),
+                'file'          => $e->getFile(),
+                'line'          => $e->getLine(),
+                'user_id'       => $request->user()?->id,
+                'user_role'     => $request->user()?->role,
+                'school_id'     => $request->user()?->school_id,
+                'jenis_sk'      => $request->input('jenis_sk'),
+                'unit_kerja'    => $request->input('unit_kerja'),
+            ]);
             
             return response()->json([
                 'message' => 'Gagal menyimpan pengajuan. Silakan coba lagi atau hubungi administrator.',

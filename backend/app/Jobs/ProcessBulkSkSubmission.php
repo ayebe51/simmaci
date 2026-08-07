@@ -214,8 +214,53 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 // NIM (Nomor Induk Maarif) and NIP (Nomor Induk Pegawai) are distinct fields
                 // and must not be synced into each other.
 
-                // Validasi NIM / NIP ganda di-bypass sesuai dengan permintaan,
-                // sehingga duplicate NIM akan diarahkan untuk update data guru yang sudah ada.
+                // Validate NIM uniqueness: reject if NIM already belongs to a different teacher
+                if (!empty($teacherData['nomor_induk_maarif'])) {
+                    $existingNimTeacher = Teacher::withoutTenantScope()
+                        ->where('nomor_induk_maarif', $teacherData['nomor_induk_maarif'])
+                        ->whereNull('deleted_at')
+                        ->first();
+
+                    if ($existingNimTeacher) {
+                        $excelBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
+                        $dbBareName   = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($existingNimTeacher->nama)['name']), 'UTF-8');
+                        $isSamePerson = ($excelBareName !== '' && $dbBareName !== '' && $excelBareName === $dbBareName);
+
+                        if (!$isSamePerson) {
+                            $seq++;
+                            $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+                            \App\Models\SkDocument::create([
+                                'nomor_sk'         => $nomorSk,
+                                'nama'             => $doc['nama'],
+                                'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
+                                'unit_kerja'       => $doc['unit_kerja'] ?? null,
+                                'school_id'        => $schoolId,
+                                'status'           => 'rejected',
+                                'rejection_reason' => "NIM {$teacherData['nomor_induk_maarif']} sudah digunakan oleh guru lain ({$existingNimTeacher->nama}).",
+                                'created_by'       => $this->userEmail,
+                                'tanggal_penetapan'=> now()->format('Y-m-d'),
+                            ]);
+                            \App\Models\ApprovalHistory::create([
+                                'school_id'    => $schoolId,
+                                'document_id'  => \App\Models\SkDocument::withoutTenantScope()->where('nomor_sk', $nomorSk)->value('id'),
+                                'document_type'=> 'sk_document',
+                                'action'       => 'reject',
+                                'from_status'  => 'pending',
+                                'to_status'    => 'rejected',
+                                'performed_by' => $this->userId,
+                                'performed_at' => now(),
+                                'comment'      => 'Ditolak otomatis oleh sistem',
+                                'metadata'     => ['rejection_reason' => "NIM sudah digunakan guru lain."],
+                            ]);
+                            $skipped++;
+                            $rejectedRows[] = [
+                                'nama'   => $doc['nama'] ?? 'unknown',
+                                'alasan' => "NIM {$teacherData['nomor_induk_maarif']} sudah digunakan oleh guru lain ({$existingNimTeacher->nama}).",
+                            ];
+                            continue;
+                        }
+                    }
+                }
 
                 // Find existing teacher (termasuk yang ada di tong sampah / Soft Delete)
                 $teacher = null;

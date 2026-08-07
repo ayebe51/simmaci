@@ -895,6 +895,10 @@ class SkDocumentController extends Controller
                 }
             }
 
+            // Generate nomor_sk BEFORE transaction to avoid running queries
+            // inside an already-aborted PostgreSQL transaction (SQLSTATE 25P02)
+            $nomorSk = SkDocument::generateNomorSk();
+
             // 3.2: Wrap teacher upsert + SK creation + activity logs in a single DB transaction
             // This ensures atomic operation: if SK creation fails, teacher data is rolled back
             DB::beginTransaction();
@@ -905,10 +909,6 @@ class SkDocumentController extends Controller
                 } else {
                     $teacher = Teacher::create($teacherData);
                 }
-
-                // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
-                // Uses race-condition-safe helper that retries on collision
-                $nomorSk = SkDocument::generateNomorSk();
 
                 // SK document creation
                 try {
@@ -933,8 +933,18 @@ class SkDocumentController extends Controller
                         'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
                     ]);
                 } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                    // Race condition on nomor_sk — re-fetch and retry once
+                    // Race condition on nomor_sk — rollback, generate a new nomor_sk, and throw
+                    // so the outer catch can retry (or caller can retry the request).
+                    // We cannot re-query inside an aborted PostgreSQL transaction (SQLSTATE 25P02).
+                    DB::rollBack();
                     $nomorSk = SkDocument::generateNomorSk();
+                    DB::beginTransaction();
+                    // Upsert teacher again since we rolled back
+                    if ($teacher->exists) {
+                        $teacher->update($teacherData);
+                    } else {
+                        $teacher = Teacher::create($teacherData);
+                    }
                     $sk = SkDocument::create([
                         'nomor_sk'                      => $nomorSk,
                         'teacher_id'                    => $teacher->id,

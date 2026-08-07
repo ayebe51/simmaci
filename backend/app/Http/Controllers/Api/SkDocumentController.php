@@ -895,94 +895,120 @@ class SkDocumentController extends Controller
                 }
             }
 
-            // 3.2: Wrap teacher upsert in try-catch block
+            // 3.2: Wrap teacher upsert + SK creation + activity logs in a single DB transaction
+            // This ensures atomic operation: if SK creation fails, teacher data is rolled back
+            DB::beginTransaction();
             try {
+                // Teacher upsert
                 if ($teacher) {
                     $teacher->update($teacherData);
                 } else {
                     $teacher = Teacher::create($teacherData);
                 }
+
+                // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
+                // Uses race-condition-safe helper that retries on collision
+                $nomorSk = SkDocument::generateNomorSk();
+
+                // SK document creation
+                try {
+                    $sk = SkDocument::create([
+                        'nomor_sk'                      => $nomorSk,
+                        'teacher_id'                    => $teacher->id,
+                        'nama'                          => $data['nama'],
+                        'jenis_sk'                      => $data['jenis_sk'],
+                        'unit_kerja'                    => $data['unit_kerja'],
+                        'school_id'                     => $schoolId,
+                        'jabatan'                       => $data['jabatan'] ?? null,
+                        'surat_permohonan_url'          => $data['surat_permohonan_url'],
+                        'nomor_permohonan'              => $data['nomor_surat_permohonan'] ?? null,
+                        'tanggal_permohonan'            => $data['tanggal_surat_permohonan'] ?? null,
+                        'status'                        => 'pending',
+                        'created_by'                    => $request->user()->email,
+                        'tanggal_penetapan'             => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                        'tahun_ajaran'                  => $activeTahunAjaran,
+                        // SK Pemberhentian fields (null for other jenis_sk)
+                        'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
+                        'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
+                        'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
+                    ]);
+                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    // Race condition on nomor_sk — re-fetch and retry once
+                    $nomorSk = SkDocument::generateNomorSk();
+                    $sk = SkDocument::create([
+                        'nomor_sk'                      => $nomorSk,
+                        'teacher_id'                    => $teacher->id,
+                        'nama'                          => $data['nama'],
+                        'jenis_sk'                      => $data['jenis_sk'],
+                        'unit_kerja'                    => $data['unit_kerja'],
+                        'school_id'                     => $schoolId,
+                        'jabatan'                       => $data['jabatan'] ?? null,
+                        'surat_permohonan_url'          => $data['surat_permohonan_url'],
+                        'nomor_permohonan'              => $data['nomor_surat_permohonan'] ?? null,
+                        'tanggal_permohonan'            => $data['tanggal_surat_permohonan'] ?? null,
+                        'status'                        => 'pending',
+                        'created_by'                    => $request->user()->email,
+                        'tanggal_penetapan'             => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
+                        'tahun_ajaran'                  => $activeTahunAjaran,
+                        // SK Pemberhentian fields (null for other jenis_sk)
+                        'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
+                        'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
+                        'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
+                    ]);
+                }
+
+                // Activity log
+                $logProperties = [];
+                if (!empty($normalizationChanges)) {
+                    $logProperties['normalization'] = $normalizationChanges;
+                }
+                
+                ActivityLog::create([
+                    'description' => "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
+                    'event' => 'submit_sk_request',
+                    'log_name' => 'sk',
+                    'subject_id' => $sk->id,
+                    'subject_type' => get_class($sk),
+                    'causer_id' => $request->user()->id,
+                    'causer_type' => get_class($request->user()),
+                    'school_id' => $schoolId,
+                    'properties' => $logProperties,
+                ]);
+
+                // Approval history
+                ApprovalHistory::create([
+                    'school_id'         => $schoolId,
+                    'document_id'       => $sk->id,
+                    'document_type'     => 'sk_document',
+                    'action'            => 'submit',
+                    'from_status'       => null,
+                    'to_status'         => 'pending',
+                    'performed_by'      => $request->user()->id,
+                    'performed_at'      => now(),
+                    'comment'           => null,
+                    'metadata'          => [
+                        'performed_by_name' => $request->user()->name,
+                        'performed_by_role' => $request->user()->role,
+                    ],
+                ]);
+
+                DB::commit();
             } catch (\Illuminate\Database\QueryException $e) {
-                \Log::error('Teacher upsert failed', ['exception' => $e, 'data' => $teacherData]);
+                DB::rollBack();
+                \Log::error('SK submission transaction failed', [
+                    'exception' => $e,
+                    'teacher_data' => $teacherData,
+                    'sk_data' => $data,
+                ]);
                 
                 $errorCode = $e->getCode();
+                $errorMessage = $e->getMessage();
+                
                 if ($errorCode == '23505') {
                     return response()->json([
                         'message' => 'Data guru sudah ada dengan identitas yang sama',
                     ], 422);
                 } elseif ($errorCode == '23503') {
-                    return response()->json([
-                        'message' => 'Data sekolah tidak valid. Hubungi administrator.',
-                    ], 422);
-                } elseif ($errorCode == '23502') {
-                    return response()->json([
-                        'message' => 'Field wajib tidak boleh kosong. Periksa formulir Anda.',
-                    ], 422);
-                }
-                
-                throw $e;
-            }
-
-            // Generate temporary nomor_sk for pending requests: REQ/{year}/{sequence}
-            // Uses race-condition-safe helper that retries on collision
-            $nomorSk = SkDocument::generateNomorSk();
-
-            // 3.3: Wrap SK document creation in try-catch block
-            try {
-                $sk = SkDocument::create([
-                    'nomor_sk'                      => $nomorSk,
-                    'teacher_id'                    => $teacher->id,
-                    'nama'                          => $data['nama'],
-                    'jenis_sk'                      => $data['jenis_sk'],
-                    'unit_kerja'                    => $data['unit_kerja'],
-                    'school_id'                     => $schoolId,
-                    'jabatan'                       => $data['jabatan'] ?? null,
-                    'surat_permohonan_url'          => $data['surat_permohonan_url'],
-                    'nomor_permohonan'              => $data['nomor_surat_permohonan'] ?? null,
-                    'tanggal_permohonan'            => $data['tanggal_surat_permohonan'] ?? null,
-                    'status'                        => 'pending',
-                    'created_by'                    => $request->user()->email,
-                    'tanggal_penetapan'             => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
-                    'tahun_ajaran'                  => $activeTahunAjaran,
-                    // SK Pemberhentian fields (null for other jenis_sk)
-                    'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
-                    'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
-                    'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
-                ]);
-            } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                // Race condition on nomor_sk — re-fetch and retry once
-                $nomorSk = SkDocument::generateNomorSk();
-                $sk = SkDocument::create([
-                    'nomor_sk'                      => $nomorSk,
-                    'teacher_id'                    => $teacher->id,
-                    'nama'                          => $data['nama'],
-                    'jenis_sk'                      => $data['jenis_sk'],
-                    'unit_kerja'                    => $data['unit_kerja'],
-                    'school_id'                     => $schoolId,
-                    'jabatan'                       => $data['jabatan'] ?? null,
-                    'surat_permohonan_url'          => $data['surat_permohonan_url'],
-                    'nomor_permohonan'              => $data['nomor_surat_permohonan'] ?? null,
-                    'tanggal_permohonan'            => $data['tanggal_surat_permohonan'] ?? null,
-                    'status'                        => 'pending',
-                    'created_by'                    => $request->user()->email,
-                    'tanggal_penetapan'             => $data['tanggal_penetapan'] ?? now()->format('Y-m-d'),
-                    'tahun_ajaran'                  => $activeTahunAjaran,
-                    // SK Pemberhentian fields (null for other jenis_sk)
-                    'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
-                    'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
-                    'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
-                ]);
-            } catch (\Illuminate\Database\QueryException $e) {
-                \Log::error('SK document creation failed', ['exception' => $e, 'data' => [
-                    'nomor_sk' => $nomorSk,
-                    'teacher_id' => $teacher->id,
-                    'nama' => $data['nama'],
-                ]]);
-                
-                $errorCode = $e->getCode();
-                $errorMessage = $e->getMessage();
-                
-                if ($errorCode == '23503') {
                     // Check which foreign key constraint failed
                     if (strpos($errorMessage, 'teacher_id') !== false) {
                         return response()->json([
@@ -1003,46 +1029,15 @@ class SkDocumentController extends Controller
                 }
                 
                 throw $e;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                \Log::error('SK submission failed', ['exception' => $e, 'data' => $data]);
+                throw $e;
             }
 
-            // 3.4: Wrap activity log creation in try-catch block
+            // Dispatch notification to queue — avoids blocking the HTTP response
+            // when there are many admins to notify.
             try {
-                $logProperties = [];
-                if (!empty($normalizationChanges)) {
-                    $logProperties['normalization'] = $normalizationChanges;
-                }
-                
-                ActivityLog::create([
-                    'description' => "Pengajuan SK Individual: {$data['nama']} ({$data['unit_kerja']})",
-                    'event' => 'submit_sk_request',
-                    'log_name' => 'sk',
-                    'subject_id' => $sk->id,
-                    'subject_type' => get_class($sk),
-                    'causer_id' => $request->user()->id,
-                    'causer_type' => get_class($request->user()),
-                    'school_id' => $schoolId,
-                    'properties' => $logProperties,
-                ]);
-
-                // Create approval history for SK submission
-                ApprovalHistory::create([
-                    'school_id'         => $schoolId,
-                    'document_id'       => $sk->id,
-                    'document_type'     => 'sk_document',
-                    'action'            => 'submit',
-                    'from_status'       => null,
-                    'to_status'         => 'pending',
-                    'performed_by'      => $request->user()->id,
-                    'performed_at'      => now(),
-                    'comment'           => null,
-                    'metadata'          => [
-                        'performed_by_name' => $request->user()->name,
-                        'performed_by_role' => $request->user()->role,
-                    ],
-                ]);
-
-                // Dispatch notification to queue — avoids blocking the HTTP response
-                // when there are many admins to notify.
                 NotifyAdminsOfSkSubmission::dispatch(
                     skId: $sk->id,
                     nomorSk: $sk->nomor_sk,
@@ -1052,8 +1047,8 @@ class SkDocumentController extends Controller
                     schoolId: $schoolId
                 );
             } catch (\Exception $e) {
-                \Log::error('Failed to create activity log', ['exception' => $e, 'sk_id' => $sk->id]);
-                // Continue execution - activity log failure should not block the request
+                \Log::error('Failed to dispatch SK notification', ['exception' => $e, 'sk_id' => $sk->id]);
+                // Continue execution - notification failure should not block the request
             }
 
             // Invalidate dashboard cache for the affected school
@@ -1435,10 +1430,14 @@ class SkDocumentController extends Controller
                 }
 
                 // Existing teacher must have NIM and TMT — reject if both sources are empty
+                // Exception: Tendik (non-teaching staff) legitimately have no NIM,
+                // so this guard is skipped for tendik records.
                 $finalNim = $teacherData['nomor_induk_maarif'] ?? $teacher->nomor_induk_maarif;
                 $finalTmt = $teacherData['tmt'] ?? $teacher->tmt;
+                $resolvedStatus = $teacherData['status'] ?? $teacher->status ?? '';
+                $isTendik = strtolower(trim($resolvedStatus)) === 'tendik';
 
-                if (empty(trim((string)($finalNim ?? ''))) && empty(trim((string)($finalTmt ?? '')))) {
+                if (!$isTendik && empty(trim((string)($finalNim ?? ''))) && empty(trim((string)($finalTmt ?? '')))) {
                     $seq++;
                     $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
                     SkDocument::create([

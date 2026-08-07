@@ -1277,7 +1277,7 @@ class SkDocumentController extends Controller
                     'action' => 'reject',
                     'from_status' => 'pending',
                     'to_status' => 'rejected',
-                    'performed_by' => null,
+                    'performed_by' => $request->user()->id,
                     'performed_at' => now(),
                     'comment' => 'Ditolak otomatis oleh sistem',
                     'metadata' => ['rejection_reason' => "Pengajuan sedang menunggu persetujuan (No: {$existingPending->nomor_sk})."],

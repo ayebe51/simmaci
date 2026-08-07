@@ -1337,7 +1337,7 @@ class SkDocumentController extends Controller
                     $excelBareName = mb_strtoupper(trim($this->normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
                     $dbBareName   = mb_strtoupper(trim($this->normalizationService->parseAcademicDegreesPublic($existingNimTeacher->nama)['name']), 'UTF-8');
                     $isSamePerson = ($excelBareName !== '' && $dbBareName !== '' && $excelBareName === $dbBareName)
-                        || ($existingNimTeacher->school_id == $schoolId && $excelBareName === $dbBareName);
+                            && ($existingNimTeacher->school_id == $schoolId);
 
                     if (!$isSamePerson) {
                         $seq++;
@@ -1877,3 +1877,4 @@ class SkDocumentController extends Controller
         return 'UNKNOWN';
     }
 }
+

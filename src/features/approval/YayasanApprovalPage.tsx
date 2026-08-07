@@ -212,8 +212,18 @@ export default function YayasanApprovalPage() {
             .replace(/{BL_ROMA}/g, bulanRoma)
             .replace(/{TAHUN}/g, String(tahun))
 
-        const nim = item.teacher?.nomor_induk_maarif || "-"
-        const nuptk = item.teacher?.nuptk || "-"
+        // Fetch data guru terbaru langsung dari API untuk memastikan NIM/NUPTK terkini
+        let teacherData = item.teacher || {}
+        if (item.teacher_id) {
+            try {
+                const { teacherApi } = await import("@/lib/api")
+                const freshTeacher = await teacherApi.get(item.teacher_id)
+                if (freshTeacher?.id) teacherData = freshTeacher
+            } catch (_) { /* fallback ke data relasi */ }
+        }
+
+        const nim = teacherData?.nomor_induk_maarif || item.teacher?.nomor_induk_maarif || ""
+        const nuptk = teacherData?.nuptk || item.teacher?.nuptk || ""
         const schoolKecamatan = item.school?.kecamatan || "-"
         const unitKerja = item.school?.nama || item.school_name || ""
 
@@ -229,17 +239,19 @@ export default function YayasanApprovalPage() {
         // 7. Data untuk template
         const docData = {
             qrcode: qrDataUrl,
-            NAMA: item.teacher?.nama || item.teacher_name || "",
-            NIP: item.teacher?.nip || "-",
-            GOLONGAN: item.teacher?.golongan || item.golongan || "-",
+            NAMA: teacherData?.nama || item.teacher?.nama || item.teacher_name || "",
+            NIP: teacherData?.nip || item.teacher?.nip || "",
+            GOLONGAN: item.golongan || teacherData?.golongan || item.teacher?.golongan || "",
             // Tempat, Tanggal Lahir — lengkap
-            "TEMPAT, TANGGAL LAHIR": `${item.teacher?.tempat_lahir || "-"}, ${formatDateIndo(item.teacher?.tanggal_lahir)}`,
-            TEMPAT_LAHIR: item.teacher?.tempat_lahir || "-",
-            TANGGAL_LAHIR: formatDateIndo(item.teacher?.tanggal_lahir),
-            // NIM — semua alias yang mungkin dipakai di template (case variants)
+            "TEMPAT, TANGGAL LAHIR": `${teacherData?.tempat_lahir || item.teacher?.tempat_lahir || "-"}, ${formatDateIndo(teacherData?.tanggal_lahir || item.teacher?.tanggal_lahir)}`,
+            TEMPAT_LAHIR: teacherData?.tempat_lahir || item.teacher?.tempat_lahir || "-",
+            TANGGAL_LAHIR: formatDateIndo(teacherData?.tanggal_lahir || item.teacher?.tanggal_lahir),
+            // NIM — semua alias termasuk Unicode right single quote (U+2019) yang dipakai template
             NIM: nim,
             "NIM": nim,
-            "Nomor Induk Ma'arif": nim,
+            "Nomor Induk Ma\u2019arif": nim,
+            "NOMOR INDUK MA\u2019ARIF": nim,   // ← ini yang ada di template .docx (U+2019)
+            "Nomor Induk Ma'arif": nim,         // apostrof biasa fallback
             "NOMOR INDUK MA'ARIF": nim,
             "NOMOR INDUK MAARIF": nim,
             "Nomor Induk Maarif": nim,
@@ -257,8 +269,8 @@ export default function YayasanApprovalPage() {
             "PENDIDIKAN TERAKHIR": item.teacher?.pendidikan_terakhir || "-",
             "UNIT KERJA": unitKerja,
             UNIT_KERJA: unitKerja,
-            TMT: formatDateIndo(item.teacher?.tmt),
-            "TMT GURU": formatDateIndo(item.teacher?.tmt),
+            TMT: formatDateIndo(teacherData?.tmt || item.teacher?.tmt),
+            "TMT GURU": formatDateIndo(teacherData?.tmt || item.teacher?.tmt),
             "TMT KEPALA": formatDateIndo(item.start_date),
             JABATAN: "Kepala Madrasah",
             MASA_BHAKTI: `${new Date(item.start_date).getFullYear()} - ${new Date(item.end_date).getFullYear()}`,

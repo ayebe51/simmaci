@@ -224,7 +224,8 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     if ($existingNimTeacher) {
                         $excelBareName = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($teacherData['nama'])['name']), 'UTF-8');
                         $dbBareName   = mb_strtoupper(trim($normalizationService->parseAcademicDegreesPublic($existingNimTeacher->nama)['name']), 'UTF-8');
-                        $isSamePerson = ($excelBareName !== '' && $dbBareName !== '' && $excelBareName === $dbBareName);
+                        $isSamePerson = ($excelBareName !== '' && $dbBareName !== '' && $excelBareName === $dbBareName)
+                            && ($existingNimTeacher->school_id == $schoolId);
 
                         if (!$isSamePerson) {
                             $seq++;

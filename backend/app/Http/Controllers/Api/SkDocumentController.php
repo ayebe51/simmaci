@@ -1327,60 +1327,7 @@ class SkDocumentController extends Controller
 
 
 
-            // Sync NIP â†” NIM only when one side is provided and the other is missing
-            $nipWasSynced = false;
-            $nimWasSynced = false;
-            if (empty($teacherData['nip']) && !empty($teacherData['nomor_induk_maarif'])) {
-                $teacherData['nip'] = $teacherData['nomor_induk_maarif'];
-                $nipWasSynced = true;
-            }
-            if (empty($teacherData['nomor_induk_maarif']) && !empty($teacherData['nip'])) {
-                $teacherData['nomor_induk_maarif'] = $teacherData['nip'];
-                $nimWasSynced = true;
-            }
 
-            // Validate synced NIP value for uniqueness (NIP â†” NIM sync may introduce duplicates)
-            // When NIM is copied to NIP, check that the NIP value isn't already used by a different teacher
-            if ($nipWasSynced && !empty($teacherData['nip'])) {
-                $existingNipTeacher = Teacher::withoutTenantScope()
-                    ->where('nip', $teacherData['nip'])
-                    ->whereNull('deleted_at')
-                    ->first();
-
-                if ($existingNipTeacher) {
-                    // Self-reference check: if the nuptk matches, it's the same teacher
-                    $isSelfByNuptk = !empty($teacherData['nuptk']) && $existingNipTeacher->nuptk === $teacherData['nuptk'];
-                    // Also check by exact name + school
-                    $isSelfByName = mb_strtoupper(trim($teacherData['nama']), 'UTF-8') === mb_strtoupper(trim($existingNipTeacher->nama), 'UTF-8')
-                        && $existingNipTeacher->school_id == $schoolId;
-                    // Also check by NIM: if the existing teacher's NIM matches the synced NIP value,
-                    // it's a self-reference (NIM was copied to NIP, same teacher record)
-                    $isSelfByNim = !empty($existingNipTeacher->nomor_induk_maarif)
-                        && $existingNipTeacher->nomor_induk_maarif === $teacherData['nip'];
-
-                    if (!$isSelfByNuptk && !$isSelfByName && !$isSelfByNim) {
-                        $seq++;
-                        $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
-                        SkDocument::create([
-                            'nomor_sk'         => $nomorSk,
-                            'nama'             => $doc['nama'],
-                            'jenis_sk'         => $doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? 'GTY',
-                            'unit_kerja'       => $doc['unit_kerja'] ?? null,
-                            'school_id'        => $schoolId,
-                            'status'           => 'rejected',
-                            'rejection_reason' => 'NIP sudah digunakan oleh guru lain (dari sinkronisasi NIM).',
-                            'created_by'       => $request->user()->email,
-                            'tanggal_penetapan'=> now()->format('Y-m-d'),
-                        ]);
-                        $skipped++;
-                        $rejectedRows[] = [
-                            'nama'   => $doc['nama'] ?? 'unknown',
-                            'alasan' => 'NIP sudah digunakan oleh guru lain (dari sinkronisasi NIM).',
-                        ];
-                        continue;
-                    }
-                }
-            }
 
 
 

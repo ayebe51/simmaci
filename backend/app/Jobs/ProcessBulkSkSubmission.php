@@ -211,17 +211,8 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     $teacherData['status'] = $normalizationService->normalizeEmploymentStatus($teacherData['status'], $tmtForStatus, $teacherNameForStatus, $pendidikan);
                 }
 
-                // Sync NIP ↔ NIM only when one side is provided and the other is missing
-                $nipWasSynced = false;
-                $nimWasSynced = false;
-                if (empty($teacherData['nip']) && !empty($teacherData['nomor_induk_maarif'])) {
-                    $teacherData['nip'] = $teacherData['nomor_induk_maarif'];
-                    $nipWasSynced = true;
-                }
-                if (empty($teacherData['nomor_induk_maarif']) && !empty($teacherData['nip'])) {
-                    $teacherData['nomor_induk_maarif'] = $teacherData['nip'];
-                    $nimWasSynced = true;
-                }
+                // NIM (Nomor Induk Maarif) and NIP (Nomor Induk Pegawai) are distinct fields
+                // and must not be synced into each other.
 
                 // Validasi NIM / NIP ganda di-bypass sesuai dengan permintaan,
                 // sehingga duplicate NIM akan diarahkan untuk update data guru yang sudah ada.
@@ -261,7 +252,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
                         // tetap diterima saja, tapi nim dikosongkan"
                         // Kita kosongkan semua identifier yang berpotensi konflik agar tidak bentrok
                         $teacherData['nomor_induk_maarif'] = null;
-                        if ($nimWasSynced) $teacherData['nip'] = null;
+                        $teacherData['nip'] = null;
                         
                         if (isset($teacherData['nuptk']) && $teacher->nuptk === $teacherData['nuptk']) $teacherData['nuptk'] = null;
                         if (isset($teacherData['nip']) && $teacher->nip === $teacherData['nip']) $teacherData['nip'] = null;

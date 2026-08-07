@@ -1353,8 +1353,12 @@ class SkDocumentController extends Controller
                     // Also check by exact name + school
                     $isSelfByName = mb_strtoupper(trim($teacherData['nama']), 'UTF-8') === mb_strtoupper(trim($existingNipTeacher->nama), 'UTF-8')
                         && $existingNipTeacher->school_id == $schoolId;
+                    // Also check by NIM: if the existing teacher's NIM matches the synced NIP value,
+                    // it's a self-reference (NIM was copied to NIP, same teacher record)
+                    $isSelfByNim = !empty($existingNipTeacher->nomor_induk_maarif)
+                        && $existingNipTeacher->nomor_induk_maarif === $teacherData['nip'];
 
-                    if (!$isSelfByNuptk && !$isSelfByName) {
+                    if (!$isSelfByNuptk && !$isSelfByName && !$isSelfByNim) {
                         $seq++;
                         $nomorSk = 'REQ/' . $year . '/' . str_pad($seq, 4, '0', STR_PAD_LEFT);
                         SkDocument::create([

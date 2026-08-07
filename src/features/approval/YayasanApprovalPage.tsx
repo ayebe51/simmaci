@@ -10,6 +10,7 @@ import QRCode from "qrcode"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -51,6 +52,7 @@ export default function YayasanApprovalPage() {
   const [nomorFormat, setNomorFormat] = useState("{NOMOR}/PC.L/A.II/H-34.B/{BULAN}/{TAHUN}")
   const [nomorStart, setNomorStart] = useState("0001")
   const [tanggalPenetapan, setTanggalPenetapan] = useState("")
+  const [jenisKepala, setJenisKepala] = useState<"auto" | "nonpns" | "pns" | "plt">("auto")
   const [tahunAjaran, setTahunAjaran] = useState(() => {
     const now = new Date()
     const y = now.getFullYear()
@@ -135,14 +137,17 @@ export default function YayasanApprovalPage() {
         const nip = (item.teacher?.nip || "").replace(/[^0-9]/g, "")
         const statusKepegawaian = (item.teacher?.status_kepegawaian || item.teacher?.status || "").toLowerCase()
         const golongan = (item.golongan || item.teacher?.golongan || "").trim()
-        const isPlt = jabatan.includes("plt")
+        const isPlt = jenisKepala === "plt"
+            || (jenisKepala === "auto" && jabatan.includes("plt"))
 
-        // PNS jika: NIP 18 digit, ATAU status mengandung "pns"/"asn", ATAU golongan diisi
-        // (golongan hanya diisi di form pengajuan kamad untuk guru PNS/ASN)
-        const isPns = nip.length >= 18
-            || statusKepegawaian.includes("pns")
-            || statusKepegawaian.includes("asn")
-            || golongan.length > 0
+        // PNS jika override manual, atau deteksi otomatis
+        const isPns = jenisKepala === "pns"
+            || (jenisKepala === "auto" && (
+                nip.length >= 18
+                || statusKepegawaian.includes("pns")
+                || statusKepegawaian.includes("asn")
+                || golongan.length > 0
+            ))
 
         let kamadSkType: string
         if (isPlt) {
@@ -389,7 +394,7 @@ export default function YayasanApprovalPage() {
                     <Settings2 className="w-5 h-5 text-blue-500" /> Format & Penomoran Kolektif
                 </CardTitle>
             </CardHeader>
-            <CardContent className="p-10 grid grid-cols-1 md:grid-cols-3 gap-10">
+            <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Penomoran Otomatis</Label>
                     <div className="flex gap-2">
@@ -404,6 +409,21 @@ export default function YayasanApprovalPage() {
                 <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase text-slate-400">Tahun Ajaran Aktif</Label>
                     <Input value={tahunAjaran} onChange={e => setTahunAjaran(e.target.value)} className="h-12 rounded-xl border-slate-200 font-bold" />
+                </div>
+                <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-slate-400">Jenis Kepala (Template)</Label>
+                    <Select value={jenisKepala} onValueChange={(v) => setJenisKepala(v as any)}>
+                        <SelectTrigger className="h-12 rounded-xl border-slate-200 font-bold">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                            <SelectItem value="auto">Otomatis (dari data guru)</SelectItem>
+                            <SelectItem value="nonpns">Non-PNS / GTY / GTT</SelectItem>
+                            <SelectItem value="pns">PNS / ASN</SelectItem>
+                            <SelectItem value="plt">PLT (Pelaksana Tugas)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {jenisKepala === "auto" && <p className="text-[10px] text-slate-400">Deteksi otomatis dari NIP/status/golongan guru</p>}
                 </div>
             </CardContent>
         </Card>

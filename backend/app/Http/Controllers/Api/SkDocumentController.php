@@ -1432,10 +1432,13 @@ class SkDocumentController extends Controller
                 // Existing teacher must have NIM and TMT — reject if both sources are empty
                 // Exception: Tendik (non-teaching staff) legitimately have no NIM,
                 // so this guard is skipped for tendik records.
+                // Use the raw input status (before normalization) to detect tendik,
+                // since normalization may convert a guru without a degree to 'Tendik'.
                 $finalNim = $teacherData['nomor_induk_maarif'] ?? $teacher->nomor_induk_maarif;
                 $finalTmt = $teacherData['tmt'] ?? $teacher->tmt;
-                $resolvedStatus = $teacherData['status'] ?? $teacher->status ?? '';
-                $isTendik = strtolower(trim($resolvedStatus)) === 'tendik';
+                $rawStatus = mb_strtolower(trim((string)($doc['status_kepegawaian'] ?? $doc['status'] ?? $doc['jenis_sk'] ?? '')), 'UTF-8');
+                $isTendik = in_array($rawStatus, ['tendik', 'tenaga kependidikan', 'sk tenaga kependidikan'])
+                    || str_contains($rawStatus, 'tendik');
 
                 if (!$isTendik && empty(trim((string)($finalNim ?? ''))) && empty(trim((string)($finalTmt ?? '')))) {
                     $seq++;

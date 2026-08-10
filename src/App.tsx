@@ -143,7 +143,6 @@ if (typeof window !== 'undefined') {
 
 
 export default function App() {
-  console.log("App Rendering...");
   usePwaUpdate()
   return (
     <QueryClientProvider client={queryClient}>
@@ -160,7 +159,7 @@ export default function App() {
         <ChunkErrorBoundary>
         <Suspense fallback={<SkeletonPage />}>
           <Routes>
-            <Route path="/test-render" element={<div className="p-10 bg-red-500 text-white">TEST ROUTE WORKING</div>} />
+
             <Route path="/login" element={<LoginPage />} />
             <Route path="/verify/:id" element={<PublicVerificationPage />} />
             <Route path="/verify/sk/:nomor" element={<VerifySkPage />} />

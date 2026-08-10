@@ -101,8 +101,13 @@ function UploadForm({ onSuccess }: { onSuccess: () => void }) {
   const uploadMutation = useMutation({
     mutationFn: ({ file, sk_type }: UploadFormValues) =>
       skTemplateApi.upload(file, sk_type),
-    onSuccess: () => {
-      toast.success('Template berhasil diunggah')
+    onSuccess: async (data) => {
+      try {
+        await skTemplateApi.activate(data.data?.id ?? data.id)
+        toast.success('Template berhasil diunggah dan diaktifkan otomatis')
+      } catch (err) {
+        toast.success('Template diunggah, namun gagal diaktifkan otomatis')
+      }
       reset()
       if (fileInputRef.current) fileInputRef.current.value = ''
       onSuccess()

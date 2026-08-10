@@ -190,14 +190,7 @@ export default function YayasanApprovalPage() {
         // getActive mengembalikan { success, data: { file_url, ... } } — ambil dari .data
         let templateData = templateRes?.data ?? templateRes
         if (!templateData?.file_url) {
-            // Fallback: coba kamad_nonpns jika varian spesifik belum diupload
-            if (kamadSkType !== "kamad_nonpns") {
-                templateRes = await skTemplateApi.getActive("kamad_nonpns").catch(() => null)
-                templateData = templateRes?.data ?? templateRes
-            }
-        }
-        if (!templateData?.file_url) {
-            throw new Error(`Template SK Kamad (${kamadSkType}) belum diupload. Silakan upload di menu Template SK.`)
+            throw new Error(`Template SK Kamad (${kamadSkType}) belum diupload atau belum diaktifkan. Silakan periksa di menu Template SK.`);
         }
 
         // 3. Fetch template sebagai binary

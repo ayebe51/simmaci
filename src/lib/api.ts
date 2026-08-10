@@ -109,7 +109,7 @@ export const authApi = {
   },
 
   async getUser() {
-    const { data } = await apiClient.get('/auth/user');
+    const { data } = await apiClient.get('/auth/me'); // [FIX P0-08] Canonical endpoint: /auth/me
     localStorage.setItem(USER_KEY, JSON.stringify(data));
     return data;
   },
@@ -495,7 +495,7 @@ export const mutationApi = {
 // ── Audit API ──
 
 export const auditApi = {
-  healthCheck: () => apiClient.get('/data-audit/health-check').then((r) => r.data), // Corrected path to match routes
+  healthCheck: () => apiClient.post('/data-audit/health-check').then((r) => r.data), // [FIX P1-05] Backend route is POST
 };
 
 // ── Activity Logs API ──

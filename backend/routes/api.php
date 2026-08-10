@@ -6,113 +6,13 @@ use App\Http\Controllers\Api\SchoolController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\StudentController;
 
-// ── TEMP: Force run pending migrations (DELETE AFTER USE) ──
-// Usage: GET /api/temp-run-migrations?secret=maarif2026
-Route::get('/temp-run-migrations', function (\Illuminate\Http\Request $request) {
-    if ($request->query('secret') !== 'maarif2026') {
-        abort(401);
-    }
-    try {
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-        $output = \Illuminate\Support\Facades\Artisan::output();
-        return response()->json(['success' => true, 'output' => $output]);
-    } catch (\Throwable $e) {
-        return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
-    }
-});
-
-Route::get('/temp-check-nim', function () {
-    $teacherDups = \App\Models\Teacher::select('nomor_induk_maarif', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
-        ->whereNotNull('nomor_induk_maarif')
-        ->where('nomor_induk_maarif', '!=', '')
-        ->where('nomor_induk_maarif', '!=', '-')
-        ->groupBy('nomor_induk_maarif')
-        ->having('count', '>', 1)
-        ->get();
-    
-    $result = "=== GURU ===\n";
-    foreach ($teacherDups as $dup) {
-        $result .= $dup->nomor_induk_maarif . " (" . $dup->count . " data)\n";
-        $teachers = \App\Models\Teacher::with('school')->where('nomor_induk_maarif', $dup->nomor_induk_maarif)->get();
-        foreach ($teachers as $t) {
-            $schoolName = $t->school ? $t->school->nama : 'Tanpa Sekolah';
-            $result .= "  > [ID: {$t->id}] {$t->nama} - {$schoolName}\n";
-        }
-    }
-    
-    $schoolDups = \App\Models\School::select('kepala_nim', \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'))
-        ->whereNotNull('kepala_nim')
-        ->where('kepala_nim', '!=', '')
-        ->where('kepala_nim', '!=', '-')
-        ->groupBy('kepala_nim')
-        ->having('count', '>', 1)
-        ->get();
-        
-    $result .= "\n=== SEKOLAH ===\n";
-    foreach ($schoolDups as $dup) {
-        $result .= $dup->kepala_nim . " (" . $dup->count . " data)\n";
-        $schools = \App\Models\School::where('kepala_nim', $dup->kepala_nim)->get();
-        foreach ($schools as $s) {
-            $result .= "  > [ID: {$s->id}] {$s->nama} (Kepala: {$s->kepala_madrasah})\n";
-        }
-    }
-    
-    return response($result)->header('Content-Type', 'text/plain');
-});
-
-Route::get('/temp-fix-missing-teachers', function () {
-    // Cari semua SK yang guru-nya sudah terhapus (soft delete)
-    $restored = 0;
-    $result = "Memeriksa Guru yang terkait SK namun berstatus soft-delete...\n";
-    
-    $sks = \App\Models\SkDocument::withoutGlobalScopes()->whereNotNull('teacher_id')->get();
-    foreach ($sks as $sk) {
-        $teacher = \App\Models\Teacher::withoutGlobalScopes()->withTrashed()->find($sk->teacher_id);
-        if ($teacher && $teacher->trashed()) {
-            $teacher->restore();
-            $result .= "♻️ [RESTORED] Guru dipulihkan: {$teacher->nama} (ID: {$teacher->id}, SK ID: {$sk->id})\n";
-            $restored++;
-        }
-    }
-    
-    // Juga cek yang yatim dan create baru jika belum ada
-    $orphanedSks = \App\Models\SkDocument::withoutGlobalScopes()->whereNull('teacher_id')->get();
-    $created = 0;
-    
-    foreach ($orphanedSks as $sk) {
-        if (!$sk->school_id || !$sk->nama) continue;
-        
-        $teacher = \App\Models\Teacher::withoutGlobalScopes()->withTrashed()
-            ->where("nama", $sk->nama)
-            ->where("school_id", $sk->school_id)
-            ->first();
-            
-        if ($teacher) {
-            if ($teacher->trashed()) {
-                $teacher->restore();
-                $result .= "♻️ [RESTORED & LINKED] Guru yatim dipulihkan: {$teacher->nama} (ID: {$teacher->id})\n";
-                $restored++;
-            }
-        } else {
-            $teacher = \App\Models\Teacher::create([
-                "nama" => $sk->nama,
-                "school_id" => $sk->school_id,
-                "unit_kerja" => $sk->unit_kerja,
-                "status" => "Draft", // status kepegawaian default
-                "is_verified" => false,
-                "is_active" => true,
-            ]);
-            $result .= "✅ [CREATED & LINKED] Guru baru dibuat: {$teacher->nama} (ID: {$teacher->id})\n";
-            $created++;
-        }
-        
-        $sk->teacher_id = $teacher->id;
-        $sk->save();
-    }
-
-    $result .= "\nSelesai. Total Dipulihkan: {$restored}, Total Dibuat Baru: {$created}\n";
-    return response($result)->header('Content-Type', 'text/plain');
-});
+// ── [SECURITY] Temporary diagnostic/migration routes REMOVED ──────────────────
+// Routes removed on 2026-08-10 (Phase 1.5 Security Remediation):
+//   - GET /temp-run-migrations  (artisan migrate --force without auth)
+//   - GET /temp-check-nim       (NIM data leak without auth)
+//   - GET /temp-fix-missing-teachers (DB write without auth)
+// Use `php artisan` commands directly via server SSH/Coolify console instead.
+// ──────────────────────────────────────────────────────────────────────────────
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\DashboardController;
@@ -156,42 +56,12 @@ use App\Http\Controllers\Api\StudentStatisticsController;
 |--------------------------------------------------------------------------
 */
 
-// ── Temporary Cleanup Route (Delete after use) ──
-Route::get('temp-cleanup', function () {
-    $tables = ['schools', 'notifications', 'teachers', 'students', 'users', 'activity_logs', 'sk_documents'];
-    $fixed  = 0;
-    foreach ($tables as $table) {
-        if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue;
-        $rows = \Illuminate\Support\Facades\DB::table($table)->get();
-        foreach ($rows as $row) {
-            $updates = [];
-            $id = $row->id ?? null;
-            if (!$id) continue;
-            foreach ($row as $key => $val) {
-                if (is_string($val) && $val !== '') {
-                    $clean = htmlspecialchars_decode(htmlspecialchars($val, ENT_SUBSTITUTE, 'UTF-8'));
-                    if ($clean !== $val) {
-                        $updates[$key] = $clean;
-                    }
-                }
-            }
-            if (!empty($updates)) {
-                \Illuminate\Support\Facades\DB::table($table)->where('id', $id)->update($updates);
-                $fixed++;
-            }
-        }
-    }
-    return response()->json(['success' => true, 'fixed_rows' => $fixed]);
-});
-
-// ── Temporary script to run populate-jenjang ──
-Route::get('run-script-jenjang', function () {
-    \Illuminate\Support\Facades\Artisan::call('schools:populate-jenjang');
-    return response()->json([
-        'success' => true,
-        'output' => \Illuminate\Support\Facades\Artisan::output()
-    ]);
-});
+// ── [SECURITY] Temporary destructive routes REMOVED ──────────────────────────
+// Routes removed on 2026-08-10 (Phase 1.5 Security Remediation):
+//   - GET /temp-cleanup      (mass data modification across 7 tables without auth)
+//   - GET /run-script-jenjang (artisan command execution without auth)
+// Use `php artisan schools:populate-jenjang` via server SSH/Coolify console instead.
+// ──────────────────────────────────────────────────────────────────────────────
 
 // ── Public / Auth ──
 Route::prefix('auth')->group(function () {
@@ -245,10 +115,7 @@ Route::prefix('public/meetings')->group(function () {
 Route::get('meetings/{meeting}/photos/{photo}/file', [MeetingPhotoController::class, 'show']);
 Route::get('meetings/{meeting}/photos/{photo}/thumbnail', [MeetingPhotoController::class, 'thumbnail']);
 
-// Test route untuk debug
-Route::get('test-minio', function() {
-    return response()->json(['status' => 'ok', 'message' => 'MinIO proxy test endpoint']);
-})->name('test.minio');
+// [SECURITY] test-minio debug route removed on 2026-08-10 (Phase 1.5 Security Remediation)
 
 // ── Protected Routes ──
 Route::middleware('auth:sanctum')->group(function () {
@@ -628,8 +495,13 @@ Route::prefix('public/meetings')->group(function () {
     Route::post('{meeting}/walk-in', [\App\Http\Controllers\Api\PublicMeetingWalkInController::class, 'store']);
 });
 
-// ── Emergency Backup & Restore (Temporary Routes) ──
-Route::prefix('emergency')->group(function () {
+// ── Emergency Backup & Restore ──
+// [SECURITY 2026-08-10] Protected with authentication + super_admin role.
+// These endpoints were previously unauthenticated. Now requires:
+//   1. Valid Bearer token (auth:sanctum)
+//   2. Role: super_admin
+// To use: Login as super_admin, then call with Authorization: Bearer {token}
+Route::middleware(['auth:sanctum', 'role:super_admin'])->prefix('emergency')->group(function () {
     Route::get('backup', [\App\Http\Controllers\Api\EmergencyBackupController::class, 'backup']);
     Route::post('restore', [\App\Http\Controllers\Api\EmergencyBackupController::class, 'restore']);
 });

@@ -126,7 +126,7 @@ export default function DashboardPage() {
               </p>
            </div>
            {statsData && (
-             <div className="hidden items-center gap-2 px-5 py-2.5 bg-white/70 backdrop-blur-xl border border-emerald-100/80 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+             <div className="hidden items-center gap-2 px-5 py-2.5 bg-white border border-emerald-200 rounded-2xl shadow-sm">
                <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
       {/* OVERVIEW STATS */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 relative z-10">
         
-        <Card className="border-0 shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-emerald-600 to-teal-800 text-white overflow-hidden relative rounded-2xl md:col-span-1 lg:col-span-1">
+        <Card className="border border-emerald-700 shadow-sm hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-emerald-600 to-teal-800 text-white overflow-hidden relative rounded-2xl md:col-span-1 lg:col-span-1">
           <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between space-x-4">
                 <div className="flex flex-col space-y-1">
@@ -154,7 +154,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl overflow-hidden relative rounded-2xl">
+        <Card className="border border-slate-200 shadow-sm hover:-translate-y-1 transition-all duration-300 bg-white overflow-hidden relative rounded-2xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between space-x-4 relative z-10">
                 <div className="flex flex-col space-y-1">
@@ -171,7 +171,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-all duration-300 bg-white/70 backdrop-blur-xl relative overflow-hidden rounded-2xl">
+        <Card className="border border-slate-200 shadow-sm hover:-translate-y-1 transition-all duration-300 bg-white relative overflow-hidden rounded-2xl">
           <CardContent className="p-6">
              <div className="flex items-center justify-between space-x-4 relative z-10">
                 <div className="flex flex-col space-y-1">
@@ -185,7 +185,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-950 text-white overflow-hidden relative rounded-2xl">
+        <Card className="border border-slate-800 shadow-sm hover:-translate-y-1 transition-all duration-300 bg-gradient-to-br from-slate-800 to-slate-950 text-white overflow-hidden relative rounded-2xl">
           <CardContent className="p-6 h-full flex flex-col justify-between">
             <div className="flex items-center justify-between space-x-4 relative z-10">
                 <div className="flex flex-col space-y-1">

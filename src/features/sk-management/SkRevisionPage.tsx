@@ -250,11 +250,10 @@ export default function SkRevisionPage() {
                     
                     <CardFooter className="p-10 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Membutuhkan Verifikasi Admin</p>
-                        <div className="flex gap-4">
-                            <Button type="button" variant="ghost" onClick={() => navigate(-1)} className="rounded-xl h-12 px-8 text-xs font-black uppercase tracking-widest text-slate-400">Batal</Button>
-                            <Button type="submit" disabled={isSubmitting || !formData.reason.trim()} className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-12 px-8 text-xs font-black uppercase tracking-widest shadow-xl shadow-amber-100">
-                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} 
-                                Ajukan Perbaikan
+                        <div className="flex gap-3">
+                            <Button type="button" variant="outline" onClick={() => navigate(-1)}>Batal</Button>
+                            <Button type="submit" variant="warning" isLoading={isSubmitting} disabled={!formData.reason.trim()}>
+                                <Save className="mr-2 h-4 w-4" /> Ajukan Perbaikan
                             </Button>
                         </div>
                     </CardFooter>

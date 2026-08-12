@@ -390,12 +390,14 @@ export default function YayasanApprovalPage() {
 
   return (
     <div className="space-y-10 pb-20">
-        <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Otoritas Ketua Yayasan</h1>
-            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2">
-               <BadgeCheck className="w-4 h-4 text-emerald-500" /> Panel Persetujuan Struktural & Pengangkatan Kamad
-            </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Otoritas Ketua Yayasan</h1>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-2 truncate">
+             <BadgeCheck className="w-4 h-4 text-emerald-600 shrink-0" /> Panel Persetujuan Struktural & Pengangkatan Kamad
+          </p>
         </div>
+      </div>
 
         {/* Global Settings */}
         <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
@@ -441,7 +443,7 @@ export default function YayasanApprovalPage() {
         <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
             <div className="overflow-x-auto">
                 <Table>
-                    <TableHeader className="bg-slate-50 border-b border-slate-100">
+                    <TableHeader className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10 shadow-sm">
                         <TableRow>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Informasi Calon</TableHead>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Madrasah Tujuan</TableHead>

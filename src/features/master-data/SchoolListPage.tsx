@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog } from "lucide-react"
 import { useState } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate, Link } from "react-router-dom"
@@ -24,6 +24,7 @@ import { schoolApi } from "@/lib/api"
 import { toast } from "sonner"
 import ExcelImportModal from "./components/ExcelImportModal"
 import * as XLSX from "xlsx"
+import HeadmasterProfileForm from "../schools/components/HeadmasterProfileForm"
 
 interface School {
   id: number
@@ -41,6 +42,11 @@ interface School {
   provinsi?: string
   kabupaten?: string
   kelurahan?: string
+  kepala_whatsapp?: string
+  kepala_jabatan_mulai?: string
+  kepala_jabatan_selesai?: string
+  sk_submission_unlocked?: boolean
+  jenjang?: string
 }
 
 export default function SchoolListPage() {
@@ -60,6 +66,7 @@ export default function SchoolListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [filterKecamatan, setFilterKecamatan] = useState("all")
+  const [selectedHeadmasterSchool, setSelectedHeadmasterSchool] = useState<School | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 15
 
@@ -84,6 +91,26 @@ export default function SchoolListPage() {
       queryClient.invalidateQueries({ queryKey: ['schools'] })
       toast.success("Sekolah berhasil dihapus")
     }
+  })
+
+  const toggleSkMutation = useMutation({
+    mutationFn: ({ schoolId, unlocked }: { schoolId: number; unlocked: boolean | null }) =>
+      schoolApi.toggleSkSubmission(schoolId, unlocked),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
+      const label = variables.unlocked === true ? 'dibuka' : variables.unlocked === false ? 'ditutup paksa' : 'direset ke default'
+      toast.success(`Pengajuan SK berhasil ${label}`)
+    },
+    onError: () => toast.error('Gagal mengubah status pengajuan SK'),
+  })
+
+  const resetAllSkMutation = useMutation({
+    mutationFn: () => schoolApi.resetAllSkSubmission(),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
+      toast.success(data?.message || 'Semua izin pengajuan SK berhasil direset')
+    },
+    onError: () => toast.error('Gagal mereset izin pengajuan SK'),
   })
 
   const [isAddOpen, setIsAddOpen] = useState(false)
@@ -329,24 +356,51 @@ export default function SchoolListPage() {
     }
   }
 
+  const totalStudents = React.useMemo(() => schoolsData?.meta?.total_students || 0, [schoolsData])
+
+  if (selectedHeadmasterSchool) {
+    return (
+      <div className="space-y-6 pb-10 max-w-5xl mx-auto">
+        <div className="flex items-center gap-4 mb-4">
+          <Button variant="outline" size="sm" onClick={() => setSelectedHeadmasterSchool(null)} className="rounded-xl">
+            Kembali ke Daftar
+          </Button>
+          <div>
+            <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase">
+              Edit Profil Kepala Madrasah
+            </h2>
+            <p className="text-sm text-slate-500 font-medium">
+              {selectedHeadmasterSchool.nama} • {selectedHeadmasterSchool.kecamatan}
+            </p>
+          </div>
+        </div>
+        <HeadmasterProfileForm
+          school={selectedHeadmasterSchool}
+          onSuccess={() => setSelectedHeadmasterSchool(null)}
+          onCancel={() => setSelectedHeadmasterSchool(null)}
+          isAdminMode={true}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 pb-10">
       <SoftPageHeader
         title="Profil Lembaga"
-        description="Manajemen profil satuan pendidikan di lingkungan LP Ma'arif NU Cilacap"
+        description="Kelola data dan identitas satuan pendidikan di lingkungan LP Ma'arif NU Cilacap."
         actions={[
-          { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
-          // Only Superadmin can access these sensitive actions
+          { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'outline', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
           ...(isSuperAdmin ? [
-              { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'purple', icon: <Trash2 className="h-4 w-4" /> },
-              { label: 'Tambah Manual', onClick: openAdd, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
-              { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'purple', icon: <KeyRound className="h-4 w-4" /> },
-              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
+              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'outline', icon: <FileSpreadsheet className="h-4 w-4" /> },
+              { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'outline', icon: <KeyRound className="h-4 w-4" /> },
+              { label: 'Hapus Semua', onClick: () => setIsDeleteAllOpen(true), variant: 'destructive', icon: <Trash2 className="h-4 w-4" /> },
+              { label: 'Tambah Sekolah', onClick: openAdd, variant: 'default', icon: <Plus className="h-4 w-4" /> },
           ] : [])
         ]}
       />
 
-      <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white/80 backdrop-blur-md">
+      <Card className="border border-slate-200 shadow-sm rounded-2xl overflow-hidden bg-white">
         <CardHeader className="p-6 border-b border-slate-100">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <div className="relative flex-1 w-full max-w-md">
@@ -374,14 +428,13 @@ export default function SchoolListPage() {
         </CardHeader>
         <CardContent className="p-0">
             <Table>
-                <TableHeader className="bg-emerald-50/50">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                     <TableRow className="border-b-0 hover:bg-transparent">
-                        <TableHead className="py-3 px-4 font-bold text-emerald-800 rounded-tl-xl">NSM</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">NSM</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800">Nama Sekolah</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800">Kecamatan</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800">Kepala Sekolah</TableHead>
-                        <TableHead className="py-3 px-4 font-bold text-emerald-800">No. HP</TableHead>
-                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Status</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800 text-center">Pengajuan SK</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -389,7 +442,20 @@ export default function SchoolListPage() {
                     {isLoading ? (
                         <TableRow><TableCell colSpan={7} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-emerald-500" /></TableCell></TableRow>
                     ) : schools.length === 0 ? (
-                        <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-400 font-medium">Tidak ada data lembaga.</TableCell></TableRow>
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-48 text-center">
+                            <div className="flex flex-col items-center justify-center text-slate-500">
+                              <School className="h-12 w-12 text-slate-300 mb-3" />
+                              <p className="font-semibold text-slate-600">Tidak ada data lembaga</p>
+                              <p className="text-sm mt-1 mb-4">Tambahkan data lembaga baru atau sesuaikan filter pencarian Anda.</p>
+                              {isSuperAdmin && (
+                                <Button onClick={openAdd} variant="outline" size="sm">
+                                  <Plus className="h-4 w-4 mr-2" /> Tambah Lembaga
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
                     ) : (
                         schools.map((item: School) => (
                             <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
@@ -400,25 +466,64 @@ export default function SchoolListPage() {
                                         <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
                                         <span className="truncate">{item.alamat || '-'}</span>
                                     </div>
-                                </TableCell>
-                                <TableCell className="px-4 py-3 text-sm text-slate-600">{item.kecamatan}</TableCell>
-                                <TableCell className="px-4 py-3 text-sm text-slate-600">{item.kepala_madrasah}</TableCell>
-                                <TableCell className="px-4 py-3 text-sm text-slate-600 font-medium">{item.telepon || '-'}</TableCell>
-                                <TableCell className="px-4 py-3">
-                                    <Badge variant="outline" className="rounded-lg bg-slate-50 text-slate-600 border-slate-200 font-medium px-2 py-0.5 text-xs">
+                                    <Badge variant="outline" className="mt-1 rounded-lg bg-slate-50 text-slate-600 border-slate-200 font-medium px-2 py-0.5 text-[10px]">
                                         {item.status_jamiyyah}
                                     </Badge>
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-sm text-slate-600">{item.kecamatan}</TableCell>
+                                <TableCell className="px-4 py-3">
+                                  <div className="text-sm font-medium text-slate-900">{item.kepala_madrasah || "-"}</div>
+                                  {item.kepala_whatsapp && <div className="text-xs text-slate-400 mt-0.5">{item.kepala_whatsapp}</div>}
+                                </TableCell>
+                                <TableCell className="px-4 py-3 text-center">
+                                  {(() => {
+                                    const jenjang = (item.jenjang || "").toUpperCase()
+                                    const isRaTk = jenjang === "RA" || jenjang === "TK" || jenjang.includes("RA") || jenjang.includes("TK")
+                                    if (isRaTk) {
+                                      return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px]">Selalu Buka</Badge>
+                                    }
+                                    const isUnlocked = item.sk_submission_unlocked === true
+                                    const isPending = toggleSkMutation.isPending
+                                    return (
+                                      <div className="flex flex-col items-center gap-1">
+                                        {isUnlocked ? (
+                                          <Button
+                                            size="sm" variant="outline"
+                                            className="h-6 text-[10px] px-2 py-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded"
+                                            disabled={isPending || !isSuperAdmin}
+                                            onClick={(e) => { e.stopPropagation(); toggleSkMutation.mutate({ schoolId: item.id, unlocked: null }) }}
+                                            title="Sedang dibuka. Klik untuk reset ke default (ditutup)."
+                                          >
+                                            {isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <LockOpen className="h-3 w-3 mr-1" />}
+                                            Dibuka
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            size="sm" variant="outline"
+                                            className="h-6 text-[10px] px-2 py-0 border-slate-200 text-slate-500 hover:bg-slate-50 rounded"
+                                            disabled={isPending || !isSuperAdmin}
+                                            onClick={(e) => { e.stopPropagation(); toggleSkMutation.mutate({ schoolId: item.id, unlocked: true }) }}
+                                            title="Sedang ditutup. Klik untuk buka paksa izin."
+                                          >
+                                            {isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Lock className="h-3 w-3 mr-1" />}
+                                            Ditutup
+                                          </Button>
+                                        )}
+                                      </div>
+                                    )
+                                  })()}
                                 </TableCell>
                                 <TableCell className="px-4 py-3 text-right">
                                     <div className="flex gap-1 items-center justify-end">
                                         <Link to={`/dashboard/master/schools/${item.id}`}>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"><Eye className="h-3.5 w-3.5" /></Button>
+                                            <Button variant="ghost" size="icon-sm" title="Detail"><Eye className="h-4 w-4 text-slate-600" /></Button>
                                         </Link>
                                         {isSuperAdmin && (
                                             <>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" title="Generate Akun" onClick={() => handleGenerateSingle(item)}><KeyRound className="h-3.5 w-3.5" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-100" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                                <Button variant="ghost" size="icon-sm" title="Kelola Kepala Madrasah" onClick={() => setSelectedHeadmasterSchool(item)}><UserCog className="h-4 w-4 text-purple-600" /></Button>
+                                                <Button variant="ghost" size="icon-sm" title="Generate Akun" onClick={() => handleGenerateSingle(item)}><KeyRound className="h-4 w-4 text-blue-600" /></Button>
+                                                <Button variant="ghost" size="icon-sm" title="Edit Lembaga" onClick={() => openEdit(item)}><Edit className="h-4 w-4 text-slate-600" /></Button>
+                                                <Button variant="ghost" size="icon-sm" title="Hapus Lembaga" onClick={() => setConfirmDelete(item)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
                                             </>
                                         )}
                                     </div>
@@ -521,7 +626,7 @@ export default function SchoolListPage() {
             </div>
             <DialogFooter className="border-t pt-4">
                 <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
-                <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700">Simpan Data</Button>
+                <Button variant="default" onClick={handleSave}>Simpan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

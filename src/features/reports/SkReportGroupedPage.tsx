@@ -225,15 +225,7 @@ export default function SkReportGroupedPage() {
       `}</style>
 
       {/* ── HEADER ── */}
-      <div className="no-print bg-white border-b px-10 py-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-            {activeTab === 'per-sekolah' ? 'Laporan Pengajuan SK Per Sekolah' : 'Laporan Sekolah Belum Mengajukan SK'}
-          </h1>
-          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">
-            {activeTab === 'per-sekolah' ? 'Rekapitulasi Dikelompokkan Per Unit Kerja' : 'Daftar Madrasah Yang Belum Mengajukan SK Pada Periode Ini'}
-          </p>
-        </div>
+      <div className="no-print flex items-center justify-end py-4">
         <div className="flex gap-3">
           {activeTab === 'per-sekolah' ? (
             <>
@@ -270,14 +262,8 @@ export default function SkReportGroupedPage() {
       </div>
 
       {/* ── NAVIGATION TABS ── */}
-      <div className="no-print bg-white border-b px-10">
+      <div className="no-print border-b px-2 mb-4">
         <div className="flex gap-1">
-          <Link
-            to="/dashboard/reports/sk"
-            className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-lg transition-colors"
-          >
-            Detail SK
-          </Link>
           <button
             onClick={() => setActiveTab('per-sekolah')}
             className={`px-4 py-3 text-xs font-bold rounded-t-lg transition-colors ${

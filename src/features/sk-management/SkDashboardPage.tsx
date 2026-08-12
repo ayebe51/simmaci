@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 /**
 /**
@@ -239,21 +240,35 @@ export default function SkDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-blue-900 uppercase">Manajemen SK Digital</h1>
-          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Manajemen SK Digital</h1>
+          <p className="text-sm text-slate-500 mt-1 truncate">
             Pusat Penerbitan & Verifikasi Surat Keputusan PC LP Ma'arif NU Cilacap
           </p>
         </div>
-        <div className="flex gap-3">
-            <Button 
-                onClick={() => navigate("/dashboard/sk/new")}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 h-12 shadow-lg shadow-blue-50 transition-all font-bold"
-            >
-                <FilePlus className="mr-2 h-4 w-4" />
-                Ajukan SK Baru
-            </Button>
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 h-12 shadow-lg shadow-blue-50 transition-all font-bold"
+                >
+                    <FilePlus className="mr-2 h-4 w-4" />
+                    Ajukan SK Baru
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                <DropdownMenuItem onClick={() => navigate("/dashboard/sk/new")} className="cursor-pointer font-medium py-3">
+                  <FileText className="mr-2 h-4 w-4 text-blue-600" /> SK Guru / Tendik
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/sk-kepala/new")} className="cursor-pointer font-medium py-3">
+                  <Crown className="mr-2 h-4 w-4 text-amber-600" /> SK Kepala Madrasah
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")} className="cursor-pointer font-medium py-3">
+                  <FileText className="mr-2 h-4 w-4 text-emerald-600" /> Rekomendasi Kepala
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </div>
 
@@ -315,8 +330,8 @@ export default function SkDashboardPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/50 border-b border-slate-100 hover:bg-slate-50/50">
+              <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                <TableRow className="border-b border-slate-100 hover:bg-transparent">
                   <TableHead className="w-12 pl-8">
                     {statusFilter === 'draft' && (
                         <Checkbox

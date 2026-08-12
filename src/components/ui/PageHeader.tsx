@@ -45,7 +45,7 @@ export default function PageHeader({
   description,
   icon,
   actions = [],
-  gradient = 'from-blue-600 via-blue-700 to-indigo-800',
+  gradient = 'from-emerald-700 via-emerald-800 to-teal-900',
   children
 }: PageHeaderProps) {
   return (
@@ -63,7 +63,7 @@ export default function PageHeader({
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
             {description && (
-              <p className="mt-1 text-blue-100">
+              <p className="mt-1 text-emerald-50/80">
                 {description}
               </p>
             )}

@@ -110,8 +110,8 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 pb-8 px-6">
-            <Button className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold shadow-lg hover:shadow-emerald-500/30 transition-all duration-300" type="submit" disabled={loading}>
-              {loading ? "Menghubungkan..." : "Masuk ke Sistem"}
+            <Button variant="default" size="lg" className="w-full font-bold shadow-lg" type="submit" isLoading={loading}>
+              Masuk ke Sistem
             </Button>
             <div className="w-full text-center text-xs text-emerald-200/60 font-medium">
               <p>v1.0 &bull; Lembaga Pendidikan Ma'arif NU Cilacap</p>

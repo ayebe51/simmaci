@@ -167,9 +167,9 @@ export default function StudentListPage() {
         description="Data peserta didik di lingkungan LP Ma'arif NU Cilacap"
         actions={[
           ...(canEdit ? [
-              { label: 'Naik Kelas', onClick: () => setIsTransitionModalOpen(true), variant: 'blue', icon: <ArrowUpDown className="h-5 w-5" /> },
-              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'cream', icon: <FileSpreadsheet className="h-5 w-5" /> },
-              { label: 'Tambah Manual', onClick: () => { setFormData({}); setIsAddOpen(true); }, variant: 'mint', icon: <Plus className="h-5 w-5" /> }
+              { label: 'Naik Kelas', onClick: () => setIsTransitionModalOpen(true), variant: 'outline', icon: <ArrowUpDown className="h-4 w-4" /> },
+              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'outline', icon: <FileSpreadsheet className="h-4 w-4" /> },
+              { label: 'Tambah Siswa', onClick: () => { setFormData({}); setIsAddOpen(true); }, variant: 'default', icon: <Plus className="h-4 w-4" /> }
           ] : [])
         ]}
       />
@@ -302,14 +302,13 @@ export default function StudentListPage() {
                                 {canEdit && (
                                     <TableCell className="text-center align-top pt-4 border-l bg-white/40 backdrop-blur-sm sticky right-0">
                                         <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => {
-                                                setFormData({...item, tanggal_lahir: item.tanggal_lahir ? new Date(item.tanggal_lahir).toISOString().split('T')[0] : ''})
+                                            <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => {
+                                                setFormData(item)
+                                                setIsEditMode(true)
                                                 setIsAddOpen(true)
-                                            }}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}>
-                                                <Trash2 className="h-4 w-4" />
+                                            }}><Edit className="h-4 w-4 text-slate-600" /></Button>
+                                            <Button variant="ghost" size="icon-sm" title="Hapus" onClick={() => setConfirmDelete(item)}>
+                                                <Trash2 className="h-4 w-4 text-red-600" />
                                             </Button>
                                         </div>
                                     </TableCell>
@@ -516,8 +515,8 @@ export default function StudentListPage() {
             </div>
 
             <DialogFooter className="mt-8 border-t pt-4">
-                <Button variant="outline" className="rounded-xl px-6" onClick={() => setIsAddOpen(false)}>Batal</Button>
-                <Button className="rounded-xl px-8 bg-emerald-600 hover:bg-emerald-700" onClick={handleSave}>Simpan</Button>
+                <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
+                <Button variant="default" onClick={handleSave}>Simpan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>

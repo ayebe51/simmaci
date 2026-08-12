@@ -163,10 +163,12 @@ export default function UserListPage() {
                <ShieldCheck className="w-3 h-3 text-emerald-500" /> Kontrol Keamanan & Hak Akses Hirarki Pengguna
             </p>
         </div>
-        <div className="flex gap-4">
-            <Button variant="outline" onClick={handleExportExcel} className="h-14 rounded-2xl px-8 border-slate-200 font-black uppercase text-[10px] tracking-widest shadow-sm">Export</Button>
-            <Button onClick={() => { setEditingUser(null); setFormData({name:"", email:"", password:"", role:"operator", school_id:"", is_active:true}); setIsDialogOpen(true)}} className="h-14 rounded-2xl px-10 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100">
-                <Plus className="w-5 h-5 mr-2" /> Tambah Akun
+        <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={handleExportExcel}>
+                Export Excel
+            </Button>
+            <Button variant="default" onClick={() => { setEditingUser(null); setFormData({name:"", email:"", password:"", role:"operator", school_id:"", is_active:true}); setIsDialogOpen(true)}}>
+                <Plus className="w-4 h-4 mr-2" /> Tambah Akun
             </Button>
         </div>
       </div>
@@ -216,12 +218,12 @@ export default function UserListPage() {
                             </TableCell>
                             <TableCell className="p-8 font-bold text-slate-400 text-[11px] italic uppercase tracking-wider">{u.school?.nama || 'Akses Global'}</TableCell>
                             <TableCell className="p-8 text-right">
-                                <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" size="icon" onClick={() => openEdit(u)} className="h-10 w-10 rounded-xl hover:bg-blue-50 text-blue-600"><Edit className="w-4 h-4" /></Button>
+                                <div className="flex justify-end gap-1">
+                                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(u)} title="Edit"><Edit className="w-4 h-4" /></Button>
                                     {u.role !== 'super_admin' && (
                                         <>
-                                            <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(u)} className="h-10 w-10 rounded-xl hover:bg-rose-50 text-rose-600" title="Nonaktifkan"><UserX className="w-4 h-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => setConfirmForceDelete(u)} className="h-10 w-10 rounded-xl hover:bg-red-100 text-red-700" title="Hapus Permanent"><Trash2 className="w-4 h-4" /></Button>
+                                            <Button variant="ghost" size="icon-sm" onClick={() => setConfirmDelete(u)} title="Nonaktifkan"><UserX className="w-4 h-4 text-amber-600" /></Button>
+                                            <Button variant="ghost" size="icon-sm" onClick={() => setConfirmForceDelete(u)} title="Hapus Permanen"><Trash2 className="w-4 h-4 text-red-600" /></Button>
                                         </>
                                     )}
                                 </div>
@@ -281,8 +283,8 @@ export default function UserListPage() {
                   </div>
               </div>
               <DialogFooter>
-                  <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-400">Abort</Button>
-                  <Button onClick={handleSave} className="h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100">Simpan Akun</Button>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Batal</Button>
+                  <Button variant="default" onClick={handleSave}>Simpan</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>

@@ -47,7 +47,6 @@ const UserListPage = lazy(() => import("./features/users/UserListPage"))
 
 // ── Schools ───────────────────────────────────────────────────────────────────
 const SchoolProfilePage = lazy(() => import("./features/schools/SchoolProfilePage"))
-const AdminSchoolManagementPage = lazy(() => import("./features/schools/AdminSchoolManagementPage"))
 
 // ── Settings & Monitoring ─────────────────────────────────────────────────────
 const SettingsPage = lazy(() => import("./features/settings/SettingsPage"))
@@ -201,10 +200,9 @@ export default function App() {
                           <Route path="master/teachers" element={<TeacherListPage />} />
                           <Route path="users" element={<UserListPage />} />
                           <Route path="school/profile" element={<SchoolProfilePage />} />
-                          <Route path="admin/schools" element={<AdminSchoolManagementPage />} />
                           <Route path="sk" element={<SkDashboardPage />} />
                           <Route path="sk/new" element={<SkSubmissionPage />} />
-                          <Route path="sk/headmaster/new" element={<HeadmasterSubmissionPage />} />
+                          <Route path="sk/headmaster/new" element={<Navigate to="/dashboard/sdm/sk-kepala/new" replace />} />
                           <Route path="sdm/sk-kepala/new" element={<HeadmasterSubmissionPage />} />
                           <Route path="sk-saya" element={<MySkPage />} />
                           <Route path="sk/:id" element={<SkDetailPage />} />
@@ -217,16 +215,6 @@ export default function App() {
                           <Route path="sk-templates" element={<SkTemplateManagementPage />} />
                           <Route path="change-password" element={<ChangePasswordPage />} />
                           <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
-                          <Route path="reports/sk" element={
-                            <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
-                              <SkReportPageSimple />
-                            </ErrorBoundary>
-                          } />
-                          <Route path="reports/sk-grouped" element={
-                            <ErrorBoundary fallback={<div className="p-6 text-center text-red-500">Failed to load SK Report. data error.</div>}>
-                              <SkReportGroupedPage />
-                            </ErrorBoundary>
-                          } />
                           <Route path="reports" element={<ReportPage />} />
                           <Route path="kta" element={<KtaGeneratorPage />} />
                           <Route path="student-card" element={<StudentCardPage />} />

@@ -58,10 +58,10 @@ export default function EventsPage() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Manajemen Lomba / Event</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Kelola Anugerah Pendidikan & Festival Aswaja LP Ma'arif NU</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Manajemen Lomba / Event</h1>
+          <p className="text-sm text-slate-500 mt-1 truncate">Kelola Anugerah Pendidikan & Festival Aswaja LP Ma'arif NU</p>
         </div>
         <Link to="/dashboard/events/new">
           <Button className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export default function EventsPage() {
             const hasAnugerah  = event.competitions?.some((c: any) => ['guru_berprestasi','madrasah_berprestasi'].includes(c.lomba_type));
             return (
               <Link to={`/dashboard/events/${event.id}`} key={event.id} className="block group">
-                <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer h-full relative border-0 shadow-sm bg-white/80 backdrop-blur-sm overflow-hidden rounded-2xl hover:-translate-y-0.5">
+                <Card className="hover:shadow-md transition-all duration-200 cursor-pointer h-full relative border border-slate-200 shadow-sm bg-white overflow-hidden rounded-2xl hover:-translate-y-0.5">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 min-w-0">

@@ -76,14 +76,11 @@ export default function MeetingListPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-emerald-600" />
-            Rapat Yayasan
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Kelola rapat dan absensi peserta LP Ma'arif NU Cilacap
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-2">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Rapat Yayasan</h1>
+          <p className="text-sm text-slate-500 mt-1 flex items-center gap-2 truncate">
+             <CalendarDays className="h-4 w-4 text-emerald-600 shrink-0" /> Kelola rapat dan absensi peserta LP Ma'arif NU Cilacap
           </p>
         </div>
         {isAdmin && (
@@ -170,7 +167,7 @@ export default function MeetingListPage() {
           {meetings.map((meeting) => (
             <Card
               key={meeting.id}
-              className="hover:shadow-md transition-shadow cursor-pointer border-slate-200"
+              className="hover:shadow-md transition-all duration-200 cursor-pointer border-slate-200 rounded-2xl hover:-translate-y-0.5 bg-white"
               onClick={() => navigate(`/dashboard/meetings/${meeting.id}`)}
             >
               <CardHeader className="pb-2">

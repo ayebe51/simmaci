@@ -346,11 +346,13 @@ export default function MySkPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black tracking-tight text-blue-900 uppercase">Arsip SK Unit Kerja</h1>
-        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
-           Daftar SK Digital Madrasah: <span className="text-blue-600">{user?.unitKerja || "Seluruh Unit"}</span>
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Arsip SK Unit Kerja</h1>
+          <p className="text-sm text-slate-500 mt-1 truncate">
+             Daftar SK Digital Madrasah: <span className="text-blue-600">{user?.unitKerja || "Seluruh Unit"}</span>
+          </p>
+        </div>
       </div>
 
       <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
@@ -373,7 +375,7 @@ export default function MySkPage() {
         </CardHeader>
         <CardContent className="p-0">
             <Table>
-                <TableHeader className="bg-slate-50/50">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                     <TableRow className="border-slate-100">
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 pl-10">Nomor SK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Guru / PTK</TableHead>
@@ -432,7 +434,7 @@ export default function MySkPage() {
         </CardHeader>
         <CardContent className="p-0">
              <Table>
-                <TableHeader className="bg-slate-50/50">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                     <TableRow className="border-slate-100">
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 pl-10">Nama Kepala</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Periode</TableHead>

@@ -86,7 +86,9 @@ export default function JuryScoringPage() {
     setScores(p => ({
       ...p,
       [pid]: {
-        rank: '', score: '', notes: '', breakdown: {},
+        rank: p[pid]?.rank ?? '',
+        score: p[pid]?.score ?? '',
+        notes: p[pid]?.notes ?? '',
         ...p[pid],
         breakdown: { ...(p[pid]?.breakdown ?? {}), [component]: val },
       },

@@ -35,6 +35,7 @@ class WaBlastController extends Controller
             'created_at_from' => $request->input('date_from'),
             'created_at_to'   => $request->input('date_to'),
             'per_page'        => $request->integer('per_page', 15),
+            'page'            => $request->integer('page', 1),
         ];
 
         $paginator = $this->blastRepository->paginate($filters);

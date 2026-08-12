@@ -238,11 +238,11 @@ export default function SkDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard/sk")}
-          className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0"
+          className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0 self-start"
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Dashboard
         </Button>
@@ -327,7 +327,7 @@ export default function SkDetailPage() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
-          <Card className="border-0 shadow-sm rounded-[2.5rem] overflow-hidden">
+          <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="p-10 border-b bg-slate-50/50">
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
@@ -367,7 +367,7 @@ export default function SkDetailPage() {
           </Card>
 
           {isAdmin && badgeStatus === "submitted" && (
-            <Card className="border-0 bg-blue-600 text-white rounded-[2.5rem] shadow-xl shadow-blue-100 p-2 overflow-hidden">
+            <Card className="border-0 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-100 p-2 overflow-hidden">
               <CardHeader className="p-8">
                 <CardTitle className="text-xl font-black uppercase tracking-tight">Panel Persetujuan Admin</CardTitle>
                 <CardDescription className="text-blue-100 font-medium">Data ini memerlukan verifikasi akhir sebelum nomor SK diterbitkan secara otomatis.</CardDescription>
@@ -390,7 +390,7 @@ export default function SkDetailPage() {
           )}
 
           {/* Riwayat Aktivitas / Approval History */}
-          <Card className="border-0 shadow-sm rounded-[2.5rem] overflow-hidden">
+          <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="p-8 pb-6 bg-slate-50/50 border-b">
               <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-800">
                 Riwayat Aktivitas
@@ -406,7 +406,7 @@ export default function SkDetailPage() {
         </div>
 
         <div className="space-y-8">
-          <Card className="border-0 shadow-sm rounded-[2rem] overflow-hidden">
+          <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="p-8 pb-4 bg-slate-50/50">
               <CardTitle className="text-xs font-black uppercase tracking-widest text-slate-400">Metadata Sistem</CardTitle>
             </CardHeader>
@@ -437,7 +437,7 @@ export default function SkDetailPage() {
       </div>
 
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="rounded-[2.5rem] p-10 sm:max-w-md border-0 ring-1 ring-slate-100">
+        <DialogContent className="rounded-2xl p-10 sm:max-w-md border-0 ring-1 ring-slate-100">
           <DialogHeader className="items-center text-center">
             <div className={`h-16 w-16 rounded-3xl flex items-center justify-center mb-6 ${
                 pendingAction === "approved" ? "bg-emerald-50 text-emerald-600" : 

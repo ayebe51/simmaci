@@ -262,9 +262,10 @@ export default function WaBlastCreatePage() {
           Batal
         </Button>
         <Button
+          variant="default"
           onClick={handleSubmit}
-          disabled={configMissing || isSubmitting}
-          className="bg-emerald-600 hover:bg-emerald-700"
+          disabled={configMissing}
+          isLoading={isSubmitting}
         >
           <Send className="h-4 w-4 mr-2" />
           {scheduledAt ? "Jadwalkan Blast" : "Kirim Sekarang"}
@@ -302,11 +303,11 @@ export default function WaBlastCreatePage() {
               Batal
             </Button>
             <Button
+              variant="default"
               onClick={handleConfirmSend}
-              disabled={isSubmitting}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              isLoading={isSubmitting}
             >
-              {isSubmitting ? "Mengirim..." : "Ya, Kirim"}
+              Ya, Kirim
             </Button>
           </DialogFooter>
         </DialogContent>

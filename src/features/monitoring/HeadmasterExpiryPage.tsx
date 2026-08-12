@@ -46,8 +46,8 @@ export default function HeadmasterExpiryPage() {
                         Peringatan Dini Kepala Madrasah dengan masa bhakti <span className="text-blue-600">≤ 6 Bulan (180 Hari)</span>
                     </p>
                 </div>
-                <Button onClick={handleDownloadExcel} disabled={!headmasters.length} className="h-14 px-10 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100">
-                    <FileDown className="mr-2 h-5 w-5" /> Download Excel
+                <Button variant="outline" onClick={handleDownloadExcel} disabled={!headmasters.length}>
+                    <FileDown className="mr-2 h-4 w-4" /> Export Excel
                 </Button>
             </div>
 

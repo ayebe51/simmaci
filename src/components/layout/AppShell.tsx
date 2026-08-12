@@ -38,7 +38,9 @@ import { useState } from "react"
 import { useNavigate, useLocation, Link } from "react-router-dom"
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary"
 import { NotificationDropdown } from "@/components/common/NotificationDropdown"
+import { Breadcrumbs } from "@/components/common/Breadcrumbs"
 import { Toaster } from "sonner"
+import { navigationConfig } from "@/config/navigation"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -66,111 +68,26 @@ export default function AppShell({ children }: AppShellProps) {
   const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(userRole);
   const isOperator = userRole === "operator";
 
-  // Navigation Groups
-  const navGroups = [
-    {
-      title: "Master Data",
-      items: [
-        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { 
-          label: "Profil Lembaga", 
-          href: userRole === "operator" ? "/dashboard/school/profile" : "/dashboard/master/schools", 
-          icon: School 
-        },
-        { label: "Kelola Sekolah", href: "/dashboard/admin/schools", icon: School, adminOnly: true },
-        { label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
-        { label: "Data Siswa", href: "/dashboard/master/students", icon: User },
-        { label: "Statistik Siswa", href: "/dashboard/student-statistics", icon: BarChart3 },
-      ]
-    },
-    {
-      title: "Administrasi SK",
-      items: [
-        { label: "Generator SK", href: "/dashboard/generator", icon: FileText },
-        { label: "Pengajuan SK", href: "/dashboard/sk", icon: FileText },
-        { label: "Revisi Data SK", href: "/dashboard/sk-revisions", icon: FileEdit },
-        { label: "Arsip SK Unit", href: "/dashboard/sk-saya", icon: FileText },
-
-        { label: "Laporan SK (Detail)", href: "/dashboard/reports/sk", icon: FileBarChart },
-        { label: "Laporan SK (Per Sekolah)", href: "/dashboard/reports/sk-grouped", icon: FileBarChart },
-
-        { label: "Digital KTA", href: "/dashboard/kta", icon: CreditCard },
-        { label: "Kartu Pelajar", href: "/dashboard/student-card", icon: CreditCard },
-      ]
-    },
-    // Absensi group: only for Operators (Superadmin doesn't need it)
-    ...(!isSuperAdmin ? [{
-      title: "Absensi",
-      items: [
-        { label: "Absensi Guru", href: "/dashboard/attendance/teacher", icon: UserCheck },
-        { label: "Absensi Siswa", href: "/dashboard/attendance/student", icon: GraduationCap },
-        { label: "Buka Scanner Publik", href: "/scan", icon: ScanLine, external: true },
-        { label: "Mata Pelajaran", href: "/dashboard/attendance/subjects", icon: BookOpen },
-        { label: "Kelas / Rombel", href: "/dashboard/attendance/classes", icon: School },
-        { label: "Jadwal Jam", href: "/dashboard/attendance/schedule", icon: ClipboardList },
-        { label: "Laporan Absensi", href: "/dashboard/attendance/report", icon: FileBarChart },
-        { label: "Pengaturan Absensi", href: "/dashboard/attendance/settings", icon: Settings },
-      ]
-    }] : []),
-    {
-      title: "Manajemen SDM",
-      items: [
-        { label: "Pengajuan Rekomendasi Kepala", href: "/dashboard/sdm/rekomendasi-kepala/pengajuan", icon: Crown },
-        { label: "Pengajuan SK Kepala", href: "/dashboard/sdm/sk-kepala/new", icon: Crown },
-        { label: "Mutasi Guru", href: "/dashboard/mutations", icon: ArrowRightLeft },
-        { label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle },
-        { label: "Laporan Guru", href: "/dashboard/reports", icon: FileBarChart },
-      ]
-    },
-    {
-      title: "Staff PCNU",
-      items: [
-        { label: "Data Staff", href: "/dashboard/staff", icon: Users, superAdminOnly: true },
-        { label: "Laporan Absensi Staff", href: "/dashboard/staff/attendance-report", icon: FileBarChart, superAdminOnly: true },
-        { label: "Pengaturan Absensi", href: "/dashboard/staff/attendance-settings", icon: Settings, superAdminOnly: true },
-      ]
-    },
-    {
-      title: "Administrasi Sistem",
-      items: [
-        { label: "Approval Yayasan", href: "/dashboard/approval/yayasan", icon: Gavel },
-        { label: "Manajemen User", href: "/dashboard/users", icon: Users },
-        { label: "Health Data", href: "/dashboard/audit", icon: Stethoscope },
-        { label: "Log Aktivitas", href: "/dashboard/activity-logs", icon: Activity },
-        { label: "Event / Lomba", href: "/dashboard/events", icon: Trophy },
-        { label: "Template SK", href: "/dashboard/sk-templates", icon: LayoutTemplate },
-        { label: "Pengaturan", href: "/dashboard/settings", icon: Settings },
-      ]
-    },
-    {
-      title: "WA Blast",
-      items: [
-        { label: "Daftar Blast", href: "/dashboard/wa-blast", icon: MessageSquare },
-        { label: "Buat Blast Baru", href: "/dashboard/wa-blast/create", icon: MessageSquare },
-        { label: "Template Pesan", href: "/dashboard/wa-blast/templates", icon: LayoutTemplate },
-        { label: "Konfigurasi Go-WA", href: "/dashboard/wa-blast/config", icon: Settings, superAdminOnly: true },
-      ]
-    },
-    {
-      title: "Rapat Yayasan",
-      items: [
-        { label: "Daftar Rapat", href: "/dashboard/meetings", icon: CalendarDays },
-        { label: "Buat Rapat Baru", href: "/dashboard/meetings/create", icon: CalendarPlus, adminOnly: true },
-      ]
-    }
-  ]
+  // The `navigationConfig` is imported from @/config/navigation.ts
 
   return (
     <div className="flex h-screen w-full bg-slate-50 relative overflow-hidden print:block print:h-auto print:overflow-visible">
       {/* Subtle Background Glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-400/20 rounded-full blur-[140px] pointer-events-none print:hidden" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[140px] pointer-events-none print:hidden" />
-      <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] bg-amber-400/10 rounded-full blur-[140px] pointer-events-none print:hidden" />
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-400/10 rounded-full blur-[100px] pointer-events-none print:hidden" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-emerald-400/5 rounded-full blur-[100px] pointer-events-none print:hidden" />
+
+      {/* Mobile Backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-slate-900/50 backdrop-blur-sm transition-opacity md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex flex-col glass backdrop-blur-2xl border-r border-white/40 shadow-[4px_0_24px_rgba(16,185,129,0.05)] transition-all duration-300 ease-in-out md:static print:hidden",
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-white border-r border-slate-200 shadow-sm transition-all duration-300 ease-in-out md:static print:hidden",
           sidebarOpen ? "w-64 translate-x-0" : "w-0 -translate-x-full md:w-0 md:translate-x-0 md:opacity-0 md:overflow-hidden"
         )}
       >
@@ -190,48 +107,26 @@ export default function AppShell({ children }: AppShellProps) {
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="grid gap-2 px-3">
-            {navGroups.map((group, groupIndex) => {
+            {navigationConfig.map((group, groupIndex) => {
               const visibleItems = group.items.filter(item => {
-                  // Role-based visibility according to design.md and requirements
-                  if (item.label === "Pengaturan") return ["super_admin", "admin_yayasan", "operator"].includes(userRole);
-                  
-                  const adminRoles = ["super_admin", "admin_yayasan"];
-                  const adminOnlyLabels = [
-                    "Manajemen User", "Health Data", "Event / Lomba", 
-                    "Generator SK", "Approval Yayasan", "Monitoring Kepala", 
-                    "Laporan Guru", "Laporan SK", "Kelola Sekolah"
-                  ];
-                  const superAdminOnlyLabels = ["Template SK", "Konfigurasi Go-WA"];
-
-                  // WA Blast feature: only super_admin and admin_yayasan
-                  const waBlastLabels = ["Daftar Blast", "Buat Blast Baru", "Template Pesan"];
-                  if (waBlastLabels.includes(item.label)) {
-                      return adminRoles.includes(userRole);
+                  if (item.roles && item.roles.length > 0) {
+                      return item.roles.includes(userRole);
                   }
-
-                  // Rapat Yayasan: semua role bisa lihat daftar, hanya admin yang bisa buat
-                  if (item.label === "Buat Rapat Baru") {
-                      return adminRoles.includes(userRole);
-                  }
-
-                  if ((item as any).superAdminOnly) {
-                      return userRole === "super_admin";
-                  }
-                  if ((item as any).staffOnly) {
-                      return userRole === "staff" || userRole === "super_admin";
-                  }
-
-                  if (superAdminOnlyLabels.includes(item.label)) {
-                      return userRole === "super_admin";
-                  }
-                  if (adminOnlyLabels.includes(item.label)) {
-                      return adminRoles.includes(userRole);
-                  }
-                  return true;
-              })
+                  return true; // No roles defined means everyone can see
+              });
 
               if (visibleItems.length === 0) return null
-              const isDefaultOpen = group.title === "Master Data" || group.title === "Administrasi SK"
+
+              const allHrefs = navigationConfig.flatMap(g => g.items.map(i => i.href))
+              const exactMatchExists = allHrefs.some(h => h === location.pathname)
+
+              const isGroupActive = visibleItems.some(item => {
+                  return item.exact 
+                      ? location.pathname === item.href
+                      : location.pathname === item.href || (!exactMatchExists && location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard');
+              });
+
+              const isDefaultOpen = group.id === "master" || group.id === "sk" || isGroupActive;
 
               return (
                 <Collapsible 
@@ -239,33 +134,32 @@ export default function AppShell({ children }: AppShellProps) {
                   defaultOpen={isDefaultOpen} 
                   className="group/collapsible"
                 >
-                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-emerald-800/40 hover:bg-emerald-50/50 hover:text-emerald-800 transition-colors">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-xs font-semibold uppercase tracking-wider text-emerald-800/60 hover:bg-emerald-50/50 hover:text-emerald-800 transition-colors">
                     {group.title}
                     <ChevronDown className="h-3 w-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
                   </CollapsibleTrigger>
                   
-                  <CollapsibleContent className="space-y-1 pt-1 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+                  <CollapsibleContent className="space-y-0.5 pt-1 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
                     {visibleItems.map((item, index) => {
                       // isActive: exact match ATAU starts-with + bukan root dashboard.
                       // Kecuali: jika ada nav item LAIN yang exact-match pathname (misalnya
                       // /dashboard/sk/headmaster/new match persis ke item "Pengajuan SK Kepala"),
                       // maka item saat ini TIDAK boleh dianggap aktif via startsWith.
-                      const allHrefs = navGroups.flatMap(g => g.items.map(i => i.href))
-                      const exactMatchExists = allHrefs.some(h => h === location.pathname)
-                      const isActive = location.pathname === item.href ||
-                        (!exactMatchExists && location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard')
+                      const isActive = item.exact 
+                          ? location.pathname === item.href
+                          : location.pathname === item.href || (!exactMatchExists && location.pathname.startsWith(item.href + '/') && item.href !== '/dashboard')
 
-                      if ((item as any).external) {
+                      if (item.external) {
                         return (
                           <a
                             key={index}
                             href={item.href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 text-slate-500 hover:bg-emerald-50/50 hover:text-emerald-800"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 md:py-2 text-sm font-medium transition-all duration-300 text-slate-500 hover:bg-emerald-50/50 hover:text-emerald-800"
                           >
-                            <item.icon className="h-4.5 w-4.5 text-emerald-600/70" />
-                            {item.label}
+                            <item.icon className="h-4.5 w-4.5 shrink-0 text-emerald-600/70" />
+                            <span className="leading-tight">{item.label}</span>
                             <span className="ml-auto text-[9px] font-bold text-emerald-600/50 uppercase tracking-wider">↗</span>
                           </a>
                         )
@@ -276,14 +170,14 @@ export default function AppShell({ children }: AppShellProps) {
                           key={index}
                           to={item.href}
                           className={cn(
-                            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300 border-glow",
+                            "flex items-center gap-3 rounded-xl px-3 py-2.5 md:py-2 text-sm font-medium transition-all duration-300 border-glow",
                             isActive
                               ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-md border-transparent ring-2 ring-emerald-500/20"
                               : "text-slate-500 hover:bg-emerald-50/50 hover:text-emerald-800"
                           )}
                         >
-                          <item.icon className={cn("h-4.5 w-4.5", isActive ? "text-white" : "text-emerald-600/70")} />
-                          {item.label}
+                          <item.icon className={cn("h-4.5 w-4.5 shrink-0", isActive ? "text-white" : "text-emerald-600/70")} />
+                          <span className="leading-tight">{item.label}</span>
                         </Link>
                       )
                     })}
@@ -349,6 +243,7 @@ export default function AppShell({ children }: AppShellProps) {
 
         {/* Main Content View with Scroll */}
         <main className="flex-1 overflow-y-auto p-6 animate-slow-fade print:p-0 print:overflow-visible print:block print:h-auto">
+           <Breadcrumbs className="print:hidden" />
            {children}
         </main>
         <Toaster richColors position="top-right" />

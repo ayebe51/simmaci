@@ -169,8 +169,8 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     </div>
-                    <Button type="submit" disabled={isSaving} className="h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100">
-                        {isSaving ? <Loader2 className="animate-spin h-5 w-5" /> : 'Perbarui Kredensial'}
+                    <Button type="submit" variant="default" isLoading={isSaving}>
+                        Perbarui Kredensial
                     </Button>
                 </form>
             </Card>

@@ -111,14 +111,10 @@ export default function SkReportPageSimple() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/30 pb-20 relative font-sans">
+    <div className="bg-slate-50/30 pb-20 relative font-sans">
       <style>{`@media print { .no-print { display: none !important; } .print-only { display: block !important; } table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; } } .print-only { display: none; }`}</style>
       
-      <div className="no-print bg-white border-b px-10 py-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Pusat Data & Laporan SK</h1>
-          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">Analytics & Reporting Engine v2.0</p>
-        </div>
+      <div className="no-print flex items-center justify-end py-4">
         <div className="flex gap-3">
            <Button variant="outline" onClick={handlePrint} className="rounded-xl font-bold uppercase text-[10px] tracking-widest border-slate-200">
              <Printer className="w-4 h-4 mr-2" /> PDF / Print
@@ -129,31 +125,7 @@ export default function SkReportPageSimple() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="no-print bg-white border-b px-10">
-        <div className="flex gap-1">
-          <div className="px-4 py-3 text-xs font-bold text-emerald-700 border-b-2 border-emerald-600 bg-emerald-50/50 rounded-t-lg">
-            Detail SK
-          </div>
-          <Link
-            to="/dashboard/reports/sk-grouped"
-            className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-lg transition-colors"
-          >
-            Per Sekolah
-          </Link>
-          <Link
-            to="/dashboard/reports/sk-belum-mengajukan"
-            className="px-4 py-3 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-lg transition-colors flex items-center gap-2"
-          >
-            Belum Mengajukan
-            {!isOperator && missingData?.total != null && missingData.total > 0 && (
-              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded-full min-w-[20px]">
-                {missingData.total}
-              </span>
-            )}
-          </Link>
-        </div>
-      </div>
+
 
       <div className="container mx-auto p-10 space-y-10">
         <Card className="no-print border-0 shadow-sm bg-white rounded-[2.5rem] overflow-visible">

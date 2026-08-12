@@ -69,8 +69,8 @@ export default function SkPrintPage() {
                 <Button variant="ghost" onClick={() => navigate(-1)} className="text-slate-400 font-black uppercase tracking-widest text-[10px] hover:text-blue-600">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
                 </Button>
-                <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-[10px] px-6 rounded-xl shadow-lg shadow-blue-100">
-                    <Printer className="mr-2 h-4 w-4" /> Cetak Sekarang
+                <Button variant="default" onClick={handlePrint}>
+                  <Printer className="w-4 h-4 mr-2" /> Cetak Dokumen
                 </Button>
             </div>
 

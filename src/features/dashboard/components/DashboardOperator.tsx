@@ -63,7 +63,7 @@ export default function DashboardOperator() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           
           {/* 1. TOTAL GURU */}
-          <Card className="border-0 shadow-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white overflow-hidden relative rounded-2xl">
+          <Card className="border border-emerald-700 shadow-sm bg-gradient-to-br from-emerald-600 to-teal-800 text-white overflow-hidden relative rounded-2xl">
             <CardContent className="p-6 relative z-10 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between space-x-4">
                   <div className="flex flex-col space-y-1">
@@ -81,7 +81,7 @@ export default function DashboardOperator() {
           </Card>
           
           {/* 2. TOTAL SISWA */}
-          <Card className="border-0 shadow-sm bg-white relative overflow-hidden rounded-2xl">
+          <Card className="border border-slate-200 shadow-sm bg-white relative overflow-hidden rounded-2xl">
             <CardContent className="p-6 flex flex-col justify-between h-full">
                <div className="flex items-center justify-between space-x-4 relative z-10">
                   <div className="flex flex-col space-y-1">
@@ -96,7 +96,7 @@ export default function DashboardOperator() {
           </Card>
 
           {/* 3. SK TERBIT */}
-          <Card className="border-0 shadow-sm bg-white overflow-hidden relative rounded-2xl">
+          <Card className="border border-slate-200 shadow-sm bg-white overflow-hidden relative rounded-2xl">
             <CardContent className="p-6 flex flex-col justify-between h-full">
                <div className="flex items-center justify-between space-x-4 relative z-10">
                   <div className="flex flex-col space-y-1">

@@ -9,7 +9,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle, Fingerprint, RefreshCw } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Plus, Search, Edit, BadgeCheck, Archive, FileSpreadsheet, Download, Trash2, UserCheck, UserMinus, Loader2, Wand2, Check, X, ImagePlus, KeyRound, AlertTriangle, Fingerprint, RefreshCw, MoreHorizontal, ChevronDown, SlidersHorizontal, FilterX } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { useState, useMemo, useEffect } from "react"
@@ -550,30 +558,121 @@ export default function TeacherListPage() {
 
   return (
     <div className="space-y-6">
-      <SoftPageHeader
-        title="Data Guru & Tenaga Kependidikan"
-        description="Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap"
-        actions={[
-          { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'mint', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
+      {/* ── PAGE HEADER ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight text-gray-900">Data Guru &amp; Tenaga Kependidikan</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap</p>
+        </div>
 
-          ...(isSuperAdmin && canEdit ? [
-              { label: 'Generate NIM', onClick: () => handleOpenGenerateNim(), variant: 'purple', icon: <Fingerprint className="h-4 w-4" /> },
-              { label: 'Koreksi Status', onClick: () => recalcDryRunMutation.mutate(), variant: 'teal', icon: recalcDryRunMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />, disabled: recalcDryRunMutation.isPending },
-              { label: 'Delete All', onClick: () => setIsDeleteAllOpen(true), variant: 'red', icon: <Trash2 className="h-4 w-4" /> },
-          ] : []),
-          ...(canEdit ? [
-              { label: 'Bersihkan Data Ganda', onClick: () => deduplicateDryRunMutation.mutate(), variant: 'amber', icon: <Wand2 className="h-4 w-4" />, disabled: deduplicateDryRunMutation.isPending },
-              { label: 'Tambah Manual', onClick: () => {
-                  setFormData({ is_active: true })
-                  setIsEditMode(false)
-                  setIsAddOpen(true)
-              }, variant: 'orange', icon: <Plus className="h-4 w-4" /> },
-              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'blue', icon: <FileSpreadsheet className="h-4 w-4" /> },
-          ] : [])
-        ]}
-      />
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
 
-      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden bg-white/80 backdrop-blur-md">
+          {/* SECONDARY: Export */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="gap-1.5 text-xs h-8 px-3 border-slate-200"
+          >
+            {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Export
+          </Button>
+
+          {/* SECONDARY: Import */}
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsImportModalOpen(true)}
+              className="gap-1.5 text-xs h-8 px-3 border-slate-200"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              Import
+            </Button>
+          )}
+
+          {/* CONTEXTUAL: Generate NIM (always visible for super admin, operates on all or selection) */}
+          {isSuperAdmin && canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenGenerateNim()}
+            >
+              <Fingerprint className="h-3.5 w-3.5" />
+              Generate NIM
+            </Button>
+          )}
+
+          {/* UTILITY: Pemeliharaan dropdown (Koreksi Status, Bersihkan Data Ganda) */}
+          {canEdit && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8 px-3 border-slate-200">
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Utilitas
+                  <ChevronDown className="h-3 w-3 ml-0.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 rounded-xl">
+                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Pemeliharaan Data</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => deduplicateDryRunMutation.mutate()}
+                  disabled={deduplicateDryRunMutation.isPending}
+                  className="gap-2 text-sm cursor-pointer"
+                >
+                  <Wand2 className="h-4 w-4 text-amber-500" />
+                  Bersihkan Data Ganda
+                </DropdownMenuItem>
+                {isSuperAdmin && (
+                  <DropdownMenuItem
+                    onClick={() => recalcDryRunMutation.mutate()}
+                    disabled={recalcDryRunMutation.isPending}
+                    className="gap-2 text-sm cursor-pointer"
+                  >
+                    {recalcDryRunMutation.isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
+                      : <RefreshCw className="h-4 w-4 text-teal-500" />}
+                    Koreksi Status
+                  </DropdownMenuItem>
+                )}
+                {isSuperAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {/* DESTRUCTIVE: Isolated at bottom with visual distinction */}
+                    <DropdownMenuItem
+                      onClick={() => setIsDeleteAllOpen(true)}
+                      className="gap-2 text-sm cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Hapus Semua Data
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* PRIMARY: Tambah Manual */}
+          {canEdit && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                setFormData({ is_active: true })
+                setIsEditMode(false)
+                setIsAddOpen(true)
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Tambah Guru
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden bg-white">
         <CardHeader className="pb-5 border-b border-slate-100">
            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex-1 w-full relative max-w-md">
@@ -629,9 +728,9 @@ export default function TeacherListPage() {
                 </div>
 
                 <div className="flex bg-emerald-50/50 p-1 rounded-2xl border border-emerald-100/50">
-                    <Button variant={activeFilter === 'active' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveFilter('active')} className={`rounded-xl px-4 ${activeFilter === 'active' ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' : 'text-emerald-700 hover:bg-emerald-100/50'}`}>Aktif</Button>
-                    <Button variant={activeFilter === 'inactive' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveFilter('inactive')} className={`rounded-xl px-4 ${activeFilter === 'inactive' ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' : 'text-emerald-700 hover:bg-emerald-100/50'}`}>Non-Aktif</Button>
-                    <Button variant={activeFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveFilter('all')} className={`rounded-xl px-4 ${activeFilter === 'all' ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' : 'text-emerald-700 hover:bg-emerald-100/50'}`}>Semua</Button>
+                    <Button variant={activeFilter === 'active' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveFilter('active')}>Aktif</Button>
+                    <Button variant={activeFilter === 'inactive' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveFilter('inactive')}>Non-Aktif</Button>
+                    <Button variant={activeFilter === 'all' ? 'default' : 'ghost'} size="sm" onClick={() => setActiveFilter('all')}>Semua</Button>
                 </div>
            </div>
         </CardHeader>
@@ -662,7 +761,7 @@ export default function TeacherListPage() {
               </div>
             )}
             <Table>
-                <TableHeader className="bg-emerald-50/50">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                     <TableRow className="border-b-0 hover:bg-transparent">
                         <TableHead className="w-[36px] pl-4 rounded-tl-xl text-emerald-800">
                             <Checkbox
@@ -688,9 +787,33 @@ export default function TeacherListPage() {
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableRow><TableCell colSpan={8} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-emerald-500" /></TableCell></TableRow>
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-40 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="animate-spin h-6 w-6 text-emerald-500" />
+                              <span className="text-xs text-slate-400">Memuat data...</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                     ) : teachers.length === 0 ? (
-                        <TableRow><TableCell colSpan={8} className="h-32 text-center text-slate-400 font-medium">Tidak ada data guru.</TableCell></TableRow>
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-40 text-center">
+                            {/* Differentiate: no search result vs no data */}
+                            {debouncedSearchTerm || filterKecamatan !== 'all' || filterSchool !== 'all' || filterStatus !== 'all' ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <FilterX className="h-8 w-8 text-slate-300" strokeWidth={1.5} />
+                                <p className="text-sm font-semibold text-slate-500">Tidak ada hasil yang sesuai filter</p>
+                                <p className="text-xs text-slate-400">Coba ubah kata kunci atau reset filter</p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2">
+                                <UserMinus className="h-8 w-8 text-slate-300" strokeWidth={1.5} />
+                                <p className="text-sm font-semibold text-slate-500">Belum ada data guru</p>
+                                {canEdit && <p className="text-xs text-slate-400">Gunakan tombol Tambah Manual atau Import Excel</p>}
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
                     ) : (
                         teachers.map((item: Teacher) => (
                             <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
@@ -739,8 +862,8 @@ export default function TeacherListPage() {
                                 {canEdit && (
                                     <TableCell className="px-3 py-2.5 text-right">
                                         <div className="flex gap-1 items-center justify-end">
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(item)}><Edit className="h-3.5 w-3.5" /></Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700 hover:bg-rose-50" onClick={() => setConfirmDelete(item)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                            <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)} title="Edit"><Edit className="h-4 w-4" /></Button>
+                                            <Button variant="ghost" size="icon-sm" onClick={() => setConfirmDelete(item)} title="Hapus"><Trash2 className="h-4 w-4 text-red-600" /></Button>
                                         </div>
                                     </TableCell>
                                 )}
@@ -940,8 +1063,8 @@ export default function TeacherListPage() {
                 </div>
             </div>
             <DialogFooter className="border-t pt-4">
-                <Button variant="outline" className="rounded-xl bg-white font-bold" onClick={() => setIsAddOpen(false)}>Batal</Button>
-                <Button onClick={handleSave} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 font-bold" disabled={updateMutation.isPending}>{updateMutation.isPending ? "Menyimpan..." : "Simpan"}</Button>
+                <Button variant="outline" onClick={() => setIsAddOpen(false)}>Batal</Button>
+                <Button variant="default" onClick={handleSave} isLoading={updateMutation.isPending}>Simpan</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1019,7 +1142,7 @@ export default function TeacherListPage() {
 
       {/* ── Delete All Confirmation Dialog ── */}
       <Dialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
-        <DialogContent className="rounded-[2rem] p-8 sm:max-w-md border-0 ring-1 ring-slate-100">
+        <DialogContent className="rounded-2xl p-8 sm:max-w-md border-0 ring-1 ring-slate-100">
           <DialogHeader className="items-center text-center">
             <div className="bg-red-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
               <AlertTriangle className="h-8 w-8 text-red-500" />
@@ -1049,7 +1172,7 @@ export default function TeacherListPage() {
 
       {/* ── Generate Akun Dialog ── */}
       <Dialog open={isGenerateOpen} onOpenChange={(v) => { if (!isGenerating) setIsGenerateOpen(v) }}>
-        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-2xl p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="items-center text-center">
             <div className="bg-purple-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
               <KeyRound className="h-8 w-8 text-purple-500" />
@@ -1122,7 +1245,7 @@ export default function TeacherListPage() {
       
       {/* ── Generate NIM Dialog ── */}
       <Dialog open={isGenerateNimOpen} onOpenChange={(v) => { if (!isGeneratingNim) setIsGenerateNimOpen(v) }}>
-        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-2xl p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="items-center text-center">
             <div className="bg-purple-50 h-16 w-16 rounded-3xl flex items-center justify-center mb-4">
               <Fingerprint className="h-8 w-8 text-purple-500" />
@@ -1347,7 +1470,7 @@ export default function TeacherListPage() {
 
       {/* ── Koreksi Status Dialog ── */}
       <Dialog open={isRecalcOpen} onOpenChange={(v) => { if (!recalcMutation.isPending) setIsRecalcOpen(v) }}>
-        <DialogContent className="rounded-[2rem] p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-2xl p-8 sm:max-w-2xl border-0 ring-1 ring-slate-100 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="items-center text-center">
             <div className="w-14 h-14 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3">
               <RefreshCw className="h-6 w-6 text-teal-600" />

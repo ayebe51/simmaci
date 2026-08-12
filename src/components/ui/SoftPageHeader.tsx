@@ -13,16 +13,20 @@ interface ActionButton {
 interface SoftPageHeaderProps {
   title: string
   description?: string
+  icon?: React.ReactNode
   actions?: ActionButton[]
   className?: string
 }
 
-export default function SoftPageHeader({ title, description, actions, className }: SoftPageHeaderProps) {
+export default function SoftPageHeader({ title, description, icon, actions, className }: SoftPageHeaderProps) {
   return (
     <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
       <div className="min-w-0">
-        <h1 className="text-xl font-bold tracking-tight text-gray-900 truncate">{title}</h1>
-        {description && <p className="text-xs text-gray-500 mt-0.5 truncate">{description}</p>}
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2 truncate">
+          {icon && <span className="text-emerald-600">{icon}</span>}
+          {title}
+        </h1>
+        {description && <p className="text-sm text-slate-500 mt-1 truncate">{description}</p>}
       </div>
       
       {actions && actions.length > 0 && (

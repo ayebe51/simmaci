@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,10 +29,22 @@ export default function StudentAttendancePage() {
   const geolocation = useGeolocation();
 
   // 🔥 REST API QUERIES
-  const { data: classes = [] } = useQuery({ queryKey: ['classes'], queryFn: attendanceApi.classList });
-  const { data: subjects = [] } = useQuery({ queryKey: ['subjects'], queryFn: attendanceApi.subjectList });
+  const { data: rawClasses = [] } = useQuery({ queryKey: ['classes'], queryFn: attendanceApi.classList });
+  const { data: rawSubjects = [] } = useQuery({ queryKey: ['subjects'], queryFn: attendanceApi.subjectList });
 
-  const selectedClassName = classes.find((c: any) => c.id === Number(selectedClassId))?.nama;
+  const classList = useMemo(() => {
+    if (Array.isArray(rawClasses)) return rawClasses;
+    if (Array.isArray((rawClasses as any)?.data)) return (rawClasses as any).data;
+    return [];
+  }, [rawClasses]);
+
+  const subjectList = useMemo(() => {
+    if (Array.isArray(rawSubjects)) return rawSubjects;
+    if (Array.isArray((rawSubjects as any)?.data)) return (rawSubjects as any).data;
+    return [];
+  }, [rawSubjects]);
+
+  const selectedClassName = classList.find((c: any) => c.id === Number(selectedClassId))?.nama;
 
   const { data: studentsData, isLoading: isLoadingStudents } = useQuery({
     queryKey: ['students', 'class', selectedClassName],
@@ -58,28 +70,31 @@ export default function StudentAttendancePage() {
     }
   });
 
+  // Guard useEffect state updates to prevent infinite loop
   useEffect(() => {
-    if (existingRecords.length > 0) {
+    if (Array.isArray(existingRecords) && existingRecords.length > 0) {
       const statuses: Record<number, string> = {};
       existingRecords.forEach((r: any) => {
-        // Parse logs JSON field
         const logs = r.logs || [];
         logs.forEach((log: any) => {
           statuses[log.student_id] = log.status;
         });
       });
-      setStudentStatuses(statuses);
+      setStudentStatuses((prev) => {
+        if (JSON.stringify(prev) !== JSON.stringify(statuses)) {
+          return statuses;
+        }
+        return prev;
+      });
     } else {
-      setStudentStatuses({});
+      setStudentStatuses((prev) => {
+        if (Object.keys(prev).length > 0) {
+          return {};
+        }
+        return prev;
+      });
     }
   }, [existingRecords]);
-
-  // Show geolocation error warning
-  useEffect(() => {
-    if (geolocation.error) {
-      toast.warning(geolocation.error);
-    }
-  }, [geolocation.error]);
 
   const handleStatusChange = (studentId: number, status: string) => {
     setStudentStatuses((prev) => ({ ...prev, [studentId]: status }));
@@ -94,7 +109,6 @@ export default function StudentAttendancePage() {
         status,
       };
 
-      // Add geolocation if available
       if (geolocation.latitude && geolocation.longitude) {
         logEntry.latitude = geolocation.latitude;
         logEntry.longitude = geolocation.longitude;
@@ -122,7 +136,7 @@ export default function StudentAttendancePage() {
     setSelectedDate(date.toISOString().split("T")[0]);
   };
 
-  const students = studentsData?.data || [];
+  const students = studentsData?.data || (Array.isArray(studentsData) ? studentsData : []);
   const isLoading = isLoadingStudents || isLoadingAttendance;
 
   return (
@@ -146,7 +160,7 @@ export default function StudentAttendancePage() {
           <Select value={selectedClassId} onValueChange={setSelectedClassId}>
             <SelectTrigger><SelectValue placeholder="Pilih kelas..." /></SelectTrigger>
             <SelectContent>
-              {classes.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nama}</SelectItem>)}
+              {classList.map((c: any) => <SelectItem key={c.id} value={c.id.toString()}>{c.nama}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -155,7 +169,7 @@ export default function StudentAttendancePage() {
           <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
             <SelectTrigger><SelectValue placeholder="Pilih mapel..." /></SelectTrigger>
             <SelectContent>
-              {subjects.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>)}
+              {subjectList.map((s: any) => <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

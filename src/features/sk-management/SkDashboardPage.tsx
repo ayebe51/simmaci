@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle, CheckCircle, XCircle, Loader2, ChevronLeft, ChevronRight, FileDown } from "lucide-react"
+import { FilePlus, Search, Trash2, FileText, CheckSquare, XSquare, AlertTriangle, CheckCircle, XCircle, Loader2, ChevronLeft, ChevronRight, FileDown, Crown } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { parseIndonesianDate, formatIndonesianDateDisplay } from './utils/skDateUtils'
 import { useNavigate } from "react-router-dom"

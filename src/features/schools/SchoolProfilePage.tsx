@@ -9,6 +9,9 @@ import { toast } from "sonner"
 import { Save, Building2, Loader2 } from "lucide-react"
 import HeadmasterProfileForm from "./components/HeadmasterProfileForm"
 
+import { Badge } from "@/components/ui/badge"
+import { Lock, LockOpen } from "lucide-react"
+
 export default function SchoolProfilePage() {
   const queryClient = useQueryClient()
   
@@ -111,13 +114,29 @@ export default function SchoolProfilePage() {
     )
   }
 
+  const isUnlocked = school.sk_submission_unlocked === true
+  const isRaTk = (school.jenjang || "").toUpperCase().includes("RA") || (school.jenjang || "").toUpperCase().includes("TK")
+
   return (
     <div className="space-y-10 max-w-5xl mx-auto pb-20">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Profil Madrasah</h1>
-        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-           Kelola Identitas Resmi & Informasi Operasional <span className="text-blue-600">{school.nama}</span>
-        </p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Profil Madrasah</h1>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
+             Kelola Identitas Resmi & Informasi Operasional <span className="text-blue-600">{school.nama}</span>
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm">
+          <span className="text-xs font-bold text-slate-500 uppercase">Izin Pengajuan SK:</span>
+          {isRaTk ? (
+            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">Selalu Dibuka (RA/TK)</Badge>
+          ) : isUnlocked ? (
+            <Badge className="bg-emerald-500 text-white flex items-center gap-1"><LockOpen className="w-3 h-3" /> Dibuka Khusus</Badge>
+          ) : (
+            <Badge className="bg-amber-500 text-white flex items-center gap-1"><Lock className="w-3 h-3" /> Sesuai Jadwal Jam</Badge>
+          )}
+        </div>
       </div>
 
       {/* Profil Kepala Madrasah - Separate form (not nested) */}

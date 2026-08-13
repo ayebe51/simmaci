@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog, School as SchoolIcon } from "lucide-react"
 import { useState } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate, Link } from "react-router-dom"
@@ -62,6 +62,7 @@ export default function SchoolListPage() {
   })
 
   const isSuperAdmin = user?.role === "super_admin"
+  const canToggleSk = isSuperAdmin || user?.role === "admin_yayasan" || user?.role === "admin"
 
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
@@ -356,7 +357,7 @@ export default function SchoolListPage() {
     }
   }
 
-  const totalStudents = React.useMemo(() => schoolsData?.meta?.total_students || 0, [schoolsData])
+
 
   if (selectedHeadmasterSchool) {
     return (
@@ -387,7 +388,7 @@ export default function SchoolListPage() {
   return (
     <div className="space-y-6 pb-10">
       <SoftPageHeader
-        title="Profil Lembaga"
+        title="Data Satpend"
         description="Kelola data dan identitas satuan pendidikan di lingkungan LP Ma'arif NU Cilacap."
         actions={[
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'outline', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
@@ -445,7 +446,7 @@ export default function SchoolListPage() {
                         <TableRow>
                           <TableCell colSpan={7} className="h-48 text-center">
                             <div className="flex flex-col items-center justify-center text-slate-500">
-                              <School className="h-12 w-12 text-slate-300 mb-3" />
+                              <SchoolIcon className="h-12 w-12 text-slate-300 mb-3" />
                               <p className="font-semibold text-slate-600">Tidak ada data lembaga</p>
                               <p className="text-sm mt-1 mb-4">Tambahkan data lembaga baru atau sesuaikan filter pencarian Anda.</p>
                               {isSuperAdmin && (
@@ -490,7 +491,7 @@ export default function SchoolListPage() {
                                           <Button
                                             size="sm" variant="outline"
                                             className="h-6 text-[10px] px-2 py-0 border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded"
-                                            disabled={isPending || !isSuperAdmin}
+                                            disabled={isPending || !canToggleSk}
                                             onClick={(e) => { e.stopPropagation(); toggleSkMutation.mutate({ schoolId: item.id, unlocked: null }) }}
                                             title="Sedang dibuka. Klik untuk reset ke default (ditutup)."
                                           >
@@ -501,7 +502,7 @@ export default function SchoolListPage() {
                                           <Button
                                             size="sm" variant="outline"
                                             className="h-6 text-[10px] px-2 py-0 border-slate-200 text-slate-500 hover:bg-slate-50 rounded"
-                                            disabled={isPending || !isSuperAdmin}
+                                            disabled={isPending || !canToggleSk}
                                             onClick={(e) => { e.stopPropagation(); toggleSkMutation.mutate({ schoolId: item.id, unlocked: true }) }}
                                             title="Sedang ditutup. Klik untuk buka paksa izin."
                                           >

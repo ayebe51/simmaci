@@ -1152,11 +1152,11 @@ export default function SkGeneratorPage() {
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Penerbitan Dokumen SK secara kolektif untuk Madrasah</p>
         </div>
         <div className="flex gap-2">
-             <Button variant="outline" asChild className="rounded-xl font-bold uppercase text-xs">
-                <Link to="/dashboard/settings">
-                    <Settings className="mr-2 h-4 w-4" /> Atur Template
-                </Link>
-            </Button>
+             <Link to="/dashboard/settings">
+                 <Button variant="outline" className="rounded-xl font-bold uppercase text-xs">
+                     <Settings className="mr-2 h-4 w-4" /> Atur Template
+                 </Button>
+             </Link>
         </div>
       </div>
 

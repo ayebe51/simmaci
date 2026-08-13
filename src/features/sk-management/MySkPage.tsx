@@ -3,10 +3,11 @@ import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Download, FileText, Search, Loader2 } from "lucide-react"
-import { useState, useMemo } from "react"
+import { Download, FileText, Search, Loader2, Calendar } from "lucide-react"
+import React, { useState, useMemo } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useQuery } from "@tanstack/react-query"
 import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/api"
 import { getSkVerificationUrl } from "@/utils/verification"
@@ -68,6 +69,63 @@ export default function MySkPage() {
       per_page: 10
     })
   })
+
+  const [selectedTahunAjaran, setSelectedTahunAjaran] = useState<string>("all")
+
+  const getSkTahunAjaran = (sk: any): string => {
+    if (sk.tahun_ajaran && sk.tahun_ajaran.trim() !== "") return sk.tahun_ajaran.trim()
+    if (sk.tanggal_penetapan) {
+      const year = new Date(sk.tanggal_penetapan).getFullYear()
+      if (!isNaN(year)) return `${year}/${year + 1}`
+    }
+    if (sk.created_at) {
+      const year = new Date(sk.created_at).getFullYear()
+      if (!isNaN(year)) return `${year}/${year + 1}`
+    }
+    return "2025/2026"
+  }
+
+  const skList = useMemo(() => {
+    if (Array.isArray(skData?.data)) return skData.data
+    if (Array.isArray(skData)) return skData
+    return []
+  }, [skData])
+
+  const hmList = useMemo(() => {
+    if (Array.isArray(hmData?.data)) return hmData.data
+    if (Array.isArray(hmData)) return hmData
+    return []
+  }, [hmData])
+
+  const tahunAjaranOptions = useMemo(() => {
+    const set = new Set<string>()
+    skList.forEach((sk: any) => set.add(getSkTahunAjaran(sk)))
+    set.add("2026/2027")
+    set.add("2025/2026")
+    set.add("2024/2025")
+    set.add("2023/2024")
+    return Array.from(set).sort((a, b) => b.localeCompare(a))
+  }, [skList])
+
+  const filteredSkList = useMemo(() => {
+    if (selectedTahunAjaran === "all") return skList
+    return skList.filter((sk: any) => getSkTahunAjaran(sk) === selectedTahunAjaran)
+  }, [skList, selectedTahunAjaran])
+
+  const groupedSkMap = useMemo(() => {
+    const map: Record<string, any[]> = {}
+    filteredSkList.forEach((sk: any) => {
+      const ta = getSkTahunAjaran(sk)
+      if (!map[ta]) map[ta] = []
+      map[ta].push(sk)
+    })
+    return Object.keys(map)
+      .sort((a, b) => b.localeCompare(a))
+      .reduce((acc, key) => {
+        acc[key] = map[key]
+        return acc
+      }, {} as Record<string, any[]>)
+  }, [filteredSkList])
 
   const handleDownload = async (sk: any) => {
     toast.info("Sedang menyiapkan file DOCX...")
@@ -360,16 +418,34 @@ export default function MySkPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                 <div>
                     <CardTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Daftar Dokumen Terbit</CardTitle>
-                    <CardDescription className="text-sm font-medium text-slate-400">Arsip SK yang sudah disetujui dan ditandatangani.</CardDescription>
+                    <CardDescription className="text-sm font-medium text-slate-400">Arsip SK yang dikelompokkan per tahun ajaran.</CardDescription>
                 </div>
-                <div className="relative w-full sm:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                    <Input 
-                        placeholder="Nama atau nomor SK..." 
-                        className="pl-10 h-11 border-slate-200 bg-white rounded-xl text-xs font-bold"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <div className="w-full sm:w-48">
+                        <Select value={selectedTahunAjaran} onValueChange={setSelectedTahunAjaran}>
+                            <SelectTrigger className="h-11 border-slate-200 bg-white rounded-xl text-xs font-bold">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-blue-500" />
+                                    <SelectValue placeholder="Tahun Ajaran" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl font-bold text-xs">
+                                <SelectItem value="all">Semua Tahun Ajaran</SelectItem>
+                                {tahunAjaranOptions.map((ta) => (
+                                    <SelectItem key={ta} value={ta}>TA {ta}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
+                        <Input 
+                            placeholder="Nama atau nomor SK..." 
+                            className="pl-10 h-11 border-slate-200 bg-white rounded-xl text-xs font-bold"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
         </CardHeader>
@@ -380,46 +456,69 @@ export default function MySkPage() {
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 pl-10">Nomor SK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Guru / PTK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jabatan</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Tahun Ajaran</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Status</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 text-right pr-10">Unduh</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isSkLoading ? (
-                        <TableRow><TableCell colSpan={5} className="h-40 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
-                    ) : skData?.data?.length === 0 ? (
-                        <TableRow><TableCell colSpan={5} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Belum ada SK terbit</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} className="h-40 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
+                    ) : filteredSkList.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Belum ada SK terbit untuk filter ini</TableCell></TableRow>
                     ) : (
-                        skData.data.map((sk: any) => (
-                            <TableRow key={sk.id} className="hover:bg-slate-50/50 border-slate-50">
-                                <TableCell className="pl-10 py-5">
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-blue-500" />
-                                        <span className="font-mono text-xs font-bold">{sk.nomor_sk}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell className="font-bold text-slate-800 text-sm">{sk.nama}</TableCell>
-                                <TableCell className="text-xs text-slate-500 font-medium">{sk.jabatan}</TableCell>
-                                <TableCell>
-                                    <Badge className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-tight py-1 px-3 rounded-lg hover:bg-emerald-100">Approved</Badge>
-                                </TableCell>
-                                <TableCell className="text-right pr-10">
-                                    <Button size="icon" variant="ghost" onClick={() => handleDownload(sk)} className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50">
-                                        <Download className="h-4 w-4" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
+                        Object.entries(groupedSkMap).map(([taGroup, skItems]) => (
+                            <React.Fragment key={taGroup}>
+                                <TableRow className="bg-slate-100/80 border-y border-slate-200/80 hover:bg-slate-100">
+                                    <TableCell colSpan={6} className="py-3 px-10">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-blue-600" />
+                                                <span className="font-black text-xs uppercase tracking-wider text-slate-700">Tahun Ajaran {taGroup}</span>
+                                            </div>
+                                            <Badge className="bg-blue-100 text-blue-700 text-[10px] font-black rounded-lg hover:bg-blue-100">
+                                                {skItems.length} Dokumen SK
+                                            </Badge>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                                {skItems.map((sk: any) => (
+                                    <TableRow key={sk.id} className="hover:bg-slate-50/50 border-slate-50">
+                                        <TableCell className="pl-10 py-5">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-blue-500" />
+                                                <span className="font-mono text-xs font-bold">{sk.nomor_sk}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-bold text-slate-800 text-sm">{sk.nama}</TableCell>
+                                        <TableCell className="text-xs text-slate-500 font-medium">{sk.jabatan}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[10px] font-bold">
+                                                TA {getSkTahunAjaran(sk)}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-tight py-1 px-3 rounded-lg hover:bg-emerald-100">Approved</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-10">
+                                            <Button size="icon" variant="ghost" onClick={() => handleDownload(sk)} className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50">
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </React.Fragment>
                         ))
                     )}
                 </TableBody>
             </Table>
 
-            {!isSkLoading && skData?.total > 10 && (
+            {!isSkLoading && (skData?.total ?? filteredSkList.length) > 10 && (
                 <div className="p-8 bg-slate-50/50 flex items-center justify-between border-t border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Halaman {skPage} dari {Math.ceil(skData.total / 10)}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Halaman {skPage} dari {Math.ceil((skData?.total ?? filteredSkList.length) / 10)}</span>
                     <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => setSkPage(p => Math.max(1, p - 1))} disabled={skPage === 1} className="rounded-xl h-9 px-4">Sebelumnya</Button>
-                        <Button variant="outline" size="sm" onClick={() => setSkPage(p => p + 1)} disabled={skPage >= Math.ceil(skData.total / 10)} className="rounded-xl h-9 px-4">Berikutnya</Button>
+                        <Button variant="outline" size="sm" onClick={() => setSkPage(p => p + 1)} disabled={skPage >= Math.ceil((skData?.total ?? filteredSkList.length) / 10)} className="rounded-xl h-9 px-4">Berikutnya</Button>
                     </div>
                 </div>
             )}
@@ -445,10 +544,10 @@ export default function MySkPage() {
                 <TableBody>
                     {isHmLoading ? (
                         <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
-                    ) : hmData?.data?.length === 0 ? (
+                    ) : hmList.length === 0 ? (
                         <TableRow><TableCell colSpan={4} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Tidak ada record Kamad</TableCell></TableRow>
                     ) : (
-                        hmData.data.map((item: any) => (
+                        hmList.map((item: any) => (
                             <TableRow key={item.id} className="hover:bg-slate-50/50 border-slate-50">
                                 <TableCell className="pl-10 py-5">
                                     <div className="font-bold text-slate-800 text-sm">{item.teacher?.nama}</div>

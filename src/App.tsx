@@ -84,8 +84,6 @@ const VerifySkPage = lazy(() => import("./features/verification/VerifySkPage"))
 const PengajuanRekomendasiKepalaPage = lazy(() => import("./features/sdm/PengajuanRekomendasiKepalaPage").then(m => ({ default: m.PengajuanRekomendasiKepalaPage })))
 const HeadmasterRecommendationDetailPage = lazy(() => import("./features/sdm/HeadmasterRecommendationDetailPage").then(m => ({ default: m.HeadmasterRecommendationDetailPage })))
 
-// ── Mutations ─────────────────────────────────────────────────────────────────
-const MutationPage = lazy(() => import("./features/mutations/MutationPage"))
 
 // ── Attendance ────────────────────────────────────────────────────────────────
 const TeacherAttendancePage = lazy(() => import("./features/attendance/TeacherAttendancePage"))
@@ -116,6 +114,17 @@ const WaBlastCreatePage = lazy(() => import("./features/wa-blast/WaBlastCreatePa
 const WaBlastDetailPage = lazy(() => import("./features/wa-blast/WaBlastDetailPage"))
 const WaBlastTemplatePage = lazy(() => import("./features/wa-blast/WaBlastTemplatePage"))
 const WaBlastConfigPage = lazy(() => import("./features/wa-blast/pages/WaBlastConfigPage").then(m => ({ default: m.WaBlastConfigPage })))
+
+// ── Centralized Center Pages (Tab Wrappers) ──────────────────────────────────
+const SkCenterPage = lazy(() => import("./features/sk-management/SkCenterPage"))
+const SkGeneratorCenterPage = lazy(() => import("./features/sk-management/SkGeneratorCenterPage"))
+const AttendanceCenterPage = lazy(() => import("./features/attendance/AttendanceCenterPage"))
+const AcademicConfigPage = lazy(() => import("./features/attendance/AcademicConfigPage"))
+const EventCenterPage = lazy(() => import("./features/events/EventCenterPage"))
+const WaCenterPage = lazy(() => import("./features/wa-blast/WaCenterPage"))
+const CardCenterPage = lazy(() => import("./features/kta/CardCenterPage"))
+const AuditCenterPage = lazy(() => import("./features/master-data/AuditCenterPage"))
+const StudentCenterPage = lazy(() => import("./features/master-data/StudentCenterPage"))
 
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -228,7 +237,6 @@ export default function App() {
                           <Route path="sdm/rekomendasi-kepala/pengajuan" element={<PengajuanRekomendasiKepalaPage />} />
                           <Route path="sdm/rekomendasi-kepala/:id" element={<HeadmasterRecommendationDetailPage />} />
 
-                          <Route path="mutations" element={<MutationPage />} />
 
                           {/* Attendance Module */}
                           <Route path="attendance/teacher" element={<TeacherAttendancePage />} />
@@ -256,6 +264,17 @@ export default function App() {
                           <Route path="meetings/create" element={<MeetingCreatePage />} />
                           <Route path="meetings/:id/edit" element={<MeetingEditPage />} />
                           <Route path="meetings/:id" element={<MeetingDetailPage />} />
+
+                          {/* ── Centralized Tab Center Routes ── */}
+                          <Route path="sk-center" element={<SkCenterPage />} />
+                          <Route path="sk-generator-center" element={<SkGeneratorCenterPage />} />
+                          <Route path="attendance-center" element={<AttendanceCenterPage />} />
+                          <Route path="academic-config" element={<AcademicConfigPage />} />
+                          <Route path="events-center" element={<EventCenterPage />} />
+                          <Route path="wa-center" element={<WaCenterPage />} />
+                          <Route path="cards-center" element={<CardCenterPage />} />
+                          <Route path="audit-center" element={<AuditCenterPage />} />
+                          <Route path="students-center" element={<StudentCenterPage />} />
                         </Routes>
                       </PageTransition>
                     </GlobalErrorBoundary>

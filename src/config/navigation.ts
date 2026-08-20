@@ -13,7 +13,9 @@ import {
   ScanLine,
   LucideIcon,
   MessageSquare,
-  BookOpen
+  BookOpen,
+  Crown,
+  Award
 } from "lucide-react";
 
 export type Role = "super_admin" | "admin_yayasan" | "operator" | "staff" | "admin";
@@ -51,6 +53,8 @@ export const navigationConfig: NavGroup[] = [
     title: "Layanan SK & SDM",
     items: [
       { id: "sk_center", label: "Pusat Layanan SK", href: "/dashboard/sk-center", icon: FileText },
+      { id: "headmaster_sk_submission", label: "Pengajuan SK Kepala", href: "/dashboard/sdm/sk-kepala/new", icon: Crown },
+      { id: "headmaster_recommendation", label: "Rekomendasi Kepala", href: "/dashboard/sdm/rekomendasi-kepala/pengajuan", icon: Award },
       { id: "sk_generator_center", label: "Generator & Template SK", href: "/dashboard/sk-generator-center", icon: FileText, roles: ["super_admin", "admin_yayasan", "admin"] },
       { id: "sdm_monitor", label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle, roles: ["super_admin", "admin_yayasan", "admin"] },
     ]

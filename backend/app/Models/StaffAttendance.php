@@ -17,6 +17,7 @@ class StaffAttendance extends Model
         'jam_masuk',
         'jam_pulang',
         'status',
+        'keterangan',
         'latitude',
         'longitude',
         'location_verified',

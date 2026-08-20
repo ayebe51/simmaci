@@ -240,7 +240,7 @@ export const staffApi = {
 export const staffAttendanceApi = {
   list: (params?: Record<string, any>) => apiClient.get('/staff-attendances', { params }).then((r) => r.data),
   manualRecord: (data: any) => apiClient.post('/staff-attendances/manual', data).then((r) => r.data),
-  scan: (data: { qr_code: string; latitude: number; longitude: number; photo?: string; jenis_absen?: string }) => 
+  scan: (data: { qr_code: string; latitude: number; longitude: number; photo?: string; jenis_absen?: string; keterangan?: string }) => 
     apiClient.post('/public/attendance/staff-scan', data).then((r) => r.data),
   checkQr: (data: { qr_code: string }) => apiClient.post('/public/attendance/staff-check-qr', data).then((r) => r.data),
   getSettings: () => apiClient.get('/public/attendance/staff-settings').then((r) => r.data),

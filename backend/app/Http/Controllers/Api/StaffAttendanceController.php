@@ -69,6 +69,7 @@ class StaffAttendanceController extends Controller
             'longitude' => 'required|numeric',
             'photo' => 'nullable|string', // base64 image if we want to save proof
             'jenis_absen' => 'nullable|string|in:Kantor,Dinas Luar',
+            'keterangan' => 'nullable|string|max:500',
         ]);
 
         // 1. Find staff by the provided QR code
@@ -85,6 +86,10 @@ class StaffAttendanceController extends Controller
 
         $isGeoEnabled = Setting::getValue('staff_geolocation_enabled') === 'true';
         $isDinasLuar = $request->jenis_absen === 'Dinas Luar';
+
+        if ($isDinasLuar && empty(trim($request->keterangan ?? ''))) {
+            return $this->errorResponse('Harap isi keterangan/kepentingan dinas luar terlebih dahulu.', null, 400);
+        }
 
         $distance = $this->calculateDistance($request->latitude, $request->longitude, $officeLat, $officeLng);
         
@@ -150,6 +155,7 @@ class StaffAttendanceController extends Controller
                 'tanggal' => $today,
                 'jam_masuk' => $currentTime,
                 'status' => $isDinasLuar ? 'Dinas Luar' : 'Hadir',
+                'keterangan' => $request->keterangan,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'location_verified' => $locationVerified,

@@ -1131,6 +1131,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   const [isGeolocationEnabled, setIsGeolocationEnabled] = useState(false);
   const [faceVerificationStatus, setFaceVerificationStatus] = useState<'idle'|'scanning'|'verified'|'failed'>('idle');
   const [attendanceType, setAttendanceType] = useState<'Kantor'|'Dinas Luar'>('Kantor');
+  const [keteranganDinas, setKeteranganDinas] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const faceStreamRef = useRef<MediaStream | null>(null);
@@ -1201,6 +1202,11 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   useEffect(() => () => { stopScanner(); }, []);
 
   const startScanner = async () => {
+    if (attendanceType === 'Dinas Luar' && !keteranganDinas.trim()) {
+      toast.error('Harap isi kepentingan/alasan dinas luar terlebih dahulu.');
+      return;
+    }
+
     if (isGeolocationEnabled && attendanceType === 'Kantor') {
       if (!location && !locationError) {
         toast.warning('Menunggu lokasi GPS... Coba lagi dalam beberapa detik.');
@@ -1365,6 +1371,13 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       return;
     }
 
+    if (attendanceType === 'Dinas Luar' && !keteranganDinas.trim()) {
+      toast.error('Harap isi kepentingan/alasan dinas luar terlebih dahulu.');
+      setScanResult(null);
+      setFaceVerificationStatus('idle');
+      return;
+    }
+
     // Capture photo if needed
     let photoData: string | undefined = undefined;
     if (isPhotoEnabled || isFaceVerificationEnabled) {
@@ -1393,7 +1406,8 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         latitude: location?.lat || 0,
         longitude: location?.lng || 0,
         photo: photoData,
-        jenis_absen: attendanceType
+        jenis_absen: attendanceType,
+        keterangan: attendanceType === 'Dinas Luar' ? keteranganDinas : undefined,
       });
       toast.success(res.message || 'Absen berhasil dicatat.');
     } catch (error: any) {
@@ -1492,9 +1506,25 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
               <div>
                 <p className="text-white font-bold mb-1">Siapkan ID Card Anda</p>
                 <p className="text-slate-400 text-xs leading-relaxed">
-                  {attendanceType === 'Kantor' ? 'Pastikan Anda berada di area kantor LP Ma\'arif NU Cilacap.' : 'Absen dinas luar tanpa verifikasi wajah dan lokasi.'}
+                  {attendanceType === 'Kantor' ? 'Pastikan Anda berada di area kantor LP Ma\'arif NU Cilacap.' : 'Absen dinas luar tanpa pembatasan radius lokasi kantor.'}
                 </p>
               </div>
+
+              {attendanceType === 'Dinas Luar' && (
+                <div className="w-full text-left space-y-1.5 bg-amber-950/30 p-3.5 rounded-2xl border border-amber-800/40">
+                  <label className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">
+                    Kepentingan / Catatan Dinas Luar <span className="text-red-400">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    value={keteranganDinas}
+                    onChange={(e) => setKeteranganDinas(e.target.value)}
+                    placeholder="Contoh: Rapat Koordinasi di Kanwil / Tugas Lapangan"
+                    className="h-10 text-xs bg-slate-900 border-amber-700/60 text-white placeholder:text-slate-500 rounded-xl focus:border-amber-500"
+                  />
+                </div>
+              )}
+
               <Button
                 onClick={startScanner}
                 disabled={attendanceType === 'Kantor' && (!location && !locationError)}

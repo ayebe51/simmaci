@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
 import SkSubmissionPage from "./SkSubmissionPage"
 import SkRevisionListPage from "./SkRevisionListPage"
 import MySkPage from "./MySkPage"
@@ -53,9 +53,9 @@ export default function SkCenterPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 rounded-xl p-2">
-                <div className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                   Pengajuan Baru
-                </div>
+                </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => handleTabChange("submission")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
                   <FileText className="mr-2 h-4 w-4 text-blue-600" /> SK Guru / Tendik
                 </DropdownMenuItem>
@@ -69,9 +69,9 @@ export default function SkCenterPage() {
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator className="my-1.5" />
-                    <div className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    <DropdownMenuLabel className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                       Verifikasi & Approval (Admin)
-                    </div>
+                    </DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => navigate("/dashboard/sk")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
                       <CheckSquare className="mr-2 h-4 w-4 text-blue-600" /> Approval SK Guru & Tendik
                     </DropdownMenuItem>

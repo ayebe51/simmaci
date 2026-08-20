@@ -138,6 +138,7 @@ export default function StaffAttendanceReportPage() {
                 log.jam_masuk || '-',
                 log.jam_pulang || '-',
                 log.status || '-',
+                log.keterangan || '-',
                 log.location_verified ? 'Valid (Di Kantor / Diverifikasi)' : 'Di Luar Area'
             ]);
         });
@@ -145,7 +146,7 @@ export default function StaffAttendanceReportPage() {
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
         
         // Style adjustments (optional basic widths)
-        ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 35 }];
+        ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 35 }];
         
         // Ensure unique sheet name
         let baseName = (staffInfo.nama || 'Unknown').replace(/[\*\?\/\\\[\]:]/g, '').trim().substring(0, 25);
@@ -266,14 +267,15 @@ export default function StaffAttendanceReportPage() {
               <TableHead>Masuk</TableHead>
               <TableHead>Pulang</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Kepentingan / Keterangan</TableHead>
               <TableHead>Validasi GPS</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
             ) : attendanceList.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center">Tidak ada data absensi</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center">Tidak ada data absensi</TableCell></TableRow>
             ) : (
               attendanceList.map((log: any) => (
                 <TableRow key={log.id}>
@@ -286,6 +288,11 @@ export default function StaffAttendanceReportPage() {
                   <TableCell>{log.jam_pulang || '-'}</TableCell>
                   <TableCell>
                     <Badge variant={log.status === 'Hadir' ? 'default' : log.status === 'Sakit' ? 'secondary' : log.status === 'Izin' ? 'outline' : 'destructive'}>{log.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="max-w-[220px] text-xs truncate" title={log.keterangan || '-'}>
+                      {log.keterangan || <span className="text-slate-400 italic">-</span>}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {log.location_verified ? (

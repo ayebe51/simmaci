@@ -75,7 +75,7 @@ export default function SkCenterPage() {
                     <DropdownMenuItem onClick={() => navigate("/dashboard/sk")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
                       <CheckSquare className="mr-2 h-4 w-4 text-blue-600" /> Approval SK Guru & Tendik
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/dashboard/approval/yayasan")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
+                    <DropdownMenuItem onClick={() => navigate("/dashboard/sk-generator-center?tab=approval")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
                       <BadgeCheck className="mr-2 h-4 w-4 text-emerald-600" /> Approval SK Kepala Satpend
                     </DropdownMenuItem>
                   </>

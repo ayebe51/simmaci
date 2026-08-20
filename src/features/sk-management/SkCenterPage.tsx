@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useSearchParams, useNavigate } from "react-router-dom"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import SkSubmissionPage from "./SkSubmissionPage"
 import SkRevisionListPage from "./SkRevisionListPage"
 import MySkPage from "./MySkPage"
-import { FileText, FileEdit, Archive, Sparkles } from "lucide-react"
+import { FileText, FileEdit, Archive, Sparkles, Crown, Award, FilePlus } from "lucide-react"
 
 export default function SkCenterPage() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "submission"
   const [activeTab, setActiveTab] = useState(tabFromUrl)
@@ -34,8 +37,29 @@ export default function SkCenterPage() {
             </div>
             <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Pusat Layanan SK</h1>
             <p className="text-xs text-blue-200/80 max-w-xl font-medium">
-              Kelola pengajuan SK baru, revisi permohonan data, serta akses arsip SK resmi satuan pendidikan Anda.
+              Kelola pengajuan SK baru (Guru/Tendik & Kepala), revisi permohonan data, serta akses arsip SK resmi satuan pendidikan Anda.
             </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl px-5 h-11 transition-all font-bold text-xs">
+                  <FilePlus className="mr-2 h-4 w-4 text-blue-300" />
+                  Ajukan SK / Rekomendasi
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60 rounded-xl">
+                <DropdownMenuItem onClick={() => handleTabChange("submission")} className="cursor-pointer font-medium py-2.5 text-xs">
+                  <FileText className="mr-2 h-4 w-4 text-blue-600" /> SK Guru / Tendik
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/sk-kepala/new")} className="cursor-pointer font-medium py-2.5 text-xs">
+                  <Crown className="mr-2 h-4 w-4 text-amber-600" /> SK Kepala Satpend
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")} className="cursor-pointer font-medium py-2.5 text-xs">
+                  <Award className="mr-2 h-4 w-4 text-emerald-600" /> Rekomendasi Kepala
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

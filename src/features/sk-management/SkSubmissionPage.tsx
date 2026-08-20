@@ -276,13 +276,40 @@ export default function SkSubmissionPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 relative pb-20">
       <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate("/dashboard/sk")} className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Dashboard
+          <Button variant="ghost" onClick={() => navigate("/dashboard/sk-center")} className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Pusat SK
           </Button>
           <div className="text-right">
               <h1 className="text-3xl font-black tracking-tight text-blue-900 uppercase">Pengajuan SK Baru</h1>
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Pusat Layanan Digital LP Ma'arif NU Cilacap</p>
           </div>
+      </div>
+
+      {/* Switch Form Navigation */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
+        <button
+          type="button"
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-extrabold text-xs bg-white text-blue-600 shadow-md shadow-slate-200 border border-slate-200/80"
+        >
+          <FileText className="w-4 h-4 text-blue-500" />
+          <span>SK Guru & Tendik</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard/sdm/sk-kepala/new")}
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs text-slate-600 hover:text-amber-700 hover:bg-white/80 transition-all"
+        >
+          <Crown className="w-4 h-4 text-amber-500" />
+          <span>SK Kepala Satpend</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")}
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-700 hover:bg-white/80 transition-all"
+        >
+          <Award className="w-4 h-4 text-emerald-500" />
+          <span>Rekomendasi Kepala</span>
+        </button>
       </div>
 
       {/* Banner download template surat permohonan */}

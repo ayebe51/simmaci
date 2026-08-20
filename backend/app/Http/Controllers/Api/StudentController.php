@@ -21,7 +21,11 @@ class StudentController extends Controller
             $query->where('nama', 'ilike', "%{$request->search}%");
         }
         if ($request->status && $request->status !== 'all') {
-            $query->byStatus($request->status);
+            if ($request->status === 'Lulus') {
+                $query->withTrashed()->where('status', 'Lulus');
+            } else {
+                $query->byStatus($request->status);
+            }
         }
         if ($request->kelas) {
             $query->where('kelas', $request->kelas);
@@ -284,7 +288,7 @@ class StudentController extends Controller
             $schoolId = $user->school_id;
         }
 
-        $query = Student::query()->where('status', 'Aktif');
+        $query = Student::query()->with('school')->where('status', 'Aktif');
         if ($schoolId) {
             $query->where('school_id', $schoolId);
         }
@@ -302,18 +306,23 @@ class StudentController extends Controller
                     'status' => 'Lulus',
                     'last_transition_at' => now(),
                 ]);
+                // Option A: Soft delete when graduating
+                $student->delete();
             } elseif ($request->action === 'promote') {
-                $oldClass = $student->kelas;
-                $newClass = $this->incrementClass($oldClass);
-                
-                if ($newClass === 'Lulus') {
+                $oldClass = (string)($student->kelas ?? '');
+                $jenjang = $student->school->jenjang ?? null;
+                $transition = $this->incrementClass($oldClass, $jenjang);
+
+                if ($transition['status'] === 'Lulus') {
                     $student->update([
                         'status' => 'Lulus',
                         'last_transition_at' => now(),
                     ]);
+                    // Option A: Soft delete when graduating
+                    $student->delete();
                 } else {
                     $student->update([
-                        'kelas' => $newClass,
+                        'kelas' => $transition['kelas'],
                         'last_transition_at' => now(),
                     ]);
                 }
@@ -324,36 +333,61 @@ class StudentController extends Controller
         return response()->json(['count' => $count]);
     }
 
-    private function incrementClass(string $class): string
+    private function incrementClass(string $class, ?string $jenjang = null): array
     {
-        // 1. Numeric classes (1-12)
-        if (preg_match('/^(\d+)(\s*[A-Z]*)?$/i', $class, $matches)) {
-            $num = (int)$matches[1];
-            $suffix = $matches[2] ?? '';
-            $newNum = $num + 1;
-            
-            // Auto-graduate thresholds
-            if ($newNum > 6 && $num <= 6) return '7' . $suffix; // MI -> MTs
-            if ($newNum > 9 && $num <= 9) return '10' . $suffix; // MTs -> MA
-            if ($newNum > 12) return 'Lulus';
-            
-            return (string)$newNum . $suffix;
+        $trimmed = trim($class);
+        if ($trimmed === '') {
+            return ['status' => 'Aktif', 'kelas' => $class];
         }
 
-        // 2. Roman Numerals (I-XII)
-        $romanMap = [
-            'I' => 'II', 'II' => 'III', 'III' => 'IV', 'IV' => 'V', 'V' => 'VI', 
-            'VI' => 'VII', 'VII' => 'VIII', 'VIII' => 'IX', 'IX' => 'X', 
+        // Determine max grade threshold based on school jenjang
+        $maxGrade = 12;
+        $jenjangUpper = strtoupper((string)$jenjang);
+        if (str_contains($jenjangUpper, 'MI') || str_contains($jenjangUpper, 'SD')) {
+            $maxGrade = 6;
+        } elseif (str_contains($jenjangUpper, 'MTS') || str_contains($jenjangUpper, 'SMP')) {
+            $maxGrade = 9;
+        } elseif (str_contains($jenjangUpper, 'MA') || str_contains($jenjangUpper, 'SMA') || str_contains($jenjangUpper, 'SMK')) {
+            $maxGrade = 12;
+        }
+
+        // 1. Check Roman Numerals (Order from longest to shortest: XII down to I)
+        $romanOrder = ['XII', 'XI', 'X', 'IX', 'VIII', 'VII', 'VI', 'V', 'IV', 'III', 'II', 'I'];
+        $romanNext = [
+            'I' => 'II', 'II' => 'III', 'III' => 'IV', 'IV' => 'V', 'V' => 'VI',
+            'VI' => 'VII', 'VII' => 'VIII', 'VIII' => 'IX', 'IX' => 'X',
             'X' => 'XI', 'XI' => 'XII', 'XII' => 'Lulus'
         ];
-        
-        $upperClass = strtoupper($class);
-        foreach ($romanMap as $curr => $next) {
-            if ($upperClass === $curr || strpos($upperClass, $curr . ' ') === 0 || strpos($upperClass, $curr . '-') === 0) {
-                return str_replace($curr, $next, $class);
+        $romanVal = [
+            'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5,
+            'VI' => 6, 'VII' => 7, 'VIII' => 8, 'IX' => 9,
+            'X' => 10, 'XI' => 11, 'XII' => 12
+        ];
+
+        foreach ($romanOrder as $rom) {
+            if (preg_match("/\b" . preg_quote($rom, '/') . "\b/i", $trimmed)) {
+                $numVal = $romanVal[$rom];
+                // Check if current grade reaches or exceeds maxGrade boundary for this level
+                if ($numVal >= $maxGrade || (empty($jenjang) && in_array($numVal, [6, 9, 12], true))) {
+                    return ['status' => 'Lulus', 'kelas' => $trimmed];
+                }
+                $nextRom = $romanNext[$rom] ?? $rom;
+                $newClass = preg_replace("/\b" . preg_quote($rom, '/') . "\b/i", $nextRom, $trimmed, 1);
+                return ['status' => 'Aktif', 'kelas' => $newClass];
             }
         }
 
-        return $class; // Fallback
+        // 2. Check Arabic Numerals (1-12)
+        if (preg_match('/(\d+)/', $trimmed, $matches)) {
+            $num = (int)$matches[1];
+            if ($num >= $maxGrade || (empty($jenjang) && in_array($num, [6, 9, 12], true))) {
+                return ['status' => 'Lulus', 'kelas' => $trimmed];
+            }
+            $newNum = $num + 1;
+            $newClass = preg_replace('/' . $num . '/', (string)$newNum, $trimmed, 1);
+            return ['status' => 'Aktif', 'kelas' => $newClass];
+        }
+
+        return ['status' => 'Aktif', 'kelas' => $trimmed];
     }
 }

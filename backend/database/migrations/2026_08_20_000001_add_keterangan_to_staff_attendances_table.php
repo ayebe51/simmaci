@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('staff_attendances', function (Blueprint $table) {
-            if (!Schema::hasColumn('staff_attendances', 'keterangan')) {
-                $table->string('keterangan', 500)->nullable()->after('status');
-            }
-        });
+        if (Schema::hasTable('staff_attendances')) {
+            Schema::table('staff_attendances', function (Blueprint $table) {
+                if (!Schema::hasColumn('staff_attendances', 'keterangan')) {
+                    $table->string('keterangan', 500)->nullable();
+                }
+            });
+        }
     }
 
     /**
@@ -23,10 +25,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('staff_attendances', function (Blueprint $table) {
-            if (Schema::hasColumn('staff_attendances', 'keterangan')) {
-                $table->dropColumn('keterangan');
-            }
-        });
+        if (Schema::hasTable('staff_attendances')) {
+            Schema::table('staff_attendances', function (Blueprint $table) {
+                if (Schema::hasColumn('staff_attendances', 'keterangan')) {
+                    $table->dropColumn('keterangan');
+                }
+            });
+        }
     }
 };

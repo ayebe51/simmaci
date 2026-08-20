@@ -122,6 +122,7 @@ class HeadmasterController extends Controller
     {
         $limit = strtotime('+180 days'); // 6 bulan sebelum berakhir
         $user = $request->user();
+        $now = time();
 
         // 1. Data from formal tenures (SK yang sudah disetujui)
         $tenureQuery = HeadmasterTenure::where('status', 'active')->with(['teacher', 'school']);
@@ -130,24 +131,42 @@ class HeadmasterController extends Controller
         }
 
         $tenures = $tenureQuery->get()->filter(function ($t) use ($limit) {
-            // Prioritas: end_date dari record, fallback: tanggal_penetapan + 4 tahun
             $endStr = $t->end_date;
             if (!$endStr && $t->tanggal_penetapan) {
                 $endStr = date('Y-m-d', strtotime($t->tanggal_penetapan . ' +4 years'));
             }
             $end = strtotime($endStr);
             return $end && $end <= $limit;
-        })->map(function ($t) {
-            // Hitung end_date efektif
+        })->map(function ($t) use ($now) {
             $endDate = $t->end_date;
             if (!$endDate && $t->tanggal_penetapan) {
                 $endDate = date('Y-m-d', strtotime($t->tanggal_penetapan . ' +4 years'));
             }
-            $t->end_date_effective = $endDate;
-            return $t;
+            $endTs = strtotime($endDate ?: 'now');
+            $daysRemaining = (int) ceil(($endTs - $now) / 86400);
+
+            $calculatedStatus = 'expiring';
+            if ($daysRemaining < 0) {
+                $calculatedStatus = 'expired';
+            }
+
+            return [
+                'id' => $t->id,
+                'nama' => $t->teacher ? $t->teacher->nama : ($t->teacher_name ?? 'Tanpa Nama'),
+                'teacher_name' => $t->teacher ? $t->teacher->nama : ($t->teacher_name ?? 'Tanpa Nama'),
+                'unit_kerja' => $t->school ? $t->school->nama : ($t->school_name ?? 'Tanpa Unit Kerja'),
+                'school_name' => $t->school ? $t->school->nama : ($t->school_name ?? 'Tanpa Unit Kerja'),
+                'period_number' => $t->period_number ?? 1,
+                'start_date' => $t->start_date,
+                'end_date' => $endDate,
+                'end_date_effective' => $endDate,
+                'days_remaining' => $daysRemaining,
+                'status' => ($t->period_number && $t->period_number >= 3) ? 'limit_exceeded' : $calculatedStatus,
+                'source' => 'tenure',
+            ];
         });
 
-        // 2. Data from School Profiles (legacy — data lama sebelum pakai SK digital)
+        // 2. Data from School Profiles (legacy)
         $schoolQuery = School::whereNotNull('kepala_jabatan_selesai');
         if ($user->isOperator()) {
             $schoolQuery->where('id', $user->school_id);
@@ -156,26 +175,31 @@ class HeadmasterController extends Controller
         $schoolStats = $schoolQuery->get()->filter(function ($s) use ($limit) {
             $end = strtotime($s->kepala_jabatan_selesai);
             return $end && $end <= $limit;
-        })->map(function ($s) {
+        })->map(function ($s) use ($now) {
+            $endTs = strtotime($s->kepala_jabatan_selesai);
+            $daysRemaining = (int) ceil(($endTs - $now) / 86400);
+            $calculatedStatus = $daysRemaining < 0 ? 'expired' : 'expiring';
+
             return [
                 'id' => 'legacy-' . $s->id,
-                'teacher_name' => $s->kepala_madrasah . ' (Profil Lembaga)',
+                'nama' => $s->kepala_madrasah ?: 'Profil Lembaga',
+                'teacher_name' => $s->kepala_madrasah ?: 'Profil Lembaga',
+                'unit_kerja' => $s->nama,
                 'school_name' => $s->nama,
+                'period_number' => 1,
                 'periode' => 'Masa Jabatan Aktif',
                 'start_date' => $s->kepala_jabatan_mulai,
                 'end_date' => $s->kepala_jabatan_selesai,
                 'end_date_effective' => $s->kepala_jabatan_selesai,
-                'tanggal_penetapan' => null,
-                'status' => 'active',
+                'days_remaining' => $daysRemaining,
+                'status' => $calculatedStatus,
                 'source' => 'profile',
             ];
         });
 
-        $getEnd = fn($t) => is_array($t)
-            ? strtotime($t['end_date_effective'] ?? $t['end_date'])
-            : strtotime($t->end_date_effective ?? $t->end_date ?? '');
+        $getEnd = fn($t) => is_array($t) ? strtotime($t['end_date'] ?? '') : 0;
 
-        $combined = collect($tenures)->merge($schoolStats)
+        $combined = collect($tenures)->concat($schoolStats)
             ->sortBy($getEnd)
             ->values();
 

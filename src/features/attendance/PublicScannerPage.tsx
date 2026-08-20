@@ -737,7 +737,11 @@ async function startHtml5QrcodeWithFallback(
     } catch (err) {
       lastError = err;
       // Clean up this failed instance before trying next
-      try { await scanner.stop(); } catch {}
+      try {
+        if (scanner.isScanning) {
+          await scanner.stop();
+        }
+      } catch {}
       try { scanner.clear(); } catch {}
     }
   }
@@ -1129,6 +1133,8 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
   const [attendanceType, setAttendanceType] = useState<'Kantor'|'Dinas Luar'>('Kantor');
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const faceStreamRef = useRef<MediaStream | null>(null);
+
   const { data: staffSettings } = useQuery({
     queryKey: ['staff-settings'],
     queryFn: staffAttendanceApi.getSettings,
@@ -1171,6 +1177,29 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
     }
   }, []);
 
+  const stopFaceCamera = () => {
+    if (faceStreamRef.current) {
+      faceStreamRef.current.getTracks().forEach(track => track.stop());
+      faceStreamRef.current = null;
+    }
+  };
+
+  const stopScanner = async () => {
+    stopFaceCamera();
+    if (scannerRef.current) {
+      try {
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+      } catch {}
+      try { scannerRef.current.clear(); } catch {}
+      scannerRef.current = null;
+    }
+    setScanning(false);
+  };
+
+  useEffect(() => () => { stopScanner(); }, []);
+
   const startScanner = async () => {
     if (isGeolocationEnabled && attendanceType === 'Kantor') {
       if (!location && !locationError) {
@@ -1197,7 +1226,10 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       setScanResult(code);
       
       if (isFaceVerificationEnabled && attendanceType === 'Kantor') {
-        startFaceVerification(code);
+        // Small delay so camera hardware releases the rear camera before front camera initialization
+        setTimeout(() => {
+          startFaceVerification(code);
+        }, 300);
       } else {
         submitAttendance(code);
       }
@@ -1216,17 +1248,6 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
     }
   };
 
-  const stopScanner = async () => {
-    if (scannerRef.current) {
-      try { await scannerRef.current.stop(); } catch {}
-      try { scannerRef.current.clear(); } catch {}
-      scannerRef.current = null;
-    }
-    setScanning(false);
-  };
-
-  useEffect(() => () => { stopScanner(); }, []);
-
   const startFaceVerification = async (qrCode: string) => {
     setFaceVerificationStatus('scanning');
     try {
@@ -1237,11 +1258,18 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       if (!staffData.face_descriptor) {
         toast.error('Wajah staf belum terdaftar di sistem. Silakan daftarkan wajah di dashboard Staff terlebih dahulu.');
         setFaceVerificationStatus('failed');
+        setTimeout(() => {
+          setScanResult(null);
+          setFaceVerificationStatus('idle');
+          startScanner();
+        }, 3500);
         return;
       }
 
-      // 2. Mulai Kamera
+      // 2. Mulai Kamera Depan
+      stopFaceCamera();
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      faceStreamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -1250,92 +1278,105 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       const storedDescriptor = new Float32Array(staffData.face_descriptor);
       const faceMatcher = new faceapi.FaceMatcher(
         [new faceapi.LabeledFaceDescriptors(staffData.nama, [storedDescriptor])],
-        0.5 // Jarak maksimal (threshold), bisa disesuaikan
+        0.5 // Jarak maksimal (threshold)
       );
 
       let isVerified = false;
       let stopLoop = false;
 
-      const stopCamera = () => {
-        if (stream) stream.getTracks().forEach(track => track.stop());
-      };
-
       const verifyLoop = async () => {
-        if (stopLoop || isVerified || !videoRef.current) return;
+        if (stopLoop || isVerified) return;
         
         try {
-          const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceDescriptor();
+          if (videoRef.current && videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+            const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
+              .withFaceLandmarks()
+              .withFaceDescriptor();
 
-          if (detection) {
-            const match = faceMatcher.findBestMatch(detection.descriptor);
-            if (match.label !== 'unknown') {
-              isVerified = true;
-              stopLoop = true;
-              stopCamera();
-              setFaceVerificationStatus('verified');
-              submitAttendance(qrCode, true);
-              return;
+            if (detection) {
+              const match = faceMatcher.findBestMatch(detection.descriptor);
+              if (match.label !== 'unknown') {
+                isVerified = true;
+                stopLoop = true;
+                stopFaceCamera();
+                setFaceVerificationStatus('verified');
+                submitAttendance(qrCode, true);
+                return;
+              }
             }
           }
         } catch (e) {
           console.error("Face detection error:", e);
         }
 
-        // Lanjut loop
-        setTimeout(verifyLoop, 800);
+        if (!stopLoop && !isVerified) {
+          setTimeout(verifyLoop, 600);
+        }
       };
 
-      // 4. Set Timeout untuk deteksi wajah (misal 15 detik)
+      // 4. Set Timeout untuk deteksi wajah (15 detik)
       setTimeout(() => {
         if (!isVerified) {
           stopLoop = true;
-          stopCamera();
+          stopFaceCamera();
           setFaceVerificationStatus('failed');
           toast.error('Waktu verifikasi habis atau wajah tidak cocok.');
+          setTimeout(() => {
+            setScanResult(null);
+            setFaceVerificationStatus('idle');
+            startScanner();
+          }, 3000);
         }
       }, 15000);
 
-      // Mulai loop setelah video diputar sebentar
-      setTimeout(verifyLoop, 1500);
+      // Mulai loop setelah video siap
+      const startLoopWhenReady = () => {
+        if (videoRef.current) {
+          if (videoRef.current.srcObject !== stream) {
+            videoRef.current.srcObject = stream;
+          }
+          verifyLoop();
+        } else if (!stopLoop) {
+          setTimeout(startLoopWhenReady, 200);
+        }
+      };
+      setTimeout(startLoopWhenReady, 500);
 
     } catch (e: any) {
+      stopFaceCamera();
       setFaceVerificationStatus('failed');
-      const msg = e?.response?.data?.message || e?.message || 'Terjadi kesalahan saat verifikasi.'
-      toast.error(msg)
+      const msg = e?.response?.data?.message || e?.message || 'Terjadi kesalahan saat verifikasi.';
+      toast.error(msg);
       // Reset setelah 3 detik agar scanner bisa digunakan lagi
       setTimeout(() => {
-        setScanResult(null)
-        setFaceVerificationStatus('idle')
-      }, 3000)
+        setScanResult(null);
+        setFaceVerificationStatus('idle');
+        startScanner();
+      }, 3000);
     }
   };
 
   const submitAttendance = async (qrCode: string, faceVerified: boolean = false) => {
     if (!location && attendanceType === 'Kantor' && isGeolocationEnabled) {
-      toast.error('Lokasi GPS belum terdeteksi. Aktifkan izin lokasi dan coba lagi.')
-      setScanResult(null)
-      setFaceVerificationStatus('idle')
-      // Restart scanner otomatis agar user tidak perlu tekan tombol lagi
-      setTimeout(() => startScanner(), 500)
+      toast.error('Lokasi GPS belum terdeteksi. Aktifkan izin lokasi dan coba lagi.');
+      setScanResult(null);
+      setFaceVerificationStatus('idle');
+      setTimeout(() => startScanner(), 500);
       return;
     }
 
     // Capture photo if needed
     let photoData: string | undefined = undefined;
     if (isPhotoEnabled || isFaceVerificationEnabled) {
-       if (!videoRef.current) {
-          videoRef.current = document.querySelector('#reader-staff video') as HTMLVideoElement;
-       }
-       if (videoRef.current) {
+       const videoEl = videoRef.current || (document.querySelector('#staff-qr-reader video') as HTMLVideoElement);
+       if (videoEl && videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
            try {
              const canvas = document.createElement('canvas');
-             canvas.width = videoRef.current.videoWidth;
-             canvas.height = videoRef.current.videoHeight;
+             canvas.width = videoEl.videoWidth;
+             canvas.height = videoEl.videoHeight;
              const ctx = canvas.getContext('2d');
              if (ctx) {
-                 ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                  photoData = canvas.toDataURL('image/jpeg', 0.8);
              }
            } catch(e) {
@@ -1344,6 +1385,7 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
        }
     }
 
+    stopFaceCamera();
     setSubmitting(true);
     try {
       const res = await staffAttendanceApi.scan({
@@ -1353,28 +1395,26 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
         photo: photoData,
         jenis_absen: attendanceType
       });
-      toast.success(res.message || 'Absen berhasil dicatat.')
+      toast.success(res.message || 'Absen berhasil dicatat.');
     } catch (error: any) {
-      // Tampilkan pesan spesifik dari server, atau pesan generik yang lebih informatif
-      const status = error?.response?.status
-      const serverMsg = error?.response?.data?.message
+      const status = error?.response?.status;
+      const serverMsg = error?.response?.data?.message;
       if (status === 422) {
-        toast.error(serverMsg || 'Data tidak valid. Pastikan QR Code Anda belum kadaluarsa.')
+        toast.error(serverMsg || 'Data tidak valid. Pastikan QR Code Anda belum kadaluarsa.');
       } else if (status === 404) {
-        toast.error('Staff tidak ditemukan. Pastikan ID Card Anda terdaftar di sistem.')
+        toast.error('Staff tidak ditemukan. Pastikan ID Card Anda terdaftar di sistem.');
       } else if (status === 409 || serverMsg?.toLowerCase().includes('sudah')) {
-        toast.warning(serverMsg || 'Anda sudah melakukan absensi hari ini.')
+        toast.warning(serverMsg || 'Anda sudah melakukan absensi hari ini.');
       } else if (!navigator.onLine) {
-        toast.error('Tidak ada koneksi internet. Periksa jaringan Anda dan coba lagi.')
+        toast.error('Tidak ada koneksi internet. Periksa jaringan Anda dan coba lagi.');
       } else {
-        toast.error(serverMsg || 'Gagal melakukan absensi. Coba lagi beberapa saat.')
+        toast.error(serverMsg || 'Gagal melakukan absensi. Coba lagi beberapa saat.');
       }
     } finally {
       setSubmitting(false);
       setScanResult(null);
       setFaceVerificationStatus('idle');
       // Restart scanner otomatis setelah selesai (sukses maupun gagal)
-      // agar user tidak perlu tekan tombol "Mulai Scan" lagi
       setTimeout(() => startScanner(), 1500);
     }
   };

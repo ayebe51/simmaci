@@ -150,11 +150,14 @@ export default function QrScannerPage() {
   const stopScanner = async () => {
     if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
       } catch (e) {
         console.error("Error stopping scanner:", e);
       }
+      try { scannerRef.current.clear(); } catch {}
+      scannerRef.current = null;
     }
     setScanning(false);
   };
@@ -163,7 +166,10 @@ export default function QrScannerPage() {
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
+        if (scannerRef.current.isScanning) {
+          scannerRef.current.stop().catch(() => {});
+        }
+        try { scannerRef.current.clear(); } catch {}
       }
     };
   }, []);

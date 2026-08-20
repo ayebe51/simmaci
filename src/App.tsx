@@ -214,6 +214,9 @@ export default function App() {
                           <Route path="sk/headmaster/new" element={<Navigate to="/dashboard/sdm/sk-kepala/new" replace />} />
                           <Route path="sdm/sk-kepala/new" element={<HeadmasterSubmissionPage />} />
                           <Route path="sk-saya" element={<MySkPage />} />
+                          <Route path="sk-arsip" element={<MySkPage />} />
+                          <Route path="sk-center/submission" element={<SkSubmissionPage />} />
+                          <Route path="sk-center/revisi" element={<SkRevisionListPage />} />
                           <Route path="sk/:id" element={<SkDetailPage />} />
                           <Route path="sk/:id/revision" element={<SkRevisionPage />} />
                           <Route path="sk-revisions" element={<SkRevisionListPage />} />

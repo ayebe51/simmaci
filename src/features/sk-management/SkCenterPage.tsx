@@ -1,135 +1,236 @@
-import React, { useState, useEffect } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import React from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
-import SkSubmissionPage from "./SkSubmissionPage"
-import SkRevisionListPage from "./SkRevisionListPage"
-import MySkPage from "./MySkPage"
-import { FileText, FileEdit, Archive, Sparkles, Crown, Award, FilePlus, CheckSquare, BadgeCheck } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import {
+  FileText,
+  Crown,
+  Award,
+  FileEdit,
+  Archive,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  CheckSquare
+} from "lucide-react"
 import { authApi } from "@/lib/api"
 
 export default function SkCenterPage() {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const tabFromUrl = searchParams.get("tab") || "submission"
-  const [activeTab, setActiveTab] = useState(tabFromUrl)
-
   const user = authApi.getStoredUser()
   const isAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role)
 
-  useEffect(() => {
-    if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl)
-    }
-  }, [tabFromUrl])
-
-  const handleTabChange = (val: string) => {
-    setActiveTab(val)
-    setSearchParams({ tab: val }, { replace: true })
-  }
-
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-8 pb-20">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-8 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 p-8 text-white shadow-xl">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
-              <Sparkles className="w-3 h-3 text-blue-400" /> Layanan Administrasi SK
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Pusat Layanan SK</h1>
-            <p className="text-xs text-blue-200/80 max-w-xl font-medium">
-              Kelola pengajuan SK baru (Guru/Tendik & Kepala), revisi permohonan data, serta verifikasi dan approval data SK.
-            </p>
+        <div className="relative z-10 space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
+            <Sparkles className="w-3 h-3 text-blue-400" /> Layanan Administrasi SK
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl px-5 h-11 transition-all font-bold text-xs">
-                  <FilePlus className="mr-2 h-4 w-4 text-blue-300" />
-                  Menu SK & Approval
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 rounded-xl p-2">
-                <DropdownMenuLabel className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                  Pengajuan Baru
-                </DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handleTabChange("submission")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
-                  <FileText className="mr-2 h-4 w-4 text-blue-600" /> SK Guru / Tendik
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/sk-kepala/new")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
-                  <Crown className="mr-2 h-4 w-4 text-amber-600" /> SK Kepala Satpend
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
-                  <Award className="mr-2 h-4 w-4 text-emerald-600" /> Rekomendasi Kepala
-                </DropdownMenuItem>
-
-                {isAdmin && (
-                  <>
-                    <DropdownMenuSeparator className="my-1.5" />
-                    <DropdownMenuLabel className="px-2 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                      Verifikasi & Approval (Admin)
-                    </DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => navigate("/dashboard/sk")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
-                      <CheckSquare className="mr-2 h-4 w-4 text-blue-600" /> Approval SK Guru & Tendik
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/dashboard/sk-generator-center?tab=approval")} className="cursor-pointer font-medium py-2 text-xs rounded-lg">
-                      <BadgeCheck className="mr-2 h-4 w-4 text-emerald-600" /> Approval SK Kepala Satpend
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">
+            Pusat Layanan SK
+          </h1>
+          <p className="text-xs text-blue-200/80 max-w-2xl font-medium leading-relaxed">
+            Pusat integrasi permohonan Surat Keputusan (SK) baru, pengajuan rekomendasi kepala, serta pengelolaan revisi data keputusan LP Ma'arif NU Cilacap.
+          </p>
         </div>
       </div>
 
-      {/* Centered Segmented Aesthetic Navigation Bar */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <div className="flex justify-center w-full">
-          <div className="bg-slate-100/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/80 shadow-inner inline-flex items-center gap-1.5 max-w-full overflow-x-auto">
-            <TabsList className="bg-transparent p-0 flex items-center gap-1.5 h-auto">
-              <TabsTrigger
-                value="submission"
-                className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
-              >
-                <FileText className="w-4 h-4 text-blue-500" />
-                <span>Pengajuan SK</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="revisi"
-                className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
-              >
-                <FileEdit className="w-4 h-4 text-amber-500" />
-                <span>Revisi Data SK</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="arsip"
-                className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
-              >
-                <Archive className="w-4 h-4 text-emerald-500" />
-                <span>Arsip SK Saya</span>
-              </TabsTrigger>
-            </TabsList>
+      {/* SEKSI 1: Pengajuan SK Baru */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-lg font-black tracking-tight text-slate-800 uppercase flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <span>Pengajuan SK & Rekomendasi Baru</span>
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              Pilih jenis dokumen SK yang ingin Anda ajukan ke LP Ma'arif NU Cilacap.
+            </p>
           </div>
         </div>
 
-        <TabsContent value="submission" className="mt-0 focus-visible:outline-none">
-          <SkSubmissionPage />
-        </TabsContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Card 1: SK Guru & Tendik */}
+          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+            <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100/80 border border-blue-200 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-base text-slate-900 group-hover:text-blue-600 transition-colors">
+                      SK Guru & Tendik
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                    Pengajuan SK Guru Tetap Yayasan (GTY), GTT, Tenaga Kependidikan, serta perpanjangan masa tugas.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate("/dashboard/sk-center/submission")}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 font-bold text-xs flex items-center justify-between group-hover:px-5 transition-all shadow-md shadow-blue-200"
+              >
+                <span>Ajukan SK Guru / Tendik</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
 
-        <TabsContent value="revisi" className="mt-0 focus-visible:outline-none">
-          <SkRevisionListPage />
-        </TabsContent>
+          {/* Card 2: SK Kepala Satpend */}
+          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+            <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100/80 border border-amber-200 flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-amber-600 transition-colors">
+                    SK Kepala Satpend
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                    Pengajuan SK Penetapan Kepala Madrasah / Sekolah baru atau perpanjangan masa jabatan resmi.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate("/dashboard/sdm/sk-kepala/new")}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-xl h-11 font-bold text-xs flex items-center justify-between group-hover:px-5 transition-all shadow-md shadow-amber-200"
+              >
+                <span>Ajukan SK Kepala</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
 
-        <TabsContent value="arsip" className="mt-0 focus-visible:outline-none">
-          <MySkPage />
-        </TabsContent>
-      </Tabs>
+          {/* Card 3: Rekomendasi Kepala */}
+          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+            <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100/80 border border-emerald-200 flex items-center justify-center">
+                  <Award className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-emerald-600 transition-colors">
+                    Rekomendasi Kepala
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                    Pengajuan Surat Rekomendasi Kepala Satuan Pendidikan LP Ma'arif NU Cilacap.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 font-bold text-xs flex items-center justify-between group-hover:px-5 transition-all shadow-md shadow-emerald-200"
+              >
+                <span>Ajukan Rekomendasi</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* SEKSI 2: Layanan Revisi & Arsip Dokumen */}
+      <div className="space-y-4 pt-4">
+        <div className="space-y-1">
+          <h2 className="text-lg font-black tracking-tight text-slate-800 uppercase flex items-center gap-2">
+            <FileEdit className="w-5 h-5 text-purple-600" />
+            <span>Revisi & Akses Arsip Dokumen</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            Kelola permohonan koreksi data SK terbit serta akses berkas SK resmi satuan pendidikan Anda.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Card 1: Revisi Data SK */}
+          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+            <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-100/80 border border-purple-200 flex items-center justify-center">
+                  <FileEdit className="w-6 h-6 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-purple-600 transition-colors">
+                    Revisi Data SK
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                    Permohonan perubahan atau koreksi data pada SK Guru/Tendik yang telah terbit resmi dari Pengurus Cabang.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate("/dashboard/sk-center/revisi")}
+                variant="outline"
+                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl h-11 font-bold text-xs flex items-center justify-between transition-all"
+              >
+                <span>Daftar & Ajukan Revisi Data</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Arsip SK Saya */}
+          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+            <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-100/80 border border-indigo-200 flex items-center justify-center">
+                  <Archive className="w-6 h-6 text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    Arsip SK Saya
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
+                    Akses, unduh, dan cetak dokumen fisik e-SK resmi satuan pendidikan Anda yang telah disetujui.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate("/dashboard/sk-arsip")}
+                variant="outline"
+                className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl h-11 font-bold text-xs flex items-center justify-between transition-all"
+              >
+                <span>Buka Arsip SK Saya</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Option for Admin: Quick Link to Approval */}
+      {isAdmin && (
+        <div className="bg-gradient-to-r from-slate-100 via-blue-50 to-slate-100 rounded-3xl p-6 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-slate-900">Akses Verifikasi & Approval Admin</h4>
+              <p className="text-xs text-slate-500 font-medium">Buka antrean verifikasi permohonan SK Guru & Tendik dari madrasah.</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => navigate("/dashboard/sk")}
+            className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 px-5 font-bold text-xs flex items-center gap-2 flex-shrink-0"
+          >
+            <CheckSquare className="w-4 h-4 text-blue-400" />
+            <span>Buka Approval Admin</span>
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

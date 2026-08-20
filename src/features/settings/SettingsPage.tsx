@@ -358,15 +358,36 @@ export default function SettingsPage() {
   )
 }
 
+// ── Helper Function for Safe Setting Retrieval ─────────────────────────────
+
+function getSettingValue(settingsMap: any, key: string): string {
+  if (!settingsMap) return ""
+  
+  if (Array.isArray(settingsMap)) {
+    const item = settingsMap.find((s: any) => s && (s.key === key || s.id === key))
+    if (!item) return ""
+    if (typeof item === 'object' && item !== null) {
+      return item.value != null ? String(item.value) : ""
+    }
+    return item != null ? String(item) : ""
+  }
+
+  if (typeof settingsMap === 'object') {
+    const item = settingsMap[key]
+    if (item === undefined || item === null) return ""
+    if (typeof item === 'object') {
+      return item.value != null ? String(item.value) : ""
+    }
+    return String(item)
+  }
+
+  return ""
+}
+
 // ── Scanner PIN Card Component ──────────────────────────────────────────────
 
 function ScannerPinCard({ settingsMap, refetch }: { settingsMap: any; refetch: () => void }) {
-  const pinValue = useMemo(() => {
-    if (!settingsMap) return ""
-    const item = settingsMap?.meeting_scanner_pin
-    if (typeof item === 'object' && item !== null) return String(item.value ?? "")
-    return String(item ?? "")
-  }, [settingsMap])
+  const pinValue = useMemo(() => getSettingValue(settingsMap, 'meeting_scanner_pin'), [settingsMap])
 
   const [meetingPin, setMeetingPin] = useState(pinValue)
   const [showPin, setShowPin] = useState(false)
@@ -450,21 +471,16 @@ function KopSuratCard({ settingsMap, refetch }: { settingsMap: any; refetch: () 
   const [uploading, setUploading] = useState(false)
   const [removing, setRemoving] = useState(false)
 
-  const currentValue = useMemo(() => {
-    if (!settingsMap) return ""
-    const item = settingsMap?.kop_surat_meeting
-    if (typeof item === 'object' && item !== null) return String(item.value ?? "")
-    return String(item ?? "")
-  }, [settingsMap])
+  const currentValue = useMemo(() => getSettingValue(settingsMap, 'kop_surat_meeting'), [settingsMap])
 
-  const hasKop = !!currentValue
+  const hasKop = Boolean(currentValue && currentValue !== "null" && currentValue !== "undefined")
 
   const getPreviewUrl = () => {
-    if (!currentValue) return ""
-    if (currentValue.startsWith("http")) return currentValue
-    if (currentValue.startsWith("data:")) return currentValue
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api"
-    return `${baseUrl}/minio/${currentValue}`
+    if (!currentValue || typeof currentValue !== 'string' || currentValue === "null" || currentValue === "undefined") return ""
+    if (currentValue.startsWith("http") || currentValue.startsWith("data:")) return currentValue
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api"
+    const path = currentValue.replace(/^\/?(storage\/|api\/minio\/)?/, '')
+    return `${apiUrl}/files/view/${path.split('/').map(encodeURIComponent).join('/')}`
   }
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -562,14 +578,13 @@ function KopSuratCard({ settingsMap, refetch }: { settingsMap: any; refetch: () 
               id="kop-upload-input"
             />
             <Button
-              asChild
+              type="button"
               disabled={uploading}
+              onClick={() => document.getElementById('kop-upload-input')?.click()}
               className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs tracking-wider cursor-pointer"
             >
-              <label htmlFor="kop-upload-input">
-                {uploading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CloudUpload className="h-4 w-4 mr-2" />}
-                {hasKop ? "Ganti Kop Surat" : "Upload Kop Surat"}
-              </label>
+              {uploading ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CloudUpload className="h-4 w-4 mr-2" />}
+              {hasKop ? "Ganti Kop Surat" : "Upload Kop Surat"}
             </Button>
           </div>
 
@@ -593,12 +608,7 @@ function KopSuratCard({ settingsMap, refetch }: { settingsMap: any; refetch: () 
 // ── Staff Security Card Component ──────────────────────────────────────────
 
 function StaffSecurityCard({ settingsMap, refetch }: { settingsMap: any; refetch: () => void }) {
-  const enabledValue = useMemo(() => {
-    if (!settingsMap) return false
-    const item = settingsMap?.staff_face_recognition_enabled
-    if (typeof item === 'object' && item !== null) return String(item.value) === 'true'
-    return String(item) === 'true'
-  }, [settingsMap])
+  const enabledValue = useMemo(() => getSettingValue(settingsMap, 'staff_face_recognition_enabled') === 'true', [settingsMap])
 
   const [faceEnabled, setFaceEnabled] = useState(enabledValue)
   const [saving, setSaving] = useState(false)

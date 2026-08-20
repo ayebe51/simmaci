@@ -15,7 +15,9 @@ import {
   MessageSquare,
   BookOpen,
   Crown,
-  Award
+  Award,
+  CheckSquare,
+  BadgeCheck
 } from "lucide-react";
 
 export type Role = "super_admin" | "admin_yayasan" | "operator" | "staff" | "admin";
@@ -55,6 +57,8 @@ export const navigationConfig: NavGroup[] = [
       { id: "sk_center", label: "Pusat Layanan SK", href: "/dashboard/sk-center", icon: FileText },
       { id: "headmaster_sk_submission", label: "Pengajuan SK Kepala", href: "/dashboard/sdm/sk-kepala/new", icon: Crown },
       { id: "headmaster_recommendation", label: "Rekomendasi Kepala", href: "/dashboard/sdm/rekomendasi-kepala/pengajuan", icon: Award },
+      { id: "sk_approval_guru", label: "Approval SK Guru & Tendik", href: "/dashboard/sk", icon: CheckSquare, roles: ["super_admin", "admin_yayasan", "admin"] },
+      { id: "sk_approval_kepala", label: "Approval SK Kepala", href: "/dashboard/approval/yayasan", icon: BadgeCheck, roles: ["super_admin", "admin_yayasan", "admin"] },
       { id: "sk_generator_center", label: "Generator & Template SK", href: "/dashboard/sk-generator-center", icon: FileText, roles: ["super_admin", "admin_yayasan", "admin"] },
       { id: "sdm_monitor", label: "Monitoring Kepala", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle, roles: ["super_admin", "admin_yayasan", "admin"] },
     ]

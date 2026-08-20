@@ -75,7 +75,7 @@ class StaffAttendanceController extends Controller
         // The QR code acts as the secure secret token.
         $staff = Staff::where('qr_code', $request->qr_code)->first();
         if (!$staff) {
-            return $this->errorResponse('QR Code tidak valid atau staff tidak ditemukan.', 404);
+            return $this->errorResponse('QR Code tidak valid atau staff tidak ditemukan.', null, 404);
         }
 
         // 2. Validate GPS
@@ -93,7 +93,7 @@ class StaffAttendanceController extends Controller
         
         // If they are outside the radius AND not dinas luar, block it.
         if ($isGeoEnabled && !$isDinasLuar && $distance > $radius) {
-             return $this->errorResponse("Anda berada di luar area kantor (Jarak: " . round($distance) . "m dari batas $radius"."m).", 400);
+             return $this->errorResponse("Anda berada di luar area kantor (Jarak: " . round($distance) . "m dari batas {$radius}m).", null, 400);
         }
 
         $today = Carbon::today()->toDateString();
@@ -112,26 +112,34 @@ class StaffAttendanceController extends Controller
         if ($enforceTime) {
             if (!$attendance) {
                 if ($currentTime > $batasMasuk) {
-                    return $this->errorResponse("Absen MASUK gagal. Batas waktu absen masuk adalah jam " . substr($batasMasuk, 0, 5) . ".", 400);
+                    return $this->errorResponse("Absen MASUK gagal. Batas waktu absen masuk adalah jam " . substr($batasMasuk, 0, 5) . ".", null, 400);
                 }
             } else {
                 if (!$attendance->jam_pulang && $currentTime < $batasPulang) {
-                    return $this->errorResponse("Absen PULANG gagal. Belum waktunya pulang (Minimal jam " . substr($batasPulang, 0, 5) . ").", 400);
+                    return $this->errorResponse("Absen PULANG gagal. Belum waktunya pulang (Minimal jam " . substr($batasPulang, 0, 5) . ").", null, 400);
                 }
             }
         }
 
         // Process base64 photo if provided
         $photoPath = null;
-        if ($request->photo) {
-            $imageParts = explode(";base64,", $request->photo);
-            if (count($imageParts) == 2) {
-                $imageTypeAux = explode("image/", $imageParts[0]);
-                $imageType = $imageTypeAux[1];
-                $imageBase64 = base64_decode($imageParts[1]);
-                $fileName = 'staff_attendance/' . $staff->id . '_' . time() . '.' . $imageType;
-                Storage::disk('public')->put($fileName, $imageBase64);
-                $photoPath = $fileName;
+        if ($request->photo && str_contains($request->photo, 'base64')) {
+            try {
+                $imageParts = explode(";base64,", $request->photo);
+                if (count($imageParts) == 2) {
+                    $imageTypeAux = explode("image/", $imageParts[0]);
+                    $imageType = count($imageTypeAux) > 1 ? $imageTypeAux[1] : 'jpg';
+                    $imageBase64 = base64_decode($imageParts[1]);
+                    $fileName = 'staff_attendance/' . $staff->id . '_' . time() . '.' . $imageType;
+                    
+                    if (!Storage::disk('public')->exists('staff_attendance')) {
+                        Storage::disk('public')->makeDirectory('staff_attendance');
+                    }
+                    Storage::disk('public')->put($fileName, $imageBase64);
+                    $photoPath = $fileName;
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Staff photo upload error: ' . $e->getMessage());
             }
         }
 
@@ -152,7 +160,7 @@ class StaffAttendanceController extends Controller
         } else {
             // Check Out (Pulang)
             if ($attendance->jam_pulang) {
-                return $this->errorResponse('Anda sudah melakukan absen pulang hari ini.', 400);
+                return $this->errorResponse('Anda sudah melakukan absen pulang hari ini.', null, 400);
             }
 
             $attendance->update([
@@ -189,7 +197,7 @@ class StaffAttendanceController extends Controller
 
         $staff = Staff::where('qr_code', $request->qr_code)->first();
         if (!$staff) {
-            return $this->errorResponse('QR Code tidak valid atau staff tidak ditemukan.', 404);
+            return $this->errorResponse('QR Code tidak valid atau staff tidak ditemukan.', null, 404);
         }
 
         return $this->successResponse([

@@ -1398,12 +1398,19 @@ function StaffScannerScreen({ session, onBack }: { session: Session; onBack: () 
       toast.success(res.message || 'Absen berhasil dicatat.');
     } catch (error: any) {
       const status = error?.response?.status;
-      const serverMsg = error?.response?.data?.message;
+      let serverMsg = error?.response?.data?.message || error?.response?.data?.error;
+      
+      if (!serverMsg && typeof error?.response?.data === 'string' && error.response.data.length > 0) {
+        serverMsg = 'Terjadi kesalahan server (HTTP ' + (status || 500) + '). Hubungi administrator.';
+      } else if (!serverMsg && error?.message) {
+        serverMsg = error.message;
+      }
+
       if (status === 422) {
         toast.error(serverMsg || 'Data tidak valid. Pastikan QR Code Anda belum kadaluarsa.');
       } else if (status === 404) {
-        toast.error('Staff tidak ditemukan. Pastikan ID Card Anda terdaftar di sistem.');
-      } else if (status === 409 || serverMsg?.toLowerCase().includes('sudah')) {
+        toast.error(serverMsg || 'Staff tidak ditemukan. Pastikan ID Card Anda terdaftar di sistem.');
+      } else if (status === 409 || (typeof serverMsg === 'string' && serverMsg.toLowerCase().includes('sudah'))) {
         toast.warning(serverMsg || 'Anda sudah melakukan absensi hari ini.');
       } else if (!navigator.onLine) {
         toast.error('Tidak ada koneksi internet. Periksa jaringan Anda dan coba lagi.');

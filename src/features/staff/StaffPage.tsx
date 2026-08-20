@@ -337,7 +337,6 @@ function StaffFaceEnrollmentDialog({ staff, onClose, onSuccess }: { staff: any, 
         ]);
         if (mounted) {
           setStatus('ready');
-          startCamera();
         }
       } catch (err) {
         if (mounted) {
@@ -365,6 +364,18 @@ function StaffFaceEnrollmentDialog({ staff, onClose, onSuccess }: { staff: any, 
       setErrorMsg('Gagal mengakses kamera. Periksa izin browser.');
     }
   };
+
+  React.useEffect(() => {
+    if (status === 'ready') {
+      startCamera();
+    }
+  }, [status]);
+
+  React.useEffect(() => {
+    if (streamRef.current && videoRef.current && videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  });
 
   const stopCamera = () => {
     if (streamRef.current) {

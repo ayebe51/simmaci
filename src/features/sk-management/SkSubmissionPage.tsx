@@ -274,75 +274,43 @@ export default function SkSubmissionPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 relative pb-20">
-      <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => navigate("/dashboard/sk-center")} className="text-slate-400 hover:text-blue-600 font-black uppercase tracking-widest text-xs h-10 px-0">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Pusat SK
+    <div className="max-w-4xl mx-auto space-y-6 relative pb-20">
+      {/* Header & Breadcrumb */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => navigate("/dashboard/sk-center")}
+            className="rounded-2xl border-slate-200 hover:bg-slate-100 text-slate-600 shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="text-right">
-              <h1 className="text-3xl font-black tracking-tight text-blue-900 uppercase">Pengajuan SK Baru</h1>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Pusat Layanan Digital LP Ma'arif NU Cilacap</p>
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <span>Pusat Layanan SK</span>
+              <span>/</span>
+              <span className="text-blue-600">Pengajuan Baru</span>
+            </div>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase mt-0.5">
+              Pengajuan SK Guru & Tendik
+            </h1>
           </div>
-      </div>
-
-      {/* Switch Form Navigation */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200">
-        <button
-          type="button"
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-extrabold text-xs bg-white text-blue-600 shadow-md shadow-slate-200 border border-slate-200/80"
-        >
-          <FileText className="w-4 h-4 text-blue-500" />
-          <span>SK Guru & Tendik</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate("/dashboard/sdm/sk-kepala/new")}
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs text-slate-600 hover:text-amber-700 hover:bg-white/80 transition-all"
-        >
-          <Crown className="w-4 h-4 text-amber-500" />
-          <span>SK Kepala Satpend</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")}
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-xs text-slate-600 hover:text-emerald-700 hover:bg-white/80 transition-all"
-        >
-          <Award className="w-4 h-4 text-emerald-500" />
-          <span>Rekomendasi Kepala</span>
-        </button>
-      </div>
-
-      {/* Banner download template surat permohonan */}
-      <div className="flex items-center gap-4 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4">
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-          <FileText className="h-5 w-5 text-amber-600" />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-amber-900 uppercase tracking-wide">Template Surat Permohonan SK</p>
-          <p className="text-xs text-amber-700 mt-0.5">
-            {isLoadingTemplate 
-              ? "Memuat template..." 
-              : templateError 
-                ? "Template belum tersedia. Hubungi administrator untuk mengaktifkan template."
-                : "Unduh template resmi, isi sesuai data, lalu upload kembali di formulir di bawah."
-            }
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownloadTemplate}
-          disabled={!suratPermohonanTemplate?.file_url || isLoadingTemplate}
-          className="shrink-0 rounded-xl border-amber-300 text-amber-700 hover:bg-amber-100 font-black uppercase tracking-widest text-[10px] h-9 px-4 disabled:opacity-40"
-        >
-          <Download className="mr-2 h-3 w-3" />
-          {isLoadingTemplate 
-            ? "Memuat..." 
-            : suratPermohonanTemplate?.file_url 
-              ? "Unduh Template" 
-              : "Belum Tersedia"
-          }
-        </Button>
+
+        {/* Template download button */}
+        {suratPermohonanTemplate?.file_url && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadTemplate}
+            disabled={isLoadingTemplate}
+            className="rounded-xl border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs h-10 px-4 shrink-0 shadow-sm"
+          >
+            <Download className="mr-2 h-4 w-4 text-amber-600" />
+            Unduh Template Surat Resmi
+          </Button>
+        )}
       </div>
 
       {/* Banner informasi pengajuan SK berdasarkan jenjang */}

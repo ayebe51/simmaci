@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog, School as SchoolIcon } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useState } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate, Link } from "react-router-dom"
@@ -125,6 +126,7 @@ export default function SchoolListPage() {
   const [isExporting, setIsExporting] = useState(false)
   const [generateTarget, setGenerateTarget] = useState<School | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<School | null>(null)
+  const [isConfirmTutupSkOpen, setIsConfirmTutupSkOpen] = useState(false)
 
   const openAdd = () => {
     setIsEditMode(false)
@@ -392,6 +394,9 @@ export default function SchoolListPage() {
         description="Kelola data dan identitas satuan pendidikan di lingkungan LP Ma'arif NU Cilacap."
         actions={[
           { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'outline', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
+          ...(canToggleSk ? [
+              { label: 'Tutup Pengajuan SK', onClick: () => setIsConfirmTutupSkOpen(true), variant: 'outline', icon: <Lock className="h-4 w-4 text-amber-600" /> },
+          ] : []),
           ...(isSuperAdmin ? [
               { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'outline', icon: <FileSpreadsheet className="h-4 w-4" /> },
               { label: 'Generate Akun', onClick: () => { setGenerateResult([]); setIsGenerateOpen(true) }, variant: 'outline', icon: <KeyRound className="h-4 w-4" /> },
@@ -762,6 +767,24 @@ export default function SchoolListPage() {
         onConfirm={() => {
           if (confirmDelete) deleteMutation.mutate(confirmDelete.id)
           setConfirmDelete(null)
+        }}
+      />
+
+      {/* ── Confirm Tutup Pengajuan SK Massal ── */}
+      <ConfirmDialog
+        open={isConfirmTutupSkOpen}
+        onOpenChange={setIsConfirmTutupSkOpen}
+        title="Tutup Pengajuan SK Massal"
+        description="Apakah Anda yakin ingin menutup (mengunci) akses pengajuan SK untuk seluruh satuan pendidikan? Madrasah non-RA/TK tidak akan dapat mengajukan SK baru sampai izin dibuka kembali."
+        confirmText={resetAllSkMutation.isPending ? "Memproses..." : "Tutup Pengajuan SK"}
+        cancelText="Batal"
+        variant="destructive"
+        onConfirm={() => {
+          resetAllSkMutation.mutate(undefined, {
+            onSuccess: () => {
+              setIsConfirmTutupSkOpen(false)
+            }
+          })
         }}
       />
     </div>

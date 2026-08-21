@@ -21,10 +21,11 @@ interface SoftPageHeaderProps {
   category?: string
   icon?: React.ReactNode
   actions?: ActionButton[]
+  children?: React.ReactNode
   className?: string
 }
 
-export default function SoftPageHeader({ title, description, category, icon, actions, className }: SoftPageHeaderProps) {
+export default function SoftPageHeader({ title, description, category, icon, actions, children, className }: SoftPageHeaderProps) {
   const visibleActionsCount = 2
   const hasOverflow = actions && actions.length > visibleActionsCount
 
@@ -57,61 +58,66 @@ export default function SoftPageHeader({ title, description, category, icon, act
         </div>
       </div>
       
-      {actions && actions.length > 0 && (
-        <div className="z-10 shrink-0">
-          {/* Desktop View: Show all actions */}
-          <div className="hidden sm:flex flex-wrap items-center gap-2 shrink-0">
-            {actions.map((action, idx) => (
-               <Button 
-                  key={idx}
-                  variant={action.variant as any}
-                  onClick={action.onClick}
-                  size="sm"
-                  className="gap-1.5 shadow-sm text-xs h-9 px-4 rounded-xl font-semibold transition-all duration-150"
-               >
-                  {action.icon}
-                  {action.label}
-               </Button>
-            ))}
-          </div>
-
-          {/* Mobile View: Primary CTA + Dropdown Overflow */}
-          <div className="flex sm:hidden items-center gap-2 shrink-0 w-full">
-            {actions.slice(0, hasOverflow ? visibleActionsCount : actions.length).map((action, idx) => (
-               <Button 
-                  key={idx}
-                  variant={action.variant as any}
-                  onClick={action.onClick}
-                  size="sm"
-                  className="gap-1.5 shadow-sm text-xs h-9 px-3 rounded-xl flex-1 text-center justify-center font-semibold"
-               >
-                  {action.icon}
-                  <span className="truncate">{action.label}</span>
-               </Button>
-            ))}
-
-            {hasOverflow && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-xl shrink-0">
-                    <MoreHorizontal className="h-4 w-4 text-slate-600" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                  {actions.slice(visibleActionsCount).map((action, idx) => (
-                    <DropdownMenuItem
+      {((actions && actions.length > 0) || children) && (
+        <div className="z-10 shrink-0 flex items-center gap-2">
+          {actions && actions.length > 0 && (
+            <>
+              {/* Desktop View: Show all actions */}
+              <div className="hidden sm:flex flex-wrap items-center gap-2 shrink-0">
+                {actions.map((action, idx) => (
+                   <Button 
                       key={idx}
+                      variant={action.variant as any}
                       onClick={action.onClick}
-                      className="gap-2 text-xs font-medium cursor-pointer"
-                    >
+                      size="sm"
+                      className="gap-1.5 shadow-sm text-xs h-9 px-4 rounded-xl font-semibold transition-all duration-150"
+                   >
                       {action.icon}
-                      <span>{action.label}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
+                      {action.label}
+                   </Button>
+                ))}
+              </div>
+
+              {/* Mobile View: Primary CTA + Dropdown Overflow */}
+              <div className="flex sm:hidden items-center gap-2 shrink-0 w-full">
+                {actions.slice(0, hasOverflow ? visibleActionsCount : actions.length).map((action, idx) => (
+                   <Button 
+                      key={idx}
+                      variant={action.variant as any}
+                      onClick={action.onClick}
+                      size="sm"
+                      className="gap-1.5 shadow-sm text-xs h-9 px-3 rounded-xl flex-1 text-center justify-center font-semibold"
+                   >
+                      {action.icon}
+                      <span className="truncate">{action.label}</span>
+                   </Button>
+                ))}
+
+                {hasOverflow && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9 w-9 p-0 rounded-xl shrink-0">
+                        <MoreHorizontal className="h-4 w-4 text-slate-600" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                      {actions.slice(visibleActionsCount).map((action, idx) => (
+                        <DropdownMenuItem
+                          key={idx}
+                          onClick={action.onClick}
+                          className="gap-2 text-xs font-medium cursor-pointer"
+                        >
+                          {action.icon}
+                          <span>{action.label}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </>
+          )}
+          {children}
         </div>
       )}
     </div>

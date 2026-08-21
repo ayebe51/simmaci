@@ -557,120 +557,50 @@ export default function TeacherListPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       {/* ── PAGE HEADER ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">Data Guru &amp; Tenaga Kependidikan</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-
-          {/* SECONDARY: Export */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            disabled={isExporting}
-            className="gap-1.5 text-xs h-8 px-3 border-slate-200"
-          >
-            {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-            Export
-          </Button>
-
-          {/* SECONDARY: Import */}
-          {canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsImportModalOpen(true)}
-              className="gap-1.5 text-xs h-8 px-3 border-slate-200"
-            >
-              <FileSpreadsheet className="h-3.5 w-3.5" />
-              Import
-            </Button>
-          )}
-
-          {/* CONTEXTUAL: Generate NIM (always visible for super admin, operates on all or selection) */}
-          {isSuperAdmin && canEdit && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenGenerateNim()}
-            >
-              <Fingerprint className="h-3.5 w-3.5" />
-              Generate NIM
-            </Button>
-          )}
-
-          {/* UTILITY: Pemeliharaan dropdown (Koreksi Status, Bersihkan Data Ganda) */}
-          {canEdit && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8 px-3 border-slate-200">
-                  <SlidersHorizontal className="h-3.5 w-3.5" />
-                  Utilitas
-                  <ChevronDown className="h-3 w-3 ml-0.5 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 rounded-xl">
-                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Pemeliharaan Data</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => deduplicateDryRunMutation.mutate()}
-                  disabled={deduplicateDryRunMutation.isPending}
-                  className="gap-2 text-sm cursor-pointer"
-                >
-                  <Wand2 className="h-4 w-4 text-amber-500" />
-                  Bersihkan Data Ganda
-                </DropdownMenuItem>
-                {isSuperAdmin && (
-                  <DropdownMenuItem
-                    onClick={() => recalcDryRunMutation.mutate()}
-                    disabled={recalcDryRunMutation.isPending}
-                    className="gap-2 text-sm cursor-pointer"
-                  >
-                    {recalcDryRunMutation.isPending
-                      ? <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
-                      : <RefreshCw className="h-4 w-4 text-teal-500" />}
-                    Koreksi Status
-                  </DropdownMenuItem>
-                )}
-                {isSuperAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    {/* DESTRUCTIVE: Isolated at bottom with visual distinction */}
-                    <DropdownMenuItem
-                      onClick={() => setIsDeleteAllOpen(true)}
-                      className="gap-2 text-sm cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Hapus Semua Data
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* PRIMARY: Tambah Manual */}
-          {canEdit && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
+      <SoftPageHeader
+        title="Data Guru & Tenaga Kependidikan"
+        description="Manajemen data guru dan tenaga kependidikan LP Ma'arif NU Cilacap"
+        category="DATA INDUK"
+        icon={<Users className="w-6 h-6 text-emerald-600" />}
+        actions={[
+          {
+            label: "Export",
+            onClick: handleExportExcel,
+            variant: "outline",
+            icon: isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />
+          },
+          ...(canEdit ? [
+            {
+              label: "Import",
+              onClick: () => setIsImportModalOpen(true),
+              variant: "outline" as const,
+              icon: <FileSpreadsheet className="h-3.5 w-3.5" />
+            }
+          ] : []),
+          ...(isSuperAdmin && canEdit ? [
+            {
+              label: "Generate NIM",
+              onClick: () => handleOpenGenerateNim(),
+              variant: "outline" as const,
+              icon: <Fingerprint className="h-3.5 w-3.5" />
+            }
+          ] : []),
+          ...(canEdit ? [
+            {
+              label: "Tambah Guru",
+              onClick: () => {
                 setFormData({ is_active: true })
                 setIsEditMode(false)
                 setIsAddOpen(true)
-              }}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Tambah Guru
-            </Button>
-          )}
-        </div>
-      </div>
+              },
+              variant: "default" as const,
+              icon: <Plus className="h-3.5 w-3.5" />
+            }
+          ] : [])
+        ]}
+      />
 
       <Card className="border-0 shadow-sm rounded-2xl overflow-hidden bg-white">
         <CardHeader className="pb-5 border-b border-slate-100">

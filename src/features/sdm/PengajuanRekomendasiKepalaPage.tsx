@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Send, UploadCloud, CheckCircle, Clock, Loader2, Search, ArrowLeft } from "lucide-react"
+import { Send, UploadCloud, CheckCircle, Clock, Loader2, Search, ArrowLeft, Award } from "lucide-react"
 import { toast } from "sonner"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 
 export function PengajuanRekomendasiKepalaPage() {
     const user = authApi.getStoredUser()
@@ -126,13 +127,13 @@ export function PengajuanRekomendasiKepalaPage() {
     }
 
     return (
-        <div className="space-y-10 pb-20">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Permohonan Rekomendasi Kepala</h1>
-                <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                   Ajukan Surat Rekomendasi Kepala Madrasah ke PC LP Ma'arif NU
-                </p>
-            </div>
+        <div className="space-y-6 pb-10">
+            <SoftPageHeader
+                title="Permohonan Rekomendasi Kepala"
+                description="Layanan pengajuan Surat Rekomendasi Kepala Satuan Pendidikan ke PC LP Ma'arif NU"
+                category="SDM & REKOMENDASI"
+                icon={<Award className="w-6 h-6 text-emerald-600" />}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                 {/* Eligible Teachers */}

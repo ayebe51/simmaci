@@ -412,16 +412,12 @@ export default function MySkPage() {
       />
 
       <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
-        <CardHeader className="p-10 border-b bg-slate-50/50">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-                <div>
-                    <CardTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Daftar Dokumen Terbit</CardTitle>
-                    <CardDescription className="text-sm font-medium text-slate-400">Arsip SK yang dikelompokkan per tahun ajaran.</CardDescription>
-                </div>
+        <CardHeader className="p-4 sm:p-5 border-b bg-slate-50/50">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                     <div className="w-full sm:w-48">
                         <Select value={selectedTahunAjaran} onValueChange={setSelectedTahunAjaran}>
-                            <SelectTrigger className="h-11 border-slate-200 bg-white rounded-xl text-xs font-bold">
+                            <SelectTrigger className="h-10 border-slate-200 bg-white rounded-xl text-xs font-bold">
                                 <div className="flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-blue-500" />
                                     <SelectValue placeholder="Tahun Ajaran" />

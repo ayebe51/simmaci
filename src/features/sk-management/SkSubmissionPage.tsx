@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { ArrowLeft, Save, FileText, Upload, Loader2, Download, AlertTriangle, CheckCircle, Crown, Award } from "lucide-react"
+import { ArrowLeft, Save, FileText, Upload, Loader2, Download, AlertTriangle, CheckCircle, Crown, Award, FilePlus } from "lucide-react"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
@@ -274,44 +275,23 @@ export default function SkSubmissionPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 relative pb-20">
-      {/* Header & Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate("/dashboard/sk-center")}
-            className="rounded-2xl border-slate-200 hover:bg-slate-100 text-slate-600 shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-              <span>Pusat Layanan SK</span>
-              <span>/</span>
-              <span className="text-blue-600">Pengajuan Baru</span>
-            </div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 uppercase mt-0.5">
-              Pengajuan SK Guru & Tendik
-            </h1>
-          </div>
-        </div>
-
-        {/* Template download button */}
-        {suratPermohonanTemplate?.file_url && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadTemplate}
-            disabled={isLoadingTemplate}
-            className="rounded-xl border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 font-bold text-xs h-10 px-4 shrink-0 shadow-sm"
-          >
-            <Download className="mr-2 h-4 w-4 text-amber-600" />
-            Unduh Template Surat Resmi
-          </Button>
-        )}
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6 relative pb-10">
+      <SoftPageHeader
+        title="Pengajuan SK Guru & Tendik"
+        description="Pusat permohonan SK penetapan/perpanjangan Guru & Tendik"
+        category="PUSAT SK"
+        icon={<FilePlus className="w-6 h-6 text-emerald-600" />}
+        actions={[
+          ...(suratPermohonanTemplate?.file_url ? [
+            {
+              label: "Unduh Template Surat Resmi",
+              onClick: handleDownloadTemplate,
+              variant: "outline" as const,
+              icon: <Download className="h-4 w-4 text-amber-600" />
+            }
+          ] : [])
+        ]}
+      />
 
       {/* Banner informasi pengajuan SK berdasarkan jenjang */}
       {isOperator && schoolProfile && (() => {

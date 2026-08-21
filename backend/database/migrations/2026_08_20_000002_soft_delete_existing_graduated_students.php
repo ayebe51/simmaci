@@ -15,7 +15,7 @@ return new class extends Migration
             ->whereIn('status', ['Lulus', 'Keluar'])
             ->whereNull('deleted_at')
             ->update([
-                'deleted_at' => DB::raw('COALESCE(updated_at, NOW())')
+                'deleted_at' => DB::raw('COALESCE(updated_at, CURRENT_TIMESTAMP)')
             ]);
     }
 

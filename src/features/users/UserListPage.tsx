@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { useQuery } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import { userApi, schoolApi } from "@/lib/api"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 
 export default function UserListPage() {
   const [user] = useState<any>(() => {
@@ -82,26 +83,26 @@ export default function UserListPage() {
       try {
           if (editingUser) {
               await userApi.update(editingUser.id, payload)
-              toast.success("User diperbarui")
+              toast.success("User berhasil diperbarui")
           } else {
               await userApi.create(payload)
-              toast.success("User baru ditambahkan")
+              toast.success("User baru berhasil ditambahkan")
           }
           setIsDialogOpen(false)
           refetch()
-      } catch (err: any) {
-          toast.error(err.response?.data?.message || "Gagal menyimpan user")
+      } catch (e: any) {
+          toast.error(e?.response?.data?.message || "Gagal menyimpan user")
       }
   }
 
-  const handleDelete = async (user: any) => {
-    try {
-        await userApi.delete(user.id)
-        toast.success("User dinonaktifkan")
-        refetch()
-    } catch (err: any) {
-        toast.error("Gagal menghapus")
-    }
+  const handleDelete = async (id: number) => {
+      try {
+          await userApi.delete(id)
+          toast.success("User berhasil dihapus")
+          refetch()
+      } catch (e: any) {
+          toast.error(e?.response?.data?.message || "Gagal menghapus user")
+      }
   }
 
   const handleForceDelete = async (user: any) => {
@@ -155,30 +156,28 @@ export default function UserListPage() {
   }
 
   return (
-    <div className="space-y-10 pb-20">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase italic">Akses & Manajemen Akun</h1>
-            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest flex items-center gap-2">
-               <ShieldCheck className="w-3 h-3 text-emerald-500" /> Kontrol Keamanan & Hak Akses Hirarki Pengguna
-            </p>
-        </div>
-        <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleExportExcel}>
-                Export Excel
-            </Button>
-            <Button variant="default" onClick={() => { setEditingUser(null); setFormData({name:"", email:"", password:"", role:"operator", school_id:"", is_active:true}); setIsDialogOpen(true)}}>
-                <Plus className="w-4 h-4 mr-2" /> Tambah Akun
-            </Button>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Akses & Manajemen Akun"
+        description="Kontrol Keamanan & Hak Akses Hirarki Pengguna SIMMACI"
+        icon={<ShieldCheck className="w-6 h-6 text-emerald-600" />}
+        actions={[
+          { label: 'Export Excel', onClick: handleExportExcel, variant: 'outline', icon: <Download className="h-4 w-4" /> },
+          { label: 'Tambah Akun', onClick: () => { setEditingUser(null); setFormData({name:"", email:"", password:"", role:"operator", school_id:"", is_active:true}); setIsDialogOpen(true)}, variant: 'default', icon: <Plus className="h-4 w-4" /> }
+        ]}
+      />
 
-      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex items-center gap-4 bg-slate-50/20">
-            <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input placeholder="Cari filter nama / username..." className="h-12 pl-12 rounded-xl border-slate-200 bg-white font-bold text-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            </div>
+      <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-4 top-3 h-4 w-4 text-emerald-500" />
+            <Input 
+              placeholder="Cari filter nama / username..." 
+              className="h-10 pl-11 rounded-2xl border-slate-200 bg-white text-sm focus-visible:ring-emerald-500 font-medium" 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+            />
+          </div>
         </div>
         <div className="overflow-x-auto">
             <Table>

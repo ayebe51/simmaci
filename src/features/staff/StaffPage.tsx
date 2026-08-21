@@ -10,7 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash, QrCode, Plus, Camera, Loader2, CheckCircle2 } from 'lucide-react';
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
+import { Edit, Trash, Trash2, QrCode, Plus, Camera, Loader2, CheckCircle2, Search } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import * as faceapi from 'face-api.js';
 
@@ -107,84 +110,100 @@ export default function StaffPage() {
 
   const openFace = (staff: any) => {
     setSelectedStaff(staff);
-    setIsFaceOpen(true);
-  };
+  const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Manajemen Staff</h1>
-          <p className="text-muted-foreground">Kelola data staff PCNU / LP Ma'arif Cilacap</p>
-        </div>
-        <Button onClick={() => openForm()}><Plus className="mr-2 h-4 w-4" /> Tambah Staff</Button>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Manajemen Staff"
+        description="Kelola data staff PCNU / LP Ma'arif Cilacap"
+        actions={[
+          { label: 'Tambah Staff', onClick: () => openForm(), variant: 'default', icon: <Plus className="h-4 w-4" /> }
+        ]}
+      />
 
-      <div className="flex items-center space-x-2">
-        <Input 
-          placeholder="Cari nama staff..." 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          className="max-w-sm"
-        />
-      </div>
+      <Card className="border border-slate-200 shadow-sm rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="p-6 border-b border-slate-100">
+          <div className="relative flex-1 w-full max-w-md">
+            <Search className="absolute left-4 top-3 h-4 w-4 text-emerald-500" />
+            <Input 
+              placeholder="Cari nama staff..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="pl-11 h-10 rounded-2xl bg-white border-slate-200 focus-visible:ring-emerald-500 text-sm"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+              <TableRow className="border-b-0 hover:bg-transparent">
+                <TableHead className="py-3 px-4 font-bold text-emerald-800">Nama</TableHead>
+                <TableHead className="py-3 px-4 font-bold text-emerald-800">Nomor ID</TableHead>
+                <TableHead className="py-3 px-4 font-bold text-emerald-800">Jabatan / Divisi</TableHead>
+                <TableHead className="py-3 px-4 font-bold text-emerald-800">Kontak</TableHead>
+                <TableHead className="py-3 px-4 font-bold text-emerald-800">Akun</TableHead>
+                <TableHead className="py-3 px-4 font-bold text-emerald-800">Status</TableHead>
+                <TableHead className="py-3 px-4 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={7} className="h-32 text-center"><Loader2 className="animate-spin h-6 w-6 mx-auto text-emerald-500" /></TableCell></TableRow>
+              ) : data?.data?.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="h-48 text-center text-slate-500 font-semibold">Tidak ada data staff</TableCell></TableRow>
+              ) : (
+                data?.data?.map((staff: any) => (
+                  <TableRow key={staff.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <TableCell className="px-4 py-3 font-semibold text-slate-900 text-sm">{staff.nama}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-slate-600">{staff.nomor_id || '-'}</TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="text-sm font-medium text-slate-900">{staff.jabatan}</div>
+                      <div className="text-xs text-slate-400 mt-0.5">{staff.divisi}</div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-slate-600">{staff.telepon}</TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-slate-600">{staff.user?.email || '-'}</TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge className={staff.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold px-2.5 py-0.5" : "bg-slate-50 text-slate-600 border-slate-200 text-xs font-semibold px-2.5 py-0.5"}>
+                        {staff.is_active ? 'Aktif' : 'Nonaktif'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right">
+                      <div className="flex gap-1 items-center justify-end">
+                        <Button variant="ghost" size="icon-sm" onClick={() => openFace(staff)} title="Daftarkan Wajah" className={staff.face_descriptor ? "text-emerald-600" : "text-slate-600"}>
+                          <Camera className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openQr(staff)} title="QR Code">
+                          <QrCode className="h-4 w-4 text-purple-600" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openForm(staff)} title="Edit Staff">
+                          <Edit className="h-4 w-4 text-slate-600" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setConfirmDelete(staff)} title="Hapus Staff">
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <div className="border rounded-md">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nama</TableHead>
-              <TableHead>Nomor ID</TableHead>
-              <TableHead>Jabatan / Divisi</TableHead>
-              <TableHead>Kontak</TableHead>
-              <TableHead>Akun</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center">Loading...</TableCell></TableRow>
-            ) : data?.data?.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center">Tidak ada data staff</TableCell></TableRow>
-            ) : (
-              data?.data?.map((staff: any) => (
-                <TableRow key={staff.id}>
-                  <TableCell className="font-medium">{staff.nama}</TableCell>
-                  <TableCell>{staff.nomor_id || '-'}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">{staff.jabatan}</div>
-                    <div className="text-xs text-muted-foreground">{staff.divisi}</div>
-                  </TableCell>
-                  <TableCell>{staff.telepon}</TableCell>
-                  <TableCell>{staff.user?.email || '-'}</TableCell>
-                  <TableCell>
-                    <Badge variant={staff.is_active ? 'default' : 'secondary'}>
-                      {staff.is_active ? 'Aktif' : 'Nonaktif'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => openFace(staff)} title="Daftarkan Wajah" className={staff.face_descriptor ? "text-emerald-500" : ""}>
-                      <Camera className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => openQr(staff)} title="QR Code">
-                      <QrCode className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => openForm(staff)} title="Edit">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => {
-                      if (confirm('Yakin hapus staff ini?')) deleteMutation.mutate(staff.id);
-                    }}>
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onOpenChange={(open) => { if (!open) setConfirmDelete(null); }}
+        title="Hapus Staff"
+        description={`Apakah Anda yakin ingin menghapus ${confirmDelete?.nama}? Data yang dihapus tidak dapat dikembalikan.`}
+        confirmText="Hapus"
+        variant="destructive"
+        onConfirm={() => {
+          if (confirmDelete) deleteMutation.mutate(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+      />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>

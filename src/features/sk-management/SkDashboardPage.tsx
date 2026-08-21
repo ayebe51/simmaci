@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { createPortal } from "react-dom"
@@ -239,40 +240,21 @@ export default function SkDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Manajemen SK Digital</h1>
-          <p className="text-sm text-slate-500 mt-1 truncate">
-            Pusat Penerbitan & Verifikasi Surat Keputusan PC LP Ma'arif NU Cilacap
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-6 h-12 shadow-lg shadow-blue-50 transition-all font-bold"
-                >
-                    <FilePlus className="mr-2 h-4 w-4" />
-                    Ajukan SK Baru
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                <DropdownMenuItem onClick={() => navigate("/dashboard/sk/new")} className="cursor-pointer font-medium py-3">
-                  <FileText className="mr-2 h-4 w-4 text-blue-600" /> SK Guru / Tendik
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/sk-kepala/new")} className="cursor-pointer font-medium py-3">
-                  <Crown className="mr-2 h-4 w-4 text-amber-600" /> SK Kepala Madrasah
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/dashboard/sdm/rekomendasi-kepala/pengajuan")} className="cursor-pointer font-medium py-3">
-                  <FileText className="mr-2 h-4 w-4 text-emerald-600" /> Rekomendasi Kepala
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Manajemen SK Digital"
+        description="Pusat Penerbitan & Verifikasi Surat Keputusan PC LP Ma'arif NU Cilacap"
+        actions={[
+          {
+            label: "Ajukan SK Baru",
+            onClick: () => navigate("/dashboard/sk/new"),
+            variant: "default",
+            icon: <FilePlus className="h-4 w-4" />
+          }
+        ]}
+      />
 
-      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+      <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
         <CardHeader className="pb-4 border-b bg-slate-50/50 px-8 pt-8">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <Tabs value={statusFilter} onValueChange={(v) => {

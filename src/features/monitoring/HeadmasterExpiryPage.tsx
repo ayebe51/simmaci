@@ -138,7 +138,7 @@ export default function HeadmasterExpiryPage() {
       </div>
 
       {/* Main Card */}
-      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+      <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
         <CardHeader className="p-8 border-b bg-slate-50/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">

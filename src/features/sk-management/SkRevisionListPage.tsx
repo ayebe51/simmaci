@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import SoftPageHeader from "@/components/ui/SoftPageHeader";
 import {
   Card,
   CardContent,
@@ -229,12 +230,15 @@ export default function SkRevisionListPage() {
   }, [revisionsList, debouncedSearchTerm, isAdmin, user?.id]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-black tracking-tight text-blue-900 uppercase">Perbaikan Data SK (Riwayat)</h1>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Perbaikan Data SK (Riwayat)"
+        description="Daftar pengajuan perbaikan data SK yang diajukan oleh Operator Satpend."
+        category="LAYANAN SK"
+        icon={<FileEdit className="w-6 h-6 text-emerald-600" />}
+      />
 
-      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+      <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
         <CardHeader className="p-10 border-b bg-slate-50/50">
           <CardTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">Kotak Masuk Revisi (Typo/Error)</CardTitle>
           <CardDescription className="font-medium text-slate-400">

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -83,16 +84,33 @@ export default function HeadmasterExpiryPage() {
     })
   }, [headmasters, debouncedSearchTerm, statusFilter])
 
+  // Count Statistics for Tabs
+  const counts = useMemo(() => {
+    let expiring = 0
+    let expired = 0
+    let limit_exceeded = 0
+
+    rawHeadmasters.forEach((hm: any) => {
+      if (hm.status_expiry === "critical" || hm.status_expiry === "warning") expiring++
+      if (hm.status_expiry === "expired") expired++
+      if (hm.periode_ke >= 3) limit_exceeded++
+    })
+
+    return { total: rawHeadmasters.length, expiring, expired, limit_exceeded }
+  }, [rawHeadmasters])
+
   const handleDownloadExcel = () => {
-    const exportData = filteredHeadmasters.map((h: any, i: number) => ({
-      "No": i + 1,
-      "Nama Kepala": h.displayName,
-      "Unit Kerja / Madrasah": h.displaySchool,
-      "Periode Ke": `${h.displayPeriod} / 3`,
-      "Tanggal TMT Mulai": h.start_date ? new Date(h.start_date).toLocaleDateString("id-ID") : "-",
-      "Tanggal Selesai": h.end_date ? new Date(h.end_date).toLocaleDateString("id-ID") : "-",
-      "Sisa Waktu": h.daysRemaining < 0 ? `Telah lewat ${Math.abs(h.daysRemaining)} hari` : `${h.daysRemaining} hari tersisa`,
-      "Status Masa Jabatan": h.daysRemaining < 0 ? "Masa Jabatan Habis" : h.displayPeriod >= 3 ? "Batas Maksimal 3 Periode" : "Akan Habis"
+    if (!filteredHeadmasters.length) return
+    const exportData = filteredHeadmasters.map((hm: any, idx: number) => ({
+      "No": idx + 1,
+      "Nama Kepala": hm.nama,
+      "Satuan Pendidikan": hm.school?.nama || "-",
+      "Jenjang": hm.school?.jenjang || "-",
+      "Periode Ke": hm.periode_ke,
+      "Tgl Akhir SK": hm.tgl_sk_berakhir || "-",
+      "Sisa Waktu": hm.status_expiry === "expired" ? "Kedaluwarsa" : `${hm.sisa_hari || 0} Hari`,
+      "Status": hm.status_expiry === "expired" ? "Kedaluwarsa" : (hm.status_expiry === "critical" ? "Kritis (<90 Hari)" : (hm.status_expiry === "warning" ? "Peringatan (<180 Hari)" : "Normal")),
+      "Catatan Periode": hm.periode_ke >= 3 ? "Batas Maks 3 Periode" : "Normal"
     }))
 
     const ws = XLSX.utils.json_to_sheet(exportData)
@@ -109,50 +127,28 @@ export default function HeadmasterExpiryPage() {
   )
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] font-black uppercase tracking-widest">
-              <ShieldAlert className="w-3 h-3 text-amber-400" /> Early Warning System
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">
-              Monitoring Masa Jabatan
-            </h1>
-            <p className="text-xs text-amber-200/80 max-w-xl font-medium">
-              Peringatan dini deteksi masa bakti Kepala Satuan Pendidikan dengan sisa waktu <span className="text-white font-bold">≤ 180 hari (6 bulan)</span> atau batas maksimal 3 periode.
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            onClick={handleDownloadExcel}
-            disabled={!filteredHeadmasters.length}
-            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-2xl h-11 px-5 font-bold text-xs shrink-0 transition-all"
-          >
-            <FileDown className="mr-2 h-4 w-4 text-amber-300" /> Export Excel
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Monitoring Masa Jabatan"
+        description="Peringatan dini deteksi masa bakti Kepala Satuan Pendidikan dengan sisa waktu ≤ 180 hari atau batas 3 periode."
+        category="EARLY WARNING SYSTEM"
+        icon={<ShieldAlert className="w-6 h-6 text-emerald-600" />}
+        actions={[
+          {
+            label: "Export Excel",
+            onClick: handleDownloadExcel,
+            variant: "outline",
+            icon: <FileDown className="h-4 w-4 text-emerald-600" />
+          }
+        ]}
+      />
 
       {/* Main Card */}
       <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
-        <CardHeader className="p-8 border-b bg-slate-50/50">
+        <CardHeader className="p-4 sm:p-5 border-b bg-slate-50/50">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <CardTitle className="text-lg font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-amber-600" />
-                <span>Daftar Peringatan Dini Masa Jabatan</span>
-              </CardTitle>
-              <CardDescription className="text-xs font-medium text-slate-400">
-                Menampilkan {filteredHeadmasters.length} data kepala madrasah yang membutuhkan perhatian atau tindakan perpanjangan/SK baru.
-              </CardDescription>
-            </div>
-
             {/* Controls: Search & Tabs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full justify-between p-3">
               <div className="relative min-w-[220px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input

@@ -28,6 +28,7 @@ export default function StudentCenterPage() {
       <SoftPageHeader
         title="Data & Grafik Siswa"
         description="Kelola data induk siswa madrasah serta pantau grafik statistik demografi dan tren peserta didik secara visual."
+        category="DATA INDUK"
         icon={<GraduationCap className="w-6 h-6 text-emerald-600" />}
       />
 

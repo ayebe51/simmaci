@@ -162,58 +162,84 @@ export default function StudentListPage() {
 
   return (
     <div className="space-y-6">
-      <SoftPageHeader
-        title="Data Siswa"
-        description="Data peserta didik di lingkungan LP Ma'arif NU Cilacap"
-        actions={[
-          ...(canEdit ? [
-              { label: 'Naik Kelas', onClick: () => setIsTransitionModalOpen(true), variant: 'outline', icon: <ArrowUpDown className="h-4 w-4" /> },
-              { label: 'Import Excel', onClick: () => setIsImportModalOpen(true), variant: 'outline', icon: <FileSpreadsheet className="h-4 w-4" /> },
-              { label: 'Tambah Siswa', onClick: () => { setFormData({}); setIsAddOpen(true); }, variant: 'default', icon: <Plus className="h-4 w-4" /> }
-          ] : [])
-        ]}
-      />
+      <Card className="border border-slate-200 shadow-sm rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="p-4 sm:p-5 border-b bg-slate-50/50">
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                {/* Search & Filters */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                  <div className="relative min-w-[220px] flex-1 max-w-md">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                          placeholder="Cari NISN, NIK, atau Nama..."
+                          className="pl-9 h-10 rounded-2xl bg-white border-slate-200 focus-visible:ring-emerald-500"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                  </div>
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-2xl bg-white border-slate-200 text-xs font-medium">
+                          <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-slate-100">
+                          <SelectItem value="all">Semua Status</SelectItem>
+                          <SelectItem value="Aktif">Aktif</SelectItem>
+                          <SelectItem value="Lulus">Lulus</SelectItem>
+                          <SelectItem value="Keluar">Keluar</SelectItem>
+                      </SelectContent>
+                  </Select>
 
-      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden bg-white/80 backdrop-blur-md">
-        <CardHeader className="pb-4 border-b">
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div className="relative flex-1 w-full max-w-md">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    <Input
-                        placeholder="Cari siswa..."
-                        className="pl-10 rounded-xl"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                  {isSuperAdmin && (
+                      <Select
+                          value={filterSchoolId?.toString() ?? "all"}
+                          onValueChange={(v) => setFilterSchoolId(v === "all" ? null : Number(v))}
+                      >
+                          <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-2xl bg-white border-slate-200 text-xs font-medium">
+                              <SelectValue placeholder="Semua Sekolah" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl border-slate-100 max-h-[300px]">
+                              <SelectItem value="all">Semua Sekolah</SelectItem>
+                              {(Array.isArray(schoolsRes) ? schoolsRes : (schoolsRes as any)?.data ?? [])
+                                ?.filter((s: any) => s && s.id != null)
+                                ?.map((s: any) => (
+                                  <SelectItem key={s.id} value={String(s.id)}>{s.nama}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  )}
                 </div>
-                
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-[160px] rounded-xl">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua Status</SelectItem>
-                        <SelectItem value="Aktif">Aktif</SelectItem>
-                        <SelectItem value="Lulus">Lulus</SelectItem>
-                        <SelectItem value="Keluar">Keluar</SelectItem>
-                    </SelectContent>
-                </Select>
 
-                {isSuperAdmin && (
-                    <Select
-                        value={filterSchoolId?.toString() ?? "all"}
-                        onValueChange={(v) => setFilterSchoolId(v === "all" ? null : Number(v))}
+                {/* Primary Actions */}
+                {canEdit && (
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsTransitionModalOpen(true)}
+                      className="gap-1.5 text-xs h-9 px-3 rounded-xl border-slate-200 font-semibold"
                     >
-                        <SelectTrigger className="w-full sm:w-[200px] rounded-xl">
-                            <SelectValue placeholder="Semua Sekolah" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Semua Sekolah</SelectItem>
-                            {(Array.isArray(schoolsRes) ? schoolsRes : schoolsRes?.data ?? []).map((s: any) => (
-                                <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                      Naik Kelas
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="gap-1.5 text-xs h-9 px-3 rounded-xl border-slate-200 font-semibold"
+                    >
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                      Import Excel
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => { setFormData({}); setIsAddOpen(true); }}
+                      className="gap-1.5 text-xs h-9 px-4 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Tambah Siswa
+                    </Button>
+                  </div>
                 )}
             </div>
         </CardHeader>

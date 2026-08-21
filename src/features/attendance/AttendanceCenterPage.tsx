@@ -8,6 +8,8 @@ import StudentAttendanceReportPage from "./StudentAttendanceReportPage"
 import StaffAttendanceReportPage from "../staff/StaffAttendanceReportPage"
 import { UserCheck, GraduationCap, FileBarChart, Users, CalendarCheck } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function AttendanceCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "teacher"
@@ -29,20 +31,12 @@ export default function AttendanceCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest">
-            <CalendarCheck className="w-3 h-3 text-emerald-400" /> Presensi & Monitoring Kehadiran
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Pusat Absensi & Rekap</h1>
-          <p className="text-xs text-emerald-200/80 max-w-xl font-medium">
-            Monitor log absensi harian guru, presensi kelas siswa, serta rekapitulasi kehadiran berkala.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Pusat Absensi & Rekap"
+        description="Monitor log absensi harian guru, presensi kelas siswa, serta rekapitulasi kehadiran berkala."
+        icon={<UserCheck className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

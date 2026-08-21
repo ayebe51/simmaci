@@ -5,6 +5,8 @@ import StudentListPage from "./StudentListPage"
 import StudentStatisticsPage from "../student-statistics/StudentStatisticsPage"
 import { User, BarChart3, GraduationCap } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function StudentCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "list"
@@ -22,20 +24,12 @@ export default function StudentCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-cyan-900 to-slate-900 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-[10px] font-black uppercase tracking-widest">
-            <GraduationCap className="w-3 h-3 text-cyan-400" /> Database & Statistik Peserta Didik
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Data & Grafik Siswa</h1>
-          <p className="text-xs text-cyan-200/80 max-w-xl font-medium">
-            Kelola data induk siswa madrasah serta pantau grafik statistik demografi dan tren peserta didik secara visual.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Data & Grafik Siswa"
+        description="Kelola data induk siswa madrasah serta pantau grafik statistik demografi dan tren peserta didik secara visual."
+        icon={<GraduationCap className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

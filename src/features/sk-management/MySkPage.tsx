@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -403,22 +404,14 @@ export default function MySkPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest">
-            <Archive className="w-3 h-3 text-indigo-400" /> Dokumen Resmi Terbit
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Arsip SK Saya</h1>
-          <p className="text-xs text-indigo-200/80 max-w-xl font-medium">
-            Daftar seluruh e-SK resmi satuan pendidikan {user?.unitKerja ? <span className="text-white font-bold">{user.unitKerja}</span> : "Anda"} yang telah disetujui dan diterbitkan oleh LP Ma'arif NU Cilacap.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Arsip SK Saya"
+        description={`Daftar seluruh e-SK resmi satuan pendidikan ${user?.unitKerja ? user.unitKerja : ""} yang telah disetujui dan diterbitkan oleh LP Ma'arif NU Cilacap.`}
+        icon={<Archive className="w-6 h-6 text-emerald-600" />}
+      />
 
-      <Card className="border-0 shadow-sm bg-white rounded-[2.5rem] overflow-hidden">
+      <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
         <CardHeader className="p-10 border-b bg-slate-50/50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
                 <div>

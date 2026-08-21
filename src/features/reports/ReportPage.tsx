@@ -8,6 +8,8 @@ import SkReportPageSimple from "./SkReportPageSimple"
 import SkReportGroupedPage from "./SkReportGroupedPage"
 import SkReportMissingPage from "./SkReportMissingPage"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function ReportPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "teacher"
@@ -25,20 +27,13 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 p-8 text-white shadow-xl print:hidden">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
-            <FileBarChart className="w-3 h-3 text-blue-400" /> Analitik & Rekapitulasi LP Ma'arif NU
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Pusat Laporan & Analitik</h1>
-          <p className="text-xs text-blue-200/80 max-w-xl font-medium">
-            Rekapitulasi statistik data guru/PTK, analisis penerbitan SK, serta monitoring status pengajuan madrasah.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Pusat Laporan & Analitik"
+        description="Rekapitulasi statistik data guru/PTK, analisis penerbitan SK, serta monitoring status pengajuan madrasah."
+        icon={<FileBarChart className="w-6 h-6 text-emerald-600" />}
+        className="print:hidden"
+      />
 
       {/* Centered Segmented Glassmorphism Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6 print:block">

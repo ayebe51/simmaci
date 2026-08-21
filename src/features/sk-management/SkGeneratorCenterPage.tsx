@@ -7,6 +7,8 @@ import YayasanApprovalPage from "../approval/YayasanApprovalPage"
 import SkTemplateManagementPage from "./SkTemplateManagementPage"
 import { FileText, Gavel, LayoutTemplate, ShieldCheck } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function SkGeneratorCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "generator"
@@ -27,20 +29,12 @@ export default function SkGeneratorCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] font-black uppercase tracking-widest">
-            <ShieldCheck className="w-3 h-3 text-indigo-400" /> Penerbitan & Verifikasi Yayasan
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Generator & Approval SK</h1>
-          <p className="text-xs text-indigo-200/80 max-w-xl font-medium">
-            Proses verifikasi pengajuan SK, cetak SK kolektif secara otomatis, dan kelola template dokumen resmi Word/PDF.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Generator & Approval SK"
+        description="Proses verifikasi pengajuan SK, cetak SK kolektif secara otomatis, dan kelola template dokumen resmi Word/PDF."
+        icon={<Gavel className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

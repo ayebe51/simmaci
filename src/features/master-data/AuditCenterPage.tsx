@@ -5,6 +5,8 @@ import DataAuditPage from "./DataAuditPage"
 import ActivityLogPage from "./ActivityLogPage"
 import { Stethoscope, Activity, ShieldAlert } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function AuditCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "health"
@@ -22,20 +24,12 @@ export default function AuditCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300 text-[10px] font-black uppercase tracking-widest">
-            <ShieldAlert className="w-3 h-3 text-rose-400" /> Monitoring Keamanan & Integritas Basis Data
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Audit & Log Sistem</h1>
-          <p className="text-xs text-rose-200/80 max-w-xl font-medium">
-            Diagnosa kesehatan basis data (Health Data), temukan anomali data ganda/kosong, serta pantau log aktivitas sistem.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Audit & Log Sistem"
+        description="Diagnosa kesehatan basis data (Health Data), temukan anomali data ganda/kosong, serta pantau log aktivitas sistem."
+        icon={<ShieldAlert className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

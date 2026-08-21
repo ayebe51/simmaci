@@ -5,6 +5,8 @@ import KtaGeneratorPage from "./KtaGeneratorPage"
 import StudentCardPage from "./StudentCardPage"
 import { CreditCard, GraduationCap, IdCard } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function CardCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "kta"
@@ -22,20 +24,12 @@ export default function CardCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
-            <IdCard className="w-3 h-3 text-blue-400" /> Cetak Kartu Identitas Digital
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Pusat Cetak Kartu</h1>
-          <p className="text-xs text-blue-200/80 max-w-xl font-medium">
-            Generate dan cetak Kartu Tanda Anggota (KTA) Digital untuk Guru/Tendik serta Kartu Pelajar Siswa.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Pusat Cetak Kartu"
+        description="Generate dan cetak Kartu Tanda Anggota (KTA) Digital untuk Guru/Tendik serta Kartu Pelajar Siswa."
+        icon={<IdCard className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

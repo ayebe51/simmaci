@@ -5,6 +5,8 @@ import EventsPage from "./EventsPage"
 import MeetingListPage from "../meetings/pages/MeetingListPage"
 import { Trophy, CalendarDays, CalendarCheck2 } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function EventCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "events"
@@ -22,20 +24,12 @@ export default function EventCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950 via-amber-900 to-slate-900 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] font-black uppercase tracking-widest">
-            <CalendarCheck2 className="w-3 h-3 text-amber-400" /> Agenda & Acara Organisasi
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Manajemen Acara</h1>
-          <p className="text-xs text-amber-200/80 max-w-xl font-medium">
-            Kelola perlombaan, event kejuaraan, serta rapat kearsipan dan absensi presensi yayasan.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Manajemen Acara"
+        description="Kelola perlombaan, event kejuaraan, serta rapat kearsipan dan absensi presensi yayasan."
+        icon={<Trophy className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

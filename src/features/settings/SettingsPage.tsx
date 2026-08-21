@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -60,20 +61,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20 w-full">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
-            <ShieldAlert className="w-3 h-3 text-blue-400" /> Konfigurasi Platform & Akses
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">Pengaturan Sistem & Keamanan</h1>
-          <p className="text-xs text-blue-200/80 max-w-xl font-medium">
-            Kelola otentikasi akun, ubah password, atur PIN scanner panitia, serta konfigurasi identitas kop surat resmi.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10 w-full">
+      <SoftPageHeader
+        title="Pengaturan Sistem & Keamanan"
+        description="Kelola otentikasi akun, ubah password, atur PIN scanner panitia, serta konfigurasi identitas kop surat resmi."
+        icon={<Settings className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs defaultValue="security" value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full">

@@ -7,6 +7,8 @@ import WaBlastTemplatePage from "./WaBlastTemplatePage"
 import { WaBlastConfigPage } from "./pages/WaBlastConfigPage"
 import { MessageSquare, LayoutTemplate, Settings, Send } from "lucide-react"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function WaCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabFromUrl = searchParams.get("tab") || "list"
@@ -27,20 +29,12 @@ export default function WaCenterPage() {
   }
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-950 via-indigo-900 to-slate-900 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300 text-[10px] font-black uppercase tracking-widest">
-            <Send className="w-3 h-3 text-purple-400" /> Gateway Komunikasi Otomatis
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">WhatsApp Center</h1>
-          <p className="text-xs text-purple-200/80 max-w-xl font-medium">
-            Kirim pengumuman massal (WA Blast), atur template pesan kustom, serta konfigurasi integrasi perangkat Go-WA.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="WhatsApp Center"
+        description="Kirim pengumuman massal (WA Blast), atur template pesan kustom, serta konfigurasi integrasi perangkat Go-WA."
+        icon={<MessageSquare className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* Centered Segmented Tab Navigation Bar */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

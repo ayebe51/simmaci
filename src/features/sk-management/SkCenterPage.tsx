@@ -16,28 +16,20 @@ import {
 } from "lucide-react"
 import { authApi } from "@/lib/api"
 
+import SoftPageHeader from "@/components/ui/SoftPageHeader"
+
 export default function SkCenterPage() {
   const navigate = useNavigate()
   const user = authApi.getStoredUser()
   const isAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role)
 
   return (
-    <div className="space-y-8 pb-20">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-indigo-950 to-slate-900 p-8 text-white shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-widest">
-            <Sparkles className="w-3 h-3 text-blue-400" /> Layanan Administrasi SK
-          </div>
-          <h1 className="text-2xl md:text-3xl font-black italic tracking-tight text-white uppercase">
-            Pusat Layanan SK
-          </h1>
-          <p className="text-xs text-blue-200/80 max-w-2xl font-medium leading-relaxed">
-            Pusat integrasi permohonan Surat Keputusan (SK) baru, pengajuan rekomendasi kepala, serta pengelolaan revisi data keputusan LP Ma'arif NU Cilacap.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 pb-10">
+      <SoftPageHeader
+        title="Pusat Layanan SK"
+        description="Pusat integrasi permohonan Surat Keputusan (SK) baru, pengajuan rekomendasi kepala, serta pengelolaan revisi data keputusan LP Ma'arif NU Cilacap."
+        icon={<FileText className="w-6 h-6 text-emerald-600" />}
+      />
 
       {/* SEKSI 1: Pengajuan SK Baru */}
       <div className="space-y-4">

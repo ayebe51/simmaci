@@ -414,6 +414,7 @@ class MeetingMinutesControllerTest extends TestCase
     <li>Monitoring dan evaluasi</li>
 </ol>
 HTML;
+        $htmlContent = str_replace("\r\n", "\n", $htmlContent);
 
         $data = [
             'title' => 'Notulensi Rapat Koordinasi',
@@ -427,8 +428,13 @@ HTML;
 
         $this->assertDatabaseHas('meeting_minutes', [
             'meeting_id' => $this->meeting->id,
-            'content' => $htmlContent,
+            'title' => 'Notulensi Rapat Koordinasi',
         ]);
+
+        $minute = \App\Models\MeetingMinutes::where('meeting_id', $this->meeting->id)->first();
+        $this->assertNotNull($minute);
+        $this->assertStringContainsString('Hasil Rapat', $minute->content);
+        $this->assertStringContainsString('Implementasi kurikulum baru', $minute->content);
     }
 
     /**

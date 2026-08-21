@@ -109,20 +109,21 @@ class StaffAttendanceController extends Controller
             ->where('tanggal', $today)
             ->first();
 
-        // 3. Strict Time Validation
+        // 3. Time Validation — terlambat tetap diterima, dicatat sebagai 'Terlambat'
         $enforceTime = Setting::getValue('staff_enforce_time') === 'true';
         $batasMasuk = Setting::getValue('staff_batas_jam_masuk') ?: '08:00:00';
         $batasPulang = Setting::getValue('staff_batas_jam_pulang') ?: '15:30:00';
 
-        if ($enforceTime) {
-            if (!$attendance) {
-                if ($currentTime > $batasMasuk) {
-                    return $this->errorResponse("Absen MASUK gagal. Batas waktu absen masuk adalah jam " . substr($batasMasuk, 0, 5) . ".", null, 400);
-                }
-            } else {
-                if (!$attendance->jam_pulang && $currentTime < $batasPulang) {
-                    return $this->errorResponse("Absen PULANG gagal. Belum waktunya pulang (Minimal jam " . substr($batasPulang, 0, 5) . ").", null, 400);
-                }
+        // Tentukan apakah check-in terlambat (hanya berlaku untuk absen masuk baru)
+        $isTerlambat = false;
+        if ($enforceTime && !$attendance) {
+            $isTerlambat = $currentTime > $batasMasuk;
+        }
+
+        // Validasi pulang: tetap blokir jika pulang terlalu awal
+        if ($enforceTime && $attendance && !$attendance->jam_pulang) {
+            if ($currentTime < $batasPulang) {
+                return $this->errorResponse("Absen PULANG gagal. Belum waktunya pulang (Minimal jam " . substr($batasPulang, 0, 5) . ").", null, 400);
             }
         }
 
@@ -149,12 +150,20 @@ class StaffAttendanceController extends Controller
         }
 
         if (!$attendance) {
-            // Check In (Masuk)
+            // Tentukan status check-in
+            if ($isDinasLuar) {
+                $statusMasuk = 'Dinas Luar';
+            } elseif ($isTerlambat) {
+                $statusMasuk = 'Terlambat';
+            } else {
+                $statusMasuk = 'Hadir';
+            }
+
             $attendance = StaffAttendance::create([
                 'staff_id' => $staff->id,
                 'tanggal' => $today,
                 'jam_masuk' => $currentTime,
-                'status' => $isDinasLuar ? 'Dinas Luar' : 'Hadir',
+                'status' => $statusMasuk,
                 'keterangan' => $request->keterangan,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
@@ -162,7 +171,11 @@ class StaffAttendanceController extends Controller
                 'photo_proof' => $photoPath,
             ]);
 
-            return $this->successResponse($attendance, 'Absen MASUK berhasil tercatat.');
+            $message = $isTerlambat
+                ? 'Absen MASUK berhasil tercatat. Anda terlambat dari batas jam ' . substr($batasMasuk, 0, 5) . '.'
+                : 'Absen MASUK berhasil tercatat.';
+
+            return $this->successResponse($attendance, $message);
         } else {
             // Check Out (Pulang)
             if ($attendance->jam_pulang) {

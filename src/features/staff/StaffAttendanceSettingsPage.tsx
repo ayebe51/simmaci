@@ -154,7 +154,7 @@ export default function StaffAttendanceSettingsPage() {
               <div className="space-y-1">
                 <Label className="text-sm text-slate-600">Enforce Jadwal Masuk & Pulang</Label>
                 <p className="text-[10px] text-slate-400 leading-relaxed">
-                  Jika diaktifkan, staff akan ditolak jika absen melebihi batas jam masuk atau absen pulang lebih awal.
+                  Jika diaktifkan, absen masuk setelah batas jam akan dicatat sebagai <strong className="text-orange-500">Terlambat</strong> (bukan ditolak). Absen pulang sebelum batas jam akan tetap diblokir.
                 </p>
               </div>
               <Switch 

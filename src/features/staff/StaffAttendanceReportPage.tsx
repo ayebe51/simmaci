@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { FileDown, Search, PlusCircle } from 'lucide-react';
+import { FileDown, Search, PlusCircle, CheckCircle2, Clock, UserX, HeartPulse, Plane, Building2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -80,7 +80,8 @@ export default function StaffAttendanceReportPage() {
         summaryMap.set(key, { 
           'Nomor ID': id, 
           'Nama Staff': name, 
-          'Hadir': 0, 
+          'Tepat Waktu': 0,
+          'Terlambat': 0,
           'Izin': 0,
           'Sakit': 0,
           'Cuti': 0,
@@ -90,8 +91,12 @@ export default function StaffAttendanceReportPage() {
       }
       
       const counts = summaryMap.get(key);
-      if (status.includes('hadir')) {
-        counts['Hadir'] += 1;
+      if (status === 'hadir') {
+        counts['Tepat Waktu'] += 1;
+      } else if (status === 'terlambat') {
+        counts['Terlambat'] += 1;
+      } else if (status.includes('hadir')) {
+        counts['Tepat Waktu'] += 1;
       } else if (status.includes('izin')) {
         counts['Izin'] += 1;
       } else if (status.includes('sakit')) {
@@ -168,6 +173,22 @@ export default function StaffAttendanceReportPage() {
 
     XLSX.writeFile(wb, `Laporan_Absensi_Staff_${startDate}_sd_${endDate}.xlsx`);
   };
+
+  // Hitung statistik ringkasan dari attendanceList
+  const stats = React.useMemo(() => {
+    const result = { tepatWaktu: 0, terlambat: 0, izin: 0, sakit: 0, cuti: 0, dinasLuar: 0, alpa: 0 };
+    attendanceList.forEach((log: any) => {
+      const s = String(log.status || '').toLowerCase().trim();
+      if (s === 'hadir') result.tepatWaktu++;
+      else if (s === 'terlambat') result.terlambat++;
+      else if (s.includes('izin')) result.izin++;
+      else if (s.includes('sakit')) result.sakit++;
+      else if (s.includes('cuti')) result.cuti++;
+      else if (s.includes('dinas luar') || s === 'dl') result.dinasLuar++;
+      else if (s.includes('alpa') || s.includes('absen') || s.includes('tidak hadir')) result.alpa++;
+    });
+    return result;
+  }, [attendanceList]);
 
   return (
     <div className="p-6 space-y-6">
@@ -258,6 +279,47 @@ export default function StaffAttendanceReportPage() {
         <Button onClick={() => refetch()}><Search className="h-4 w-4 mr-2" /> Filter</Button>
       </div>
 
+      {/* Summary Stats Cards */}
+      {attendanceList.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            <span className="text-2xl font-bold text-emerald-700">{stats.tepatWaktu}</span>
+            <span className="text-[11px] text-emerald-600 font-medium text-center">Tepat Waktu</span>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <Clock className="h-5 w-5 text-orange-500" />
+            <span className="text-2xl font-bold text-orange-600">{stats.terlambat}</span>
+            <span className="text-[11px] text-orange-500 font-medium text-center">Terlambat</span>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <Plane className="h-5 w-5 text-blue-500" />
+            <span className="text-2xl font-bold text-blue-600">{stats.izin}</span>
+            <span className="text-[11px] text-blue-500 font-medium text-center">Izin</span>
+          </div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <HeartPulse className="h-5 w-5 text-yellow-600" />
+            <span className="text-2xl font-bold text-yellow-700">{stats.sakit}</span>
+            <span className="text-[11px] text-yellow-600 font-medium text-center">Sakit</span>
+          </div>
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <CheckCircle2 className="h-5 w-5 text-purple-500" />
+            <span className="text-2xl font-bold text-purple-600">{stats.cuti}</span>
+            <span className="text-[11px] text-purple-500 font-medium text-center">Cuti</span>
+          </div>
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <Building2 className="h-5 w-5 text-sky-500" />
+            <span className="text-2xl font-bold text-sky-600">{stats.dinasLuar}</span>
+            <span className="text-[11px] text-sky-500 font-medium text-center">Dinas Luar</span>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex flex-col items-center gap-1">
+            <UserX className="h-5 w-5 text-red-500" />
+            <span className="text-2xl font-bold text-red-600">{stats.alpa}</span>
+            <span className="text-[11px] text-red-500 font-medium text-center">Alpa</span>
+          </div>
+        </div>
+      )}
+
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -287,7 +349,20 @@ export default function StaffAttendanceReportPage() {
                   <TableCell>{log.jam_masuk || '-'}</TableCell>
                   <TableCell>{log.jam_pulang || '-'}</TableCell>
                   <TableCell>
-                    <Badge variant={log.status === 'Hadir' ? 'default' : log.status === 'Sakit' ? 'secondary' : log.status === 'Izin' ? 'outline' : 'destructive'}>{log.status}</Badge>
+                    <Badge
+                      className={
+                        log.status === 'Hadir' ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100' :
+                        log.status === 'Terlambat' ? 'bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100' :
+                        log.status === 'Dinas Luar' ? 'bg-sky-100 text-sky-700 border-sky-200 hover:bg-sky-100' :
+                        log.status === 'Sakit' ? 'bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-100' :
+                        log.status === 'Cuti' ? 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-100' :
+                        log.status === 'Izin' ? 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100' :
+                        'bg-red-100 text-red-700 border-red-200 hover:bg-red-100'
+                      }
+                      variant="outline"
+                    >
+                      {log.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="max-w-[220px] text-xs truncate" title={log.keterangan || '-'}>

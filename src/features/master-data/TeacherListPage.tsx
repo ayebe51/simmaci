@@ -600,7 +600,55 @@ export default function TeacherListPage() {
             }
           ] : [])
         ]}
-      />
+      >
+        {canEdit && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9 px-3 border-slate-200 rounded-xl">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Utilitas
+                <ChevronDown className="h-3 w-3 ml-0.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-xl">
+              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Pemeliharaan Data</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => deduplicateDryRunMutation.mutate()}
+                disabled={deduplicateDryRunMutation.isPending}
+                className="gap-2 text-sm cursor-pointer"
+              >
+                <Wand2 className="h-4 w-4 text-amber-500" />
+                Bersihkan Data Ganda
+              </DropdownMenuItem>
+              {isSuperAdmin && (
+                <DropdownMenuItem
+                  onClick={() => recalcDryRunMutation.mutate()}
+                  disabled={recalcDryRunMutation.isPending}
+                  className="gap-2 text-sm cursor-pointer"
+                >
+                  {recalcDryRunMutation.isPending
+                    ? <Loader2 className="h-4 w-4 animate-spin text-teal-500" />
+                    : <RefreshCw className="h-4 w-4 text-teal-500" />}
+                  Koreksi Status
+                </DropdownMenuItem>
+              )}
+              {isSuperAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setIsDeleteAllOpen(true)}
+                    className="gap-2 text-sm cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Hapus Semua Data
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </SoftPageHeader>
 
       <Card className="border-0 shadow-sm rounded-2xl overflow-hidden bg-white">
         <CardHeader className="pb-5 border-b border-slate-100">
@@ -635,8 +683,10 @@ export default function TeacherListPage() {
                             </SelectTrigger>
                             <SelectContent className="rounded-2xl border-slate-100 max-h-[300px]">
                                 <SelectItem value="all">Semua Sekolah</SelectItem>
-                                {(Array.isArray(schoolsData) ? schoolsData : schoolsData?.data || [])?.map((s: any) => (
-                                    <SelectItem key={s.id} value={s.id.toString()}>{s.nama}</SelectItem>
+                                {(Array.isArray(schoolsData) ? schoolsData : (schoolsData as any)?.data || [])
+                                  ?.filter((s: any) => s && s.id != null)
+                                  ?.map((s: any) => (
+                                    <SelectItem key={s.id} value={String(s.id)}>{s.nama}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

@@ -825,11 +825,11 @@ export default function TeacherListPage() {
                                     />
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5">
-                                    {item.nomor_induk_maarif ? (
-                                        <div className="font-bold text-emerald-600 text-xs uppercase mb-0.5">NIM: {item.nomor_induk_maarif}</div>
-                                    ) : null}
-                                    <div className="font-bold text-slate-800 text-sm">{item.nuptk ? `NUPTK: ${item.nuptk}` : "NUPTK: -"}</div>
-                                    <div className="text-xs font-semibold text-slate-400 mt-0.5">{item.nip ? `NIP: ${item.nip}` : "NIP: -"}</div>
+                                    {item.status?.toUpperCase().includes('PNS') ? (
+                                        <div className="font-bold text-blue-600 text-sm">NIP: {item.nip || "-"}</div>
+                                    ) : (
+                                        <div className="font-bold text-emerald-600 text-sm">NIM: {item.nomor_induk_maarif || "-"}</div>
+                                    )}
                                 </TableCell>
                                 <TableCell className="px-3 py-2.5">
                                     <div className="font-semibold text-slate-800 text-sm">{item.nama}</div>

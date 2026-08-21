@@ -110,6 +110,9 @@ export default function StaffPage() {
 
   const openFace = (staff: any) => {
     setSelectedStaff(staff);
+    setIsFaceOpen(true);
+  };
+
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
 
   return (

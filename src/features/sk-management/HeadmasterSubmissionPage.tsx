@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { teacherApi, schoolApi, headmasterApi, mediaApi, authApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
@@ -38,6 +38,7 @@ type HeadmasterForm = z.infer<typeof headmasterSchema>
 
 export default function HeadmasterSubmissionPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [suratFile, setSuratFile] = useState<File | null>(null)
   const [openTeacher, setOpenTeacher] = useState(false)
@@ -179,11 +180,29 @@ export default function HeadmasterSubmissionPage() {
         };
 
         await headmasterApi.create(payload)
-        toast.success("Pengajuan Kepala Madrasah Berhasil!")
-        navigate("/dashboard/approval/yayasan")
+        
+        // Invalidate queries so notifications and lists update everywhere
+        queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
+        queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] })
+        queryClient.invalidateQueries({ queryKey: ['my-hm-list'] })
+        queryClient.invalidateQueries({ queryKey: ['headmasters-all'] })
+        queryClient.invalidateQueries({ queryKey: ['headmasters-approval'] })
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['sk-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['school-stats'] })
+
+        toast.success("Pengajuan SK Kepala Madrasah Berhasil Terkirim!", {
+          description: `Permohonan untuk ${selectedTeacher?.nama || "Calon Kepala"} di ${schoolName} telah masuk ke antrean verifikasi Pengurus Cabang.`
+        })
+
+        if (isOperator) {
+          navigate("/dashboard/sk-center")
+        } else {
+          navigate("/dashboard/approval/yayasan")
+        }
     } catch (err: any) {
         console.error(err)
-        toast.error(err.response?.data?.message || err.message || "Terjadi kesalahan")
+        toast.error(err.response?.data?.message || err.message || "Terjadi kesalahan saat mengajukan SK Kepala")
     } finally {
         setIsSubmitting(false)
     }

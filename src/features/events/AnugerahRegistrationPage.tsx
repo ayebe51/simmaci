@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Plus, Trash2, Loader2, Upload, Calculator, Award } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Loader2, Upload, Calculator, Award, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SCORING_MATRIX: Record<string, number[]> = {
@@ -351,23 +351,69 @@ export default function AnugerahRegistrationPage() {
               <CardTitle className="text-sm font-bold uppercase text-slate-700">Upload Berkas Dokumen</CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
+              {/* Template Download Box */}
+              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                  <Download size={14} className="text-emerald-700" />
+                  <span>📥 Format & Template Berkas Resmi Juknis</span>
+                </div>
+                <p className="text-[11px] text-emerald-800">
+                  Unduh template resmi berikut untuk diisi sebelum diupload:
+                </p>
+                <div className="grid sm:grid-cols-3 gap-2 pt-1">
+                  <a
+                    href="/templates/anugerah/SURAT_KETERANGAN.docx"
+                    download
+                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:shadow-xs transition-all text-left group"
+                  >
+                    <FileText size={16} className="text-blue-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">Surat Keterangan</p>
+                      <p className="text-[9px] text-slate-500">Bebas Pelanggaran (.docx)</p>
+                    </div>
+                  </a>
+                  <a
+                    href="/templates/anugerah/DAFTAR_PUBLIKASI_DAN_KARYA_ILMIAH.xlsx"
+                    download
+                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:shadow-xs transition-all text-left group"
+                  >
+                    <FileSpreadsheet size={16} className="text-green-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">Daftar Publikasi</p>
+                      <p className="text-[9px] text-slate-500">Karya Ilmiah (.xlsx)</p>
+                    </div>
+                  </a>
+                  <a
+                    href="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx"
+                    download
+                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:shadow-xs transition-all text-left group"
+                  >
+                    <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">Rekam Jejak Prestasi</p>
+                      <p className="text-[9px] text-slate-500">Akademik & Non-Akad (.xlsx)</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
               {/* Common docs */}
               <FileUploadField label="Surat Keterangan Aktif Mengajar *" field="surat_keterangan_aktif_url" value={form.surat_keterangan_aktif_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
               <FileUploadField label="Sertifikat PKPNU / PD-PKPNU *" field="sertifikat_pkpnu_url" value={form.sertifikat_pkpnu_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
               <FileUploadField label="Surat Rekomendasi Kepala Madrasah *" field="surat_rekomendasi_url" value={form.surat_rekomendasi_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
-              <FileUploadField label="Surat Keterangan Integritas (Tdk melanggar hukum/kode etik) *" field="surat_keterangan_integritas_url" value={form.surat_keterangan_integritas_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
-              <FileUploadField label="Bukti Prestasi (Sertifikat/Piagam 3 Tahun Terakhir)" field="bukti_prestasi_url" value={form.bukti_prestasi_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
+              <FileUploadField label="Surat Keterangan Integritas (Tdk melanggar hukum/kode etik) *" field="surat_keterangan_integritas_url" value={form.surat_keterangan_integritas_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} templateUrl="/templates/anugerah/SURAT_KETERANGAN.docx" templateName="Unduh Surat Keterangan (.docx)" />
+              <FileUploadField label="Bukti Prestasi (Sertifikat/Piagam 3 Tahun Terakhir)" field="bukti_prestasi_url" value={form.bukti_prestasi_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} templateUrl="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx" templateName="Unduh Rekam Jejak (.xlsx)" />
               {isGuru && (
                 <>
                   <FileUploadField label="Esai Reflektif (Maks. 3 halaman — DILARANG AI)" field="esai_reflektif_url" value={form.esai_reflektif_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} hint="Tema: Strategi Guru Dalam Meningkatkan Prestasi Siswa Generasi Alpha Berbasis Nilai-Nilai Aswaja" />
-                  <FileUploadField label="Publikasi / Karya Ilmiah (Opsional)" field="karya_ilmiah_url" value={form.karya_ilmiah_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} hint="Artikel ilmiah, buku ber-ISBN, atau tulisan di media massa" />
+                  <FileUploadField label="Publikasi / Karya Ilmiah (Opsional)" field="karya_ilmiah_url" value={form.karya_ilmiah_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} hint="Artikel ilmiah, buku ber-ISBN, atau tulisan di media massa" templateUrl="/templates/anugerah/DAFTAR_PUBLIKASI_DAN_KARYA_ILMIAH.xlsx" templateName="Unduh Format Publikasi (.xlsx)" />
                 </>
               )}
               {!isGuru && (
                 <>
                   <FileUploadField label="Dokumen PDCA / Tata Kelola (RKJM, RKT, Evaluasi Internal)" field="dokumen_pdca_url" value={form.dokumen_pdca_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
                   <FileUploadField label="Portofolio Branding & Keunggulan Madrasah" field="portofolio_branding_url" value={form.portofolio_branding_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
-                  <FileUploadField label="Rekap Prestasi Akademik & Non-Akademik" field="rekap_prestasi_url" value={form.rekap_prestasi_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
+                  <FileUploadField label="Rekap Prestasi Akademik & Non-Akademik" field="rekap_prestasi_url" value={form.rekap_prestasi_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} templateUrl="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx" templateName="Unduh Format Rekap (.xlsx)" />
                   <FileUploadField label="Dokumen Administrasi & Kelengkapan SIMNU/SIMMACI" field="dokumen_admin_url" value={form.dokumen_admin_url} uploadingField={uploadingField} onUpload={handleUpload} onUrl={setF} />
                 </>
               )}
@@ -392,14 +438,27 @@ export default function AnugerahRegistrationPage() {
   );
 }
 
-function FileUploadField({ label, field, value, uploadingField, onUpload, onUrl, hint }: {
+function FileUploadField({ label, field, value, uploadingField, onUpload, onUrl, hint, templateUrl, templateName }: {
   label: string; field: string; value: string; uploadingField: string | null;
   onUpload: (f: string, file: File) => void; onUrl: (f: string, v: string) => void; hint?: string;
+  templateUrl?: string; templateName?: string;
 }) {
   const isUploading = uploadingField === field;
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-slate-700">{label}</Label>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Label className="text-xs font-semibold text-slate-700">{label}</Label>
+        {templateUrl && (
+          <a
+            href={templateUrl}
+            download
+            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 transition-colors flex-shrink-0"
+          >
+            <Download size={11} />
+            {templateName || 'Unduh Template'}
+          </a>
+        )}
+      </div>
       {hint && <p className="text-[10px] text-slate-500 italic">{hint}</p>}
       <div className="flex gap-2">
         <Input value={value} onChange={e => onUrl(field, e.target.value)} placeholder="URL atau upload file..." className="h-8 text-sm flex-1" />

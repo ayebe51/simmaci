@@ -3,7 +3,7 @@ import { eventApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, CheckCircle, XCircle, Clock, Loader2, Award } from 'lucide-react';
+import { Plus, Eye, CheckCircle, XCircle, Clock, Loader2, Award, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -64,6 +64,58 @@ export default function AnugerahRegistrationList({ eventId, competitions }: Prop
               <li>Dokumen PDCA & rekap prestasi siswa</li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      {/* Official Templates Box */}
+      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+        <div className="flex items-center gap-1.5 text-sm font-bold text-emerald-900">
+          <Download size={16} className="text-emerald-700" />
+          <span>📥 Format & Template Berkas Resmi Juknis</span>
+        </div>
+        <p className="text-xs text-emerald-800">
+          Unduh template resmi berikut untuk dibagikan kepada peserta atau digunakan sebagai panduan berkas:
+        </p>
+        <div className="grid sm:grid-cols-3 gap-3 pt-1">
+          <a
+            href="/templates/anugerah/SURAT_KETERANGAN.docx"
+            download
+            className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-emerald-200 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+              <FileText size={18} className="text-blue-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-800 leading-tight truncate">Surat Keterangan</p>
+              <p className="text-[10px] text-slate-500">Bebas Pelanggaran (.docx)</p>
+            </div>
+          </a>
+          <a
+            href="/templates/anugerah/DAFTAR_PUBLIKASI_DAN_KARYA_ILMIAH.xlsx"
+            download
+            className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-emerald-200 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0 group-hover:bg-green-100 transition-colors">
+              <FileSpreadsheet size={18} className="text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-800 leading-tight truncate">Daftar Publikasi</p>
+              <p className="text-[10px] text-slate-500">Karya Ilmiah (.xlsx)</p>
+            </div>
+          </a>
+          <a
+            href="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx"
+            download
+            className="flex items-center gap-2.5 p-3 bg-white rounded-xl border border-emerald-200 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+              <FileSpreadsheet size={18} className="text-emerald-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-800 leading-tight truncate">Rekam Jejak Prestasi</p>
+              <p className="text-[10px] text-slate-500">Akademik & Non-Akad (.xlsx)</p>
+            </div>
+          </a>
         </div>
       </div>
 

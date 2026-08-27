@@ -15,6 +15,7 @@ backend/.env
 # Temp/Misc
 *.xlsx
 !backend/public/*.xlsx
+!public/templates/**
 *.csv
 !backend/public/*.csv
 diag.php

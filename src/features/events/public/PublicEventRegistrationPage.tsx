@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, Calendar, MapPin, Phone, Video, ChevronRight, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, CheckCircle2, Calendar, MapPin, Phone, Video, ChevronRight, Plus, Trash2, ExternalLink, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 const api = {
@@ -38,15 +38,28 @@ type Step = 'pilih_lomba' | 'isi_form' | 'sukses';
 interface Member { name: string; nim: string; }
 
 // ── Reusable DriveField ───────────────────────────────────────────────────────
-function DriveField({ label, hint, value, onChange, required: req }: {
+function DriveField({ label, hint, value, onChange, required: req, templateUrl, templateName }: {
   label: string; hint?: string; value: string;
   onChange: (v: string) => void; required?: boolean;
+  templateUrl?: string; templateName?: string;
 }) {
   return (
     <div className="space-y-1">
-      <Label className="text-xs font-semibold text-slate-700">
-        {label}{req && <span className="text-red-500 ml-0.5">*</span>}
-      </Label>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Label className="text-xs font-semibold text-slate-700">
+          {label}{req && <span className="text-red-500 ml-0.5">*</span>}
+        </Label>
+        {templateUrl && (
+          <a
+            href={templateUrl}
+            download
+            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 hover:underline bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 transition-colors flex-shrink-0"
+          >
+            <Download size={11} />
+            {templateName || 'Unduh Template'}
+          </a>
+        )}
+      </div>
       {hint && <p className="text-[10px] text-slate-400 italic">{hint}</p>}
       <div className="flex gap-1.5">
         <Input value={value} onChange={e => onChange(e.target.value)}
@@ -430,8 +443,54 @@ export default function PublicEventRegistrationPage() {
 
                       {/* Berkas Dokumen */}
                       <div className="pt-3 border-t space-y-4">
-                        <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800">
-                          <p className="font-bold mb-1">📎 Upload Berkas via Google Drive</p>
+                        {/* Download Official Templates Box */}
+                        <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                            <Download size={14} className="text-emerald-700" />
+                            <span>📥 Unduh Template & Format Berkas Resmi</span>
+                          </div>
+                          <p className="text-[11px] text-emerald-800">
+                            Gunakan format resmi berikut untuk kelengkapan administrasi Anda:
+                          </p>
+                          <div className="grid sm:grid-cols-3 gap-2 pt-1">
+                            <a
+                              href="/templates/anugerah/SURAT_KETERANGAN.docx"
+                              download
+                              className="flex items-center gap-2 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:shadow-xs transition-all text-left group"
+                            >
+                              <FileText size={16} className="text-blue-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">Surat Keterangan</p>
+                                <p className="text-[9px] text-slate-500">Bebas Pelanggaran (.docx)</p>
+                              </div>
+                            </a>
+                            <a
+                              href="/templates/anugerah/DAFTAR_PUBLIKASI_DAN_KARYA_ILMIAH.xlsx"
+                              download
+                              className="flex items-center gap-2 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:shadow-xs transition-all text-left group"
+                            >
+                              <FileSpreadsheet size={16} className="text-green-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">Daftar Publikasi</p>
+                                <p className="text-[9px] text-slate-500">Karya Ilmiah (.xlsx)</p>
+                              </div>
+                            </a>
+                            <a
+                              href="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx"
+                              download
+                              className="flex items-center gap-2 p-2 bg-white rounded-lg border border-emerald-200 hover:border-emerald-400 hover:shadow-xs transition-all text-left group"
+                            >
+                              <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">Rekam Jejak Prestasi</p>
+                                <p className="text-[9px] text-slate-500">Akademik & Non-Akad (.xlsx)</p>
+                              </div>
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-800">
+                          <p className="font-bold mb-0.5">📎 Petunjuk Upload Berkas via Google Drive</p>
                           <p>Upload masing-masing dokumen ke Google Drive Anda, atur akses <strong>"Siapa saja yang memiliki link dapat melihat"</strong>, lalu paste link di bawah.</p>
                         </div>
 
@@ -452,10 +511,14 @@ export default function PublicEventRegistrationPage() {
                             <DriveField required label="Surat Keterangan Integritas"
                               hint="tidak pernah melanggar hukum / kode etik guru"
                               value={form.surat_keterangan_integritas_url}
+                              templateUrl="/templates/anugerah/SURAT_KETERANGAN.docx"
+                              templateName="Unduh Surat Keterangan (.docx)"
                               onChange={v => setF('surat_keterangan_integritas_url', v)} />
                             <DriveField required label="Bukti Prestasi (sertifikat/piagam 3 tahun terakhir)"
                               hint="TA 23/24, 24/25, 25/26 — sebagai juara, pemakalah, atau pembina"
                               value={form.bukti_prestasi_url}
+                              templateUrl="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx"
+                              templateName="Unduh Format Rekam Jejak (.xlsx)"
                               onChange={v => setF('bukti_prestasi_url', v)} />
                             <DriveField required label="Esai Reflektif (maks. 3 halaman — DILARANG AI)"
                               hint={'Tema: "Strategi Guru Meningkatkan Prestasi Siswa Generasi Alpha Berbasis Nilai-Nilai Aswaja"'}
@@ -464,6 +527,8 @@ export default function PublicEventRegistrationPage() {
                             <DriveField label="Publikasi / Karya Ilmiah (opsional)"
                               hint="artikel ilmiah, buku ber-ISBN, atau tulisan di media massa"
                               value={form.karya_ilmiah_url}
+                              templateUrl="/templates/anugerah/DAFTAR_PUBLIKASI_DAN_KARYA_ILMIAH.xlsx"
+                              templateName="Unduh Format Publikasi (.xlsx)"
                               onChange={v => setF('karya_ilmiah_url', v)} />
                           </div>
                         )}
@@ -482,6 +547,8 @@ export default function PublicEventRegistrationPage() {
                             <DriveField required label="Rekap Prestasi Akademik & Non-Akademik"
                               hint="TA 23/24, 24/25, 25/26 — tingkat Kecamatan s.d. Nasional"
                               value={form.rekap_prestasi_url}
+                              templateUrl="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx"
+                              templateName="Unduh Format Rekap (.xlsx)"
                               onChange={v => setF('rekap_prestasi_url', v)} />
                             <DriveField required label="Dokumen Administrasi & SDM"
                               hint="kelengkapan administrasi guru & pengisian di SIMNU/SIMMACI"
@@ -489,10 +556,14 @@ export default function PublicEventRegistrationPage() {
                               onChange={v => setF('dokumen_admin_url', v)} />
                             <DriveField label="Surat Keterangan Integritas (Kepala Madrasah)"
                               value={form.surat_keterangan_integritas_url}
+                              templateUrl="/templates/anugerah/SURAT_KETERANGAN.docx"
+                              templateName="Unduh Surat Keterangan (.docx)"
                               onChange={v => setF('surat_keterangan_integritas_url', v)} />
                             <DriveField label="Bukti Prestasi Siswa/Guru (sertifikat/piagam)"
                               hint="3 tahun terakhir — TA 23/24, 24/25, 25/26"
                               value={form.bukti_prestasi_url}
+                              templateUrl="/templates/anugerah/REKAM_JEJAK_PRESTASI_AKADEMIK_NON_AKADEMIK.xlsx"
+                              templateName="Unduh Format Rekam Jejak (.xlsx)"
                               onChange={v => setF('bukti_prestasi_url', v)} />
                           </div>
                         )}

@@ -103,7 +103,7 @@ export default function StudentListPage() {
 
   const batchTransitionMutation = useMutation({
     mutationFn: (action: 'promote' | 'graduate') => studentApi.batchTransition({
-        school_id: isSuperAdmin ? (filterSchoolId ?? undefined) : user?.school_id,
+        school_id: isSuperAdmin ? (filterSchoolId ?? undefined) : (user?.schoolId || user?.school_id),
         action,
         student_ids: selectedStudentIds.length > 0 ? selectedStudentIds : undefined
     }),

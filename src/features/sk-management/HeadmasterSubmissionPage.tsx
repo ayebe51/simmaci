@@ -10,9 +10,9 @@ import * as z from "zod"
 import { ArrowLeft, Save, Check, ChevronsUpDown, Loader2 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { teacherApi, schoolApi, headmasterApi, mediaApi, authApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
@@ -50,7 +50,7 @@ export default function HeadmasterSubmissionPage() {
   // Get current user
   const user = authApi.getStoredUser()
   const isOperator = user?.role === 'operator'
-  const userSchoolId = user?.school_id
+  const userSchoolId = user?.schoolId || user?.school_id
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files && e.target.files[0]) {
@@ -95,10 +95,19 @@ export default function HeadmasterSubmissionPage() {
   })
 
   // Get user's school data for operator
-  const { data: userSchoolData } = useQuery({
+  const { data: userSchoolData, isLoading: isLoadingSchool } = useQuery({
     queryKey: ['user-school', userSchoolId],
-    queryFn: () => schoolApi.get(userSchoolId!),
-    enabled: isOperator && !!userSchoolId
+    queryFn: async () => {
+      if (userSchoolId) {
+        try {
+          return await schoolApi.get(Number(userSchoolId))
+        } catch (e) {
+          console.warn("Failed to get school by ID, falling back to profile", e)
+        }
+      }
+      return await schoolApi.profile()
+    },
+    enabled: isOperator
   })
   
   const teachers = Array.isArray(teachersData) ? teachersData : (teachersData?.data || [])
@@ -112,6 +121,13 @@ export default function HeadmasterSubmissionPage() {
     }
   })
 
+  // Auto-fill school_id for operator once school data is loaded
+  useEffect(() => {
+    if (isOperator && userSchoolData?.id) {
+      form.setValue("school_id", userSchoolData.id.toString(), { shouldValidate: true })
+    }
+  }, [isOperator, userSchoolData, form])
+
   // Deteksi apakah guru yang dipilih adalah PNS (setelah useForm agar form.watch tersedia)
   const selectedTeacherId = form.watch("teacher_id")
   const selectedTeacher = teachers.find((t: any) => t.id.toString() === selectedTeacherId)
@@ -120,26 +136,6 @@ export default function HeadmasterSubmissionPage() {
       || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("pns")
       || (selectedTeacher.status_kepegawaian || "").toLowerCase().includes("asn")
     : false
-
-  const createHeadmasterMutation = useMutation({
-    mutationFn: (data: any) => headmasterApi.list().then(() => apiClient.post('/headmasters', data)), // Fallback post if headmasterApi.create missing
-    onSuccess: () => {
-      toast.success("Pengajuan Kepala Madrasah Berhasil!")
-      navigate("/dashboard/approval/yayasan")
-    },
-    onError: (err: any) => toast.error("Gagal mengajukan: " + (err.response?.data?.message || err.message))
-  })
-
-  // Re-define post manually since I might have missed create in api.ts
-  const submitHeadmaster = async (data: any) => {
-    // I already added headmasterApi to api.ts but let me double check if I added create
-    // Looking back at step 801, I only added list, get, expiring.
-    // I should have added create/store.
-    // I'll use the apiClient directly if needed or just update api.ts again.
-    // For now, I'll use a local function.
-    const { apiClient } = await import("@/lib/api");
-    return apiClient.post('/headmasters', data).then(r => r.data);
-  }
 
   const onSubmit = async (data: HeadmasterForm) => {
     setIsSubmitting(true)
@@ -157,35 +153,32 @@ export default function HeadmasterSubmissionPage() {
         const selectedTeacher = teachers.find((t: any) => t.id.toString() === data.teacher_id)
         
         // For operator, use user's school; for admin, use selected school
-        let selectedSchool
-        if (isOperator && userSchoolData) {
-            selectedSchool = userSchoolData
-        } else {
-            selectedSchool = schools.find((s: any) => s.id.toString() === data.school_id)
-        }
+        const selectedSchool = isOperator ? userSchoolData : schools.find((s: any) => s.id.toString() === data.school_id)
+        const schoolId = isOperator ? (userSchoolData?.id?.toString() || userSchoolId?.toString() || data.school_id) : data.school_id
+        const schoolName = selectedSchool?.nama || userSchoolData?.nama || user?.unitKerja || user?.unit || user?.name || "Unknown"
 
         const startDate = new Date(data.tmt)
         const endDate = new Date(startDate)
         endDate.setFullYear(endDate.getFullYear() + 4)
 
         const payload = {
-            teacher_id: data.teacher_id,
+            teacher_id: Number(data.teacher_id),
             teacher_name: selectedTeacher?.nama || "Unknown",
-            school_id: data.school_id,
-            school_name: selectedSchool?.nama || "Unknown",
+            school_id: Number(schoolId),
+            school_name: schoolName,
             periode: data.periode,
             start_date: data.tmt,
             end_date: endDate.toISOString().split('T')[0],
             sk_url: finalUrl,
-            keterangan: data.keterangan,
-            surat_permohonan_number: data.surat_permohonan_number,
-            surat_permohonan_date: data.surat_permohonan_date,
-            nomor_surat_rekomendasi: data.nomor_surat_rekomendasi,
-            tanggal_surat_rekomendasi: data.tanggal_surat_rekomendasi,
+            keterangan: data.keterangan || null,
+            surat_permohonan_number: data.surat_permohonan_number || null,
+            surat_permohonan_date: data.surat_permohonan_date || null,
+            nomor_surat_rekomendasi: data.nomor_surat_rekomendasi || null,
+            tanggal_surat_rekomendasi: data.tanggal_surat_rekomendasi || null,
             golongan: data.golongan || null,
         };
 
-        await submitHeadmaster(payload)
+        await headmasterApi.create(payload)
         toast.success("Pengajuan Kepala Madrasah Berhasil!")
         navigate("/dashboard/approval/yayasan")
     } catch (err: any) {
@@ -281,7 +274,13 @@ export default function HeadmasterSubmissionPage() {
               {isOperator ? (
                 // For operator: show read-only field with their school
                 <div className="h-12 rounded-xl border-slate-200 border bg-slate-50 px-4 flex items-center font-bold text-slate-700">
-                  {userSchoolData?.nama || "Loading..."}
+                  {isLoadingSchool ? (
+                    <span className="flex items-center text-slate-400 text-sm font-normal">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> Memuat data madrasah...
+                    </span>
+                  ) : (
+                    userSchoolData?.nama || user?.unitKerja || user?.unit || user?.name || "Madrasah belum terhubung"
+                  )}
                 </div>
               ) : (
                 // For admin yayasan: show dropdown

@@ -75,6 +75,7 @@ export default function SkDashboardPage() {
   const [page, setPage] = useState(1)
   
   const user = authApi.getStoredUser()
+  const isAdmin = ['super_admin', 'admin_yayasan', 'admin'].includes(user?.role || '')
 
   // Document Viewer state (supports PDF and DOCX)
   const [docViewerContent, setDocViewerContent] = useState<{ type: 'pdf'; blobUrl: string } | { type: 'html'; html: string } | null>(null)
@@ -315,7 +316,7 @@ export default function SkDashboardPage() {
               <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                 <TableRow className="border-b border-slate-100 hover:bg-transparent">
                   <TableHead className="w-12 pl-8">
-                    {statusFilter === 'draft' && (
+                    {isAdmin && statusFilter === 'draft' && (
                         <Checkbox
                             checked={items.length > 0 && selectedIds.size === items.length}
                             onCheckedChange={handleSelectAll}
@@ -372,7 +373,7 @@ export default function SkDashboardPage() {
                           className="hover:bg-slate-50/50 border-b border-slate-50 transition-colors group"
                         >
                           <TableCell className="pl-8">
-                              {statusFilter === 'draft' && (
+                              {isAdmin && statusFilter === 'draft' && (
                                   <Checkbox
                                       checked={selectedIds.has(item.id)}
                                       onCheckedChange={(checked) => handleSelectRow(item.id, !!checked)}
@@ -513,7 +514,7 @@ export default function SkDashboardPage() {
       </Card>
 
       {/* Floating Batch Actions */}
-      {selectedIds.size > 0 && createPortal(
+      {isAdmin && selectedIds.size > 0 && createPortal(
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-[2rem] px-8 py-5 flex items-center gap-6 z-[9999] shadow-2xl animate-in slide-in-from-bottom-10">
           <div className="flex items-center gap-3 border-r border-slate-700 pr-6 mr-2">
             <div className="bg-blue-600 h-8 w-8 rounded-full flex items-center justify-center text-xs font-black">{selectedIds.size}</div>

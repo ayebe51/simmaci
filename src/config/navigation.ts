@@ -57,7 +57,7 @@ export const navigationConfig: NavGroup[] = [
     items: [
       { id: "sk_center", label: "Pusat Layanan SK", href: "/dashboard/sk-center", icon: FileText },
       { id: "sk_arsip", label: "Arsip SK Saya", href: "/dashboard/sk-arsip", icon: Archive },
-      { id: "sk_approval_guru", label: "Approval SK Guru & Tendik", href: "/dashboard/sk", icon: CheckSquare, roles: ["super_admin", "admin_yayasan", "admin"] },
+      { id: "sk_approval_guru", label: "Approval SK Guru & Tendik", href: "/dashboard/sk", icon: CheckSquare, roles: ["super_admin", "admin_yayasan", "admin", "operator"] },
       { id: "sk_generator_center", label: "Generator & Approval SK Kepala", href: "/dashboard/sk-generator-center", icon: BadgeCheck, roles: ["super_admin", "admin_yayasan", "admin"] },
       { id: "sdm_monitor", label: "Monitoring Masa Jabatan", href: "/dashboard/monitoring/headmasters", icon: AlertTriangle, roles: ["super_admin", "admin_yayasan", "admin"] },
     ]

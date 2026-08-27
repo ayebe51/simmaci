@@ -247,7 +247,7 @@ export default function SkDetailPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Dashboard
         </Button>
         <div className="flex gap-3">
-          {isIssued && (
+          {isAdmin && isIssued && (
             <Button 
                 variant="outline" 
                 onClick={() => handleAction("draft")}

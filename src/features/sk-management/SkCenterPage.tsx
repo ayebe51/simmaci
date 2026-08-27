@@ -133,38 +133,44 @@ export default function SkCenterPage() {
 
       {/* SEKSI 2: Layanan Revisi & Arsip Dokumen */}
       <div className="space-y-4 pt-4">
-        <div className="space-y-1">
-          <h2 className="text-lg font-black tracking-tight text-slate-800 uppercase flex items-center gap-2">
-            <FileEdit className="w-5 h-5 text-purple-600" />
-            <span>Revisi & Akses Arsip Dokumen</span>
-          </h2>
-          <p className="text-xs text-slate-500 font-medium">
-            Kelola permohonan koreksi data SK terbit serta akses berkas SK resmi satuan pendidikan Anda.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="space-y-1">
+            <h2 className="text-lg font-black tracking-tight text-slate-800 uppercase flex items-center gap-2">
+              <FileEdit className="w-5 h-5 text-purple-600" />
+              <span>Revisi & Akses Arsip Dokumen</span>
+            </h2>
+            <p className="text-xs text-slate-500 font-medium">
+              Kelola permohonan koreksi data SK terbit serta akses berkas SK resmi satuan pendidikan Anda.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Card 1: Revisi Data SK */}
-          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+          <Card className="relative overflow-hidden border border-purple-100 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-purple-100/70 via-purple-50/40 to-transparent rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
             <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
               <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-purple-100/80 border border-purple-200 flex items-center justify-center">
-                  <FileEdit className="w-6 h-6 text-purple-600" />
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100/80 border border-purple-200 flex items-center justify-center shadow-sm">
+                    <FileEdit className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-black uppercase tracking-wider text-purple-700 bg-purple-50/80 border-purple-200">
+                    Koreksi Data
+                  </Badge>
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 group-hover:text-purple-600 transition-colors">
                     Revisi Data SK
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
-                    Permohonan perubahan atau koreksi data pada SK Guru/Tendik yang telah terbit resmi dari Pengurus Cabang.
+                  <p className="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">
+                    Permohonan perbaikan atau koreksi data identitas/gelar pada SK Guru/Tendik yang telah resmi diterbitkan Pengurus Cabang.
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => navigate("/dashboard/sk-center/revisi")}
-                variant="outline"
-                className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl h-11 font-bold text-xs flex items-center justify-between transition-all"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl h-11 font-bold text-xs flex items-center justify-between group-hover:px-5 transition-all shadow-md shadow-purple-200"
               >
                 <span>Daftar & Ajukan Revisi Data</span>
                 <ArrowRight className="w-4 h-4" />
@@ -173,26 +179,30 @@ export default function SkCenterPage() {
           </Card>
 
           {/* Card 2: Arsip SK Saya */}
-          <Card className="relative overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
+          <Card className="relative overflow-hidden border border-indigo-100 shadow-sm hover:shadow-lg transition-all duration-300 group rounded-3xl bg-white flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-28 h-28 bg-gradient-to-bl from-indigo-100/70 via-indigo-50/40 to-transparent rounded-bl-full -z-0 group-hover:scale-110 transition-transform duration-300" />
             <CardContent className="p-6 relative z-10 flex flex-col h-full justify-between space-y-5">
               <div className="space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-indigo-100/80 border border-indigo-200 flex items-center justify-center">
-                  <Archive className="w-6 h-6 text-indigo-600" />
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-100/80 border border-indigo-200 flex items-center justify-center shadow-sm">
+                    <Archive className="w-6 h-6 text-indigo-600" />
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-black uppercase tracking-wider text-indigo-700 bg-indigo-50/80 border-indigo-200">
+                    Dokumen Sah
+                  </Badge>
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 group-hover:text-indigo-600 transition-colors">
-                    Arsip SK Saya
+                    Arsip SK Satpen
                   </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">
-                    Akses, unduh, dan cetak dokumen fisik e-SK resmi satuan pendidikan Anda yang telah disetujui.
+                  <p className="text-xs text-slate-500 font-medium mt-1.5 leading-relaxed">
+                    Akses, verifikasi keaslian, unduh, dan cetak dokumen fisik e-SK resmi satuan pendidikan Anda yang telah disetujui.
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => navigate("/dashboard/sk-arsip")}
-                variant="outline"
-                className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl h-11 font-bold text-xs flex items-center justify-between transition-all"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-11 font-bold text-xs flex items-center justify-between group-hover:px-5 transition-all shadow-md shadow-indigo-200"
               >
                 <span>Buka Arsip SK Saya</span>
                 <ArrowRight className="w-4 h-4" />

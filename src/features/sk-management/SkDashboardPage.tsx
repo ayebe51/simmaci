@@ -356,16 +356,7 @@ export default function SkDashboardPage() {
                     </TableRow>
                 ) : (
                     items.map((item: any) => {
-                      const roleRaw = user?.role || "";
-                      const role = String(roleRaw).toLowerCase().trim();
                       const status = String(item.status || "").toLowerCase().trim();
-                      
-                      // Pengecekan role: Tampilkan Revisi jika BUKAN admin/super_admin, atau jika mengandung kata 'operator'
-                      const isAdminRole = ['super_admin', 'admin_yayasan', 'admin'].includes(role);
-                      const isOperatorLike = role.includes('operator') || (!isAdminRole && role !== "");
-                      
-                      const isApproved = ['approved', 'active', 'disetujui', 'issued'].includes(status);
-                      const canRevise = isOperatorLike && isApproved;
 
                       return (
                         <TableRow 
@@ -444,31 +435,14 @@ export default function SkDashboardPage() {
                           </TableCell>
                           <TableCell className="text-right pr-8">
                               <div className="flex justify-end gap-1">
-                                  {item.file_url && (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={() => window.open(item.file_url, '_blank')}>
-                                          <FileText className="w-4 h-4" />
-                                      </Button>
-                                  )}
-                                  {canRevise ? (
-                                      <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          className="h-8 text-[10px] font-black uppercase text-amber-600 hover:bg-amber-50 px-3 rounded-lg flex items-center gap-2 border border-amber-100/50"
-                                          onClick={() => navigate(`/dashboard/sk/${item.id}/revision`)}
-                                      >
-                                          <AlertTriangle className="w-3.5 h-3.5" />
-                                          Revisi
-                                      </Button>
-                                  ) : (
-                                      <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 rounded-lg"
-                                          onClick={() => navigate(`/dashboard/sk/${item.id}`)}
-                                      >
-                                          {statusFilter === 'draft' ? "Proses" : "Detail"}
-                                      </Button>
-                                  )}
+                                  <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 rounded-lg"
+                                      onClick={() => navigate(`/dashboard/sk/${item.id}`)}
+                                  >
+                                      {statusFilter === 'draft' ? "Proses" : "Detail"}
+                                  </Button>
                               </div>
                           </TableCell>
                         </TableRow>

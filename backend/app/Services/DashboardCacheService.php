@@ -373,16 +373,18 @@ class DashboardCacheService
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
             SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
-            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN LOWER(COALESCE(revision_status, '')) IN ('pending', 'revision_pending') THEN 1 ELSE 0 END) as pending_revisions
         ")->first();
 
         return [
-            'total'    => (int) ($counts->total ?? 0),
-            'draft'    => (int) ($counts->draft ?? 0),
-            'pending'  => (int) ($counts->pending ?? 0),
-            'approved' => (int) ($counts->approved ?? 0),
-            'rejected' => (int) ($counts->rejected ?? 0),
-            'active'   => (int) ($counts->active ?? 0),
+            'total'             => (int) ($counts->total ?? 0),
+            'draft'             => (int) ($counts->draft ?? 0),
+            'pending'           => (int) ($counts->pending ?? 0),
+            'approved'          => (int) ($counts->approved ?? 0),
+            'rejected'          => (int) ($counts->rejected ?? 0),
+            'active'            => (int) ($counts->active ?? 0),
+            'pending_revisions' => (int) ($counts->pending_revisions ?? 0),
         ];
     }
 

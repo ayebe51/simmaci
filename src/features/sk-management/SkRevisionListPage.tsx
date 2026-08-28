@@ -34,7 +34,7 @@ import {
   Calendar,
   AlertTriangle
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -79,10 +79,16 @@ function base64DataURLToArrayBuffer(dataURL: string) {
 
 export default function SkRevisionListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const user = authApi.getStoredUser();
+  const isAdmin = ["admin", "super_admin", "admin_yayasan"].includes(user?.role);
+
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "rejected">(
+    (searchParams.get("tab") as any) || (isAdmin ? "pending" : "all")
+  );
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -91,9 +97,6 @@ export default function SkRevisionListPage() {
   const [isSelectSkModalOpen, setIsSelectSkModalOpen] = useState(false);
   const [skSelectorSearch, setSkSelectorSearch] = useState("");
   const debouncedSkSelectorSearch = useDebounce(skSelectorSearch, 400);
-
-  const user = authApi.getStoredUser();
-  const isAdmin = ["admin", "super_admin", "admin_yayasan"].includes(user?.role);
 
   // 1. Fetch Revisions
   const { data: revisionsList, isLoading, error } = useQuery({

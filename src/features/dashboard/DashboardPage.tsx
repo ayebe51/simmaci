@@ -134,7 +134,7 @@ export default function DashboardPage() {
   }
 
   const pendingSkCount = skStats?.pending || 0
-  const rejectedSkCount = skStats?.rejected || 0
+  const pendingRevisionCount = skStats?.pending_revisions || 0
   const pendingKamadCount = pendingHeadmasters.length
 
   return (
@@ -285,7 +285,7 @@ export default function DashboardPage() {
       </div>
 
       {/* 3. ACTION QUEUE ALERT BANNER (Antrean Tugas Cabang) */}
-      {(pendingSkCount > 0 || rejectedSkCount > 0 || pendingKamadCount > 0) && (
+      {(pendingSkCount > 0 || pendingRevisionCount > 0 || pendingKamadCount > 0) && (
         <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300/80 rounded-3xl p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start sm:items-center gap-4">
             <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/20">
@@ -295,12 +295,12 @@ export default function DashboardPage() {
               <h4 className="text-sm sm:text-base font-extrabold text-amber-950 flex items-center gap-2">
                 <span>Antrean Tindak Lanjut Verifikasi Cabang</span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black">
-                  {pendingSkCount + rejectedSkCount + pendingKamadCount} Berkas
+                  {pendingSkCount + pendingRevisionCount + pendingKamadCount} Berkas
                 </span>
               </h4>
               <p className="text-xs text-amber-900/80 font-medium">
                 {pendingSkCount > 0 && <span className="mr-2">⚡ <b>{pendingSkCount}</b> SK Guru/Tendik Menunggu</span>}
-                {rejectedSkCount > 0 && <span className="mr-2">📝 <b>{rejectedSkCount}</b> Usulan Revisi/Perbaikan</span>}
+                {pendingRevisionCount > 0 && <span className="mr-2">📝 <b>{pendingRevisionCount}</b> Usulan Revisi/Perbaikan</span>}
                 {pendingKamadCount > 0 && <span>👑 <b>{pendingKamadCount}</b> Usulan SK Kepala Satpen</span>}
               </p>
             </div>
@@ -317,14 +317,14 @@ export default function DashboardPage() {
                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Button>
             )}
-            {rejectedSkCount > 0 && (
+            {pendingRevisionCount > 0 && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => navigate("/dashboard/sk-center/revisi")}
                 className="border-amber-300 text-amber-900 bg-white/80 hover:bg-white rounded-xl text-xs font-bold"
               >
-                <span>Tinjau Revisi</span>
+                <span>Tinjau Revisi ({pendingRevisionCount})</span>
               </Button>
             )}
             {pendingKamadCount > 0 && (

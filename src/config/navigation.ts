@@ -132,13 +132,17 @@ export function getBreadcrumbs(pathname: string): { label: string, href?: string
   // Deep route labels
   if (pathname.includes('/new') || pathname.includes('/create')) {
     crumbs.push({ label: 'Baru' });
-  } else if (pathname.includes('/edit') || pathname.includes('/revision')) {
+  } else if (pathname.includes('/edit')) {
     crumbs.push({ label: 'Ubah' });
+  } else if (pathname.includes('/revisi') || pathname.includes('/revision')) {
+    crumbs.push({ label: 'Layanan Revisi SK' });
+  } else if (pathname.includes('/kamad')) {
+    crumbs.push({ label: 'SK Kepala Satpen' });
   } else if (pathname.split('/').length > 3 && !pathname.endsWith('/')) {
-      const id = pathname.split('/').pop();
-      if (id && id !== 'new' && id !== 'create' && id !== 'edit' && id !== 'revision' && id !== 'profile') {
-         crumbs.push({ label: 'Detail' });
-      }
+    const id = pathname.split('/').pop();
+    if (id && !['new', 'create', 'edit', 'revision', 'revisi', 'profile'].includes(id)) {
+      crumbs.push({ label: 'Detail' });
+    }
   }
 
   return crumbs;

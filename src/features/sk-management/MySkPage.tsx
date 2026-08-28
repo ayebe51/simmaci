@@ -431,10 +431,10 @@ export default function MySkPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="relative w-full sm:w-64">
+                    <div className="relative w-full sm:w-80">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                         <Input 
-                            placeholder="Nama atau nomor SK..." 
+                            placeholder="Cari nama, unit kerja, atau nomor SK..." 
                             className="pl-10 h-11 border-slate-200 bg-white rounded-xl text-xs font-bold"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -449,6 +449,7 @@ export default function MySkPage() {
                     <TableRow className="border-slate-100">
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5 pl-10">Nomor SK</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Nama Guru / PTK</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Unit Kerja</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Jabatan</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Tahun Ajaran</TableHead>
                         <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-widest py-5">Status</TableHead>
@@ -457,54 +458,57 @@ export default function MySkPage() {
                 </TableHeader>
                 <TableBody>
                     {isSkLoading ? (
-                        <TableRow><TableCell colSpan={6} className="h-40 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="h-40 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500"/></TableCell></TableRow>
                     ) : filteredSkList.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Belum ada SK terbit untuk filter ini</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="h-40 text-center opacity-30 text-xs font-bold uppercase tracking-widest">Belum ada SK terbit untuk filter ini</TableCell></TableRow>
                     ) : (
                         Object.entries(groupedSkMap).map(([taGroup, skItems]) => (
                             <React.Fragment key={taGroup}>
                                 <TableRow className="bg-slate-100/80 border-y border-slate-200/80 hover:bg-slate-100">
-                                    <TableCell colSpan={6} className="py-3 px-10">
+                                    <TableCell colSpan={7} className="py-3 px-10">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-blue-600" />
-                                                <span className="font-black text-xs uppercase tracking-wider text-slate-700">Tahun Ajaran {taGroup}</span>
-                                            </div>
-                                            <Badge className="bg-blue-100 text-blue-700 text-[10px] font-black rounded-lg hover:bg-blue-100">
-                                                {skItems.length} Dokumen SK
-                                            </Badge>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                                {skItems.map((sk: any) => (
-                                    <TableRow key={sk.id} className="hover:bg-slate-50/50 border-slate-50">
-                                        <TableCell className="pl-10 py-5">
-                                            <div className="flex items-center gap-2">
-                                                <FileText className="h-4 w-4 text-blue-500" />
-                                                <span className="font-mono text-xs font-bold">{sk.nomor_sk}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-slate-800 text-sm">{sk.nama}</TableCell>
-                                        <TableCell className="text-xs text-slate-500 font-medium">{sk.jabatan}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[10px] font-bold">
-                                                TA {getSkTahunAjaran(sk)}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-tight py-1 px-3 rounded-lg hover:bg-emerald-100">Approved</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right pr-10">
-                                            <Button size="icon" variant="ghost" onClick={() => handleDownload(sk)} className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50">
-                                                <Download className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </React.Fragment>
-                        ))
-                    )}
-                </TableBody>
+                                             <div className="flex items-center gap-2">
+                                                 <Calendar className="w-4 h-4 text-blue-600" />
+                                                 <span className="font-black text-xs uppercase tracking-wider text-slate-700">Tahun Ajaran {taGroup}</span>
+                                             </div>
+                                             <Badge className="bg-blue-100 text-blue-700 text-[10px] font-black rounded-lg hover:bg-blue-100">
+                                                 {skItems.length} Dokumen SK
+                                             </Badge>
+                                         </div>
+                                     </TableCell>
+                                 </TableRow>
+                                 {skItems.map((sk: any) => (
+                                     <TableRow key={sk.id} className="hover:bg-slate-50/50 border-slate-50">
+                                         <TableCell className="pl-10 py-5">
+                                             <div className="flex items-center gap-2">
+                                                 <FileText className="h-4 w-4 text-blue-500" />
+                                                 <span className="font-mono text-xs font-bold">{sk.nomor_sk}</span>
+                                             </div>
+                                         </TableCell>
+                                         <TableCell className="font-bold text-slate-800 text-sm">{sk.nama}</TableCell>
+                                         <TableCell className="text-xs font-bold text-slate-600">
+                                             {sk.school?.nama || sk.unit_kerja || "-"}
+                                         </TableCell>
+                                         <TableCell className="text-xs text-slate-500 font-medium">{sk.jabatan}</TableCell>
+                                         <TableCell>
+                                             <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600 text-[10px] font-bold">
+                                                 TA {getSkTahunAjaran(sk)}
+                                             </Badge>
+                                         </TableCell>
+                                         <TableCell>
+                                             <Badge className="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-tight py-1 px-3 rounded-lg hover:bg-emerald-100">Approved</Badge>
+                                         </TableCell>
+                                         <TableCell className="text-right pr-10">
+                                             <Button size="icon" variant="ghost" onClick={() => handleDownload(sk)} className="h-9 w-9 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50">
+                                                 <Download className="h-4 w-4" />
+                                             </Button>
+                                         </TableCell>
+                                     </TableRow>
+                                 ))}
+                             </React.Fragment>
+                         ))
+                     )}
+                 </TableBody>
             </Table>
 
             {!isSkLoading && (skData?.total ?? filteredSkList.length) > 10 && (

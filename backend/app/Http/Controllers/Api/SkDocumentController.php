@@ -46,7 +46,10 @@ class SkDocumentController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->where('nama', 'ilike', "%{$request->search}%")
                   ->orWhere('unit_kerja', 'ilike', "%{$request->search}%")
-                  ->orWhere('nomor_sk', 'ilike', "%{$request->search}%");
+                  ->orWhere('nomor_sk', 'ilike', "%{$request->search}%")
+                  ->orWhereHas('school', function ($sq) use ($request) {
+                      $sq->where('nama', 'ilike', "%{$request->search}%");
+                  });
             });
         }
         if ($request->status && $request->status !== 'all') {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { eventApi } from '@/lib/api';
+import { eventApi, authApi } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function EventsPage() {
+  const user = authApi.getStoredUser();
+  const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role);
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -36,6 +38,10 @@ export default function EventsPage() {
 
   const handleDelete = (e: React.MouseEvent, id: number, name: string) => {
     e.preventDefault();
+    if (!isSuperAdmin) {
+      toast.error("Akses Ditolak: Hanya Super Admin / Admin Yayasan yang dapat menghapus event.");
+      return;
+    }
     setEventToDelete({ id, name });
     setIsDeleteDialogOpen(true);
   };
@@ -63,11 +69,13 @@ export default function EventsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 truncate">Manajemen Lomba / Event</h1>
           <p className="text-sm text-slate-500 mt-1 truncate">Kelola Anugerah Pendidikan & Festival Aswaja LP Ma'arif NU</p>
         </div>
-        <Link to="/dashboard/events/new">
-          <Button className="flex items-center gap-2">
-            <Plus size={16} /> Buat Event Baru
-          </Button>
-        </Link>
+        {isSuperAdmin && (
+          <Link to="/dashboard/events/new">
+            <Button className="flex items-center gap-2">
+              <Plus size={16} /> Buat Event Baru
+            </Button>
+          </Link>
+        )}
       </div>
 
       {isLoading ? (
@@ -99,13 +107,15 @@ export default function EventsPage() {
                         </div>
                         <CardTitle className="text-base font-bold text-slate-800 leading-snug">{event.name}</CardTitle>
                       </div>
-                      <Button
-                        variant="ghost" size="icon"
-                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0 ml-1"
-                        onClick={(e) => handleDelete(e, event.id, event.name)}
-                      >
-                        <Trash2 size={13}/>
-                      </Button>
+                      {isSuperAdmin && (
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0 ml-1"
+                          onClick={(e) => handleDelete(e, event.id, event.name)}
+                        >
+                          <Trash2 size={13}/>
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 space-y-2.5">

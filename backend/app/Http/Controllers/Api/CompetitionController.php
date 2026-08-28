@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class CompetitionController extends Controller
@@ -31,6 +32,10 @@ class CompetitionController extends Controller
     // ── Create competition ─────────────────────────────────────────────────────
     public function store(Request $request, Event $event): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menambah cabang lomba.', 403);
+        }
+
         $data = $request->validate([
             'name'             => 'required|string|max:255',
             'category'         => 'required|string|max:100',
@@ -82,6 +87,10 @@ class CompetitionController extends Controller
     // ── Update competition ─────────────────────────────────────────────────────
     public function update(Request $request, Competition $competition): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengubah cabang lomba.', 403);
+        }
+
         $data = $request->validate([
             'name'             => 'nullable|string|max:255',
             'category'         => 'nullable|string|max:100',
@@ -103,6 +112,10 @@ class CompetitionController extends Controller
     // ── Delete competition ─────────────────────────────────────────────────────
     public function destroy(Competition $competition): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menghapus cabang lomba.', 403);
+        }
+
         $competition->delete();
         return $this->success(null, 'Cabang lomba berhasil dihapus');
     }
@@ -338,6 +351,10 @@ class CompetitionController extends Controller
      */
     public function seedHarlah97(Event $event): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat melakukan seed lomba.', 403);
+        }
+
         $VIDEO_DEADLINE = '2026-09-11 23:59:00';
         $REG_DEADLINE   = '2026-09-07 23:59:00';
 
@@ -492,6 +509,10 @@ class CompetitionController extends Controller
 
     public function setJuryPin(Request $request, Competition $competition): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengatur PIN Juri.', 403);
+        }
+
         $data = $request->validate([
             'pin' => 'required|string|min:4|max:50',
         ]);

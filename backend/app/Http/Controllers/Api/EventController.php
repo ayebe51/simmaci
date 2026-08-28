@@ -40,6 +40,13 @@ class EventController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat membuat event.',
+            ], 403);
+        }
+
         $data = $request->validate([
             'name'               => 'required|string|max:255',
             'category'           => 'required|string|max:100',
@@ -96,6 +103,13 @@ class EventController extends Controller
 
     public function update(Request $request, Event $event): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengubah event.',
+            ], 403);
+        }
+
         $data = $request->validate([
             'name'               => 'nullable|string|max:255',
             'category'           => 'nullable|string|max:100',
@@ -127,6 +141,13 @@ class EventController extends Controller
 
     public function destroy(Event $event): JsonResponse
     {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menghapus event.',
+            ], 403);
+        }
+
         $event->delete();
         return $this->ok(null, 'Event berhasil dihapus');
     }

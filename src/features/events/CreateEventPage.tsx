@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowLeft, Trophy, Calendar, MapPin, Info } from 'lucide-react';
+import { Loader2, ArrowLeft, Trophy, Calendar, MapPin, Info, ShieldAlert } from 'lucide-react';
 import { useMutation } from "@tanstack/react-query";
-import { eventApi } from "@/lib/api";
+import { eventApi, authApi } from "@/lib/api";
 import { toast } from "sonner";
 
 // Pre-fill for Anugerah Pendidikan Harlah LP Ma'arif ke-97
@@ -31,6 +31,16 @@ const PRESET_ANUGERAH = {
 
 export default function CreateEventPage() {
   const navigate = useNavigate();
+  const user = authApi.getStoredUser();
+  const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role);
+
+  useEffect(() => {
+    if (user && !isSuperAdmin) {
+      toast.error("Akses Ditolak: Hanya Super Admin / Admin Yayasan yang dapat membuat event baru.");
+      navigate('/dashboard/events-center');
+    }
+  }, [user, isSuperAdmin, navigate]);
+
   const [form, setForm] = useState({
     name: '', category: '', type: 'Individual', date: '', location: '',
     description: '', status: 'OPEN',
@@ -49,7 +59,7 @@ export default function CreateEventPage() {
       if (id) {
         navigate(`/dashboard/events/${id}`);
       } else {
-        navigate('/dashboard/events');
+        navigate('/dashboard/events-center');
       }
     },
     onError: (e: any) => toast.error(e.response?.data?.message || e.response?.data?.errors ? JSON.stringify(e.response?.data?.errors) : 'Gagal membuat event'),

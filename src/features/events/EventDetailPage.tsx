@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { eventApi } from '@/lib/api';
+import { eventApi, authApi } from '@/lib/api';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function EventDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const user = authApi.getStoredUser();
+  const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role);
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -51,7 +53,7 @@ export default function EventDetailPage() {
     setLoading(true);
     try {
       const data = await eventApi.get(Number(id));
-      setEvent(data);
+      setEvent(data.data ?? data);
     } catch {
       toast.error('Gagal memuat data event');
     } finally {
@@ -167,21 +169,23 @@ export default function EventDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/events/${id}/edit`)}>
-            <Edit size={14} className="mr-1.5"/> Edit Event
-          </Button>
-          <SeedHarlah97Button eventId={Number(id)} onDone={fetchEvent} />
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus size={14} className="mr-1.5"/> Tambah Cabang Lomba</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Tambah Cabang Lomba</DialogTitle></DialogHeader>
-              <AddCompetitionForm comp={newComp} setComp={setNewComp} onLombaTypeChange={handleLombaTypeChange} onSave={handleCreate} saving={saving} onCancel={() => setIsCreateOpen(false)} />
-            </DialogContent>
-          </Dialog>
-        </div>
+        {isSuperAdmin && (
+          <div className="flex gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/events/${id}/edit`)}>
+              <Edit size={14} className="mr-1.5"/> Edit Event
+            </Button>
+            <SeedHarlah97Button eventId={Number(id)} onDone={fetchEvent} />
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm"><Plus size={14} className="mr-1.5"/> Tambah Cabang Lomba</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader><DialogTitle>Tambah Cabang Lomba</DialogTitle></DialogHeader>
+                <AddCompetitionForm comp={newComp} setComp={setNewComp} onLombaTypeChange={handleLombaTypeChange} onSave={handleCreate} saving={saving} onCancel={() => setIsCreateOpen(false)} />
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}

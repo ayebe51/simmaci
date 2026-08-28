@@ -10,7 +10,7 @@ import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, K
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
 import VideoSubmissionList from './components/VideoSubmissionList';
-import { eventApi, apiClient } from '@/lib/api';
+import { eventApi, authApi, apiClient } from '@/lib/api';
 import { toast } from 'sonner';
 
 const JUKNIS_CRITERIA: Record<string, { component: string; weight: number }[]> = {
@@ -66,6 +66,8 @@ const IS_ANUGERAH   = ['guru_berprestasi', 'madrasah_berprestasi'];
 export default function CompetitionDetailPage() {
   const { competitionId } = useParams();
   const navigate = useNavigate();
+  const user = authApi.getStoredUser();
+  const isSuperAdmin = ["super_admin", "admin_yayasan", "admin"].includes(user?.role);
   const [competition, setCompetition] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -149,7 +151,7 @@ export default function CompetitionDetailPage() {
           {!isAnugerah && <TabsTrigger value="participants" className="gap-1.5"><Users size={13}/>Peserta ({competition.participants?.length ?? 0})</TabsTrigger>}
           {isVideo && <TabsTrigger value="video" className="gap-1.5"><FileVideo size={13}/>Kiriman Video</TabsTrigger>}
           <TabsTrigger value="results" className="gap-1.5"><BarChart3 size={13}/>Hasil / Nilai</TabsTrigger>
-          <TabsTrigger value="jury" className="gap-1.5"><Key size={13}/>Akses Juri</TabsTrigger>
+          {isSuperAdmin && <TabsTrigger value="jury" className="gap-1.5"><Key size={13}/>Akses Juri</TabsTrigger>}
           {isAnugerah && <TabsTrigger value="pendaftar" className="gap-1.5"><Users size={13}/>Pendaftar ({competition.anugerah_registrations?.length ?? 0})</TabsTrigger>}
         </TabsList>
 
@@ -194,9 +196,11 @@ export default function CompetitionDetailPage() {
           />
         </TabsContent>
 
-        <TabsContent value="jury" className="pt-4">
-          <JuryAccessPanel competition={competition} />
-        </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="jury" className="pt-4">
+            <JuryAccessPanel competition={competition} />
+          </TabsContent>
+        )}
 
         {isAnugerah && competition.anugerah_registrations?.length >= 0 && (
           <TabsContent value="pendaftar" className="pt-4">

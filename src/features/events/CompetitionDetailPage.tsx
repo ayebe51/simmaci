@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
 import VideoSubmissionList from './components/VideoSubmissionList';
@@ -386,7 +387,28 @@ function JuryAccessPanel({ competition }: { competition: any }) {
 
 // ── AnnugerahRegistrantList ───────────────────────────────────────────────────
 
+function countAttachedDocs(reg: any): number {
+  const fields = [
+    reg.surat_keterangan_aktif_url,
+    reg.sertifikat_pkpnu_url,
+    reg.surat_rekomendasi_url,
+    reg.surat_keterangan_integritas_url,
+    reg.bukti_prestasi_url,
+    reg.esai_reflektif_url,
+    reg.karya_ilmiah_url,
+    reg.dokumen_pdca_url,
+    reg.portofolio_branding_url,
+    reg.rekap_prestasi_url,
+    reg.dokumen_admin_url,
+  ];
+  return fields.filter(Boolean).length;
+}
+
 function AnnugerahRegistrantList({ registrations, onReload }: { registrations: any[], onReload: () => void }) {
+  const [selectedReg, setSelectedReg] = useState<any | null>(null);
+  const [savingDocs, setSavingDocs] = useState(false);
+  const [docForm, setDocForm] = useState<Record<string, string>>({});
+
   const STATUS_MAP: Record<string, { label: string; color: string }> = {
     draft:        { label: 'Draft',       color: 'bg-slate-100 text-slate-600' },
     submitted:    { label: 'Disubmit',    color: 'bg-blue-100 text-blue-700' },
@@ -396,6 +418,38 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
     rejected:     { label: 'Ditolak',     color: 'bg-red-100 text-red-700' },
   };
 
+  const openEditModal = (reg: any) => {
+    setSelectedReg(reg);
+    setDocForm({
+      surat_keterangan_aktif_url: reg.surat_keterangan_aktif_url || '',
+      sertifikat_pkpnu_url: reg.sertifikat_pkpnu_url || '',
+      surat_rekomendasi_url: reg.surat_rekomendasi_url || '',
+      surat_keterangan_integritas_url: reg.surat_keterangan_integritas_url || '',
+      bukti_prestasi_url: reg.bukti_prestasi_url || '',
+      esai_reflektif_url: reg.esai_reflektif_url || '',
+      karya_ilmiah_url: reg.karya_ilmiah_url || '',
+      dokumen_pdca_url: reg.dokumen_pdca_url || '',
+      portofolio_branding_url: reg.portofolio_branding_url || '',
+      rekap_prestasi_url: reg.rekap_prestasi_url || '',
+      dokumen_admin_url: reg.dokumen_admin_url || '',
+    });
+  };
+
+  const handleSaveDocs = async () => {
+    if (!selectedReg) return;
+    setSavingDocs(true);
+    try {
+      await apiClient.put(`/anugerah-registrations/${selectedReg.id}`, docForm);
+      toast.success(`Tautan berkas untuk "${selectedReg.applicant_name}" berhasil diperbarui!`);
+      setSelectedReg(null);
+      onReload();
+    } catch (e: any) {
+      toast.error('Gagal memperbarui berkas: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setSavingDocs(false);
+    }
+  };
+
   if (registrations.length === 0) return (
     <div className="text-center py-16 text-slate-400 border-2 border-dashed rounded-2xl">
       Belum ada pendaftar.
@@ -403,49 +457,207 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
   );
 
   return (
-    <div className="space-y-2">
-      {registrations.map((reg: any, i: number) => {
-        const st = STATUS_MAP[reg.status] ?? STATUS_MAP.draft;
-        return (
-          <div key={reg.id} className="flex items-center gap-4 p-4 bg-white rounded-xl border shadow-sm group">
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 flex-shrink-0">{i + 1}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-800 text-sm">{reg.applicant_name}</span>
-                <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
-                <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full uppercase">{reg.jenjang}</span>
+    <>
+      <div className="space-y-2">
+        {registrations.map((reg: any, i: number) => {
+          const st = STATUS_MAP[reg.status] ?? STATUS_MAP.draft;
+          const docCount = countAttachedDocs(reg);
+          return (
+            <div key={reg.id} className="flex items-center gap-4 p-4 bg-white rounded-xl border shadow-sm group hover:border-emerald-200 transition-colors">
+              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-500 flex-shrink-0">{i + 1}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-slate-800 text-sm">{reg.applicant_name}</span>
+                  <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
+                  <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full uppercase">{reg.jenjang}</span>
+                  {docCount > 0 ? (
+                    <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <FolderOpen size={10} /> {docCount} Berkas Terlampir
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <AlertCircle size={10} /> Belum Ada Link Berkas
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">{reg.school_name}{reg.kecamatan ? ` · ${reg.kecamatan}` : ''}</p>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{reg.school_name}{reg.kecamatan ? ` · ${reg.kecamatan}` : ''}</p>
+
+              {reg.total_score != null && (
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-bold text-emerald-600">{reg.total_score} poin</p>
+                  {reg.rank && <p className="text-xs text-slate-400">Juara {reg.rank}</p>}
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 gap-1.5 text-xs text-slate-700 hover:text-emerald-700 hover:border-emerald-300"
+                  onClick={() => openEditModal(reg)}
+                >
+                  <Edit size={13} /> Kelola Link G-Drive
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 px-2"
+                  onClick={async () => {
+                    if (confirm(`Yakin ingin menghapus peserta ${reg.applicant_name}?`)) {
+                      try {
+                        await apiClient.delete(`/anugerah-registrations/${reg.id}`);
+                        toast.success('Peserta berhasil dihapus');
+                        onReload();
+                      } catch (e: any) {
+                        toast.error('Gagal menghapus: ' + (e.response?.data?.message || e.message));
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 size={15} />
+                </Button>
+              </div>
             </div>
-            {reg.total_score != null && (
-              <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-emerald-600">{reg.total_score} poin</p>
-                {reg.rank && <p className="text-xs text-slate-400">Juara {reg.rank}</p>}
+          );
+        })}
+      </div>
+
+      {/* Modal Kelola Tautan Berkas / Google Drive */}
+      <Dialog open={!!selectedReg} onOpenChange={open => !open && setSelectedReg(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-800">
+              <FolderOpen className="text-emerald-600" size={20} />
+              Kelola Tautan Berkas Google Drive Peserta
+            </DialogTitle>
+            {selectedReg && (
+              <p className="text-xs text-slate-500">
+                Peserta: <strong className="text-slate-800">{selectedReg.applicant_name}</strong> ({selectedReg.school_name} · {selectedReg.jenjang})
+              </p>
+            )}
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-sm">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
+              <p className="font-bold mb-0.5">ℹ️ Petunjuk Input Link Google Drive</p>
+              <p>Paste link Google Drive untuk masing-masing dokumen di bawah ini. Pastikan link Google Drive diatur ke <em>"Siapa saja yang memiliki link dapat melihat"</em>. Link yang disimpan di sini akan langsung tampil pada Panel Juri.</p>
+            </div>
+
+            {selectedReg?.category === 'guru' ? (
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase text-slate-600">Berkas Guru Berprestasi</p>
+                <DocInputRow
+                  label="Surat Keterangan Aktif Mengajar"
+                  field="surat_keterangan_aktif_url"
+                  value={docForm.surat_keterangan_aktif_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Sertifikat PKPNU / PD-PKPNU"
+                  field="sertifikat_pkpnu_url"
+                  value={docForm.sertifikat_pkpnu_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Surat Rekomendasi Kepala Madrasah"
+                  field="surat_rekomendasi_url"
+                  value={docForm.surat_rekomendasi_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Surat Keterangan Integritas"
+                  field="surat_keterangan_integritas_url"
+                  value={docForm.surat_keterangan_integritas_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Bukti Prestasi / Sertifikat 3 Tahun Terakhir"
+                  field="bukti_prestasi_url"
+                  value={docForm.bukti_prestasi_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Esai Reflektif"
+                  field="esai_reflektif_url"
+                  value={docForm.esai_reflektif_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Publikasi / Karya Ilmiah"
+                  field="karya_ilmiah_url"
+                  value={docForm.karya_ilmiah_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase text-slate-600">Berkas Madrasah Berprestasi</p>
+                <DocInputRow
+                  label="Dokumen PDCA / Tata Kelola"
+                  field="dokumen_pdca_url"
+                  value={docForm.dokumen_pdca_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Portofolio Branding & Keunggulan"
+                  field="portofolio_branding_url"
+                  value={docForm.portofolio_branding_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Rekap Prestasi Akademik & Non-Akademik"
+                  field="rekap_prestasi_url"
+                  value={docForm.rekap_prestasi_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Dokumen Administrasi & SDM"
+                  field="dokumen_admin_url"
+                  value={docForm.dokumen_admin_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
+                <DocInputRow
+                  label="Surat Keterangan Integritas"
+                  field="surat_keterangan_integritas_url"
+                  value={docForm.surat_keterangan_integritas_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
               </div>
             )}
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 px-2"
-                onClick={async () => {
-                  if (confirm(`Yakin ingin menghapus peserta ${reg.applicant_name}?`)) {
-                    try {
-                      await apiClient.delete(`/anugerah-registrations/${reg.id}`);
-                      toast.success('Peserta berhasil dihapus');
-                      onReload();
-                    } catch (e: any) {
-                      toast.error('Gagal menghapus: ' + (e.response?.data?.message || e.message));
-                    }
-                  }
-                }}
-              >
-                <Trash2 size={16} />
-              </Button>
-            </div>
           </div>
-        );
-      })}
+
+          <DialogFooter className="flex items-center justify-between sm:justify-between border-t pt-3">
+            <Button variant="ghost" onClick={() => setSelectedReg(null)} disabled={savingDocs}>
+              Batal
+            </Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 font-bold gap-1.5" onClick={handleSaveDocs} disabled={savingDocs}>
+              {savingDocs ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan Tautan Berkas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function DocInputRow({ label, field, value, onChange }: { label: string; field: string; value: string; onChange: (f: string, v: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-semibold text-slate-700">{label}</Label>
+        {value && (
+          <a href={value} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+            <span>Buka Link</span> <ExternalLink size={10} />
+          </a>
+        )}
+      </div>
+      <Input
+        value={value}
+        onChange={e => onChange(field, e.target.value)}
+        placeholder="https://drive.google.com/..."
+        className="h-8 text-xs font-mono"
+      />
     </div>
   );
 }

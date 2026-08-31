@@ -115,22 +115,29 @@ class PublicEventController extends Controller
 
     private function registerFestival(Request $request, Event $event, Competition $competition): JsonResponse
     {
-        $isVideoBased = in_array($competition->lomba_type, ['mars_maarif', 'mtq', 'puji_pujian', 'film_dokumenter']);
+        $isVideoBased = in_array($competition->lomba_type, ['mars_maarif', 'mtq', 'mtq_pa', 'mtq_pi', 'puji_pujian', 'film_dokumenter']);
 
         $data = $request->validate([
-            'name'            => 'required|string|max:255',
-            'jenjang'         => 'required|string|in:MI/SD,MTs/SMP,MA/SMA/SMK',
-            'institution'     => 'required|string|max:255',
-            'gender_category' => 'nullable|string|in:pa,pi,campuran',
-            'group_name'      => 'nullable|string|max:255',
-            'member_count'    => 'nullable|integer|min:1',
-            'members'         => 'nullable|array',
-            'members.*.name'  => 'required_with:members|string|max:255',
-            'members.*.nim'   => 'nullable|string|max:50',
-            'contact_person'  => 'nullable|string|max:100',
-            'contact_phone'   => 'nullable|string|max:30',
-            'video_url'       => $isVideoBased ? 'required|url|max:500' : 'nullable|url|max:500',
-            'video_filename'  => 'nullable|string|max:255',
+            'name'                            => 'required|string|max:255',
+            'jenjang'                         => 'required|string|in:MI/SD,MTs/SMP,MA/SMA/SMK',
+            'institution'                     => 'required|string|max:255',
+            'gender_category'                 => 'nullable|string|in:pa,pi,campuran',
+            'group_name'                      => 'nullable|string|max:255',
+            'member_count'                    => 'nullable|integer|min:1',
+            'members'                         => 'nullable|array',
+            'members.*.name'                  => 'required_with:members|string|max:255',
+            'members.*.nim'                   => 'nullable|string|max:50',
+            'contact_person'                  => 'nullable|string|max:100',
+            'contact_phone'                   => 'nullable|string|max:30',
+            'video_url'                       => 'nullable|string|max:1000',
+            'video_filename'                  => 'nullable|string|max:255',
+            'sinopsis_url'                    => 'nullable|string|max:1000',
+            'surat_keterangan_aktif_url'      => 'nullable|string|max:1000',
+            'sertifikat_pkpnu_url'            => 'nullable|string|max:1000',
+            'surat_rekomendasi_url'           => 'nullable|string|max:1000',
+            'surat_keterangan_integritas_url' => 'nullable|string|max:1000',
+            'bukti_prestasi_url'              => 'nullable|string|max:1000',
+            'dokumen_admin_url'               => 'nullable|string|max:1000',
         ]);
 
         // Enforce max_per_school if institution-based limit set
@@ -428,18 +435,34 @@ class PublicEventController extends Controller
             return $this->error('Kompetisi tidak ditemukan dalam event ini.', 404);
         }
 
-        $results = CompetitionResult::where('competition_id', $competition->id)
-            ->with('participant:id,name,institution,gender_category')
-            ->whereNotNull('rank')
-            ->orderBy('rank')
-            ->get()
-            ->map(fn ($r) => [
-                'rank'        => $r->rank,
-                'name'        => $r->participant?->name,
-                'institution' => $r->participant?->institution,
-                'score'       => $r->score,
-                'notes'       => $r->notes,
-            ]);
+        $isAnugerah = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi']);
+
+        if ($isAnugerah) {
+            $results = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                ->whereNotNull('rank')
+                ->orderBy('rank')
+                ->get()
+                ->map(fn ($r) => [
+                    'rank'        => $r->rank,
+                    'name'        => $r->applicant_name,
+                    'institution' => $r->school_name,
+                    'score'       => $r->total_score,
+                    'notes'       => $r->reviewer_notes,
+                ]);
+        } else {
+            $results = CompetitionResult::where('competition_id', $competition->id)
+                ->with('participant:id,name,institution,gender_category')
+                ->whereNotNull('rank')
+                ->orderBy('rank')
+                ->get()
+                ->map(fn ($r) => [
+                    'rank'        => $r->rank,
+                    'name'        => $r->participant?->name,
+                    'institution' => $r->participant?->institution,
+                    'score'       => $r->score,
+                    'notes'       => $r->notes,
+                ]);
+        }
 
         return $this->success([
             'event'       => $event->name,

@@ -19,6 +19,7 @@ class AnugerahRegistration extends Model
         'school_id',
         'school_name',
         'kecamatan',
+        'contact_phone',
         'masa_bakti_tahun',
         'mulai_bertugas',
         'surat_keterangan_aktif_url',

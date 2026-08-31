@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle, Phone } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
@@ -421,6 +421,7 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
   const openEditModal = (reg: any) => {
     setSelectedReg(reg);
     setDocForm({
+      contact_phone: reg.contact_phone || '',
       surat_keterangan_aktif_url: reg.surat_keterangan_aktif_url || '',
       sertifikat_pkpnu_url: reg.sertifikat_pkpnu_url || '',
       surat_rekomendasi_url: reg.surat_rekomendasi_url || '',
@@ -440,7 +441,7 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
     setSavingDocs(true);
     try {
       await apiClient.put(`/anugerah-registrations/${selectedReg.id}`, docForm);
-      toast.success(`Tautan berkas untuk "${selectedReg.applicant_name}" berhasil diperbarui!`);
+      toast.success(`Data & berkas untuk "${selectedReg.applicant_name}" berhasil diperbarui!`);
       setSelectedReg(null);
       onReload();
     } catch (e: any) {
@@ -480,7 +481,19 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5">{reg.school_name}{reg.kecamatan ? ` · ${reg.kecamatan}` : ''}</p>
+                <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                  <span>{reg.school_name}{reg.kecamatan ? ` · ${reg.kecamatan}` : ''}</span>
+                  {reg.contact_phone && (
+                    <a
+                      href={`https://wa.me/${reg.contact_phone.replace(/^0/, '62').replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1 font-mono font-medium"
+                    >
+                      <Phone size={11} /> {reg.contact_phone}
+                    </a>
+                  )}
+                </div>
               </div>
 
               {reg.total_score != null && (
@@ -529,7 +542,7 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-slate-800">
               <FolderOpen className="text-emerald-600" size={20} />
-              Kelola Tautan Berkas Google Drive Peserta
+              Kelola Data & Tautan Berkas Google Drive Peserta
             </DialogTitle>
             {selectedReg && (
               <p className="text-xs text-slate-500">
@@ -542,6 +555,19 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
             <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
               <p className="font-bold mb-0.5">ℹ️ Petunjuk Input Link Google Drive</p>
               <p>Paste link Google Drive untuk masing-masing dokumen di bawah ini. Pastikan link Google Drive diatur ke <em>"Siapa saja yang memiliki link dapat melihat"</em>. Link yang disimpan di sini akan langsung tampil pada Panel Juri.</p>
+            </div>
+
+            {/* Kontak Peserta */}
+            <div className="p-3 bg-slate-50 border rounded-xl space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <Phone size={12} className="text-emerald-600" /> No. HP / WhatsApp Kontak
+              </Label>
+              <Input
+                value={docForm.contact_phone || ''}
+                onChange={e => setDocForm(p => ({ ...p, contact_phone: e.target.value }))}
+                placeholder="08xxxxxxxxxx"
+                className="h-8 text-xs font-mono"
+              />
             </div>
 
             {selectedReg?.category === 'guru' ? (

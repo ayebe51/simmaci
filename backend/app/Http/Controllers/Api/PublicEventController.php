@@ -285,14 +285,15 @@ class PublicEventController extends Controller
                 ->get();
 
             $participants = $registrations->map(fn ($r) => [
-                'id'          => 'reg_' . $r->id,
-                'name'        => $r->applicant_name,
-                'institution' => $r->school_name,
-                'jenjang'     => $r->jenjang,
-                'kecamatan'   => $r->kecamatan,
-                'status'      => $r->status,
-                'total_score' => $r->total_score,
-                'documents'   => array_filter([
+                'id'            => 'reg_' . $r->id,
+                'name'          => $r->applicant_name,
+                'institution'   => $r->school_name,
+                'jenjang'       => $r->jenjang,
+                'kecamatan'     => $r->kecamatan,
+                'contact_phone' => $r->contact_phone,
+                'status'        => $r->status,
+                'total_score'   => $r->total_score,
+                'documents'     => array_filter([
                     'Surat Keterangan Aktif'       => $r->surat_keterangan_aktif_url,
                     'Sertifikat PKPNU'             => $r->sertifikat_pkpnu_url,
                     'Surat Rekomendasi'            => $r->surat_rekomendasi_url,
@@ -305,24 +306,25 @@ class PublicEventController extends Controller
                     'Rekap Prestasi'               => $r->rekap_prestasi_url,
                     'Dokumen Administratif'        => $r->dokumen_admin_url,
                 ]),
-                'video_url'   => null,
-                'result'      => $r->rank || $r->total_score || $r->score_breakdown ? [
-                    'rank' => $r->rank, 
-                    'score' => $r->total_score, 
-                    'notes' => $r->reviewer_notes,
+                'video_url'     => null,
+                'result'        => $r->rank || $r->total_score || $r->score_breakdown ? [
+                    'rank'            => $r->rank, 
+                    'score'           => $r->total_score, 
+                    'notes'           => $r->reviewer_notes,
                     'score_breakdown' => $r->score_breakdown,
                 ] : null,
-                'type'        => 'anugerah',
-                'reg_id'      => $r->id,
+                'type'          => 'anugerah',
+                'reg_id'        => $r->id,
             ]);
         } else {
             $participants = $competition->participants->map(fn ($p) => [
-                'id'          => $p->id,
-                'name'        => $p->name,
-                'jenjang'     => $p->jenjang,
-                'institution' => $p->institution,
+                'id'              => $p->id,
+                'name'            => $p->name,
+                'jenjang'         => $p->jenjang,
+                'institution'     => $p->institution,
                 'gender_category' => $p->gender_category,
-                'video_url'   => $p->video_url,
+                'contact_phone'   => $p->contact_phone,
+                'video_url'       => $p->video_url,
                 'documents'   => array_filter([
                     'Surat Keterangan Aktif'       => $p->surat_keterangan_aktif_url,
                     'Sertifikat PKPNU'             => $p->sertifikat_pkpnu_url,

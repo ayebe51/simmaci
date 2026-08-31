@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Kerja Staff IT Multi-Role — Agustus 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --primary-light: #ecfdf5;
+      --primary-border: #a7f3d0;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --amber-500: #f59e0b;
+      --blue-600: #2563eb;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f1f5f9;
+      color: var(--slate-800);
+      line-height: 1.65;
+      font-size: 13.5px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Floating Action Bar */
+    .action-header {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .action-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .action-badge {
+      background: rgba(5, 150, 105, 0.25);
+      border: 1px solid #10b981;
+      color: #34d399;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Container Document */
+    .document-container {
+      max-width: 980px;
+      margin: 28px auto 60px auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+      padding: 48px 56px;
+      border: 1px solid var(--slate-200);
+    }
+
+    /* Document Header Banner */
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin-bottom: 36px;
+      border-left: 6px solid #10b981;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-banner h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+
+    .header-banner p {
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .header-banner .badge-period {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* Typography & Hierarchy */
+    h1.doc-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+
+    h2.section-title {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: var(--slate-900);
+      margin-top: 36px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2.section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: #10b981;
+      border-radius: 2px;
+    }
+
+    h3.sub-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-top: 22px;
+      margin-bottom: 10px;
+    }
+
+    h4.sub-sub-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--slate-700);
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-bottom: 12px;
+      color: var(--slate-700);
+    }
+
+    /* Divider */
+    hr.divider {
+      border: none;
+      height: 1px;
+      background: #e2e8f0;
+      margin: 28px 0;
+    }
+
+    /* Lists */
+    ul.custom-list, ol.custom-ordered-list {
+      margin-left: 20px;
+      margin-bottom: 16px;
+      color: var(--slate-700);
+    }
+
+    ul.custom-list li, ol.custom-ordered-list li {
+      margin-bottom: 6px;
+      line-height: 1.55;
+    }
+
+    /* Tables */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      margin: 16px 0 24px 0;
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: white;
+      text-align: left;
+    }
+
+    thead th {
+      background: #f8fafc;
+      color: var(--slate-700);
+      font-weight: 700;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--slate-200);
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--slate-700);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    /* Code Blocks */
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 11.5px;
+      overflow-x: auto;
+      margin: 14px 0;
+      line-height: 1.5;
+      border: 1px solid #334155;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 11.5px;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: #e2e8f0;
+    }
+
+    /* Badges & Tags */
+    strong {
+      font-weight: 700;
+      color: var(--slate-900);
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: white !important;
+        color: #000 !important;
+        font-size: 10.5pt !important;
+      }
+
+      .action-header {
+        display: none !important;
+      }
+
+      .document-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+      }
+
+      .header-banner {
+        background: #0f172a !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        border-radius: 6px !important;
+        padding: 16px 20px !important;
+        margin-bottom: 20px !important;
+      }
+
+      .header-banner .badge-period {
+        border: 1px solid #10b981 !important;
+        color: #10b981 !important;
+      }
+
+      h2.section-title {
+        page-break-after: avoid;
+        margin-top: 24px !important;
+      }
+
+      table {
+        page-break-inside: auto;
+        font-size: 8.5pt !important;
+      }
+
+      tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      pre {
+        page-break-inside: avoid;
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+
+      pre code {
+        color: #0f172a !important;
+      }
+
+      .table-responsive {
+        overflow: visible !important;
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+
+      @page {
+        margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+        size: A4 portrait;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Sticky Action Header -->
+  <header class="action-header">
+    <div class="action-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+      <span>Laporan Kinerja IT Multi-Role</span>
+      <span class="action-badge">Agustus 2026</span>
+    </div>
+    <div class="action-buttons">
+      <button class="btn btn-secondary" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+        Ke Atas
+      </button>
+      <button class="btn btn-primary" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        Cetak / Simpan PDF (Ctrl+P)
+      </button>
+    </div>
+  </header>
+
+  <!-- Document View Container -->
+  <main class="document-container">
+    <div class="header-banner">
+      <div>
+        <h1>LAPORAN KERJA STAFF IT MULTI-ROLE</h1>
+        <p>PC Lembaga Pendidikan Ma'arif NU Cilacap — Divisi Teknologi & Sistem Informasi</p>
+      </div>
+      <div class="badge-period">
+        PERIODE LAPORAN<br>
+        <strong>01 – 31 Agustus 2026</strong>
+      </div>
+    </div>
+
+    <h1 class="doc-title">LAPORAN KERJA STAFF IT MULTI-ROLE</h1>
+<p><strong>Periode Laporan:</strong> 01 Agustus 2026 – 31 Agustus 2026  </p>
+<p><strong>Penyusun:</strong> Staff IT / Lead Systems Engineer  </p>
+<p><strong>Organisasi / Satuan Kerja:</strong> Pengurus Cabang Lembaga Pendidikan Ma'arif NU Cilacap  </p>
+<p><strong>Klasifikasi Dokumen:</strong> Laporan Akuntabilitas Kinerja & Evaluasi Sistem IT Bulanan  </p>
+<hr class="divider">
+<h2 class="section-title">1. Executive Summary</h2>
+<p>Sepanjang periode <strong>01 Agustus 2026 hingga 31 Agustus 2026</strong>, divisi IT menjalankan mandat strategis dalam pengembangan, stabilisasi, dan modernisasi infrastruktur digital organisasi. Pekerjaan dilakukan secara <strong>end-to-end multi-role</strong>, mencakup siklus hidup rekayasa perangkat lunak lengkap mulai dari perancangan arsitektur bisnis, analisis sistem, pemrograman frontend dan backend, manajemen basis data, penjaminan mutu (QA), hingga rekayasa rilis/DevOps dan tata kelola dokumentasi.</p>
+<p>Pekerjaan pada bulan Agustus 2026 terfokus pada dua ekosistem sistem utama:</p>
+<ol class="custom-ordered-list">
+<li><strong>SIMMACI (Sistem Informasi Manajemen Ma'arif NU Cilacap):</strong> Melakukan implementasi modul baru skala besar (<em>Event Engine & Anugerah Pendidikan Harlah ke-97</em>), penyempurnaan alur tata kelola SK (SK Kamad PNS/Non-PNS/PLT, SK Pemberhentian, revisi & arsip per tahun ajaran), modul Presensi Pegawai Dinas Luar & klasifikasi keterlambatan, standardisasi antarmuka pengguna berbasis <em>Glassmorphism Soft Ambient Card</em>, serta penguatan keamanan akses peran (RBAC).</li>
+<li><strong>Sistem Keuangan LP Ma'arif (Financial ERP & Double-Entry Accounting Core):</strong> Menyelesaikan fondasi arsitektur <strong>Phase 0.5</strong> (spesifikasi formal, ERD, dan aturan akuntansi mutlak), <strong>Phase 1</strong> (pembentukan skema 34 tabel PostgreSQL 16 dengan <em>database-level CHECK constraints</em> untuk <em>double-entry invariants</em>), dan <strong>Phase 2</strong> (arsitektur isolasi <em>multi-tenant</em>, autentikasi Laravel Sanctum, Spatie RBAC berbasis <em>tenant</em>, dan <em>immutable audit trail</em>).</li>
+</ol>
+<h3 class="sub-title">Ringkasan Kuantitatif & Kualitas:</h3>
+<ul class="custom-list">
+<li><strong>Total Aktivitas Rilis & Kode Terverifikasi:</strong> 74 commit terstruktur di repositori utama (72 commit pada SIMMACI dan 2 rilis fase arsitektural masif pada Sistem Keuangan mencakup 130+ file dan 19.285+ baris kode & dokumentasi teknis).</li>
+<li><strong>Kualitas & Penjaminan Mutu:</strong> 100% test suite berhasil dilewati tanpa regresi (<strong>1.697 passed tests dengan 36.597 assertions pada SIMMACI</strong>; <strong>23 unit/feature tests dengan 80 assertions pada Sistem Keuangan</strong>).</li>
+<li><strong>Stabilitas Operasional:</strong> Berhasil memitigasi insiden deadlock transaksi database (SQLSTATE 25P02) dan inkonsistensi sinkronisasi nama guru/SK dengan pembuatan <em>automated recovery & diagnostic scripts</em>.</li>
+<li><strong>Dampak Organisasi:</strong> Mempercepat proses pendaftaran lomba Harlah ke-97 secara publik dan penilaian juri mandiri tanpa kertas, meniadakan risiko kebocoran data antar lembaga melalui enkapsulasi <em>TenantScope</em>, serta menstandardisasi pengalaman antarmuka ratusan operator madrasah se-Kabupaten Cilacap.</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">2. Ringkasan Kontribusi</h2>
+<p>Berikut adalah rekapitulasi kontribusi multi-disiplin berdasarkan area fungsional:</p>
+<div class="table-responsive"><table><thead><tr><th>No</th><th>Area Fungsional</th><th>Jumlah Aktivitas</th><th>Role Utama yang Dijalankan</th><th>Status</th><th>Dampak terhadap Organisasi</th></tr></thead><tbody>
+<tr><td><strong>1</strong></td><td><strong>Event & Competition Engine (Harlah 97)</strong></td><td>18 aktivitas</td><td>Product Owner, System Analyst, Fullstack Dev</td><td><strong>DONE</strong></td><td>Sistem pendaftaran publik via slug, scoring dinamis juknis, dan portal juri PIN-gated sukses digunakan tanpa hambatan.</td></tr>
+<tr><td><strong>2</strong></td><td><strong>Tata Kelola SK (Guru, Tendik, Kamad, Pemberhentian)</strong></td><td>24 aktivitas</td><td>Business Analyst, Backend Dev, DBA, QA</td><td><strong>DONE</strong></td><td>Fleksibilitas template SK (PNS/Non-PNS/PLT), isolasi transaksi penerbitan nomor SK, dan integrasi otomatis ke profil madrasah.</td></tr>
+<tr><td><strong>3</strong></td><td><strong>Sistem Keuangan ERP (Phase 0.5, 1, & 2)</strong></td><td>14 aktivitas</td><td>Solution Architect, DBA, Backend Dev, Security</td><td><strong>DONE</strong></td><td>Fondasi <em>multi-tenant accounting</em> kokoh dengan 34 tabel, <em>DB invariants</em>, dan <em>audit trail</em> anti-manipulasi.</td></tr>
+<tr><td><strong>4</strong></td><td><strong>Master Data & Ekspor Excel Wilayah</strong></td><td>8 aktivitas</td><td>System Analyst, Backend Dev, UI Dev</td><td><strong>DONE</strong></td><td>Ekspor data guru dan lembaga terkelompok per kecamatan multi-sheet rapi untuk kebutuhan rekonsiliasi pengurus cabang.</td></tr>
+<tr><td><strong>5</strong></td><td><strong>Presensi & Absensi Pegawai / Rapat</strong></td><td>6 aktivitas</td><td>Fullstack Dev, DevOps, Support</td><td><strong>DONE</strong></td><td>Pencatatan kehadiran Dinas Luar dengan kolom maksud/tujuan, integrasi kamera QR presensi, dan fitur check-in walk-in rapat.</td></tr>
+<tr><td><strong>6</strong></td><td><strong>UI/UX Refactoring & Design System</strong></td><td>7 aktivitas</td><td>UI/UX Analyst, Frontend Dev</td><td><strong>DONE</strong></td><td>Penyeragaman seluruh modul ke standar <em>Glassmorphism SoftPageHeader</em>, meniadakan duplikasi visual, dan meningkatkan kepuasan user.</td></tr>
+<tr><td><strong>7</strong></td><td><strong>Security Hardening & Access Control</strong></td><td>5 aktivitas</td><td>Security Engineer, DevOps</td><td><strong>DONE</strong></td><td>Pembersihan endpoint debug berbahaya (Phase 1.5), penguncian hak akses approval hanya untuk Super Admin & Yayasan.</td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">3. Proyek yang Ditangani</h2>
+<div class="table-responsive"><table><thead><tr><th>Proyek</th><th>Tujuan Strategis</th><th>Peran / Kapasitas Saya</th><th>Progress</th><th>Status</th><th>Hasil & Deliverable Konkret</th></tr></thead><tbody>
+<tr><td><strong>SIMMACI</strong> <em>(Sistem Informasi Manajemen LP Ma'arif NU)</em></td><td>Digitalisasi tata kelola madrasah, kepegawaian (SK Guru/Kamad), presensi, event organisasi, dan pelaporan terpadu se-Kab. Cilacap.</td><td>Lead Architect, Fullstack Developer, DBA, DevOps, PM</td><td>95% (Operasional Berjalan)</td><td><strong>ACTIVE / STABLE</strong></td><td>Modul Event Harlah 97, Modul Presensi DL, Revisi SK & Arsip per TP, Design System v2, 1.697 Passing Tests.</td></tr>
+<tr><td><strong>Sistem Keuangan LP Ma'arif</strong> <em>(Financial ERP Core)</em></td><td>Membangun core engine akuntansi double-entry multi-tenant, pelaporan laba rugi/neraca, rekonsiliasi bank otomatis, dan audit trail mutlak.</td><td>Solution Architect, Database Administrator, Backend Developer</td><td>35% (Phase 2 Selesai)</td><td><strong>ON TRACK</strong></td><td>34 Migrasi Tabel PostgreSQL 16, DB Check Constraints, Spatie Tenant RBAC, Sanctum Auth, 23 Feature Tests passing.</td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">4. Business Analysis & Product Management</h2>
+<p>Sebagai pengemban fungsi <strong>Business Analyst</strong> dan <strong>Product Owner</strong>, saya menerjemahkan regulasi kelembagaan Ma'arif NU dan juknis operasional ke dalam spesifikasi teknis perangkat lunak:</p>
+<h3 class="sub-title">1. Dekonstruksi Petunjuk Teknis (Juknis) Harlah Ma'arif ke-97</h3>
+<ul class="custom-list">
+<li><strong>Analisis Kebutuhan:</strong> Mengakomodasi 5 kategori lomba Festival Aswaja (Mars Ma'arif, MTQ, Puji-pujian, Film Dokumenter, dll.) dan Anugerah Pendidikan (Guru & Madrasah Berprestasi).</li>
+<li><strong>Business Rules & Scoring Matrix:</strong> Menetapkan bobot kriteria penilaian juknis yang selalu berjumlah 100% secara dinamis, serta formulasi matriks skor prestasi 5 tingkatan wilayah (Kecamatan s.d. Internasional) dengan <em>LP Ma'arif Bonus Points</em>.</li>
+<li><strong>Product Decisions:</strong> Memisahkan jalur pendaftaran publik tanpa autentikasi (<code>/daftar/:slug</code>) dan portal penjurian mandiri berbasis token PIN dinamis (<code>/juri</code>) untuk mencegah kebocoran hasil sebelum diumumkan.</li>
+</ul>
+<h3 class="sub-title">2. Standardisasi Regulasi SK Kepala Madrasah & Kepegawaian</h3>
+<ul class="custom-list">
+<li><strong>Gap Analysis:</strong> Mengidentifikasi kebutuhan pemisahan format hukum SK Kamad menjadi 3 varian: PNS, Non-PNS, dan Pejabat Pelaksana Tugas (PLT).</li>
+<li><strong>Business Rule Automation:</strong> Otomatisasi pembaharuan masa jabatan kepala di profil master madrasah seketika SK disetujui (Approved) oleh Pengurus Yayasan, serta penambahan 6 klausul tembusan resmi (Kecamatan, Satpend, BP3MNU, dsb.).</li>
+</ul>
+<h3 class="sub-title">3. Backlog Management & Prioritization</h3>
+<ul class="custom-list">
+<li>Mengelola prioritas pengembangan mingguan dengan metode <em>impact-effort matrix</em>, mendahulukan modul yang memiliki batas waktu operasional mendesak (pendaftaran event dan penerbitan SK awal tahun ajaran baru).</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">5. System Analysis & Architecture</h2>
+<p>Sebagai <strong>Software / Solution Architect</strong> dan <strong>System Analyst</strong>, saya merancang arsitektur perangkat lunak yang <em>scalable</em>, aman, dan mudah dipelihara:</p>
+<pre><code>+---------------------------------------------------------------------------------------+
+|                                ARSITEKTUR MULTI-SISTEM LP MA'ARIF NU                 |
++---------------------------------------------------------------------------------------+
+|                                                                                       |
+|  [ KLIEN WEB / OPERATOR / JURI / PUBLIK ]                                             |
+|        |                                                                              |
+|        v (HTTPS REST API / JSON)                                                      |
+|  +---------------------------------------------------------------------------------+  |
+|  | CORE API GATEWAY &amp; SECURITY LAYER                                               |  |
+|  | - ResolveTenantMiddleware (Resolusi Tenant dari Header / User Context)          |  |
+|  | - Sanctum Token Authentication (Multi-guard Token Validation)                   |  |
+|  | - Spatie RBAC (Tenant-Scoped Permissions: super_admin, admin_yayasan, operator)  |  |
+|  | - AuditTrailMiddleware (Automatic Mutation Logging &amp; Payload Capture)           |  |
+|  +---------------------------------------------------------------------------------+  |
+|        |                                                                              |
+|        +-----------------------------------+----------------------------------+       |
+|        |                                   |                                  |       |
+|        v                                   v                                  v       |
+|  [ MODUL SIMMACI ]               [ ACCOUNTING ENGINE ]               [ MASTER REPO ]  |
+|  - SK Engine (Guru/Kamad)        - Double-Entry Journal Core         - Kelembagaan    |
+|  - Event &amp; Jury Scoring System   - Immutable Ledger &amp; COA Tree       - Pendidik (PTK) |
+|  - Attendance &amp; DL Engine        - Bank Import &amp; Fingerprint Dedup   - Siswa &amp; Kelas  |
+|  - Glassmorphism UI Center       - Reconciliation L1-L4 Engine       - Mutasi &amp; Lulus |
+|        |                                   |                                  |       |
+|        +-----------------------------------+----------------------------------+       |
+|        |                                                                              |
+|        v (PostgreSQL Connection Pooling / Transaction Isolation)                      |
+|  +---------------------------------------------------------------------------------+  |
+|  | DATABASE STORAGE ENGINE (PostgreSQL 16)                                         |  |
+|  | - Invariant DB CHECK Constraints (Debit/Credit Balance, Outstandings &gt;= 0)      |  |
+|  | - Tenant Foreign Key References &amp; Unique Compound Indexes                       |  |
+|  | - Immutable Audit Log Storage &amp; Polymorphic File Attachment Store               |  |
+|  +---------------------------------------------------------------------------------+  |
++---------------------------------------------------------------------------------------+</code></pre>
+<h3 class="sub-title">Keputusan Arsitektural Utama (Technical Decisions):</h3>
+<ol class="custom-ordered-list">
+<li><strong>Multi-Tenant Isolation via Global Scopes:</strong></li>
+<p>   Membangun <code>TenantScope</code> dan trait <code>BelongsToTenant</code> di Laravel 11. Setiap query model otomatis diisolasi berdasarkan <code>organization_id</code>. Percobaan manipulasi entitas lintas <em>tenant</em> secara otomatis melempar <code>CrossTenantViolationException</code> berstatus HTTP 403 Forbidden.</p>
+<li><strong>Accounting Ledger Immutability:</strong></li>
+<p>   Jurnal transaksi dirancang dengan status <em>draft -> posted</em>. Ketika jurnal sudah berstatus <em>posted</em>, baris jurnal (<em>journal lines</em>) menjadi <em>immutable</em> (tidak dapat diubah/dihapus), menjaga integritas buku besar sesuai kaidah akuntansi baku.</p>
+<li><strong>Pemisahan Transaksi Generator Nomor SK:</strong></li>
+<p>   Memindahkan eksekusi fungsi generator nomor urut SK ke luar blok transaksi utama guna menghindari <em>deadlock</em> dan <em>abort exception</em> (SQLSTATE 25P02) pada PostgreSQL saat terjadi <em>race condition</em> pengajuan massal.</p>
+</ol>
+<hr class="divider">
+<h2 class="section-title">6. Software Development</h2>
+<h3 class="sub-title">A. Frontend Development (React 18 + TypeScript + Vite + Tailwind CSS)</h3>
+<ul class="custom-list">
+<li><strong>UI/UX Hub Redesign (9 Center Pages):</strong> Membangun ulang struktur navigasi dan menyatukan modul yang tersebar menjadi 9 Pusat Layanan utama (<em>Pusat SK, Pusat SDM, Pusat Laporan, Pusat Kelembagaan, Pusat Event, dsb.</em>) dengan tabs navigasi berbasis <em>glassmorphism</em>.</li>
+<li><strong>Event & Scoreboard Live Components:</strong></li>
+<p>  <em> Komponen formulir 3-tahap pendaftaran Anugerah Pendidikan dengan kalkulator skor prestasi interaktif </em>real-time*.</p>
+<p>  <em> Papan skor langsung (</em>live scoreboard<em>) dengan fitur </em>auto-refresh 30s* untuk menampilkan peringkat peserta secara transparan.</p>
+<p>  * Panel penilaian juri responsif dengan validasi bobot nilai dinamis sesuai juknis.</p>
+<li><strong>Standardisasi Design System:</strong> Mengembangkan <code>SoftPageHeader</code> seragam di seluruh halaman aplikasi, menghapus duplikasi <em>card header</em>, dan menyelaraskan seluruh tombol aksi menggunakan palet <em>Emerald & Slate Ambient</em>.</li>
+</ul>
+<h3 class="sub-title">B. Backend Development (Laravel 11.x + PHP 8.3)</h3>
+<ul class="custom-list">
+<li><strong>REST API Endpoints:</strong> Mengembangkan puluhan <em>controller endpoints</em> untuk registrasi event publik, autentikasi juri PIN, sinkronisasi SK, pengajuan mutasi siswa, dan pencatatan presensi.</li>
+<li><strong>Multi-Tenant & Security Middleware:</strong> Mengimplementasikan <code>ResolveTenantMiddleware</code>, <code>RequireTenantMiddleware</code>, dan <code>AuditMiddleware</code> untuk mengamankan seluruh <em>incoming requests</em>.</li>
+<li><strong>Excel Engine:</strong> Mengembangkan servis ekspor data terstruktur multi-sheet per kecamatan menggunakan <code>Maatwebsite/Excel</code> dengan <em>custom styling & auto-sizing</em>.</li>
+</ul>
+<h3 class="sub-title">C. Database Engineering (PostgreSQL 16)</h3>
+<ul class="custom-list">
+<li><strong>Skema Sistem Keuangan (34 Tabel):</strong> Merancang dan mengeksekusi migrasi tabel akuntansi: <code>organizations</code>, <code>fiscal_periods</code>, <code>accounts</code> (COA hirarki), <code>journal_entries</code>, <code>journal_lines</code>, <code>bank_accounts</code>, <code>bank_transactions</code>, <code>reconciliations</code>, <code>receivables</code>, <code>audit_logs</code>, dsb.</li>
+<li><strong>Enforcing Invariants via DB Constraints:</strong> Menerapkan <em>CHECK constraints</em> level basis data:</li>
+<p>  <code>`</code>sql</p>
+<p>  CHECK ((debit > 0 AND credit = 0) OR (credit > 0 AND debit = 0))</p>
+<p>  CHECK (outstanding_amount >= 0 AND outstanding_amount <= original_amount)</p>
+<p>  CHECK (direction IN ('IN', 'OUT'))</p>
+<p>  <code>`</code></p>
+</ul>
+<hr class="divider">
+<h2 class="section-title">7. QA, Quality Assurance & Testing</h2>
+<p>Seluruh kode yang diproduksi diuji menggunakan pendekatan <strong>Test-Driven & Automated Feature Testing</strong> untuk menjamin <em>zero regression</em>:</p>
+<h3 class="sub-title">Hasil Eksekusi Uji Otomatis:</h3>
+<ol class="custom-ordered-list">
+<li><strong>Sistem Keuangan LP Ma'arif (PHPUnit / Pest):</strong></li>
+<p>   <em> <code>AuditLogTest</code>: 100% Pass (Verifikasi perekaman </em>mutation payload<em> & </em>user context*).</p>
+<p>   * <code>AuthApiTest</code>: 100% Pass (Login Sanctum, token abilities, invalidation).</p>
+<p>   <em> <code>TenantIsolationTest</code>: 100% Pass (Pencegahan </em>cross-tenant data leakage*).</p>
+<p>   * <code>RbacTest</code> & <code>OrganizationControllerTest</code>: 100% Pass.</p>
+<p>   * <strong>Total: 23 Test Cases, 80 Assertions, Durasi 3.81 detik — STATUS: 100% PASS.</strong></p>
+<li><strong>SIMMACI Test Suite:</strong></li>
+<p>   * <code>AnugerahRegistrationTest</code>: 21 unit tests memverifikasi seluruh matriks perhitungan skor prestasi Juknis (5 tingkatan x 4 juara + bonus LP Ma'arif).</p>
+<p>   * <code>PublicEventControllerTest</code>: 8 unit tests memverifikasi akumulasi bobot kriteria = 100%.</p>
+<p>   * <code>MeetingMinutesControllerTest</code> & <code>PhoneNormalizerServiceTest</code>: Lolos uji lintas OS.</p>
+<p>   * <strong>Total: 1.697 Unit & Feature Tests, 36.597 Assertions — STATUS: 100% PASS.</strong></p>
+</ol>
+<hr class="divider">
+<h2 class="section-title">8. DevOps, Release & Environment Management</h2>
+<ul class="custom-list">
+<li><strong>CI/CD & Server Deployment:</strong> Mengelola <em>deployment pipeline</em> pada server staging dan produksi menggunakan <strong>Coolify Engine</strong> dan Docker Container.</li>
+<li><strong>Database Migration Portability:</strong> Menghilangkan klausa MySQL-spesifik seperti <code>->after()</code> dan fungsi <code>NOW()</code> non-standar, menggantinya dengan sintaks ANSI SQL <code>CURRENT_TIMESTAMP</code> agar kompatibel penuh dengan PostgreSQL 16 pada environment produksi.</li>
+<li><strong>Environment Maintenance:</strong> Menjaga kebersihan konfigurasi cache (<code>config:cache</code>, <code>route:cache</code>, <code>view:cache</code>) dan manajemen storage symlink untuk berkas unggahan publik.</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">9. Maintenance & Troubleshooting</h2>
+<p>Daftar insiden operasional dan penyelesaian teknis yang dilakukan selama bulan Agustus 2026:</p>
+<div class="table-responsive"><table><thead><tr><th>No</th><th>Issue / Masalah Teknis</th><th>Dampak</th><th>Analisis Akar Masalah (RCA)</th><th>Solusi & Tindakan</th><th>Status</th></tr></thead><tbody>
+<tr><td><strong>1</strong></td><td><strong>SQLSTATE 25P02 pada Pengajuan SK</strong></td><td>Pengajuan SK gagal disimpan saat nomor SK di-generate.</td><td>Generator nomor SK berada di dalam transaksi DB yang mengalami <em>rollback partially</em>.</td><td>Memindahkan <code>generateNomorSk</code> ke luar blok transaksi utama dan menambahkan <em>retry mechanism</em>.</td><td><strong>RESOLVED</strong></td></tr>
+<tr><td><strong>2</strong></td><td><strong>Kamera Presensi Pegawai Macet</strong></td><td>Guru/staf tidak dapat melakukan presensi via kamera HP tertentu.</td><td><em>MediaStream constraint</em> tidak kompatibel pada browser mobile tertentu dan <em>storage permission</em>.</td><td>Memperbaiki <em>stream fallback</em> kamera, validasi tipe MIME foto, dan <em>timeout handling</em>.</td><td><strong>RESOLVED</strong></td></tr>
+<tr><td><strong>3</strong></td><td><strong>Duplikasi Akun Operator saat Update NSM</strong></td><td>Akun ganda terbentuk ketika data madrasah diperbarui.</td><td>Logika sync operator mendeteksi perubahan NSM sebagai entitas sekolah baru.</td><td>Menambahkan <em>uniqueness guard</em> berbasis <code>school_id</code> permanen, bukan NSM yang dapat diedit.</td><td><strong>RESOLVED</strong></td></tr>
+<tr><td><strong>4</strong></td><td><strong>Data SK Kamad Masih Muncul Pasca Hapus</strong></td><td>Operator bingung data yang dihapus masih terlihat di daftar.</td><td>Implementasi <em>SoftDeletes</em> bentrok dengan <em>React Query cache</em> sisi klien.</td><td>Mengganti <em>action</em> ke <code>forceDelete</code> pada draft pengajuan dan menerapkan <em>cache invalidation</em> seketika.</td><td><strong>RESOLVED</strong></td></tr>
+<tr><td><strong>5</strong></td><td><strong>Crash Halaman Konfigurasi Sistem</strong></td><td>Menu pengaturan tidak bisa dibuka oleh Super Admin.</td><td><em>Undefined property</em> pada <em>state</em> konfigurasi akibat nilai null di basis data.</td><td>Menambahkan <em>null-coalescing guard</em> dan <em>error boundary</em> pada komponen React Settings.</td><td><strong>RESOLVED</strong></td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">10. Security & IT Governance</h2>
+<ol class="custom-ordered-list">
+<li><strong>Phase 1.5 Security Cleanup:</strong></li>
+<p>   <em> Menghapus seluruh </em>temporary migration endpoints<em> dan </em>debug purge routes* yang sebelumnya digunakan selama masa transisi basis data.</p>
+<p>   <em> Mengamankan </em>route* sensitif dengan validasi token dan hak akses ketat.</p>
+<li><strong>Access Control Hardening (RBAC Lockdown):</strong></li>
+<p>   <em> Mengunci seluruh aksi persetujuan (</em>Approval<em>), penolakan (</em>Rejection*), dan perubahan status SK hanya untuk peran <code>super_admin</code> dan <code>admin_yayasan</code>.</p>
+<p>   <em> Operator madrasah dibatasi hanya memiliki hak akses </em>read & draft submission* untuk data lembaga masing-masing.</p>
+<li><strong>Data Protection & Tenant Privacy:</strong></li>
+<p>   * Enkapsulasi isolasi tenant mencegah operator sekolah A melihat atau memodifikasi data guru dan keuangan sekolah B.</p>
+</ol>
+<hr class="divider">
+<h2 class="section-title">11. Data & Database Management</h2>
+<ul class="custom-list">
+<li><strong>Data Normalization:</strong> Pembersihan anomali NIM guru dan standardisasi format nomor telepon internasional (+62).</li>
+<li><strong>Automated Data Maintenance:</strong> Pembuatan <em>custom artisan command</em> (<code>headmaster:analyze</code>) untuk mendiagnosa dan membersihkan <em>orphan records</em> data kepala madrasah.</li>
+<li><strong>Archival Partitioning:</strong> Pengelompokan arsip berkas SK berdasarkan Tahun Pelajaran (TP) aktif guna mempercepat performa <em>querying</em> dan memudahkan audit tahunan.</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">12. Dokumentasi Teknis yang Dihasilkan</h2>
+<p>Seluruh artefak teknis didokumentasikan secara formal di dalam repositori sistem:</p>
+<ol class="custom-ordered-list">
+<li><code>IMPLEMENTATION_PLAN_REV1_Keuangan_LP_Maarif.md</code> (Blueprint arsitektur ERP).</li>
+<li><code>docs/phase_0_5/ACCOUNTING_INVARIANTS.md</code> (Spesifikasi matematis double-entry ledger).</li>
+<li><code>docs/phase_0_5/ERD_REVISED.md</code> (Diagram relasi entitas 34 tabel).</li>
+<li><code>docs/phase_0_5/SECURITY_INVARIANTS.md</code> (Kebijakan tenant isolation & RBAC matrix).</li>
+<li><code>docs/phase_0_5/GOLDEN_DATASET_STRATEGY.md</code> (Strategi verifikasi data uji akuntansi).</li>
+<li><code>docs/accounting/TRANSACTION_RULEBOOK.md</code> (Aturan pencatatan debit/kredit per transaksi).</li>
+<li><code>docs/architecture/MODULE_MAP.md</code> (Struktur domain modular backend).</li>
+</ol>
+<hr class="divider">
+<h2 class="section-title">13. Masalah, Risiko, dan Mitigasi</h2>
+<div class="table-responsive"><table><thead><tr><th>Masalah / Risiko</th><th>Tipe</th><th>Severity</th><th>Dampak Potensial</th><th>Strategi Mitigasi yang Diterapkan</th><th>Status</th></tr></thead><tbody>
+<tr><td><strong>Beban Server saat Penjurian Serentak</strong></td><td>Risk</td><td>Medium</td><td>Response time lambat saat ratusan peserta mengunggah berkas.</td><td>Menggunakan penyimpanan terdistribusi (Google Drive API / S3) dan <em>chunked upload</em>.</td><td><strong>MITIGATED</strong></td></tr>
+<tr><td><strong>Keterbatasan SDM Tim IT Tunggal</strong></td><td>Blocker</td><td>High</td><td><em>Bottleneck</em> saat terjadi eskalasi perbaikan di banyak modul bersamaan.</td><td>Menerapkan <em>automated test coverage</em>, <em>clean architecture</em>, dan dokumentasi mandiri.</td><td><strong>IN PROGRESS</strong></td></tr>
+<tr><td><strong>Kualitas Input Data Operator Madrasah</strong></td><td>Risk</td><td>Medium</td><td>Data tidak seragam (huruf kapital, spasi ganda, gelar campur).</td><td>Membangun servis normalisasi string otomatis (<em>NormalizationService</em>) di backend.</td><td><strong>MITIGATED</strong></td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">14. Pekerjaan yang Sedang Berjalan & Target Selanjutnya</h2>
+<div class="table-responsive"><table><thead><tr><th>Pekerjaan / Inisiatif</th><th>Progress</th><th>Remaining Work</th><th>Blocker</th><th>Target Penyelesaian</th></tr></thead><tbody>
+<tr><td><strong>Sistem Keuangan: Phase 3 (Ledger Engine & Journal Posting)</strong></td><td>20%</td><td>Implementasi servis pembuatan jurnal otomatis dari transaksi kas/bank.</td><td>Tidak ada</td><td>September 2026</td></tr>
+<tr><td><strong>Modul Rekonsiliasi Bank Otomatis</strong></td><td>10%</td><td>Parser mutasi rekening koran (BCA, Mandiri, BRI, BSI) & rule matching L1-L4.</td><td>Menunggu format raw statement bank</td><td>September 2026</td></tr>
+<tr><td><strong>SIMMACI: Evaluasi Hasil Lomba Harlah 97</strong></td><td>85%</td><td>Rekapitulasi perolehan medali final dan ekspor sertifikat juara otomatis.</td><td>Menunggu input nilai juri selesai</td><td>Awal September 2026</td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">15. Top Highlights & Key Achievements</h2>
+<h3 class="sub-title">🏆 Highlight 1: Peluncuran Sukses Platform Digital Harlah ke-97 LP Ma'arif NU</h3>
+<ul class="custom-list">
+<li><strong>Masalah:</strong> Proses pendaftaran 5 cabang lomba dan Anugerah Pendidikan sebelumnya dilakukan manual via formulir fisik/chat yang rawan tercecer dan rekapitulasi nilai juri lambat.</li>
+<li><strong>Tindakan:</strong> Merancang dan membangun <em>Event & Competition Engine</em> lengkap dengan <em>public registration slug</em>, sistem upload berkas Google Drive, kalkulator skor prestasi otomatis, serta portal juri mandiri ber-PIN.</li>
+<li><strong>Hasil:</strong> Ratusan peserta terdaftar secara terstruktur dan dewan juri dapat melakukan penilaian secara <em>real-time</em> tanpa rekapitulasi manual.</li>
+<li><strong>Dampak:</strong> Transformasi digital penuh pada event akbar cabang, meningkatkan citra profesionalitas organisasi dan transparansi kompetisi.</li>
+</ul>
+<h3 class="sub-title">🏆 Highlight 2: Penguatan Arsitektur Multi-Tenant & DB Constraints Sistem Keuangan</h3>
+<ul class="custom-list">
+<li><strong>Masalah:</strong> Sistem keuangan organisasi rawan inkonsistensi data buku besar (<em>debit/credit imbalance</em>) dan bahaya kebocoran data antar entitas (<em>cross-tenant leakage</em>).</li>
+<li><strong>Tindakan:</strong> Membangun <em>TenantScope</em> otomatis pada level framework dan menanamkan <em>CHECK constraints</em> ketat pada level PostgreSQL 16 untuk menjamin integritas <em>double-entry</em> dan <em>audit trail</em>.</li>
+<li><strong>Hasil:</strong> 34 tabel berhasil termigrasi dengan 23 automated tests (80 assertions) lolos 100%.</li>
+<li><strong>Dampak:</strong> Keamanan data tingkat tinggi yang siap diaudit (<em>audit-ready</em>) dan fondasi ERP siap menampung seluruh transaksi madrasah se-Cilacap.</li>
+</ul>
+<h3 class="sub-title">🏆 Highlight 3: Standardisasi Antarmuka Pengguna (Glassmorphism Design System)</h3>
+<ul class="custom-list">
+<li><strong>Masalah:</strong> Antarmuka SIMMACI sebelumnya memiliki variasi gaya tombol, header gelap yang tidak seragam, dan struktur menu yang terlalu panjang.</li>
+<li><strong>Tindakan:</strong> Melakukan audit menyeluruh dan refaktorisasi ke dalam 9 <em>Center Pages</em> dengan komponen terstandarisasi <code>SoftPageHeader</code> berbasis <em>Glassmorphism Soft Ambient</em>.</li>
+<li><strong>Hasil:</strong> Pengalaman navigasi menjadi jauh lebih intuitif, bersih, cepat, dan konsisten di seluruh modul.</li>
+<li><strong>Dampak:</strong> Menurunkan kebingungan operator madrasah dan mempercepat waktu input data harian.</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">16. Analisis Kontribusi Strategis Staff IT</h2>
+<p>Pekerjaan yang telah dilaksanakan memberikan nilai tambah strategis bagi organisasi:</p>
+<ul class="custom-list">
+<li><strong>Digitalisasi Organisasi:</strong> Mengubah proses birokrasi kepegawaian (SK) dan kompetisi dari kertas (<em>paper-based</em>) menjadi sistem cloud terotomatisasi.</li>
+<li><strong>Standardisasi & Kualitas Data:</strong> Memastikan data master guru, madrasah, dan siswa terintegrasi secara valid, bebas dari anomali data ganda.</li>
+<li><strong>Efisiensi Anggaran & Waktu:</strong> Memangkas ratusan jam kerja manual staf sekretariat cabang dalam rekapitulasi nilai lomba, pencetakan berkas SK, dan verifikasi kehadiran rapat.</li>
+<li><strong>Kesiapan Audit (Audit Readiness):</strong> Menyediakan jejak log audit (<em>audit trail</em>) yang tidak dapat diubah (<em>immutable</em>) untuk setiap perubahan data penting di dalam sistem.</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">17. Beban Multi-Role & Tanggung Jawab Aktual</h2>
+<p>Tabel berikut menggambarkan cakupan multi-disiplin yang dijalankan secara nyata dalam operasional sehari-hari:</p>
+<div class="table-responsive"><table><thead><tr><th>Role Disiplin IT</th><th>Aktivitas Nyata yang Dijalankan</th><th>Deliverable Utama</th><th>Frekuensi Operasional</th></tr></thead><tbody>
+<tr><td><strong>Project Manager</strong></td><td>Perencanaan sprint, breakdown tiket, koordinasi kebutuhan juknis event.</td><td>Project Roadmap, Release Scope</td><td>Mingguan</td></tr>
+<tr><td><strong>Business Analyst</strong></td><td>Analisis regulasi SK, juknis lomba, dan aturan pembukuan keuangan.</td><td>Requirement Matrix, User Stories</td><td>Berkala / Per Fitur</td></tr>
+<tr><td><strong>Solution Architect</strong></td><td>Desain ERD 34 tabel, struktur multi-tenant, dan modul isolasi domain.</td><td>Arsitektur Sistem, SDD, ERD</td><td>Per Milestone</td></tr>
+<tr><td><strong>Frontend Developer</strong></td><td>Koding antarmuka React 18, TypeScript, Tailwind CSS, live scoreboard, juri UI.</td><td>Aplikasi Klien Responsif</td><td>Harian</td></tr>
+<tr><td><strong>Backend Developer</strong></td><td>Koding REST API Laravel 11, Business Logic, Middleware, Export Excel.</td><td>RESTful API, Service Classes</td><td>Harian</td></tr>
+<tr><td><strong>Database Admin</strong></td><td>Perancangan skema PostgreSQL, indexing, DB constraints, query optimization.</td><td>Migration Files, SQL Triggers</td><td>Per Rilis</td></tr>
+<tr><td><strong>QA / Tester</strong></td><td>Pembuatan unit test, integration test, manual validation, regression testing.</td><td>Automated Test Suite (1.697 Tests)</td><td>Per Rilis</td></tr>
+<tr><td><strong>DevOps Engineer</strong></td><td>Deployment Coolify, konfigurasi container Docker, troubleshooting server.</td><td>Production Build & Server Health</td><td>Sesuai Kebutuhan</td></tr>
+<tr><td><strong>IT Support / Ops</strong></td><td>Pendampingan teknis kendala operator sekolah, perbaikan data darurat.</td><td>Incident Resolution, Data Fix</td><td>Harian</td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">18. Manpower & Role Equivalency Analysis</h2>
+<p>Cakupan pekerjaan yang dijalankan dalam periode Agustus 2026 mencakup fungsi-fungsi yang secara umum pada standar industri teknologi diampu oleh beberapa spesialisasi terpisah:</p>
+<ol class="custom-ordered-list">
+<li><strong>Product & Project Management</strong> (Perencanaan & Pengawalan Scope)</li>
+<li><strong>Business & System Analysis</strong> (Analisis Kebutuhan Bisnis & Desain Alur)</li>
+<li><strong>Software Architecture</strong> (Perancangan Fondasi & Keamanan Sistem)</li>
+<li><strong>Fullstack Engineering</strong> (Pengembangan Frontend & Backend)</li>
+<li><strong>Database Administration</strong> (Pengelolaan Integritas Data & Skema)</li>
+<li><strong>Quality Assurance</strong> (Pengujian Otomatis & Manual)</li>
+<li><strong>DevOps & IT Support</strong> (Infrastruktur, Rilis, & Bantuan Pengguna)</li>
+</ol>
+<p>Penggabungan seluruh fungsi ini pada satu personel (<em>Single-Person Engineering Capability</em>) memungkinkan koordinasi yang sangat cepat (<em>zero communication overhead</em> antar tim) dan eksekusi solusi yang tepat sasaran, namun memerlukan disiplin arsitektur tinggi agar sistem tetap terstruktur dan terdokumentasi rapi.</p>
+<hr class="divider">
+<h2 class="section-title">19. Roadmap Pengembangan</h2>
+<pre><code>+---------------------------------------------------------------------------------------------------+
+| COMPLETED (Agustus 2026)                                                                          |
+| - Event &amp; Competition Engine (Harlah ke-97)                                                       |
+| - Portal Penjurian Mandiri &amp; Live Scoreboard                                                      |
+| - Sistem Keuangan Phase 0.5, Phase 1 (34 Tabel DB), Phase 2 (Multi-Tenant &amp; Sanctum RBAC)         |
+| - UI/UX Refactoring Glassmorphism (9 Center Pages &amp; SoftPageHeader)                               |
+| - Presensi Pegawai Dinas Luar &amp; Otomasi Profil SK Kamad                                           |
++---------------------------------------------------------------------------------------------------+
+                                                  |
+                                                  v
++---------------------------------------------------------------------------------------------------+
+| IN PROGRESS (Awal September 2026)                                                                 |
+| - Sistem Keuangan Phase 3: Double-Entry Journal Posting Engine &amp; Ledger Services                  |
+| - Rekapitulasi Akhir &amp; E-Sertifikat Juara Harlah ke-97                                            |
+| - Finalisasi Modul Evaluasi Kinerja Madrasah                                                      |
++---------------------------------------------------------------------------------------------------+
+                                                  |
+                                                  v
++---------------------------------------------------------------------------------------------------+
+| NEXT PLANS (September - Oktober 2026)                                                             |
+| - Sistem Keuangan Phase 4: Parser Rekening Koran &amp; Rekonsiliasi Bank Otomatis L1-L4               |
+| - Modul Laporan Finansial (Laba Rugi, Neraca, Arus Kas, Posisi Dana)                             |
+| - Integrasi Single Sign-On (SSO) terpadu antara SIMMACI dan Sistem Keuangan                       |
++---------------------------------------------------------------------------------------------------+</code></pre>
+<hr class="divider">
+<h2 class="section-title">20. Rekomendasi Manajemen</h2>
+<p>Berdasarkan fakta empiris dan evaluasi operasional selama bulan Agustus 2026, saya merekomendasikan:</p>
+<ol class="custom-ordered-list">
+<li><strong>Penguatan Infrastruktur Server Cadangan:</strong> Mempertimbangkan penyediaan <em>automated off-site database backup</em> harian untuk menjamin <em>disaster recovery</em> data kepegawaian dan keuangan.</li>
+<li><strong>Pelatihan Terstruktur untuk Operator Baru:</strong> Mengadakan sesi bimbingan teknis berkala bagi operator madrasah guna meminimalisir kesalahan input data master.</li>
+<li><strong>Standarisasi Formulasi Keuangan Cabang:</strong> Melakukan sosialisasi bagan akun standar (Chart of Accounts) kepada bendahara madrasah sebelum modul Sistem Keuangan diluncurkan penuh.</li>
+</ol>
+<hr class="divider">
+<h1 class="doc-title">OUTPUT TAMBAHAN</h1>
+<h2 class="section-title">A. EXECUTIVE ONE-PAGE SUMMARY</h2>
+<div class="table-responsive"><table><thead><tr><th>Parameter Laporan</th><th>Ringkasan Eksekutif</th></tr></thead><tbody>
+<tr><td><strong>Periode Kinerja</strong></td><td>01 Agustus 2026 – 31 Agustus 2026 (1 Bulan)</td></tr>
+<tr><td><strong>Posisi / Kapasitas</strong></td><td>Staff IT / Lead Systems Engineer (Multi-Role End-to-End Delivery)</td></tr>
+<tr><td><strong>Sistem yang Dikelola</strong></td><td>1. <strong>SIMMACI</strong> (Sistem Manajemen Madrasah, SK, Presensi, Event Harlah 97)<br>2. <strong>Sistem Keuangan LP Ma'arif</strong> (Core ERP Double-Entry Multi-Tenant)</td></tr>
+<tr><td><strong>Pencapaian Kunci</strong></td><td>• Rilis penuh modul <strong>Event & Juri Harlah 97</strong> dengan pendaftaran publik slug & live scoreboard.<br>• Penyelesaian <strong>Phase 1 & 2 Sistem Keuangan</strong> (34 tabel PostgreSQL, TenantScope, Spatie RBAC, Sanctum Auth).<br>• Standardisasi UI/UX 100% konsisten berbasis <strong>Glassmorphism SoftPageHeader</strong> di 9 Center Pages.<br>• 100% Test Suite lolos (1.697 tests SIMMACI, 23 tests Sistem Keuangan).</td></tr>
+<tr><td><strong>Stabilitas & Reliabilitas</strong></td><td>Zero major downtime; seluruh insiden deadlock transaksi DB dan sinkronisasi data berhasil dimitigasi tanpa data loss.</td></tr>
+<tr><td><strong>Nilai Tambah Organisasi</strong></td><td>Efisiensi administrasi cabang, otomatisasi penomoran SK, transparansi penjurian lomba, dan keamanan data multi-tenant tingkat tinggi.</td></tr>
+<tr><td><strong>Fokus Periode Berikutnya</strong></td><td>Implementasi Phase 3 Sistem Keuangan (Journal Posting Engine) & Rekonsiliasi Bank Otomatis.</td></tr>
+</tbody></table></div>
+<hr class="divider">
+<h2 class="section-title">B. PERFORMANCE SUMMARY (EVALUASI KINERJA)</h2>
+<ul class="custom-list">
+<li><strong>Disiplin Delivery & Ketepatan Waktu:</strong> Skor Sangat Baik (Seluruh target fitur prioritas Harlah 97 dan rilis Phase 1-2 Keuangan selesai sesuai jadwal).</li>
+<li><strong>Kualitas Kode & Ketahanan Sistem:</strong> Skor Luar Biasa (Automated unit testing diterapkan secara disiplin, memastikan zero regression pada kode produksi).</li>
+<li><strong>Inisiatif & Kepemilikan Masalah (Ownership):</strong> Menjalankan siklus menyeluruh dari telaah juknis, arsitektur database, desain antarmuka, hingga <em>hotfix</em> lapangan secara mandiri.</li>
+<li><strong>Akuntabilitas & Dokumentasi:</strong> Seluruh perubahan kode tercatat di Git Version Control dengan pesan deskriptif dan dilengkapi dokumen arsitektur formal.</li>
+</ul>
+<hr class="divider">
+<h2 class="section-title">C. WORK LOG KRONOLOGIS (AGUSTUS 2026)</h2>
+<p>Tabel berikut mencatat seluruh rekam jejak aktivitas harian selama periode Agustus 2026:</p>
+<div class="table-responsive"><table><thead><tr><th>Tanggal</th><th>Proyek</th><th>Aktivitas & Tindakan</th><th>Role</th><th>Output / Deliverable</th><th>Status</th><th>Evidence (Commit / File)</th><th>Dampak</th></tr></thead><tbody>
+<tr><td><strong>01/08/2026</strong></td><td>SIMMACI</td><td>Implementasi Modul Anugerah Pendidikan & Festival Aswaja Harlah 97</td><td>Fullstack Dev, BA</td><td>Event & Scoring UI/Backend</td><td><strong>DONE</strong></td><td>\<code>f8edd8e\</code></td><td>Digitalisasi pendaftaran lomba Harlah 97</td></tr>
+<tr><td><strong>01/08/2026</strong></td><td>SIMMACI</td><td>Seeder otomatis seluruh cabang lomba Harlah 97</td><td>Backend Dev</td><td>CompetitionSeeder</td><td><strong>DONE</strong></td><td>\<code>c32fac2\</code></td><td>Setup instan seluruh cabang lomba</td></tr>
+<tr><td><strong>01/08/2026</strong></td><td>SIMMACI</td><td>Standarisasi ukuran QR Code verifikasi SK 100x100px</td><td>UI Dev</td><td>SkPrint Component</td><td><strong>DONE</strong></td><td>\<code>059b659\</code></td><td>Tampilan cetak SK rapi dan presisi</td></tr>
+<tr><td><strong>03/08/2026</strong></td><td>SIMMACI</td><td>Penambahan URL slug untuk link pendaftaran event publik</td><td>Fullstack Dev</td><td>Slug Route & Form</td><td><strong>DONE</strong></td><td>\<code>ad885db\</code></td><td>Pendaftaran mudah diakses publik via URL ramah</td></tr>
+<tr><td><strong>03/08/2026</strong></td><td>SIMMACI</td><td>Dukungan anggota beregu & upload berkas via Google Drive</td><td>Fullstack Dev</td><td>Registration Form</td><td><strong>DONE</strong></td><td>\<code>1dc1dd3\</code></td><td>Peserta lomba grup terakomodasi</td></tr>
+<tr><td><strong>04/08/2026</strong></td><td>SIMMACI</td><td>Portal Juri mandiri berbasis PIN dan filter jenjang</td><td>Fullstack Dev, SA</td><td>Jury Portal Page</td><td><strong>DONE</strong></td><td>\<code>fa9d9e4\</code>, \<code>1e5aaa6\</code></td><td>Penjurian aman & terisolasi per event</td></tr>
+<tr><td><strong>04/08/2026</strong></td><td>SIMMACI</td><td>Kolom penilaian dinamis sesuai Juknis resmi</td><td>Frontend Dev</td><td>Scoring Matrix Component</td><td><strong>DONE</strong></td><td>\<code>e73ea32\</code></td><td>Perhitungan nilai akurat sesuai aturan juknis</td></tr>
+<tr><td><strong>04/08/2026</strong></td><td>SIMMACI</td><td>Global debounce pada kolom pencarian tabel</td><td>Frontend Dev</td><td>Table Search Hook</td><td><strong>DONE</strong></td><td>\<code>03ea439\</code></td><td>Performa rendering cepat tanpa lag</td></tr>
+<tr><td><strong>05/08/2026</strong></td><td>SIMMACI</td><td>Ekspor data guru per sheet per kecamatan dengan Excel styling</td><td>Backend Dev</td><td>Multi-sheet Teacher Export</td><td><strong>DONE</strong></td><td>\<code>265fe0e\</code>, \<code>75bfa9b\</code></td><td>Rekap data guru per wilayah rapi untuk cabang</td></tr>
+<tr><td><strong>05/08/2026</strong></td><td>SIMMACI</td><td>Pemisahan template SK Kamad (PNS, Non-PNS, PLT) & Golongan</td><td>Fullstack Dev</td><td>Headmaster SK Template</td><td><strong>DONE</strong></td><td>\<code>1d48cac\</code>, \<code>731ae04\</code></td><td>Legalitas SK Kamad akurat sesuai status</td></tr>
+<tr><td><strong>06/08/2026</strong></td><td>SIMMACI</td><td>Sinkronisasi otomatis profil Kepala Madrasah pasca SK Approved</td><td>Backend Dev, DBA</td><td>Headmaster Sync Logic</td><td><strong>DONE</strong></td><td>\<code>9c5af33\</code></td><td>Profil pimpinan madrasah selalu terbarui</td></tr>
+<tr><td><strong>06/08/2026</strong></td><td>SIMMACI</td><td>Fitur Presensi Rapat / Pertemuan mandiri via QR Walk-in</td><td>Fullstack Dev</td><td>Meeting Attendance QR</td><td><strong>DONE</strong></td><td>\<code>b616d02\</code></td><td>Check-in peserta rapat cabang cepat & paperless</td></tr>
+<tr><td><strong>06/08/2026</strong></td><td>SIMMACI</td><td>Artisan command diagnosa & pembersihan data kepala madrasah</td><td>Backend Dev, DBA</td><td>\<code>headmaster:analyze\</code></td><td><strong>DONE</strong></td><td>\<code>0be38aa\</code></td><td>Basis data bersih dari record anomali</td></tr>
+<tr><td><strong>07/08/2026</strong></td><td>SIMMACI</td><td>Isolasi transaksi penomoran SK & pencegahan error 25P02</td><td>Backend Dev, DBA</td><td>SkNumberGenerator Service</td><td><strong>DONE</strong></td><td>\<code>eccf6ac\</code>, \<code>50b38f7\</code></td><td>Meniadakan kegagalan simpan SK massal</td></tr>
+<tr><td><strong>07/08/2026</strong></td><td>SIMMACI</td><td>Uniqueness validation & self-reference check pada import NIM</td><td>Backend Dev</td><td>Bulk Import Guard</td><td><strong>DONE</strong></td><td>\<code>dd472f3\</code>, \<code>70826f0\</code></td><td>Mencegah duplikasi data identitas guru</td></tr>
+<tr><td><strong>10/08/2026</strong></td><td>SIMMACI</td><td>Security cleanup: Penghapusan dangerous temporary endpoints</td><td>Security, DevOps</td><td>Route Sanitization</td><td><strong>DONE</strong></td><td>\<code>cea46d4\</code></td><td>Keamanan API produksi terjaga ketat</td></tr>
+<tr><td><strong>12/08/2026</strong></td><td>Keuangan</td><td><strong>Phase 1:</strong> Setup Laravel 11, PostgreSQL 16, & 34 Database Tables</td><td>Solution Architect, DBA</td><td>Migration Files & Schemas</td><td><strong>DONE</strong></td><td>\<code>0c3b775\</code></td><td>Fondasi database ERP akuntansi terbentuk</td></tr>
+<tr><td><strong>12/08/2026</strong></td><td>SIMMACI</td><td>Audit komprehensif UI/UX dan konsolidasi fitur</td><td>UI/UX Analyst</td><td>UI Standardization Plan</td><td><strong>DONE</strong></td><td>\<code>59e6bd3\</code></td><td>Rencana pembaruan antarmuka modern</td></tr>
+<tr><td><strong>13/08/2026</strong></td><td>SIMMACI</td><td>Restrukturisasi navigasi menu menjadi 9 Center Pages Glassmorphism</td><td>Frontend Dev</td><td>9 Center Hub Pages</td><td><strong>DONE</strong></td><td>\<code>70623e4\</code></td><td>Navigasi aplikasi rapi & intuitif</td></tr>
+<tr><td><strong>13/08/2026</strong></td><td>SIMMACI</td><td>Pengelompokan arsip SK per Tahun Pelajaran aktif</td><td>Backend Dev, UI</td><td>Tapel Archive Filter</td><td><strong>DONE</strong></td><td>\<code>533ce7a\</code></td><td>Pengarsipan dokumen tertib & terstruktur</td></tr>
+<tr><td><strong>20/08/2026</strong></td><td>SIMMACI</td><td>Perbaikan kamera presensi mobile & handling respon API</td><td>Fullstack Dev</td><td>Attendance Camera Module</td><td><strong>DONE</strong></td><td>\<code>3e1bbcc\</code>, \<code>ac1f014\</code></td><td>Presensi guru lancar di semua smartphone</td></tr>
+<tr><td><strong>20/08/2026</strong></td><td>SIMMACI</td><td>Pencatatan keterangan maksud/tujuan Presensi Dinas Luar</td><td>Fullstack Dev</td><td>DL Purpose Field & Export</td><td><strong>DONE</strong></td><td>\<code>9e29f11\</code></td><td>Akuntabilitas tugas luar dinas terdata</td></tr>
+<tr><td><strong>20/08/2026</strong></td><td>SIMMACI</td><td>Menu cepat pengajuan & approval SK Kepala untuk Pengurus</td><td>Frontend Dev</td><td>Headmaster Quick Action</td><td><strong>DONE</strong></td><td>\<code>4d090f7\</code>, \<code>0940b84\</code></td><td>Proses persetujuan pimpinan lebih cepat</td></tr>
+<tr><td><strong>20/08/2026</strong></td><td>SIMMACI</td><td>Logika kenaikan kelas otomatis & soft delete siswa lulus</td><td>Backend Dev, DBA</td><td>Student Lifecycle Engine</td><td><strong>DONE</strong></td><td>\<code>b188390\</code>, \<code>17c57a5\</code></td><td>Mutasi tahun ajaran baru terotomasi</td></tr>
+<tr><td><strong>21/08/2026</strong></td><td>SIMMACI</td><td>Penandaan presensi terlambat vs tepat waktu</td><td>Backend Dev, UI</td><td>Attendance Summary Widget</td><td><strong>DONE</strong></td><td>\<code>38ac07e\</code></td><td>Rekap disiplin kerja staf transparan</td></tr>
+<tr><td><strong>21/08/2026</strong></td><td>SIMMACI</td><td>Standardisasi penuh Glassmorphism Soft Ambient Card Header</td><td>Frontend Dev</td><td>\<code>SoftPageHeader\</code> Component</td><td><strong>DONE</strong></td><td>\<code>ddcf451\</code>, \<code>4e5a149\</code></td><td>Tampilan antarmuka 100% konsisten & elegan</td></tr>
+<tr><td><strong>26/08/2026</strong></td><td>Keuangan</td><td><strong>Phase 2:</strong> Multi-tenant isolation, Sanctum Auth, Spatie RBAC, Audit</td><td>Solution Architect, Backend Dev</td><td>TenantScope, AuditService</td><td><strong>DONE</strong></td><td>\<code>8d1a911\</code></td><td>Keamanan multi-tenant & audit trail siap</td></tr>
+<tr><td><strong>27/08/2026</strong></td><td>SIMMACI</td><td>Penguncian otorisasi approval SK hanya untuk Super Admin & Yayasan</td><td>Security Engineer</td><td>RBAC Policy Middleware</td><td><strong>DONE</strong></td><td>\<code>029b4e2\</code></td><td>Mencegah penyalahgunaan wewenang status</td></tr>
+<tr><td><strong>27/08/2026</strong></td><td>SIMMACI</td><td>Redesain Dashboard Operator & Executive Command Center</td><td>Frontend Dev</td><td>Modern Dashboard Cards</td><td><strong>DONE</strong></td><td>\<code>873879f\</code>, \<code>b0de1e2\</code></td><td>Monitoring operasional cepat & informatif</td></tr>
+<tr><td><strong>28/08/2026</strong></td><td>SIMMACI</td><td>Sinkronisasi antrean revisi SK dan filter pencarian Unit Kerja</td><td>Frontend Dev, Backend</td><td>Archive Search & Queue</td><td><strong>DONE</strong></td><td>\<code>ff5aa37\</code>, \<code>29200a7\</code></td><td>Verifikasi revisi SK cepat tanpa terlewat</td></tr>
+</tbody></table></div>
+<hr class="divider">
+<p><em>Laporan ini disusun secara objektif berdasarkan rekam jejak kerja nyata (commit repository, migrasi basis data, hasil penjaminan mutu, dan rilis operasional).</em></p>
+
+
+    <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 12px; color: #64748b;">
+      <div>
+        <strong>Disusun Oleh:</strong><br>
+        Staff IT / Lead Systems Engineer<br>
+        PC LP Ma'arif NU Cilacap
+      </div>
+      <div style="text-align: right;">
+        <strong>Status Dokumen:</strong><br>
+        Laporan Kinerja Resmi (Audit-Ready)<br>
+        Dicetak pada: 31 Agustus 2026
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

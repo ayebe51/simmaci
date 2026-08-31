@@ -86,6 +86,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: simmaci-backend:latest
     container_name: simmaci-backend
     restart: unless-stopped
     depends_on:
@@ -152,13 +153,13 @@ services:
 
   # ── Queue Worker (Laravel) ────────────────────────────────
   queue:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: simmaci-backend:latest
     container_name: simmaci-queue
     restart: unless-stopped
     command: ["php", "artisan", "queue:work", "--tries=1", "--timeout=3600", "--sleep=3", "--max-jobs=500"]
     depends_on:
+      backend:
+        condition: service_healthy
       db:
         condition: service_healthy
       redis:
@@ -198,13 +199,13 @@ services:
 
   # ── Scheduler (Laravel) ───────────────────────────────────
   scheduler:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: simmaci-backend:latest
     container_name: simmaci-scheduler
     restart: unless-stopped
     command: ["/bin/sh", "-c", "while true; do php artisan schedule:run --no-interaction; sleep 60; done"]
     depends_on:
+      backend:
+        condition: service_healthy
       db:
         condition: service_healthy
       redis:
@@ -272,6 +273,7 @@ services:
         VITE_API_URL: /api
         VITE_STORAGE_URL: https://simmaci.com/api/minio
         VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+    image: simmaci-frontend:latest
     container_name: simmaci-frontend
     restart: unless-stopped
     depends_on:

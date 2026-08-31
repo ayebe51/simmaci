@@ -54,6 +54,7 @@ export default function AnugerahRegistrationPage() {
     applicant_nuptk: '',
     school_name: '',
     kecamatan: '',
+    contact_phone: '',
     masa_bakti_tahun: '',
     mulai_bertugas: '',
     surat_keterangan_aktif_url: '',
@@ -127,7 +128,7 @@ export default function AnugerahRegistrationPage() {
       } else {
         toast.success('Pendaftaran disimpan sebagai draft.');
       }
-      navigate(`/dashboard/anugerah-registrations/${reg.id}`);
+      navigate(`/dashboard/events/${eventId}`);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Gagal menyimpan pendaftaran');
     } finally {
@@ -140,40 +141,41 @@ export default function AnugerahRegistrationPage() {
   const isGuru = form.category === 'guru';
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12">
+      {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-1.5">
-          <ArrowLeft size={14}/> Kembali
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/events/${eventId}`)}>
+          <ArrowLeft size={16} className="mr-1"/> Kembali ke Event
         </Button>
-        <div>
-          <h1 className="text-xl font-black text-slate-900">Formulir Pendaftaran Anugerah Pendidikan</h1>
-          <p className="text-xs text-slate-500">{event.name}</p>
-        </div>
       </div>
 
+      <div>
+        <h1 className="text-2xl font-black text-slate-800">Pendaftaran Anugerah Pendidikan</h1>
+        <p className="text-sm text-slate-500 mt-1">{event.name} &bull; LP Ma'arif NU Cilacap</p>
+      </div>
+
+      {/* Tabs */}
       <Tabs defaultValue="identitas">
-        <TabsList className="flex-wrap h-auto gap-1">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="identitas">1. Identitas</TabsTrigger>
-          <TabsTrigger value="prestasi">2. Rekap Prestasi</TabsTrigger>
-          <TabsTrigger value="berkas">3. Berkas Dokumen</TabsTrigger>
+          <TabsTrigger value="prestasi">2. Prestasi ({prestasiList.length})</TabsTrigger>
+          <TabsTrigger value="berkas">3. Berkas & Dokumen</TabsTrigger>
         </TabsList>
 
         {/* ─── Tab 1: Identitas ───────────────────────────────── */}
-        <TabsContent value="identitas" className="mt-4">
-          <Card className="border-0 shadow-sm rounded-2xl">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-sm font-bold uppercase text-slate-700">Informasi Umum</CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4">
+        <TabsContent value="identitas" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Data Pendaftar</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-slate-500">Kategori Anugerah *</Label>
+                  <Label className="text-[10px] font-bold uppercase text-slate-500">Kategori Lomba *</Label>
                   <Select value={form.competition_id} onValueChange={v => {
-                    const comp = competitions.find(c => String(c.id) === v);
                     setF('competition_id', v);
+                    const comp = competitions.find(c => String(c.id) === v);
                     if (comp) setF('category', comp.lomba_type === 'guru_berprestasi' ? 'guru' : 'madrasah');
                   }}>
-                    <SelectTrigger><SelectValue placeholder="Pilih kategori..."/></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger>
                     <SelectContent>
                       {competitions.map((c: any) => (
                         <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
@@ -184,7 +186,7 @@ export default function AnugerahRegistrationPage() {
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-bold uppercase text-slate-500">Jenjang *</Label>
                   <Select value={form.jenjang} onValueChange={v => setF('jenjang', v)}>
-                    <SelectTrigger><SelectValue placeholder="Pilih jenjang..."/></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Pilih jenjang..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="MI/SD">MI / SD</SelectItem>
                       <SelectItem value="MTs/SMP">MTs / SMP</SelectItem>
@@ -195,8 +197,10 @@ export default function AnugerahRegistrationPage() {
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-bold uppercase text-slate-500">{isGuru ? 'Nama Guru *' : 'Nama Kepala Madrasah *'}</Label>
-                  <Input value={form.applicant_name} onChange={e => setF('applicant_name', e.target.value)} placeholder="Nama lengkap..." />
+                  <Label className="text-[10px] font-bold uppercase text-slate-500">
+                    {isGuru ? 'Nama Guru Pendaftar *' : 'Nama Kepala Madrasah *'}
+                  </Label>
+                  <Input value={form.applicant_name} onChange={e => setF('applicant_name', e.target.value)} placeholder="Nama lengkap beserta gelar..." />
                 </div>
                 {isGuru && (
                   <div className="space-y-1.5">
@@ -205,14 +209,18 @@ export default function AnugerahRegistrationPage() {
                   </div>
                 )}
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5 sm:col-span-1">
                   <Label className="text-[10px] font-bold uppercase text-slate-500">Nama Madrasah/Sekolah *</Label>
                   <Input value={form.school_name} onChange={e => setF('school_name', e.target.value)} placeholder="MI/MTs/MA..." />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-1">
                   <Label className="text-[10px] font-bold uppercase text-slate-500">Kecamatan</Label>
                   <Input value={form.kecamatan} onChange={e => setF('kecamatan', e.target.value)} placeholder="Kecamatan..." />
+                </div>
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label className="text-[10px] font-bold uppercase text-slate-500">No. HP / WhatsApp *</Label>
+                  <Input value={form.contact_phone} onChange={e => setF('contact_phone', e.target.value)} placeholder="08xxxxxxxxxx" />
                 </div>
               </div>
               {isGuru && (

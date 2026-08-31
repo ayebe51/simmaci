@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter } from 'lucide-react';
+import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter, ExternalLink, FileText, Video, FolderOpen, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const juryApi = {
@@ -276,32 +276,65 @@ export default function JuryScoringPage() {
                 <Card key={p.id} className={`border-0 shadow-sm rounded-2xl transition-all ${isSaved ? 'ring-2 ring-green-300' : alreadyScored ? 'ring-1 ring-blue-200' : ''}`}>
                   <CardHeader className="pb-2 pt-4 px-5">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-bold text-slate-500">#{idx + 1}</span>
                           {rankNum && <span className="text-lg">{getRankEmoji(rankNum)}</span>}
-                          <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                          <h3 className="font-bold text-slate-800 text-lg">
                             {p.name}
                           </h3>
                           {p.gender_category && <Badge variant="outline" className="text-[9px] uppercase">{p.gender_category}</Badge>}
                         </div>
-                        <p className="text-sm text-slate-500">
-                          {p.institution} {p.jenjang && <span className="text-[10px] ml-1 bg-slate-100 px-1.5 rounded">{p.jenjang}</span>}
+                        <p className="text-sm text-slate-500 mt-0.5">
+                          {p.institution} {p.jenjang && <span className="text-[10px] ml-1 bg-slate-100 px-1.5 py-0.5 rounded font-semibold text-slate-600">{p.jenjang}</span>}
                         </p>
-                        {p.video_url && (
-                          <a href={p.video_url} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mt-1 block">
-                            🎬 Lihat Video Kiriman
-                          </a>
-                        )}
-                        {p.documents && Object.keys(p.documents).length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {Object.entries(p.documents).map(([name, url]) => (
-                              <a key={name} href={url as string} target="_blank" rel="noreferrer" className="text-[10px] bg-slate-100 text-blue-600 px-2 py-1 rounded-md border border-slate-200 hover:bg-slate-200 transition-colors">
-                                📄 {name}
+
+                        {/* Berkas & Dokumen Google Drive */}
+                        <div className="mt-3 pt-2.5 border-t border-slate-100">
+                          {p.video_url && (
+                            <div className="mb-2">
+                              <a
+                                href={p.video_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-lg border border-blue-200 transition-colors shadow-xs"
+                              >
+                                <Video size={13} className="text-blue-600" />
+                                <span>🎬 Tonton Video Kiriman</span>
+                                <ExternalLink size={11} className="opacity-60" />
                               </a>
-                            ))}
-                          </div>
-                        )}
+                            </div>
+                          )}
+
+                          {p.documents && Object.keys(p.documents).length > 0 ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
+                                <FolderOpen size={13} className="text-emerald-600" />
+                                <span>Berkas / Link Google Drive Peserta ({Object.keys(p.documents).length}):</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {Object.entries(p.documents).map(([name, url]) => (
+                                  <a
+                                    key={name}
+                                    href={url as string}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 text-xs font-medium rounded-lg border border-slate-200 hover:border-emerald-300 transition-all shadow-xs group"
+                                  >
+                                    <FileText size={12} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                                    <span>{name}</span>
+                                    <ExternalLink size={10} className="text-slate-400 group-hover:text-emerald-600" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          ) : !p.video_url ? (
+                            <div className="inline-flex items-center gap-1.5 text-[11px] text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-md">
+                              <AlertCircle size={12} className="text-amber-500 flex-shrink-0" />
+                              <span>Belum ada tautan berkas / Google Drive yang dilampirkan</span>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {isSaved && <Badge className="bg-green-100 text-green-700 text-[9px]">✓ Tersimpan</Badge>}

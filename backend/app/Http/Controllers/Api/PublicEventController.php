@@ -166,21 +166,35 @@ class PublicEventController extends Controller
         $isGuru = $competition->lomba_type === 'guru_berprestasi';
 
         $data = $request->validate([
-            'category'        => 'required|string|in:guru,madrasah',
-            'jenjang'         => 'required|string|in:MI/SD,MTs/SMP,MA/SMA/SMK',
-            'applicant_name'  => 'required|string|max:255',
-            'applicant_nuptk' => 'nullable|string|max:30',
-            'school_name'     => 'required|string|max:255',
-            'kecamatan'       => 'nullable|string|max:100',
-            'masa_bakti_tahun'=> 'nullable|integer|min:0',
-            'mulai_bertugas'  => 'nullable|date',
-            'contact_phone'   => 'nullable|string|max:30',
+            'category'                        => 'required|string|in:guru,madrasah',
+            'jenjang'                         => 'required|string|in:MI/SD,MTs/SMP,MA/SMA/SMK',
+            'applicant_name'                  => 'required|string|max:255',
+            'applicant_nuptk'                 => 'nullable|string|max:30',
+            'school_name'                     => 'required|string|max:255',
+            'kecamatan'                       => 'nullable|string|max:100',
+            'masa_bakti_tahun'                => 'nullable|integer|min:0',
+            'mulai_bertugas'                  => 'nullable|date',
+            'contact_phone'                   => 'nullable|string|max:30',
+            'surat_keterangan_aktif_url'      => 'nullable|string|max:1000',
+            'sertifikat_pkpnu_url'            => 'nullable|string|max:1000',
+            'surat_rekomendasi_url'           => 'nullable|string|max:1000',
+            'surat_keterangan_integritas_url' => 'nullable|string|max:1000',
+            'bukti_prestasi_url'              => 'nullable|string|max:1000',
+            'esai_reflektif_url'              => 'nullable|string|max:1000',
+            'karya_ilmiah_url'                => 'nullable|string|max:1000',
+            'dokumen_pdca_url'                => 'nullable|string|max:1000',
+            'portofolio_branding_url'         => 'nullable|string|max:1000',
+            'rekap_prestasi_url'              => 'nullable|string|max:1000',
+            'dokumen_admin_url'               => 'nullable|string|max:1000',
         ]);
+
+        $hasDocs = !empty($data['surat_rekomendasi_url']) || !empty($data['esai_reflektif_url']) || !empty($data['bukti_prestasi_url']) || !empty($data['dokumen_pdca_url']);
 
         $registration = AnugerahRegistration::create(array_merge($data, [
             'event_id'       => $event->id,
             'competition_id' => $competition->id,
-            'status'         => 'draft',
+            'status'         => $hasDocs ? 'submitted' : 'draft',
+            'submitted_at'   => $hasDocs ? now() : null,
         ]));
 
         return $this->success([
@@ -190,7 +204,7 @@ class PublicEventController extends Controller
             'category'       => $registration->category,
             'jenjang'        => $registration->jenjang,
             'status'         => $registration->status,
-        ], 'Pendaftaran berhasil dikirim. Silakan lengkapi berkas via SIMMACI. Nomor registrasi: #' . $registration->id, 201);
+        ], 'Pendaftaran berhasil dikirim. Nomor registrasi: #' . $registration->id, 201);
     }
 
     // ── 3. Jury panel ─────────────────────────────────────────────────────────
@@ -272,14 +286,17 @@ class PublicEventController extends Controller
                 'status'      => $r->status,
                 'total_score' => $r->total_score,
                 'documents'   => array_filter([
-                    'Surat Rekomendasi' => $r->surat_rekomendasi_url,
-                    'Esai Reflektif' => $r->esai_reflektif_url,
-                    'Karya Ilmiah / Best Practice' => $r->karya_ilmiah_url,
-                    'Portofolio / Branding' => $r->portofolio_branding_url,
-                    'Dokumen PDCA' => $r->dokumen_pdca_url,
-                    'Rekap Prestasi' => $r->rekap_prestasi_url,
-                    'Bukti Prestasi' => $r->bukti_prestasi_url,
-                    'Dokumen Administratif' => $r->dokumen_admin_url,
+                    'Surat Keterangan Aktif'       => $r->surat_keterangan_aktif_url,
+                    'Sertifikat PKPNU'             => $r->sertifikat_pkpnu_url,
+                    'Surat Rekomendasi'            => $r->surat_rekomendasi_url,
+                    'Surat Keterangan Integritas'  => $r->surat_keterangan_integritas_url,
+                    'Bukti Prestasi / Sertifikat'  => $r->bukti_prestasi_url,
+                    'Esai Reflektif'               => $r->esai_reflektif_url,
+                    'Karya Ilmiah / Publikasi'     => $r->karya_ilmiah_url,
+                    'Dokumen PDCA'                 => $r->dokumen_pdca_url,
+                    'Portofolio Branding'          => $r->portofolio_branding_url,
+                    'Rekap Prestasi'               => $r->rekap_prestasi_url,
+                    'Dokumen Administratif'        => $r->dokumen_admin_url,
                 ]),
                 'video_url'   => null,
                 'result'      => $r->rank || $r->total_score || $r->score_breakdown ? [
@@ -299,6 +316,20 @@ class PublicEventController extends Controller
                 'institution' => $p->institution,
                 'gender_category' => $p->gender_category,
                 'video_url'   => $p->video_url,
+                'documents'   => array_filter([
+                    'Surat Keterangan Aktif'       => $p->surat_keterangan_aktif_url,
+                    'Sertifikat PKPNU'             => $p->sertifikat_pkpnu_url,
+                    'Surat Rekomendasi'            => $p->surat_rekomendasi_url,
+                    'Surat Keterangan Integritas'  => $p->surat_keterangan_integritas_url,
+                    'Bukti Prestasi / Sertifikat'  => $p->bukti_prestasi_url,
+                    'Esai Reflektif'               => $p->esai_reflektif_url,
+                    'Karya Ilmiah / Publikasi'     => $p->karya_ilmiah_url,
+                    'Dokumen PDCA'                 => $p->dokumen_pdca_url,
+                    'Portofolio Branding'          => $p->portofolio_branding_url,
+                    'Rekap Prestasi'               => $p->rekap_prestasi_url,
+                    'Dokumen Administratif'        => $p->dokumen_admin_url,
+                    'Sinopsis / Naskah'            => $p->sinopsis_url,
+                ]),
                 'result'      => $p->result ? [
                     'rank'            => $p->result->rank,
                     'score'           => $p->result->score,

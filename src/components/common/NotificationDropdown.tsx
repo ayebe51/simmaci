@@ -22,17 +22,21 @@ export function NotificationDropdown() {
   const queryClient = useQueryClient()
   const lastNotifIdRef = useRef<number | null>(null)
   
-  // 🔥 REST API QUERIES
+  // 🔥 REST API QUERIES (Optimized for bandwidth - 2 min interval, active tab only)
   const { data: notificationsRes, isLoading } = useQuery({
     queryKey: ['notifications-list'],
     queryFn: () => notificationApi.list(),
-    refetchInterval: 30000 // Poll every 30s
+    staleTime: 60 * 1000,
+    refetchInterval: 120 * 1000, // Poll every 2 minutes
+    refetchIntervalInBackground: false,
   })
 
   const { data: unreadRes } = useQuery({
     queryKey: ['notifications-unread-count'],
     queryFn: () => notificationApi.unreadCount(),
-    refetchInterval: 30000
+    staleTime: 60 * 1000,
+    refetchInterval: 120 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const notifications = Array.isArray(notificationsRes) ? notificationsRes : (notificationsRes?.data || [])

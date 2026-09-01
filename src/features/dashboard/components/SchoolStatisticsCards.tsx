@@ -13,8 +13,8 @@ export function SchoolStatisticsCards() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
     refetchOnWindowFocus: false,
-    retry: 1, // Reduce retry from 2 to 1
-    refetchInterval: 60 * 1000,
+    retry: 2,
+    refetchInterval: 180 * 1000,
     refetchIntervalInBackground: false,
   });
 

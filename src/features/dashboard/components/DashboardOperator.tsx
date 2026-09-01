@@ -38,7 +38,8 @@ export default function DashboardOperator() {
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['school-stats', user?.id],
     queryFn: () => dashboardApi.getSchoolStats(),
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
     refetchIntervalInBackground: false,
   })
 
@@ -50,7 +51,9 @@ export default function DashboardOperator() {
       sort_by: 'created_at',
       sort_dir: 'desc'
     }),
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const recentSks = useMemo(() => {

@@ -12,11 +12,20 @@ export function usePwaUpdate() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(swUrl, r) {
-      // Poll for updates every 60 seconds so long-running sessions catch deploys
       if (r) {
+        // Poll for updates every 10 minutes instead of every 60 seconds to save bandwidth
         setInterval(() => {
-          r.update()
-        }, 60 * 1000)
+          if (navigator.onLine) {
+            r.update().catch(() => {})
+          }
+        }, 10 * 60 * 1000)
+
+        // Check for updates when user returns to the tab
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && navigator.onLine) {
+            r.update().catch(() => {})
+          }
+        })
       }
       console.log(`SW registered: ${swUrl}`)
     },

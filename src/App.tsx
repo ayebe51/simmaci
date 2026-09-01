@@ -1,9 +1,10 @@
-import { lazy, Suspense } from "react"
+import { Suspense } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { MAINTENANCE_MODE } from "@/lib/api"
+import { MAINTENANCE_MODE, API_URL } from "@/lib/api"
 import { Toaster } from "@/components/ui/sonner"
-import { ErrorBoundary } from "./components/ErrorBoundary"
+import { lazyWithRetry } from "./utils/lazyWithRetry"
+import { NetworkStatusBanner } from "./components/common/NetworkStatusBanner"
 import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 import { ChunkErrorBoundary } from "./components/common/ChunkErrorBoundary"
 import { PageTransition } from "./components/common/PageTransition"
@@ -13,148 +14,151 @@ import AppShell from "./components/layout/AppShell"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-const LoginPage = lazy(() => import("./features/auth/LoginPage"))
-const ChangePasswordPage = lazy(() => import("./features/auth/ChangePasswordPage"))
+const LoginPage = lazyWithRetry(() => import("./features/auth/LoginPage"))
+const ChangePasswordPage = lazyWithRetry(() => import("./features/auth/ChangePasswordPage"))
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
-const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"))
+const DashboardPage = lazyWithRetry(() => import("./features/dashboard/DashboardPage"))
 
 // ── SK Management ─────────────────────────────────────────────────────────────
-const SkDashboardPage = lazy(() => import("./features/sk-management/SkDashboardPage"))
-const SkSubmissionPage = lazy(() => import("./features/sk-management/SkSubmissionPage"))
-const MySkPage = lazy(() => import("./features/sk-management/MySkPage"))
-const SkDetailPage = lazy(() => import("./features/sk-management/SkDetailPage"))
-const SkRevisionPage = lazy(() => import("./features/sk-management/SkRevisionPage"))
-const SkRevisionListPage = lazy(() => import("./features/sk-management/SkRevisionListPage"))
-const HeadmasterSubmissionPage = lazy(() => import("./features/sk-management/HeadmasterSubmissionPage"))
-const SkGeneratorPage = lazy(() => import("./features/sk-management/SkGeneratorPage"))
-const SkPrintPage = lazy(() => import("./features/sk-management/SkPrintPage"))
-const SkTemplateManagementPage = lazy(() => import("./features/sk-management/SkTemplateManagementPage"))
+const SkDashboardPage = lazyWithRetry(() => import("./features/sk-management/SkDashboardPage"))
+const SkSubmissionPage = lazyWithRetry(() => import("./features/sk-management/SkSubmissionPage"))
+const MySkPage = lazyWithRetry(() => import("./features/sk-management/MySkPage"))
+const SkDetailPage = lazyWithRetry(() => import("./features/sk-management/SkDetailPage"))
+const SkRevisionPage = lazyWithRetry(() => import("./features/sk-management/SkRevisionPage"))
+const SkRevisionListPage = lazyWithRetry(() => import("./features/sk-management/SkRevisionListPage"))
+const HeadmasterSubmissionPage = lazyWithRetry(() => import("./features/sk-management/HeadmasterSubmissionPage"))
+const SkGeneratorPage = lazyWithRetry(() => import("./features/sk-management/SkGeneratorPage"))
+const SkPrintPage = lazyWithRetry(() => import("./features/sk-management/SkPrintPage"))
+const SkTemplateManagementPage = lazyWithRetry(() => import("./features/sk-management/SkTemplateManagementPage"))
 
 // ── Master Data ───────────────────────────────────────────────────────────────
-const SchoolListPage = lazy(() => import("./features/master-data/SchoolListPage"))
-const SchoolDetailPage = lazy(() => import("./features/master-data/SchoolDetailPage"))
-const TeacherListPage = lazy(() => import("./features/master-data/TeacherListPage"))
-const StudentListPage = lazy(() => import("./features/master-data/StudentListPage"))
-const DataAuditPage = lazy(() => import("@/features/master-data/DataAuditPage"))
-const ActivityLogPage = lazy(() => import("@/features/master-data/ActivityLogPage"))
+const SchoolListPage = lazyWithRetry(() => import("./features/master-data/SchoolListPage"))
+const SchoolDetailPage = lazyWithRetry(() => import("./features/master-data/SchoolDetailPage"))
+const TeacherListPage = lazyWithRetry(() => import("./features/master-data/TeacherListPage"))
+const StudentListPage = lazyWithRetry(() => import("./features/master-data/StudentListPage"))
+const DataAuditPage = lazyWithRetry(() => import("@/features/master-data/DataAuditPage"))
+const ActivityLogPage = lazyWithRetry(() => import("@/features/master-data/ActivityLogPage"))
 
 // ── Student Statistics ────────────────────────────────────────────────────────
-const StudentStatisticsPage = lazy(() => import("./features/student-statistics/StudentStatisticsPage"))
+const StudentStatisticsPage = lazyWithRetry(() => import("./features/student-statistics/StudentStatisticsPage"))
 
 // ── Users ─────────────────────────────────────────────────────────────────────
-const UserListPage = lazy(() => import("./features/users/UserListPage"))
+const UserListPage = lazyWithRetry(() => import("./features/users/UserListPage"))
 
 // ── Schools ───────────────────────────────────────────────────────────────────
-const SchoolProfilePage = lazy(() => import("./features/schools/SchoolProfilePage"))
+const SchoolProfilePage = lazyWithRetry(() => import("./features/schools/SchoolProfilePage"))
 
 // ── Settings & Monitoring ─────────────────────────────────────────────────────
-const SettingsPage = lazy(() => import("./features/settings/SettingsPage"))
-const HeadmasterExpiryPage = lazy(() => import("./features/monitoring/HeadmasterExpiryPage"))
+const SettingsPage = lazyWithRetry(() => import("./features/settings/SettingsPage"))
+const HeadmasterExpiryPage = lazyWithRetry(() => import("./features/monitoring/HeadmasterExpiryPage"))
 
 // ── Reports ───────────────────────────────────────────────────────────────────
-const ReportPage = lazy(() => import("./features/reports/ReportPage"))
-const SkReportPageSimple = lazy(() => import("./features/reports/SkReportPageSimple"))
-const SkReportGroupedPage = lazy(() => import("./features/reports/SkReportGroupedPage"))
+const ReportPage = lazyWithRetry(() => import("./features/reports/ReportPage"))
+const SkReportPageSimple = lazyWithRetry(() => import("./features/reports/SkReportPageSimple"))
+const SkReportGroupedPage = lazyWithRetry(() => import("./features/reports/SkReportGroupedPage"))
 
 // ── KTA ───────────────────────────────────────────────────────────────────────
-const KtaGeneratorPage = lazy(() => import("./features/kta/KtaGeneratorPage"))
-const StudentCardPage = lazy(() => import("./features/kta/StudentCardPage"))
+const KtaGeneratorPage = lazyWithRetry(() => import("./features/kta/KtaGeneratorPage"))
+const StudentCardPage = lazyWithRetry(() => import("./features/kta/StudentCardPage"))
 
 // ── Events ────────────────────────────────────────────────────────────────────
-const EventsPage = lazy(() => import("./features/events/EventsPage"))
-const CreateEventPage = lazy(() => import("./features/events/CreateEventPage"))
-const EventDetailPage = lazy(() => import("./features/events/EventDetailPage"))
-const CompetitionDetailPage = lazy(() => import("./features/events/CompetitionDetailPage"))
-const AnugerahRegistrationPage = lazy(() => import("./features/events/AnugerahRegistrationPage"))
-const PublicEventRegistrationPage = lazy(() => import("./features/events/public/PublicEventRegistrationPage"))
-const JuryScoringPage = lazy(() => import("./features/events/public/JuryScoringPage"))
-const PublicScoreboardPage = lazy(() => import("./features/events/public/PublicScoreboardPage"))
+const EventsPage = lazyWithRetry(() => import("./features/events/EventsPage"))
+const CreateEventPage = lazyWithRetry(() => import("./features/events/CreateEventPage"))
+const EventDetailPage = lazyWithRetry(() => import("./features/events/EventDetailPage"))
+const CompetitionDetailPage = lazyWithRetry(() => import("./features/events/CompetitionDetailPage"))
+const AnugerahRegistrationPage = lazyWithRetry(() => import("./features/events/AnugerahRegistrationPage"))
+const PublicEventRegistrationPage = lazyWithRetry(() => import("./features/events/public/PublicEventRegistrationPage"))
+const JuryScoringPage = lazyWithRetry(() => import("./features/events/public/JuryScoringPage"))
+const PublicScoreboardPage = lazyWithRetry(() => import("./features/events/public/PublicScoreboardPage"))
 
 // ── Approval ──────────────────────────────────────────────────────────────────
-const YayasanApprovalPage = lazy(() => import("./features/approval/YayasanApprovalPage"))
+const YayasanApprovalPage = lazyWithRetry(() => import("./features/approval/YayasanApprovalPage"))
 
 // ── Verification (public) ─────────────────────────────────────────────────────
-const PublicVerificationPage = lazy(() => import("./features/verification/PublicVerificationPage"))
-const VerifyTeacherPage = lazy(() => import("./features/verification/VerifyTeacherPage"))
-const VerifyStudentPage = lazy(() => import("./features/verification/VerifyStudentPage"))
-const VerifySkPage = lazy(() => import("./features/verification/VerifySkPage"))
+const PublicVerificationPage = lazyWithRetry(() => import("./features/verification/PublicVerificationPage"))
+const VerifyTeacherPage = lazyWithRetry(() => import("./features/verification/VerifyTeacherPage"))
+const VerifyStudentPage = lazyWithRetry(() => import("./features/verification/VerifyStudentPage"))
+const VerifySkPage = lazyWithRetry(() => import("./features/verification/VerifySkPage"))
 
 // ── SDM / NUPTK ───────────────────────────────────────────────────────────────
-const PengajuanRekomendasiKepalaPage = lazy(() => import("./features/sdm/PengajuanRekomendasiKepalaPage").then(m => ({ default: m.PengajuanRekomendasiKepalaPage })))
-const HeadmasterRecommendationDetailPage = lazy(() => import("./features/sdm/HeadmasterRecommendationDetailPage").then(m => ({ default: m.HeadmasterRecommendationDetailPage })))
-
+const PengajuanRekomendasiKepalaPage = lazyWithRetry(() => import("./features/sdm/PengajuanRekomendasiKepalaPage").then(m => ({ default: m.PengajuanRekomendasiKepalaPage })))
+const HeadmasterRecommendationDetailPage = lazyWithRetry(() => import("./features/sdm/HeadmasterRecommendationDetailPage").then(m => ({ default: m.HeadmasterRecommendationDetailPage })))
 
 // ── Attendance ────────────────────────────────────────────────────────────────
-const TeacherAttendancePage = lazy(() => import("./features/attendance/TeacherAttendancePage"))
-const StudentAttendancePage = lazy(() => import("./features/attendance/StudentAttendancePage"))
-const StudentAttendanceReportPage = lazy(() => import("./features/attendance/StudentAttendanceReportPage"))
-const SubjectsPage = lazy(() => import("./features/attendance/SubjectsPage"))
-const ClassesPage = lazy(() => import("./features/attendance/ClassesPage"))
-const LessonSchedulePage = lazy(() => import("./features/attendance/LessonSchedulePage"))
-const AttendanceSettingsPage = lazy(() => import("./features/attendance/AttendanceSettingsPage"))
-const PublicScannerPage = lazy(() => import("./features/attendance/PublicScannerPage"))
+const TeacherAttendancePage = lazyWithRetry(() => import("./features/attendance/TeacherAttendancePage"))
+const StudentAttendancePage = lazyWithRetry(() => import("./features/attendance/StudentAttendancePage"))
+const StudentAttendanceReportPage = lazyWithRetry(() => import("./features/attendance/StudentAttendanceReportPage"))
+const SubjectsPage = lazyWithRetry(() => import("./features/attendance/SubjectsPage"))
+const ClassesPage = lazyWithRetry(() => import("./features/attendance/ClassesPage"))
+const LessonSchedulePage = lazyWithRetry(() => import("./features/attendance/LessonSchedulePage"))
+const AttendanceSettingsPage = lazyWithRetry(() => import("./features/attendance/AttendanceSettingsPage"))
+const PublicScannerPage = lazyWithRetry(() => import("./features/attendance/PublicScannerPage"))
 
 // ── Meetings ──────────────────────────────────────────────────────────────────
-const MeetingListPage = lazy(() => import("./features/meetings/pages/MeetingListPage"))
-const MeetingCreatePage = lazy(() => import("./features/meetings/pages/MeetingCreatePage"))
-const MeetingEditPage = lazy(() => import("./features/meetings/pages/MeetingEditPage"))
-const MeetingDetailPage = lazy(() => import("./features/meetings/MeetingDetailPage").then(m => ({ default: m.MeetingDetailPage })))
-const MeetingCheckInPage = lazy(() => import("./features/meetings/pages/MeetingCheckInPage"))
-const MeetingWalkInPage = lazy(() => import("./features/meetings/pages/MeetingWalkInPage"))
+const MeetingListPage = lazyWithRetry(() => import("./features/meetings/pages/MeetingListPage"))
+const MeetingCreatePage = lazyWithRetry(() => import("./features/meetings/pages/MeetingCreatePage"))
+const MeetingEditPage = lazyWithRetry(() => import("./features/meetings/pages/MeetingEditPage"))
+const MeetingDetailPage = lazyWithRetry(() => import("./features/meetings/MeetingDetailPage").then(m => ({ default: m.MeetingDetailPage })))
+const MeetingCheckInPage = lazyWithRetry(() => import("./features/meetings/pages/MeetingCheckInPage"))
+const MeetingWalkInPage = lazyWithRetry(() => import("./features/meetings/pages/MeetingWalkInPage"))
 
 // ── Staff ──────────────────────────────────────────────────────────────────
-const StaffPage = lazy(() => import("./features/staff/StaffPage"))
-const StaffAttendanceReportPage = lazy(() => import("./features/staff/StaffAttendanceReportPage"))
-const StaffAttendanceSettingsPage = lazy(() => import("./features/staff/StaffAttendanceSettingsPage"))
+const StaffPage = lazyWithRetry(() => import("./features/staff/StaffPage"))
+const StaffAttendanceReportPage = lazyWithRetry(() => import("./features/staff/StaffAttendanceReportPage"))
+const StaffAttendanceSettingsPage = lazyWithRetry(() => import("./features/staff/StaffAttendanceSettingsPage"))
 
 // ── WA Blast ──────────────────────────────────────────────────────────────────
-const WaBlastListPage = lazy(() => import("./features/wa-blast/WaBlastListPage"))
-const WaBlastCreatePage = lazy(() => import("./features/wa-blast/WaBlastCreatePage"))
-const WaBlastDetailPage = lazy(() => import("./features/wa-blast/WaBlastDetailPage"))
-const WaBlastTemplatePage = lazy(() => import("./features/wa-blast/WaBlastTemplatePage"))
-const WaBlastConfigPage = lazy(() => import("./features/wa-blast/pages/WaBlastConfigPage").then(m => ({ default: m.WaBlastConfigPage })))
+const WaBlastListPage = lazyWithRetry(() => import("./features/wa-blast/WaBlastListPage"))
+const WaBlastCreatePage = lazyWithRetry(() => import("./features/wa-blast/WaBlastCreatePage"))
+const WaBlastDetailPage = lazyWithRetry(() => import("./features/wa-blast/WaBlastDetailPage"))
+const WaBlastTemplatePage = lazyWithRetry(() => import("./features/wa-blast/WaBlastTemplatePage"))
+const WaBlastConfigPage = lazyWithRetry(() => import("./features/wa-blast/pages/WaBlastConfigPage").then(m => ({ default: m.WaBlastConfigPage })))
 
 // ── Centralized Center Pages (Tab Wrappers) ──────────────────────────────────
-const SkCenterPage = lazy(() => import("./features/sk-management/SkCenterPage"))
-const SkGeneratorCenterPage = lazy(() => import("./features/sk-management/SkGeneratorCenterPage"))
-const AttendanceCenterPage = lazy(() => import("./features/attendance/AttendanceCenterPage"))
-const AcademicConfigPage = lazy(() => import("./features/attendance/AcademicConfigPage"))
-const EventCenterPage = lazy(() => import("./features/events/EventCenterPage"))
-const WaCenterPage = lazy(() => import("./features/wa-blast/WaCenterPage"))
-const CardCenterPage = lazy(() => import("./features/kta/CardCenterPage"))
-const AuditCenterPage = lazy(() => import("./features/master-data/AuditCenterPage"))
-const StudentCenterPage = lazy(() => import("./features/master-data/StudentCenterPage"))
+const SkCenterPage = lazyWithRetry(() => import("./features/sk-management/SkCenterPage"))
+const SkGeneratorCenterPage = lazyWithRetry(() => import("./features/sk-management/SkGeneratorCenterPage"))
+const AttendanceCenterPage = lazyWithRetry(() => import("./features/attendance/AttendanceCenterPage"))
+const AcademicConfigPage = lazyWithRetry(() => import("./features/attendance/AcademicConfigPage"))
+const EventCenterPage = lazyWithRetry(() => import("./features/events/EventCenterPage"))
+const WaCenterPage = lazyWithRetry(() => import("./features/wa-blast/WaCenterPage"))
+const CardCenterPage = lazyWithRetry(() => import("./features/kta/CardCenterPage"))
+const AuditCenterPage = lazyWithRetry(() => import("./features/master-data/AuditCenterPage"))
+const StudentCenterPage = lazyWithRetry(() => import("./features/master-data/StudentCenterPage"))
 
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000,       // 30 seconds — serve from cache without background refetch
-      gcTime: 5 * 60 * 1000,      // 5 minutes — keep inactive data for back-navigation
-      refetchOnWindowFocus: false,
+      staleTime: 2 * 60 * 1000,       // 2 minutes — serve from cache without excessive background refetches
+      gcTime: 15 * 60 * 1000,         // 15 minutes — keep inactive data for smooth back/forward navigation
+      refetchOnWindowFocus: false,    // Don't refetch on window focus (saves mobile data/bandwidth)
+      refetchOnReconnect: true,       // Auto-refetch when network is restored
+      retry: 3,                       // Retry 3 times on flaky/slow connections
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff (1s, 2s, 4s, 8s...)
+      networkMode: 'offlineFirst',    // Try fetching and fallback gracefully to cache even if connection is unstable
+    },
+    mutations: {
       retry: 1,
+      networkMode: 'offlineFirst',
     },
   },
 })
 
-// Keepalive ping — prevents Traefik from dropping idle connections to backend
-// Pings /health every 4 minutes so the connection never goes fully idle
+// Keepalive warmup ping — keeps PHP-FPM workers and DB persistent connection warm
 if (typeof window !== 'undefined') {
   const PING_INTERVAL = 4 * 60 * 1000 // 4 minutes
-  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace('/api', '')
   setInterval(() => {
-    fetch(`${API_BASE}/health`, { method: 'GET', cache: 'no-store' }).catch(() => {})
+    fetch(`${API_URL}/warmup`, { method: 'GET', cache: 'no-store' }).catch(() => {})
   }, PING_INTERVAL)
 }
-
-
 
 export default function App() {
   usePwaUpdate()
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <NetworkStatusBanner />
         {MAINTENANCE_MODE && (
           <div className="bg-red-600 text-white p-3 text-center font-bold sticky top-0 z-[9999] shadow-md flex items-center justify-center gap-2 animate-pulse">
             <span>🚧</span>

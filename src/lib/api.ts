@@ -58,7 +58,8 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// ── Response Interceptor: Handle 401 ──
+// ── Response Interceptor: Handle 401 & Auto-Retry for GET Requests ──
+const MAX_GET_RETRIES = 2;
 
 apiClient.interceptors.response.use(
   (response) => {
@@ -76,7 +77,8 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
+    const config = error?.config;
     if (error.isMaintenance) {
       import('sonner').then(({ toast }) => {
         toast.error("⚠️ MAINTENANCE: " + error.message, { id: 'maintenance', duration: 4000 });
@@ -88,7 +90,31 @@ apiClient.interceptors.response.use(
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       window.location.href = '/login';
+      return Promise.reject(error);
     }
+
+    // Auto-retry for idempotent GET requests on network glitch / gateway timeout
+    const isGet = config?.method?.toUpperCase() === 'GET';
+    const isNetworkOrTimeout =
+      !error.response ||
+      error.code === 'ECONNABORTED' ||
+      error.code === 'ERR_NETWORK' ||
+      error.code === 'ETIMEDOUT' ||
+      [502, 503, 504].includes(error.response?.status);
+
+    if (config && isGet && isNetworkOrTimeout) {
+      config.__retryCount = config.__retryCount || 0;
+      if (config.__retryCount < MAX_GET_RETRIES) {
+        config.__retryCount += 1;
+        const backoffDelay = Math.min(1000 * Math.pow(2, config.__retryCount - 1), 4000);
+        console.warn(
+          `[apiClient] Request GET ${config.url} gagal (${error.message || error.code}). Mencoba ulang (${config.__retryCount}/${MAX_GET_RETRIES}) dalam ${backoffDelay}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+        return apiClient(config);
+      }
+    }
+
     return Promise.reject(error);
   }
 );

@@ -49,25 +49,28 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<string>("sk-governance")
   const operatorSchool = user?.role === "operator" ? user?.unit : undefined
 
-  // 🔥 REST API QUERIES
+  // 🔥 REST API QUERIES (Optimized: 3 min interval, 1 min staleTime)
   const { data: statsData, isLoading: isLoadingStats } = useQuery({
     queryKey: ['dashboard-stats', operatorSchool],
     queryFn: () => user?.role === 'operator' ? dashboardApi.getSchoolStats() : dashboardApi.getStats(),
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
     refetchIntervalInBackground: false,
   })
 
   const { data: skStats, isLoading: isLoadingSkStats } = useQuery({
     queryKey: ['sk-stats', operatorSchool],
     queryFn: () => dashboardApi.getSkStatistics(operatorSchool),
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
     refetchIntervalInBackground: false,
   })
 
   const { data: skTrend, isLoading: isLoadingSkTrend } = useQuery({
     queryKey: ['sk-trend', operatorSchool],
     queryFn: () => dashboardApi.getSkTrend(6, operatorSchool),
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
     refetchIntervalInBackground: false,
   })
 
@@ -75,7 +78,8 @@ export default function DashboardPage() {
     queryKey: ['dashboard-charts'],
     queryFn: () => dashboardApi.getCharts(),
     enabled: !user || user.role !== 'operator',
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
     refetchIntervalInBackground: false,
   })
 
@@ -84,7 +88,9 @@ export default function DashboardPage() {
     queryKey: ['headmasters-all', 'pending'],
     queryFn: () => headmasterApi.list({ per_page: 50 }),
     enabled: user && user.role !== 'operator',
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 180 * 1000,
+    refetchIntervalInBackground: false,
   })
 
   const pendingHeadmasters = Array.isArray(headmastersData) 

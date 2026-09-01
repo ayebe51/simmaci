@@ -52,13 +52,9 @@ export default defineConfig({
         categories: ['education', 'productivity'],
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         clientsClaim: true,
-        // skipWaiting intentionally omitted — with registerType: 'prompt', the new SW
-        // must wait in the "installed" state until the user confirms the reload.
-        // Setting skipWaiting: true here would activate the SW immediately, making
-        // updateServiceWorker(true) a no-op and breaking the "Muat Ulang" button.
-        navigateFallbackDenylist: [/^\/.*\.xlsx$/],
+        navigateFallbackDenylist: [/^\/.*\.xlsx$/, /^\/api\/.*$/],
         runtimeCaching: [
           {
             // Cache public attendance API responses for offline resilience
@@ -68,6 +64,25 @@ export default defineConfig({
               cacheName: 'public-attendance-api',
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 }, // 1 hour
               networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Cache school autocomplete and public lookup data with NetworkFirst fallback
+            urlPattern: /\/api\/(schools\/autocomplete|verify\/.*)/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'reference-data-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 }, // 24 hours
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Cache images and static assets for quick rendering
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico|woff|woff2)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-assets-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 }, // 30 days
             },
           },
         ],

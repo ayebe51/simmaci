@@ -79,6 +79,16 @@ class School extends Model
         return $this->hasMany(SkArchive::class);
     }
 
+    public function ppdbPeriods()
+    {
+        return $this->hasMany(PpdbPeriod::class);
+    }
+
+    public function ppdbRegistrations()
+    {
+        return $this->hasMany(PpdbRegistration::class);
+    }
+
     // ── Scopes ──
 
     public function scopeByKecamatan($query, string $kecamatan)

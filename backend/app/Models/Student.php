@@ -37,6 +37,11 @@ class Student extends Model
         return $this->belongsTo(School::class);
     }
 
+    public function ppdbRegistration()
+    {
+        return $this->hasOne(PpdbRegistration::class);
+    }
+
     // ── Scopes ──
 
     public function scopeActive($query)

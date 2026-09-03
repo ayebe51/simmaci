@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'gowa' => [
+        'internal_url' => env('GOWA_INTERNAL_URL'),
+    ],
+
 ];

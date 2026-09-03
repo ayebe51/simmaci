@@ -36,7 +36,7 @@ class FileUploadController extends Controller
         }
 
         $file = $request->file('file');
-        $disk = $request->disk ?? (env('AWS_ACCESS_KEY_ID') ? 's3' : 'public');
+        $disk = $request->disk ?? (config('filesystems.disks.s3.key') ? 's3' : 'public');
         $folder = $request->folder ?? 'uploads';
 
         $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
@@ -78,7 +78,7 @@ class FileUploadController extends Controller
     {
         $request->validate(['path' => 'required|string', 'disk' => 'nullable|string']);
         
-        $disk = $request->disk ?? (env('AWS_ACCESS_KEY_ID') ? 's3' : 'public');
+        $disk = $request->disk ?? (config('filesystems.disks.s3.key') ? 's3' : 'public');
         
         if (Storage::disk($disk)->exists($request->path)) {
             Storage::disk($disk)->delete($request->path);
@@ -119,7 +119,7 @@ class FileUploadController extends Controller
         }
         
         // Determine disk
-        $disk = $request->query('disk', env('AWS_ACCESS_KEY_ID') ? 's3' : 'public');
+        $disk = $request->query('disk', config('filesystems.disks.s3.key') ? 's3' : 'public');
         
         // Check if file exists
         if (!Storage::disk($disk)->exists($path)) {

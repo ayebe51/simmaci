@@ -1,7 +1,15 @@
 node_modules
 dist
+# Environment configuration
 .env
-.env*.local
+.env.*
+!.env.example
+
+# Backend environment files
+backend/.env
+backend/.env.*
+!backend/.env.example
+
 .vercel
 
 # Laravel specific
@@ -10,7 +18,6 @@ backend/storage/framework/cache/data/*
 backend/storage/framework/views/*.php
 backend/storage/logs/*.log
 backend/vendor
-backend/.env
 
 # Temp/Misc
 *.xlsx

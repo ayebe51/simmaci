@@ -66,7 +66,7 @@ class GoWaGatewayService
      */
     private function getApiUrl(WaBlastConfig $config): string
     {
-        return env('GOWA_INTERNAL_URL') ?: $config->api_url;
+        return config('services.gowa.internal_url') ?: $config->api_url;
     }
 
     /**

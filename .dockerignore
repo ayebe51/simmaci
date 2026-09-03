@@ -1,0 +1,30 @@
+# Git metadata
+.git
+.git/**
+.gitignore
+.dockerignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Node dependencies and build artifacts
+node_modules
+dist
+
+# Temporary & remediation directories
+security-remediation/
+scratch/
+backup/
+
+# Sensitive & backup files
+*.bak
+*.backup
+*.pem
+*.key
+*.log

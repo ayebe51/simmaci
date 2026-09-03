@@ -96,7 +96,7 @@ class MeetingQrService
      */
     private function buildFrontendUrl(string $backendSignedUrl): string
     {
-        $frontendBase = rtrim(config('app.frontend_url', env('FRONTEND_URL', '')), '/');
+        $frontendBase = rtrim(config('app.frontend_url', ''), '/');
 
         // If FRONTEND_URL not set, return as-is
         if (empty($frontendBase)) {
@@ -126,7 +126,7 @@ class MeetingQrService
     public function validateSignature(string $url): bool
     {
         try {
-            $frontendBase = rtrim(config('app.frontend_url', env('FRONTEND_URL', '')), '/');
+            $frontendBase = rtrim(config('app.frontend_url', ''), '/');
             $backendBase  = rtrim(config('app.url'), '/');
 
             $originalUrl = $url;

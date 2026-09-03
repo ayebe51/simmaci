@@ -49,6 +49,9 @@ use App\Http\Controllers\Api\CompetitionController;
 use App\Http\Controllers\Api\AnugerahRegistrationController;
 use App\Http\Controllers\Api\PublicEventController;
 use App\Http\Controllers\Api\StudentStatisticsController;
+use App\Http\Controllers\Api\PublicPpdbController;
+use App\Http\Controllers\Api\PpdbPeriodController;
+use App\Http\Controllers\Api\PpdbManagementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -76,11 +79,12 @@ Route::get('verify/sk/{nomor}', [SkVerificationController::class, 'verifyBySk'])
 // ── Public Teacher Verification ──
 Route::get('verify/teacher/{nim}', [TeacherVerificationController::class, 'verifyByNim']);
 
-// ── PPDB Public Registration ──
+// ── PPDB Public Portal ──
 Route::prefix('ppdb')->group(function () {
-    Route::get('schools',          [SchoolController::class, 'publicIndex']);
-    Route::post('register',        [StudentController::class, 'ppdbRegister']);
-    Route::post('upload-document', [FileUploadController::class, 'upload']);
+    Route::get('schools',          [PublicPpdbController::class, 'getSchools']);
+    Route::get('schools/{id}',     [PublicPpdbController::class, 'getSchoolDetail']);
+    Route::post('register',        [PublicPpdbController::class, 'register']);
+    Route::get('status',           [PublicPpdbController::class, 'checkStatus']);
 });
 
 // ── Public Routes ──
@@ -374,23 +378,37 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('wa-blast-config', [WaBlastConfigController::class, 'store']);
             Route::post('wa-blast-config/test', [WaBlastConfigController::class, 'testConnection']);
         });
-
-        // Reports
-        Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
-        Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
-
-        // ── Meeting Minutes (Notulensi) ──
-        Route::get('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
-        Route::post('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'store']);
-        Route::put('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'update']);
-        Route::delete('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'destroy']);
-
-        // ── Meeting Photos (Foto Kegiatan) ──
-        Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
-        Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
-        Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
-        Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
     });
+
+    // Reports
+    Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
+    Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
+
+    // ── Meeting Minutes (Notulensi) ──
+    Route::get('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
+    Route::post('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'store']);
+    Route::put('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'update']);
+    Route::delete('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'destroy']);
+
+    // ── Meeting Photos (Foto Kegiatan) ──
+    Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
+    Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
+    Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
+    Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
+
+    // ── PPDB Management & Auto-Sync (super_admin, admin_yayasan, operator) ──
+    Route::middleware('role:super_admin,admin_yayasan,operator,admin')
+        ->prefix('ppdb')
+        ->group(function () {
+            Route::get('stats',                          [PpdbManagementController::class, 'stats']);
+            Route::get('export',                         [PpdbManagementController::class, 'export']);
+            Route::apiResource('periods',                PpdbPeriodController::class);
+            Route::get('registrations',                  [PpdbManagementController::class, 'index']);
+            Route::get('registrations/{id}',             [PpdbManagementController::class, 'show']);
+            Route::post('registrations/{id}/verify',     [PpdbManagementController::class, 'verify']);
+            Route::post('registrations/{id}/score',      [PpdbManagementController::class, 'score']);
+            Route::post('registrations/{id}/reregister', [PpdbManagementController::class, 'reregister']);
+        });
 
     // ── Student Statistics per Jenjang ──
     Route::middleware('role:super_admin,admin_yayasan,operator')

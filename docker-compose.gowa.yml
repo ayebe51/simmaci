@@ -17,7 +17,7 @@ services:
     command:
       - "rest"
       - "--port=3000"
-      - "--basic-auth=admin:secret123"
+      - "--basic-auth=${GOWA_BASIC_AUTH:?GOWA_BASIC_AUTH is required}"
     networks:
       - simmaci-network
       - default

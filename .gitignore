@@ -24,3 +24,4 @@ reflect.php
 test_env.php
 check-headers.cjs
 security-remediation/
+scratch/

@@ -380,21 +380,24 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // Reports
-    Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
-    Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
+    // ── Meeting Reports, Minutes, and Photos (super_admin + admin_yayasan only) ──
+    Route::middleware('role:super_admin,admin_yayasan')->group(function () {
+        // Reports
+        Route::get('meetings/{meeting}/report/pdf', [MeetingReportController::class, 'pdf']);
+        Route::get('meetings/{meeting}/report/excel', [MeetingReportController::class, 'excel']);
 
-    // ── Meeting Minutes (Notulensi) ──
-    Route::get('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
-    Route::post('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'store']);
-    Route::put('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'update']);
-    Route::delete('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'destroy']);
+        // ── Meeting Minutes (Notulensi) ──
+        Route::get('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'show']);
+        Route::post('meetings/{meeting}/minutes', [MeetingMinutesController::class, 'store']);
+        Route::put('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'update']);
+        Route::delete('meetings/{meeting}/minutes/{minutes}', [MeetingMinutesController::class, 'destroy']);
 
-    // ── Meeting Photos (Foto Kegiatan) ──
-    Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
-    Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
-    Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
-    Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
+        // ── Meeting Photos (Foto Kegiatan) ──
+        Route::get('meetings/{meeting}/photos', [MeetingPhotoController::class, 'index']);
+        Route::post('meetings/{meeting}/photos', [MeetingPhotoController::class, 'store']);
+        Route::get('meetings/{meeting}/photos/download', [MeetingPhotoController::class, 'download']);
+        Route::delete('meetings/{meeting}/photos/{photo}', [MeetingPhotoController::class, 'destroy']);
+    });
 
     // ── PPDB Management & Auto-Sync (super_admin, admin_yayasan, operator) ──
     Route::middleware('role:super_admin,admin_yayasan,operator,admin')

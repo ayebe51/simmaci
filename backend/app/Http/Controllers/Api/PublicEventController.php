@@ -156,7 +156,7 @@ class PublicEventController extends Controller
         $participant = CompetitionParticipant::create(array_merge($data, [
             'competition_id'      => $competition->id,
             'registration_status' => 'pending',
-            'video_status'        => $data['video_url'] ? 'submitted' : 'pending',
+            'video_status'        => !empty($data['video_url']) ? 'submitted' : 'pending',
         ]));
 
         return $this->success([

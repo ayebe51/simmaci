@@ -135,6 +135,12 @@ export default function PublicEventRegistrationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected || !eventId) return;
+
+    if (!form.jenjang) {
+      toast.error('Jenjang wajib dipilih.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const isAnugerah = IS_ANUGERAH.includes(selected.lomba_type);
@@ -165,14 +171,16 @@ export default function PublicEventRegistrationPage() {
           dokumen_admin_url:              form.dokumen_admin_url || undefined,
         };
       } else {
+        const validMembers = isBeregu ? members.filter(m => m.name.trim()) : undefined;
         payload = {
           ...payload,
           name: form.name,
+          jenjang: form.jenjang,
           institution: form.institution,
           gender_category: form.gender_category || undefined,
-          group_name: form.group_name || undefined,
-          member_count: isBeregu ? members.length : undefined,
-          members: isBeregu ? members.filter(m => m.name.trim()) : undefined,
+          group_name: form.group_name || (isBeregu ? form.name : undefined),
+          member_count: isBeregu ? (validMembers?.length || 1) : undefined,
+          members: validMembers,
           contact_person: form.contact_person || undefined,
           contact_phone: form.contact_phone || undefined,
           video_url: form.video_url || undefined,
@@ -183,7 +191,11 @@ export default function PublicEventRegistrationPage() {
       setResult(res.data ?? res);
       setStep('sukses');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Pendaftaran gagal. Periksa kembali data Anda.');
+      const errData = err.response?.data;
+      const validationMsg = errData?.errors
+        ? Object.values(errData.errors).flat().join(', ')
+        : null;
+      toast.error(validationMsg || errData?.message || 'Pendaftaran gagal. Periksa kembali data Anda.');
     } finally {
       setSubmitting(false);
     }

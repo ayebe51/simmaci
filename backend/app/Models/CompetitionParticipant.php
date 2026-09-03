@@ -40,6 +40,10 @@ class CompetitionParticipant extends Model
         'registration_status',
     ];
 
+    protected $casts = [
+        'members' => 'array',
+    ];
+
     public function competition()
     {
         return $this->belongsTo(Competition::class);

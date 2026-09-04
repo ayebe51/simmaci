@@ -13,6 +13,12 @@ class DatabaseSeeder extends Seeder
             SchoolSeeder::class,
         ]);
 
+        if (app()->environment('local')) {
+            $this->call([
+                LocalPpdbTestSeeder::class,
+            ]);
+        }
+
         // 1. Super Admin
         User::updateOrCreate(
             ['email' => 'admin@simmaci.com'],

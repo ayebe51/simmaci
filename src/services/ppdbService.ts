@@ -1,16 +1,23 @@
 import { apiClient } from '@/lib/api';
 import { PpdbPeriod, PpdbRegistration, PpdbStats } from '@/types/ppdb';
 
+const unwrap = <T = any>(res: any): T => {
+  if (res && typeof res === 'object' && res.data !== undefined) {
+    return res.data as T;
+  }
+  return res as T;
+};
+
 export const ppdbService = {
   // ── Public Endpoints ──
   getPublicSchools: async (params?: { jenjang?: string; kecamatan?: string; search?: string; page?: number; per_page?: number }) => {
     const { data } = await apiClient.get('/ppdb/schools', { params });
-    return data;
+    return unwrap(data);
   },
 
   getPublicSchoolDetail: async (id: number) => {
     const { data } = await apiClient.get(`/ppdb/schools/${id}`);
-    return data.data;
+    return unwrap(data);
   },
 
   registerOnline: async (formData: FormData) => {
@@ -22,13 +29,13 @@ export const ppdbService = {
 
   checkStatus: async (query: string) => {
     const { data } = await apiClient.get('/ppdb/status', { params: { q: query } });
-    return data.data;
+    return unwrap(data);
   },
 
   // ── Admin / Operator Endpoints ──
   getStats: async (params?: { school_id?: number; period_id?: number }) => {
     const { data } = await apiClient.get('/ppdb/stats', { params });
-    return data.data as PpdbStats;
+    return unwrap<PpdbStats>(data);
   },
 
   getRegistrations: async (params?: {
@@ -41,17 +48,17 @@ export const ppdbService = {
     search?: string;
   }) => {
     const { data } = await apiClient.get('/ppdb/registrations', { params });
-    return data;
+    return unwrap(data);
   },
 
   getRegistrationDetail: async (id: number) => {
     const { data } = await apiClient.get(`/ppdb/registrations/${id}`);
-    return data.data as PpdbRegistration;
+    return unwrap<PpdbRegistration>(data);
   },
 
   verifyRegistration: async (id: number, payload: { status: string; verification_notes?: string }) => {
     const { data } = await apiClient.post(`/ppdb/registrations/${id}/verify`, payload);
-    return data;
+    return unwrap(data);
   },
 
   submitScore: async (id: number, payload: {
@@ -62,42 +69,42 @@ export const ppdbService = {
     selection_notes?: string;
   }) => {
     const { data } = await apiClient.post(`/ppdb/registrations/${id}/score`, payload);
-    return data;
+    return unwrap(data);
   },
 
   confirmReregistration: async (id: number) => {
     const { data } = await apiClient.post(`/ppdb/registrations/${id}/reregister`);
-    return data;
+    return unwrap(data);
   },
 
   // ── Period & Waves Endpoints ──
   getPeriods: async (params?: { school_id?: number; academic_year?: string; page?: number }) => {
     const { data } = await apiClient.get('/ppdb/periods', { params });
-    return data;
+    return unwrap(data);
   },
 
   getPeriodDetail: async (id: number) => {
     const { data } = await apiClient.get(`/ppdb/periods/${id}`);
-    return data.data as PpdbPeriod;
+    return unwrap<PpdbPeriod>(data);
   },
 
   createPeriod: async (payload: Partial<PpdbPeriod>) => {
     const { data } = await apiClient.post('/ppdb/periods', payload);
-    return data.data as PpdbPeriod;
+    return unwrap<PpdbPeriod>(data);
   },
 
   updatePeriod: async (id: number, payload: Partial<PpdbPeriod>) => {
     const { data } = await apiClient.put(`/ppdb/periods/${id}`, payload);
-    return data.data as PpdbPeriod;
+    return unwrap<PpdbPeriod>(data);
   },
 
   deletePeriod: async (id: number) => {
     const { data } = await apiClient.delete(`/ppdb/periods/${id}`);
-    return data;
+    return unwrap(data);
   },
 
   exportData: async (params?: { school_id?: number; period_id?: number; status?: string }) => {
     const { data } = await apiClient.get('/ppdb/export', { params });
-    return data.data;
+    return unwrap(data);
   },
 };

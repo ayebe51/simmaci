@@ -17,7 +17,10 @@ import {
   Download,
   Printer,
   Copy,
-  Check
+  Check,
+  Search,
+  X,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,13 +93,36 @@ export default function PpdbRegistrationPage() {
 
   const [registeredResult, setRegisteredResult] = useState<any>(null);
 
+  // School Search & Filter State
+  const [schoolSearch, setSchoolSearch] = useState('');
+  const [selectedJenjangFilter, setSelectedJenjangFilter] = useState('Semua');
+  const [isChangingSchool, setIsChangingSchool] = useState(false);
+
   // Query Schools List
-  const { data: schoolsData } = useQuery({
+  const { data: schoolsData, isLoading: isLoadingSchools } = useQuery({
     queryKey: ['ppdb-schools-selector'],
-    queryFn: () => ppdbService.getPublicSchools({ per_page: 100 }),
+    queryFn: () => ppdbService.getPublicSchools({ per_page: 200 }),
   });
 
-  const schools = schoolsData?.data?.items || schoolsData?.data || [];
+  const schools = Array.isArray(schoolsData)
+    ? schoolsData
+    : (schoolsData?.items || schoolsData?.data?.items || schoolsData?.data || []);
+
+  // Filtered schools based on search text and jenjang
+  const filteredSchools = schools.filter((sch: any) => {
+    const q = schoolSearch.trim().toLowerCase();
+    const matchesSearch = !q || 
+      sch.nama?.toLowerCase().includes(q) ||
+      sch.kecamatan?.toLowerCase().includes(q) ||
+      sch.alamat?.toLowerCase().includes(q) ||
+      sch.npsn?.toLowerCase().includes(q) ||
+      sch.jenjang?.toLowerCase().includes(q);
+
+    const matchesJenjang = selectedJenjangFilter === 'Semua' || 
+      sch.jenjang?.toUpperCase() === selectedJenjangFilter.toUpperCase();
+
+    return matchesSearch && matchesJenjang;
+  });
 
   // Query Selected School Detail (including its active periods)
   const { data: selectedSchool, isLoading: isLoadingSchool } = useQuery({
@@ -105,13 +131,19 @@ export default function PpdbRegistrationPage() {
     enabled: !!formData.school_id && formData.school_id > 0,
   });
 
+  // Current active school object
+  const activeSelectedSchool = schools.find((s: any) => s.id === formData.school_id) || selectedSchool;
+
   // Automatically select the first active period when school is loaded
   useEffect(() => {
-    if (selectedSchool?.ppdb_periods?.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        period_id: selectedSchool.ppdb_periods[0].id,
-      }));
+    if (selectedSchool?.ppdb_periods && selectedSchool.ppdb_periods.length > 0) {
+      setFormData(prev => {
+        const hasValidPeriod = selectedSchool.ppdb_periods.some((p: any) => p.id === prev.period_id);
+        return {
+          ...prev,
+          period_id: hasValidPeriod ? prev.period_id : selectedSchool.ppdb_periods[0].id,
+        };
+      });
     }
   }, [selectedSchool]);
 
@@ -291,29 +323,207 @@ export default function PpdbRegistrationPage() {
             </CardHeader>
 
             <CardContent className="p-6 space-y-6">
-              {/* Select School */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700">Pilih Madrasah / Sekolah Tujuan *</Label>
-                <Select
-                  value={formData.school_id ? String(formData.school_id) : ''}
-                  onValueChange={(val) => handleInputChange('school_id', Number(val))}
-                >
-                  <SelectTrigger className="rounded-xl h-11 text-sm bg-slate-50">
-                    <SelectValue placeholder="-- Pilih Madrasah / Sekolah --" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-64">
-                    {schools.map((sch: any) => (
-                      <SelectItem key={sch.id} value={String(sch.id)}>
-                        [{sch.jenjang || 'Madrasah'}] {sch.nama} - {sch.kecamatan}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Search & Select School */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-slate-700">
+                    Pilih Madrasah / Sekolah Tujuan *
+                  </Label>
+                  {activeSelectedSchool && !isChangingSchool && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsChangingSchool(true);
+                        setSchoolSearch('');
+                      }}
+                      className="text-xs text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 h-7 px-2 font-semibold"
+                    >
+                      Ganti Pilihan Madrasah
+                    </Button>
+                  )}
+                </div>
+
+                {/* State A: Madrasah Already Selected (and not currently changing) */}
+                {activeSelectedSchool && !isChangingSchool ? (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-500 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm shadow-emerald-600/20">
+                        {activeSelectedSchool.jenjang || 'M'}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
+                            {activeSelectedSchool.nama}
+                          </h4>
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">
+                            {activeSelectedSchool.jenjang || 'Madrasah'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-slate-600 flex items-center gap-1.5 flex-wrap">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>Kecamatan {activeSelectedSchool.kecamatan}</span>
+                          {activeSelectedSchool.alamat && (
+                            <span className="text-slate-500">• {activeSelectedSchool.alamat}</span>
+                          )}
+                          {activeSelectedSchool.npsn && (
+                            <span className="text-slate-400 font-mono text-[11px]">• NPSN: {activeSelectedSchool.npsn}</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <Badge className="bg-emerald-600 text-white text-[11px] font-bold py-1 px-3 shadow-xs">
+                        ✓ Terpilih
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsChangingSchool(true);
+                          setSchoolSearch('');
+                        }}
+                        className="rounded-xl h-8 px-3 text-xs font-semibold text-slate-600 hover:text-emerald-700 hover:border-emerald-300"
+                      >
+                        Ganti
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* State B: Search and Pick Madrasah (Fitur Ketik & Cari Sekolah) */
+                  <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs">
+                    {/* Live Search Input */}
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Input
+                        type="text"
+                        value={schoolSearch}
+                        onChange={(e) => setSchoolSearch(e.target.value)}
+                        placeholder="Ketik nama sekolah atau kecamatan... (Cth: Kesugihan, Kroya, MA Maarif)"
+                        className="pl-10 pr-10 rounded-xl h-11 text-xs sm:text-sm bg-white border-slate-200 focus-visible:ring-emerald-600 font-medium"
+                        autoFocus={isChangingSchool}
+                      />
+                      {schoolSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setSchoolSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-md"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Quick Jenjang Filter Pills */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[11px] font-bold text-slate-500 mr-1">Filter Jenjang:</span>
+                      {['Semua', 'MI', 'MTs', 'MA', 'SMK'].map((jenjang) => (
+                        <button
+                          key={jenjang}
+                          type="button"
+                          onClick={() => setSelectedJenjangFilter(jenjang)}
+                          className={`text-xs px-3 py-1 rounded-lg font-semibold transition-all ${
+                            selectedJenjangFilter === jenjang
+                              ? 'bg-emerald-700 text-white shadow-xs'
+                              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {jenjang}
+                        </button>
+                      ))}
+                      {isChangingSchool && activeSelectedSchool && (
+                        <button
+                          type="button"
+                          onClick={() => setIsChangingSchool(false)}
+                          className="text-xs text-slate-500 hover:text-slate-700 ml-auto underline"
+                        >
+                          Batal Ganti
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Results count info */}
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                      <span>Ditemukan {filteredSchools.length} madrasah</span>
+                      <span className="italic text-emerald-800 font-medium">Klik pada madrasah untuk memilih</span>
+                    </div>
+
+                    {/* Scrollable School List Cards */}
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                      {filteredSchools.map((sch: any) => {
+                        const isSelected = formData.school_id === sch.id;
+                        return (
+                          <div
+                            key={sch.id}
+                            onClick={() => {
+                              handleInputChange('school_id', sch.id);
+                              setIsChangingSchool(false);
+                            }}
+                            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-500/20 shadow-xs'
+                                : 'bg-white border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Badge className="bg-slate-100 text-slate-800 border-slate-200 text-[10px] font-bold shrink-0">
+                                {sch.jenjang || 'Madrasah'}
+                              </Badge>
+                              <div className="min-w-0">
+                                <p className="font-bold text-xs sm:text-sm text-slate-900 truncate">
+                                  {sch.nama}
+                                </p>
+                                <p className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                  <span>{sch.kecamatan}</span>
+                                  {sch.alamat && <span className="text-slate-400">• {sch.alamat}</span>}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 flex items-center gap-2">
+                              {sch.ppdb_periods && sch.ppdb_periods.length > 0 && (
+                                <Badge className="bg-emerald-100 text-emerald-800 text-[9px] font-semibold hidden sm:inline-flex">
+                                  Gelombang Buka
+                                </Badge>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                className={`rounded-lg h-7 px-3 text-xs font-semibold ${
+                                  isSelected
+                                    ? 'bg-emerald-700 text-white'
+                                    : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-700 hover:text-white border border-emerald-200'
+                                }`}
+                              >
+                                {isSelected ? 'Terpilih ✓' : 'Pilih'}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {filteredSchools.length === 0 && (
+                        <div className="py-8 text-center bg-white rounded-xl border border-dashed border-slate-200 text-slate-400 text-xs">
+                          <p className="font-semibold text-slate-600">Madrasah tidak ditemukan</p>
+                          <p className="text-[11px] text-slate-400 mt-1">
+                            {schoolSearch
+                              ? `Tidak ada madrasah dengan kata kunci "${schoolSearch}". Coba kata kunci lain atau pilih filter Jenjang "Semua".`
+                              : 'Tidak ada madrasah yang terdaftar pada jenjang ini.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* School PPDB Period Info */}
               {selectedSchool && (
-                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2.5">
+                <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5">
                   {selectedSchool.ppdb_periods && selectedSchool.ppdb_periods.length > 1 ? (
                     <div className="space-y-1.5">
                       <Label className="text-xs font-bold text-emerald-950">Pilih Gelombang PPDB *</Label>
@@ -334,9 +544,14 @@ export default function PpdbRegistrationPage() {
                       </Select>
                     </div>
                   ) : selectedSchool.ppdb_periods && selectedSchool.ppdb_periods.length === 1 ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-900">Gelombang Aktif:</span>
-                      <Badge className="bg-emerald-700 text-white text-[10px]">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-900 block">Gelombang PPDB Aktif:</span>
+                        <span className="text-[11px] text-emerald-700">
+                          Jadwal pendaftaran terbuka s.d. {new Date(selectedSchool.ppdb_periods[0].end_date).toLocaleDateString('id-ID')}
+                        </span>
+                      </div>
+                      <Badge className="bg-emerald-700 text-white text-[10px] font-bold py-1 px-2.5">
                         {selectedSchool.ppdb_periods[0].wave_name} ({selectedSchool.ppdb_periods[0].academic_year})
                       </Badge>
                     </div>

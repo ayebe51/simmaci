@@ -52,7 +52,9 @@ export default function PpdbLandingPage() {
     }),
   });
 
-  const schools = schoolsData?.data?.items || schoolsData?.data || [];
+  const schools = Array.isArray(schoolsData) 
+    ? schoolsData 
+    : (schoolsData?.items || schoolsData?.data?.items || schoolsData?.data || []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-emerald-50/20 to-slate-50 text-slate-900">

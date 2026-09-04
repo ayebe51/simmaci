@@ -111,9 +111,15 @@ export default function PpdbCenterPage() {
     enabled: isSuperAdmin,
   });
 
-  const registrations: PpdbRegistration[] = registrationsData?.data?.items || registrationsData?.data || [];
-  const periods: PpdbPeriod[] = periodsData?.data?.items || periodsData?.data || [];
-  const schools = schoolsList?.data?.items || schoolsList?.data || [];
+  const registrations: PpdbRegistration[] = Array.isArray(registrationsData)
+    ? registrationsData
+    : (registrationsData?.items || registrationsData?.data?.items || registrationsData?.data || []);
+  const periods: PpdbPeriod[] = Array.isArray(periodsData)
+    ? periodsData
+    : (periodsData?.items || periodsData?.data?.items || periodsData?.data || []);
+  const schools = Array.isArray(schoolsList)
+    ? schoolsList
+    : (schoolsList?.items || schoolsList?.data?.items || schoolsList?.data || []);
 
   // Mutations
   const verifyMutation = useMutation({

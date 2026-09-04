@@ -23,7 +23,9 @@ import {
   ShieldCheck,
   Building2,
   FileText,
-  UserCheck
+  UserCheck,
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,8 +105,15 @@ export default function PpdbCenterPage() {
     queryFn: () => ppdbService.getPeriods(),
   });
 
+  const { data: schoolsList } = useQuery({
+    queryKey: ['ppdb-schools-selector'],
+    queryFn: () => ppdbService.getPublicSchools({ per_page: 200 }),
+    enabled: isSuperAdmin,
+  });
+
   const registrations: PpdbRegistration[] = registrationsData?.data?.items || registrationsData?.data || [];
   const periods: PpdbPeriod[] = periodsData?.data?.items || periodsData?.data || [];
+  const schools = schoolsList?.data?.items || schoolsList?.data || [];
 
   // Mutations
   const verifyMutation = useMutation({
@@ -145,11 +154,38 @@ export default function PpdbCenterPage() {
     mutationFn: (payload: any) => ppdbService.createPeriod(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ppdb-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-public-schools'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-schools-selector'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-selected-school'] });
       setIsPeriodModalOpen(false);
+      setActiveTab('periods');
       toast.success('Gelombang PPDB berhasil ditambahkan!');
     },
-    onError: () => toast.error('Gagal menambahkan gelombang PPDB.'),
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Gagal menambahkan gelombang PPDB.');
+    },
   });
+
+  const deletePeriodMutation = useMutation({
+    mutationFn: (id: number) => ppdbService.deletePeriod(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ppdb-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-public-schools'] });
+      queryClient.invalidateQueries({ queryKey: ['ppdb-selected-school'] });
+      toast.success('Gelombang PPDB berhasil dihapus!');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Gagal menghapus gelombang PPDB.');
+    },
+  });
+
+  const canManagePeriod = (period: PpdbPeriod) => {
+    if (isSuperAdmin) return true;
+    if (user?.school_id && period.school_id === user.school_id) return true;
+    return false;
+  };
 
   // Export Excel Handler
   const handleExport = async () => {
@@ -207,6 +243,27 @@ export default function PpdbCenterPage() {
         description="Portal manajemen penerimaan peserta didik baru satu pintu, verifikasi berkas online, penilaian hasil seleksi, dan otomatisasi sinkronisasi langsung ke Data Induk Siswa SIMMACI."
         icon={<GraduationCap className="w-6 h-6 text-emerald-600" />}
       />
+
+      {/* ── Role & Madrasah Scope Banner ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white/70 backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-200/80 shadow-xs text-xs">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {isSuperAdmin ? (
+            <Badge className="bg-emerald-700 text-white font-bold py-1 px-3">
+              👑 Super Admin / PC LP Ma'arif
+            </Badge>
+          ) : (
+            <Badge className="bg-blue-700 text-white font-bold py-1 px-3 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />
+              Operator Satpen: {user?.unit || user?.school?.name || user?.name || 'Madrasah'}
+            </Badge>
+          )}
+          <span className="text-slate-600 font-medium text-xs">
+            {isSuperAdmin 
+              ? 'Akses penuh: Mengelola gelombang serentak se-kabupaten & memantau seluruh pendaftaran madrasah.'
+              : `Akses terbatas: Memverifikasi & mengelola pendaftar khusus ${user?.unit || user?.school?.name || 'madrasah Anda'}.`}
+          </span>
+        </div>
+      </div>
 
       {/* ── Tabbed Navigation ── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -276,7 +333,7 @@ export default function PpdbCenterPage() {
                   Integrasi Satu Pintu & Ekspor Rekapitulasi
                 </h3>
                 <p className="text-xs text-slate-500 max-w-xl">
-                  Data calon siswa yang telah menyelesaikan proses daftar ulang otomatis disinkronisasi ke Master Siswa SIMMACI dengan Nomor Induk Ma'arif (NIM) dan QR Code profil.
+                  Data calon siswa yang telah menyelesaikan proses daftar ulang otomatis disinkronisasi ke Master Siswa SIMMACI dengan identitas resmi NISN/NIK dan QR Code profil.
                 </p>
               </div>
 
@@ -519,9 +576,14 @@ export default function PpdbCenterPage() {
                             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
                               ✓ Tersinkronisasi
                             </Badge>
-                            <span className="block text-[10px] text-slate-500 font-mono">
-                              {reg.student?.nomor_induk_maarif || 'NIM Generated'}
+                            <span className="block text-[10px] text-slate-700 font-medium">
+                              Siswa Aktif {reg.student?.kelas ? `(Kelas ${reg.student.kelas})` : ''}
                             </span>
+                            {reg.nisn && (
+                              <span className="block text-[9px] text-slate-400 font-mono">
+                                NISN: {reg.nisn}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <Badge variant="outline" className="text-amber-700 border-amber-300 text-[10px]">
@@ -599,8 +661,16 @@ export default function PpdbCenterPage() {
                     </div>
 
                     <h4 className="font-bold text-sm text-slate-900 mb-1">{period.wave_name}</h4>
-                    {period.school && (
-                      <p className="text-xs text-emerald-800 font-medium mb-2">{period.school.nama}</p>
+                    {period.school ? (
+                      <p className="text-xs text-emerald-800 font-semibold mb-2 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>{period.school.nama}</span>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-teal-700 font-semibold mb-2 flex items-center gap-1.5">
+                        <span className="text-sm">🌐</span>
+                        <span>Berlaku Serentak (Semua Madrasah)</span>
+                      </p>
                     )}
 
                     <div className="space-y-1 text-xs text-slate-600">
@@ -612,10 +682,39 @@ export default function PpdbCenterPage() {
 
                   <div className="pt-3 border-t border-slate-200/80 flex justify-between items-center text-[11px] text-slate-500">
                     <span>{period.registrations_count || 0} Pendaftar</span>
-                    <span className="font-semibold text-emerald-700">Terbuka Online</span>
+                    <div className="flex items-center gap-2">
+                      {!canManagePeriod(period) ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-medium bg-slate-200/60 px-2 py-0.5 rounded-full">
+                          <Lock className="w-3 h-3" /> Serentak (Read-only)
+                        </span>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deletePeriodMutation.isPending}
+                          onClick={() => {
+                            if (window.confirm(`Hapus gelombang "${period.wave_name}"?`)) {
+                              deletePeriodMutation.mutate(period.id);
+                            }
+                          }}
+                          className="h-7 px-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg text-xs"
+                          title="Hapus Gelombang"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" /> Hapus
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
+
+              {periods.length === 0 && (
+                <div className="col-span-3 text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <Calendar className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-slate-700">Belum ada gelombang PPDB yang terdaftar</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Klik tombol 'Tambah Gelombang Baru' di atas untuk membuka periode penerimaan siswa baru.</p>
+                </div>
+              )}
             </div>
           </Card>
         </TabsContent>
@@ -833,6 +932,28 @@ export default function PpdbCenterPage() {
           </DialogHeader>
 
           <div className="space-y-3.5 text-xs">
+            {isSuperAdmin && (
+              <div className="space-y-1">
+                <Label className="text-xs font-bold text-slate-700">Satuan Pendidikan / Madrasah Tujuan *</Label>
+                <Select
+                  value={periodForm.school_id ? String(periodForm.school_id) : 'ALL'}
+                  onValueChange={(val) => setPeriodForm(p => ({ ...p, school_id: val === 'ALL' ? null : Number(val) }))}
+                >
+                  <SelectTrigger className="rounded-xl h-10 text-xs bg-slate-50">
+                    <SelectValue placeholder="Pilih Madrasah atau Serentak" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="ALL">🌐 Berlaku Serentak (Semua Madrasah se-Kabupaten)</SelectItem>
+                    {schools.map((sch: any) => (
+                      <SelectItem key={sch.id} value={String(sch.id)}>
+                        [{sch.jenjang || 'Madrasah'}] {sch.nama} - {sch.kecamatan}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-bold text-slate-700">Tahun Ajaran *</Label>

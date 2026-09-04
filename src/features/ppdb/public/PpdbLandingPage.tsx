@@ -17,7 +17,8 @@ import {
   Sparkles,
   PhoneCall,
   ShieldCheck,
-  Award
+  Award,
+  UserPlus
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -72,7 +73,15 @@ export default function PpdbLandingPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <Button
+              size="sm"
+              onClick={() => navigate('/ppdb/daftar')}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm flex items-center gap-1.5"
+            >
+              <UserPlus className="w-4 h-4" />
+              Daftar Sekarang
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -80,12 +89,13 @@ export default function PpdbLandingPage() {
               className="border-emerald-200 text-emerald-800 hover:bg-emerald-50 hover:text-emerald-900 rounded-xl font-medium"
             >
               <FileCheck2 className="w-4 h-4 mr-1.5 text-emerald-600" />
-              Lacak Status Pendaftaran
+              Lacak Status
             </Button>
             <Button
+              variant="ghost"
               size="sm"
               onClick={() => navigate('/login')}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl shadow-sm"
+              className="text-slate-600 hover:text-slate-900 rounded-xl"
             >
               Login Operator
             </Button>
@@ -115,6 +125,14 @@ export default function PpdbLandingPage() {
           <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Button
               size="lg"
+              onClick={() => navigate('/ppdb/daftar')}
+              className="bg-emerald-400 hover:bg-emerald-300 text-emerald-950 font-black px-8 py-3 rounded-2xl shadow-xl shadow-black/20 transition-all hover:scale-[1.03] flex items-center gap-2"
+            >
+              <UserPlus className="w-5 h-5 text-emerald-950" />
+              Daftar Online Sekarang
+            </Button>
+            <Button
+              size="lg"
               onClick={() => {
                 const el = document.getElementById('search-directory');
                 el?.scrollIntoView({ behavior: 'smooth' });
@@ -122,7 +140,7 @@ export default function PpdbLandingPage() {
               className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold px-7 py-3 rounded-2xl shadow-xl shadow-black/10 transition-all hover:scale-[1.02]"
             >
               <Search className="w-5 h-5 mr-2 text-emerald-700" />
-              Cari Madrasah Pilihan
+              Pilih Madrasah di Direktori
             </Button>
             <Button
               size="lg"
@@ -131,7 +149,7 @@ export default function PpdbLandingPage() {
               className="border-emerald-400/40 text-emerald-100 hover:bg-white/10 font-semibold px-6 py-3 rounded-2xl backdrop-blur-sm"
             >
               <FileCheck2 className="w-5 h-5 mr-2 text-emerald-300" />
-              Cek Pengumuman & Kelulusan
+              Lacak Pendaftaran
             </Button>
           </div>
         </div>
@@ -192,6 +210,29 @@ export default function PpdbLandingPage() {
                 <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* Quick Registration Banner */}
+          <div className="mt-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50/60 to-emerald-50 border border-emerald-200/80 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-sm">
+            <div className="flex items-center gap-4 text-center sm:text-left">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-emerald-600/20">
+                <UserPlus className="w-7 h-7" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-lg">Siap Mendaftarkan Putra/Putri Anda?</h4>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-xl">
+                  Buka formulir pendaftaran 5 langkah sekarang. Pilih madrasah tujuan, isi biodata, dan unggah berkas secara mandiri.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              onClick={() => navigate('/ppdb/daftar')}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-8 h-12 rounded-2xl shadow-md shrink-0 flex items-center gap-2 transition-all hover:scale-[1.02]"
+            >
+              Mulai Pendaftaran Online
+              <ArrowRight className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </section>

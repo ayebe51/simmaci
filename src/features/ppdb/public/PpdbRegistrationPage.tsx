@@ -313,16 +313,41 @@ export default function PpdbRegistrationPage() {
 
               {/* School PPDB Period Info */}
               {selectedSchool && (
-                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-900">Gelombang Aktif:</span>
-                    <Badge className="bg-emerald-700 text-white text-[10px]">
-                      {selectedSchool.ppdb_periods?.[0]?.wave_name || 'Gelombang 1 - Reguler'}
-                    </Badge>
-                  </div>
+                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-2.5">
+                  {selectedSchool.ppdb_periods && selectedSchool.ppdb_periods.length > 1 ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-emerald-950">Pilih Gelombang PPDB *</Label>
+                      <Select
+                        value={formData.period_id ? String(formData.period_id) : ''}
+                        onValueChange={(val) => handleInputChange('period_id', Number(val))}
+                      >
+                        <SelectTrigger className="rounded-xl h-10 text-xs bg-white border-emerald-200">
+                          <SelectValue placeholder="-- Pilih Gelombang PPDB --" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedSchool.ppdb_periods.map((per: any) => (
+                            <SelectItem key={per.id} value={String(per.id)}>
+                              {per.wave_name} ({per.academic_year}) • Kuota {per.quota}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : selectedSchool.ppdb_periods && selectedSchool.ppdb_periods.length === 1 ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-900">Gelombang Aktif:</span>
+                      <Badge className="bg-emerald-700 text-white text-[10px]">
+                        {selectedSchool.ppdb_periods[0].wave_name} ({selectedSchool.ppdb_periods[0].academic_year})
+                      </Badge>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Belum ada gelombang aktif untuk madrasah ini.</span>
+                    </div>
+                  )}
                   <p className="text-xs text-emerald-800/80">
-                    Tahun Ajaran: {selectedSchool.ppdb_periods?.[0]?.academic_year || '2026/2027'} • 
-                    Alamat: {selectedSchool.alamat || selectedSchool.kecamatan}
+                    Alamat Lembaga: {selectedSchool.alamat || selectedSchool.kecamatan}
                   </p>
                 </div>
               )}

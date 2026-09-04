@@ -120,14 +120,21 @@ class PpdbManagementController extends Controller
     /**
      * Get single registration detail
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $registration = PpdbRegistration::with([
+        $registration = PpdbRegistration::withoutTenantScope()->with([
             'school',
             'period',
             'verifiedByUser:id,name,role',
             'student'
         ])->findOrFail($id);
+
+        $user = $request->user();
+        if ($user && !in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($registration->school_id !== $user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki hak akses untuk melihat data calon siswa madrasah lain.', null, 403);
+            }
+        }
 
         return $this->successResponse($registration);
     }
@@ -137,7 +144,14 @@ class PpdbManagementController extends Controller
      */
     public function verify(Request $request, int $id): JsonResponse
     {
-        $registration = PpdbRegistration::findOrFail($id);
+        $registration = PpdbRegistration::withoutTenantScope()->findOrFail($id);
+
+        $user = $request->user();
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($registration->school_id !== $user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki hak akses untuk memproses calon siswa madrasah lain.', null, 403);
+            }
+        }
 
         $validator = Validator::make($request->all(), [
             'status'             => 'required|string|in:verified,revision_needed,rejected,submitted',
@@ -167,7 +181,14 @@ class PpdbManagementController extends Controller
      */
     public function score(Request $request, int $id): JsonResponse
     {
-        $registration = PpdbRegistration::findOrFail($id);
+        $registration = PpdbRegistration::withoutTenantScope()->findOrFail($id);
+
+        $user = $request->user();
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($registration->school_id !== $user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki hak akses untuk memproses calon siswa madrasah lain.', null, 403);
+            }
+        }
 
         $validator = Validator::make($request->all(), [
             'test_score'        => 'nullable|numeric|min:0|max:100',
@@ -198,9 +219,16 @@ class PpdbManagementController extends Controller
     /**
      * Confirm Re-registration (Daftar Ulang) & AUTO-SYNC to Student Master Data
      */
-    public function reregister(int $id): JsonResponse
+    public function reregister(Request $request, int $id): JsonResponse
     {
-        $registration = PpdbRegistration::findOrFail($id);
+        $registration = PpdbRegistration::withoutTenantScope()->findOrFail($id);
+
+        $user = $request->user();
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($registration->school_id !== $user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki hak akses untuk memproses calon siswa madrasah lain.', null, 403);
+            }
+        }
 
         try {
             $student = $this->ppdbService->confirmReregistration($registration);
@@ -222,7 +250,7 @@ class PpdbManagementController extends Controller
     public function export(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = PpdbRegistration::with(['school:id,nama,npsn,jenjang', 'period:id,wave_name,academic_year', 'student:id,nomor_induk_maarif']);
+        $query = PpdbRegistration::with(['school:id,nama,npsn,jenjang', 'period:id,wave_name,academic_year', 'student:id,nisn,nik,status,kelas']);
 
         if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
             $query->where('school_id', $user->school_id);
@@ -262,7 +290,7 @@ class PpdbManagementController extends Controller
                 'status'              => $reg->status,
                 'nilai_akhir'         => $reg->final_score,
                 'sudah_daftar_ulang'  => $reg->is_reregistered ? 'YA' : 'TIDAK',
-                'nomor_induk_maarif'  => $reg->student?->nomor_induk_maarif ?? '-',
+                'status_siswa'        => $reg->student ? "Aktif (Kelas {$reg->student->kelas})" : '-',
                 'tanggal_daftar'      => $reg->created_at->format('Y-m-d H:i'),
             ];
         });

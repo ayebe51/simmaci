@@ -226,7 +226,54 @@ class PpdbTest extends TestCase
         ]);
 
         $student = Student::find($reg->student_id);
-        $this->assertNotNull($student->nomor_induk_maarif);
-        $this->assertStringContainsString('NIM-', $student->nomor_induk_maarif);
+        $this->assertEquals('Aktif', $student->status);
+        $this->assertNull($student->nomor_induk_maarif); // Siswa tidak memerlukan NIM
+    }
+
+    public function test_operator_cannot_verify_or_process_applicant_from_another_school(): void
+    {
+        $otherSchool = School::create([
+            'nama'        => 'MI Ma\'arif NU 02 Kesugihan',
+            'npsn'        => '20360002',
+            'jenjang'     => 'MI',
+            'kecamatan'   => 'Kesugihan',
+        ]);
+
+        $otherPeriod = PpdbPeriod::create([
+            'school_id'     => $otherSchool->id,
+            'academic_year' => '2026/2027',
+            'wave_name'     => 'Gelombang 1 MI',
+            'start_date'    => now()->subDays(1)->toDateString(),
+            'end_date'      => now()->addDays(10)->toDateString(),
+            'quota'         => 50,
+            'is_active'     => true,
+        ]);
+
+        $otherReg = PpdbRegistration::create([
+            'registration_number' => 'PPDB-2026-MI0002-0001',
+            'school_id'           => $otherSchool->id,
+            'period_id'           => $otherPeriod->id,
+            'track'               => 'reguler',
+            'nisn'                => '0089888777',
+            'nik'                 => '3301015555550001',
+            'nama_lengkap'        => 'Bambang Pamungkas',
+            'jenis_kelamin'       => 'L',
+            'tempat_lahir'        => 'Cilacap',
+            'tanggal_lahir'       => '2016-01-01',
+            'asal_sekolah'        => 'TK RA 01',
+            'no_whatsapp'         => '081299991111',
+            'alamat'              => 'Kesugihan',
+            'kecamatan'           => 'Kesugihan',
+            'kelurahan'           => 'Kuripan',
+            'status'              => 'submitted',
+        ]);
+
+        Sanctum::actingAs($this->operator); // Operator belongs to MTs 01 Cilacap
+
+        // Attempting to verify applicant from MI 02 Kesugihan must return 403 Forbidden!
+        $response = $this->postJson("/api/ppdb/registrations/{$otherReg->id}/verify", [
+            'status' => 'verified',
+        ]);
+        $response->assertStatus(403);
     }
 }

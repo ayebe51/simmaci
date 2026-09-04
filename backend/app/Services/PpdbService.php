@@ -214,24 +214,20 @@ class PpdbService
                 'type'     => 'student_kta',
                 'reg_no'   => $registration->registration_number,
                 'nisn'     => $registration->nisn,
+                'nik'      => $registration->nik,
                 'nama'     => $registration->nama_lengkap,
                 'sekolah'  => $school->nama,
             ]);
 
             if (!$student) {
-                // Generate Nomor Induk Ma'arif
-                $nimPrefix = $school->npsm_nu ?? $school->nsm ?? substr($school->npsn ?? '0000', -4);
-                $nimSequence = Student::withoutTenantScope()->where('school_id', $school->id)->count() + 1;
-                $nim = "NIM-{$nimPrefix}-" . date('y') . str_pad((string)$nimSequence, 4, '0', STR_PAD_LEFT);
-
-                // Insert into Master Data Siswa
+                // Insert into Master Data Siswa (siswa tidak memerlukan NIM)
                 $student = Student::create([
                     'school_id'           => $school->id,
                     'nama_sekolah'        => $school->nama,
                     'npsn'                => $school->npsn,
                     'nisn'                => $registration->nisn,
                     'nik'                 => $registration->nik,
-                    'nomor_induk_maarif'  => $nim,
+                    'nomor_induk_maarif'  => null,
                     'nama'                => $registration->nama_lengkap,
                     'jenis_kelamin'       => $registration->jenis_kelamin,
                     'tempat_lahir'        => $registration->tempat_lahir,
@@ -384,9 +380,10 @@ class PpdbService
         $message = "Alhamdulillah!\n\n" .
             "Proses Daftar Ulang atas nama *{$student->nama}* di *{$school->nama}* telah *SELESAI & BERHASIL DIVERIFIKASI*.\n\n" .
             "🎓 Data Siswa telah resmi tercatat di Sistem Informasi Manajemen Ma'arif NU Cilacap (SIMMACI).\n" .
-            "• Nomor Induk Ma'arif: *{$student->nomor_induk_maarif}*\n" .
-            "• Kelas: *{$student->kelas}*\n" .
-            "• Status: *Siswa Aktif*\n\n" .
+            "• No. Registrasi: *{$reg->registration_number}*\n" .
+            "• NISN / NIK: *" . ($student->nisn ?: $student->nik) . "*\n" .
+            "• Kelas: *Kelas {$student->kelas}*\n" .
+            "• Status: *Siswa Baru Aktif*\n\n" .
             "Selamat bergabung di keluarga besar LP Ma'arif NU Cilacap!";
 
         $this->dispatchWaMessage($phone, $message);

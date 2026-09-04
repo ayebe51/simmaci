@@ -20,16 +20,22 @@ class PpdbPeriodController extends Controller
             ->withCount('registrations');
 
         if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
-            $query->where('school_id', $user->school_id);
+            $query->where(function ($q) use ($user) {
+                $q->where('school_id', $user->school_id)
+                  ->orWhereNull('school_id');
+            });
         } elseif ($request->filled('school_id')) {
-            $query->where('school_id', $request->school_id);
+            $query->where(function ($q) use ($request) {
+                $q->where('school_id', $request->school_id)
+                  ->orWhereNull('school_id');
+            });
         }
 
         if ($request->filled('academic_year')) {
             $query->where('academic_year', $request->academic_year);
         }
 
-        $periods = $query->orderBy('created_at', 'desc')->paginate($request->input('per_page', 20));
+        $periods = $query->orderBy('created_at', 'desc')->paginate($request->input('per_page', 50));
 
         return $this->paginatedResponse($periods);
     }
@@ -38,7 +44,7 @@ class PpdbPeriodController extends Controller
     {
         $user = $request->user();
         $validator = Validator::make($request->all(), [
-            'school_id'               => 'nullable|exists:schools,id',
+            'school_id'               => 'nullable',
             'academic_year'           => 'required|string|max:20',
             'wave_name'               => 'required|string|max:100',
             'description'             => 'nullable|string',
@@ -59,6 +65,8 @@ class PpdbPeriodController extends Controller
         $data = $validator->validated();
         if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
             $data['school_id'] = $user->school_id;
+        } else {
+            $data['school_id'] = !empty($data['school_id']) ? (int)$data['school_id'] : null;
         }
 
         $period = PpdbPeriod::create($data);
@@ -77,7 +85,14 @@ class PpdbPeriodController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $period = PpdbPeriod::findOrFail($id);
+        $period = PpdbPeriod::withoutTenantScope()->findOrFail($id);
+
+        $user = $request->user();
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($period->school_id !== $user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki wewenang untuk mengubah gelombang madrasah lain atau gelombang serentak.', null, 403);
+            }
+        }
 
         $validator = Validator::make($request->all(), [
             'academic_year'           => 'sometimes|required|string|max:20',
@@ -102,9 +117,17 @@ class PpdbPeriodController extends Controller
         return $this->successResponse($period, 'Gelombang PPDB berhasil diperbarui.');
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $period = PpdbPeriod::findOrFail($id);
+        $period = PpdbPeriod::withoutTenantScope()->findOrFail($id);
+
+        $user = $request->user();
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($period->school_id !== $user->school_id) {
+                return $this->errorResponse('Anda tidak memiliki wewenang untuk menghapus gelombang madrasah lain atau gelombang serentak.', null, 403);
+            }
+        }
+
         if ($period->registrations()->count() > 0) {
             return $this->errorResponse('Gelombang ini tidak dapat dihapus karena sudah memiliki data pendaftar.', null, 422);
         }

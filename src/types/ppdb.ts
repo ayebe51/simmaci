@@ -90,7 +90,8 @@ export interface PpdbRegistration {
   student_id?: number;
   student?: {
     id: number;
-    nomor_induk_maarif?: string;
+    nisn?: string;
+    nik?: string;
     nama?: string;
     status?: string;
     kelas?: string;

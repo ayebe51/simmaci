@@ -47,14 +47,30 @@ class PublicPpdbController extends Controller
             });
         }
 
-        $schools = $query->with(['ppdbPeriods' => function ($q) {
+        $today = now()->toDateString();
+        $schools = $query->with(['ppdbPeriods' => function ($q) use ($today) {
             $q->where('is_active', true)
-              ->where('start_date', '<=', now()->toDateString())
-              ->where('end_date', '>=', now()->toDateString());
+              ->where('start_date', '<=', $today)
+              ->where('end_date', '>=', $today);
         }])
         ->orderBy('kecamatan')
         ->orderBy('nama')
-        ->paginate($request->input('per_page', 20));
+        ->paginate($request->input('per_page', 24));
+
+        $globalPeriods = PpdbPeriod::withoutTenantScope()
+            ->whereNull('school_id')
+            ->where('is_active', true)
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->get();
+
+        if ($globalPeriods->isNotEmpty()) {
+            foreach ($schools as $school) {
+                if ($school->ppdbPeriods->isEmpty()) {
+                    $school->setRelation('ppdbPeriods', $globalPeriods);
+                }
+            }
+        }
 
         return $this->paginatedResponse($schools);
     }
@@ -64,9 +80,32 @@ class PublicPpdbController extends Controller
      */
     public function getSchoolDetail(int $id): JsonResponse
     {
-        $school = School::with(['ppdbPeriods' => function ($q) {
-            $q->where('is_active', true);
-        }])->findOrFail($id);
+        $school = School::findOrFail($id);
+        $today = now()->toDateString();
+        $periods = PpdbPeriod::withoutTenantScope()
+            ->where('is_active', true)
+            ->where(function ($q) use ($school) {
+                $q->where('school_id', $school->id)
+                  ->orWhereNull('school_id');
+            })
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->orderBy('start_date', 'asc')
+            ->get();
+
+        // Fallback: If no date match, check active period for this school or global
+        if ($periods->isEmpty()) {
+            $periods = PpdbPeriod::withoutTenantScope()
+                ->where('is_active', true)
+                ->where(function ($q) use ($school) {
+                    $q->where('school_id', $school->id)
+                      ->orWhereNull('school_id');
+                })
+                ->orderBy('start_date', 'asc')
+                ->get();
+        }
+
+        $school->setRelation('ppdbPeriods', $periods);
 
         return $this->successResponse($school);
     }

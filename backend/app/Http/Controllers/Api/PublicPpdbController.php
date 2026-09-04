@@ -76,11 +76,16 @@ class PublicPpdbController extends Controller
     }
 
     /**
-     * Get details of a single school & its active PPDB periods
+     * Get details of a single school & its active PPDB periods (by ID, NPSN, or NSM)
      */
-    public function getSchoolDetail(int $id): JsonResponse
+    public function getSchoolDetail(string $identifier): JsonResponse
     {
-        $school = School::findOrFail($id);
+        $school = School::where('npsn', $identifier)
+            ->orWhere('nsm', $identifier)
+            ->when(is_numeric($identifier), function ($q) use ($identifier) {
+                $q->orWhere('id', (int)$identifier);
+            })
+            ->firstOrFail();
         $today = now()->toDateString();
         $periods = PpdbPeriod::withoutTenantScope()
             ->where('is_active', true)

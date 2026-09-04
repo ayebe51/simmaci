@@ -63,6 +63,24 @@ class PpdbTest extends TestCase
         $response->assertJsonFragment(['nama' => 'MTs Ma\'arif NU 01 Cilacap']);
     }
 
+    public function test_public_can_get_school_detail_by_id_and_npsn(): void
+    {
+        // By ID
+        $resById = $this->getJson("/api/ppdb/schools/{$this->school->id}");
+        $resById->assertStatus(200);
+        $resById->assertJsonPath('success', true);
+        $resById->assertJsonPath('data.id', $this->school->id);
+        $resById->assertJsonPath('data.nama', $this->school->nama);
+        $resById->assertJsonPath('data.ppdb_periods.0.wave_name', 'Gelombang 1 Reguler');
+
+        // By NPSN
+        $resByNpsn = $this->getJson("/api/ppdb/schools/{$this->school->npsn}");
+        $resByNpsn->assertStatus(200);
+        $resByNpsn->assertJsonPath('success', true);
+        $resByNpsn->assertJsonPath('data.id', $this->school->id);
+        $resByNpsn->assertJsonPath('data.npsn', $this->school->npsn);
+    }
+
     public function test_public_can_register_new_student(): void
     {
         $payload = [

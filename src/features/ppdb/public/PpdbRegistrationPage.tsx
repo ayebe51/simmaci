@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ppdbService } from '@/services/ppdbService';
 import { 
@@ -47,16 +47,20 @@ const TRACK_OPTIONS = [
 ];
 
 export default function PpdbRegistrationPage() {
+  const { schoolIdentifier } = useParams<{ schoolIdentifier?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const initialSchoolId = searchParams.get('school_id');
+
+  // Identifier can come from /ppdb/daftar/:schoolIdentifier, ?npsn=..., or ?school_id=...
+  const targetIdentifier = schoolIdentifier || searchParams.get('npsn') || searchParams.get('school_id') || '';
+  const isDirectSchoolLink = Boolean(targetIdentifier);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [copied, setCopied] = useState(false);
 
   // Form States
   const [formData, setFormData] = useState({
-    school_id: initialSchoolId ? Number(initialSchoolId) : 0,
+    school_id: targetIdentifier && !isNaN(Number(targetIdentifier)) && !targetIdentifier.startsWith('0') ? Number(targetIdentifier) : 0,
     period_id: 0,
     track: 'reguler',
     nisn: '',
@@ -98,7 +102,7 @@ export default function PpdbRegistrationPage() {
   const [selectedJenjangFilter, setSelectedJenjangFilter] = useState('Semua');
   const [isChangingSchool, setIsChangingSchool] = useState(false);
 
-  // Query Schools List
+  // Query Schools List for manual search / selection fallback
   const { data: schoolsData, isLoading: isLoadingSchools } = useQuery({
     queryKey: ['ppdb-schools-selector'],
     queryFn: () => ppdbService.getPublicSchools({ per_page: 200 }),
@@ -124,28 +128,39 @@ export default function PpdbRegistrationPage() {
     return matchesSearch && matchesJenjang;
   });
 
-  // Query Selected School Detail (including its active periods)
-  const { data: selectedSchool, isLoading: isLoadingSchool } = useQuery({
-    queryKey: ['ppdb-selected-school', formData.school_id],
-    queryFn: () => ppdbService.getPublicSchoolDetail(formData.school_id),
-    enabled: !!formData.school_id && formData.school_id > 0,
+  // Active identifier can be string (NPSN/NSM/ID from URL) or numeric school_id chosen by user
+  const activeIdentifier = targetIdentifier || (formData.school_id > 0 ? formData.school_id : null);
+
+  // Query Selected / Direct School Detail (including active periods)
+  const { data: schoolDetail, isLoading: isLoadingSchoolDetail, isError: isSchoolDetailError } = useQuery({
+    queryKey: ['ppdb-school-detail', activeIdentifier],
+    queryFn: () => ppdbService.getPublicSchoolDetail(activeIdentifier!),
+    enabled: !!activeIdentifier,
   });
 
-  // Current active school object
-  const activeSelectedSchool = schools.find((s: any) => s.id === formData.school_id) || selectedSchool;
-
-  // Automatically select the first active period when school is loaded
+  // Keep formData.school_id in sync once schoolDetail is loaded (especially when resolved from NPSN)
   useEffect(() => {
-    if (selectedSchool?.ppdb_periods && selectedSchool.ppdb_periods.length > 0) {
+    if (schoolDetail?.id && formData.school_id !== schoolDetail.id) {
+      setFormData(prev => ({ ...prev, school_id: schoolDetail.id }));
+    }
+  }, [schoolDetail]);
+
+  // Current active school object
+  const activeSelectedSchool = schoolDetail || schools.find((s: any) => s.id === formData.school_id);
+
+  // Automatically select the first active period when activeSelectedSchool is loaded
+  useEffect(() => {
+    const periods = activeSelectedSchool?.ppdb_periods || activeSelectedSchool?.ppdbPeriods || [];
+    if (periods.length > 0) {
       setFormData(prev => {
-        const hasValidPeriod = selectedSchool.ppdb_periods.some((p: any) => p.id === prev.period_id);
+        const hasValidPeriod = periods.some((p: any) => p.id === prev.period_id);
         return {
           ...prev,
-          period_id: hasValidPeriod ? prev.period_id : selectedSchool.ppdb_periods[0].id,
+          period_id: hasValidPeriod ? prev.period_id : periods[0].id,
         };
       });
     }
-  }, [selectedSchool]);
+  }, [activeSelectedSchool]);
 
   // Submit Mutation
   const registerMutation = useMutation({
@@ -327,7 +342,7 @@ export default function PpdbRegistrationPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-slate-700">
-                    Pilih Madrasah / Sekolah Tujuan *
+                    Pilihan Madrasah / Sekolah Tujuan *
                   </Label>
                   {activeSelectedSchool && !isChangingSchool && (
                     <Button
@@ -345,21 +360,50 @@ export default function PpdbRegistrationPage() {
                   )}
                 </div>
 
-                {/* State A: Madrasah Already Selected (and not currently changing) */}
+                {/* Loading Direct School */}
+                {isLoadingSchoolDetail && !activeSelectedSchool && (
+                  <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200 flex items-center gap-3 animate-pulse">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-200" />
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 bg-emerald-200 rounded w-1/3" />
+                      <div className="h-3 bg-emerald-100 rounded w-1/2" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Error Direct School */}
+                {isSchoolDetailError && !activeSelectedSchool && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs space-y-1">
+                      <p className="font-bold">Madrasah Tidak Ditemukan</p>
+                      <p className="text-amber-800">
+                        Kode madrasah atau NPSN "{targetIdentifier}" tidak ditemukan. Silakan pilih madrasah dari daftar pencarian di bawah ini.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* State A: Madrasah Already Selected (Direct link or picked from list) */}
                 {activeSelectedSchool && !isChangingSchool ? (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-500 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/40 to-white border-2 border-emerald-500 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
                     <div className="flex items-start gap-3.5">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm shadow-emerald-600/20">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md shadow-emerald-600/20">
                         {activeSelectedSchool.jenjang || 'M'}
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-extrabold text-sm sm:text-base text-slate-900 leading-tight">
+                          <h4 className="font-black text-sm sm:text-base text-slate-900 leading-tight">
                             {activeSelectedSchool.nama}
                           </h4>
                           <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">
                             {activeSelectedSchool.jenjang || 'Madrasah'}
                           </Badge>
+                          {isDirectSchoolLink && (
+                            <Badge className="bg-emerald-700 text-white text-[10px] font-bold">
+                              🔗 Link Resmi Lembaga
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-slate-600 flex items-center gap-1.5 flex-wrap">
                           <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -368,9 +412,14 @@ export default function PpdbRegistrationPage() {
                             <span className="text-slate-500">• {activeSelectedSchool.alamat}</span>
                           )}
                           {activeSelectedSchool.npsn && (
-                            <span className="text-slate-400 font-mono text-[11px]">• NPSN: {activeSelectedSchool.npsn}</span>
+                            <span className="text-slate-500 font-mono text-[11px] font-semibold">• NPSN: {activeSelectedSchool.npsn}</span>
                           )}
                         </p>
+                        {isDirectSchoolLink && (
+                          <p className="text-[11px] text-emerald-800 font-medium pt-0.5">
+                            ✓ Madrasah terkunci otomatis sesuai link resmi yang Anda buka. Anda tidak perlu memilih madrasah lagi.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -522,47 +571,56 @@ export default function PpdbRegistrationPage() {
               </div>
 
               {/* School PPDB Period Info */}
-              {selectedSchool && (
+              {activeSelectedSchool && (
                 <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5">
-                  {selectedSchool.ppdb_periods && selectedSchool.ppdb_periods.length > 1 ? (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-emerald-950">Pilih Gelombang PPDB *</Label>
-                      <Select
-                        value={formData.period_id ? String(formData.period_id) : ''}
-                        onValueChange={(val) => handleInputChange('period_id', Number(val))}
-                      >
-                        <SelectTrigger className="rounded-xl h-10 text-xs bg-white border-emerald-200">
-                          <SelectValue placeholder="-- Pilih Gelombang PPDB --" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedSchool.ppdb_periods.map((per: any) => (
-                            <SelectItem key={per.id} value={String(per.id)}>
-                              {per.wave_name} ({per.academic_year}) • Kuota {per.quota}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ) : selectedSchool.ppdb_periods && selectedSchool.ppdb_periods.length === 1 ? (
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <span className="text-xs font-bold text-emerald-900 block">Gelombang PPDB Aktif:</span>
-                        <span className="text-[11px] text-emerald-700">
-                          Jadwal pendaftaran terbuka s.d. {new Date(selectedSchool.ppdb_periods[0].end_date).toLocaleDateString('id-ID')}
-                        </span>
-                      </div>
-                      <Badge className="bg-emerald-700 text-white text-[10px] font-bold py-1 px-2.5">
-                        {selectedSchool.ppdb_periods[0].wave_name} ({selectedSchool.ppdb_periods[0].academic_year})
-                      </Badge>
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Belum ada gelombang aktif untuk madrasah ini.</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const periods = activeSelectedSchool.ppdb_periods || activeSelectedSchool.ppdbPeriods || [];
+                    if (periods.length > 1) {
+                      return (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-bold text-emerald-950">Pilih Gelombang PPDB *</Label>
+                          <Select
+                            value={formData.period_id ? String(formData.period_id) : ''}
+                            onValueChange={(val) => handleInputChange('period_id', Number(val))}
+                          >
+                            <SelectTrigger className="rounded-xl h-10 text-xs bg-white border-emerald-200">
+                              <SelectValue placeholder="-- Pilih Gelombang PPDB --" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {periods.map((per: any) => (
+                                <SelectItem key={per.id} value={String(per.id)}>
+                                  {per.wave_name} ({per.academic_year}) • Kuota {per.quota}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    } else if (periods.length === 1) {
+                      return (
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-emerald-900 block">Gelombang PPDB Aktif:</span>
+                            <span className="text-[11px] text-emerald-700">
+                              Jadwal pendaftaran terbuka s.d. {new Date(periods[0].end_date).toLocaleDateString('id-ID')}
+                            </span>
+                          </div>
+                          <Badge className="bg-emerald-700 text-white text-[10px] font-bold py-1 px-2.5">
+                            {periods[0].wave_name} ({periods[0].academic_year})
+                          </Badge>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Pendaftaran online untuk madrasah ini belum dibuka atau gelombang telah berakhir. Silakan hubungi kontak madrasah.</span>
+                        </div>
+                      );
+                    }
+                  })()}
                   <p className="text-xs text-emerald-800/80">
-                    Alamat Lembaga: {selectedSchool.alamat || selectedSchool.kecamatan}
+                    Alamat Lembaga: {activeSelectedSchool.alamat || activeSelectedSchool.kecamatan}
                   </p>
                 </div>
               )}

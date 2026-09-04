@@ -18,8 +18,10 @@ import {
   PhoneCall,
   ShieldCheck,
   Award,
-  UserPlus
+  UserPlus,
+  Copy
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -381,13 +383,29 @@ export default function PpdbLandingPage() {
                       )}
                     </div>
 
-                    <Button
-                      onClick={() => navigate(`/ppdb/daftar?school_id=${school.id}`)}
-                      className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl text-xs h-10 shadow-sm flex items-center justify-center gap-1.5 transition-all"
-                    >
-                      Daftar ke Madrasah Ini
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => navigate(`/ppdb/daftar/${school.npsn || school.id}`)}
+                        className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl text-xs h-10 shadow-sm flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        Daftar ke Madrasah Ini
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        title="Salin Tautan Pendaftaran Langsung"
+                        onClick={() => {
+                          const url = `${window.location.origin}/ppdb/daftar/${school.npsn || school.id}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success(`Tautan PPDB ${school.nama} berhasil disalin!`);
+                        }}
+                        className="h-10 w-10 rounded-xl border-slate-200 text-slate-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 shrink-0"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );

@@ -15,7 +15,7 @@ export const ppdbService = {
     return unwrap(data);
   },
 
-  getPublicSchoolDetail: async (id: number) => {
+  getPublicSchoolDetail: async (id: number | string) => {
     const { data } = await apiClient.get(`/ppdb/schools/${id}`);
     return unwrap(data);
   },

@@ -205,6 +205,7 @@ export default function App() {
             {/* Public PPDB Portal — no login required */}
             <Route path="/ppdb" element={<PpdbLandingPage />} />
             <Route path="/ppdb/daftar" element={<PpdbRegistrationPage />} />
+            <Route path="/ppdb/daftar/:schoolIdentifier" element={<PpdbRegistrationPage />} />
             <Route path="/ppdb/status" element={<PpdbStatusCheckPage />} />
 
             {/* Protected Routes Wrapper */}

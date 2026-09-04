@@ -25,7 +25,9 @@ import {
   FileText,
   UserCheck,
   Trash2,
-  Lock
+  Lock,
+  Copy,
+  Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,6 +113,16 @@ export default function PpdbCenterPage() {
     enabled: isSuperAdmin,
   });
 
+  const userSchoolId = user?.schoolId || user?.school_id;
+
+  const { data: operatorSchool } = useQuery({
+    queryKey: ['ppdb-operator-school', userSchoolId],
+    queryFn: () => ppdbService.getPublicSchoolDetail(userSchoolId),
+    enabled: !isSuperAdmin && !!userSchoolId,
+  });
+
+  const [adminSelectedSchoolId, setAdminSelectedSchoolId] = useState<string>('');
+
   const registrations: PpdbRegistration[] = Array.isArray(registrationsData)
     ? registrationsData
     : (registrationsData?.items || registrationsData?.data?.items || registrationsData?.data || []);
@@ -120,6 +132,31 @@ export default function PpdbCenterPage() {
   const schools = Array.isArray(schoolsList)
     ? schoolsList
     : (schoolsList?.items || schoolsList?.data?.items || schoolsList?.data || []);
+
+  const activeSchoolForLink = isSuperAdmin
+    ? (schools.find((s: any) => String(s.id) === adminSelectedSchoolId) || schools[0] || null)
+    : (operatorSchool || { id: userSchoolId, nama: user?.unit || user?.school?.name || user?.name || 'Madrasah', npsn: '' });
+
+  const uniqueLinkIdentifier = activeSchoolForLink?.npsn || activeSchoolForLink?.id || userSchoolId;
+  const uniquePpdbUrl = uniqueLinkIdentifier ? `${window.location.origin}/ppdb/daftar/${uniqueLinkIdentifier}` : '';
+
+  const handleCopyLink = () => {
+    if (!uniquePpdbUrl) return;
+    navigator.clipboard.writeText(uniquePpdbUrl);
+    toast.success(`Tautan PPDB ${activeSchoolForLink?.nama || 'Madrasah'} berhasil disalin ke clipboard!`);
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!uniquePpdbUrl) return;
+    const schoolName = activeSchoolForLink?.nama || 'Madrasah Ma\'arif NU Cilacap';
+    const text = `*PENERIMAAN PESERTA DIDIK BARU (PPDB) ONLINE*\n` +
+      `*${schoolName}*\n\n` +
+      `Pendaftaran peserta didik baru kini dapat diakses secara online langsung melalui tautan resmi:\n` +
+      `👉 ${uniquePpdbUrl}\n\n` +
+      `_Catatan: Membuka tautan di atas akan langsung menampilkan formulir resmi khusus ${schoolName} tanpa perlu mencari/memilih madrasah lagi._\n\n` +
+      `LP Ma'arif NU Cabang Cilacap`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   // Mutations
   const verifyMutation = useMutation({
@@ -268,6 +305,101 @@ export default function PpdbCenterPage() {
               ? 'Akses penuh: Mengelola gelombang serentak se-kabupaten & memantau seluruh pendaftaran madrasah.'
               : `Akses terbatas: Memverifikasi & mengelola pendaftar khusus ${user?.unit || user?.school?.name || 'madrasah Anda'}.`}
           </span>
+        </div>
+      </div>
+
+      {/* ── Unique School PPDB Link Card ── */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-950 via-teal-950 to-slate-900 text-white shadow-lg border border-emerald-800/40 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="space-y-2 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px] font-extrabold uppercase px-2.5 py-0.5">
+              🔗 Tautan Pendaftaran PPDB Langsung
+            </Badge>
+            {isSuperAdmin && (
+              <span className="text-[11px] text-emerald-200/80">Pilih madrasah untuk menyalin tautan uniknya</span>
+            )}
+          </div>
+
+          <h3 className="font-black text-base sm:text-lg text-white flex items-center gap-2 flex-wrap">
+            <span>{activeSchoolForLink?.nama || 'Madrasah Ma\'arif NU'}</span>
+            {activeSchoolForLink?.npsn && (
+              <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-900/60 px-2.5 py-0.5 rounded-lg border border-emerald-700/50">
+                NPSN: {activeSchoolForLink.npsn}
+              </span>
+            )}
+            {activeSchoolForLink?.jenjang && (
+              <Badge className="bg-emerald-700 text-white text-[10px]">
+                {activeSchoolForLink.jenjang}
+              </Badge>
+            )}
+          </h3>
+
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Calon siswa/wali murid yang membuka link unik ini <strong>otomatis terhubung ke madrasah ini tanpa perlu mencari atau memilih madrasah lagi</strong>. Sangat praktis untuk dibagikan ke brosur, status WA, maupun media sosial.
+          </p>
+
+          {/* Super Admin School Switcher */}
+          {isSuperAdmin && schools.length > 0 && (
+            <div className="pt-1.5 flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-emerald-300">Pilih Madrasah:</span>
+              <div className="w-72">
+                <Select 
+                  value={adminSelectedSchoolId || (schools[0]?.id ? String(schools[0].id) : '')} 
+                  onValueChange={setAdminSelectedSchoolId}
+                >
+                  <SelectTrigger className="h-8 rounded-xl bg-slate-800/90 border-slate-700 text-xs text-white">
+                    <SelectValue placeholder="Pilih Madrasah" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {schools.map((sch: any) => (
+                      <SelectItem key={sch.id} value={String(sch.id)}>
+                        {sch.nama} {sch.npsn ? `(${sch.npsn})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Link Box & Quick Actions */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <div className="px-3.5 py-2 rounded-xl bg-black/40 border border-emerald-700/30 text-xs font-mono text-emerald-300 truncate max-w-xs flex items-center justify-between gap-2">
+            <span className="truncate select-all">{uniquePpdbUrl || 'Tautan belum tersedia'}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              onClick={handleCopyLink}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold h-10 px-4 shadow-sm flex items-center gap-1.5 transition-all"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              Salin Link
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold h-10 px-4 shadow-sm flex items-center gap-1.5 transition-all"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              WhatsApp
+            </Button>
+
+            {uniquePpdbUrl && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.open(uniquePpdbUrl, '_blank')}
+                className="rounded-xl text-xs font-bold h-10 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20"
+                title="Buka Form Pendaftaran Calon Siswa"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -689,6 +821,22 @@ export default function PpdbCenterPage() {
                   <div className="pt-3 border-t border-slate-200/80 flex justify-between items-center text-[11px] text-slate-500">
                     <span>{period.registrations_count || 0} Pendaftar</span>
                     <div className="flex items-center gap-2">
+                      {period.school && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const url = `${window.location.origin}/ppdb/daftar/${period.school?.npsn || period.school_id}`;
+                            navigator.clipboard.writeText(url);
+                            toast.success(`Tautan PPDB ${period.school?.nama} berhasil disalin!`);
+                          }}
+                          className="h-7 px-2 text-emerald-700 hover:bg-emerald-50 rounded-lg text-[11px] font-semibold flex items-center gap-1 border-emerald-200"
+                          title="Salin Link PPDB Madrasah Ini"
+                        >
+                          <Copy className="w-3 h-3" /> Salin Link
+                        </Button>
+                      )}
                       {!canManagePeriod(period) ? (
                         <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 font-medium bg-slate-200/60 px-2 py-0.5 rounded-full">
                           <Lock className="w-3 h-3" /> Serentak (Read-only)

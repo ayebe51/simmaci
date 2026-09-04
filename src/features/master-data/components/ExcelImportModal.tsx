@@ -5,6 +5,7 @@ import FileUploadStep from "../../../features/emis-import/components/FileUploadS
 import { useState } from "react"
 import { toast } from "sonner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table"
+import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary"
 interface ExcelImportModalProps {
   title: string
   description: string
@@ -133,77 +134,79 @@ export default function ExcelImportModal({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        {!previewData ? (
-          <>
-            {onDownloadTemplate && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
-                <p className="text-sm text-blue-800 font-medium mb-2">ℹ️ Download Template</p>
-                <p className="text-xs text-blue-700 mb-3">
-                  Anda bisa download template Excel terlebih dahulu, lalu isi data sesuai format yang sudah ditentukan.
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={onDownloadTemplate}
-                  className="w-full"
-                >
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
-                  Download Template Excel
-                </Button>
-              </div>
-            )}
+        <GlobalErrorBoundary>
+          {!previewData ? (
+            <>
+              {onDownloadTemplate && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+                  <p className="text-sm text-blue-800 font-medium mb-2">ℹ️ Download Template</p>
+                  <p className="text-xs text-blue-700 mb-3">
+                    Anda bisa download template Excel terlebih dahulu, lalu isi data sesuai format yang sudah ditentukan.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={onDownloadTemplate}
+                    className="w-full"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Download Template Excel
+                  </Button>
+                </div>
+              )}
 
-            <FileUploadStep
-              onFileAccepted={handleFileAccepted}
-              disabled={isUploading}
-              templateUrl={templateUrl}
-            />
+              <FileUploadStep
+                onFileAccepted={handleFileAccepted}
+                disabled={isUploading}
+                templateUrl={templateUrl}
+              />
 
-            {isUploading && <p className="text-center text-sm text-muted-foreground">Mengupload...</p>}
-          </>
-        ) : (
-          <div className="space-y-4">
-             <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl text-sm text-blue-800">
-               <strong>Preview Data (Dry Run)</strong> - Ditemukan <strong>{previewData.length}</strong> baris data. Silakan tinjau beberapa baris pertama sebelum mengimpor.
-             </div>
-             
-             <div className="max-h-[50vh] overflow-auto border rounded-xl shadow-inner">
-               <Table>
-                 <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-                    <TableRow>
-                       <TableHead className="w-12 text-center text-xs font-bold">No</TableHead>
-                       {previewHeaders.slice(0, 8).map(h => (
-                          <TableHead key={h} className="whitespace-nowrap text-xs font-bold">{h}</TableHead>
-                       ))}
-                    </TableRow>
-                 </TableHeader>
-                 <TableBody>
-                    {previewData.slice(0, 50).map((row, i) => (
-                       <TableRow key={i} className="hover:bg-slate-50">
-                          <TableCell className="text-center text-xs text-slate-500">{i + 1}</TableCell>
-                          {previewHeaders.slice(0, 8).map(h => (
-                             <TableCell key={h} className="whitespace-nowrap text-xs truncate max-w-[200px]">
-                                {String(row[h] ?? '')}
-                             </TableCell>
-                          ))}
-                       </TableRow>
-                    ))}
-                 </TableBody>
-               </Table>
-             </div>
-             
-             {previewData.length > 50 && (
-               <p className="text-center text-xs text-slate-500 font-medium">Menampilkan 50 baris pertama dari {previewData.length} total baris...</p>
-             )}
-             
-             <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
-               <Button variant="outline" onClick={() => setPreviewData(null)} disabled={isUploading}>Batal / Pilih Ulang</Button>
-               <Button onClick={handleConfirmImport} disabled={isUploading} className="bg-emerald-600 hover:bg-emerald-700 font-semibold shadow-sm">
-                 {isUploading ? "Memproses Import..." : "Konfirmasi & Import"}
-               </Button>
-             </div>
-          </div>
-        )}
+              {isUploading && <p className="text-center text-sm text-muted-foreground">Mengupload...</p>}
+            </>
+          ) : (
+            <div className="space-y-4">
+               <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl text-sm text-blue-800">
+                 <strong>Preview Data (Dry Run)</strong> - Ditemukan <strong>{previewData.length}</strong> baris data. Silakan tinjau beberapa baris pertama sebelum mengimpor.
+               </div>
+               
+               <div className="max-h-[50vh] overflow-auto border rounded-xl shadow-inner">
+                 <Table>
+                   <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+                      <TableRow>
+                         <TableHead className="w-12 text-center text-xs font-bold">No</TableHead>
+                         {previewHeaders.slice(0, 8).map(h => (
+                            <TableHead key={h} className="whitespace-nowrap text-xs font-bold">{h}</TableHead>
+                         ))}
+                      </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                      {previewData.slice(0, 50).map((row, i) => (
+                         <TableRow key={i} className="hover:bg-slate-50">
+                            <TableCell className="text-center text-xs text-slate-500">{i + 1}</TableCell>
+                            {previewHeaders.slice(0, 8).map(h => (
+                               <TableCell key={h} className="whitespace-nowrap text-xs truncate max-w-[200px]">
+                                  {String(row[h] ?? '')}
+                               </TableCell>
+                            ))}
+                         </TableRow>
+                      ))}
+                   </TableBody>
+                 </Table>
+               </div>
+               
+               {previewData.length > 50 && (
+                 <p className="text-center text-xs text-slate-500 font-medium">Menampilkan 50 baris pertama dari {previewData.length} total baris...</p>
+               )}
+               
+               <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                 <Button variant="outline" onClick={() => setPreviewData(null)} disabled={isUploading}>Batal / Pilih Ulang</Button>
+                 <Button onClick={handleConfirmImport} disabled={isUploading} className="bg-emerald-600 hover:bg-emerald-700 font-semibold shadow-sm">
+                   {isUploading ? "Memproses Import..." : "Konfirmasi & Import"}
+                 </Button>
+               </div>
+            </div>
+          )}
+        </GlobalErrorBoundary>
       </DialogContent>
     </Dialog>
   )

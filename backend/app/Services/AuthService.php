@@ -38,8 +38,16 @@ class AuthService extends BaseService
             ]);
         }
 
-        // Revoke old tokens (single device)
-        $user->tokens()->delete();
+        // Prune old tokens: operators support multi-device/multi-tab sessions (up to 5 active sessions)
+        // whereas privileged admin accounts enforce single-device sessions.
+        if ($user->isOperator()) {
+            $tokenIds = $user->tokens()->orderByDesc('created_at')->skip(4)->take(10)->pluck('id');
+            if ($tokenIds->isNotEmpty()) {
+                $user->tokens()->whereIn('id', $tokenIds)->delete();
+            }
+        } else {
+            $user->tokens()->delete();
+        }
 
         $token = $user->createToken('auth-token')->plainTextToken;
 

@@ -32,3 +32,17 @@ test_env.php
 check-headers.cjs
 security-remediation/
 scratch/
+
+# WhatsApp session data & operational SQLite databases
+gowa_data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# Private keys & certificates
+*.pem
+*.key
+*.p12
+*.pfx

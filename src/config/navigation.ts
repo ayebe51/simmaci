@@ -18,7 +18,8 @@ import {
   Award,
   CheckSquare,
   BadgeCheck,
-  Archive
+  Archive,
+  GraduationCap
 } from "lucide-react";
 
 export type Role = "super_admin" | "admin_yayasan" | "operator" | "staff" | "admin";
@@ -49,6 +50,7 @@ export const navigationConfig: NavGroup[] = [
       { id: "school_manage", label: "Data Satpend", href: "/dashboard/master/schools", icon: School, roles: ["super_admin", "admin_yayasan", "admin"] },
       { id: "teachers", label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
       { id: "students_center", label: "Data Siswa", href: "/dashboard/students-center", icon: User },
+      { id: "ppdb_center", label: "Pusat PPDB Terpadu", href: "/dashboard/ppdb-center", icon: GraduationCap },
     ]
   },
   {

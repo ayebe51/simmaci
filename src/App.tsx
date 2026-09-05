@@ -126,6 +126,12 @@ const CardCenterPage = lazyWithRetry(() => import("./features/kta/CardCenterPage
 const AuditCenterPage = lazyWithRetry(() => import("./features/master-data/AuditCenterPage"))
 const StudentCenterPage = lazyWithRetry(() => import("./features/master-data/StudentCenterPage"))
 
+// ── PPDB Online ───────────────────────────────────────────────────────────────
+const PpdbLandingPage = lazyWithRetry(() => import("./features/ppdb/public/PpdbLandingPage"))
+const PpdbRegistrationPage = lazyWithRetry(() => import("./features/ppdb/public/PpdbRegistrationPage"))
+const PpdbStatusCheckPage = lazyWithRetry(() => import("./features/ppdb/public/PpdbStatusCheckPage"))
+const PpdbCenterPage = lazyWithRetry(() => import("./features/ppdb/admin/PpdbCenterPage"))
+
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -195,6 +201,11 @@ export default function App() {
 
             {/* Public Scoreboard — no login required */}
             <Route path="/papan-skor/:eventId/:competitionId" element={<PublicScoreboardPage />} />
+
+            {/* Public PPDB Portal — no login required */}
+            <Route path="/ppdb" element={<PpdbLandingPage />} />
+            <Route path="/ppdb/daftar" element={<PpdbRegistrationPage />} />
+            <Route path="/ppdb/status" element={<PpdbStatusCheckPage />} />
 
             {/* Protected Routes Wrapper */}
             <Route
@@ -282,6 +293,8 @@ export default function App() {
                           <Route path="cards-center" element={<CardCenterPage />} />
                           <Route path="audit-center" element={<AuditCenterPage />} />
                           <Route path="students-center" element={<StudentCenterPage />} />
+                          <Route path="ppdb-center" element={<PpdbCenterPage />} />
+                          <Route path="ppdb" element={<PpdbCenterPage />} />
                         </Routes>
                       </PageTransition>
                     </GlobalErrorBoundary>

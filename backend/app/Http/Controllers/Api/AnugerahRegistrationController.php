@@ -159,7 +159,7 @@ class AnugerahRegistrationController extends Controller
             'reviewer_notes'   => 'nullable|string',
             'rejection_reason' => 'nullable|string|required_if:status,rejected',
             'rank'             => 'nullable|integer|min:1',
-            'total_score'      => 'nullable|integer|min:0',
+            'total_score'      => 'nullable|numeric|min:0',
         ]);
 
         $data['reviewed_at'] = now();

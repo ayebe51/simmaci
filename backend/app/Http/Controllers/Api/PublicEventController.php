@@ -228,6 +228,7 @@ class PublicEventController extends Controller
         $request->validate([
             'competition_id' => 'required|integer|exists:competitions,id,deleted_at,NULL',
             'pin'            => 'required|string',
+            'jury_name'      => 'required|string|min:2|max:100',
         ]);
 
         $competition = Competition::findOrFail($request->competition_id);
@@ -241,19 +242,25 @@ class PublicEventController extends Controller
             return $this->error('PIN juri tidak valid.', 401);
         }
 
-        // Issue a short-lived signed token (24h) via Cache
+        $juryName = trim($request->jury_name);
+
+        // Issue a short-lived signed token (24h) via Cache containing competition ID & jury name
         $token = bin2hex(random_bytes(20));
-        Cache::put("jury_token_{$token}", $competition->id, now()->addHours(24));
+        Cache::put("jury_token_{$token}", [
+            'competition_id' => $competition->id,
+            'jury_name'      => $juryName,
+        ], now()->addHours(24));
 
         return $this->success([
             'token'       => $token,
+            'jury_name'   => $juryName,
             'competition' => [
                 'id'         => $competition->id,
                 'name'       => $competition->name,
                 'lomba_type' => $competition->lomba_type,
                 'event'      => $competition->event?->name,
             ],
-        ], 'PIN valid. Selamat datang, Dewan Juri.');
+        ], "PIN valid. Selamat datang, Dewan Juri {$juryName}.");
     }
 
     /**
@@ -262,11 +269,14 @@ class PublicEventController extends Controller
      */
     public function juryParticipants(string $token): JsonResponse
     {
-        $competitionId = $this->resolveJuryToken($token);
-        if (! $competitionId) return $this->error('Token juri tidak valid atau sudah kadaluarsa.', 401);
+        $session = $this->resolveJurySession($token);
+        if (! $session) return $this->error('Token juri tidak valid atau sudah kadaluarsa.', 401);
+
+        $competitionId = $session['competition_id'];
+        $juryName      = $session['jury_name'];
 
         $competition = Competition::with([
-            'participants' => fn ($q) => $q->with('result')->orderBy('institution')->orderBy('name'),
+            'participants' => fn ($q) => $q->with(['result', 'juryScores'])->orderBy('institution')->orderBy('name'),
             'event:id,name',
         ])->findOrFail($competitionId);
 
@@ -280,83 +290,113 @@ class PublicEventController extends Controller
         if ($isAnugerah) {
             $registrations = \App\Models\AnugerahRegistration::where('competition_id', $competitionId)
                 ->whereIn('status', ['submitted', 'under_review', 'finalis', 'winner', 'draft'])
+                ->with('juryScores')
                 ->orderBy('school_name')
                 ->orderBy('applicant_name')
                 ->get();
 
-            $participants = $registrations->map(fn ($r) => [
-                'id'            => 'reg_' . $r->id,
-                'name'          => $r->applicant_name,
-                'institution'   => $r->school_name,
-                'jenjang'       => $r->jenjang,
-                'kecamatan'     => $r->kecamatan,
-                'contact_phone' => $r->contact_phone,
-                'status'        => $r->status,
-                'total_score'   => $r->total_score,
-                'documents'     => array_filter([
-                    'Surat Keterangan Aktif'       => $r->surat_keterangan_aktif_url,
-                    'Sertifikat PKPNU'             => $r->sertifikat_pkpnu_url,
-                    'Surat Rekomendasi'            => $r->surat_rekomendasi_url,
-                    'Surat Keterangan Integritas'  => $r->surat_keterangan_integritas_url,
-                    'Bukti Prestasi / Sertifikat'  => $r->bukti_prestasi_url,
-                    'Esai Reflektif'               => $r->esai_reflektif_url,
-                    'Karya Ilmiah / Publikasi'     => $r->karya_ilmiah_url,
-                    'Dokumen PDCA'                 => $r->dokumen_pdca_url,
-                    'Portofolio Branding'          => $r->portofolio_branding_url,
-                    'Rekap Prestasi'               => $r->rekap_prestasi_url,
-                    'Dokumen Administratif'        => $r->dokumen_admin_url,
-                ]),
-                'video_url'     => null,
-                'result'        => $r->rank || $r->total_score || $r->score_breakdown ? [
-                    'rank'            => $r->rank, 
-                    'score'           => $r->total_score, 
-                    'notes'           => $r->reviewer_notes,
-                    'score_breakdown' => $r->score_breakdown,
-                ] : null,
-                'type'          => 'anugerah',
-                'reg_id'        => $r->id,
-            ]);
+            $participants = $registrations->map(function ($r) use ($juryName) {
+                $myScore   = $r->juryScores->firstWhere('jury_name', $juryName);
+                $allScores = $r->juryScores;
+                $jCount    = $allScores->count();
+                $avgScore  = $jCount > 0 ? round((float) $allScores->avg('score'), 2) : (float) $r->total_score;
+
+                return [
+                    'id'            => 'reg_' . $r->id,
+                    'name'          => $r->applicant_name,
+                    'institution'   => $r->school_name,
+                    'jenjang'       => $r->jenjang,
+                    'kecamatan'     => $r->kecamatan,
+                    'contact_phone' => $r->contact_phone,
+                    'status'        => $r->status,
+                    'total_score'   => $avgScore,
+                    'documents'     => array_filter([
+                        'Surat Keterangan Aktif'       => $r->surat_keterangan_aktif_url,
+                        'Sertifikat PKPNU'             => $r->sertifikat_pkpnu_url,
+                        'Surat Rekomendasi'            => $r->surat_rekomendasi_url,
+                        'Surat Keterangan Integritas'  => $r->surat_keterangan_integritas_url,
+                        'Bukti Prestasi / Sertifikat'  => $r->bukti_prestasi_url,
+                        'Esai Reflektif'               => $r->esai_reflektif_url,
+                        'Karya Ilmiah / Publikasi'     => $r->karya_ilmiah_url,
+                        'Dokumen PDCA'                 => $r->dokumen_pdca_url,
+                        'Portofolio Branding'          => $r->portofolio_branding_url,
+                        'Rekap Prestasi'               => $r->rekap_prestasi_url,
+                        'Dokumen Administratif'        => $r->dokumen_admin_url,
+                    ]),
+                    'video_url'     => null,
+                    'result'        => [
+                        'rank'             => $r->rank,
+                        'score'            => $myScore ? (float) $myScore->score : null,
+                        'notes'            => $myScore?->notes ?? '',
+                        'score_breakdown'  => $myScore?->score_breakdown ?? null,
+                        'final_score'      => $avgScore,
+                        'juries_count'     => $jCount,
+                        'is_scored_by_me'  => ($myScore !== null),
+                        'all_jury_scores'  => $allScores->map(fn ($s) => [
+                            'jury_name' => $s->jury_name,
+                            'score'     => (float) $s->score,
+                        ])->values(),
+                    ],
+                    'type'          => 'anugerah',
+                    'reg_id'        => $r->id,
+                ];
+            });
         } else {
-            $participants = $competition->participants->map(fn ($p) => [
-                'id'              => $p->id,
-                'name'            => $p->name,
-                'jenjang'         => $p->jenjang,
-                'institution'     => $p->institution,
-                'gender_category' => $p->gender_category,
-                'contact_phone'   => $p->contact_phone,
-                'video_url'       => $p->video_url,
-                'documents'   => array_filter([
-                    'Surat Keterangan Aktif'       => $p->surat_keterangan_aktif_url,
-                    'Sertifikat PKPNU'             => $p->sertifikat_pkpnu_url,
-                    'Surat Rekomendasi'            => $p->surat_rekomendasi_url,
-                    'Surat Keterangan Integritas'  => $p->surat_keterangan_integritas_url,
-                    'Bukti Prestasi / Sertifikat'  => $p->bukti_prestasi_url,
-                    'Esai Reflektif'               => $p->esai_reflektif_url,
-                    'Karya Ilmiah / Publikasi'     => $p->karya_ilmiah_url,
-                    'Dokumen PDCA'                 => $p->dokumen_pdca_url,
-                    'Portofolio Branding'          => $p->portofolio_branding_url,
-                    'Rekap Prestasi'               => $p->rekap_prestasi_url,
-                    'Dokumen Administratif'        => $p->dokumen_admin_url,
-                    'Sinopsis / Naskah'            => $p->sinopsis_url,
-                ]),
-                'result'      => $p->result ? [
-                    'rank'            => $p->result->rank,
-                    'score'           => $p->result->score,
-                    'notes'           => $p->result->notes,
-                    'score_breakdown' => $p->result->score_breakdown,
-                ] : null,
-                'type' => 'competition',
-            ]);
+            $participants = $competition->participants->map(function ($p) use ($juryName) {
+                $myScore   = $p->juryScores->firstWhere('jury_name', $juryName);
+                $allScores = $p->juryScores;
+                $jCount    = $allScores->count();
+                $avgScore  = $jCount > 0 ? round((float) $allScores->avg('score'), 2) : ($p->result ? (float) $p->result->score : null);
+
+                return [
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'jenjang'         => $p->jenjang,
+                    'institution'     => $p->institution,
+                    'gender_category' => $p->gender_category,
+                    'contact_phone'   => $p->contact_phone,
+                    'video_url'       => $p->video_url,
+                    'documents'   => array_filter([
+                        'Surat Keterangan Aktif'       => $p->surat_keterangan_aktif_url,
+                        'Sertifikat PKPNU'             => $p->sertifikat_pkpnu_url,
+                        'Surat Rekomendasi'            => $p->surat_rekomendasi_url,
+                        'Surat Keterangan Integritas'  => $p->surat_keterangan_integritas_url,
+                        'Bukti Prestasi / Sertifikat'  => $p->bukti_prestasi_url,
+                        'Esai Reflektif'               => $p->esai_reflektif_url,
+                        'Karya Ilmiah / Publikasi'     => $p->karya_ilmiah_url,
+                        'Dokumen PDCA'                 => $p->dokumen_pdca_url,
+                        'Portofolio Branding'          => $p->portofolio_branding_url,
+                        'Rekap Prestasi'               => $p->rekap_prestasi_url,
+                        'Dokumen Administratif'        => $p->dokumen_admin_url,
+                        'Sinopsis / Naskah'            => $p->sinopsis_url,
+                    ]),
+                    'result'      => [
+                        'rank'             => $p->result?->rank,
+                        'score'            => $myScore ? (float) $myScore->score : null,
+                        'notes'            => $myScore?->notes ?? '',
+                        'score_breakdown'  => $myScore?->score_breakdown ?? null,
+                        'final_score'      => $avgScore,
+                        'juries_count'     => $jCount,
+                        'is_scored_by_me'  => ($myScore !== null),
+                        'all_jury_scores'  => $allScores->map(fn ($s) => [
+                            'jury_name' => $s->jury_name,
+                            'score'     => (float) $s->score,
+                        ])->values(),
+                    ],
+                    'type' => 'competition',
+                ];
+            });
         }
 
         return $this->success([
+            'jury_name'   => $juryName,
             'competition' => [
-                'id'         => $competition->id,
-                'name'       => $competition->name,
-                'lomba_type' => $lombaType,
-                'jenjang'    => $competition->jenjang,
-                'event'      => $competition->event?->name,
-                'criteria'   => $criteria,
+                'id'          => $competition->id,
+                'name'        => $competition->name,
+                'lomba_type'  => $lombaType,
+                'jenjang'     => $competition->jenjang,
+                'event'       => $competition->event?->name,
+                'criteria'    => $criteria,
                 'is_anugerah' => $isAnugerah,
             ],
             'participants' => $participants,
@@ -371,16 +411,23 @@ class PublicEventController extends Controller
      */
     public function juryScore(Request $request, string $token): JsonResponse
     {
-        $competitionId = $this->resolveJuryToken($token);
-        if (! $competitionId) return $this->error('Token juri tidak valid atau sudah kadaluarsa.', 401);
+        $session = $this->resolveJurySession($token);
+        if (! $session) return $this->error('Token juri tidak valid atau sudah kadaluarsa.', 401);
+
+        $competitionId = $session['competition_id'];
+        $juryName      = $session['jury_name'];
+
+        $competition = Competition::findOrFail($competitionId);
 
         $data = $request->validate([
             'participant_id'  => 'required|string',
             'rank'            => 'nullable|integer|min:1',
-            'score'           => 'nullable|numeric|min:0|max:100',
+            'score'           => 'required|numeric|min:0|max:100',
             'notes'           => 'nullable|string|max:1000',
             'score_breakdown' => 'nullable|array',
         ]);
+
+        $scoreVal = (float) $data['score'];
 
         // Anugerah registration (id prefixed with "reg_")
         if (str_starts_with((string) $data['participant_id'], 'reg_')) {
@@ -389,42 +436,102 @@ class PublicEventController extends Controller
                 ->where('competition_id', $competitionId)
                 ->firstOrFail();
 
+            // 1. Record score specifically for this jury
+            \App\Models\CompetitionJuryScore::updateOrCreate(
+                [
+                    'competition_id'           => $competitionId,
+                    'anugerah_registration_id' => $regId,
+                    'jury_name'                => $juryName,
+                ],
+                [
+                    'score'           => $scoreVal,
+                    'score_breakdown' => $data['score_breakdown'] ?? null,
+                    'notes'           => $data['notes'] ?? null,
+                ]
+            );
+
+            // 2. Aggregate all jury scores for this registration (Average)
+            $allJuryScores = \App\Models\CompetitionJuryScore::where('competition_id', $competitionId)
+                ->where('anugerah_registration_id', $regId)
+                ->get();
+
+            $avgScore = round((float) $allJuryScores->avg('score'), 2);
+
+            // 3. Update main registration record with aggregated average
             $reg->update([
-                'rank'            => $data['rank'] ?? $reg->rank,
+                'total_score'     => $avgScore,
                 'reviewer_notes'  => $data['notes'] ?? $reg->reviewer_notes,
-                'total_score'     => $data['score'] !== null ? (float) $data['score'] : $reg->total_score,
                 'score_breakdown' => $data['score_breakdown'] ?? $reg->score_breakdown,
             ]);
 
+            // 4. Automatically recalculate and assign ranks in real-time
+            \App\Services\CompetitionRankingService::autoRank($competition);
+
+            $reg->refresh();
+
             return $this->success([
-                'participant_id' => $data['participant_id'],
-                'name'           => $reg->applicant_name,
-                'rank'           => $reg->rank,
-                'score'          => $reg->total_score,
-            ], 'Nilai berhasil disimpan.');
+                'participant_id'  => $data['participant_id'],
+                'name'            => $reg->applicant_name,
+                'jury_name'       => $juryName,
+                'jury_score'      => $scoreVal,
+                'final_score'     => (float) $reg->total_score,
+                'juries_count'    => $allJuryScores->count(),
+                'rank'            => $reg->rank,
+                'all_jury_scores' => $allJuryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values(),
+            ], "Nilai dari {$juryName} berhasil disimpan. Rata-rata: {$reg->total_score} (Juara {$reg->rank}).");
         }
 
-        // Regular competition participant
+        // Regular competition participant (Festival Aswaja)
         $participant = CompetitionParticipant::where('id', (int) $data['participant_id'])
             ->where('competition_id', $competitionId)
             ->firstOrFail();
 
+        // 1. Record score specifically for this jury
+        \App\Models\CompetitionJuryScore::updateOrCreate(
+            [
+                'competition_id' => $competitionId,
+                'participant_id' => $participant->id,
+                'jury_name'      => $juryName,
+            ],
+            [
+                'score'           => $scoreVal,
+                'score_breakdown' => $data['score_breakdown'] ?? null,
+                'notes'           => $data['notes'] ?? null,
+            ]
+        );
+
+        // 2. Aggregate all jury scores for this participant (Average)
+        $allJuryScores = \App\Models\CompetitionJuryScore::where('competition_id', $competitionId)
+            ->where('participant_id', $participant->id)
+            ->get();
+
+        $avgScore = round((float) $allJuryScores->avg('score'), 2);
+
+        // 3. Update competition_results with aggregated average
         $result = CompetitionResult::updateOrCreate(
             ['competition_id' => $competitionId, 'participant_id' => $participant->id],
             [
-                'rank'            => $data['rank'] ?? null,
-                'score'           => $data['score'] ?? null,
+                'score'           => $avgScore,
                 'notes'           => $data['notes'] ?? null,
                 'score_breakdown' => $data['score_breakdown'] ?? null,
             ]
         );
 
+        // 4. Automatically recalculate and assign ranks in real-time
+        \App\Services\CompetitionRankingService::autoRank($competition);
+
+        $result->refresh();
+
         return $this->success([
-            'participant_id' => $participant->id,
-            'name'           => $participant->name,
-            'rank'           => $result->rank,
-            'score'          => $result->score,
-        ], 'Nilai berhasil disimpan.');
+            'participant_id'  => $participant->id,
+            'name'            => $participant->name,
+            'jury_name'       => $juryName,
+            'jury_score'      => $scoreVal,
+            'final_score'     => (float) $result->score,
+            'juries_count'    => $allJuryScores->count(),
+            'rank'            => $result->rank,
+            'all_jury_scores' => $allJuryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values(),
+        ], "Nilai dari {$juryName} berhasil disimpan. Rata-rata: {$result->score} (Juara {$result->rank}).");
     }
 
     /**
@@ -441,28 +548,39 @@ class PublicEventController extends Controller
 
         if ($isAnugerah) {
             $results = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
-                ->whereNotNull('rank')
-                ->orderBy('rank')
+                ->with('juryScores')
+                ->where(function ($q) {
+                    $q->whereNotNull('rank')->orWhere('total_score', '>', 0);
+                })
+                ->orderByRaw('CASE WHEN rank IS NULL THEN 9999 ELSE rank END ASC')
+                ->orderByDesc('total_score')
                 ->get()
                 ->map(fn ($r) => [
-                    'rank'        => $r->rank,
-                    'name'        => $r->applicant_name,
-                    'institution' => $r->school_name,
-                    'score'       => $r->total_score,
-                    'notes'       => $r->reviewer_notes,
+                    'rank'            => $r->rank,
+                    'name'            => $r->applicant_name,
+                    'institution'     => $r->school_name,
+                    'score'           => (float) $r->total_score,
+                    'notes'           => $r->reviewer_notes,
+                    'juries_count'    => $r->juryScores->count(),
+                    'all_jury_scores' => $r->juryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values(),
                 ]);
         } else {
             $results = CompetitionResult::where('competition_id', $competition->id)
-                ->with('participant:id,name,institution,gender_category')
-                ->whereNotNull('rank')
-                ->orderBy('rank')
+                ->with(['participant:id,name,institution,gender_category', 'participant.juryScores'])
+                ->where(function ($q) {
+                    $q->whereNotNull('rank')->orWhere('score', '>', 0);
+                })
+                ->orderByRaw('CASE WHEN rank IS NULL THEN 9999 ELSE rank END ASC')
+                ->orderByDesc('score')
                 ->get()
                 ->map(fn ($r) => [
-                    'rank'        => $r->rank,
-                    'name'        => $r->participant?->name,
-                    'institution' => $r->participant?->institution,
-                    'score'       => $r->score,
-                    'notes'       => $r->notes,
+                    'rank'            => $r->rank,
+                    'name'            => $r->participant?->name,
+                    'institution'     => $r->participant?->institution,
+                    'score'           => (float) $r->score,
+                    'notes'           => $r->notes,
+                    'juries_count'    => $r->participant?->juryScores ? $r->participant->juryScores->count() : 0,
+                    'all_jury_scores' => $r->participant?->juryScores ? $r->participant->juryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values() : [],
                 ]);
         }
 
@@ -476,9 +594,29 @@ class PublicEventController extends Controller
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private function resolveJurySession(string $token): ?array
+    {
+        $val = Cache::get("jury_token_{$token}");
+        if (! $val) return null;
+
+        if (is_array($val)) {
+            return [
+                'competition_id' => (int) ($val['competition_id'] ?? 0),
+                'jury_name'      => (string) ($val['jury_name'] ?? 'Dewan Juri'),
+            ];
+        }
+
+        // Backward compatibility if token stores integer competition ID
+        return [
+            'competition_id' => (int) $val,
+            'jury_name'      => 'Dewan Juri',
+        ];
+    }
+
     private function resolveJuryToken(string $token): ?int
     {
-        return Cache::get("jury_token_{$token}");
+        $session = $this->resolveJurySession($token);
+        return $session ? $session['competition_id'] : null;
     }
 
     private function getCriteria(string $lombaType): array

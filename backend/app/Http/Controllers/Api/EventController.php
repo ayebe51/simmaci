@@ -156,21 +156,47 @@ class EventController extends Controller
 
     public function tally(Event $event): JsonResponse
     {
-        $tally = Competition::where('event_id', $event->id)
-            ->with(['results.participant'])
+        $compIds = Competition::where('event_id', $event->id)->pluck('id');
+
+        // 1. Regular competition results (Festival Aswaja)
+        $festivalResults = \App\Models\CompetitionResult::whereIn('competition_id', $compIds)
+            ->with('participant:id,institution')
+            ->whereNotNull('rank')
+            ->whereIn('rank', [1, 2, 3])
             ->get()
-            ->flatMap(fn ($comp) => $comp->results)
-            ->filter(fn ($r) => $r->rank !== null)
-            ->groupBy(fn ($r) => $r->participant?->institution ?? 'Unknown')
-            ->map(function ($results, $institution) {
+            ->map(fn ($r) => [
+                'institution' => trim($r->participant?->institution ?: 'Lainnya'),
+                'rank'        => (int) $r->rank,
+            ]);
+
+        // 2. Anugerah registrations (Anugerah Ma'arif)
+        $anugerahResults = \App\Models\AnugerahRegistration::whereIn('competition_id', $compIds)
+            ->whereNotNull('rank')
+            ->whereIn('rank', [1, 2, 3])
+            ->get()
+            ->map(fn ($r) => [
+                'institution' => trim($r->school_name ?: 'Lainnya'),
+                'rank'        => (int) $r->rank,
+            ]);
+
+        $allResults = $festivalResults->concat($anugerahResults);
+
+        $tally = $allResults
+            ->groupBy('institution')
+            ->map(function ($items, $institution) {
+                $gold   = $items->where('rank', 1)->count();
+                $silver = $items->where('rank', 2)->count();
+                $bronze = $items->where('rank', 3)->count();
                 return [
                     'institution' => $institution,
-                    'gold'        => $results->where('rank', 1)->count(),
-                    'silver'      => $results->where('rank', 2)->count(),
-                    'bronze'      => $results->where('rank', 3)->count(),
-                    'total'       => $results->whereIn('rank', [1, 2, 3])->count(),
+                    'gold'        => $gold,
+                    'silver'      => $silver,
+                    'bronze'      => $bronze,
+                    'total'       => $gold + $silver + $bronze,
                 ];
             })
+            ->sortByDesc('bronze')
+            ->sortByDesc('silver')
             ->sortByDesc('gold')
             ->values();
 

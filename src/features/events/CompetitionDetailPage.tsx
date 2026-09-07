@@ -188,12 +188,27 @@ export default function CompetitionDetailPage() {
                     name: r.applicant_name,
                     institution: r.school_name,
                     jenjang: r.jenjang,
-                    result: r.rank ? { rank: r.rank, score: r.total_score, notes: r.reviewer_notes } : null,
+                    jury_scores: r.jury_scores ?? [],
+                    result: r.total_score != null || r.rank != null || r.score_breakdown ? { rank: r.rank, score: r.total_score, notes: r.reviewer_notes, score_breakdown: r.score_breakdown } : null,
                   }))
-                : (competition.participants ?? [])
+                : (competition.participants ?? []).map((p: any) => ({
+                    ...p,
+                    jury_scores: p.jury_scores ?? [],
+                  }))
             }
-            results={competition.results ?? []}
+            results={
+              isAnugerah
+                ? (competition.anugerah_registrations ?? []).map((r: any) => ({
+                    participant_id: 'reg_' + r.id,
+                    rank: r.rank,
+                    score: r.total_score,
+                    notes: r.reviewer_notes,
+                    score_breakdown: r.score_breakdown,
+                  }))
+                : (competition.results ?? [])
+            }
             criteria={criteria}
+            onSaved={load}
           />
         </TabsContent>
 

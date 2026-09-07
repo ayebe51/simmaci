@@ -63,5 +63,10 @@ class CompetitionParticipant extends Model
     {
         return $this->belongsTo(Teacher::class);
     }
+
+    public function juryScores()
+    {
+        return $this->hasMany(CompetitionJuryScore::class, 'participant_id');
+    }
 }
 

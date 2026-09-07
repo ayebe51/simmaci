@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter, ExternalLink, FileText, Video, FolderOpen, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter, ExternalLink, FileText, Video, FolderOpen, AlertCircle, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 const juryApi = {
@@ -25,27 +25,36 @@ export default function JuryScoringPage() {
   const [token, setToken] = useState('');
   const [competitionId, setCompetitionId] = useState('');
   const [pin, setPin] = useState('');
+  const [juryName, setJuryName] = useState('');
   const [loading, setLoading] = useState(false);
   const [competition, setCompetition] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
-  const [scores, setScores] = useState<Record<number, { rank: string; score: string; notes: string; breakdown: Record<string, string> }>>({});
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+  const [scores, setScores] = useState<Record<string | number, { rank: string; score: string; notes: string; breakdown: Record<string, string> }>>({});
+  const [savingId, setSavingId] = useState<string | number | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string | number>>(new Set());
   const [filterJenjang, setFilterJenjang] = useState<string>('all');
 
-  // Reload participants (refresh scores from server)
+  // Reload participants (refresh scores & auto-rank from server)
   const loadParticipants = async (t: string) => {
     setLoading(true);
     try {
       const data = await juryApi.participants(t);
       setCompetition(data.competition);
       setParticipants(data.participants);
+      if (data.jury_name && !juryName) {
+        setJuryName(data.jury_name);
+      }
       // Pre-fill existing scores
       const init: typeof scores = {};
       (data.participants as any[]).forEach(p => {
         if (p.result) {
           const bd: Record<string, string> = {};
-          (p.result.score_breakdown ?? []).forEach((b: any) => { bd[b.component] = String(b.value ?? ''); });
+          const raw = p.result.score_breakdown;
+          if (Array.isArray(raw)) {
+            raw.forEach((b: any) => { bd[b.component] = String(b.value ?? ''); });
+          } else if (raw && typeof raw === 'object') {
+            Object.entries(raw).forEach(([k, v]) => { bd[k] = String(v ?? ''); });
+          }
           init[p.id] = {
             rank: p.result.rank != null ? String(p.result.rank) : '',
             score: p.result.score != null ? String(p.result.score) : '',
@@ -64,12 +73,20 @@ export default function JuryScoringPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!competitionId.trim() || !pin.trim()) { toast.error('ID Lomba dan PIN wajib diisi'); return; }
+    if (!competitionId.trim() || !pin.trim() || !juryName.trim()) {
+      toast.error('ID Lomba, PIN, dan Nama Dewan Juri wajib diisi');
+      return;
+    }
     setLoading(true);
     try {
-      const data = await juryApi.verifyPin({ competition_id: Number(competitionId), pin });
+      const data = await juryApi.verifyPin({
+        competition_id: Number(competitionId),
+        pin: pin.trim(),
+        jury_name: juryName.trim(),
+      });
       const t = data.token;
       setToken(t);
+      if (data.jury_name) setJuryName(data.jury_name);
       setState('scoring');
       await loadParticipants(t);
     } catch (e: any) {
@@ -79,10 +96,10 @@ export default function JuryScoringPage() {
     }
   };
 
-  const setScore = (pid: number, field: string, val: string) =>
+  const setScore = (pid: string | number, field: string, val: string) =>
     setScores(p => ({ ...p, [pid]: { rank: '', score: '', notes: '', breakdown: {}, ...p[pid], [field]: val } }));
 
-  const setBreakdown = (pid: number, component: string, val: string) =>
+  const setBreakdown = (pid: string | number, component: string, val: string) =>
     setScores(p => ({
       ...p,
       [pid]: {
@@ -95,7 +112,7 @@ export default function JuryScoringPage() {
     }));
 
   // Auto-calculate weighted score from breakdown
-  const calcWeightedScore = (pid: number, criteria: Criterion[]): string => {
+  const calcWeightedScore = (pid: string | number, criteria: Criterion[]): string => {
     if (!criteria.length) return scores[pid]?.score ?? '';
     const bd = scores[pid]?.breakdown ?? {};
     let total = 0;
@@ -108,7 +125,7 @@ export default function JuryScoringPage() {
     return allFilled ? total.toFixed(2) : (scores[pid]?.score ?? '');
   };
 
-  const handleSave = async (pid: number) => {
+  const handleSave = async (pid: string | number) => {
     setSavingId(pid);
     try {
       const s = scores[pid] ?? {};
@@ -128,7 +145,10 @@ export default function JuryScoringPage() {
       });
       setSavedIds(prev => new Set(prev).add(pid));
       const name = participants.find(p => p.id === pid)?.name ?? '';
-      toast.success(`Nilai "${name}" tersimpan`, { icon: <CheckCircle2 size={14} className="text-green-600" /> });
+      toast.success(`Nilai "${name}" tersimpan & juara otomatis diperbarui`, { icon: <CheckCircle2 size={14} className="text-green-600" /> });
+
+      // Automatically refresh participants to update auto-assigned ranks and medal badges in real-time
+      await loadParticipants(token);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Gagal menyimpan nilai');
     } finally {
@@ -169,6 +189,18 @@ export default function JuryScoringPage() {
                 <p className="text-[10px] text-slate-400">ID diberikan oleh panitia</p>
               </div>
               <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-slate-500">Nama Dewan Juri</Label>
+                <Input
+                  required
+                  type="text"
+                  value={juryName}
+                  onChange={e => setJuryName(e.target.value)}
+                  placeholder="Ketik Nama Lengkap Anda (cth: Drs. H. Ahmad Subhan, M.Pd)..."
+                  className="h-11"
+                />
+                <p className="text-[10px] text-slate-400">Identitas juri untuk lembar penilaian Anda</p>
+              </div>
+              <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase text-slate-500">PIN Juri</Label>
                 <Input
                   required
@@ -204,7 +236,15 @@ export default function JuryScoringPage() {
       <div className="bg-gradient-to-r from-green-700 to-emerald-600 text-white px-4 py-4 sticky top-0 z-10 shadow-md">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Panel Juri — LP Ma'arif NU</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[11px] font-bold opacity-80 uppercase tracking-wider">Panel Juri — LP Ma'arif NU</span>
+              {juryName && (
+                <span className="inline-flex items-center gap-1 bg-black/25 backdrop-blur-xs px-2 py-0.5 rounded-full text-[11px] font-medium text-emerald-200 border border-white/20">
+                  <UserCheck size={11} className="text-emerald-300" />
+                  <span>{juryName}</span>
+                </span>
+              )}
+            </div>
             <h1 className="font-black text-lg truncate">{competition?.name}</h1>
             <p className="text-xs opacity-80">{competition?.event} {competition?.jenjang ? `· ${competition.jenjang}` : ''}</p>
           </div>
@@ -336,9 +376,26 @@ export default function JuryScoringPage() {
                           ) : null}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {isSaved && <Badge className="bg-green-100 text-green-700 text-[9px]">✓ Tersimpan</Badge>}
-                        {alreadyScored && !isSaved && <Badge className="bg-blue-100 text-blue-700 text-[9px]">Ada nilai</Badge>}
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          {isSaved || p.result?.is_scored_by_me ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] font-semibold flex items-center gap-1">
+                              <CheckCircle2 size={11} className="text-emerald-600" /> Nilai Anda Tersimpan
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-amber-700 bg-amber-50 border-amber-200 text-[10px]">
+                              Belum Anda Nilai
+                            </Badge>
+                          )}
+                        </div>
+                        {p.result?.juries_count > 0 && (
+                          <span
+                            className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md cursor-help border border-slate-200/60"
+                            title={p.result.all_jury_scores?.map((j: any) => `${j.jury_name}: ${j.score}`).join(' | ')}
+                          >
+                            👥 {p.result.juries_count} juri menilai (Rata-rata: <strong>{p.result.final_score}</strong>)
+                          </span>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -376,7 +433,7 @@ export default function JuryScoringPage() {
                         />
                       </div>
                       <div className="space-y-0.5">
-                        <Label className="text-[10px] text-slate-500">Juara ke-</Label>
+                        <Label className="text-[10px] text-slate-500">Juara (Otomatis)</Label>
                         <Select value={s.rank} onValueChange={v => setScore(p.id, 'rank', v)}>
                           <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—"/></SelectTrigger>
                           <SelectContent>

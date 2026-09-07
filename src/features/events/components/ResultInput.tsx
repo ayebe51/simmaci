@@ -16,42 +16,66 @@ interface Props {
   participants: any[];
   results: any[];
   criteria?: Criterion[];
+  onSaved?: () => void;
 }
 
-export default function ResultInput({ competitionId, participants, results: initial, criteria = [] }: Props) {
+export default function ResultInput({ competitionId, participants, results: initial, criteria = [], onSaved }: Props) {
   const [map, setMap] = useState<Record<string, any>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [filterJenjang, setFilterJenjang] = useState<string>('all');
 
   useEffect(() => {
     const m: Record<string, any> = {};
-    (initial ?? []).forEach(r => { m[r.participant_id ?? r.participantId] = r; });
+    (initial ?? []).forEach(r => { 
+      const pid = r.participant_id ?? r.participantId;
+      if (pid) m[pid] = r; 
+    });
+    (participants ?? []).forEach(p => {
+      if (p.result && !m[p.id]) {
+        m[p.id] = { ...p.result, participant_id: p.id };
+      }
+    });
     setMap(m);
-  }, [initial]);
+  }, [initial, participants]);
 
   const set = (pid: string | number, field: string, value: string) =>
     setMap(p => ({ ...p, [pid]: { ...p[pid], participant_id: pid, [field]: value } }));
+
+  const getBreakdownValue = (pid: string | number, component: string): string => {
+    const raw = map[pid]?.score_breakdown;
+    if (!raw) return '';
+    if (Array.isArray(raw)) {
+      const found = raw.find((b: any) => b.component === component);
+      return found?.value != null ? String(found.value) : '';
+    }
+    if (typeof raw === 'object') {
+      return raw[component] != null ? String(raw[component]) : '';
+    }
+    return '';
+  };
 
   const setBreakdown = (pid: string | number, component: string, value: string) => {
     setMap(p => {
       const item = p[pid] ?? { participant_id: pid };
       const currentBreakdown = item.score_breakdown ?? {};
+      const updated = Array.isArray(currentBreakdown)
+        ? { ...Object.fromEntries(currentBreakdown.map((b: any) => [b.component, b.value])), [component]: value }
+        : { ...currentBreakdown, [component]: value };
       return {
         ...p,
         [pid]: {
           ...item,
-          score_breakdown: { ...currentBreakdown, [component]: value }
+          score_breakdown: updated,
         }
       };
     });
   };
 
   const calcWeightedScore = (pid: string | number) => {
-    const brk = map[pid]?.score_breakdown;
-    if (!brk || criteria.length === 0) return '';
+    if (criteria.length === 0) return '';
     let total = 0;
     for (const c of criteria) {
-      const val = Number(brk[c.component]) || 0;
+      const val = Number(getBreakdownValue(pid, c.component)) || 0;
       total += val * (c.weight / 100);
     }
     return total.toFixed(2);
@@ -61,15 +85,20 @@ export default function ResultInput({ competitionId, participants, results: init
     setSavingId(String(pid));
     const item = map[pid] ?? {};
     try {
+      const breakdown = criteria.length > 0
+        ? criteria.map(c => ({ component: c.component, weight: c.weight, value: parseFloat(getBreakdownValue(pid, c.component)) || 0 }))
+        : item.score_breakdown;
+
       await eventApi.results.save(Number(competitionId), {
         participant_id: typeof pid === 'string' && pid.startsWith('reg_') ? pid : Number(pid),
         score: criteria.length > 0 ? Number(calcWeightedScore(pid)) : (item.score ? Number(item.score) : undefined),
         rank: item.rank ? Number(item.rank) : undefined,
         notes: item.notes,
-        score_breakdown: item.score_breakdown,
+        score_breakdown: breakdown,
       });
       const name = participants.find(p => p.id == pid)?.name ?? '';
-      toast.success(`Nilai "${name}" tersimpan`, { icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> });
+      toast.success(`Nilai "${name}" tersimpan & juara otomatis dihitung`, { icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> });
+      onSaved?.();
     } catch {
       toast.error('Gagal menyimpan nilai');
     } finally {
@@ -147,7 +176,7 @@ export default function ResultInput({ competitionId, participants, results: init
                   ))
                 ) : null}
                 <TableHead className="w-[120px]">{criteria.length > 0 ? 'Total Skor' : 'Skor / Nilai'}</TableHead>
-                <TableHead className="w-[90px]">Juara ke-</TableHead>
+                <TableHead className="w-[95px]">Juara (Auto)</TableHead>
                 <TableHead>Catatan</TableHead>
                 <TableHead className="w-[90px]">Aksi</TableHead>
               </TableRow>
@@ -155,7 +184,7 @@ export default function ResultInput({ competitionId, participants, results: init
             <TableBody>
               {participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10 text-slate-400">
+                  <TableCell colSpan={criteria.length + 4} className="text-center py-10 text-slate-400">
                     Belum ada peserta {filterJenjang !== 'all' ? `untuk jenjang ${filterJenjang}` : ''}.
                   </TableCell>
                 </TableRow>
@@ -174,6 +203,16 @@ export default function ResultInput({ competitionId, participants, results: init
                         <div className="text-xs text-slate-500">
                           {p.institution} {p.jenjang && <span className="text-[10px] ml-1 bg-slate-100 px-1.5 rounded">{p.jenjang}</span>}
                         </div>
+                        {p.jury_scores && p.jury_scores.length > 0 && (
+                          <div className="mt-1 flex items-center gap-1 flex-wrap">
+                            <span className="text-[10px] text-slate-400 font-semibold">Juri ({p.jury_scores.length}):</span>
+                            {p.jury_scores.map((js: any, idx: number) => (
+                              <span key={idx} className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200" title={`Catatan: ${js.notes || '-'}`}>
+                                {js.jury_name}: <strong>{Number(js.score).toFixed(2)}</strong>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     {criteria.length > 0 ? (
@@ -181,7 +220,7 @@ export default function ResultInput({ competitionId, participants, results: init
                         <TableCell key={c.component} className="p-2">
                           <Input
                             type="number" min="0" max="100" step="0.5"
-                            value={r.score_breakdown?.[c.component] ?? ''}
+                            value={getBreakdownValue(p.id, c.component)}
                             onChange={e => setBreakdown(p.id, c.component, e.target.value)}
                             placeholder="0-100"
                             className="h-8 text-sm px-2 text-center"
@@ -201,7 +240,7 @@ export default function ResultInput({ competitionId, participants, results: init
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">
-                        <Input type="number" min="1" max="10" value={r.rank ?? ''} onChange={e => set(p.id, 'rank', e.target.value)} placeholder="—" className="h-8 text-sm" />
+                        <Input type="number" min="1" max="10" value={r.rank ?? ''} onChange={e => set(p.id, 'rank', e.target.value)} placeholder="Auto" className="h-8 text-sm" />
                       </div>
                     </TableCell>
                     <TableCell>

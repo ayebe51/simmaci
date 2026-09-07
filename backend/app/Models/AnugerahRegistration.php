@@ -47,6 +47,7 @@ class AnugerahRegistration extends Model
     protected $casts = [
         'prestasi_list'   => 'array',
         'score_breakdown' => 'array',
+        'total_score'     => 'decimal:2',
         'mulai_bertugas'  => 'date',
         'submitted_at'    => 'datetime',
         'reviewed_at'     => 'datetime',
@@ -65,6 +66,11 @@ class AnugerahRegistration extends Model
     public function school()
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function juryScores()
+    {
+        return $this->hasMany(CompetitionJuryScore::class, 'anugerah_registration_id');
     }
 
     /**

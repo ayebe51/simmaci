@@ -65,16 +65,17 @@ class CompetitionController extends Controller
     {
         $competition->load([
             'event',
-            'participants' => fn ($q) => $q->with('result')->orderBy('institution')->orderBy('name'),
+            'participants' => fn ($q) => $q->with(['result', 'juryScores'])->orderBy('institution')->orderBy('name'),
             'results.participant',
         ]);
 
-        // For anugerah types, also load registrations
+        // For anugerah types, also load registrations with jury scores
         $anugerahRegistrations = [];
         if (in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'])) {
             $anugerahRegistrations = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                ->with('juryScores')
                 ->orderBy('school_name')->orderBy('applicant_name')
-                ->get(['id', 'applicant_name', 'school_name', 'jenjang', 'kecamatan', 'status', 'total_score', 'rank', 'category', 'submitted_at'])
+                ->get()
                 ->toArray();
         }
 
@@ -240,10 +241,13 @@ class CompetitionController extends Controller
 
             $reg->update([
                 'rank'            => $data['rank'] ?? null,
-                'total_score'     => $data['score'] ?? null,
+                'total_score'     => $data['score'] !== null ? (float) $data['score'] : null,
                 'reviewer_notes'  => $data['notes'] ?? null,
                 'score_breakdown' => $data['score_breakdown'] ?? null,
             ]);
+
+            \App\Services\CompetitionRankingService::autoRank($competition);
+            $reg->refresh();
 
             return $this->success([
                 'id'             => 'reg_' . $reg->id,
@@ -252,7 +256,7 @@ class CompetitionController extends Controller
                 'rank'           => $reg->rank,
                 'score'          => $reg->total_score,
                 'notes'          => $reg->reviewer_notes,
-            ], 'Nilai berhasil disimpan');
+            ], 'Nilai berhasil disimpan & juara otomatis diperbarui');
         }
 
         $result = CompetitionResult::updateOrCreate(
@@ -262,13 +266,16 @@ class CompetitionController extends Controller
             ],
             [
                 'rank'            => $data['rank'] ?? null,
-                'score'           => $data['score'] ?? null,
+                'score'           => $data['score'] !== null ? (float) $data['score'] : null,
                 'notes'           => $data['notes'] ?? null,
                 'score_breakdown' => $data['score_breakdown'] ?? null,
             ]
         );
 
-        return $this->success($result->load('participant'), 'Nilai berhasil disimpan');
+        \App\Services\CompetitionRankingService::autoRank($competition);
+        $result->refresh();
+
+        return $this->success($result->load('participant'), 'Nilai berhasil disimpan & juara otomatis diperbarui');
     }
 
     public function resultsBulkStore(Request $request, Competition $competition): JsonResponse
@@ -291,7 +298,7 @@ class CompetitionController extends Controller
                         ->where('competition_id', $competition->id)
                         ->update([
                             'rank'            => $item['rank'] ?? null,
-                            'total_score'     => $item['score'] ?? null,
+                            'total_score'     => isset($item['score']) && $item['score'] !== null ? (float) $item['score'] : null,
                             'reviewer_notes'  => $item['notes'] ?? null,
                             'score_breakdown' => $item['score_breakdown'] ?? null,
                         ]);
@@ -303,7 +310,7 @@ class CompetitionController extends Controller
                         ],
                         [
                             'rank'            => $item['rank'] ?? null,
-                            'score'           => $item['score'] ?? null,
+                            'score'           => isset($item['score']) && $item['score'] !== null ? (float) $item['score'] : null,
                             'notes'           => $item['notes'] ?? null,
                             'score_breakdown' => $item['score_breakdown'] ?? null,
                         ]
@@ -312,7 +319,9 @@ class CompetitionController extends Controller
             }
         });
 
-        return $this->success(null, 'Semua nilai berhasil disimpan');
+        \App\Services\CompetitionRankingService::autoRank($competition);
+
+        return $this->success(null, 'Semua nilai berhasil disimpan & juara otomatis diperbarui');
     }
 
     public function resultsImport(Request $request, Competition $competition): JsonResponse
@@ -348,7 +357,9 @@ class CompetitionController extends Controller
                 $saved++;
             }
 
-            return $this->success(['imported' => $saved], "{$saved} hasil berhasil diimport");
+            \App\Services\CompetitionRankingService::autoRank($competition);
+
+            return $this->success(['imported' => $saved], "{$saved} hasil berhasil diimport & juara otomatis diperbarui");
         } catch (\Throwable $e) {
             return $this->error('Gagal mengimport file: ' . $e->getMessage(), 422);
         }

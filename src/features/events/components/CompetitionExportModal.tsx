@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { FileSpreadsheet, Printer, Trophy, Download, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { settingApi } from '@/lib/api';
 
 interface CompetitionExportModalProps {
   competition: any;
@@ -25,6 +26,24 @@ export default function CompetitionExportModal({
   trigger,
 }: CompetitionExportModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [kopUrl, setKopUrl] = useState<string>('');
+  const [includeSignatures, setIncludeSignatures] = useState<boolean>(true);
+
+  // Fetch official kop surat template from settings if configured
+  useEffect(() => {
+    settingApi.get('kop_surat_meeting').then((res) => {
+      const val = res?.data?.value ?? res?.value;
+      if (val && typeof val === 'string' && val !== 'null' && val !== 'undefined') {
+        if (val.startsWith('http') || val.startsWith('data:')) {
+          setKopUrl(val);
+        } else {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+          const path = val.replace(/^\/?(storage\/|api\/minio\/)?/, '');
+          setKopUrl(`${apiUrl}/files/view/${path.split('/').map(encodeURIComponent).join('/')}`);
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   // Filter participants by jenjang if selected
   const filtered = participants.filter(
@@ -179,7 +198,16 @@ export default function CompetitionExportModal({
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg cursor-pointer select-none transition-colors mr-1">
+                <input
+                  type="checkbox"
+                  checked={includeSignatures}
+                  onChange={(e) => setIncludeSignatures(e.target.checked)}
+                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                />
+                <span>TTD & Stempel Resmi</span>
+              </label>
               <Button
                 variant="outline"
                 size="sm"
@@ -208,31 +236,44 @@ export default function CompetitionExportModal({
             className="bg-white w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-12 shadow-md rounded-xl text-black font-sans relative border print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full"
           >
             {/* ── KOP SURAT RESMI LP MA'ARIF NU CILACAP ── */}
-            <div className="flex items-center gap-4 border-b-[3px] border-double border-green-800 pb-3 mb-6 justify-center relative">
-              <div className="w-20 h-20 flex items-center justify-center absolute left-0">
+            {kopUrl ? (
+              <div className="mb-6 border-b-[3px] border-double border-green-700 pb-2">
                 <img
-                  src="/logo-maarif-hijau.png"
-                  alt="Logo Ma'arif"
-                  className="w-full object-contain"
-                  onError={(e) => {
-                    e.currentTarget.src = '/logo-icon.png';
-                  }}
+                  src={kopUrl}
+                  alt="Kop Surat Resmi LP Ma'arif NU Cilacap"
+                  className="w-full max-h-32 object-contain mx-auto"
                 />
               </div>
+            ) : (
+              <div className="flex items-center gap-4 border-b-[3px] border-double border-green-700 pb-2 mb-6 justify-center relative">
+                <div className="w-24 h-24 flex items-center justify-center absolute left-0">
+                  <img
+                    src="/logo-nu.png"
+                    alt="Logo Ma'arif NU"
+                    className="w-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.src = '/logo_maarif.png';
+                    }}
+                  />
+                </div>
 
-              <div className="flex-1 text-center text-green-800 w-full pl-20 pr-4">
-                <h4 className="font-bold text-base uppercase tracking-wide leading-tight font-serif">
-                  PENGURUS CABANG NAHDLATUL ULAMA CILACAP
-                </h4>
-                <h2 className="font-black text-xl uppercase tracking-wider leading-tight mt-0.5 font-serif">
-                  LEMBAGA PENDIDIKAN MA'ARIF NU
-                </h2>
-                <div className="text-[10px] text-slate-700 font-sans mt-1 leading-snug">
-                  <p>Jl. Masjid No. I/36 Kel. Sidanegara, Kec. Cilacap Tengah, Kab. Cilacap</p>
-                  <p>Telepon: (0280) 521141 | Call Center: 082227438003 | Email: maarifnucilacap@gmail.com</p>
+                <div className="flex-1 text-center text-green-700 w-full pl-24 pr-4">
+                  <h4 className="font-bold text-lg sm:text-xl uppercase tracking-wide leading-none font-serif">
+                    PENGURUS CABANG NAHDLATUL ULAMA CILACAP
+                  </h4>
+                  <h2 className="font-bold text-xl sm:text-2xl uppercase tracking-wider leading-none mt-1.5 font-serif">
+                    LEMBAGA PENDIDIKAN MA'ARIF NU
+                  </h2>
+                  <div className="text-[11px] text-black font-sans mt-2 leading-tight space-y-0.5">
+                    <p>Jl. Masjid No I/36 Kel. Sidanegara Kec. Cilacap Tengah Kab. Cilacap</p>
+                    <p>Telepon: (0280) 521141 | Call Center: 082227438003</p>
+                    <div className="flex justify-center gap-4 text-blue-700 font-semibold mt-0.5">
+                      <span>📧 email.maarifnuclp@gmail.com</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* ── JUDUL DOKUMEN ── */}
             <div className="text-center mb-6">
@@ -395,15 +436,32 @@ export default function CompetitionExportModal({
                 </div>
               </div>
 
-              {/* Baris Mengetahui (Ketua Panitia / PC LP Ma'arif) */}
+              {/* Baris Mengetahui (Ketua PC LP Ma'arif NU Cilacap) */}
               <div className="mt-8 flex justify-center text-center">
-                <div className="flex flex-col items-center">
-                  <p className="text-[11px] text-slate-600">Mengetahui,</p>
-                  <p className="font-bold text-slate-800 uppercase text-[11px] mb-12">
+                <div className="flex flex-col items-center relative">
+                  <p className="text-[11px] text-slate-700">Mengetahui,</p>
+                  <p className="font-bold text-slate-900 uppercase text-[11px] mb-1">
                     Ketua PC LP Ma'arif NU Cilacap
                   </p>
-                  <p className="font-bold border-b border-slate-800 pb-0.5 px-6 min-w-[180px]">
-                    ( H. Munawar AM, M.Pd. )
+                  {includeSignatures ? (
+                    <div className="relative h-20 w-48 flex justify-center items-center my-1">
+                      {/* Official Stamp & Signature */}
+                      <img
+                        src="/stempel-maarif-asli.png"
+                        alt="Stempel LP Ma'arif"
+                        className="absolute -left-2 -top-1 h-20 w-auto object-contain mix-blend-multiply opacity-90 pointer-events-none"
+                      />
+                      <img
+                        src="/ttd-ketua-asli.png"
+                        alt="Tanda Tangan Ketua"
+                        className="absolute top-1 h-16 w-auto object-contain mix-blend-multiply z-10 pointer-events-none"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-20" />
+                  )}
+                  <p className="font-bold border-b border-slate-900 pb-0.5 px-6 min-w-[200px] text-slate-900 text-xs">
+                    ( H. Ali Sodiqin, S.Ag., M.Pd.I. )
                   </p>
                 </div>
               </div>

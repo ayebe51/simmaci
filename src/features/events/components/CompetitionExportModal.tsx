@@ -29,7 +29,6 @@ export default function CompetitionExportModal({
   const [kopUrl, setKopUrl] = useState<string>('');
   const [kopCandidates, setKopCandidates] = useState<string[]>([]);
   const [kopCandidateIndex, setKopCandidateIndex] = useState<number>(0);
-  const [includeSignatures, setIncludeSignatures] = useState<boolean>(true);
 
   // Fetch official kop surat template from settings (uploaded in Settings page)
   useEffect(() => {
@@ -229,16 +228,7 @@ export default function CompetitionExportModal({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg cursor-pointer select-none transition-colors mr-1">
-                <input
-                  type="checkbox"
-                  checked={includeSignatures}
-                  onChange={(e) => setIncludeSignatures(e.target.checked)}
-                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                />
-                <span>TTD & Stempel Resmi</span>
-              </label>
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -478,28 +468,11 @@ export default function CompetitionExportModal({
 
               {/* Baris Mengetahui (Ketua PC LP Ma'arif NU Cilacap) */}
               <div className="mt-8 flex justify-center text-center">
-                <div className="flex flex-col items-center relative">
+                <div className="flex flex-col items-center">
                   <p className="text-[11px] text-slate-700">Mengetahui,</p>
-                  <p className="font-bold text-slate-900 uppercase text-[11px] mb-1">
+                  <p className="font-bold text-slate-900 uppercase text-[11px] mb-14">
                     Ketua PC LP Ma'arif NU Cilacap
                   </p>
-                  {includeSignatures ? (
-                    <div className="relative h-20 w-48 flex justify-center items-center my-1">
-                      {/* Official Stamp & Signature */}
-                      <img
-                        src="/stempel-maarif-asli.png"
-                        alt="Stempel LP Ma'arif"
-                        className="absolute -left-2 -top-1 h-20 w-auto object-contain mix-blend-multiply opacity-90 pointer-events-none"
-                      />
-                      <img
-                        src="/ttd-ketua-asli.png"
-                        alt="Tanda Tangan Ketua"
-                        className="absolute top-1 h-16 w-auto object-contain mix-blend-multiply z-10 pointer-events-none"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-20" />
-                  )}
                   <p className="font-bold border-b border-slate-900 pb-0.5 px-6 min-w-[200px] text-slate-900 text-xs">
                     ( H. Ali Sodiqin, S.Ag., M.Pd.I. )
                   </p>

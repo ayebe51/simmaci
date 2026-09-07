@@ -27,22 +27,53 @@ export default function CompetitionExportModal({
 }: CompetitionExportModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [kopUrl, setKopUrl] = useState<string>('');
+  const [kopCandidates, setKopCandidates] = useState<string[]>([]);
+  const [kopCandidateIndex, setKopCandidateIndex] = useState<number>(0);
   const [includeSignatures, setIncludeSignatures] = useState<boolean>(true);
 
-  // Fetch official kop surat template from settings if configured
+  // Fetch official kop surat template from settings (uploaded in Settings page)
   useEffect(() => {
-    settingApi.get('kop_surat_meeting').then((res) => {
-      const val = res?.data?.value ?? res?.value;
-      if (val && typeof val === 'string' && val !== 'null' && val !== 'undefined') {
-        if (val.startsWith('http') || val.startsWith('data:')) {
-          setKopUrl(val);
-        } else {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-          const path = val.replace(/^\/?(storage\/|api\/minio\/)?/, '');
-          setKopUrl(`${apiUrl}/files/view/${path.split('/').map(encodeURIComponent).join('/')}`);
+    const fetchKop = async () => {
+      try {
+        let val: string | null = null;
+        try {
+          const res = await settingApi.get('kop_surat_meeting');
+          val = res?.data?.value ?? res?.value ?? null;
+        } catch {
+          // fallback to list
+          const listRes = await settingApi.list();
+          const listData = listRes?.data ?? listRes;
+          if (Array.isArray(listData)) {
+            val = listData.find((s: any) => s?.key === 'kop_surat_meeting')?.value ?? null;
+          } else if (listData && typeof listData === 'object') {
+            val = listData.kop_surat_meeting?.value ?? listData.kop_surat_meeting ?? null;
+          }
         }
+
+        if (val && typeof val === 'string' && val !== 'null' && val !== 'undefined' && val.trim() !== '') {
+          if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) {
+            setKopCandidates([val]);
+            setKopUrl(val);
+          } else {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+            const cleanPath = val.replace(/^\/?(storage\/|api\/minio\/|api\/files\/view\/)?/, '');
+            const candidateUrls = [
+              `${apiUrl}/files/view/${cleanPath.split('/').map(encodeURIComponent).join('/')}`,
+              `${apiUrl}/minio/${cleanPath}`,
+              `/storage/${cleanPath}`,
+              `/${cleanPath}`
+            ];
+            setKopCandidates(candidateUrls);
+            setKopCandidateIndex(0);
+            setKopUrl(candidateUrls[0]);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load kop_surat_meeting setting:', err);
       }
-    }).catch(() => {});
+    };
+
+    fetchKop();
   }, []);
 
   // Filter participants by jenjang if selected
@@ -235,13 +266,22 @@ export default function CompetitionExportModal({
             id="printable-berita-acara"
             className="bg-white w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-12 shadow-md rounded-xl text-black font-sans relative border print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full"
           >
-            {/* ── KOP SURAT RESMI LP MA'ARIF NU CILACAP ── */}
+            {/* ── KOP SURAT RESMI LP MA'ARIF NU CILACAP (DARI SETTING APLIKASI) ── */}
             {kopUrl ? (
-              <div className="mb-6 border-b-[3px] border-double border-green-700 pb-2">
+              <div className="mb-6 pb-2 border-b-[3px] border-double border-green-700">
                 <img
                   src={kopUrl}
                   alt="Kop Surat Resmi LP Ma'arif NU Cilacap"
-                  className="w-full max-h-32 object-contain mx-auto"
+                  className="w-full h-auto max-h-40 object-contain mx-auto block print:max-h-none print:w-full"
+                  onError={() => {
+                    const next = kopCandidateIndex + 1;
+                    if (next < kopCandidates.length) {
+                      setKopCandidateIndex(next);
+                      setKopUrl(kopCandidates[next]);
+                    } else {
+                      setKopUrl('');
+                    }
+                  }}
                 />
               </div>
             ) : (

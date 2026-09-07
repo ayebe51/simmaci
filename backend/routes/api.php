@@ -91,6 +91,8 @@ Route::prefix('ppdb')->group(function () {
 // MinIO proxy - accessible at /api/minio/*
 Route::get('minio', [MinioProxyController::class, 'proxy'])->name('minio.proxy');
 Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*')->name('minio.proxy.path');
+Route::get('files/view/{path}', [FileUploadController::class, 'view'])->where('path', '.*');
+Route::get('settings/{key}', [SettingController::class, 'show']);
 
 // ── Public Attendance (Scanner Standalone — PIN protected, no auth token) ──
 Route::prefix('public/attendance')->group(function () {

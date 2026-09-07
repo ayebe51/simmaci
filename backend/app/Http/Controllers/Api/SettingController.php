@@ -23,7 +23,7 @@ class SettingController extends Controller
 
     public function show(string $key, Request $request): JsonResponse
     {
-        $schoolId = $request->user()->isOperator() ? $request->user()->school_id : null;
+        $schoolId = $request->user()?->isOperator() ? $request->user()->school_id : null;
 
         $value = Setting::getValue($key, $schoolId);
 

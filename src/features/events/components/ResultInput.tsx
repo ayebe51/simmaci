@@ -8,18 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Save, CheckCircle2, Loader2, Trophy, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import ExcelImportModal from '@/features/master-data/components/ExcelImportModal';
+import CompetitionExportModal from './CompetitionExportModal';
 
 interface Criterion { component: string; weight: number; }
 
 interface Props {
   competitionId: string;
+  competition?: any;
   participants: any[];
   results: any[];
   criteria?: Criterion[];
   onSaved?: () => void;
 }
 
-export default function ResultInput({ competitionId, participants, results: initial, criteria = [], onSaved }: Props) {
+export default function ResultInput({ competitionId, competition, participants, results: initial, criteria = [], onSaved }: Props) {
   const [map, setMap] = useState<Record<string, any>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [filterJenjang, setFilterJenjang] = useState<string>('all');
@@ -140,7 +142,7 @@ export default function ResultInput({ competitionId, participants, results: init
           </div>
         )}
 
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
           <div className="space-y-1.5 w-[200px]">
             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1.5">
               <Filter size={12} /> Filter Jenjang
@@ -155,12 +157,22 @@ export default function ResultInput({ competitionId, participants, results: init
               </SelectContent>
             </Select>
           </div>
-          <ExcelImportModal
-            title="Import Hasil Kompetisi"
-            description="Upload file Excel (.xlsx). Kolom: Juara, Nama, Lembaga, Nilai."
-            triggerLabel="Import Hasil (Excel)"
-            onFileImport={handleImport}
-          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <CompetitionExportModal
+              competition={competition ?? { id: competitionId, name: 'Rekap Nilai' }}
+              participants={participants.map(p => ({
+                ...p,
+                result: map[p.id] ?? p.result
+              }))}
+              filterJenjang={filterJenjang}
+            />
+            <ExcelImportModal
+              title="Import Hasil Kompetisi"
+              description="Upload file Excel (.xlsx). Kolom: Juara, Nama, Lembaga, Nilai."
+              triggerLabel="Import Hasil (Excel)"
+              onFileImport={handleImport}
+            />
+          </div>
         </div>
 
         <div className="rounded-xl border overflow-hidden">

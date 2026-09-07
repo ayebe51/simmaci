@@ -4,9 +4,10 @@ import axios from 'axios';
 import { API_URL } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Trophy, RefreshCw } from 'lucide-react';
+import { Loader2, Trophy, RefreshCw, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import CompetitionExportModal from '../components/CompetitionExportModal';
 
 const api = {
   scoreboard: (eventId: string, competitionId: string) =>
@@ -71,7 +72,7 @@ export default function PublicScoreboardPage() {
             </div>
           </>
         )}
-        <div className="flex items-center justify-center gap-2 mt-4">
+        <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
           <Button
             variant="ghost"
             size="sm"
@@ -82,6 +83,37 @@ export default function PublicScoreboardPage() {
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             Refresh
           </Button>
+          {data && results.length > 0 && (
+            <CompetitionExportModal
+              competition={{
+                id: competitionId,
+                name: data.competition,
+                event: { name: data.event },
+                jenjang: data.jenjang,
+              }}
+              participants={results.map(r => ({
+                name: r.name,
+                institution: r.institution,
+                jenjang: data.jenjang,
+                jury_scores: r.all_jury_scores ?? [],
+                result: {
+                  rank: r.rank,
+                  score: r.score,
+                  notes: r.notes,
+                }
+              }))}
+              trigger={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 text-white border-white/30 hover:bg-white/20 gap-1.5 text-xs font-bold"
+                >
+                  <Download size={13} />
+                  Export / Cetak Rekap
+                </Button>
+              }
+            />
+          )}
           {lastUpdated && (
             <span className="text-xs text-white/50">
               Update: {lastUpdated.toLocaleTimeString('id-ID', { timeStyle: 'short' })}

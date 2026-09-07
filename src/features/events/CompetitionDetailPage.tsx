@@ -181,6 +181,7 @@ export default function CompetitionDetailPage() {
         <TabsContent value="results" className="pt-4">
           <ResultInput
             competitionId={String(competition.id)}
+            competition={competition}
             participants={
               isAnugerah
                 ? (competition.anugerah_registrations ?? []).map((r: any) => ({

@@ -5,11 +5,13 @@
  */
 
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Clock, MapPin, Loader2, QrCode, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, Loader2, QrCode, AlertCircle, Download, Share2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
+import { downloadQrCodeImage, downloadQrCardImage, sanitizeFilename } from '../utils/qrDownload';
 
 export default function MeetingCheckInPage() {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +71,15 @@ export default function MeetingCheckInPage() {
                     Panitia akan men-scan QR code ini untuk mencatat kehadiran Anda
                   </p>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-1 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 bg-white"
+                  onClick={() => downloadQrCodeImage(currentUrl, 'QR_Presensi_Kehadiran.png')}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Unduh QR Code (PNG)
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -130,6 +141,39 @@ export default function MeetingCheckInPage() {
                 <p className="text-xs text-slate-500">
                   Panitia akan men-scan QR code ini untuk mencatat kehadiran Anda
                 </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                  onClick={() => {
+                    const safeName = participant ? sanitizeFilename(participant.name) : 'Peserta';
+                    const safeMeeting = meeting ? sanitizeFilename(meeting.title) : 'Rapat';
+                    downloadQrCodeImage(currentUrl, `QR_Presensi_${safeName}_${safeMeeting}.png`);
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Unduh QR (PNG)
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 bg-white"
+                  onClick={() => {
+                    downloadQrCardImage({
+                      text: currentUrl,
+                      title: meeting?.title || 'Presensi Rapat',
+                      subtitle: participant ? `${participant.name} (${participant.jabatan})` : 'Presensi Kehadiran Peserta',
+                      locationText: meeting?.location || undefined,
+                      filename: `Kartu_QR_${participant ? sanitizeFilename(participant.name) : 'Peserta'}.png`,
+                    });
+                  }}
+                >
+                  <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                  Unduh Kartu (WA)
+                </Button>
               </div>
             </div>
 

@@ -24,7 +24,10 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Edit2, ArrowLeft, Pencil, FileText, FileSpreadsheet,
   MapPin, Clock, Users, CheckCircle2, XCircle, Send, QrCode, ExternalLink,
+  Download, Printer, Share2,
 } from 'lucide-react';
+import { MeetingQrModal } from './components/MeetingQrModal';
+import { downloadQrCodeImage, downloadQrCardImage, sanitizeFilename } from './utils/qrDownload';
 
 const statusColor: Record<string, string> = {
   upcoming: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -46,6 +49,7 @@ export const MeetingDetailPage: React.FC = () => {
   const [showPhotoUploader, setShowPhotoUploader] = useState(false);
   const [resendTarget, setResendTarget] = useState<{ id: number; name: string; phone: string } | null>(null);
   const [resendPhone, setResendPhone] = useState('');
+  const [isDownloadingQr, setIsDownloadingQr] = useState(false);
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem('user_data') || '{}'); } catch { return {}; }
@@ -122,7 +126,20 @@ export const MeetingDetailPage: React.FC = () => {
 
         {/* Action buttons */}
         {isAdmin && meeting && (
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 flex-wrap">
+            <MeetingQrModal
+              meeting={meeting}
+              trigger={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <QrCode className="h-3.5 w-3.5 mr-1.5" />
+                  QR Presensi
+                </Button>
+              }
+            />
             <Button
               variant="outline"
               size="sm"
@@ -212,44 +229,129 @@ export const MeetingDetailPage: React.FC = () => {
         {/* Attendance Tab */}
         <TabsContent value="attendance" className="space-y-4">
           {/* QR Umum untuk walk-in — tampilkan jika ada qr_umum_token */}
-          {(meeting?.qr_umum_token || meeting?.qr_umum_url) && (
-            <Card className="border-emerald-200 bg-emerald-50/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2 text-emerald-800">
-                  <QrCode className="h-4 w-4" />
-                  QR Code Absensi Walk-In
-                </CardTitle>
-                <p className="text-xs text-emerald-700">
-                  Tampilkan atau cetak QR ini di lokasi rapat. Peserta yang tidak terdaftar
-                  scan QR ini lalu isi data kehadiran mereka sendiri.
-                </p>
-              </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="bg-white p-3 rounded-xl border-2 border-emerald-200 shadow-sm shrink-0">
-                  <QRCodeSVG
-                    value={(meeting.qr_umum_token || meeting.qr_umum_url)!}
-                    size={140}
-                    level="M"
-                    includeMargin={false}
-                  />
-                </div>
-                <div className="space-y-2 text-center sm:text-left">
-                  <p className="text-xs text-slate-600">
-                    Peserta scan QR ini → isi nama, jabatan, instansi, no HP → kehadiran langsung tercatat.
+          {(meeting?.qr_umum_token || meeting?.qr_umum_url) && (() => {
+            const rawVal = meeting.qr_umum_url || meeting.qr_umum_token || '';
+            const qrVal = rawVal.startsWith('http')
+              ? rawVal
+              : rawVal.startsWith('/')
+              ? `${window.location.origin}${rawVal}`
+              : `${window.location.origin}/meetings/${meeting.id}/walk-in`;
+
+            return (
+              <Card className="border-emerald-200 bg-emerald-50/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-emerald-800">
+                      <QrCode className="h-4 w-4" />
+                      QR Code Absensi Rapat (Walk-In)
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <MeetingQrModal
+                        meeting={meeting}
+                        trigger={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-100"
+                          >
+                            <Printer className="h-3.5 w-3.5 mr-1.5" />
+                            Cetak Standee A4
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-emerald-700">
+                    Tampilkan di layar atau unduh & cetak QR ini untuk diletakkan di lokasi rapat. Peserta cukup scan untuk mengisi absensi secara mandiri.
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100"
-                    onClick={() => window.open((meeting.qr_umum_token || meeting.qr_umum_url)!, '_blank')}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1.5" />
-                    Buka Link Walk-In
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardHeader>
+                <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+                  <MeetingQrModal
+                    meeting={meeting}
+                    trigger={
+                      <div
+                        className="bg-white p-3 rounded-xl border-2 border-emerald-200 shadow-sm shrink-0 cursor-pointer hover:border-emerald-400 hover:shadow-md transition group relative"
+                        title="Klik untuk memperbesar & cetak standee"
+                      >
+                        <QRCodeSVG
+                          value={qrVal}
+                          size={140}
+                          level="M"
+                          includeMargin={false}
+                        />
+                        <div className="absolute inset-0 bg-emerald-900/10 rounded-xl opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                          <span className="bg-emerald-700 text-white text-[10px] font-medium px-2 py-0.5 rounded-full shadow">
+                            Perbesar / Cetak
+                          </span>
+                        </div>
+                      </div>
+                    }
+                  />
+                  <div className="space-y-2 text-center sm:text-left flex-1">
+                    <p className="text-xs text-slate-600">
+                      Peserta scan QR ini → isi nama, jabatan, instansi, nomor HP → kehadiran langsung tercatat otomatis.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        disabled={isDownloadingQr}
+                        onClick={async () => {
+                          setIsDownloadingQr(true);
+                          try {
+                            const safe = sanitizeFilename(meeting.title);
+                            await downloadQrCodeImage(qrVal, `QR_Absensi_${safe}.png`);
+                          } finally {
+                            setIsDownloadingQr(false);
+                          }
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1.5" />
+                        Unduh QR (PNG)
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 bg-white"
+                        disabled={isDownloadingQr}
+                        onClick={async () => {
+                          setIsDownloadingQr(true);
+                          try {
+                            const dateStr = meeting.started_at
+                              ? formatMeetingDate(meeting.started_at, 'EEEE, d MMMM yyyy')
+                              : undefined;
+                            await downloadQrCardImage({
+                              text: qrVal,
+                              title: meeting.title,
+                              dateText: dateStr,
+                              locationText: meeting.location || undefined,
+                            });
+                          } finally {
+                            setIsDownloadingQr(false);
+                          }
+                        }}
+                      >
+                        <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                        Unduh Kartu Poster (WA)
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs border-slate-300 text-slate-700 hover:bg-slate-100 bg-white"
+                        onClick={() => window.open(qrVal, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1.5" />
+                        Buka Link
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {meeting && meeting.participants && meeting.participants.length > 0 ? (
             <Card>

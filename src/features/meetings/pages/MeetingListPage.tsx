@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatMeetingDate } from '../utils/dateHelpers';
-import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock, Trash2, Pencil } from 'lucide-react';
+import { CalendarDays, Plus, Search, Eye, Users, MapPin, Clock, Trash2, Pencil, QrCode } from 'lucide-react';
+import { MeetingQrModal } from '../components/MeetingQrModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -217,6 +218,21 @@ export default function MeetingListPage() {
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     Lihat Detail
                   </Button>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <MeetingQrModal
+                      meeting={meeting}
+                      trigger={
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
+                          title="Lihat, Unduh & Cetak QR Absensi"
+                        >
+                          <QrCode className="h-3.5 w-3.5" />
+                        </Button>
+                      }
+                    />
+                  </div>
                   {isAdmin && (
                     <>
                       <Button

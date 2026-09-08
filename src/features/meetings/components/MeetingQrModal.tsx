@@ -162,7 +162,247 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    try {
+      const standeeEl = document.getElementById('printable-qr-standee');
+      const qrSvgEl = standeeEl?.querySelector('svg');
+
+      if (!qrSvgEl) {
+        window.print();
+        return;
+      }
+
+      // Format metadata rapat
+      const dateStr = meeting.started_at
+        ? formatMeetingDate(meeting.started_at, 'EEEE, d MMMM yyyy')
+        : '';
+      const timeStr = meeting.started_at
+        ? formatMeetingDate(meeting.started_at, 'HH:mm')
+        : '';
+      const locationStr = meeting.location || '';
+
+      // Header Kop: image jika ada, atau fallback teks resmi
+      const kopHtml = kopUrl
+        ? `<div style="width: 100%; max-width: 650px; display: flex; justify-content: center; border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
+            <img src="${kopUrl}" alt="Kop Surat Resmi LP Ma'arif NU Cilacap" style="max-height: 100px; max-width: 100%; object-fit: contain;" />
+           </div>`
+        : `<div style="width: 100%; border-bottom: 4px double #065f46; padding-bottom: 12px; margin-bottom: 16px; text-align: center;">
+            <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #047857; margin: 0 0 4px 0;">
+              PENGURUS CABANG NAHDLATUL ULAMA KABUPATEN CILACAP
+            </p>
+            <h2 style="font-size: 22px; font-weight: 900; color: #064e3b; margin: 0 0 4px 0; letter-spacing: -0.02em;">
+              LEMBAGA PENDIDIKAN MA'ARIF NU CILACAP
+            </h2>
+            <p style="font-size: 11px; color: #475569; margin: 0;">
+              Jl. Masjid No. 09 Kel. Sidanegara, Kec. Cilacap Tengah, Kab. Cilacap, Jawa Tengah 53223
+            </p>
+           </div>`;
+
+      // Buat iframe terisolasi untuk proses cetak
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-10000px';
+      iframe.style.top = '-10000px';
+      iframe.style.width = '210mm';
+      iframe.style.height = '297mm';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentWindow?.document;
+      if (!doc) {
+        window.print();
+        return;
+      }
+
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+          <meta charset="utf-8">
+          <title>Standee QR Absensi - ${meeting.title}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 15mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background: #ffffff;
+              color: #0f172a;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            .standee-container {
+              width: 100%;
+              max-width: 190mm;
+              min-height: 265mm;
+              margin: 0 auto;
+              padding: 6mm 8mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: space-between;
+              text-align: center;
+              background: #ffffff;
+            }
+            .badge {
+              display: inline-block;
+              padding: 5px 16px;
+              border-radius: 9999px;
+              background-color: #d1fae5;
+              color: #065f46;
+              font-size: 11px;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              margin-bottom: 8px;
+            }
+            .title {
+              font-size: 24px;
+              font-weight: 900;
+              color: #0f172a;
+              margin: 4px 0 10px 0;
+              line-height: 1.3;
+              max-width: 650px;
+            }
+            .meta {
+              display: flex;
+              flex-wrap: wrap;
+              justify-content: center;
+              gap: 16px;
+              font-size: 13px;
+              color: #475569;
+              font-weight: 600;
+              margin-bottom: 12px;
+            }
+            .qr-wrapper {
+              background: white;
+              border: 4px solid #059669;
+              border-radius: 20px;
+              padding: 16px;
+              box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+              display: inline-block;
+              margin: 8px 0;
+            }
+            .instructions {
+              background-color: #f0fdf4;
+              border: 1.5px solid #a7f3d0;
+              border-radius: 14px;
+              padding: 14px 24px;
+              max-width: 480px;
+              margin: 12px auto 0 auto;
+              text-align: left;
+            }
+            .instructions-title {
+              font-size: 11px;
+              font-weight: 800;
+              color: #064e3b;
+              text-transform: uppercase;
+              letter-spacing: 0.06em;
+              margin: 0 0 6px 0;
+            }
+            .instructions ol {
+              font-size: 12px;
+              color: #065f46;
+              margin: 0;
+              padding-left: 18px;
+              line-height: 1.6;
+            }
+            .footer {
+              width: 100%;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 12px;
+              margin-top: 16px;
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              color: #94a3b8;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="standee-container">
+            <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+              ${kopHtml}
+              <div class="badge">PRESENSI DIGITAL RAPAT</div>
+              <h1 class="title">${meeting.title}</h1>
+              <div class="meta">
+                ${dateStr ? `<span>📅 ${dateStr}</span>` : ''}
+                ${timeStr ? `<span>⏰ Pukul ${timeStr} WIB</span>` : ''}
+                ${locationStr ? `<span>📍 ${locationStr}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="qr-wrapper">
+              ${qrSvgEl.outerHTML}
+            </div>
+
+            <div class="instructions">
+              <p class="instructions-title">Petunjuk Presensi Kehadiran:</p>
+              <ol>
+                <li>Buka kamera smartphone atau aplikasi pemindai QR Code</li>
+                <li>Arahkan kamera ke QR Code di atas</li>
+                <li>Klik tautan yang muncul untuk membuka formulir kehadiran</li>
+                <li>Isi nama, instansi, jabatan, lalu klik <strong>Kirim Kehadiran</strong></li>
+              </ol>
+            </div>
+
+            <div class="footer">
+              <span>LP Ma'arif NU Cilacap</span>
+              <span>Sistem Informasi Manajemen Madrasah & Rapat Digital (SIMMACI)</span>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      doc.close();
+
+      const triggerPrint = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (err) {
+          console.error('Gagal mencetak dari iframe:', err);
+          window.print();
+        } finally {
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 2000);
+        }
+      };
+
+      // Tunggu gambar (kop surat) termuat sempurna jika ada
+      const imgs = iframe.contentWindow?.document.images;
+      if (imgs && imgs.length > 0) {
+        let loaded = 0;
+        const total = imgs.length;
+        const onImgDone = () => {
+          loaded++;
+          if (loaded >= total) setTimeout(triggerPrint, 250);
+        };
+        for (let i = 0; i < total; i++) {
+          if (imgs[i].complete) {
+            loaded++;
+          } else {
+            imgs[i].onload = onImgDone;
+            imgs[i].onerror = onImgDone;
+          }
+        }
+        if (loaded >= total) setTimeout(triggerPrint, 250);
+      } else {
+        setTimeout(triggerPrint, 250);
+      }
+    } catch (e) {
+      console.error('Error saat cetak standee:', e);
+      window.print();
+    }
   };
 
   return (
@@ -170,33 +410,60 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 print:p-0 print:border-0 print:shadow-none print:max-w-none print:w-full print:bg-white">
-        {/* Style khusus untuk cetak Standee / Poster A4 */}
+        {/* Style khusus untuk cetak Standee / Poster A4 jika user tekan Ctrl+P */}
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            body * {
-              visibility: hidden;
+            @page {
+              size: A4 portrait;
+              margin: 8mm 12mm;
             }
-            #printable-qr-standee, #printable-qr-standee * {
-              visibility: visible;
+            html, body {
+              overflow: visible !important;
+              height: auto !important;
+              background: white !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            #root,
+            [data-radix-dialog-overlay],
+            .no-print,
+            button {
+              display: none !important;
+            }
+            [data-radix-portal] {
+              display: block !important;
+              position: static !important;
+            }
+            [role="dialog"] {
+              display: block !important;
+              position: static !important;
+              transform: none !important;
+              max-width: 100% !important;
+              max-height: none !important;
+              width: 100% !important;
+              height: auto !important;
+              overflow: visible !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              border: none !important;
+              box-shadow: none !important;
+              background: white !important;
             }
             #printable-qr-standee {
-              position: fixed;
-              left: 0;
-              top: 0;
-              width: 100vw;
-              min-height: 100vh;
-              margin: 0;
-              padding: 2.5cm 2cm;
-              background: white;
-              color: black;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: space-between;
-              z-index: 999999;
-            }
-            .no-print {
-              display: none !important;
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: center !important;
+              justify-content: space-between !important;
+              width: 100% !important;
+              max-width: 190mm !important;
+              min-height: 265mm !important;
+              margin: 0 auto !important;
+              padding: 6mm 4mm !important;
+              border: none !important;
+              box-shadow: none !important;
+              background: white !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
           }
         ` }} />

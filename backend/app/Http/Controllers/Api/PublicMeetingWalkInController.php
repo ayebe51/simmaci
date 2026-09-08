@@ -138,24 +138,41 @@ class PublicMeetingWalkInController extends Controller
             // Jika lat/lng tidak dikirim padahal geolokasi aktif → tetap diizinkan (opsional)
         }
 
-        // ── 6. Smart Auto-Match: cocokkan Nama + Instansi dengan peserta terdaftar ─
+        // ── 6. Smart Fuzzy Auto-Match: Nama + Instansi ──────────────────────────
         //
-        // Matching dilakukan secara case-insensitive terhadap kolom `name` dan
-        // `instansi` pada tabel meeting_participants untuk rapat yang sama.
-        // Kedua field harus cocok sekaligus agar tidak terjadi false positive.
+        // Tiga strategi pencocokan (diambil nilai tertinggi):
+        //   1. Contains-check : menangani singkatan ("Luluk" ada dalam "Luluk Imtihanah")
+        //   2. Word-level     : tiap kata input dibandingkan ("neg" cocok "negeri")
+        //   3. Character-level: similar_text() sebagai fallback umum
         //
-        // Jika peserta sudah hadir → tolak agar tidak double-checkin.
+        // Threshold: nama >= 60%, instansi >= 50%.
+        // Jika peserta sudah hadir -> tolak agar tidak double-checkin.
         $inputName     = mb_strtolower(trim($validated['nama']));
         $inputInstansi = mb_strtolower(trim($validated['instansi']));
 
-        $matchedParticipant = $meeting->participants()
-            ->whereNull('deleted_at')
-            ->whereRaw('LOWER(name) = ?', [$inputName])
-            ->whereRaw('LOWER(instansi) = ?', [$inputInstansi])
-            ->first();
+        $allParticipants    = $meeting->participants()->whereNull('deleted_at')->get();
+        $matchedParticipant = null;
+        $bestScore          = 0.0;
+
+        foreach ($allParticipants as $p) {
+            $nameScore     = $this->fuzzyScore($inputName, mb_strtolower($p->name));
+            $instansiScore = $this->fuzzyScore($inputInstansi, mb_strtolower($p->instansi ?? ''));
+
+            // Kedua field harus memenuhi threshold masing-masing
+            if ($nameScore < 60.0 || $instansiScore < 50.0) {
+                continue;
+            }
+
+            // Nama diberi bobot lebih besar (60%) dari instansi (40%)
+            $combined = ($nameScore * 0.6) + ($instansiScore * 0.4);
+
+            if ($combined > $bestScore) {
+                $bestScore          = $combined;
+                $matchedParticipant = $p;
+            }
+        }
 
         if ($matchedParticipant) {
-            // Cek apakah peserta sudah punya record kehadiran
             $alreadyAttended = MeetingAttendance::where('meeting_id', $meeting->id)
                 ->where('participant_id', $matchedParticipant->id)
                 ->exists();
@@ -265,5 +282,87 @@ class PublicMeetingWalkInController extends Controller
             'user_agent'  => substr($ua, 0, 512),
             'device_type' => $deviceType,
         ];
+    }
+
+    /**
+     * Fuzzy similarity score (0-100) antara dua string.
+     *
+     * Menggabungkan tiga strategi dan mengambil nilai tertinggi:
+     *   1. Contains-check  — menangani kasus input merupakan bagian dari kandidat
+     *                        atau sebaliknya (misal singkatan nama "Luluk" ada di
+     *                        "Luluk Imtihanah, S.Pd.I").
+     *   2. Word-level score — membandingkan tiap kata input dengan tiap kata
+     *                        kandidat (toleran terhadap singkatan per kata).
+     *   3. Character-level — similar_text() sebagai fallback umum.
+     */
+    private function fuzzyScore(string $input, string $candidate): float
+    {
+        if ($input === '' || $candidate === '') {
+            return $input === $candidate ? 100.0 : 0.0;
+        }
+
+        if ($input === $candidate) {
+            return 100.0;
+        }
+
+        // ── Strategi 1: Contains-check (singkatan / nama pendek) ─────────────
+        $shorter = mb_strlen($input) <= mb_strlen($candidate) ? $input : $candidate;
+        $longer  = mb_strlen($input) <= mb_strlen($candidate) ? $candidate : $input;
+
+        if (str_contains($longer, $shorter)) {
+            $ratio = mb_strlen($shorter) / mb_strlen($longer);
+            if ($ratio >= 0.35) {
+                return max(75.0, $ratio * 100);
+            }
+        }
+
+        // ── Strategi 2: Word-level matching ──────────────────────────────────
+        $wordScore = $this->wordLevelScore($input, $candidate);
+
+        // ── Strategi 3: Character-level (similar_text) ───────────────────────
+        similar_text($input, $candidate, $charScore);
+
+        return max($wordScore, (float) $charScore);
+    }
+
+    /**
+     * Word-level fuzzy score (0-100).
+     *
+     * Memecah kedua string menjadi token kata, lalu menghitung berapa persen
+     * kata-kata dari input yang punya pasangan di kandidat dengan similar_text >= 75%.
+     *
+     * Contoh: "sd neg 1 cilacap" vs "sd negeri 1 cilacap"
+     *   kata "neg" vs "negeri" = ~75% -> match
+     *   kata "cilacap" vs "cilacap" = 100% -> match
+     *   => skor tinggi
+     */
+    private function wordLevelScore(string $input, string $candidate): float
+    {
+        $tokenize = static function (string $s): array {
+            return array_values(array_filter(
+                preg_split('/[\s,.\\/\-]+/u', $s),
+                static fn ($w) => mb_strlen($w) >= 2
+            ));
+        };
+
+        $inputWords     = $tokenize($input);
+        $candidateWords = $tokenize($candidate);
+
+        if (empty($inputWords) || empty($candidateWords)) {
+            return 0.0;
+        }
+
+        $matched = 0;
+        foreach ($inputWords as $iw) {
+            foreach ($candidateWords as $cw) {
+                similar_text($iw, $cw, $pct);
+                if ($pct >= 75.0) {
+                    $matched++;
+                    break;
+                }
+            }
+        }
+
+        return ($matched / count($inputWords)) * 100.0;
     }
 }

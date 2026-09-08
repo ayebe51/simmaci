@@ -138,11 +138,62 @@ class PublicMeetingWalkInController extends Controller
             // Jika lat/lng tidak dikirim padahal geolokasi aktif → tetap diizinkan (opsional)
         }
 
-        // ── 6. Simpan attendance record ───────────────────────────────────────
-        $attendance = DB::transaction(function () use ($meeting, $validated, $normalizedPhone, $request) {
+        // ── 6. Smart Auto-Match: cocokkan nomor HP dengan peserta terdaftar ────
+        //
+        // Jika peserta terdaftar (di meeting_participants) menggunakan QR walk-in
+        // umum (misalnya mereka tidak punya link undangan personal), sistem secara
+        // otomatis menghubungkan kehadiran mereka ke record peserta yang ada,
+        // sehingga tidak muncul sebagai entri duplikat / anonim.
+        //
+        // Prioritas pencocokan: nomor HP (setelah normalisasi) pada rapat yang sama.
+        // Jika peserta sudah hadir → tolak agar tidak double-checkin.
+        $matchedParticipant = null;
+
+        if ($normalizedPhone) {
+            $matchedParticipant = $meeting->participants()
+                ->where('phone_number', $normalizedPhone)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if ($matchedParticipant) {
+                // Cek apakah peserta sudah punya record kehadiran
+                $alreadyAttended = MeetingAttendance::where('meeting_id', $meeting->id)
+                    ->where('participant_id', $matchedParticipant->id)
+                    ->exists();
+
+                if ($alreadyAttended) {
+                    return $this->errorResponse(
+                        "Kehadiran Anda ({$matchedParticipant->name}) sudah tercatat sebelumnya. Terima kasih!",
+                        null,
+                        409
+                    );
+                }
+            }
+        }
+
+        // ── 7. Simpan attendance record ───────────────────────────────────────
+        $attendance = DB::transaction(function () use ($meeting, $validated, $normalizedPhone, $request, $matchedParticipant) {
+            if ($matchedParticipant) {
+                // Peserta terdaftar yang scan walk-in QR → hubungkan ke participant record
+                return MeetingAttendance::create([
+                    'meeting_id'       => $meeting->id,
+                    'participant_id'   => $matchedParticipant->id,     // terhubung ke peserta terdaftar
+                    'attendance_type'  => 'qr_umum',                   // tetap dicatat via QR umum
+                    'is_delegation'    => false,
+                    'walk_in_name'     => null,                        // tidak perlu, sudah ada di participant
+                    'walk_in_jabatan'  => null,
+                    'walk_in_instansi' => null,
+                    'walk_in_phone'    => null,
+                    'checked_in_at'    => now(),
+                    'ip_address'       => $request->ip(),
+                    'device_info'      => $this->extractDeviceInfo($request),
+                ]);
+            }
+
+            // Walk-in murni (tidak ada peserta terdaftar yang cocok)
             return MeetingAttendance::create([
                 'meeting_id'       => $meeting->id,
-                'participant_id'   => null,               // walk-in tidak punya participant record
+                'participant_id'   => null,
                 'attendance_type'  => 'qr_umum',
                 'is_delegation'    => false,
                 'walk_in_name'     => trim($validated['nama']),
@@ -155,13 +206,23 @@ class PublicMeetingWalkInController extends Controller
             ]);
         });
 
+        // Tentukan nama yang akan ditampilkan di respons
+        $displayName    = $matchedParticipant?->name    ?? $attendance->walk_in_name;
+        $displayJabatan = $matchedParticipant?->jabatan ?? $attendance->walk_in_jabatan;
+        $displayInstansi= $matchedParticipant?->instansi?? $attendance->walk_in_instansi;
+
+        $message = $matchedParticipant
+            ? "Halo, {$displayName}! Kehadiran Anda berhasil dicatat. Selamat datang!"
+            : 'Kehadiran Anda berhasil dicatat. Selamat datang!';
+
         return $this->successResponse([
-            'nama'         => $attendance->walk_in_name,
-            'jabatan'      => $attendance->walk_in_jabatan,
-            'instansi'     => $attendance->walk_in_instansi,
+            'nama'          => $displayName,
+            'jabatan'       => $displayJabatan,
+            'instansi'      => $displayInstansi,
             'checked_in_at' => $attendance->checked_in_at->format('H:i:s'),
             'meeting_title' => $meeting->title,
-        ], 'Kehadiran Anda berhasil dicatat. Selamat datang!', 201);
+            'matched'       => $matchedParticipant !== null, // flag apakah auto-match berhasil
+        ], $message, 201);
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

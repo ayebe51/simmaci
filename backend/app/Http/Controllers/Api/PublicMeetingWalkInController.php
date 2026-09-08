@@ -138,38 +138,37 @@ class PublicMeetingWalkInController extends Controller
             // Jika lat/lng tidak dikirim padahal geolokasi aktif → tetap diizinkan (opsional)
         }
 
-        // ── 6. Smart Auto-Match: cocokkan nomor HP dengan peserta terdaftar ────
+        // ── 6. Smart Auto-Match: cocokkan Nama + Instansi dengan peserta terdaftar ─
         //
-        // Jika peserta terdaftar (di meeting_participants) menggunakan QR walk-in
-        // umum (misalnya mereka tidak punya link undangan personal), sistem secara
-        // otomatis menghubungkan kehadiran mereka ke record peserta yang ada,
-        // sehingga tidak muncul sebagai entri duplikat / anonim.
+        // Matching dilakukan secara case-insensitive terhadap kolom `name` dan
+        // `instansi` pada tabel meeting_participants untuk rapat yang sama.
+        // Kedua field harus cocok sekaligus agar tidak terjadi false positive.
         //
-        // Prioritas pencocokan: nomor HP (setelah normalisasi) pada rapat yang sama.
         // Jika peserta sudah hadir → tolak agar tidak double-checkin.
-        $matchedParticipant = null;
+        $inputName     = mb_strtolower(trim($validated['nama']));
+        $inputInstansi = mb_strtolower(trim($validated['instansi']));
 
-        if ($normalizedPhone) {
-            $matchedParticipant = $meeting->participants()
-                ->where('phone_number', $normalizedPhone)
-                ->whereNull('deleted_at')
-                ->first();
+        $matchedParticipant = $meeting->participants()
+            ->whereNull('deleted_at')
+            ->whereRaw('LOWER(name) = ?', [$inputName])
+            ->whereRaw('LOWER(instansi) = ?', [$inputInstansi])
+            ->first();
 
-            if ($matchedParticipant) {
-                // Cek apakah peserta sudah punya record kehadiran
-                $alreadyAttended = MeetingAttendance::where('meeting_id', $meeting->id)
-                    ->where('participant_id', $matchedParticipant->id)
-                    ->exists();
+        if ($matchedParticipant) {
+            // Cek apakah peserta sudah punya record kehadiran
+            $alreadyAttended = MeetingAttendance::where('meeting_id', $meeting->id)
+                ->where('participant_id', $matchedParticipant->id)
+                ->exists();
 
-                if ($alreadyAttended) {
-                    return $this->errorResponse(
-                        "Kehadiran Anda ({$matchedParticipant->name}) sudah tercatat sebelumnya. Terima kasih!",
-                        null,
-                        409
-                    );
-                }
+            if ($alreadyAttended) {
+                return $this->errorResponse(
+                    "Kehadiran Anda ({$matchedParticipant->name}) sudah tercatat sebelumnya. Terima kasih!",
+                    null,
+                    409
+                );
             }
         }
+
 
         // ── 7. Simpan attendance record ───────────────────────────────────────
         $attendance = DB::transaction(function () use ($meeting, $validated, $normalizedPhone, $request, $matchedParticipant) {

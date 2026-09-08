@@ -33,7 +33,7 @@ class PublicEventController extends Controller
         $event->load([
             'competitions' => function ($q) {
                 $q->where('status', 'OPEN')
-                  ->withCount('participants')
+                  ->withCount(['participants', 'anugerahRegistrations'])
                   ->orderBy('name');
             },
         ]);

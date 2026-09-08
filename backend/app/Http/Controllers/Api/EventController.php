@@ -28,7 +28,7 @@ class EventController extends Controller
     {
         try {
             $events = Event::with(['competitions' => function ($q) {
-                $q->withCount('participants')->withCount('results');
+                $q->withCount(['participants', 'anugerahRegistrations'])->withCount('results');
             }])->orderByDesc('date')->get();
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('EventController::index competitions relation failed', ['error' => $e->getMessage()]);
@@ -91,7 +91,7 @@ class EventController extends Controller
         try {
             $event->load([
                 'competitions' => function ($q) {
-                    $q->withCount('participants')->withCount('results')->orderBy('name');
+                    $q->withCount(['participants', 'anugerahRegistrations'])->withCount('results')->orderBy('name');
                 },
             ]);
         } catch (\Throwable $e) {

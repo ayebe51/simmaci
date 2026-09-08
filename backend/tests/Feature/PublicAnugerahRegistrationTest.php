@@ -73,4 +73,75 @@ class PublicAnugerahRegistrationTest extends TestCase
             'status'                          => 'submitted',
         ]);
     }
+
+    public function test_public_event_show_counts_anugerah_registrations_in_participants_count(): void
+    {
+        $event = Event::create([
+            'name'     => 'Anugerah Pendidikan 2026',
+            'slug'     => 'anugerah-pendidikan-2026',
+            'category' => 'Anugerah',
+            'date'     => '2026-09-19',
+            'status'   => 'OPEN',
+        ]);
+
+        $compGuru = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Guru Berprestasi',
+            'category'   => 'Akademik',
+            'type'       => 'Individual',
+            'lomba_type' => 'guru_berprestasi',
+            'status'     => 'OPEN',
+        ]);
+
+        $compMadrasah = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Madrasah/Sekolah Berprestasi',
+            'category'   => 'Akademik',
+            'type'       => 'Individual',
+            'lomba_type' => 'madrasah_berprestasi',
+            'status'     => 'OPEN',
+        ]);
+
+        // Add 2 registrations to guru
+        AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $compGuru->id,
+            'category'       => 'guru',
+            'jenjang'        => 'MI/SD',
+            'applicant_name' => 'Guru 1',
+            'school_name'    => 'MI 1',
+            'status'         => 'submitted',
+        ]);
+        AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $compGuru->id,
+            'category'       => 'guru',
+            'jenjang'        => 'MTs/SMP',
+            'applicant_name' => 'Guru 2',
+            'school_name'    => 'MTs 1',
+            'status'         => 'submitted',
+        ]);
+
+        // Add 1 registration to madrasah
+        AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $compMadrasah->id,
+            'category'       => 'madrasah',
+            'jenjang'        => 'MA/SMA/SMK',
+            'applicant_name' => 'Kepala MA 1',
+            'school_name'    => 'MA 1',
+            'status'         => 'submitted',
+        ]);
+
+        $response = $this->getJson("/api/public/events/{$event->id}");
+
+        $response->assertStatus(200);
+
+        $competitions = collect($response->json('data.competitions'));
+        $guruData = $competitions->firstWhere('id', $compGuru->id);
+        $madrasahData = $competitions->firstWhere('id', $compMadrasah->id);
+
+        $this->assertEquals(2, $guruData['participants_count']);
+        $this->assertEquals(1, $madrasahData['participants_count']);
+    }
 }

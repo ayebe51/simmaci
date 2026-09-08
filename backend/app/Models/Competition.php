@@ -40,9 +40,30 @@ class Competition extends Model
         return $this->hasMany(CompetitionParticipant::class);
     }
 
+    public function anugerahRegistrations()
+    {
+        return $this->hasMany(AnugerahRegistration::class);
+    }
+
     public function results()
     {
         return $this->hasMany(CompetitionResult::class);
+    }
+
+    /**
+     * Total participants count combining festival participants and anugerah registrations.
+     */
+    public function getParticipantsCountAttribute($value): int
+    {
+        $count = (int) ($value ?? 0);
+
+        if (isset($this->attributes['anugerah_registrations_count'])) {
+            $count += (int) $this->attributes['anugerah_registrations_count'];
+        } elseif ($this->relationLoaded('anugerahRegistrations')) {
+            $count += $this->anugerahRegistrations->count();
+        }
+
+        return $count;
     }
 
     /**

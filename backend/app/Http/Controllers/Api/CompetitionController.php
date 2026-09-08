@@ -21,7 +21,7 @@ class CompetitionController extends Controller
     public function index(Event $event): JsonResponse
     {
         $competitions = $event->competitions()
-            ->withCount('participants')
+            ->withCount(['participants', 'anugerahRegistrations'])
             ->withCount('results')
             ->orderBy('name')
             ->get();
@@ -54,7 +54,7 @@ class CompetitionController extends Controller
         $competition = Competition::create($data);
 
         return $this->success(
-            $competition->loadCount(['participants', 'results']),
+            $competition->loadCount(['participants', 'anugerahRegistrations', 'results']),
             'Cabang lomba berhasil dibuat',
             201
         );
@@ -107,7 +107,7 @@ class CompetitionController extends Controller
         ]);
 
         $competition->update($data);
-        return $this->success($competition->loadCount(['participants', 'results']));
+        return $this->success($competition->loadCount(['participants', 'anugerahRegistrations', 'results']));
     }
 
     // ── Delete competition ─────────────────────────────────────────────────────

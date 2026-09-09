@@ -21,7 +21,7 @@ const PRESET_ANUGERAH = {
   description: 'Penyelenggaraan Anugerah Guru Berprestasi, Madrasah/Sekolah Berprestasi, dan Festival Aswaja Siswa dalam rangka Harlah LP Ma\'arif NU ke-97 Tahun 2026.',
   status: 'OPEN',
   registration_start: '2026-08-01',
-  registration_end: '2026-09-07',
+  registration_end: '2026-09-11',
   video_deadline: '2026-09-11T23:59',
   announcement_date: '2026-09-22',
   announcement_place: 'Inn ASTON Hotel Cilacap',

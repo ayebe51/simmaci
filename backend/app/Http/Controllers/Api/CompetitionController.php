@@ -380,7 +380,7 @@ class CompetitionController extends Controller
         }
 
         $VIDEO_DEADLINE = '2026-09-11 23:59:00';
-        $REG_DEADLINE   = '2026-09-07 23:59:00';
+        $REG_DEADLINE   = '2026-09-11 23:59:00';
 
         $template = [
             // ── Festival Aswaja Siswa ──────────────────────────────────────
@@ -496,6 +496,13 @@ class CompetitionController extends Controller
                 ->exists();
 
             if ($exists) {
+                // Pastikan cabang lomba yang sudah ada tetap OPEN dan batas waktu diperbarui
+                Competition::where('event_id', $event->id)
+                    ->where('lomba_type', $item['lomba_type'])
+                    ->update([
+                        'deadline' => $item['deadline'],
+                        'status'   => 'OPEN',
+                    ]);
                 $skipped[] = $item['name'];
                 continue;
             }

@@ -665,6 +665,12 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
                   value={docForm.surat_keterangan_integritas_url || ''}
                   onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
                 />
+                <DocInputRow
+                  label="Bukti Prestasi Siswa/Guru (Sertifikat/Piagam)"
+                  field="bukti_prestasi_url"
+                  value={docForm.bukti_prestasi_url || ''}
+                  onChange={(f, v) => setDocForm(p => ({ ...p, [f]: v }))}
+                />
               </div>
             )}
           </div>

@@ -8,7 +8,9 @@ use App\Models\Competition;
 use App\Models\CompetitionParticipant;
 use App\Models\CompetitionResult;
 use App\Models\Event;
+use App\Models\HeadmasterRecommendation;
 use App\Models\HeadmasterTenure;
+use App\Models\Meeting;
 use App\Models\NuptkSubmission;
 use App\Models\School;
 use App\Models\SchoolClass;
@@ -640,5 +642,478 @@ class PostRemediationSecurityVerificationTest extends TestCase
             ->getJson("/api/student-statistics/madrasah/{$this->schoolB->id}/per-kelas");
 
         $this->assertEquals(403, $response->status());
+    }
+
+    // ── AUTH-016: Teacher Import Commit Cross-Tenant Mutation Blocked ──
+    public function test_auth_016_teacher_import_commit_cross_tenant_mutation_blocked(): void
+    {
+        $teacherB = Teacher::withoutTenantScope()->create([
+            'school_id' => $this->schoolB->id,
+            'nama' => 'Guru Asli Madrasah B',
+            'is_verified' => false,
+        ]);
+
+        // Operator A attempts cross-tenant update on Teacher B
+        $response = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/teachers/import/commit', [
+                'teachers' => [
+                    [
+                        'action' => 'UPDATE',
+                        'target_id' => $teacherB->id,
+                        'payload' => [
+                            'nama' => 'Attacked Teacher Name',
+                            'is_verified' => true,
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->assertEquals(403, $response->status());
+        $this->assertStringContainsString('Akses ditolak', $response->json('message'));
+
+        // Verify Teacher B in DB remains completely unchanged
+        $teacherB->refresh();
+        $this->assertEquals('Guru Asli Madrasah B', $teacherB->nama);
+        $this->assertFalse((bool) $teacherB->is_verified);
+
+        // Operator A attempts to insert new teacher with injected school_id and is_verified
+        $responseInsert = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/teachers/import/commit', [
+                'teachers' => [
+                    [
+                        'action' => 'INSERT',
+                        'payload' => [
+                            'nama' => 'Guru Baru Operator A',
+                            'school_id' => $this->schoolB->id,
+                            'is_verified' => true,
+                        ],
+                    ],
+                ],
+            ]);
+
+        $this->assertEquals(200, $responseInsert->status());
+        $insertedTeacher = Teacher::withoutTenantScope()->where('nama', 'Guru Baru Operator A')->first();
+        $this->assertNotNull($insertedTeacher);
+        // school_id MUST be forced to Operator A's school
+        $this->assertEquals($this->schoolA->id, $insertedTeacher->school_id);
+        // is_verified MUST NOT be true via unprivileged mass assignment
+        $this->assertFalse((bool) $insertedTeacher->is_verified);
+    }
+
+    // ── AUTH-017: Teacher Deduplication Restricted to Super Admin / Admin Yayasan ──
+    public function test_auth_017_teacher_deduplication_restricted_to_super_admin(): void
+    {
+        $teacher1 = Teacher::withoutTenantScope()->create([
+            'school_id' => $this->schoolA->id,
+            'nama' => 'Guru Duplikat 1',
+        ]);
+        $teacher2 = Teacher::withoutTenantScope()->create([
+            'school_id' => $this->schoolA->id,
+            'nama' => 'Guru Duplikat 2',
+        ]);
+
+        // Operator A cannot call deduplicate -> 403
+        $responseOp = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/teachers/deduplicate', [
+                'keep_id' => $teacher1->id,
+                'duplicate_ids' => [$teacher2->id],
+            ]);
+        $this->assertEquals(403, $responseOp->status());
+
+        // Super Admin can call deduplicate
+        $responseAdmin = $this->actingAs($this->superAdmin, 'sanctum')
+            ->postJson('/api/teachers/deduplicate', [
+                'keep_id' => $teacher1->id,
+                'duplicate_ids' => [$teacher2->id],
+            ]);
+        $this->assertEquals(200, $responseAdmin->status());
+    }
+
+    // ── AUTH-018: Competition Participant IDOR & Privilege Escalation Blocked ──
+    public function test_auth_018_competition_participant_idor_and_privilege_escalation_blocked(): void
+    {
+        $event = Event::create([
+            'name' => 'Festival Sains 2026',
+            'category' => 'festival',
+            'date' => '2026-08-01',
+            'tahun' => 2026,
+            'status' => 'active',
+        ]);
+
+        $competition = Competition::create([
+            'event_id' => $event->id,
+            'name' => 'Lomba Robotika',
+            'category' => 'madrasah',
+            'status' => 'active',
+        ]);
+
+        $partB = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'school_id' => $this->schoolB->id,
+            'name' => 'Peserta Asli Sekolah B',
+            'institution' => 'Sekolah B',
+            'registration_status' => 'pending',
+        ]);
+
+        $partA = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'school_id' => $this->schoolA->id,
+            'name' => 'Peserta Asli Sekolah A',
+            'institution' => 'Sekolah A',
+            'registration_status' => 'pending',
+        ]);
+
+        // 1. Cross-tenant modification: Operator A cannot update School B's participant -> 403
+        $responseIdor = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/participants/{$partB->id}", [
+                'name' => 'Tampered Name',
+            ]);
+        $this->assertEquals(403, $responseIdor->status());
+
+        // 2. Self-verification / Privilege Escalation: Operator A cannot set registration_status to verified
+        $responseEscalate = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/participants/{$partA->id}", [
+                'name' => 'Peserta Update A',
+                'registration_status' => 'verified',
+                'school_id' => $this->schoolB->id,
+            ]);
+        $this->assertEquals(200, $responseEscalate->status());
+
+        $partA->refresh();
+        $this->assertEquals('Peserta Update A', $partA->name);
+        $this->assertEquals('pending', $partA->registration_status, 'registration_status must remain pending for operator');
+        $this->assertEquals($this->schoolA->id, $partA->school_id, 'school_id must remain immutable');
+
+        // 3. Store: Operator A creating participant cannot set school_id to School B or status to verified
+        $responseStore = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson("/api/competitions/{$competition->id}/participants", [
+                'name' => 'Peserta Baru A',
+                'institution' => 'Sekolah A',
+                'school_id' => $this->schoolB->id,
+                'registration_status' => 'verified',
+            ]);
+        $this->assertEquals(201, $responseStore->status());
+        $createdId = $responseStore->json('data.id');
+        $created = CompetitionParticipant::find($createdId);
+        $this->assertEquals($this->schoolA->id, $created->school_id);
+        $this->assertEquals('pending', $created->registration_status);
+    }
+
+    // ── AUTH-019: Anugerah Registration Cross-Tenant IDOR & Status Tampering Blocked ──
+    public function test_auth_019_anugerah_registration_idor_and_status_tampering_blocked(): void
+    {
+        $event = Event::create([
+            'name' => 'Anugerah Maarif 2026',
+            'category' => 'anugerah',
+            'date' => '2026-08-01',
+            'tahun' => 2026,
+            'status' => 'active',
+        ]);
+
+        $comp = Competition::create([
+            'event_id' => $event->id,
+            'name' => 'Kategori Inovasi Madrasah',
+            'category' => 'anugerah',
+            'status' => 'active',
+        ]);
+
+        $regB = AnugerahRegistration::create([
+            'event_id' => $event->id,
+            'competition_id' => $comp->id,
+            'school_id' => $this->schoolB->id,
+            'category' => 'guru',
+            'jenjang' => 'MI',
+            'applicant_name' => 'Guru B',
+            'school_name' => 'Madrasah B',
+            'status' => 'draft',
+        ]);
+
+        $regA = AnugerahRegistration::create([
+            'event_id' => $event->id,
+            'competition_id' => $comp->id,
+            'school_id' => $this->schoolA->id,
+            'category' => 'guru',
+            'jenjang' => 'MI',
+            'applicant_name' => 'Guru A',
+            'school_name' => 'Madrasah A',
+            'status' => 'submitted',
+        ]);
+
+        // 1. Cross-tenant show: Operator A cannot view School B's registration -> 403
+        $responseShow = $this->actingAs($this->operatorA, 'sanctum')
+            ->getJson("/api/anugerah-registrations/{$regB->id}");
+        $this->assertEquals(403, $responseShow->status());
+
+        // 2. Cross-tenant update: Operator A cannot update School B's registration -> 403
+        $responseUpdateB = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/anugerah-registrations/{$regB->id}", [
+                'applicant_name' => 'Hacked Name',
+            ]);
+        $this->assertEquals(403, $responseUpdateB->status());
+
+        // 3. Workflow bypass: Operator A cannot edit an already submitted registration -> 403
+        $responseUpdateSubmitted = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/anugerah-registrations/{$regA->id}", [
+                'applicant_name' => 'Tampered After Submit',
+            ]);
+        $this->assertEquals(403, $responseUpdateSubmitted->status());
+
+        // 4. Store: Operator A cannot inject School B school_id or verified status
+        $responseStore = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/anugerah-registrations', [
+                'event_id' => $event->id,
+                'competition_id' => $comp->id,
+                'school_id' => $this->schoolB->id,
+                'category' => 'guru',
+                'jenjang' => 'MI',
+                'applicant_name' => 'Calon Guru A',
+                'school_name' => 'Madrasah A',
+                'status' => 'verified',
+            ]);
+        $this->assertEquals(201, $responseStore->status());
+        $newRegId = $responseStore->json('data.id');
+        $newReg = AnugerahRegistration::find($newRegId);
+        $this->assertEquals($this->schoolA->id, $newReg->school_id);
+        $this->assertEquals('draft', $newReg->status);
+    }
+
+    // ── AUTH-020: File Upload Traversal and Unauthenticated Access Blocked ──
+    public function test_auth_020_file_upload_arbitrary_file_disclosure_and_traversal_blocked(): void
+    {
+        // 1. Unauthenticated request to files/view -> 401
+        $responseAnon = $this->getJson('/api/files/view/documents/test.pdf');
+        $this->assertEquals(401, $responseAnon->status());
+
+        // 2. Path traversal attempts -> 403 Forbidden
+        $responseTraversal = $this->actingAs($this->operatorA, 'sanctum')
+            ->getJson('/api/files/view/../../etc/passwd');
+        $this->assertEquals(403, $responseTraversal->status());
+
+        // 3. Restricted folder access by operator (sk-templates) -> 403
+        $responseTemplate = $this->actingAs($this->operatorA, 'sanctum')
+            ->getJson('/api/files/view/sk-templates/secret_template.docx');
+        $this->assertEquals(403, $responseTemplate->status());
+
+        // 4. Cross-tenant file access by operator (school_X) -> 403
+        $responseCross = $this->actingAs($this->operatorA, 'sanctum')
+            ->getJson("/api/files/view/school_{$this->schoolB->id}/rahasia.pdf");
+        $this->assertEquals(403, $responseCross->status());
+    }
+
+    // ── AUTH-021: Meeting Participants From Schools Restricted ──
+    public function test_auth_021_meeting_participants_from_schools_restricted(): void
+    {
+        // Operator A calls endpoint -> 403 Forbidden
+        $responseOp = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/meetings/participants-from-schools', [
+                'school_ids' => [$this->schoolA->id, $this->schoolB->id],
+            ]);
+        $this->assertEquals(403, $responseOp->status());
+
+        // Super Admin calls endpoint -> 200 OK
+        $responseAdmin = $this->actingAs($this->superAdmin, 'sanctum')
+            ->postJson('/api/meetings/participants-from-schools', [
+                'school_ids' => [$this->schoolA->id],
+            ]);
+        $this->assertEquals(200, $responseAdmin->status());
+    }
+
+    // ── AUTH-022: SK Document Cross-Tenant Deletion Blocked ──
+    public function test_auth_022_sk_document_cross_tenant_deletion_blocked(): void
+    {
+        $skB = SkDocument::create([
+            'school_id' => $this->schoolB->id,
+            'nomor_sk' => 'SK/B/2026/001',
+            'status' => 'draft',
+            'hal' => 'SK Draft Sekolah B',
+            'jenis_sk' => 'Tetap',
+            'nama' => 'Guru SK B',
+            'tanggal_penetapan' => '2026-01-01',
+        ]);
+
+        $skA = SkDocument::create([
+            'school_id' => $this->schoolA->id,
+            'nomor_sk' => 'SK/A/2026/001',
+            'status' => 'draft',
+            'hal' => 'SK Draft Sekolah A',
+            'jenis_sk' => 'Tetap',
+            'nama' => 'Guru SK A',
+            'tanggal_penetapan' => '2026-01-01',
+        ]);
+
+        // Operator A tries to delete School B's SK -> 403 or 404
+        $responseDeleteB = $this->actingAs($this->operatorA, 'sanctum')
+            ->deleteJson("/api/sk-documents/{$skB->id}");
+        $this->assertTrue(in_array($responseDeleteB->status(), [403, 404], true));
+        $this->assertModelExists($skB);
+
+        // Operator A deletes own draft SK -> 200 OK
+        $responseDeleteA = $this->actingAs($this->operatorA, 'sanctum')
+            ->deleteJson("/api/sk-documents/{$skA->id}");
+        $this->assertEquals(200, $responseDeleteA->status());
+    }
+
+    // ── AUTH-023: SK Document Cross-Tenant Modification and Status Tampering Blocked ──
+    public function test_auth_023_sk_document_cross_tenant_update_and_status_tampering_blocked(): void
+    {
+        $skB = SkDocument::create([
+            'school_id' => $this->schoolB->id,
+            'nomor_sk' => 'SK/B/2026/002',
+            'status' => 'draft',
+            'hal' => 'SK B',
+            'jenis_sk' => 'Tetap',
+            'nama' => 'Guru SK B 2',
+            'tanggal_penetapan' => '2026-01-01',
+        ]);
+
+        $skA = SkDocument::create([
+            'school_id' => $this->schoolA->id,
+            'nomor_sk' => 'SK/A/2026/002',
+            'status' => 'draft',
+            'hal' => 'SK A',
+            'jenis_sk' => 'Tetap',
+            'nama' => 'Guru SK A 2',
+            'tanggal_penetapan' => '2026-01-01',
+        ]);
+
+        // 1. Cross-tenant update attempt -> 403 or 404
+        $responseUpdateB = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/sk-documents/{$skB->id}", [
+                'nama' => 'Hacked Name',
+            ]);
+        $this->assertTrue(in_array($responseUpdateB->status(), [403, 404], true));
+
+        // 2. Status escalation attempt by Operator to 'active' -> 403 Forbidden
+        $responseEscalate = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/sk-documents/{$skA->id}", [
+                'status' => 'active',
+            ]);
+        $this->assertEquals(403, $responseEscalate->status());
+
+        // Positive test: Operator A updates benign field on own draft SK -> 200 OK
+        $responseOk = $this->actingAs($this->operatorA, 'sanctum')
+            ->putJson("/api/sk-documents/{$skA->id}", [
+                'jabatan' => 'Guru Kelas Updated',
+            ]);
+        $this->assertEquals(200, $responseOk->status());
+        $skA->refresh();
+        $this->assertEquals('Guru Kelas Updated', $skA->jabatan);
+        $this->assertEquals('draft', $skA->status);
+    }
+
+    // ── AUTH-024: SK Document Cross-Tenant Overwrite in Store Blocked ──
+    public function test_auth_024_sk_document_cross_tenant_overwrite_in_store_blocked(): void
+    {
+        $skB = SkDocument::create([
+            'school_id' => $this->schoolB->id,
+            'nomor_sk' => 'SK/B/UNIQUE/2026',
+            'status' => 'active',
+            'hal' => 'SK Asli Sekolah B',
+            'jenis_sk' => 'Tetap',
+            'nama' => 'Guru SK B Unique',
+            'tanggal_penetapan' => '2026-01-01',
+        ]);
+
+        // 1. Operator A attempts to overwrite School B's document by specifying existing nomor_sk -> 403 Forbidden
+        $responseOverwrite = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/sk-documents', [
+                'nomor_sk' => 'SK/B/UNIQUE/2026',
+                'nama' => 'Tampered Guru Name',
+                'jenis_sk' => 'Tetap',
+                'tanggal_penetapan' => '2026-01-01',
+                'school_id' => $this->schoolB->id,
+                'status' => 'approved',
+            ]);
+        $this->assertEquals(403, $responseOverwrite->status());
+        $skB->refresh();
+        $this->assertEquals('Guru SK B Unique', $skB->nama);
+        $this->assertEquals($this->schoolB->id, $skB->school_id);
+
+        // 2. Operator A stores a new SK attempting to inject foreign school_id and active status
+        $responseNew = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/sk-documents', [
+                'nomor_sk' => 'SK/A/NEW/2026',
+                'nama' => 'Guru Baru Operator A',
+                'jenis_sk' => 'Tetap',
+                'tanggal_penetapan' => '2026-01-01',
+                'school_id' => $this->schoolB->id,
+                'status' => 'active',
+            ]);
+
+        $this->assertEquals(201, $responseNew->status());
+        $newSkId = $responseNew->json('id');
+        $newSk = SkDocument::find($newSkId);
+        $this->assertNotNull($newSk);
+        $this->assertEquals($this->schoolA->id, $newSk->school_id, 'school_id must be forced to operator school');
+        $this->assertEquals('draft', $newSk->status, 'status must remain draft for operator');
+    }
+
+    // ── AUTH-025: MinIO Proxy Path Traversal & Error Sanitization ──
+    public function test_auth_025_minio_proxy_traversal_and_error_sanitization(): void
+    {
+        // Traversal attempt -> 403 Forbidden
+        $responseTraversal = $this->getJson('/api/minio/..%2F..%2Fetc%2Fpasswd');
+        $this->assertEquals(403, $responseTraversal->status());
+        $this->assertStringContainsString('Akses ditolak', $responseTraversal->json('error'));
+    }
+
+    // ── AUTH-026: Rate Limiting Enforced on Public Auth & Verification ──
+    public function test_auth_026_rate_limiting_enforced_on_public_auth(): void
+    {
+        // Hit /api/auth/login 11 times. The 11th should be rate-limited (429)
+        for ($i = 0; $i < 10; $i++) {
+            $this->postJson('/api/auth/login', [
+                'email' => "rate.limit.test{$i}@simmaci.test",
+                'password' => 'wrongpass',
+            ]);
+        }
+
+        $responseThrottled = $this->postJson('/api/auth/login', [
+            'email' => 'rate.limit.test11@simmaci.test',
+            'password' => 'wrongpass',
+        ]);
+        $this->assertEquals(429, $responseThrottled->status(), '11th request within 1 minute must return 429 Too Many Requests');
+    }
+
+    // ── AUTH-027: Headmaster Recommendation & NUPTK Store Cross-Tenant Injection Blocked ──
+    public function test_auth_027_headmaster_and_nuptk_store_cross_tenant_injection_blocked(): void
+    {
+        $teacherB = Teacher::withoutTenantScope()->create([
+            'school_id' => $this->schoolB->id,
+            'nama' => 'Guru Madrasah B Calon Kamad',
+        ]);
+
+        $teacherA = Teacher::withoutTenantScope()->create([
+            'school_id' => $this->schoolA->id,
+            'nama' => 'Guru Madrasah A Sah',
+        ]);
+
+        // 1. Operator A submits Headmaster Recommendation for Teacher B -> 403 Forbidden
+        $responseKamadB = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/headmaster-recommendations', [
+                'teacher_id' => $teacherB->id,
+                'school_id' => $this->schoolB->id,
+                'documents' => ['cv' => 'link-to-cv'],
+            ]);
+        $this->assertEquals(403, $responseKamadB->status());
+
+        // 2. Operator A submits NUPTK for Teacher B -> 403 Forbidden
+        $responseNuptkB = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/nuptk-submissions', [
+                'teacher_id' => $teacherB->id,
+                'school_id' => $this->schoolB->id,
+            ]);
+        $this->assertEquals(403, $responseNuptkB->status());
+
+        // Positive test: Operator A submits NUPTK for Teacher A -> 201 Created and school_id forced
+        $responseNuptkA = $this->actingAs($this->operatorA, 'sanctum')
+            ->postJson('/api/nuptk-submissions', [
+                'teacher_id' => $teacherA->id,
+                'school_id' => $this->schoolB->id, // attempted injection of school B
+            ]);
+        $this->assertEquals(201, $responseNuptkA->status());
+        $submissionId = $responseNuptkA->json('id');
+        $submission = NuptkSubmission::find($submissionId);
+        $this->assertEquals($this->schoolA->id, $submission->school_id);
     }
 }

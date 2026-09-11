@@ -283,11 +283,9 @@ class TeacherController extends Controller
         $user = $request->user();
         $manualSelections = $request->input('manual_selections', []);
 
-        // Cek jika user adalah operator tapi tidak punya school_id
+        // Cek role: hanya super_admin dan admin_yayasan yang dapat menjalankan deduplikasi
         if (!in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
-            if (!$user->school_id) {
-                return $this->errorResponse('Anda tidak memiliki akses ke sekolah manapun.', 403);
-            }
+            return $this->errorResponse('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat melakukan deduplikasi.', 403);
         }
 
         // Helper untuk membatasi query berdasarkan role
@@ -1950,6 +1948,9 @@ class TeacherController extends Controller
     public function importCommit(Request $request): JsonResponse
     {
         $request->validate(['teachers' => 'required|array']);
+        $user = $request->user();
+        $isOperator = $user?->isOperator();
+        $operatorSchoolId = (int) $user?->school_id;
         
         $created = 0;
         $updated = 0;
@@ -1958,10 +1959,16 @@ class TeacherController extends Controller
         \DB::beginTransaction();
         try {
             foreach ($request->teachers as $row) {
-                $payload = $row['payload'];
-                $action = $row['action'];
+                $payload = $row['payload'] ?? [];
+                $action = $row['action'] ?? 'INSERT';
                 $targetId = $row['target_id'] ?? null;
-                $nim = $payload['nomor_induk_maarif'] ?? null;
+
+                if ($isOperator) {
+                    // Operator must only insert for their own school
+                    $payload['school_id'] = $operatorSchoolId;
+                    // Never allow operator to self-verify or mark SK generated
+                    unset($payload['is_verified'], $payload['is_sk_generated'], $payload['deleted_at']);
+                }
 
                 if ($action === 'INSERT' || ($action === 'MANUAL' && !$targetId)) {
                     Teacher::create($payload);
@@ -1970,10 +1977,22 @@ class TeacherController extends Controller
                 elseif ($action === 'UPDATE' || ($action === 'MANUAL' && $targetId)) {
                     $teacher = Teacher::withoutTenantScope()->find($targetId);
                     if ($teacher) {
+                        // Tenant check: operator can only update teachers belonging to their school
+                        if ($isOperator && (int) $teacher->school_id !== $operatorSchoolId) {
+                            \DB::rollBack();
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Akses ditolak: Anda tidak memiliki wewenang memperbarui data guru madrasah lain.'
+                            ], 403);
+                        }
+
                         // User instruction: For safe update, KEEP database name.
                         // So we remove 'nama' from payload so it doesn't overwrite.
                         if (isset($payload['nama'])) {
                             unset($payload['nama']);
+                        }
+                        if ($isOperator) {
+                            unset($payload['school_id']); // Cannot transfer school via import
                         }
                         $teacher->update($payload);
                         $updated++;

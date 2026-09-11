@@ -43,6 +43,19 @@ class MinioProxyController extends Controller
             // URL-decode the path in case it was encoded (e.g. %3D for = in base64 filenames)
             $path = urldecode($path);
 
+            // Normalize slashes
+            $path = str_replace('\\', '/', $path);
+
+            // Path traversal protection: block '..', leading slashes, drive letters, null bytes
+            if (
+                str_contains($path, '..')
+                || str_starts_with($path, '/')
+                || str_contains($path, ':')
+                || str_contains($path, "\0")
+            ) {
+                return response()->json(['error' => 'Akses ditolak: Pola path traversal terdeteksi.'], 403);
+            }
+
             // Strip bucket name prefix if present (e.g. "simmaci-storage/sk-templates/..." -> "sk-templates/...")
             $bucket = config('filesystems.disks.s3.bucket', 'simmaci-storage');
             if (str_starts_with($path, $bucket . '/')) {
@@ -90,9 +103,7 @@ class MinioProxyController extends Controller
                 'line'    => $e->getLine(),
             ]);
             return response()->json([
-                'error' => $e->getMessage(),
-                'file'  => $e->getFile(),
-                'line'  => $e->getLine(),
+                'error' => 'Terjadi kesalahan saat memproses file.',
             ], 500);
         }
     }

@@ -59,6 +59,14 @@ class HeadmasterRecommendationController extends Controller
             'documents.rekomendasi' => 'nullable|string',
         ]);
 
+        if ($request->user()->isOperator()) {
+            $data['school_id'] = $request->user()->school_id;
+            $teacher = \App\Models\Teacher::find($data['teacher_id']);
+            if (! $teacher || (int) $teacher->school_id !== (int) $request->user()->school_id) {
+                abort(403, 'Guru yang dipilih bukan dari sekolah Anda.');
+            }
+        }
+
         $data['status'] = 'Pending';
         $data['submitted_at'] = now();
         $data['is_reappointment'] = $request->boolean('is_reappointment');

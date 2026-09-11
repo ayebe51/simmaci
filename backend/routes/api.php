@@ -67,7 +67,7 @@ use App\Http\Controllers\Api\PpdbManagementController;
 // ──────────────────────────────────────────────────────────────────────────────
 
 // ── Public / Auth ──
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
 });
@@ -84,20 +84,19 @@ Route::prefix('ppdb')->group(function () {
     Route::get('schools',          [PublicPpdbController::class, 'getSchools']);
     Route::get('schools/{id}',     [PublicPpdbController::class, 'getSchoolDetail']);
     Route::post('register',        [PublicPpdbController::class, 'register']);
-    Route::get('status',           [PublicPpdbController::class, 'checkStatus']);
+    Route::get('status',           [PublicPpdbController::class, 'checkStatus'])->middleware('throttle:10,1');
 });
 
 // ── Public Routes ──
 // MinIO proxy - accessible at /api/minio/*
 Route::get('minio', [MinioProxyController::class, 'proxy'])->name('minio.proxy');
 Route::get('minio/{path}', [MinioProxyController::class, 'proxy'])->where('path', '.*')->name('minio.proxy.path');
-Route::get('files/view/{path}', [FileUploadController::class, 'view'])->where('path', '.*');
 Route::get('settings/{key}', [SettingController::class, 'show']);
 
 // ── Public Attendance (Scanner Standalone — PIN protected, no auth token) ──
 Route::prefix('public/attendance')->group(function () {
     Route::get('schools',      [PublicAttendanceController::class, 'schools']);
-    Route::post('verify-pin',  [PublicAttendanceController::class, 'verifyPin']);
+    Route::post('verify-pin',  [PublicAttendanceController::class, 'verifyPin'])->middleware('throttle:10,1');
     Route::get('classes',      [PublicAttendanceController::class, 'classes']);
     Route::get('subjects',     [PublicAttendanceController::class, 'subjects']);
     Route::get('schedules',    [PublicAttendanceController::class, 'schedules']);
@@ -112,7 +111,7 @@ Route::prefix('public/attendance')->group(function () {
 
 // ── Public Meeting Scanner (PIN protected, no auth token) ──
 Route::prefix('public/meetings')->group(function () {
-    Route::post('verify-pin', [PublicMeetingScannerController::class, 'verifyPin']);
+    Route::post('verify-pin', [PublicMeetingScannerController::class, 'verifyPin'])->middleware('throttle:10,1');
     Route::post('scan',       [PublicMeetingScannerController::class, 'scan']);
     Route::get('active',      [PublicMeetingScannerController::class, 'activeList']);
 });
@@ -165,10 +164,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('teachers/generate-accounts',   [TeacherController::class, 'generateAccounts']);
         });
         
+        Route::middleware('role:super_admin,admin_yayasan')->group(function () {
+            Route::post('teachers/deduplicate', [TeacherController::class, 'deduplicate']);
+        });
+        
         Route::post('teachers/import', [TeacherController::class, 'import']);
         Route::post('teachers/import/preview', [TeacherController::class, 'importPreview']);
         Route::post('teachers/import/commit', [TeacherController::class, 'importCommit']);
-        Route::post('teachers/deduplicate', [TeacherController::class, 'deduplicate']);
         Route::post('teachers/recalculate-status', [TeacherController::class, 'recalculateStatuses']);
         // NIM routes must be registered before apiResource to avoid {teacher} wildcard conflict
         Route::get('teachers/nim/generate', [TeacherController::class, 'previewNim']);
@@ -354,10 +356,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Meetings read-only (all authenticated users, operators see filtered results) ──
     Route::get('meetings', [MeetingController::class, 'index']);
     Route::get('meetings/{meeting}', [MeetingController::class, 'show']);
-    Route::post('meetings/participants-from-schools', [MeetingController::class, 'participantsFromSchools']);
 
     // ── Meetings write operations (super_admin + admin_yayasan only) ──
     Route::middleware('role:super_admin,admin_yayasan')->group(function () {
+        Route::post('meetings/participants-from-schools', [MeetingController::class, 'participantsFromSchools']);
         Route::post('meetings', [MeetingController::class, 'store']);
         Route::put('meetings/{meeting}', [MeetingController::class, 'update']);
         Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy']);
@@ -451,7 +453,7 @@ Route::prefix('public/events')->group(function () {
 
 // Jury panel (PIN-gated, no auth token needed)
 Route::prefix('public/jury')->group(function () {
-    Route::post('verify-pin', [PublicEventController::class, 'juryVerifyPin']);
+    Route::post('verify-pin', [PublicEventController::class, 'juryVerifyPin'])->middleware('throttle:10,1');
     Route::get('{token}/participants', [PublicEventController::class, 'juryParticipants']);
     Route::post('{token}/score', [PublicEventController::class, 'juryScore']);
 });

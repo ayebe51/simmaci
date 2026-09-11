@@ -82,6 +82,12 @@ class AnugerahRegistrationController extends Controller
             'prestasi_list.*.is_lp_maarif'   => 'nullable|boolean',
         ]);
 
+        $user = Auth::user();
+        if ($user?->role === 'operator') {
+            $data['school_id'] = $user->school_id;
+            $data['status'] = 'draft';
+        }
+
         $registration = AnugerahRegistration::create($data);
 
         // Auto-calculate score if prestasi_list provided
@@ -94,8 +100,13 @@ class AnugerahRegistrationController extends Controller
     }
 
     // ── Show single registration ───────────────────────────────────────────────
-    public function show(AnugerahRegistration $anugerahRegistration): JsonResponse
+    public function show(Request $request, AnugerahRegistration $anugerahRegistration): JsonResponse
     {
+        $user = $request->user();
+        if ($user?->role === 'operator' && (int) $anugerahRegistration->school_id !== (int) $user->school_id) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki akses ke data pendaftaran madrasah lain.');
+        }
+
         $anugerahRegistration->load(['event', 'competition', 'school']);
         return $this->success($anugerahRegistration);
     }
@@ -103,6 +114,16 @@ class AnugerahRegistrationController extends Controller
     // ── Update registration ────────────────────────────────────────────────────
     public function update(Request $request, AnugerahRegistration $anugerahRegistration): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $anugerahRegistration->school_id !== (int) $user->school_id) {
+                abort(403, 'Akses ditolak: Anda tidak memiliki akses ke pendaftaran madrasah lain.');
+            }
+            if ($anugerahRegistration->status !== 'draft') {
+                abort(403, 'Akses ditolak: Pendaftaran yang sudah disubmit atau dinilai tidak dapat diubah.');
+            }
+        }
+
         $data = $request->validate([
             'applicant_name'                 => 'nullable|string|max:255',
             'applicant_nuptk'                => 'nullable|string|max:30',
@@ -125,6 +146,10 @@ class AnugerahRegistrationController extends Controller
             'prestasi_list'                  => 'nullable|array',
         ]);
 
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            unset($data['status'], $data['school_id'], $data['rank'], $data['total_score']);
+        }
+
         $anugerahRegistration->update($data);
 
         // Recalculate score
@@ -137,8 +162,15 @@ class AnugerahRegistrationController extends Controller
     }
 
     // ── Submit (change status from draft → submitted) ─────────────────────────
-    public function submit(AnugerahRegistration $anugerahRegistration): JsonResponse
+    public function submit(Request $request, AnugerahRegistration $anugerahRegistration): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $anugerahRegistration->school_id !== (int) $user->school_id) {
+                abort(403, 'Akses ditolak: Anda tidak memiliki akses ke pendaftaran madrasah lain.');
+            }
+        }
+
         if ($anugerahRegistration->status !== 'draft') {
             return $this->error('Pendaftaran ini sudah disubmit sebelumnya.', 422);
         }

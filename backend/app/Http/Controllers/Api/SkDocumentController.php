@@ -190,18 +190,34 @@ class SkDocumentController extends Controller
             'qr_code' => 'nullable|string',
         ]);
 
-        // Auto-resolve school_id
-        if (isset($data['unit_kerja'])) {
-            $school = School::where('nama', $data['unit_kerja'])->first();
-            $data['school_id'] = $school?->id;
+        $user = $request->user();
+        $isOperator = $user?->isOperator();
+
+        if ($isOperator) {
+            $data['school_id'] = $user->school_id;
+            $data['status'] = 'draft';
+        } else {
+            // Auto-resolve school_id
+            if (isset($data['unit_kerja'])) {
+                $school = School::where('nama', $data['unit_kerja'])->first();
+                $data['school_id'] = $school?->id;
+            }
         }
 
-        $data['created_by'] = $request->user()->email;
-        $data['status'] = $data['status'] ?? 'draft';
+        $data['created_by'] = $user?->email;
+        $data['status'] = $isOperator ? 'draft' : ($data['status'] ?? 'draft');
 
         // Upsert: update if nomor_sk exists
-        $existing = SkDocument::where('nomor_sk', $data['nomor_sk'])->first();
+        $existing = SkDocument::withoutTenantScope()->where('nomor_sk', $data['nomor_sk'])->first();
         if ($existing) {
+            if ($isOperator && (int) $existing->school_id !== (int) $user->school_id) {
+                return response()->json([
+                    'message' => 'Akses ditolak: Dokumen SK dengan nomor ini milik madrasah lain.',
+                ], 403);
+            }
+            if ($isOperator) {
+                unset($data['status'], $data['school_id']);
+            }
             $existing->update($data);
             return response()->json($existing->fresh());
         }
@@ -240,30 +256,45 @@ class SkDocumentController extends Controller
     public function update(Request $request, SkDocument $skDocument): JsonResponse
     {
         try {
+            $user = $request->user();
+            if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+                if ((int) $skDocument->school_id !== (int) $user->school_id) {
+                    return response()->json([
+                        'message' => 'Akses ditolak: Anda tidak memiliki akses ke dokumen SK madrasah lain.',
+                    ], 403);
+                }
+            }
+
             $request->validate([
                 'ijazah_url' => 'nullable|string|max:500',
             ]);
 
-            // Operators are not allowed to approve or reject SK documents
+            // Operators are not allowed to approve, reject, or self-activate SK documents
             $newStatus = $request->input('status');
             if (
                 $newStatus !== null
-                && in_array($newStatus, ['approved', 'rejected'])
+                && in_array($newStatus, ['approved', 'rejected', 'active'])
                 && $request->user()->role === 'operator'
             ) {
                 return response()->json([
-                    'message' => 'Anda tidak memiliki izin untuk menyetujui atau menolak pengajuan SK.',
+                    'message' => 'Anda tidak memiliki izin untuk menyetujui, menolak, atau mengaktifkan pengajuan SK.',
                 ], 403);
             }
 
             $oldStatus = $skDocument->status;
 
-            $skDocument->update($request->only([
+            $updateData = $request->only([
                 'nomor_sk', 'jenis_sk', 'teacher_id', 'nama', 'jabatan',
                 'unit_kerja', 'tanggal_penetapan', 'status', 'file_url', 'qr_code',
                 'revision_status', 'revision_reason', 'revision_data',
                 'ijazah_url', 'tahun_ajaran',
-            ]));
+            ]);
+
+            if ($user && $user->role === 'operator') {
+                unset($updateData['status'], $updateData['school_id']);
+            }
+
+            $skDocument->update($updateData);
 
             // Auto-activate: Jika nomor SK sudah resmi (bukan REQ/ atau DRAFT-) dan file PDF sudah ada,
             // serta status masih 'approved', otomatis naikkan ke 'active'.
@@ -381,6 +412,15 @@ class SkDocumentController extends Controller
 
     public function destroy(Request $request, SkDocument $skDocument): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $skDocument->school_id !== (int) $user->school_id) {
+                return response()->json([
+                    'message' => 'Akses ditolak: Anda tidak memiliki izin untuk menghapus atau mengarsipkan dokumen SK madrasah lain.',
+                ], 403);
+            }
+        }
+
         $skDocument->update(['status' => 'archived', 'archived_at' => now()]);
 
         ActivityLog::log(

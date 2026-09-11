@@ -33,7 +33,7 @@ class CompetitionController extends Controller
     public function store(Request $request, Event $event): JsonResponse
     {
         if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
-            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menambah cabang lomba.', 403);
+            abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menambah cabang lomba.');
         }
 
         $data = $request->validate([
@@ -164,6 +164,13 @@ class CompetitionController extends Controller
             'sinopsis_url'                    => 'nullable|string|max:1000',
         ]);
 
+        $user = $request->user();
+        if ($user?->isOperator()) {
+            $data['school_id'] = $user->school_id;
+            unset($data['registration_status'], $data['video_status']);
+            $data['registration_status'] = 'pending';
+        }
+
         // Enforce max_per_school limit if set
         if ($competition->max_per_school && isset($data['school_id'])) {
             $existing = $competition->countFromSchool((int) $data['school_id']);
@@ -183,6 +190,13 @@ class CompetitionController extends Controller
 
     public function participantsUpdate(Request $request, CompetitionParticipant $participant): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $participant->school_id !== (int) $user->school_id) {
+                abort(403, 'Akses ditolak: Anda tidak dapat mengubah data peserta madrasah lain.');
+            }
+        }
+
         $data = $request->validate([
             'name'                          => 'nullable|string|max:255',
             'institution'                   => 'nullable|string|max:255',
@@ -209,6 +223,11 @@ class CompetitionController extends Controller
             'dokumen_admin_url'             => 'nullable|string|max:500',
             'sinopsis_url'                  => 'nullable|string|max:500',
         ]);
+
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            // Operators cannot verify or transfer school of participant
+            unset($data['registration_status'], $data['video_status'], $data['school_id']);
+        }
 
         $participant->update($data);
         return $this->success($participant->load('result'));

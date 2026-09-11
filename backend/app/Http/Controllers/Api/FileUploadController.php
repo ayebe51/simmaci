@@ -119,7 +119,7 @@ class FileUploadController extends Controller
 
         // 4. Operator tenant isolation
         if ($user->role === 'operator') {
-            if ($user->school_id && preg_match('/schools?\/(\d+)/', $path, $matches)) {
+            if ($user->school_id && preg_match('/schools?[_\/](\d+)/', $path, $matches)) {
                 $fileSchoolId = (int) $matches[1];
                 if ($fileSchoolId !== (int) $user->school_id) {
                     abort(403, 'Akses ditolak: Anda tidak berwenang menghapus file milik madrasah lain.');
@@ -153,6 +153,19 @@ class FileUploadController extends Controller
         // Decode path if it's URL encoded
         $path = urldecode($path);
 
+        // Normalize slashes
+        $path = str_replace('\\', '/', $path);
+
+        // 1. Path traversal protection: block '..', leading slashes, absolute paths, drive letters, null bytes
+        if (
+            str_contains($path, '..')
+            || str_starts_with($path, '/')
+            || str_contains($path, ':')
+            || str_contains($path, "\0")
+        ) {
+            abort(403, 'Akses ditolak: Pola path traversal terdeteksi.');
+        }
+
         // Extract path if it's a full URL
         if (filter_var($path, FILTER_VALIDATE_URL)) {
             $parsedPath = parse_url($path, PHP_URL_PATH);
@@ -174,8 +187,34 @@ class FileUploadController extends Controller
             $path = substr($path, strlen('simmaci-storage/'));
         }
         
-        // Determine disk
+        // 2. Disk allowlist: ONLY allow 'public' and 's3' (disallow 'local' or arbitrary disks)
+        $allowedDisks = ['public', 's3'];
         $disk = $request->query('disk', config('filesystems.disks.s3.key') ? 's3' : 'public');
+        if (! in_array($disk, $allowedDisks, true)) {
+            abort(403, 'Akses ditolak: Disk penyimpanan tidak diizinkan.');
+        }
+
+        $user = $request->user();
+
+        // 3. Protected system directories (restricted to super_admin)
+        $protectedFolders = ['sk-templates', 'templates', 'backups', 'system', 'logs', 'seeds'];
+        foreach ($protectedFolders as $folder) {
+            if (str_starts_with($path, $folder . '/') || $path === $folder) {
+                if (! $user || $user->role !== 'super_admin') {
+                    abort(403, 'Akses ditolak: Hanya Super Admin yang dapat mengakses file pada direktori sistem/template.');
+                }
+            }
+        }
+
+        // 4. Operator tenant isolation on school-prefixed paths (e.g. schools/123/... or school_123/...)
+        if ($user && $user->role === 'operator') {
+            if ($user->school_id && preg_match('/schools?[_\/](\d+)/', $path, $matches)) {
+                $fileSchoolId = (int) $matches[1];
+                if ($fileSchoolId !== (int) $user->school_id) {
+                    abort(403, 'Akses ditolak: Anda tidak berwenang mengakses file milik madrasah lain.');
+                }
+            }
+        }
         
         // Check if file exists
         if (!Storage::disk($disk)->exists($path)) {

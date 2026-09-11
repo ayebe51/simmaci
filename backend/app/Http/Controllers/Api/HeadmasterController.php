@@ -52,8 +52,17 @@ class HeadmasterController extends Controller
             'golongan' => 'nullable|string|max:10',
         ]);
 
+        $user = $request->user();
+        if ($user?->isOperator()) {
+            $data['school_id'] = $user->school_id;
+            $school = School::find($user->school_id);
+            if ($school) {
+                $data['school_name'] = $school->nama;
+            }
+        }
+
         $data['status'] = 'pending';
-        $data['created_by'] = $request->user()->email;
+        $data['created_by'] = $user?->email;
 
         return response()->json(HeadmasterTenure::create($data), 201);
     }

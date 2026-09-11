@@ -71,6 +71,11 @@ class StudentStatisticsController extends Controller
      */
     public function perKelas(Request $request, int $id): JsonResponse
     {
+        $user = $request->user();
+        if ($user && $user->isOperator() && (int) $user->school_id !== $id) {
+            return $this->errorResponse('Anda tidak memiliki akses ke data madrasah ini.', null, 403);
+        }
+
         $school = School::find($id);
 
         if (!$school) {
@@ -90,6 +95,11 @@ class StudentStatisticsController extends Controller
      */
     public function exportPerKelas(Request $request, int $id): BinaryFileResponse|JsonResponse
     {
+        $user = $request->user();
+        if ($user && $user->isOperator() && (int) $user->school_id !== $id) {
+            return $this->errorResponse('Anda tidak memiliki akses ke data madrasah ini.', null, 403);
+        }
+
         $school = School::find($id);
 
         if (!$school) {

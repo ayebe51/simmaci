@@ -25,6 +25,7 @@ class MultiJuryScoringTest extends TestCase
             'location' => 'Cilacap',
             'status'   => 'OPEN',
         ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'maarif2026');
 
         $competition = Competition::create([
             'event_id'   => $event->id,
@@ -143,6 +144,7 @@ class MultiJuryScoringTest extends TestCase
             'location' => 'Cilacap',
             'status'   => 'OPEN',
         ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'maarif2026');
 
         $competition = Competition::create([
             'event_id'   => $event->id,
@@ -236,6 +238,7 @@ class MultiJuryScoringTest extends TestCase
             'location' => 'Cilacap',
             'status'   => 'OPEN',
         ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'maarif2026');
 
         $competition = Competition::create([
             'event_id'   => $event->id,
@@ -303,5 +306,35 @@ class MultiJuryScoringTest extends TestCase
         $this->assertTrue($partData2['is_scored_by_me']);
         $this->assertEquals(2, $partData2['juries_count']);
         $this->assertEquals(88.25, (float) $partData2['final_score']);
+    }
+
+    public function test_jury_verify_pin_fails_when_pin_not_configured_for_event(): void
+    {
+        $event = Event::create([
+            'name'     => 'Event Without PIN',
+            'slug'     => 'event-without-pin-2026',
+            'category' => 'Festival',
+            'date'     => '2026-09-19',
+            'location' => 'Cilacap',
+            'status'   => 'OPEN',
+        ]);
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Kaligrafi',
+            'category'   => 'Seni Budaya',
+            'type'       => 'Individual',
+            'lomba_type' => 'kaligrafi',
+            'status'     => 'OPEN',
+        ]);
+
+        $res = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'maarif2026',
+            'jury_name'      => 'Juri Tester',
+        ]);
+
+        $res->assertStatus(422);
+        $this->assertStringContainsString('PIN juri belum dikonfigurasi', $res->json('message'));
     }
 }

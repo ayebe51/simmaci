@@ -233,13 +233,17 @@ class PublicEventController extends Controller
 
         $competition = Competition::findOrFail($request->competition_id);
 
-        // PIN stored as "jury_pin_event_{event_id}" in settings, or use a default "maarif2026"
+        // PIN stored as "jury_pin_event_{event_id}" in settings
         // We must use Setting::getValue() to bypass TenantScope on public routes
         $stored = \App\Models\Setting::getValue("jury_pin_event_{$competition->event_id}")
-            ?? config('app.default_jury_pin', 'maarif2026');
+            ?? config('app.default_jury_pin');
 
-        if ($request->pin !== $stored) {
-            return $this->error('PIN juri tidak valid.', 401);
+        if (empty($stored)) {
+            return $this->error('PIN juri belum dikonfigurasi untuk event ini. Hubungi administrator.', null, 422);
+        }
+
+        if (!hash_equals((string) $stored, (string) $request->pin)) {
+            return $this->error('PIN juri tidak valid.', null, 401);
         }
 
         $juryName = trim($request->jury_name);

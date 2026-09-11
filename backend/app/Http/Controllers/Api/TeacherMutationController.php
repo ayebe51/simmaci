@@ -14,13 +14,35 @@ class TeacherMutationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $query = TeacherMutation::with('teacher');
+
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if (is_null($user->school_id)) {
+                return response()->json([]);
+            }
+
+            $schoolId = $user->school_id;
+            $schoolName = $user->school?->nama;
+
+            $query->where(function ($q) use ($schoolId, $schoolName) {
+                $q->whereHas('teacher', function ($tq) use ($schoolId) {
+                    $tq->where('school_id', $schoolId);
+                });
+                if ($schoolName) {
+                    $q->orWhere('from_unit', $schoolName)
+                      ->orWhere('to_unit', $schoolName);
+                }
+            });
+        }
 
         return response()->json($query->orderByDesc('created_at')->get());
     }
 
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         $request->validate([
             'teacher_id' => 'required|exists:teachers,id',
             'to_school_id' => 'required|exists:schools,id',
@@ -30,6 +52,13 @@ class TeacherMutationController extends Controller
         ]);
 
         $teacher = Teacher::findOrFail($request->teacher_id);
+
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ($user->school_id && (int) $teacher->school_id !== (int) $user->school_id) {
+                return response()->json(['message' => 'Anda tidak memiliki hak akses untuk memutasi guru dari madrasah lain.'], 403);
+            }
+        }
+
         $toSchool = School::findOrFail($request->to_school_id);
         
         $fromUnit = $teacher->school?->nama ?? 'Akses Global';

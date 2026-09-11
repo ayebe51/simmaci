@@ -13,4 +13,4 @@ Route::get('/fix-template-emergency', function () {
     include base_path('fix-template-now.php');
     $output = ob_get_clean();
     return '<pre>' . htmlspecialchars($output) . '</pre>';
-})->middleware('auth:sanctum');
+})->middleware(['auth:sanctum', 'role:super_admin']);

@@ -265,13 +265,27 @@ class AttendanceController extends Controller
 
     public function subjectUpdate(Request $request, Subject $subject): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $subject->school_id !== (int) $user->school_id) {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke mata pelajaran ini.'], 403);
+            }
+        }
+
         $subject->update($request->only(['nama', 'kode', 'is_active']));
 
         return response()->json($subject->fresh());
     }
 
-    public function subjectDestroy(Subject $subject): JsonResponse
+    public function subjectDestroy(Request $request, Subject $subject): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $subject->school_id !== (int) $user->school_id) {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke mata pelajaran ini.'], 403);
+            }
+        }
+
         $subject->delete();
 
         return response()->json(['success' => true, 'message' => 'Mata pelajaran dihapus']);
@@ -306,6 +320,13 @@ class AttendanceController extends Controller
 
     public function classUpdate(Request $request, SchoolClass $class): JsonResponse
     {
+        $user = $request->user();
+        if ($user && ! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            if ((int) $class->school_id !== (int) $user->school_id) {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses ke kelas ini.'], 403);
+            }
+        }
+
         $class->update($request->only(['nama', 'tingkat', 'tahun_ajaran', 'wali_kelas_id', 'is_active']));
 
         return response()->json($class->fresh());

@@ -14,15 +14,54 @@ use App\Models\Teacher;
 use App\Models\TeacherAttendance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 /**
  * Public Attendance Controller
  *
- * Endpoints accessible WITHOUT auth token — protected only by school PIN.
+ * Endpoints accessible without full user login, but protected by verified scanner session token / PIN.
  * Used by the standalone /scan page for teachers to record student attendance.
  */
 class PublicAttendanceController extends Controller
 {
+    /**
+     * Validate whether the request has an active scanner session bound to the target school,
+     * or is authenticated via Sanctum with appropriate tenant permissions.
+     */
+    protected function validateScannerSession(Request $request, int $schoolId): bool
+    {
+        // 1. Authenticated Sanctum user
+        if ($user = $request->user()) {
+            return $user->isSuperAdmin() || (int) $user->school_id === (int) $schoolId;
+        }
+
+        // 2. Token from header (X-Scanner-Token / Bearer) or query parameter
+        $token = $request->header('X-Scanner-Token')
+            ?? $request->bearerToken()
+            ?? $request->query('scanner_token');
+
+        if (! $token) {
+            return false;
+        }
+
+        $session = Cache::get("scanner_session:{$token}");
+        if (! $session || ! isset($session['school_id'])) {
+            return false;
+        }
+
+        // Must match expected school_id and purpose
+        if ((int) $session['school_id'] !== (int) $schoolId) {
+            return false;
+        }
+
+        if (($session['purpose'] ?? '') !== 'attendance_scanner') {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * List all schools (for school selector on login screen).
      */
@@ -37,7 +76,7 @@ class PublicAttendanceController extends Controller
 
     /**
      * Verify PIN for a school.
-     * Returns a short-lived session token stored client-side.
+     * Returns a short-lived cryptographically signed session token stored client-side.
      *
      * POST /api/public/attendance/verify-pin
      * Body: { school_id, pin }
@@ -65,25 +104,43 @@ class PublicAttendanceController extends Controller
             ], 401);
         }
 
-        // Return school info so frontend can display it
         $school = School::find($request->school_id);
 
+        // Generate cryptographically secure scanner session token
+        $scannerToken = hash_hmac('sha256', Str::random(40) . '|' . $request->school_id . '|' . now()->timestamp, config('app.key') ?: 'simmaci-secret-key');
+
+        // Cache token for 8 hours with school binding & purpose
+        Cache::put("scanner_session:{$scannerToken}", [
+            'school_id'  => (int) $request->school_id,
+            'purpose'    => 'attendance_scanner',
+            'issued_at'  => now()->timestamp,
+            'expires_at' => now()->addHours(8)->timestamp,
+        ], now()->addHours(8));
+
         return response()->json([
-            'success'    => true,
-            'message'    => 'PIN valid',
-            'school_id'  => $request->school_id,
-            'school_name' => $school->nama,
+            'success'       => true,
+            'message'       => 'PIN valid',
+            'scanner_token' => $scannerToken,
+            'school_id'     => (int) $request->school_id,
+            'school_name'   => $school->nama,
+            'expires_in'    => 28800,
         ]);
     }
 
     /**
-     * Get classes for a school (no auth, school_id from request).
+     * Get classes for a school (requires valid scanner session or user auth).
      *
      * GET /api/public/attendance/classes?school_id=1
      */
     public function classes(Request $request): JsonResponse
     {
         $request->validate(['school_id' => 'required|integer|exists:schools,id']);
+
+        if (! $this->validateScannerSession($request, (int) $request->school_id)) {
+            return response()->json([
+                'message' => 'Unauthorized: Sesi scanner tidak valid atau telah kedaluwarsa. Masukkan PIN scanner terlebih dahulu.',
+            ], 401);
+        }
 
         $classes = SchoolClass::withoutGlobalScopes()
             ->where('school_id', $request->school_id)
@@ -96,13 +153,19 @@ class PublicAttendanceController extends Controller
     }
 
     /**
-     * Get subjects for a school.
+     * Get subjects for a school (requires valid scanner session or user auth).
      *
      * GET /api/public/attendance/subjects?school_id=1
      */
     public function subjects(Request $request): JsonResponse
     {
         $request->validate(['school_id' => 'required|integer|exists:schools,id']);
+
+        if (! $this->validateScannerSession($request, (int) $request->school_id)) {
+            return response()->json([
+                'message' => 'Unauthorized: Sesi scanner tidak valid atau telah kedaluwarsa. Masukkan PIN scanner terlebih dahulu.',
+            ], 401);
+        }
 
         $subjects = Subject::withoutGlobalScopes()
             ->where('school_id', $request->school_id)
@@ -114,13 +177,19 @@ class PublicAttendanceController extends Controller
     }
 
     /**
-     * Get lesson schedules for a school.
+     * Get lesson schedules for a school (requires valid scanner session or user auth).
      *
      * GET /api/public/attendance/schedules?school_id=1
      */
     public function schedules(Request $request): JsonResponse
     {
         $request->validate(['school_id' => 'required|integer|exists:schools,id']);
+
+        if (! $this->validateScannerSession($request, (int) $request->school_id)) {
+            return response()->json([
+                'message' => 'Unauthorized: Sesi scanner tidak valid atau telah kedaluwarsa. Masukkan PIN scanner terlebih dahulu.',
+            ], 401);
+        }
 
         $schedules = LessonSchedule::withoutGlobalScopes()
             ->where('school_id', $request->school_id)
@@ -131,7 +200,8 @@ class PublicAttendanceController extends Controller
     }
 
     /**
-     * Get students for a class.
+     * Get students for a class (requires valid scanner session or user auth).
+     * PII minimized: only returns necessary identifiers for scanning (id, nama, kelas).
      *
      * GET /api/public/attendance/students?school_id=1&class_id=2
      */
@@ -141,6 +211,12 @@ class PublicAttendanceController extends Controller
             'school_id' => 'required|integer|exists:schools,id',
             'class_id'  => 'required|integer',
         ]);
+
+        if (! $this->validateScannerSession($request, (int) $request->school_id)) {
+            return response()->json([
+                'message' => 'Unauthorized: Sesi scanner tidak valid atau telah kedaluwarsa. Masukkan PIN scanner terlebih dahulu.',
+            ], 401);
+        }
 
         $class = SchoolClass::withoutGlobalScopes()
             ->where('id', $request->class_id)
@@ -155,13 +231,13 @@ class PublicAttendanceController extends Controller
             ->where('school_id', $request->school_id)
             ->where('kelas', $class->nama)
             ->orderBy('nama')
-            ->get(['id', 'nama', 'nisn', 'kelas']);
+            ->get(['id', 'nama', 'kelas']);
 
         return response()->json($students);
     }
 
     /**
-     * Get existing attendance log for a class/subject/date.
+     * Get existing attendance log for a class/subject/date (requires valid scanner session or user auth).
      *
      * GET /api/public/attendance/student-log?school_id=1&class_id=2&subject_id=3&tanggal=2024-01-15
      */
@@ -173,6 +249,12 @@ class PublicAttendanceController extends Controller
             'subject_id' => 'required|integer',
             'tanggal'    => 'required|date',
         ]);
+
+        if (! $this->validateScannerSession($request, (int) $request->school_id)) {
+            return response()->json([
+                'message' => 'Unauthorized: Sesi scanner tidak valid atau telah kedaluwarsa. Masukkan PIN scanner terlebih dahulu.',
+            ], 401);
+        }
 
         $log = StudentAttendanceLog::withoutGlobalScopes()
             ->where('school_id', $request->school_id)

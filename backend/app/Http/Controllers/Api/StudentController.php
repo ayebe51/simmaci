@@ -236,13 +236,30 @@ class StudentController extends Controller
                 }
 
                 if ($nisn) {
-                    \App\Models\Student::updateOrCreate(
-                        ['nisn' => $nisn], 
-                        array_merge(
-                            array_filter($dataToSave, fn($v) => !is_null($v)), 
-                            ['school_id' => $actualSchoolId]
-                        )
-                    );
+                    $existingStudent = \App\Models\Student::withoutTenantScope()->where('nisn', $nisn)->first();
+
+                    if ($existingStudent) {
+                        // Integrity check: if existing student belongs to another school, reject row!
+                        if ((int) $existingStudent->school_id !== (int) $actualSchoolId) {
+                            $schoolName = $existingStudent->school?->nama ?? "School ID {$existingStudent->school_id}";
+                            throw new \Exception("Konflik Kepemilikan Data: Siswa dengan NISN {$nisn} sudah terdaftar pada {$schoolName}. Transfer antar madrasah wajib melalui prosedur mutasi resmi.");
+                        }
+
+                        // Same school: update existing student
+                        $existingStudent->update(
+                            array_merge(
+                                array_filter($dataToSave, fn($v) => !is_null($v)), 
+                                ['school_id' => $actualSchoolId]
+                            )
+                        );
+                    } else {
+                        \App\Models\Student::create(
+                            array_merge(
+                                array_filter($dataToSave, fn($v) => !is_null($v)), 
+                                ['school_id' => $actualSchoolId]
+                            )
+                        );
+                    }
                 } else {
                     \App\Models\Student::create(
                         array_merge(

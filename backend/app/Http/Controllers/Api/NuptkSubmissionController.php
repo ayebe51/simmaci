@@ -45,6 +45,10 @@ class NuptkSubmissionController extends Controller
 
     public function approve(Request $request, NuptkSubmission $nuptkSubmission): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Super Admin / Admin Yayasan yang berwenang menyetujui pengajuan NUPTK.');
+        }
+
         $request->validate([
             'nomor_surat_rekomendasi' => 'required|string',
             'tanggal_surat_rekomendasi' => 'required|string',
@@ -63,6 +67,10 @@ class NuptkSubmissionController extends Controller
 
     public function reject(Request $request, NuptkSubmission $nuptkSubmission): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Super Admin / Admin Yayasan yang berwenang menolak pengajuan NUPTK.');
+        }
+
         $request->validate(['rejection_reason' => 'required|string']);
 
         $nuptkSubmission->update([

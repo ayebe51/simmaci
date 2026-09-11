@@ -9,21 +9,41 @@ use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
+    private function isSensitiveKey(string $key): bool
+    {
+        return (bool) preg_match('/pin|secret|token|password|api_key|private|wa_blast/i', $key);
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $schoolId = $request->user()->isOperator() ? $request->user()->school_id : null;
+        $user = $request->user();
+        $schoolId = $user?->isOperator() ? $user->school_id : null;
 
-        $settings = Setting::withoutTenantScope()
-            ->when($schoolId, fn($q) => $q->where('school_id', $schoolId))
-            ->get()
-            ->keyBy('key');
+        $query = Setting::withoutTenantScope()
+            ->when($schoolId, fn($q) => $q->where('school_id', $schoolId));
+
+        if ($user?->isOperator()) {
+            $query->where(function ($q) {
+                $q->where('key', 'not ilike', '%pin%')
+                  ->where('key', 'not ilike', '%secret%')
+                  ->where('key', 'not ilike', '%token%')
+                  ->where('key', 'not ilike', '%password%');
+            });
+        }
+
+        $settings = $query->get()->keyBy('key');
 
         return response()->json($settings);
     }
 
     public function show(string $key, Request $request): JsonResponse
     {
-        $schoolId = $request->user()?->isOperator() ? $request->user()->school_id : null;
+        $user = $request->user();
+        if ($this->isSensitiveKey($key) && ! in_array($user?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Akses ditolak: Parameter pengaturan ini bersifat rahasia.');
+        }
+
+        $schoolId = $user?->isOperator() ? $user->school_id : null;
 
         $value = Setting::getValue($key, $schoolId);
 
@@ -41,8 +61,13 @@ class SettingController extends Controller
             'value' => 'nullable',
         ]);
 
-        $schoolId = $request->user()->isOperator()
-            ? $request->user()->school_id
+        $user = $request->user();
+        if ($user?->isOperator() && $this->isSensitiveKey($request->key)) {
+            abort(403, 'Akses ditolak: Operator tidak dapat mengubah konfigurasi rahasia.');
+        }
+
+        $schoolId = $user?->isOperator()
+            ? $user->school_id
             : $request->input('school_id');
 
         Setting::setValue($request->key, $request->value, $schoolId);

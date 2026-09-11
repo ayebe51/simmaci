@@ -72,16 +72,72 @@ class FileUploadController extends Controller
     }
 
     /**
-     * DELETE /api/media/delete
+     * DELETE /api/files (or /api/media/delete)
      */
     public function delete(Request $request): JsonResponse
     {
-        $request->validate(['path' => 'required|string', 'disk' => 'nullable|string']);
-        
+        $request->validate([
+            'path' => 'required|string',
+            'disk' => 'nullable|string|in:public,s3',
+        ]);
+
+        $user = $request->user();
+        if (! $user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        $rawPath = (string) $request->input('path');
+        // Normalize path
+        $path = str_replace('\\', '/', $rawPath);
+
+        // 1. Path traversal protection: block '..', leading slashes, absolute paths, drive letters, null bytes
+        if (
+            str_contains($path, '..')
+            || str_starts_with($path, '/')
+            || str_contains($path, ':')
+            || str_contains($path, "\0")
+        ) {
+            abort(403, 'Akses ditolak: Pola path traversal terdeteksi.');
+        }
+
+        // 2. Disk allowlist
+        $allowedDisks = ['public', 's3'];
         $disk = $request->disk ?? (config('filesystems.disks.s3.key') ? 's3' : 'public');
-        
-        if (Storage::disk($disk)->exists($request->path)) {
-            Storage::disk($disk)->delete($request->path);
+        if (! in_array($disk, $allowedDisks, true)) {
+            abort(403, 'Akses ditolak: Disk penyimpanan tidak diizinkan.');
+        }
+
+        // 3. Protected system directories (restricted to super_admin)
+        $protectedFolders = ['sk-templates', 'templates', 'backups', 'system', 'logs', 'seeds'];
+        foreach ($protectedFolders as $folder) {
+            if (str_starts_with($path, $folder . '/') || $path === $folder) {
+                if ($user->role !== 'super_admin') {
+                    abort(403, 'Akses ditolak: Hanya Super Admin yang dapat menghapus file pada direktori sistem/template.');
+                }
+            }
+        }
+
+        // 4. Operator tenant isolation
+        if ($user->role === 'operator') {
+            if ($user->school_id && preg_match('/schools?\/(\d+)/', $path, $matches)) {
+                $fileSchoolId = (int) $matches[1];
+                if ($fileSchoolId !== (int) $user->school_id) {
+                    abort(403, 'Akses ditolak: Anda tidak berwenang menghapus file milik madrasah lain.');
+                }
+            }
+        }
+
+        if (Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
+
+            \App\Models\ActivityLog::log(
+                description: "Hapus file: {$path} pada disk {$disk}",
+                event: 'delete_file',
+                logName: 'media',
+                causer: $user,
+                schoolId: $user->school_id
+            );
+
             return response()->json(['success' => true]);
         }
 

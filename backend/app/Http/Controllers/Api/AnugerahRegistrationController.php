@@ -154,6 +154,10 @@ class AnugerahRegistrationController extends Controller
     // ── Review (admin: set to finalis / winner / rejected) ─────────────────────
     public function review(Request $request, AnugerahRegistration $anugerahRegistration): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Akses ditolak: Hanya Admin Yayasan dan Super Admin yang dapat mereview pendaftaran Anugerah.');
+        }
+
         $data = $request->validate([
             'status'           => 'required|string|in:under_review,finalis,winner,rejected',
             'reviewer_notes'   => 'nullable|string',
@@ -169,8 +173,15 @@ class AnugerahRegistrationController extends Controller
     }
 
     // ── Delete ─────────────────────────────────────────────────────────────────
-    public function destroy(AnugerahRegistration $anugerahRegistration): JsonResponse
+    public function destroy(Request $request, AnugerahRegistration $anugerahRegistration): JsonResponse
     {
+        $user = $request->user();
+        if (! in_array($user?->role, ['super_admin', 'admin_yayasan'], true)) {
+            if (! ($user?->isOperator() && (int) $anugerahRegistration->school_id === (int) $user->school_id && $anugerahRegistration->status === 'draft')) {
+                abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk menghapus pendaftaran ini.');
+            }
+        }
+
         $anugerahRegistration->delete();
         return $this->success(null, 'Pendaftaran berhasil dihapus');
     }

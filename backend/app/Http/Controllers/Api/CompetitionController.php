@@ -214,8 +214,12 @@ class CompetitionController extends Controller
         return $this->success($participant->load('result'));
     }
 
-    public function participantsDestroy(CompetitionParticipant $participant): JsonResponse
+    public function participantsDestroy(Request $request, CompetitionParticipant $participant): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menghapus peserta lomba.');
+        }
+
         $participant->delete();
         return $this->success(null, 'Peserta berhasil dihapus');
     }
@@ -224,6 +228,10 @@ class CompetitionController extends Controller
 
     public function resultsStore(Request $request, Competition $competition): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menyimpan hasil lomba.');
+        }
+
         $data = $request->validate([
             'participant_id'  => 'required', // Can be integer or string (reg_X)
             'rank'            => 'nullable|integer|min:1',
@@ -280,6 +288,10 @@ class CompetitionController extends Controller
 
     public function resultsBulkStore(Request $request, Competition $competition): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menyimpan hasil lomba.');
+        }
+
         $request->validate([
             'results'                           => 'required|array',
             'results.*.participant_id'          => 'required', // Can be integer or string (reg_X)
@@ -326,6 +338,10 @@ class CompetitionController extends Controller
 
     public function resultsImport(Request $request, Competition $competition): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengimport hasil lomba.');
+        }
+
         $request->validate(['file' => 'required|file|mimes:xlsx,csv|max:5120']);
 
         // Basic Excel import — reads rows as [rank, name, institution, score]
@@ -532,9 +548,22 @@ class CompetitionController extends Controller
      * GET  /competitions/{competition}/jury-pin
      * POST /competitions/{competition}/jury-pin  { pin }
      */
-    public function getJuryPin(Competition $competition): JsonResponse
+    public function getJuryPin(Request $request, Competition $competition): JsonResponse
     {
+        $user = $request->user() ?? Auth::user();
+        if (! in_array($user?->role, ['super_admin', 'admin_yayasan', 'admin'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat melihat PIN Juri.', 403);
+        }
+
         $value = \App\Models\Setting::getValue("jury_pin_event_{$competition->event_id}");
+
+        \App\Models\ActivityLog::log(
+            description: "Melihat PIN Juri untuk event ID: {$competition->event_id}",
+            event: 'view_jury_pin',
+            logName: 'competition',
+            causer: $user
+        );
+
         return $this->success(['pin' => $value, 'competition_id' => $competition->id]);
     }
 

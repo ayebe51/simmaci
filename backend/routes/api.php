@@ -195,19 +195,41 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Headmasters — route statis HARUS sebelum apiResource agar tidak bentrok dengan {headmaster} parameter
         Route::get('headmasters/expiring',                    [HeadmasterController::class, 'expiring']);
-        Route::post('headmasters/{headmasterTenure}/approve', [HeadmasterController::class, 'approve']);
-        Route::post('headmasters/{headmasterTenure}/reject',  [HeadmasterController::class, 'reject']);
         Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 
         // NUPTK Submissions
         Route::apiResource('nuptk-submissions', NuptkSubmissionController::class)->only(['index', 'store']);
-        Route::post('nuptk-submissions/{nuptkSubmission}/approve', [NuptkSubmissionController::class, 'approve']);
-        Route::post('nuptk-submissions/{nuptkSubmission}/reject',  [NuptkSubmissionController::class, 'reject']);
 
         // Headmaster Recommendations
         Route::apiResource('headmaster-recommendations', HeadmasterRecommendationController::class)->only(['index', 'store', 'show']);
-        Route::post('headmaster-recommendations/{headmasterRecommendation}/approve', [HeadmasterRecommendationController::class, 'approve']);
-        Route::post('headmaster-recommendations/{headmasterRecommendation}/reject', [HeadmasterRecommendationController::class, 'reject']);
+
+        // ── Privileged Approvals & Administrative Mutations (super_admin + admin_yayasan only) ──
+        Route::middleware('role:super_admin,admin_yayasan')->group(function () {
+            // Headmaster Tenure Approvals
+            Route::post('headmasters/{headmasterTenure}/approve', [HeadmasterController::class, 'approve']);
+            Route::post('headmasters/{headmasterTenure}/reject',  [HeadmasterController::class, 'reject']);
+
+            // NUPTK Approvals
+            Route::post('nuptk-submissions/{nuptkSubmission}/approve', [NuptkSubmissionController::class, 'approve']);
+            Route::post('nuptk-submissions/{nuptkSubmission}/reject',  [NuptkSubmissionController::class, 'reject']);
+
+            // Headmaster Recommendations Approvals
+            Route::post('headmaster-recommendations/{headmasterRecommendation}/approve', [HeadmasterRecommendationController::class, 'approve']);
+            Route::post('headmaster-recommendations/{headmasterRecommendation}/reject',  [HeadmasterRecommendationController::class, 'reject']);
+
+            // Competition Results Mutation & Participant Deletion
+            Route::delete('participants/{participant}',                 [CompetitionController::class, 'participantsDestroy']);
+            Route::post('competitions/{competition}/results',           [CompetitionController::class, 'resultsStore']);
+            Route::post('competitions/{competition}/results/bulk',      [CompetitionController::class, 'resultsBulkStore']);
+            Route::post('competitions/{competition}/results/import',    [CompetitionController::class, 'resultsImport']);
+
+            // Jury PIN management
+            Route::get('competitions/{competition}/jury-pin',           [CompetitionController::class, 'getJuryPin']);
+            Route::post('competitions/{competition}/jury-pin',          [CompetitionController::class, 'setJuryPin']);
+
+            // Anugerah Review
+            Route::post('anugerah-registrations/{anugerahRegistration}/review', [AnugerahRegistrationController::class, 'review']);
+        });
 
         // Attendance
         Route::prefix('attendance')->group(function () {
@@ -274,16 +296,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('competitions/{competition}/participants', [CompetitionController::class, 'participantsIndex']);
         Route::post('competitions/{competition}/participants', [CompetitionController::class, 'participantsStore']);
         Route::put('participants/{participant}', [CompetitionController::class, 'participantsUpdate']);
-        Route::delete('participants/{participant}', [CompetitionController::class, 'participantsDestroy']);
-
-        // Results
-        Route::post('competitions/{competition}/results', [CompetitionController::class, 'resultsStore']);
-        Route::post('competitions/{competition}/results/bulk', [CompetitionController::class, 'resultsBulkStore']);
-        Route::post('competitions/{competition}/results/import', [CompetitionController::class, 'resultsImport']);
-
-        // Jury PIN management (authenticated admin/operator)
-        Route::get('competitions/{competition}/jury-pin', [CompetitionController::class, 'getJuryPin']);
-        Route::post('competitions/{competition}/jury-pin', [CompetitionController::class, 'setJuryPin']);
 
         // Anugerah Pendidikan Registrations (Guru & Madrasah Berprestasi)
         Route::get('anugerah-registrations', [AnugerahRegistrationController::class, 'index']);
@@ -293,7 +305,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('anugerah-registrations/{anugerahRegistration}', [AnugerahRegistrationController::class, 'destroy']);
         Route::post('anugerah-registrations/{anugerahRegistration}/submit', [AnugerahRegistrationController::class, 'submit']);
         Route::post('anugerah-registrations/preview-score', [AnugerahRegistrationController::class, 'previewScore']);
-        Route::post('anugerah-registrations/{anugerahRegistration}/review', [AnugerahRegistrationController::class, 'review']);
 
         // Approval History
         Route::get('approval-history', [ApprovalHistoryController::class, 'index']);

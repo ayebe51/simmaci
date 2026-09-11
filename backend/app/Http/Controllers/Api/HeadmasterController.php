@@ -60,6 +60,10 @@ class HeadmasterController extends Controller
 
     public function approve(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Super Admin / Admin Yayasan yang berwenang menyetujui pengangkatan kepala madrasah.');
+        }
+
         $headmasterTenure->update([
             'status' => 'active',
             'approved_by' => $request->user()->name,
@@ -73,6 +77,10 @@ class HeadmasterController extends Controller
 
     public function reject(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Super Admin / Admin Yayasan yang berwenang menolak pengangkatan kepala madrasah.');
+        }
+
         $headmasterTenure->update([
             'status' => 'rejected',
             'keterangan' => $request->rejection_reason,
@@ -83,6 +91,10 @@ class HeadmasterController extends Controller
 
     public function update(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse
     {
+        if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            abort(403, 'Hanya Super Admin / Admin Yayasan yang berwenang memperbarui data penetapan kepala madrasah.');
+        }
+
         $data = $request->validate([
             'status'             => 'sometimes|string',
             'nomor_sk'           => 'sometimes|nullable|string',

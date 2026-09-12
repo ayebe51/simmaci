@@ -37,8 +37,11 @@ export default function LoginPage() {
         navigate("/dashboard")
     } catch (err: any) {
         console.error(err);
-        const message = err.response?.data?.message || err.message || "Login Gagal! Username atau Password salah.";
-        toast.error(message)
+        const serverMsg = err.response?.data?.errors?.email?.[0] || err.response?.data?.message;
+        const message = (serverMsg === "Kredensial tidak valid." || serverMsg === "Kredensial tidak valid")
+            ? "Username/password salah."
+            : (serverMsg || err.message || "Username/password salah.");
+        toast.error(message);
     } finally {
         setLoading(false)
     }

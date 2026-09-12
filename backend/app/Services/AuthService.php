@@ -28,7 +28,7 @@ class AuthService extends BaseService
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Kredensial tidak valid.'],
+                'email' => ['Username/password salah.'],
             ]);
         }
 

@@ -181,6 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         // Students
+        Route::get('students/classes', [StudentController::class, 'classes']);
         Route::post('students/import', [StudentController::class, 'import']);
         Route::post('students/batch-transition', [StudentController::class, 'batchTransition']);
         Route::apiResource('students', StudentController::class);

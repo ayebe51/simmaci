@@ -286,6 +286,31 @@ class StudentController extends Controller
     }
 
     /**
+     * GET /api/students/classes — Ambil daftar kelas unik siswa aktif di sekolah
+     */
+    public function classes(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $schoolId = $request->school_id;
+        if (! in_array($user->role, ['super_admin', 'admin_yayasan'], true)) {
+            $schoolId = $user->school_id;
+        }
+
+        $query = Student::query();
+        if ($schoolId) {
+            $query->where('school_id', $schoolId);
+        }
+
+        $classes = $query->whereNotNull('kelas')
+            ->where('kelas', '!=', '')
+            ->distinct()
+            ->orderBy('kelas')
+            ->pluck('kelas');
+
+        return response()->json($classes);
+    }
+
+    /**
      * POST /api/students/batch-transition — Naik kelas / Lulus
      */
     public function batchTransition(Request $request): JsonResponse
@@ -317,14 +342,25 @@ class StudentController extends Controller
         $students = $query->get();
 
         $count = 0;
+        $skipped = 0;
         foreach ($students as $student) {
             if ($request->action === 'graduate') {
+                $jenjang = $student->school->jenjang ?? null;
+                $isFinal = $this->isFinalGrade((string)($student->kelas ?? ''), $jenjang);
+
+                // Strictly enforce: only final grade students can graduate
+                if (! $isFinal) {
+                    $skipped++;
+                    continue;
+                }
+
                 $student->update([
                     'status' => 'Lulus',
                     'last_transition_at' => now(),
                 ]);
                 // Option A: Soft delete when graduating
                 $student->delete();
+                $count++;
             } elseif ($request->action === 'promote') {
                 $oldClass = (string)($student->kelas ?? '');
                 $jenjang = $student->school->jenjang ?? null;
@@ -343,11 +379,86 @@ class StudentController extends Controller
                         'last_transition_at' => now(),
                     ]);
                 }
+                $count++;
             }
-            $count++;
         }
 
-        return response()->json(['count' => $count]);
+        if ($request->action === 'graduate' && $count === 0 && $skipped > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada siswa tingkat akhir yang dapat diproses kelulusan. Siswa kelas 7 & 8 harus diproses melalui menu Naik Kelas.',
+                'count' => 0,
+                'skipped' => $skipped,
+            ], 422);
+        }
+
+        $message = "Berhasil memproses {$count} siswa";
+        if ($request->action === 'graduate') {
+            $message = "Berhasil memproses kelulusan {$count} siswa tingkat akhir.";
+            if ($skipped > 0) {
+                $message .= " ({$skipped} siswa bukan tingkat akhir dilewati secara otomatis demi keamanan data).";
+            }
+        }
+
+        return response()->json([
+            'count' => $count,
+            'skipped' => $skipped,
+            'message' => $message,
+        ]);
+    }
+
+    public function getMaxGrade(?string $jenjang = null): int
+    {
+        $jenjangUpper = strtoupper((string)$jenjang);
+        if (str_contains($jenjangUpper, 'MI') || str_contains($jenjangUpper, 'SD')) {
+            return 6;
+        } elseif (str_contains($jenjangUpper, 'MTS') || str_contains($jenjangUpper, 'SMP')) {
+            return 9;
+        } elseif (str_contains($jenjangUpper, 'MA') || str_contains($jenjangUpper, 'SMA') || str_contains($jenjangUpper, 'SMK')) {
+            return 12;
+        } elseif (str_contains($jenjangUpper, 'RA') || str_contains($jenjangUpper, 'TK')) {
+            return 2;
+        }
+        return 12;
+    }
+
+    public function getGradeNumber(string $class): ?int
+    {
+        $trimmed = trim($class);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        // 1. Check Roman Numerals (Order from longest to shortest: XII down to I)
+        $romanOrder = ['XII', 'XI', 'X', 'IX', 'VIII', 'VII', 'VI', 'V', 'IV', 'III', 'II', 'I'];
+        $romanVal = [
+            'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5,
+            'VI' => 6, 'VII' => 7, 'VIII' => 8, 'IX' => 9,
+            'X' => 10, 'XI' => 11, 'XII' => 12
+        ];
+
+        foreach ($romanOrder as $rom) {
+            if (preg_match("/\b" . preg_quote($rom, '/') . "\b/i", $trimmed)) {
+                return $romanVal[$rom];
+            }
+        }
+
+        // 2. Check Arabic Numerals (1-12)
+        if (preg_match('/(\d+)/', $trimmed, $matches)) {
+            return (int)$matches[1];
+        }
+
+        return null;
+    }
+
+    public function isFinalGrade(string $class, ?string $jenjang = null): bool
+    {
+        $grade = $this->getGradeNumber($class);
+        if ($grade === null) {
+            return false;
+        }
+        $maxGrade = $this->getMaxGrade($jenjang);
+        return $grade >= $maxGrade || (empty($jenjang) && in_array($grade, [6, 9, 12], true));
     }
 
     private function incrementClass(string $class, ?string $jenjang = null): array
@@ -357,16 +468,7 @@ class StudentController extends Controller
             return ['status' => 'Aktif', 'kelas' => $class];
         }
 
-        // Determine max grade threshold based on school jenjang
-        $maxGrade = 12;
-        $jenjangUpper = strtoupper((string)$jenjang);
-        if (str_contains($jenjangUpper, 'MI') || str_contains($jenjangUpper, 'SD')) {
-            $maxGrade = 6;
-        } elseif (str_contains($jenjangUpper, 'MTS') || str_contains($jenjangUpper, 'SMP')) {
-            $maxGrade = 9;
-        } elseif (str_contains($jenjangUpper, 'MA') || str_contains($jenjangUpper, 'SMA') || str_contains($jenjangUpper, 'SMK')) {
-            $maxGrade = 12;
-        }
+        $maxGrade = $this->getMaxGrade($jenjang);
 
         // 1. Check Roman Numerals (Order from longest to shortest: XII down to I)
         $romanOrder = ['XII', 'XI', 'X', 'IX', 'VIII', 'VII', 'VI', 'V', 'IV', 'III', 'II', 'I'];

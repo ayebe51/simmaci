@@ -251,6 +251,8 @@ export const studentApi = {
   import: (students: any[]) => apiClient.post('/students/import', { students }, { timeout: 120000 }).then((r) => r.data),
   batchTransition: (payload: { school_id?: number; action: 'promote' | 'graduate'; student_ids?: number[] }) =>
     apiClient.post('/students/batch-transition', payload).then((r) => r.data),
+  classes: (params?: { school_id?: number }) =>
+    apiClient.get<string[]>('/students/classes', { params }).then((r) => r.data),
 };
 
 // ── Staff API ──

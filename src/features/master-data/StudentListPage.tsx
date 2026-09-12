@@ -54,6 +54,7 @@ export default function StudentListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [classFilter, setClassFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
@@ -70,6 +71,7 @@ export default function StudentListPage() {
   const canEdit = user?.role !== "admin_yayasan"
 
   const [filterSchoolId, setFilterSchoolId] = useState<number | null>(null)
+  const effectiveSchoolId = isSuperAdmin ? (filterSchoolId ?? undefined) : (user?.schoolId || user?.school_id)
 
   // Load schools for super_admin filter
   const { data: schoolsRes } = useQuery({
@@ -78,14 +80,22 @@ export default function StudentListPage() {
     enabled: isSuperAdmin,
   })
 
+  // Load distinct classes for the active/selected school
+  const { data: classesList = [] } = useQuery<string[]>({
+    queryKey: ['students-classes', effectiveSchoolId],
+    queryFn: () => studentApi.classes({ school_id: effectiveSchoolId }),
+  })
+
   // 🔥 REST API QUERY
   const { data: studentsData, isLoading } = useQuery({
-    queryKey: ['students', currentPage, debouncedSearchTerm, statusFilter],
+    queryKey: ['students', currentPage, debouncedSearchTerm, statusFilter, classFilter, effectiveSchoolId],
     queryFn: () => studentApi.list({
       page: currentPage,
       per_page: itemsPerPage,
       search: debouncedSearchTerm || undefined,
-      status: statusFilter === "all" ? undefined : statusFilter
+      status: statusFilter === "all" ? undefined : statusFilter,
+      kelas: classFilter === "all" ? undefined : classFilter,
+      school_id: isSuperAdmin ? (filterSchoolId ?? undefined) : undefined,
     })
   })
 
@@ -97,6 +107,7 @@ export default function StudentListPage() {
     mutationFn: (id: number) => studentApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['students-classes'] })
       toast.success("Siswa berhasil dihapus")
     }
   })
@@ -107,10 +118,15 @@ export default function StudentListPage() {
         action,
         student_ids: selectedStudentIds.length > 0 ? selectedStudentIds : undefined
     }),
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
         queryClient.invalidateQueries({ queryKey: ['students'] })
+        queryClient.invalidateQueries({ queryKey: ['students-classes'] })
         setSelectedStudentIds([]) // Clear selection after successful batch action
-        toast.success(`Berhasil memproses ${res.count} siswa`)
+        if (res?.message) {
+            toast.success(res.message)
+        } else {
+            toast.success(`Berhasil memproses ${res.count} siswa`)
+        }
     },
     onError: (err: any) => {
         toast.error(err.response?.data?.message || 'Gagal memproses siswa')
@@ -177,8 +193,8 @@ export default function StudentListPage() {
                       />
                   </div>
                   
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full sm:w-[150px] h-10 rounded-2xl bg-white border-slate-200 text-xs font-medium">
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); setSelectedStudentIds([]); }}>
+                      <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-2xl bg-white border-slate-200 text-xs font-medium">
                           <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-slate-100">
@@ -186,6 +202,18 @@ export default function StudentListPage() {
                           <SelectItem value="Aktif">Aktif</SelectItem>
                           <SelectItem value="Lulus">Lulus</SelectItem>
                           <SelectItem value="Keluar">Keluar</SelectItem>
+                      </SelectContent>
+                  </Select>
+
+                  <Select value={classFilter} onValueChange={(v) => { setClassFilter(v); setCurrentPage(1); setSelectedStudentIds([]); }}>
+                      <SelectTrigger className="w-full sm:w-[130px] h-10 rounded-2xl bg-white border-slate-200 text-xs font-medium">
+                          <SelectValue placeholder="Semua Kelas" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-slate-100 max-h-[300px]">
+                          <SelectItem value="all">Semua Kelas</SelectItem>
+                          {classesList.map((cls) => (
+                              <SelectItem key={cls} value={cls}>Kelas {cls}</SelectItem>
+                          ))}
                       </SelectContent>
                   </Select>
 
@@ -391,18 +419,54 @@ export default function StudentListPage() {
       />
 
       <Dialog open={isTransitionModalOpen} onOpenChange={setIsTransitionModalOpen}>
-        <DialogContent>
-            <DialogHeader><DialogTitle>Naik Kelas / Lulus Massal</DialogTitle></DialogHeader>
-            <div className="py-6 text-center space-y-4">
-                <p className="text-sm text-slate-600">Pilih aksi yang ingin dilakukan untuk seluruh siswa aktif di sekolah ini.</p>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-slate-800">Naik Kelas / Lulus Massal</DialogTitle>
+            </DialogHeader>
+            <div className="py-3 space-y-4">
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs leading-relaxed">
+                    <p className="font-semibold mb-1">💡 Petunjuk Transisi Siswa:</p>
+                    <ul className="list-disc list-inside space-y-1 text-slate-700">
+                        <li><strong>Naik Kelas:</strong> Menaikkan rombel 1 tingkat. Siswa kelas tingkat akhir (Kelas 9/6/12) akan <strong>otomatis lulus</strong>.</li>
+                        <li><strong>Lulus Massal:</strong> Khusus meluluskan siswa tingkat akhir. Siswa kelas 7 &amp; 8 akan <strong>dilewati otomatis</strong> demi keamanan data.</li>
+                    </ul>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-20 flex-col gap-2" onClick={() => setConfirmBatchAction({ type: 'promote', label: selectedStudentIds.length > 0 ? `Proses naik kelas untuk ${selectedStudentIds.length} siswa terpilih?` : 'Proses naik kelas seluruh siswa?' })} disabled={batchTransitionMutation.isPending}>
-                        <ArrowUpDown className="h-6 w-6 text-blue-500" />
-                        <span>Naik Kelas {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
+                    <Button
+                        variant="outline"
+                        className="h-24 flex-col gap-1.5 rounded-2xl border-blue-200 bg-blue-50/50 hover:bg-blue-100 text-blue-900"
+                        onClick={() => {
+                            setIsTransitionModalOpen(false)
+                            setConfirmBatchAction({
+                                type: 'promote',
+                                label: selectedStudentIds.length > 0
+                                    ? `Proses naik kelas untuk ${selectedStudentIds.length} siswa terpilih?`
+                                    : 'Proses naik kelas untuk seluruh siswa aktif di sekolah ini?'
+                            })
+                        }}
+                        disabled={batchTransitionMutation.isPending}
+                    >
+                        <ArrowUpDown className="h-6 w-6 text-blue-600" />
+                        <span className="font-semibold text-sm">Naik Kelas {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
+                        <span className="text-[10px] text-blue-600 font-normal">Naik 1 tingkat</span>
                     </Button>
-                    <Button variant="outline" className="h-20 flex-col gap-2 border-emerald-200 bg-emerald-50 hover:bg-emerald-100" onClick={() => setConfirmBatchAction({ type: 'graduate', label: selectedStudentIds.length > 0 ? `Proses kelulusan untuk ${selectedStudentIds.length} siswa terpilih?` : 'Proses kelulusan seluruh siswa?' })} disabled={batchTransitionMutation.isPending}>
+                    <Button
+                        variant="outline"
+                        className="h-24 flex-col gap-1.5 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 rounded-2xl text-emerald-900"
+                        onClick={() => {
+                            setIsTransitionModalOpen(false)
+                            setConfirmBatchAction({
+                                type: 'graduate',
+                                label: selectedStudentIds.length > 0
+                                    ? `Proses kelulusan untuk ${selectedStudentIds.length} siswa terpilih? (Siswa bukan kelas akhir akan otomatis dilewati)`
+                                    : 'Proses kelulusan seluruh siswa kelas tingkat akhir (Kelas 9/6/12)?'
+                            })
+                        }}
+                        disabled={batchTransitionMutation.isPending}
+                    >
                         <GraduationCap className="h-6 w-6 text-emerald-600" />
-                        <span className="text-emerald-700 font-semibold">Lulus Massal {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
+                        <span className="text-emerald-700 font-semibold text-sm">Lulus Massal {selectedStudentIds.length > 0 ? `(${selectedStudentIds.length})` : ''}</span>
+                        <span className="text-[10px] text-emerald-600 font-normal">Hanya kelas akhir</span>
                     </Button>
                 </div>
             </div>

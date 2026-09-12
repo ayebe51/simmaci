@@ -83,7 +83,7 @@ services:
 
   # MinIO Service (S3 Compatible Storage)
   minio:
-      image: minio/minio
+      image: quay.io/minio/minio
       container_name: simmaci-minio
       restart: always
       environment:
@@ -100,7 +100,7 @@ services:
 
   # Automatic Bucket Creator
   createbuckets:
-      image: minio/mc
+      image: quay.io/minio/mc
       container_name: simmaci-mc
       depends_on:
           - minio

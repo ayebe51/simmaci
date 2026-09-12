@@ -41,7 +41,7 @@ services:
 
   # ── MinIO (S3-compatible storage) ─────────────────────────
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
     container_name: simmaci-minio
     restart: unless-stopped
     environment:
@@ -65,7 +65,7 @@ services:
 
   # ── MinIO bucket setup (runs once) ────────────────────────
   createbuckets:
-    image: minio/mc
+    image: quay.io/minio/mc
     container_name: simmaci-mc
     restart: no
     depends_on:

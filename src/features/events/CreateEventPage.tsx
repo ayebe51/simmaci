@@ -21,8 +21,8 @@ const PRESET_ANUGERAH = {
   description: 'Penyelenggaraan Anugerah Guru Berprestasi, Madrasah/Sekolah Berprestasi, dan Festival Aswaja Siswa dalam rangka Harlah LP Ma\'arif NU ke-97 Tahun 2026.',
   status: 'OPEN',
   registration_start: '2026-08-01',
-  registration_end: '2026-09-11',
-  video_deadline: '2026-09-11T23:59',
+  registration_end: '2026-09-13',
+  video_deadline: '2026-09-13T23:59',
   announcement_date: '2026-09-22',
   announcement_place: 'Inn ASTON Hotel Cilacap',
   contact_name: 'Umar Fatoni',
@@ -166,7 +166,7 @@ export default function CreateEventPage() {
             <div className="space-y-1.5">
               <Label className="text-[10px] font-bold uppercase text-slate-500">Batas Akhir Pengiriman Video</Label>
               <Input type="datetime-local" value={form.video_deadline} onChange={e => setF('video_deadline', e.target.value)} />
-              <p className="text-[10px] text-slate-400">Festival Aswaja: Jum'at, 11 September 2026 pukul 23.59 WIB</p>
+              <p className="text-[10px] text-slate-400">Festival Aswaja: Minggu, 13 September 2026 pukul 23.59 WIB</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">

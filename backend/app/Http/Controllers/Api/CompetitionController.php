@@ -414,8 +414,8 @@ class CompetitionController extends Controller
             return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat melakukan seed lomba.', 403);
         }
 
-        $VIDEO_DEADLINE = '2026-09-11 23:59:00';
-        $REG_DEADLINE   = '2026-09-11 23:59:00';
+        $VIDEO_DEADLINE = '2026-09-13 23:59:00';
+        $REG_DEADLINE   = '2026-09-13 23:59:00';
 
         $template = [
             // ── Festival Aswaja Siswa ──────────────────────────────────────

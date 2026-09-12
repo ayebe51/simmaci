@@ -461,7 +461,7 @@ function SeedHarlah97Button({ eventId, onDone }: { eventId: number; onDone: () =
           </div>
 
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-            ⚡ Kriteria penilaian, deadline pengiriman video (11 Sep 2026 23.59), dan batas peserta
+            ⚡ Kriteria penilaian, deadline pengiriman video (13 Sep 2026 23.59), dan batas peserta
             per sekolah sudah diisi otomatis sesuai Juknis.
           </div>
 

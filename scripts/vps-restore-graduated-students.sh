@@ -92,7 +92,7 @@ elif [ "$ACTION" == "--restore" ]; then
     echo ""
 
     docker exec -i "${BACKEND_CONTAINER}" php artisan tinker << 'EOF'
-$students = App\Models\Student::onlyTrashed()
+$students = App\Models\Student::withTrashed()
     ->where('status', 'Lulus')
     ->where(function($q) {
         $q->where('kelas', 'LIKE', '%7%')
@@ -125,15 +125,15 @@ $total = count($ids);
 if ($total === 0) {
     echo "Tidak ada siswa yang perlu dipulihkan.\n";
 } else {
-    // 1. Restore soft delete
+    // 1. Restore soft delete bagi yang masih trashed
     App\Models\Student::onlyTrashed()->whereIn('id', $ids)->restore();
 
-    // 2. Kembalikan status ke Aktif
+    // 2. Kembalikan status ke Aktif untuk semua id tersebut
     App\Models\Student::whereIn('id', $ids)->update([
         'status' => 'Aktif',
     ]);
 
-    echo "\n✅ BERHASIL MEMULIHKAN {$total} SISWA!\n";
+    echo "\nBERHASIL MEMULIHKAN {$total} SISWA KE STATUS 'Aktif'!\n";
     echo "Status siswa telah dikembalikan ke 'Aktif' dan muncul kembali di daftar data siswa aktif.\n\n";
 }
 EOF

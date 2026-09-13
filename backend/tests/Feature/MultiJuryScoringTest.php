@@ -67,28 +67,28 @@ class MultiJuryScoringTest extends TestCase
         $token2 = $loginRes2->json('data.token');
         $this->assertEquals('Drs. Ahmad', $loginRes2->json('data.jury_name'));
 
-        // Kyai Ridwan scores Tim A = 80, Tim B = 90
+        // Kyai Ridwan scores Tim A = 80 (tested with integer participant_id), Tim B = 90 (tested with string participant_id)
         $this->postJson("/api/public/jury/{$token1}/score", [
-            'participant_id' => (string) $timA->id,
+            'participant_id' => $timA->id, // Raw integer
             'score'          => 80.0,
             'notes'          => 'Vokal harmonis',
         ])->assertStatus(200);
 
         $this->postJson("/api/public/jury/{$token1}/score", [
-            'participant_id' => (string) $timB->id,
+            'participant_id' => (string) $timB->id, // String
             'score'          => 90.0,
             'notes'          => 'Sangat baik',
         ])->assertStatus(200);
 
-        // Drs. Ahmad scores Tim A = 90, Tim B = 94
+        // Drs. Ahmad scores Tim A = 90 (integer), Tim B = 94 (string)
         $this->postJson("/api/public/jury/{$token2}/score", [
-            'participant_id' => (string) $timA->id,
+            'participant_id' => $timA->id, // Raw integer
             'score'          => 90.0,
             'notes'          => 'Artikulasi mantap',
         ])->assertStatus(200);
 
         $this->postJson("/api/public/jury/{$token2}/score", [
-            'participant_id' => (string) $timB->id,
+            'participant_id' => (string) $timB->id, // String
             'score'          => 94.0,
             'notes'          => 'Luar biasa',
         ])->assertStatus(200);

@@ -424,7 +424,7 @@ class PublicEventController extends Controller
         $competition = Competition::findOrFail($competitionId);
 
         $data = $request->validate([
-            'participant_id'  => 'required|string',
+            'participant_id'  => 'required', // Can be integer (competition participant) or string ('reg_X' for anugerah)
             'rank'            => 'nullable|integer|min:1',
             'score'           => 'required|numeric|min:0|max:100',
             'notes'           => 'nullable|string|max:1000',

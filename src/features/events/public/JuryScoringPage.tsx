@@ -49,6 +49,27 @@ export default function JuryScoringPage() {
   const [savedIds, setSavedIds] = useState<Set<string | number>>(new Set());
   const [filterJenjang, setFilterJenjang] = useState<string>('all');
 
+  // Auto-restore session from sessionStorage on reload / tab refresh
+  useEffect(() => {
+    const raw = sessionStorage.getItem('jury_session');
+    if (raw) {
+      try {
+        const sess = JSON.parse(raw);
+        if (sess?.token && sess?.competitionId) {
+          setToken(sess.token);
+          setCompetitionId(String(sess.competitionId));
+          setJuryName(sess.juryName || '');
+          const phase = sess.selectedPhase || 1;
+          setSelectedPhase(phase);
+          setState('scoring');
+          loadParticipants(sess.token, phase);
+        }
+      } catch {
+        sessionStorage.removeItem('jury_session');
+      }
+    }
+  }, []);
+
   // Pre-fill competition ID from URL if present
   useEffect(() => {
     const cid = searchParams.get('competition') || searchParams.get('competition_id');
@@ -108,7 +129,11 @@ export default function JuryScoringPage() {
         }
       });
       setScores(init);
-    } catch {
+    } catch (e: any) {
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        sessionStorage.removeItem('jury_session');
+        setState('login');
+      }
       toast.error('Gagal memuat data peserta');
     } finally {
       setLoading(false);
@@ -129,6 +154,7 @@ export default function JuryScoringPage() {
         jury_name: juryName.trim(),
       });
       const t = data.token;
+      const finalJuryName = data.jury_name || juryName.trim();
       setToken(t);
       if (data.jury_name) {
         setJuryName(data.jury_name);
@@ -136,6 +162,12 @@ export default function JuryScoringPage() {
       if (data.matched_existing && data.original_input && data.jury_name.toLowerCase() !== data.original_input.toLowerCase()) {
         toast.info(`Nama Anda otomatis dicocokkan sebagai "${data.jury_name}".`);
       }
+      sessionStorage.setItem('jury_session', JSON.stringify({
+        token: t,
+        competitionId: Number(competitionId),
+        juryName: finalJuryName,
+        selectedPhase,
+      }));
       setState('scoring');
       await loadParticipants(t, selectedPhase);
     } catch (e: any) {
@@ -147,6 +179,14 @@ export default function JuryScoringPage() {
 
   const handlePhaseChange = async (phase: number) => {
     setSelectedPhase(phase);
+    const raw = sessionStorage.getItem('jury_session');
+    if (raw) {
+      try {
+        const sess = JSON.parse(raw);
+        sess.selectedPhase = phase;
+        sessionStorage.setItem('jury_session', JSON.stringify(sess));
+      } catch {}
+    }
     await loadParticipants(token, phase);
   };
 
@@ -232,6 +272,7 @@ export default function JuryScoringPage() {
   };
 
   const handleLogout = () => { 
+    sessionStorage.removeItem('jury_session');
     setState('login'); 
     setToken(''); 
     setCompetition(null); 

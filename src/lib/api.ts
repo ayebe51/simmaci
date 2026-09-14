@@ -559,6 +559,8 @@ export const eventApi = {
     seedHarlah97: (eventId: number) => apiClient.post(`/events/${eventId}/seed-harlah97`).then((r) => r.data),
     /** Tetapkan 3 besar finalis per jenjang untuk anugerah guru & madrasah berprestasi */
     promoteFinalists: (competitionId: number) => apiClient.post(`/competitions/${competitionId}/promote-finalists`).then((r) => r.data),
+    /** Reset seluruh nilai juri dan peringkat untuk cabang lomba */
+    resetScores: (competitionId: number) => apiClient.post(`/competitions/${competitionId}/reset-scores`).then((r) => r.data),
   },
 
   // Participants

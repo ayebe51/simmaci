@@ -232,6 +232,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // Promote Finalists for Anugerah
             Route::post('competitions/{competition}/promote-finalists', [CompetitionController::class, 'promoteFinalists']);
+            Route::post('competitions/{competition}/reset-scores',     [CompetitionController::class, 'resetScores']);
 
             // Anugerah Review
             Route::post('anugerah-registrations/{anugerahRegistration}/review', [AnugerahRegistrationController::class, 'review']);

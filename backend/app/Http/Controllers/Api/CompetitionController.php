@@ -504,6 +504,43 @@ class CompetitionController extends Controller
         ], "Berhasil menetapkan {$count} finalis 3 besar per jenjang untuk Fase 2.");
     }
 
+    /**
+     * POST /competitions/{competition}/reset-scores
+     * Reset all jury scores and ranks for this competition.
+     */
+    public function resetScores(Competition $competition): JsonResponse
+    {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mereset nilai lomba.', 403);
+        }
+
+        $deletedCount = 0;
+        DB::transaction(function () use ($competition, &$deletedCount) {
+            // 1. Delete all jury scores for this competition
+            $deletedCount = \App\Models\CompetitionJuryScore::where('competition_id', $competition->id)->delete();
+
+            // 2. If anugerah, reset scores, ranks, and revert finalists back to submitted
+            if (in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true)) {
+                \App\Models\AnugerahRegistration::where('competition_id', $competition->id)->update([
+                    'total_score'     => null,
+                    'rank'            => null,
+                    'reviewer_notes'  => null,
+                    'score_breakdown' => null,
+                    'status'          => 'submitted',
+                ]);
+            } else {
+                // 3. For regular competitions, delete results
+                \App\Models\CompetitionResult::where('competition_id', $competition->id)->delete();
+            }
+        });
+
+        return $this->success([
+            'competition_id'      => $competition->id,
+            'name'                => $competition->name,
+            'deleted_jury_scores' => $deletedCount,
+        ], "Semua nilai juri dan peringkat untuk lomba '{$competition->name}' berhasil direset bersih.");
+    }
+
     // ─────────────────────── SEED HARLAH 97 ──────────────────────────────────
 
     /**

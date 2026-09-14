@@ -215,7 +215,7 @@ export default function CompetitionDetailPage() {
 
         {isSuperAdmin && (
           <TabsContent value="jury" className="pt-4">
-            <JuryAccessPanel competition={competition} />
+            <JuryAccessPanel competition={competition} onReload={load} />
           </TabsContent>
         )}
 
@@ -231,12 +231,29 @@ export default function CompetitionDetailPage() {
 
 // ── JuryAccessPanel ───────────────────────────────────────────────────────────
 
-function JuryAccessPanel({ competition }: { competition: any }) {
+function JuryAccessPanel({ competition, onReload }: { competition: any, onReload?: () => void }) {
   const [pin, setPin] = useState('');
   const [savedPin, setSavedPin] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+
+  const handleResetScores = async () => {
+    if (!window.confirm(`PERINGATAN: Anda akan mereset dan menghapus SEMUA nilai juri serta peringkat untuk cabang lomba "${competition.name}". Tindakan ini tidak dapat dibatalkan.\n\nLanjutkan reset?`)) {
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await eventApi.competitions.resetScores(competition.id);
+      toast.success(res.message || 'Semua nilai berhasil direset!');
+      onReload?.();
+    } catch (e: any) {
+      toast.error('Gagal mereset nilai: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const juryUrl      = `${window.location.origin}/juri`;
   const eventSlug    = competition.event?.slug ?? competition.event?.id ?? '';
@@ -395,6 +412,35 @@ function JuryAccessPanel({ competition }: { competition: any }) {
             <li>Nilai langsung tersimpan ke database SIMMACI secara real-time</li>
             <li>Setelah selesai, hasil dapat dilihat di tab <em>Hasil / Nilai</em> dan papan skor publik</li>
           </ol>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone: Reset Nilai Lomba */}
+      <Card className="border border-red-200 shadow-sm rounded-2xl bg-red-50/20">
+        <CardHeader className="pb-2 border-b border-red-100">
+          <CardTitle className="text-xs font-bold uppercase text-red-700 flex items-center gap-2">
+            <Trash2 size={13} /> Zona Bahaya — Reset Nilai Lomba
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <p className="text-xs font-bold text-slate-800">
+              Reset Seluruh Nilai Juri & Peringkat
+            </p>
+            <p className="text-[11px] text-slate-500 max-w-xl">
+              Tindakan ini akan menghapus seluruh rekapan penilaian juri dan mengosongkan juara/skor untuk cabang lomba ini ({competition.name}). Gunakan hanya jika ingin mengulang penilaian dari awal.
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={resetting}
+            onClick={handleResetScores}
+            className="gap-1.5 font-bold flex-shrink-0 cursor-pointer h-9 text-xs"
+          >
+            {resetting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            Reset Semua Nilai
+          </Button>
         </CardContent>
       </Card>
     </div>

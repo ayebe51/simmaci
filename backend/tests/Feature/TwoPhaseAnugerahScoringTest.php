@@ -204,5 +204,33 @@ class TwoPhaseAnugerahScoringTest extends TestCase
         $dbScore = CompetitionJuryScore::where('anugerah_registration_id', $regs[1]->id)->first();
         $this->assertCount(4, $dbScore->score_breakdown);
         $this->assertEquals(90.0, (float) $dbScore->score);
+
+        // Now test resetting competition scores via API
+        $resetRes = $this->actingAs($superAdmin)->postJson("/api/competitions/{$competition->id}/reset-scores");
+        $resetRes->assertStatus(200);
+        $resetRes->assertJsonPath('data.deleted_jury_scores', 4); // 4 jury score entries
+
+        // Verify jury scores deleted and registrations reset
+        $this->assertEquals(0, CompetitionJuryScore::where('competition_id', $competition->id)->count());
+        $freshReg1 = $regs[1]->fresh();
+        $this->assertNull($freshReg1->total_score);
+        $this->assertNull($freshReg1->final_score);
+        $this->assertNull($freshReg1->rank);
+        $this->assertEquals('submitted', $freshReg1->status);
+
+        // Test Artisan command reset
+        // First re-insert a score
+        CompetitionJuryScore::create([
+            'competition_id'           => $competition->id,
+            'anugerah_registration_id' => $regs[1]->id,
+            'jury_name'                => 'Drs. Subhan',
+            'score'                    => 85.0,
+            'score_breakdown'          => [],
+        ]);
+        $this->artisan("competition:reset-scores {$competition->id} --force")
+            ->expectsOutputToContain('Berhasil!')
+            ->assertExitCode(0);
+
+        $this->assertEquals(0, CompetitionJuryScore::where('competition_id', $competition->id)->count());
     }
 }

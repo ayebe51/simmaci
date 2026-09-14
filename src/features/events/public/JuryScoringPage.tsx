@@ -1,32 +1,47 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter, ExternalLink, FileText, Video, FolderOpen, AlertCircle, UserCheck } from 'lucide-react';
+import { 
+  Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter, 
+  ExternalLink, FileText, Video, FolderOpen, AlertCircle, UserCheck, Sparkles 
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 const juryApi = {
-  verifyPin: (data: any) => axios.post(`${API_URL}/public/jury/verify-pin`, data).then(r => r.data?.data ?? r.data),
-  participants: (token: string) => axios.get(`${API_URL}/public/jury/${token}/participants`).then(r => r.data?.data ?? r.data),
-  score: (token: string, data: any) => axios.post(`${API_URL}/public/jury/${token}/score`, data).then(r => r.data?.data ?? r.data),
+  getExistingJuries: (competitionId: number | string) => 
+    axios.get(`${API_URL}/public/jury/competitions/${competitionId}/existing-juries`).then(r => r.data?.data ?? r.data),
+  verifyPin: (data: any) => 
+    axios.post(`${API_URL}/public/jury/verify-pin`, data).then(r => r.data?.data ?? r.data),
+  participants: (token: string, phase: number = 1) => 
+    axios.get(`${API_URL}/public/jury/${token}/participants`, { params: { phase } }).then(r => r.data?.data ?? r.data),
+  score: (token: string, data: any) => 
+    axios.post(`${API_URL}/public/jury/${token}/score`, data).then(r => r.data?.data ?? r.data),
 };
 
 type JuryState = 'login' | 'scoring';
 
-interface Criterion { component: string; weight: number; }
+interface Criterion { 
+  component: string; 
+  weight: number; 
+}
 
 export default function JuryScoringPage() {
+  const [searchParams] = useSearchParams();
   const [state, setState] = useState<JuryState>('login');
   const [token, setToken] = useState('');
   const [competitionId, setCompetitionId] = useState('');
   const [pin, setPin] = useState('');
   const [juryName, setJuryName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [existingJuries, setExistingJuries] = useState<string[]>([]);
+  const [selectedPhase, setSelectedPhase] = useState<number>(1);
   const [competition, setCompetition] = useState<any>(null);
   const [participants, setParticipants] = useState<any[]>([]);
   const [scores, setScores] = useState<Record<string | number, { rank: string; score: string; notes: string; breakdown: Record<string, string> }>>({});
@@ -34,11 +49,40 @@ export default function JuryScoringPage() {
   const [savedIds, setSavedIds] = useState<Set<string | number>>(new Set());
   const [filterJenjang, setFilterJenjang] = useState<string>('all');
 
+  // Pre-fill competition ID from URL if present
+  useEffect(() => {
+    const cid = searchParams.get('competition') || searchParams.get('competition_id');
+    if (cid && !competitionId) {
+      setCompetitionId(cid);
+    }
+  }, [searchParams]);
+
+  // Load existing juries when competition ID changes
+  useEffect(() => {
+    if (!competitionId || state !== 'login') return;
+    const cid = Number(competitionId);
+    if (!cid || isNaN(cid)) {
+      setExistingJuries([]);
+      return;
+    }
+    let isMounted = true;
+    juryApi.getExistingJuries(cid)
+      .then(res => {
+        if (isMounted && res?.existing_juries) {
+          setExistingJuries(res.existing_juries);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setExistingJuries([]);
+      });
+    return () => { isMounted = false; };
+  }, [competitionId, state]);
+
   // Reload participants (refresh scores & auto-rank from server)
-  const loadParticipants = async (t: string) => {
+  const loadParticipants = async (t: string, phase: number = selectedPhase) => {
     setLoading(true);
     try {
-      const data = await juryApi.participants(t);
+      const data = await juryApi.participants(t, phase);
       setCompetition(data.competition);
       setParticipants(data.participants);
       if (data.jury_name && !juryName) {
@@ -86,14 +130,24 @@ export default function JuryScoringPage() {
       });
       const t = data.token;
       setToken(t);
-      if (data.jury_name) setJuryName(data.jury_name);
+      if (data.jury_name) {
+        setJuryName(data.jury_name);
+      }
+      if (data.matched_existing && data.original_input && data.jury_name.toLowerCase() !== data.original_input.toLowerCase()) {
+        toast.info(`Nama Anda otomatis dicocokkan sebagai "${data.jury_name}".`);
+      }
       setState('scoring');
-      await loadParticipants(t);
+      await loadParticipants(t, selectedPhase);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'PIN tidak valid');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhaseChange = async (phase: number) => {
+    setSelectedPhase(phase);
+    await loadParticipants(token, phase);
   };
 
   const setScore = (pid: string | number, field: string, val: string) =>
@@ -111,44 +165,65 @@ export default function JuryScoringPage() {
       },
     }));
 
-  // Auto-calculate weighted score from breakdown
-  const calcWeightedScore = (pid: string | number, criteria: Criterion[]): string => {
-    if (!criteria.length) return scores[pid]?.score ?? '';
+  // Get active criteria based on competition type and phase
+  const isTwoPhase = Boolean(competition?.is_two_phase);
+  const activeCriteria: Criterion[] = isTwoPhase
+    ? (selectedPhase === 1 ? (competition?.phase1_criteria ?? []) : (competition?.phase2_criteria ?? []))
+    : (competition?.criteria ?? []);
+
+  // Calculate current active component subtotal
+  const calcActiveSubtotal = (pid: string | number): number => {
+    if (!activeCriteria.length) return parseFloat(scores[pid]?.score ?? '0') || 0;
     const bd = scores[pid]?.breakdown ?? {};
-    let total = 0;
-    let allFilled = true;
-    criteria.forEach(c => {
+    let sum = 0;
+    activeCriteria.forEach(c => {
       const v = parseFloat(bd[c.component] ?? '');
-      if (isNaN(v)) { allFilled = false; return; }
-      total += (v * c.weight) / 100;
+      if (!isNaN(v)) {
+        sum += (v * c.weight) / 100;
+      }
     });
-    return allFilled ? total.toFixed(2) : (scores[pid]?.score ?? '');
+    return sum;
   };
 
   const handleSave = async (pid: string | number) => {
     setSavingId(pid);
     try {
       const s = scores[pid] ?? {};
-      const criteria: Criterion[] = competition?.criteria ?? [];
-      const weightedScore = calcWeightedScore(pid, criteria);
+      const activeSubtotal = calcActiveSubtotal(pid);
 
-      const breakdown = criteria.length > 0
-        ? criteria.map(c => ({ component: c.component, weight: c.weight, value: parseFloat(s.breakdown?.[c.component] ?? '0') || 0 }))
+      const breakdown = activeCriteria.length > 0
+        ? activeCriteria.map(c => ({
+            component: c.component,
+            weight: c.weight,
+            value: parseFloat(s.breakdown?.[c.component] ?? '0') || 0
+          }))
         : undefined;
+
+      // In Phase 2, saveScore combines Phase 1 score + Phase 2 subtotal
+      let saveScore = Number(activeSubtotal.toFixed(2));
+      if (isTwoPhase && selectedPhase === 2) {
+        const pObj = participants.find(p => p.id === pid);
+        const p1 = Number(pObj?.result?.phase1_score || 0);
+        saveScore = Number((p1 + activeSubtotal).toFixed(2));
+      }
 
       await juryApi.score(token, {
         participant_id: pid,
         rank: s.rank ? Number(s.rank) : undefined,
-        score: weightedScore ? Number(weightedScore) : (s.score ? Number(s.score) : undefined),
+        score: saveScore,
         notes: s.notes || undefined,
         score_breakdown: breakdown,
+        phase: isTwoPhase ? selectedPhase : undefined,
       });
+
       setSavedIds(prev => new Set(prev).add(pid));
       const name = participants.find(p => p.id === pid)?.name ?? '';
-      toast.success(`Nilai "${name}" tersimpan & juara otomatis diperbarui`, { icon: <CheckCircle2 size={14} className="text-green-600" /> });
+      toast.success(`Nilai "${name}" tersimpan & ranking otomatis diperbarui`, {
+        icon: <CheckCircle2 size={14} className="text-green-600" />
+      });
 
-      // Automatically refresh participants to update auto-assigned ranks and medal badges in real-time
-      await loadParticipants(token);
+      // Automatically refresh participants to update ranks in real-time
+      await loadParticipants(token, selectedPhase);
     } catch (e: any) {
       toast.error(e.response?.data?.message || 'Gagal menyimpan nilai');
     } finally {
@@ -156,7 +231,14 @@ export default function JuryScoringPage() {
     }
   };
 
-  const handleLogout = () => { setState('login'); setToken(''); setCompetition(null); setParticipants([]); setScores({}); setSavedIds(new Set()); };
+  const handleLogout = () => { 
+    setState('login'); 
+    setToken(''); 
+    setCompetition(null); 
+    setParticipants([]); 
+    setScores({}); 
+    setSavedIds(new Set()); 
+  };
 
   const getRankEmoji = (r: number | undefined) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : null;
 
@@ -164,13 +246,13 @@ export default function JuryScoringPage() {
 
   if (state === 'login') return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
+      <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
             <Award className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-black text-slate-900">Panel Juri</h1>
-          <p className="text-slate-500 text-sm mt-1">LP Ma'arif NU Cilacap 2026</p>
+          <p className="text-slate-500 text-sm mt-1">LP Ma'arif NU PCNU Cilacap 2026</p>
         </div>
 
         <Card className="border-0 shadow-xl rounded-2xl">
@@ -186,8 +268,9 @@ export default function JuryScoringPage() {
                   placeholder="Contoh: 3"
                   className="h-11"
                 />
-                <p className="text-[10px] text-slate-400">ID diberikan oleh panitia</p>
+                <p className="text-[10px] text-slate-400">ID diberikan oleh panitia atau terisi otomatis lewat QR</p>
               </div>
+
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase text-slate-500">Nama Dewan Juri</Label>
                 <Input
@@ -199,7 +282,34 @@ export default function JuryScoringPage() {
                   className="h-11"
                 />
                 <p className="text-[10px] text-slate-400">Identitas juri untuk lembar penilaian Anda</p>
+
+                {/* Quick-Pick for Existing Juries */}
+                {existingJuries.length > 0 && (
+                  <div className="pt-2 space-y-1.5 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200/80">
+                    <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                      <UserCheck size={13} className="text-emerald-600" />
+                      Pilih nama Anda jika sudah pernah menilai di lomba ini:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5">
+                      {existingJuries.map((name, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setJuryName(name)}
+                          className={`px-2.5 py-1 text-xs rounded-full border transition-all cursor-pointer ${
+                            juryName === name
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-bold'
+                              : 'bg-white hover:bg-emerald-100 text-slate-700 border-slate-200 hover:border-emerald-300'
+                          }`}
+                        >
+                          👤 {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase text-slate-500">PIN Juri</Label>
                 <Input
@@ -211,7 +321,8 @@ export default function JuryScoringPage() {
                   className="h-11"
                 />
               </div>
-              <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 font-bold" disabled={loading}>
+
+              <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 font-bold cursor-pointer" disabled={loading}>
                 {loading ? <Loader2 size={16} className="animate-spin mr-2"/> : null} Masuk Panel Juri
               </Button>
             </form>
@@ -227,8 +338,9 @@ export default function JuryScoringPage() {
 
   // ── Scoring panel ─────────────────────────────────────────────────────────
 
-  const criteria: Criterion[] = competition?.criteria ?? [];
   const scoredCount = savedIds.size;
+  const phase1Max = competition?.phase1_max_score ?? (competition?.lomba_type === 'guru_berprestasi' ? 70 : 85);
+  const phase2Max = competition?.phase2_max_score ?? (competition?.lomba_type === 'guru_berprestasi' ? 30 : 15);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -252,10 +364,10 @@ export default function JuryScoringPage() {
             <Badge className="bg-white/20 text-white border-white/30 text-xs">
               {scoredCount}/{participants.length} dinilai
             </Badge>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1" onClick={() => loadParticipants(token)} disabled={loading}>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1 cursor-pointer" onClick={() => loadParticipants(token, selectedPhase)} disabled={loading}>
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             </Button>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1 cursor-pointer" onClick={handleLogout}>
               <LogOut size={13}/> Keluar
             </Button>
           </div>
@@ -263,18 +375,63 @@ export default function JuryScoringPage() {
       </div>
 
       <div className="max-w-4xl mx-auto p-4 space-y-4">
-        {/* Criteria reference */}
-        {criteria.length > 0 && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
-            <p className="font-bold flex items-center gap-1.5 mb-2"><Info size={12}/>Kriteria Penilaian (Juknis)</p>
+        {/* Phase Tabs for Anugerah Competitions */}
+        {isTwoPhase && (
+          <div className="bg-white p-2 rounded-2xl shadow-sm border flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handlePhaseChange(1)}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                selectedPhase === 1
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+              }`}
+            >
+              <FileText size={15} />
+              <span>Fase 1: Seleksi Berkas (Semua Peserta)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePhaseChange(2)}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                selectedPhase === 2
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+              }`}
+            >
+              <Sparkles size={15} />
+              <span>Fase 2: Wawancara & Visitasi (3 Besar Finalis)</span>
+            </button>
+          </div>
+        )}
+
+        {/* Active Criteria reference */}
+        {activeCriteria.length > 0 && (
+          <div className={`p-3.5 border rounded-xl text-xs ${
+            isTwoPhase && selectedPhase === 2 
+              ? 'bg-purple-50 border-purple-200 text-purple-900' 
+              : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <p className="font-bold flex items-center gap-1.5 mb-2">
+              <Info size={13}/>
+              {isTwoPhase 
+                ? (selectedPhase === 1 ? 'Kriteria Penilaian Fase 1 (Seleksi Berkas)' : 'Kriteria Penilaian Fase 2 (Wawancara & Visitasi)')
+                : 'Kriteria Penilaian (Juknis)'}
+            </p>
             <div className="flex flex-wrap gap-2">
-              {criteria.map((c, i) => (
-                <span key={i} className="bg-white border border-blue-100 rounded-lg px-2 py-1">
+              {activeCriteria.map((c, i) => (
+                <span key={i} className="bg-white border border-slate-200/80 rounded-lg px-2.5 py-1 font-medium shadow-2xs">
                   {c.component} <strong>({c.weight}%)</strong>
                 </span>
               ))}
             </div>
-            <p className="mt-2 text-blue-600">Skor akhir dihitung otomatis dari rata-rata tertimbang di atas.</p>
+            <p className="mt-2.5 text-[11px] opacity-85">
+              {isTwoPhase 
+                ? (selectedPhase === 1 
+                    ? `Hanya komponen berkas Fase 1 yang dinilai (Bobot maksimal: ${phase1Max}%).` 
+                    : `Hanya komponen wawancara Fase 2 yang dinilai (Bobot maksimal: ${phase2Max}%). Nilai berkas Fase 1 terakumulasi otomatis.`)
+                : 'Skor akhir dihitung otomatis dari rata-rata tertimbang di atas.'}
+            </p>
           </div>
         )}
 
@@ -301,19 +458,35 @@ export default function JuryScoringPage() {
         {loading && participants.length === 0 ? (
           <div className="flex justify-center py-16"><Loader2 className="animate-spin text-green-600 w-8 h-8" /></div>
         ) : participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).length === 0 ? (
-          <div className="text-center py-16 text-slate-400">Belum ada peserta {filterJenjang !== 'all' ? `untuk jenjang ${filterJenjang}` : ''}.</div>
+          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400 p-8 space-y-2">
+            <Award className="w-10 h-10 mx-auto text-slate-300" />
+            <p className="font-semibold text-slate-600">
+              {isTwoPhase && selectedPhase === 2
+                ? 'Belum ada Finalis 3 Besar yang ditetapkan oleh Panitia/Admin.'
+                : `Belum ada peserta ${filterJenjang !== 'all' ? `untuk jenjang ${filterJenjang}` : ''}.`}
+            </p>
+            {isTwoPhase && selectedPhase === 2 && (
+              <p className="text-xs text-slate-400">
+                Setelah seleksi berkas Fase 1 selesai, panitia akan menetapkan 3 besar per jenjang untuk masuk ke Fase 2.
+              </p>
+            )}
+          </div>
         ) : (
           <div className="space-y-3">
             {participants.filter(p => filterJenjang === 'all' || p.jenjang === filterJenjang).map((p, idx) => {
               const s = scores[p.id] ?? { rank: '', score: '', notes: '', breakdown: {} };
               const isSaving = savingId === p.id;
               const isSaved = savedIds.has(p.id);
-              const alreadyScored = p.result != null;
-              const weightedScore = calcWeightedScore(p.id, criteria);
+              const alreadyScored = p.result?.is_scored_by_me;
+              const activeSubtotal = calcActiveSubtotal(p.id);
               const rankNum = s.rank ? Number(s.rank) : undefined;
+              const p1Saved = Number(p.result?.phase1_score || 0);
+              const totalCombined = isTwoPhase && selectedPhase === 2 ? Number((p1Saved + activeSubtotal).toFixed(2)) : activeSubtotal;
 
               return (
-                <Card key={p.id} className={`border-0 shadow-sm rounded-2xl transition-all ${isSaved ? 'ring-2 ring-green-300' : alreadyScored ? 'ring-1 ring-blue-200' : ''}`}>
+                <Card key={p.id} className={`border-0 shadow-sm rounded-2xl transition-all ${
+                  isSaved ? 'ring-2 ring-green-400' : alreadyScored ? 'ring-1 ring-blue-200' : ''
+                }`}>
                   <CardHeader className="pb-2 pt-4 px-5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
@@ -323,6 +496,11 @@ export default function JuryScoringPage() {
                           <h3 className="font-bold text-slate-800 text-lg">
                             {p.name}
                           </h3>
+                          {p.is_finalis && (
+                            <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] font-bold">
+                              ✨ Finalis Fase 2
+                            </Badge>
+                          )}
                           {p.gender_category && <Badge variant="outline" className="text-[9px] uppercase">{p.gender_category}</Badge>}
                         </div>
                         <p className="text-sm text-slate-500 mt-0.5">
@@ -400,36 +578,91 @@ export default function JuryScoringPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="px-5 pb-4 space-y-3">
-                    {/* Breakdown scores per criterion */}
-                    {criteria.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {criteria.map(c => (
-                          <div key={c.component} className="space-y-0.5">
-                            <Label className="text-[10px] text-slate-500">{c.component} ({c.weight}%)</Label>
-                            <Input
-                              type="number" min="0" max="100" step="0.5"
-                              value={s.breakdown?.[c.component] ?? ''}
-                              onChange={e => setBreakdown(p.id, c.component, e.target.value)}
-                              placeholder="0–100"
-                              className="h-8 text-sm"
-                            />
+                    {/* In Phase 2: Show read-only summary card of Phase 1 score */}
+                    {isTwoPhase && selectedPhase === 2 && (
+                      <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl text-xs flex items-center justify-between shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-emerald-600" />
+                          <div>
+                            <span className="font-bold text-emerald-950 block">Skor Seleksi Berkas (Fase 1)</span>
+                            <span className="text-[11px] text-emerald-700">Tersimpan dari lembar penilaian berkas portofolio Anda</span>
                           </div>
-                        ))}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-base font-black text-emerald-800">
+                            {p1Saved.toFixed(2)}
+                          </span>
+                          <span className="text-xs text-emerald-600 font-semibold"> / {phase1Max}</span>
+                        </div>
                       </div>
                     )}
+
+                    {/* Breakdown scores for active criteria ONLY */}
+                    {activeCriteria.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider">
+                          <span>
+                            {isTwoPhase 
+                              ? (selectedPhase === 1 ? 'Kriteria Berkas (Fase 1)' : 'Kriteria Wawancara / Visitasi (Fase 2)') 
+                              : 'Kriteria Penilaian'}
+                          </span>
+                          <span className="text-[11px] text-emerald-700 lowercase font-medium">skor 0 – 100</span>
+                        </div>
+                        <div className={`grid ${activeCriteria.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2.5`}>
+                          {activeCriteria.map(c => (
+                            <div key={c.component} className="space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                              <Label className="text-[11px] font-semibold text-slate-700 block leading-tight">
+                                {c.component} <span className="text-emerald-600 font-bold">({c.weight}%)</span>
+                              </Label>
+                              <Input
+                                type="number" min="0" max="100" step="0.5"
+                                value={s.breakdown?.[c.component] ?? ''}
+                                onChange={e => setBreakdown(p.id, c.component, e.target.value)}
+                                placeholder="0–100"
+                                className="h-9 text-sm font-bold bg-white"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Real-time Subtotal / Total Calculation Pill */}
+                    {isTwoPhase && selectedPhase === 2 ? (
+                      <div className="p-3 bg-purple-50/90 border border-purple-200 rounded-xl flex items-center justify-between text-xs shadow-2xs">
+                        <div>
+                          <span className="font-bold text-purple-950 block">Akumulasi Nilai Akhir (Fase 1 + Fase 2)</span>
+                          <span className="text-[11px] text-purple-700">
+                            Berkas ({p1Saved.toFixed(1)}) + Wawancara ({activeSubtotal.toFixed(1)})
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-black text-purple-800">{totalCombined.toFixed(2)}</span>
+                          <span className="text-xs text-purple-600 font-semibold"> / 100</span>
+                        </div>
+                      </div>
+                    ) : isTwoPhase && selectedPhase === 1 ? (
+                      <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-950">Subtotal Nilai Berkas (Fase 1)</span>
+                        <div className="text-right">
+                          <span className="text-base font-black text-emerald-800">{activeSubtotal.toFixed(2)}</span>
+                          <span className="text-xs text-emerald-600 font-semibold"> / {phase1Max}</span>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="grid grid-cols-3 gap-2">
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">
-                          {criteria.length > 0 ? 'Skor Akhir (auto)' : 'Skor / Nilai'}
+                          {isTwoPhase ? (selectedPhase === 1 ? 'Skor Berkas (Fase 1)' : 'Total Akhir (Fase 1+2)') : (activeCriteria.length > 0 ? 'Skor Akhir (auto)' : 'Skor / Nilai')}
                         </Label>
                         <Input
                           type="number" min="0" max="100" step="0.01"
-                          value={criteria.length > 0 ? weightedScore : s.score}
-                          onChange={e => { if (criteria.length === 0) setScore(p.id, 'score', e.target.value); }}
-                          readOnly={criteria.length > 0}
+                          value={isTwoPhase ? (selectedPhase === 2 ? totalCombined : activeSubtotal) : (activeCriteria.length > 0 ? activeSubtotal.toFixed(2) : s.score)}
+                          onChange={e => { if (activeCriteria.length === 0) setScore(p.id, 'score', e.target.value); }}
+                          readOnly={activeCriteria.length > 0}
                           placeholder="—"
-                          className={`h-8 text-sm font-bold ${criteria.length > 0 ? 'bg-slate-50 text-slate-600' : ''}`}
+                          className="h-8 text-sm font-bold bg-slate-50 text-slate-700"
                         />
                       </div>
                       <div className="space-y-0.5">
@@ -453,12 +686,20 @@ export default function JuryScoringPage() {
 
                     <Button
                       size="sm"
-                      className={`w-full gap-1.5 ${isSaved ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                      className={`w-full gap-1.5 cursor-pointer font-bold ${
+                        isTwoPhase && selectedPhase === 2
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                          : isSaved ? 'bg-green-600 hover:bg-green-700 text-white' : ''
+                      }`}
                       onClick={() => handleSave(p.id)}
                       disabled={isSaving}
                     >
                       {isSaving ? <Loader2 size={13} className="animate-spin"/> : isSaved ? <CheckCircle2 size={13}/> : <Save size={13}/>}
-                      {isSaved ? 'Tersimpan — Update Nilai' : 'Simpan Nilai'}
+                      {isTwoPhase 
+                        ? (selectedPhase === 1 
+                            ? (isSaved ? 'Tersimpan — Perbarui Nilai Berkas' : 'Simpan Nilai Berkas (Fase 1)') 
+                            : (isSaved ? 'Tersimpan — Perbarui Nilai Wawancara' : 'Simpan Nilai Wawancara (Fase 2)'))
+                        : (isSaved ? 'Tersimpan — Update Nilai' : 'Simpan Nilai')}
                     </Button>
                   </CardContent>
                 </Card>
@@ -474,5 +715,3 @@ export default function JuryScoringPage() {
     </div>
   );
 }
-
-// (Select imported at top of file)

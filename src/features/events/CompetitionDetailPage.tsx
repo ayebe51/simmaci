@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle, Phone } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle, Phone, Sparkles, Award } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
@@ -221,7 +221,7 @@ export default function CompetitionDetailPage() {
 
         {isAnugerah && competition.anugerah_registrations?.length >= 0 && (
           <TabsContent value="pendaftar" className="pt-4">
-            <AnnugerahRegistrantList registrations={competition.anugerah_registrations ?? []} onReload={load} />
+            <AnnugerahRegistrantList competition={competition} registrations={competition.anugerah_registrations ?? []} onReload={load} />
           </TabsContent>
         )}
       </Tabs>
@@ -420,10 +420,28 @@ function countAttachedDocs(reg: any): number {
   return fields.filter(Boolean).length;
 }
 
-function AnnugerahRegistrantList({ registrations, onReload }: { registrations: any[], onReload: () => void }) {
+function AnnugerahRegistrantList({ competition, registrations, onReload }: { competition: any, registrations: any[], onReload: () => void }) {
   const [selectedReg, setSelectedReg] = useState<any | null>(null);
   const [savingDocs, setSavingDocs] = useState(false);
+  const [promoting, setPromoting] = useState(false);
   const [docForm, setDocForm] = useState<Record<string, string>>({});
+
+  const handlePromoteFinalists = async () => {
+    if (!competition?.id) return;
+    if (!window.confirm('Tetapkan 3 peserta terbaik per jenjang sebagai Finalis Fase 2 berdasarkan akumulasi nilai berkas? Peserta yang terpilih akan berstatus "Finalis" dan muncul di lembar penilaian Fase 2 Dewan Juri.')) {
+      return;
+    }
+    setPromoting(true);
+    try {
+      const res = await eventApi.competitions.promoteFinalists(competition.id);
+      toast.success(res.message || 'Berhasil menetapkan 3 besar finalis per jenjang!');
+      onReload();
+    } catch (e: any) {
+      toast.error('Gagal menetapkan finalis: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setPromoting(false);
+    }
+  };
 
   const STATUS_MAP: Record<string, { label: string; color: string }> = {
     draft:        { label: 'Draft',       color: 'bg-slate-100 text-slate-600' },
@@ -475,7 +493,30 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="space-y-4">
+        {/* Top Action Banner: Tetapkan 3 Besar Finalis */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 p-4 rounded-2xl shadow-xs">
+          <div>
+            <h4 className="font-black text-purple-900 text-sm flex items-center gap-2">
+              <Sparkles size={16} className="text-purple-600" />
+              Seleksi 2 Fase: Tetapkan 3 Besar Finalis
+            </h4>
+            <p className="text-xs text-purple-700 mt-0.5">
+              Pilih otomatis 3 peserta terbaik per jenjang berdasarkan akumulasi skor seleksi berkas (Fase 1) dewan juri untuk masuk ke sesi wawancara (Fase 2).
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={handlePromoteFinalists}
+            disabled={promoting || registrations.length === 0}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-1.5 shadow-sm flex-shrink-0 cursor-pointer"
+          >
+            {promoting ? <Loader2 size={14} className="animate-spin" /> : <Award size={14} />}
+            Tetapkan 3 Besar Finalis
+          </Button>
+        </div>
+
+        <div className="space-y-2">
         {registrations.map((reg: any, i: number) => {
           const st = STATUS_MAP[reg.status] ?? STATUS_MAP.draft;
           const docCount = countAttachedDocs(reg);
@@ -487,6 +528,11 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
                   <span className="font-semibold text-slate-800 text-sm">{reg.applicant_name}</span>
                   <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${st.color}`}>{st.label}</span>
                   <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full uppercase">{reg.jenjang}</span>
+                  {reg.status === 'finalis' && (
+                    <span className="text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles size={10} className="text-purple-600" /> Finalis Fase 2
+                    </span>
+                  )}
                   {docCount > 0 ? (
                     <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                       <FolderOpen size={10} /> {docCount} Berkas Terlampir
@@ -550,6 +596,7 @@ function AnnugerahRegistrantList({ registrations, onReload }: { registrations: a
             </div>
           );
         })}
+      </div>
       </div>
 
       {/* Modal Kelola Tautan Berkas / Google Drive */}

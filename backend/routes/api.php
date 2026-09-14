@@ -230,6 +230,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('competitions/{competition}/jury-pin',           [CompetitionController::class, 'getJuryPin']);
             Route::post('competitions/{competition}/jury-pin',          [CompetitionController::class, 'setJuryPin']);
 
+            // Promote Finalists for Anugerah
+            Route::post('competitions/{competition}/promote-finalists', [CompetitionController::class, 'promoteFinalists']);
+
             // Anugerah Review
             Route::post('anugerah-registrations/{anugerahRegistration}/review', [AnugerahRegistrationController::class, 'review']);
         });
@@ -454,6 +457,7 @@ Route::prefix('public/events')->group(function () {
 
 // Jury panel (PIN-gated, no auth token needed)
 Route::prefix('public/jury')->group(function () {
+    Route::get('competitions/{id}/existing-juries', [PublicEventController::class, 'existingJuries']);
     Route::post('verify-pin', [PublicEventController::class, 'juryVerifyPin'])->middleware('throttle:10,1');
     Route::get('{token}/participants', [PublicEventController::class, 'juryParticipants']);
     Route::post('{token}/score', [PublicEventController::class, 'juryScore']);

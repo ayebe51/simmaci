@@ -400,6 +400,110 @@ class CompetitionController extends Controller
         }
     }
 
+    // ─────────────────────── PROMOTE FINALISTS ──────────────────────────────
+
+    /**
+     * POST /competitions/{competition}/promote-finalists
+     * Promote top 3 participants from Phase 1 per jenjang to 'finalis' status.
+     */
+    public function promoteFinalists(Competition $competition): JsonResponse
+    {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menetapkan finalis.', 403);
+        }
+
+        $lombaType = $competition->lomba_type;
+        if (! in_array($lombaType, ['guru_berprestasi', 'madrasah_berprestasi'], true)) {
+            return $this->error('Fitur finalis 3 besar hanya berlaku untuk Anugerah Guru & Madrasah Berprestasi.', 422);
+        }
+
+        $registrations = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+            ->whereNotIn('status', ['rejected'])
+            ->with('juryScores')
+            ->get();
+
+        if ($registrations->isEmpty()) {
+            return $this->error('Belum ada pendaftar pada cabang lomba ini.', 422);
+        }
+
+        // Calculate Phase 1 average score for each registration
+        $scoredRegistrations = $registrations->map(function ($reg) use ($lombaType) {
+            $scores = $reg->juryScores;
+            if ($scores->isEmpty()) {
+                $phase1Score = 0.0;
+            } else {
+                $p1Scores = $scores->map(function ($s) use ($lombaType) {
+                    $breakdown = $s->score_breakdown;
+                    if (!empty($breakdown) && is_array($breakdown)) {
+                        $p1Sum = 0.0;
+                        foreach ($breakdown as $idx => $item) {
+                            $isP1 = ($lombaType === 'guru_berprestasi') ? ($idx < 2) : ($idx < 3);
+                            $name = strtolower($item['component'] ?? '');
+                            if ($lombaType === 'guru_berprestasi' && (str_contains($name, 'aswaja') || str_contains($name, 'wawancara') || str_contains($name, 'interview'))) {
+                                $isP1 = false;
+                            } elseif ($lombaType === 'madrasah_berprestasi' && (str_contains($name, 'presentasi') || str_contains($name, 'visitasi') || str_contains($name, 'fact checking'))) {
+                                $isP1 = false;
+                            }
+                            if ($isP1) {
+                                $p1Sum += ((float) ($item['value'] ?? 0) * (float) ($item['weight'] ?? 0)) / 100.0;
+                            }
+                        }
+                        return $p1Sum;
+                    }
+                    return (float) $s->score;
+                });
+                $phase1Score = round((float) $p1Scores->avg(), 2);
+            }
+
+            return [
+                'registration' => $reg,
+                'phase1_score' => $phase1Score,
+                'jenjang'      => $reg->jenjang ?: 'Umum',
+            ];
+        });
+
+        // Group by jenjang and take top 3 in each jenjang
+        $grouped = $scoredRegistrations->groupBy('jenjang');
+        $promotedFinalists = [];
+        $demotedCount = 0;
+
+        DB::transaction(function () use ($grouped, &$promotedFinalists, &$demotedCount) {
+            foreach ($grouped as $jenjang => $items) {
+                // Sort descending by Phase 1 score
+                $sorted = $items->sortByDesc('phase1_score')->values();
+
+                foreach ($sorted as $index => $item) {
+                    $reg = $item['registration'];
+                    if ($index < 3) { // Top 3
+                        $reg->update(['status' => 'finalis']);
+                        $promotedFinalists[] = [
+                            'id'             => $reg->id,
+                            'applicant_name' => $reg->applicant_name,
+                            'school_name'    => $reg->school_name,
+                            'jenjang'        => $reg->jenjang,
+                            'phase1_score'   => $item['phase1_score'],
+                            'rank_in_phase1' => $index + 1,
+                        ];
+                    } else {
+                        // If previously finalis, revert to under_review
+                        if ($reg->status === 'finalis') {
+                            $reg->update(['status' => 'under_review']);
+                            $demotedCount++;
+                        }
+                    }
+                }
+            }
+        });
+
+        \App\Services\CompetitionRankingService::autoRank($competition);
+
+        $count = count($promotedFinalists);
+        return $this->success([
+            'total_finalists' => $count,
+            'finalists'       => $promotedFinalists,
+        ], "Berhasil menetapkan {$count} finalis 3 besar per jenjang untuk Fase 2.");
+    }
+
     // ─────────────────────── SEED HARLAH 97 ──────────────────────────────────
 
     /**

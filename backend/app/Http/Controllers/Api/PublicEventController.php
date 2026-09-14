@@ -217,11 +217,214 @@ class PublicEventController extends Controller
     // ── 3. Jury panel ─────────────────────────────────────────────────────────
 
     /**
+     * GET /public/jury/competitions/{id}/existing-juries
+     * Returns list of existing juries who have scored in this competition.
+     */
+    public function existingJuries(int $id): JsonResponse
+    {
+        $competition = Competition::findOrFail($id);
+        $juries = \App\Models\CompetitionJuryScore::where('competition_id', $id)
+            ->whereNotNull('jury_name')
+            ->distinct()
+            ->pluck('jury_name')
+            ->map(fn ($n) => trim((string) $n))
+            ->filter(fn ($n) => !empty($n))
+            ->values();
+
+        return $this->success([
+            'competition_id'   => $competition->id,
+            'competition_name' => $competition->name,
+            'existing_juries'  => $juries,
+        ]);
+    }
+
+    /**
+     * Resolve canonical jury name to prevent typos and mismatch across sessions.
+     */
+    protected function resolveCanonicalJuryName(int $competitionId, string $inputName): array
+    {
+        $cleanInput = trim($inputName);
+        if (empty($cleanInput)) {
+            return ['name' => $cleanInput, 'matched' => false];
+        }
+
+        $existingJuries = \App\Models\CompetitionJuryScore::where('competition_id', $competitionId)
+            ->whereNotNull('jury_name')
+            ->distinct()
+            ->pluck('jury_name')
+            ->map(fn ($n) => trim((string) $n))
+            ->filter(fn ($n) => !empty($n))
+            ->values();
+
+        if ($existingJuries->isEmpty()) {
+            return ['name' => $cleanInput, 'matched' => false];
+        }
+
+        // 1. Exact match (case-insensitive)
+        foreach ($existingJuries as $existing) {
+            if (strcasecmp($existing, $cleanInput) === 0) {
+                return ['name' => $existing, 'matched' => true];
+            }
+        }
+
+        // Helper to normalize name (remove honorary / academic titles & non-alphanumeric)
+        $normalize = function (string $name): string {
+            $name = mb_strtolower(trim($name));
+            $titles = [
+                'dr.', 'dr', 'drs.', 'drs', 'dra.', 'dra', 'h.', 'h', 'haji', 'hajjah', 'hj.', 'hj',
+                'kh.', 'kh', 'kyai', 'k.', 'gus', 'ning', 'prof.', 'prof', 'm.pd', 'm.pd.', 'mpd',
+                's.pd', 's.pd.', 'spd', 's.ag', 's.ag.', 'sag', 'm.ag', 'm.ag.', 'mag', 'm.si',
+                's.si', 'lc', 'lc.', 's.kom', 'm.kom', 'm.hum', 's.hum', 's.sos', 'm.sos'
+            ];
+            $clean = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $name);
+            $words = preg_split('/\s+/', (string) $clean, -1, PREG_SPLIT_NO_EMPTY);
+            $filtered = array_filter($words, fn ($w) => !in_array($w, $titles, true));
+            return implode(' ', $filtered);
+        };
+
+        $normInput = $normalize($cleanInput);
+
+        // 2. Normalized match (titles removed)
+        if (!empty($normInput)) {
+            foreach ($existingJuries as $existing) {
+                if ($normalize($existing) === $normInput) {
+                    return ['name' => $existing, 'matched' => true];
+                }
+            }
+        }
+
+        // 3. Substring / Word inclusion match (e.g. "Ahmad Subhan" inside "Drs. H. Ahmad Subhan, M.Pd")
+        if (!empty($normInput) && mb_strlen($normInput) >= 4) {
+            foreach ($existingJuries as $existing) {
+                $normExisting = $normalize($existing);
+                if (!empty($normExisting) && (str_contains($normExisting, $normInput) || str_contains($normInput, $normExisting))) {
+                    return ['name' => $existing, 'matched' => true];
+                }
+            }
+        }
+
+        // 4. Fuzzy Levenshtein / Similarity check
+        $bestMatch = null;
+        $highestSim = 0.0;
+
+        foreach ($existingJuries as $existing) {
+            $normExisting = $normalize($existing);
+
+            // Normalized similarity
+            similar_text($normInput, $normExisting, $simNorm);
+            if ($simNorm > $highestSim) {
+                $highestSim = $simNorm;
+                $bestMatch = $existing;
+            }
+
+            // Raw similarity
+            similar_text(mb_strtolower($cleanInput), mb_strtolower($existing), $simRaw);
+            if ($simRaw > $highestSim) {
+                $highestSim = $simRaw;
+                $bestMatch = $existing;
+            }
+        }
+
+        if ($highestSim >= 75.0 && $bestMatch !== null) {
+            return ['name' => $bestMatch, 'matched' => true];
+        }
+
+        return ['name' => $cleanInput, 'matched' => false];
+    }
+
+    /**
+     * Get criteria split by Phase (1: berkas, 2: wawancara/visitasi).
+     */
+    public function getPhaseCriteriaInfo(string $lombaType, ?array $criteria): array
+    {
+        $criteria = $criteria ?? [];
+        if (!in_array($lombaType, ['guru_berprestasi', 'madrasah_berprestasi'], true)) {
+            return [
+                'is_two_phase' => false,
+                'phase1'       => $criteria,
+                'phase2'       => [],
+                'phase1_max'   => 100,
+                'phase2_max'   => 0,
+            ];
+        }
+
+        if ($lombaType === 'guru_berprestasi') {
+            // Phase 1: Prestasi (40%) + Naskah (30%) = 70%
+            // Phase 2: Aswaja (15%) + Wawancara (15%) = 30%
+            return [
+                'is_two_phase' => true,
+                'phase1'       => array_values(array_slice($criteria, 0, 2)),
+                'phase2'       => array_values(array_slice($criteria, 2)),
+                'phase1_max'   => 70,
+                'phase2_max'   => 30,
+            ];
+        }
+
+        // madrasah_berprestasi
+        // Phase 1: Prestasi (45%) + Tata Kelola (25%) + Kemitraan (15%) = 85%
+        // Phase 2: Presentasi Kamad & Visitasi (15%) = 15%
+        return [
+            'is_two_phase' => true,
+            'phase1'       => array_values(array_slice($criteria, 0, 3)),
+            'phase2'       => array_values(array_slice($criteria, 3)),
+            'phase1_max'   => 85,
+            'phase2_max'   => 15,
+        ];
+    }
+
+    /**
+     * Calculate Phase 1, Phase 2, and Total score from score_breakdown array.
+     */
+    public function calculateBreakdownPhases(string $lombaType, ?array $breakdown): array
+    {
+        if (empty($breakdown) || !is_array($breakdown)) {
+            return ['phase1_score' => 0.0, 'phase2_score' => 0.0, 'total_score' => 0.0];
+        }
+
+        $phase1Sum = 0.0;
+        $phase2Sum = 0.0;
+
+        foreach ($breakdown as $index => $item) {
+            $weight = (float) ($item['weight'] ?? 0);
+            $val = (float) ($item['value'] ?? 0);
+            $componentScore = ($val * $weight) / 100.0;
+            $name = strtolower($item['component'] ?? '');
+
+            $isP1 = true;
+            if ($lombaType === 'guru_berprestasi') {
+                if (str_contains($name, 'aswaja') || str_contains($name, 'wawancara') || str_contains($name, 'interview')) {
+                    $isP1 = false;
+                } else {
+                    $isP1 = ($index < 2);
+                }
+            } elseif ($lombaType === 'madrasah_berprestasi') {
+                if (str_contains($name, 'presentasi') || str_contains($name, 'visitasi') || str_contains($name, 'fact checking')) {
+                    $isP1 = false;
+                } else {
+                    $isP1 = ($index < 3);
+                }
+            }
+
+            if ($isP1) {
+                $phase1Sum += $componentScore;
+            } else {
+                $phase2Sum += $componentScore;
+            }
+        }
+
+        return [
+            'phase1_score' => round($phase1Sum, 2),
+            'phase2_score' => round($phase2Sum, 2),
+            'total_score'  => round($phase1Sum + $phase2Sum, 2),
+        ];
+    }
+
+    /**
      * Verify jury PIN and return a short-lived token.
-     * PIN is stored in Settings table: key = "jury_pin_{competition_id}"
+     * PIN is stored in Settings table: key = "jury_pin_event_{event_id}"
      *
      * POST /public/jury/verify-pin
-     * Body: { competition_id, pin }
+     * Body: { competition_id, pin, jury_name }
      */
     public function juryVerifyPin(Request $request): JsonResponse
     {
@@ -246,7 +449,10 @@ class PublicEventController extends Controller
             return $this->error('PIN juri tidak valid.', null, 401);
         }
 
-        $juryName = trim($request->jury_name);
+        // Smart canonical name resolution
+        $resolved = $this->resolveCanonicalJuryName($competition->id, $request->jury_name);
+        $juryName = $resolved['name'];
+        $wasMatched = $resolved['matched'];
 
         // Issue a short-lived signed token (24h) via Cache containing competition ID & jury name
         $token = bin2hex(random_bytes(20));
@@ -255,29 +461,40 @@ class PublicEventController extends Controller
             'jury_name'      => $juryName,
         ], now()->addHours(24));
 
+        $welcomeMsg = "PIN valid. Selamat datang, Dewan Juri {$juryName}.";
+        if ($wasMatched && strcasecmp($juryName, trim($request->jury_name)) !== 0) {
+            $welcomeMsg .= " (Nama Anda otomatis dicocokkan dengan data penilaian sebelumnya)";
+        }
+
         return $this->success([
-            'token'       => $token,
-            'jury_name'   => $juryName,
+            'token'            => $token,
+            'jury_name'        => $juryName,
+            'original_input'   => trim($request->jury_name),
+            'matched_existing' => $wasMatched,
             'competition' => [
                 'id'         => $competition->id,
                 'name'       => $competition->name,
                 'lomba_type' => $competition->lomba_type,
                 'event'      => $competition->event?->name,
             ],
-        ], "PIN valid. Selamat datang, Dewan Juri {$juryName}.");
+        ], $welcomeMsg);
     }
 
     /**
      * Get participants + existing scores for jury scoring.
-     * GET /public/jury/{token}/participants
+     * GET /public/jury/{token}/participants?phase=1|2
      */
-    public function juryParticipants(string $token): JsonResponse
+    public function juryParticipants(Request $request, string $token): JsonResponse
     {
         $session = $this->resolveJurySession($token);
         if (! $session) return $this->error('Token juri tidak valid atau sudah kadaluarsa.', 401);
 
         $competitionId = $session['competition_id'];
         $juryName      = $session['jury_name'];
+        $phase         = (int) $request->query('phase', 1);
+        if ($phase < 1 || $phase > 2) {
+            $phase = 1;
+        }
 
         $competition = Competition::with([
             'participants' => fn ($q) => $q->with(['result', 'juryScores'])->orderBy('institution')->orderBy('name'),
@@ -286,24 +503,37 @@ class PublicEventController extends Controller
 
         $lombaType = $competition->lomba_type;
         $criteria  = $competition->scoring_criteria ?? [];
+        $phaseInfo = $this->getPhaseCriteriaInfo($lombaType, $criteria);
 
         // For anugerah types, merge from anugerah_registrations
-        $isAnugerah = in_array($lombaType, ['guru_berprestasi', 'madrasah_berprestasi']);
+        $isAnugerah = in_array($lombaType, ['guru_berprestasi', 'madrasah_berprestasi'], true);
         $participants = collect();
 
         if ($isAnugerah) {
-            $registrations = \App\Models\AnugerahRegistration::where('competition_id', $competitionId)
-                ->whereIn('status', ['submitted', 'under_review', 'finalis', 'winner', 'draft'])
-                ->with('juryScores')
+            $query = \App\Models\AnugerahRegistration::where('competition_id', $competitionId);
+
+            if ($phase === 2) {
+                // In Phase 2: only show promoted finalists (or winners)
+                $query->whereIn('status', ['finalis', 'winner']);
+            } else {
+                $query->whereIn('status', ['submitted', 'under_review', 'finalis', 'winner', 'draft']);
+            }
+
+            $registrations = $query->with('juryScores')
                 ->orderBy('school_name')
                 ->orderBy('applicant_name')
                 ->get();
 
-            $participants = $registrations->map(function ($r) use ($juryName) {
+            $participants = $registrations->map(function ($r) use ($juryName, $lombaType) {
                 $myScore   = $r->juryScores->firstWhere('jury_name', $juryName);
                 $allScores = $r->juryScores;
                 $jCount    = $allScores->count();
                 $avgScore  = $jCount > 0 ? round((float) $allScores->avg('score'), 2) : (float) $r->total_score;
+
+                // Calculate Phase breakdown
+                $myBreakdownCalc = $this->calculateBreakdownPhases($lombaType, $myScore?->score_breakdown);
+                $phase1Scores = $allScores->map(fn ($s) => $this->calculateBreakdownPhases($lombaType, $s->score_breakdown)['phase1_score']);
+                $avgPhase1 = $phase1Scores->count() > 0 ? round((float) $phase1Scores->avg(), 2) : 0.0;
 
                 return [
                     'id'            => 'reg_' . $r->id,
@@ -313,6 +543,7 @@ class PublicEventController extends Controller
                     'kecamatan'     => $r->kecamatan,
                     'contact_phone' => $r->contact_phone,
                     'status'        => $r->status,
+                    'is_finalis'    => in_array($r->status, ['finalis', 'winner'], true),
                     'total_score'   => $avgScore,
                     'documents'     => array_filter([
                         'Surat Keterangan Aktif'       => $r->surat_keterangan_aktif_url,
@@ -333,6 +564,9 @@ class PublicEventController extends Controller
                         'score'            => $myScore ? (float) $myScore->score : null,
                         'notes'            => $myScore?->notes ?? '',
                         'score_breakdown'  => $myScore?->score_breakdown ?? null,
+                        'phase1_score'     => $myBreakdownCalc['phase1_score'],
+                        'phase2_score'     => $myBreakdownCalc['phase2_score'],
+                        'phase1_avg_score' => $avgPhase1,
                         'final_score'      => $avgScore,
                         'juries_count'     => $jCount,
                         'is_scored_by_me'  => ($myScore !== null),
@@ -395,13 +629,19 @@ class PublicEventController extends Controller
         return $this->success([
             'jury_name'   => $juryName,
             'competition' => [
-                'id'          => $competition->id,
-                'name'        => $competition->name,
-                'lomba_type'  => $lombaType,
-                'jenjang'     => $competition->jenjang,
-                'event'       => $competition->event?->name,
-                'criteria'    => $criteria,
-                'is_anugerah' => $isAnugerah,
+                'id'               => $competition->id,
+                'name'             => $competition->name,
+                'lomba_type'       => $lombaType,
+                'jenjang'          => $competition->jenjang,
+                'event'            => $competition->event?->name,
+                'criteria'         => $criteria,
+                'is_anugerah'      => $isAnugerah,
+                'is_two_phase'     => $phaseInfo['is_two_phase'],
+                'phase'            => $phase,
+                'phase1_criteria'  => $phaseInfo['phase1'],
+                'phase2_criteria'  => $phaseInfo['phase2'],
+                'phase1_max_score' => $phaseInfo['phase1_max'],
+                'phase2_max_score' => $phaseInfo['phase2_max'],
             ],
             'participants' => $participants,
         ]);
@@ -410,7 +650,7 @@ class PublicEventController extends Controller
     /**
      * Jury saves score for a single participant.
      * POST /public/jury/{token}/score
-     * Body: { participant_id, rank, score, notes, score_breakdown }
+     * Body: { participant_id, rank, score, notes, score_breakdown, phase }
      * participant_id can be numeric (competition_participant) or "reg_{id}" (anugerah_registration)
      */
     public function juryScore(Request $request, string $token): JsonResponse
@@ -429,6 +669,7 @@ class PublicEventController extends Controller
             'score'           => 'required|numeric|min:0|max:100',
             'notes'           => 'nullable|string|max:1000',
             'score_breakdown' => 'nullable|array',
+            'phase'           => 'nullable|integer|in:1,2',
         ]);
 
         $scoreVal = (float) $data['score'];
@@ -440,6 +681,32 @@ class PublicEventController extends Controller
                 ->where('competition_id', $competitionId)
                 ->firstOrFail();
 
+            $existingJuryScore = \App\Models\CompetitionJuryScore::where([
+                'competition_id'           => $competitionId,
+                'anugerah_registration_id' => $regId,
+                'jury_name'                => $juryName,
+            ])->first();
+
+            // Merge score_breakdown to preserve Phase 1 scores when Phase 2 is submitted (and vice versa)
+            $newBreakdown = $data['score_breakdown'] ?? [];
+            if ($existingJuryScore && is_array($existingJuryScore->score_breakdown) && !empty($newBreakdown)) {
+                $mergedMap = collect($existingJuryScore->score_breakdown)->keyBy('component');
+                foreach ($newBreakdown as $item) {
+                    if (isset($item['component'])) {
+                        $mergedMap[$item['component']] = $item;
+                    }
+                }
+                $finalBreakdown = $mergedMap->values()->toArray();
+            } else {
+                $finalBreakdown = !empty($newBreakdown) ? $newBreakdown : ($existingJuryScore?->score_breakdown ?? null);
+            }
+
+            // Recalculate total score from merged breakdown if available
+            if (!empty($finalBreakdown)) {
+                $phaseCalc = $this->calculateBreakdownPhases($competition->lomba_type, $finalBreakdown);
+                $scoreVal = $phaseCalc['total_score'];
+            }
+
             // 1. Record score specifically for this jury
             \App\Models\CompetitionJuryScore::updateOrCreate(
                 [
@@ -449,8 +716,8 @@ class PublicEventController extends Controller
                 ],
                 [
                     'score'           => $scoreVal,
-                    'score_breakdown' => $data['score_breakdown'] ?? null,
-                    'notes'           => $data['notes'] ?? null,
+                    'score_breakdown' => $finalBreakdown,
+                    'notes'           => $data['notes'] ?? $existingJuryScore?->notes,
                 ]
             );
 
@@ -465,7 +732,7 @@ class PublicEventController extends Controller
             $reg->update([
                 'total_score'     => $avgScore,
                 'reviewer_notes'  => $data['notes'] ?? $reg->reviewer_notes,
-                'score_breakdown' => $data['score_breakdown'] ?? $reg->score_breakdown,
+                'score_breakdown' => $finalBreakdown ?? $reg->score_breakdown,
             ]);
 
             // 4. Automatically recalculate and assign ranks in real-time

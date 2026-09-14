@@ -8,6 +8,19 @@
   }
 })();
 
+// ── Auto-recover from dynamic import chunk mismatches after redeploy ──
+window.addEventListener('vite:preloadError', () => {
+  const reloadKey = 'simmaci_preload_reload';
+  const lastReload = sessionStorage.getItem(reloadKey);
+  const now = Date.now();
+  // Prevent infinite reload loops if network is completely down
+  if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+    sessionStorage.setItem(reloadKey, String(now));
+    console.warn('SIMMACI: Versi aplikasi baru terdeteksi. Memuat ulang halaman...');
+    window.location.reload();
+  }
+});
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from "@sentry/react"

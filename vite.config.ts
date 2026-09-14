@@ -14,7 +14,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['logo-icon-192.png', 'logo-icon-512.png', 'logo-maarif-hijau.png'],
       manifest: {
         name: 'SIMMACI - Absensi Sekolah',
@@ -53,7 +53,9 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+        skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
         navigateFallbackDenylist: [/^\/.*\.xlsx$/, /^\/api\/.*$/],
         runtimeCaching: [
           {

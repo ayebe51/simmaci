@@ -13,14 +13,14 @@ export function usePwaUpdate() {
   } = useRegisterSW({
     onRegisteredSW(swUrl, r) {
       if (r) {
-        // Poll for updates every 10 minutes instead of every 60 seconds to save bandwidth
+        // Poll for updates every 45 seconds during live event operations
         setInterval(() => {
           if (navigator.onLine) {
             r.update().catch(() => {})
           }
-        }, 10 * 60 * 1000)
+        }, 45 * 1000)
 
-        // Check for updates when user returns to the tab
+        // Check for updates whenever user unlocks phone or switches back to tab
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible' && navigator.onLine) {
             r.update().catch(() => {})
@@ -37,13 +37,20 @@ export function usePwaUpdate() {
   useEffect(() => {
     if (!needRefresh) return
 
-    toast.info('Versi baru tersedia', {
-      description: 'Aplikasi telah diperbarui. Muat ulang untuk mendapatkan versi terbaru.',
-      duration: Infinity,
-      action: {
-        label: 'Muat Ulang',
-        onClick: () => updateServiceWorker(true),
-      },
-    })
+    // If user is not actively typing into an input/textarea, auto-update seamlessly!
+    const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')
+    if (!isTyping) {
+      console.info('[PWA] Versi baru terdeteksi. Memuat versi terbaru secara otomatis...')
+      updateServiceWorker(true)
+    } else {
+      toast.info('Pembaruan Sistem Tersedia', {
+        description: 'Pembaruan akan aktif otomatis, atau klik tombol di bawah.',
+        duration: 10000,
+        action: {
+          label: 'Perbarui Sekarang',
+          onClick: () => updateServiceWorker(true),
+        },
+      })
+    }
   }, [needRefresh, updateServiceWorker])
 }

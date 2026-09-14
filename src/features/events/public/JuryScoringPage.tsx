@@ -329,9 +329,18 @@ export default function JuryScoringPage() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-slate-400">
-          Hubungi panitia untuk mendapatkan ID Lomba dan PIN Juri
-        </p>
+        <div className="flex flex-col items-center gap-2 text-center text-xs text-slate-400">
+          <p>Hubungi panitia untuk mendapatkan ID Lomba dan PIN Juri</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full border border-emerald-200 transition-all cursor-pointer shadow-2xs"
+            title="Muat ulang halaman untuk mengambil versi terbaru"
+          >
+            <RefreshCw size={12} />
+            <span>Segarkan Tampilan (Jika Ada Perubahan)</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -364,8 +373,19 @@ export default function JuryScoringPage() {
             <Badge className="bg-white/20 text-white border-white/30 text-xs">
               {scoredCount}/{participants.length} dinilai
             </Badge>
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1 cursor-pointer" onClick={() => loadParticipants(token, selectedPhase)} disabled={loading}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/25 text-xs font-semibold gap-1.5 cursor-pointer"
+              onClick={() => {
+                loadParticipants(token, selectedPhase);
+                toast.info('Data dan ranking diperbarui', { duration: 1500 });
+              }}
+              disabled={loading}
+              title="Perbarui daftar dan peringkat peserta"
+            >
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Perbarui</span>
             </Button>
             <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 gap-1 cursor-pointer" onClick={handleLogout}>
               <LogOut size={13}/> Keluar

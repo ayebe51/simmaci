@@ -284,7 +284,8 @@ class PublicEventController extends Controller
 
         $normInput = $normalize($cleanInput);
 
-        // 2. Normalized match (titles removed)
+        // 2. Normalized EXACT match (titles removed)
+        // E.g. "Ahmad Subhan" exactly matches "Drs. H. Ahmad Subhan, M.Pd"
         if (!empty($normInput)) {
             foreach ($existingJuries as $existing) {
                 if ($normalize($existing) === $normInput) {
@@ -293,42 +294,25 @@ class PublicEventController extends Controller
             }
         }
 
-        // 3. Substring / Word inclusion match (e.g. "Ahmad Subhan" inside "Drs. H. Ahmad Subhan, M.Pd")
+        // 3. Strict Typo Match ONLY (same word count, similarity >= 88%, Levenshtein <= 2)
+        // Never do substring matching! Substring matching causes "Ahmad" to hijack "Ahmad Dahlan" or "Budi" to hijack "Budi Santoso"!
         if (!empty($normInput) && mb_strlen($normInput) >= 4) {
+            $inputWordCount = count(explode(' ', $normInput));
             foreach ($existingJuries as $existing) {
                 $normExisting = $normalize($existing);
-                if (!empty($normExisting) && (str_contains($normExisting, $normInput) || str_contains($normInput, $normExisting))) {
-                    return ['name' => $existing, 'matched' => true];
+                $existingWordCount = count(explode(' ', $normExisting));
+
+                if ($inputWordCount === $existingWordCount && !empty($normExisting)) {
+                    similar_text($normInput, $normExisting, $simNorm);
+                    $lev = levenshtein($normInput, $normExisting);
+                    if ($simNorm >= 88.0 && $lev <= 2) {
+                        return ['name' => $existing, 'matched' => true];
+                    }
                 }
             }
         }
 
-        // 4. Fuzzy Levenshtein / Similarity check
-        $bestMatch = null;
-        $highestSim = 0.0;
-
-        foreach ($existingJuries as $existing) {
-            $normExisting = $normalize($existing);
-
-            // Normalized similarity
-            similar_text($normInput, $normExisting, $simNorm);
-            if ($simNorm > $highestSim) {
-                $highestSim = $simNorm;
-                $bestMatch = $existing;
-            }
-
-            // Raw similarity
-            similar_text(mb_strtolower($cleanInput), mb_strtolower($existing), $simRaw);
-            if ($simRaw > $highestSim) {
-                $highestSim = $simRaw;
-                $bestMatch = $existing;
-            }
-        }
-
-        if ($highestSim >= 75.0 && $bestMatch !== null) {
-            return ['name' => $bestMatch, 'matched' => true];
-        }
-
+        // No safe match found -> respect what the user actually typed!
         return ['name' => $cleanInput, 'matched' => false];
     }
 

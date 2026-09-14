@@ -92,6 +92,16 @@ class TwoPhaseAnugerahScoringTest extends TestCase
         $titleRes->assertStatus(200);
         $this->assertEquals('Kyai Ridwan', $titleRes->json('data.jury_name'));
         $this->assertTrue($titleRes->json('data.matched_existing'));
+
+        // Anti-hijack test: A different person "Ridwan Kamil" must NOT match "Kyai Ridwan"!
+        $diffRes = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Ridwan Kamil',
+        ]);
+        $diffRes->assertStatus(200);
+        $this->assertEquals('Ridwan Kamil', $diffRes->json('data.jury_name'));
+        $this->assertFalse($diffRes->json('data.matched_existing'));
     }
 
     public function test_two_phase_flow_promote_finalists_and_score_merging(): void

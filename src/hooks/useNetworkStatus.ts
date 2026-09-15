@@ -18,11 +18,11 @@ export function useNetworkStatus(): NetworkStatus {
   const checkConnection = useCallback(async (): Promise<boolean> => {
     setIsReconnecting(true);
     try {
-      // Ping backend warmup or health endpoint with a small timeout
+      // Ping backend health endpoint with a small timeout (no DB/cache overhead)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const res = await fetch(`${API_URL}/warmup`, {
+      const res = await fetch(`${API_URL}/health`, {
         method: 'GET',
         cache: 'no-store',
         signal: controller.signal,

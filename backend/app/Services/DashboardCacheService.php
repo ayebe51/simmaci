@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class DashboardCacheService
 {
-    private const DASHBOARD_TTL = 60;      // seconds
-    private const SCHOOL_TTL = 300;        // 5 minutes
+    private const DASHBOARD_TTL = 300;     // 5 minutes (reduced DB churn)
+    private const SCHOOL_TTL = 600;        // 10 minutes
 
     /**
      * Get global dashboard stats (super_admin / admin_yayasan).
@@ -514,20 +514,18 @@ class DashboardCacheService
      */
     private function remember(string $key, int $ttl, \Closure $callback): mixed
     {
-        try {
-            return Cache::store('redis')->remember($key, $ttl, $callback);
-        } catch (\Throwable $e) {
-            if ($this->isConnectionException($e)) {
-                Log::warning('Redis unavailable, falling back to default cache', [
-                    'error' => $e->getMessage(),
-                    'key' => $key,
-                ]);
-
-                return Cache::remember($key, $ttl, $callback);
+        if (config('cache.default') === 'redis' && extension_loaded('redis')) {
+            try {
+                return Cache::store('redis')->remember($key, $ttl, $callback);
+            } catch (\Throwable $e) {
+                if ($this->isConnectionException($e)) {
+                    return Cache::remember($key, $ttl, $callback);
+                }
+                throw $e;
             }
-
-            throw $e;
         }
+
+        return Cache::remember($key, $ttl, $callback);
     }
 
     /**
@@ -535,21 +533,20 @@ class DashboardCacheService
      */
     private function forget(string $key): void
     {
-        try {
-            Cache::store('redis')->forget($key);
-        } catch (\Throwable $e) {
-            if ($this->isConnectionException($e)) {
-                Log::warning('Redis unavailable during cache invalidation, falling back to default cache', [
-                    'error' => $e->getMessage(),
-                    'key' => $key,
-                ]);
-
-                Cache::forget($key);
+        if (config('cache.default') === 'redis' && extension_loaded('redis')) {
+            try {
+                Cache::store('redis')->forget($key);
                 return;
+            } catch (\Throwable $e) {
+                if ($this->isConnectionException($e)) {
+                    Cache::forget($key);
+                    return;
+                }
+                throw $e;
             }
-
-            throw $e;
         }
+
+        Cache::forget($key);
     }
 
     /**

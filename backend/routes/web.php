@@ -6,11 +6,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Temporary route for emergency template fix
-// TODO: Remove after template is fixed
+// Deprecated emergency route - permanently disabled
 Route::get('/fix-template-emergency', function () {
-    ob_start();
-    include base_path('fix-template-now.php');
-    $output = ob_get_clean();
-    return '<pre>' . htmlspecialchars($output) . '</pre>';
+    return response()->json(['message' => 'Endpoint ini sudah dinonaktifkan.'], 410);
 })->middleware(['auth:sanctum', 'role:super_admin']);
+
+

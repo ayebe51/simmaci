@@ -89,7 +89,7 @@ class ReportController extends Controller
      */
     public function teacherReport(Request $request): JsonResponse
     {
-        $query = Teacher::with('school');
+        $query = Teacher::with('school:id,nama,kecamatan');
 
         // Tenant scoping
         if ($request->user()->isOperator()) {
@@ -128,35 +128,60 @@ class ReportController extends Controller
             $query->where('is_certified', (bool) $request->is_certified);
         }
 
-        $teachers = $query->orderBy('nama')->get();
+        $teachers = $query->select([
+            'id', 'nama', 'nuptk', 'nip', 'nomor_induk_maarif', 'status',
+            'unit_kerja', 'school_id', 'kecamatan', 'is_certified', 'is_active', 'updated_at'
+        ])
+        ->orderBy('nama')
+        ->get();
 
-        // Summary stats (computed from the full unfiltered set for the tenant)
+        // Summary stats — computed via single SQL aggregations instead of hydrating all models & N+1 queries
         $allQuery = Teacher::where('is_active', true);
         if ($request->user()->isOperator()) {
             $allQuery->forSchool($request->user()->school_id);
         } elseif ($request->filled('school_id')) {
             $allQuery->forSchool($request->school_id);
         }
-        $allTeachers = $allQuery->get();
 
-        $byStatus = $allTeachers->groupBy('status')->map->count()->sortDesc();
+        $totalCount = (clone $allQuery)->count();
+
+        $byStatus = (clone $allQuery)
+            ->selectRaw("status, COUNT(*) as count")
+            ->whereNotNull('status')
+            ->groupBy('status')
+            ->orderByDesc('count')
+            ->pluck('count', 'status');
+
+        $certCounts = (clone $allQuery)
+            ->selectRaw("
+                SUM(CASE WHEN is_certified = true THEN 1 ELSE 0 END) as certified,
+                SUM(CASE WHEN is_certified = false OR is_certified IS NULL THEN 1 ELSE 0 END) as uncertified
+            ")
+            ->first();
+
         $byCertification = [
-            'certified'   => $allTeachers->where('is_certified', true)->count(),
-            'uncertified' => $allTeachers->where('is_certified', false)->count(),
+            'certified'   => (int) ($certCounts->certified ?? 0),
+            'uncertified' => (int) ($certCounts->uncertified ?? 0),
         ];
-        $bySchool = $allTeachers->groupBy(fn($t) => $t->school?->nama ?? $t->unit_kerja ?? 'Unknown')
-            ->map->count()->sortDesc()->take(20);
+
+        // Group by school via SQL join — avoids N+1 query per teacher row
+        $bySchool = (clone $allQuery)
+            ->leftJoin('schools', 'teachers.school_id', '=', 'schools.id')
+            ->selectRaw("COALESCE(schools.nama, teachers.unit_kerja, 'Unknown') as school_name, COUNT(teachers.id) as count")
+            ->groupBy('school_name')
+            ->orderByDesc('count')
+            ->limit(20)
+            ->pluck('count', 'school_name');
 
         // Distinct kecamatan list for filter dropdown
-        $kecamatanList = Teacher::where('is_active', true)
-            ->when($request->user()->isOperator(), fn($q) => $q->forSchool($request->user()->school_id))
-            ->whereNotNull('kecamatan')
+        $kecamatanList = (clone $allQuery)
+            ->whereNotNull('teachers.kecamatan')
             ->distinct()
-            ->orderBy('kecamatan')
-            ->pluck('kecamatan');
+            ->orderBy('teachers.kecamatan')
+            ->pluck('teachers.kecamatan');
 
         return response()->json([
-            'total'            => $allTeachers->count(),
+            'total'            => $totalCount,
             'filtered_total'   => $teachers->count(),
             'by_status'        => $byStatus,
             'by_certification' => $byCertification,
@@ -269,14 +294,18 @@ class ReportController extends Controller
      */
     public function summary(): JsonResponse
     {
-        return response()->json([
-            'schools' => School::count(),
-            'teachers' => Teacher::where('is_active', true)->count(),
-            'students' => Student::where('status', 'Aktif')->count(),
-            'sk_total' => SkDocument::count(),
-            'sk_active' => SkDocument::whereIn('status', ['active', 'approved'])->count(),
-            'sk_pending' => SkDocument::where('status', 'draft')->count(),
-        ]);
+        $data = \Illuminate\Support\Facades\Cache::remember('reports:summary', 300, function () {
+            return [
+                'schools' => School::count(),
+                'teachers' => Teacher::where('is_active', true)->count(),
+                'students' => Student::where('status', 'Aktif')->count(),
+                'sk_total' => SkDocument::count(),
+                'sk_active' => SkDocument::whereIn('status', ['active', 'approved'])->count(),
+                'sk_pending' => SkDocument::where('status', 'draft')->count(),
+            ];
+        });
+
+        return response()->json($data);
     }
 
     /**
@@ -491,5 +520,48 @@ LP Ma'arif NU Cilacap";
                 'message' => 'Terjadi kesalahan saat membuat WA Blast: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * GET /api/reports/summary — High-level summary report with 5-minute caching
+     */
+    public function summaryReport(Request $request): JsonResponse
+    {
+        $role = $request->user()?->role ?? 'guest';
+        $schoolId = $request->user()?->school_id ?? ($request->school_id ?? 'global');
+        $cacheKey = "report:summary:{$role}:{$schoolId}";
+
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($request) {
+            $teacherQuery = Teacher::where('is_active', true);
+            $studentQuery = Student::where('status', 'Aktif');
+            $skQuery = SkDocument::query();
+
+            if ($request->user() && $request->user()->isOperator()) {
+                $sId = $request->user()->school_id;
+                $teacherQuery->where('school_id', $sId);
+                $studentQuery->where('school_id', $sId);
+                $skQuery->where('school_id', $sId);
+            } elseif ($request->filled('school_id')) {
+                $teacherQuery->where('school_id', $request->school_id);
+                $studentQuery->where('school_id', $request->school_id);
+                $skQuery->where('school_id', $request->school_id);
+            }
+
+            return [
+                'total_schools'  => School::whereNull('deleted_at')->count(),
+                'total_teachers' => $teacherQuery->count(),
+                'total_students' => $studentQuery->count(),
+                'total_sks'      => $skQuery->count(),
+                'sks_by_status'  => $skQuery->select('status', DB::raw('count(*) as count'))
+                    ->groupBy('status')
+                    ->pluck('count', 'status')
+                    ->toArray(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => $data,
+        ]);
     }
 }

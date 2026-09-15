@@ -165,6 +165,8 @@ class DashboardStatisticsPerformanceTest extends TestCase
      */
     public function test_query_uses_aggregation_not_full_load(): void
     {
+        \Illuminate\Support\Facades\Cache::flush();
+
         // Create super admin user
         $superAdmin = User::factory()->create([
             'role' => 'super_admin',

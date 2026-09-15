@@ -317,7 +317,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('approval-history', [ApprovalHistoryController::class, 'index']);
 
         // Teacher Mutations
-        Route::apiResource('teacher-mutations', TeacherMutationController::class);
+        Route::apiResource('teacher-mutations', TeacherMutationController::class)->only(['index', 'store']);
     });
 
     // Users (admin-level, no tenant isolation)

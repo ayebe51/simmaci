@@ -140,24 +140,23 @@ const queryClient = new QueryClient({
       gcTime: 15 * 60 * 1000,         // 15 minutes — keep inactive data for smooth back/forward navigation
       refetchOnWindowFocus: false,    // Don't refetch on window focus (saves mobile data/bandwidth)
       refetchOnReconnect: true,       // Auto-refetch when network is restored
-      retry: 3,                       // Retry 3 times on flaky/slow connections
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff (1s, 2s, 4s, 8s...)
-      networkMode: 'offlineFirst',    // Try fetching and fallback gracefully to cache even if connection is unstable
+      retry: (failureCount, error: any) => {
+        // Do NOT retry 4xx (client errors) or 5xx/504 (server overload/timeout) to prevent worker starvation storms
+        const status = error?.response?.status || error?.status;
+        if (status && status >= 400) {
+          return false;
+        }
+        return failureCount < 1;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Exponential backoff (1s, 2s, 4s)
+      networkMode: 'online',
     },
     mutations: {
-      retry: 1,
-      networkMode: 'offlineFirst',
+      retry: 0,
+      networkMode: 'online',
     },
   },
 })
-
-// Keepalive warmup ping — keeps PHP-FPM workers and DB persistent connection warm
-if (typeof window !== 'undefined') {
-  const PING_INTERVAL = 4 * 60 * 1000 // 4 minutes
-  setInterval(() => {
-    fetch(`${API_URL}/warmup`, { method: 'GET', cache: 'no-store' }).catch(() => {})
-  }, PING_INTERVAL)
-}
 
 export default function App() {
   usePwaUpdate()

@@ -26,7 +26,8 @@ Route::get('/health/deep', function () {
         DB::connection()->getPdo();
         $dbStatus = 'ok';
     } catch (\Exception $e) {
-        $dbStatus = 'error: ' . $e->getMessage();
+        \Illuminate\Support\Facades\Log::error('[HealthCheck] DB connection failed', ['error' => $e->getMessage()]);
+        $dbStatus = app()->isProduction() ? 'unavailable' : ('error: ' . $e->getMessage());
     }
 
     try {
@@ -34,15 +35,18 @@ Route::get('/health/deep', function () {
         Cache::get('health_check');
         $cacheStatus = 'ok';
     } catch (\Exception $e) {
-        $cacheStatus = 'error: ' . $e->getMessage();
+        \Illuminate\Support\Facades\Log::error('[HealthCheck] Cache connection failed', ['error' => $e->getMessage()]);
+        $cacheStatus = app()->isProduction() ? 'unavailable' : ('error: ' . $e->getMessage());
     }
 
+    $isHealthy = ($dbStatus === 'ok' && $cacheStatus === 'ok');
+
     return response()->json([
-        'status' => 'ok',
+        'status' => $isHealthy ? 'ok' : 'degraded',
         'database' => $dbStatus,
         'cache' => $cacheStatus,
         'timestamp' => now()->toIso8601String(),
-    ], 200);
+    ], $isHealthy ? 200 : 503);
 });
 
 // Warmup endpoint - preloads connections
@@ -62,9 +66,11 @@ Route::get('/warmup', function () {
             'timestamp' => now()->toIso8601String(),
         ], 200);
     } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('[Warmup] Warmup failed', ['error' => $e->getMessage()]);
         return response()->json([
             'status' => 'error',
-            'message' => $e->getMessage(),
+            'message' => app()->isProduction() ? 'Gagal memproses pemanasan koneksi.' : $e->getMessage(),
         ], 500);
     }
 });
+

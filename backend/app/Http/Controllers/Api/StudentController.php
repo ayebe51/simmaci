@@ -42,7 +42,8 @@ class StudentController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
-        $students = $query->orderByDesc('updated_at')->paginate($request->integer('per_page', 25));
+        $perPage = min(max(1, $request->integer('per_page', 25)), 100);
+        $students = $query->orderByDesc('updated_at')->paginate($perPage);
 
         // Sanitize output to prevent UTF-8 errors
         $students->getCollection()->transform(function ($student) {

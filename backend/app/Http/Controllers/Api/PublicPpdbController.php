@@ -28,7 +28,12 @@ class PublicPpdbController extends Controller
      */
     public function getSchools(Request $request): JsonResponse
     {
-        $query = School::query();
+        $perPage = min(max(1, $request->integer('per_page', 24)), 50);
+
+        $query = School::select([
+            'id', 'nama', 'npsn', 'nsm', 'jenjang', 'kecamatan', 'kabupaten',
+            'alamat', 'telepon', 'email', 'kepala_madrasah', 'akreditasi', 'status'
+        ]);
 
         if ($request->filled('jenjang')) {
             $query->where('jenjang', $request->jenjang);
@@ -39,7 +44,7 @@ class PublicPpdbController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = trim($request->search);
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'ILIKE', "%{$search}%")
                   ->orWhere('npsn', 'ILIKE', "%{$search}%")
@@ -49,20 +54,31 @@ class PublicPpdbController extends Controller
 
         $today = now()->toDateString();
         $schools = $query->with(['ppdbPeriods' => function ($q) use ($today) {
-            $q->where('is_active', true)
-              ->where('start_date', '<=', $today)
-              ->where('end_date', '>=', $today);
+            $q->select([
+                'id', 'school_id', 'academic_year', 'wave_name', 'description',
+                'start_date', 'end_date', 'quota', 'is_active', 'available_tracks'
+            ])
+            ->where('is_active', true)
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today);
         }])
         ->orderBy('kecamatan')
         ->orderBy('nama')
-        ->paginate($request->input('per_page', 24));
+        ->paginate($perPage);
 
-        $globalPeriods = PpdbPeriod::withoutTenantScope()
-            ->whereNull('school_id')
-            ->where('is_active', true)
-            ->where('start_date', '<=', $today)
-            ->where('end_date', '>=', $today)
-            ->get();
+        // Cache global periods for 5 minutes to avoid redundant DB queries per request
+        $globalPeriods = \Illuminate\Support\Facades\Cache::remember("ppdb:global_periods:{$today}", 300, function () use ($today) {
+            return PpdbPeriod::withoutTenantScope()
+                ->select([
+                    'id', 'school_id', 'academic_year', 'wave_name', 'description',
+                    'start_date', 'end_date', 'quota', 'is_active', 'available_tracks'
+                ])
+                ->whereNull('school_id')
+                ->where('is_active', true)
+                ->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today)
+                ->get();
+        });
 
         if ($globalPeriods->isNotEmpty()) {
             foreach ($schools as $school) {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\School;
 use App\Services\StudentStatisticsService;
 use App\Traits\ApiResponse;
+use App\Traits\SanitizesExportFormulas;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -130,17 +131,17 @@ class StudentStatisticsController extends Controller
 
                     foreach ($this->kelasData as $item) {
                         $rows[] = [
-                            $this->school->nama,
-                            $this->school->npsn,
-                            $item->kelas,
+                            StudentStatisticsController::sanitizeFormula($this->school->nama),
+                            StudentStatisticsController::sanitizeFormula($this->school->npsn),
+                            StudentStatisticsController::sanitizeFormula($item->kelas),
                             $item->jumlah_siswa,
                         ];
                     }
 
                     // Summary row
                     $rows[] = [
-                        $this->school->nama,
-                        $this->school->npsn,
+                        StudentStatisticsController::sanitizeFormula($this->school->nama),
+                        StudentStatisticsController::sanitizeFormula($this->school->npsn),
                         'TOTAL',
                         $this->totalSiswa,
                     ];
@@ -202,9 +203,9 @@ class StudentStatisticsController extends Controller
                     foreach ($this->madrasahData as $item) {
                         $rows[] = [
                             $no++,
-                            $item->nama,
-                            $item->npsn,
-                            $item->kecamatan ?? '-',
+                            StudentStatisticsController::sanitizeFormula($item->nama),
+                            StudentStatisticsController::sanitizeFormula($item->npsn),
+                            StudentStatisticsController::sanitizeFormula($item->kecamatan ?? '-'),
                             $item->jumlah_siswa,
                         ];
                     }

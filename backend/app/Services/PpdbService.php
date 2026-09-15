@@ -58,57 +58,58 @@ class PpdbService
      */
     public function createRegistration(array $data, array $files = []): PpdbRegistration
     {
-        return DB::transaction(function () use ($data, $files) {
-            $school = School::findOrFail($data['school_id']);
-            $period = PpdbPeriod::withoutTenantScope()->findOrFail($data['period_id']);
+        $school = School::findOrFail($data['school_id']);
+        $period = PpdbPeriod::withoutTenantScope()->findOrFail($data['period_id']);
 
-            // Validate period is active and open
-            $today = now()->toDateString();
-            if (!$period->is_active || $period->start_date > $today || $period->end_date < $today) {
-                throw new \InvalidArgumentException('Periode pendaftaran ini sedang tidak aktif atau sudah ditutup.');
-            }
+        // Validate period is active and open
+        $today = now()->toDateString();
+        if (!$period->is_active || $period->start_date > $today || $period->end_date < $today) {
+            throw new \InvalidArgumentException('Periode pendaftaran ini sedang tidak aktif atau sudah ditutup.');
+        }
 
-            // Check duplicate registration in the same school and academic year by NIK or NISN
-            $duplicateQuery = PpdbRegistration::withoutTenantScope()
-                ->where('school_id', $school->id)
-                ->where('period_id', $period->id)
-                ->where(function ($q) use ($data) {
-                    $q->where('nik', $data['nik']);
-                    if (!empty($data['nisn'])) {
-                        $q->orWhere('nisn', $data['nisn']);
-                    }
-                });
-
-            if ($duplicateQuery->exists()) {
-                throw new \InvalidArgumentException('Calon peserta dengan NIK atau NISN ini sudah terdaftar di madrasah ini.');
-            }
-
-            // Generate registration number
-            $regNumber = $this->generateRegistrationNumber($school);
-
-            // Handle file uploads
-            $uploadedUrls = [];
-            $uploadFields = ['foto', 'kk', 'akta', 'ijazah', 'prestasi'];
-            foreach ($uploadFields as $field) {
-                if (isset($files[$field]) && $files[$field] instanceof UploadedFile) {
-                    $uploadedUrls["{$field}_url"] = $this->uploadDocument($files[$field], $regNumber, $field);
+        // Check duplicate registration in the same school and academic year by NIK or NISN
+        $duplicateQuery = PpdbRegistration::withoutTenantScope()
+            ->where('school_id', $school->id)
+            ->where('period_id', $period->id)
+            ->where(function ($q) use ($data) {
+                $q->where('nik', $data['nik']);
+                if (!empty($data['nisn'])) {
+                    $q->orWhere('nisn', $data['nisn']);
                 }
+            });
+
+        if ($duplicateQuery->exists()) {
+            throw new \InvalidArgumentException('Calon peserta dengan NIK atau NISN ini sudah terdaftar di madrasah ini.');
+        }
+
+        // Generate registration number
+        $regNumber = $this->generateRegistrationNumber($school);
+
+        // Handle file uploads BEFORE opening the DB transaction to prevent holding locks during network I/O
+        $uploadedUrls = [];
+        $uploadFields = ['foto', 'kk', 'akta', 'ijazah', 'prestasi'];
+        foreach ($uploadFields as $field) {
+            if (isset($files[$field]) && $files[$field] instanceof UploadedFile) {
+                $uploadedUrls["{$field}_url"] = $this->uploadDocument($files[$field], $regNumber, $field);
             }
+        }
 
-            // Prepare registration payload
-            $registrationData = array_merge($data, $uploadedUrls, [
-                'registration_number' => $regNumber,
-                'status'              => 'submitted',
-                'is_reregistered'     => false,
-            ]);
+        // Prepare registration payload
+        $registrationData = array_merge($data, $uploadedUrls, [
+            'registration_number' => $regNumber,
+            'status'              => 'submitted',
+            'is_reregistered'     => false,
+        ]);
 
-            $registration = PpdbRegistration::create($registrationData);
-
-            // Send automated WhatsApp confirmation notification
-            $this->sendRegistrationNotification($registration);
-
-            return $registration;
+        // Lean DB transaction strictly for atomic record persistence
+        $registration = DB::transaction(function () use ($registrationData) {
+            return PpdbRegistration::create($registrationData);
         });
+
+        // Send automated WhatsApp confirmation notification asynchronously after commit
+        $this->sendRegistrationNotification($registration);
+
+        return $registration;
     }
 
     /**
@@ -395,12 +396,9 @@ class PpdbService
     private function dispatchWaMessage(string $phone, string $message): void
     {
         try {
-            $config = WaBlastConfig::where('is_active', true)->first();
-            if ($config) {
-                $this->waGatewayService->sendMessage($config, $phone, $message);
-            }
+            \App\Jobs\SendPpdbWaNotificationJob::dispatch($phone, $message);
         } catch (\Throwable $e) {
-            Log::warning("PPDB WA Notification failed to {$phone}: " . $e->getMessage());
+            Log::warning("Failed to dispatch PPDB WA job to {$phone}: " . $e->getMessage());
         }
     }
 }

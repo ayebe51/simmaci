@@ -58,8 +58,9 @@ class TeacherController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
+        $perPage = min(max(1, $request->integer('per_page', 25)), 100);
         $teachers = $query->orderByDesc('updated_at')
-            ->paginate($request->integer('per_page', 25));
+            ->paginate($perPage);
 
         // Sanitize output to prevent UTF-8 errors
         $teachers->getCollection()->transform(function ($teacher) {

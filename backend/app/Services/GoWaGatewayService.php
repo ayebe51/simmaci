@@ -66,7 +66,32 @@ class GoWaGatewayService
      */
     private function getApiUrl(WaBlastConfig $config): string
     {
-        return config('services.gowa.internal_url') ?: $config->api_url;
+        $internal = config('services.gowa.internal_url');
+        if (!empty($internal)) {
+            return $internal;
+        }
+
+        $url = (string) $config->api_url;
+
+        // SSRF check on user-configured URL when not in testing environment
+        if (! app()->environment('testing')) {
+            $host = parse_url($url, PHP_URL_HOST);
+            if ($host && ! in_array(strtolower($host), ['localhost', '127.0.0.1', 'gowa'], true)) {
+                $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
+                foreach ($ips as $ip) {
+                    if (
+                        str_starts_with($ip, '127.')
+                        || str_starts_with($ip, '169.254.')
+                        || $ip === '0.0.0.0'
+                        || $ip === '::1'
+                    ) {
+                        throw new \InvalidArgumentException('Akses ke alamat internal atau metadata dicegah (SSRF Protection).');
+                    }
+                }
+            }
+        }
+
+        return $url;
     }
 
     /**

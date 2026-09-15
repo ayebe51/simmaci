@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\WaBlast;
 
+use App\Rules\SafeExternalUrl;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreWaBlastConfigRequest extends FormRequest
@@ -14,7 +15,7 @@ class StoreWaBlastConfigRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'api_url'                    => 'required|url|max:500',
+            'api_url'                    => ['required', 'url', 'max:500', new SafeExternalUrl()],
             'api_token'                  => 'required|string',
             'sender_number'              => ['required', 'string', 'regex:/^62[0-9]{9,13}$/'],
             'device_id'                  => 'nullable|string|max:255',

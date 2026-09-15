@@ -97,7 +97,7 @@ class PublicAttendanceController extends Controller
             ], 400);
         }
 
-        if ($request->pin !== $settings->scanner_pin) {
+        if (! hash_equals((string) $settings->scanner_pin, (string) $request->pin)) {
             return response()->json([
                 'success' => false,
                 'message' => 'PIN salah. Coba lagi.',

@@ -252,16 +252,20 @@ class MeetingMinutesService
     private function basicHtmlSanitization(string $html): string
     {
         // Remove script tags and content
-        $html = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi', '', $html);
+        $html = (string) preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/is', '', $html);
 
-        // Remove event handlers
-        $html = preg_replace('/on\w+\s*=\s*["\']?[^"\']*["\']?/gi', '', $html);
+        // Remove event handlers (e.g. onload=, onerror=, onclick=)
+        $html = (string) preg_replace('/\s*on\w+\s*=\s*["\']?[^"\'>]*["\']?/is', '', $html);
+
+        // Remove javascript: pseudo-protocol
+        $html = (string) preg_replace('/href\s*=\s*["\']?javascript:[^"\'>]*["\']?/is', '', $html);
 
         // Remove iframe tags
-        $html = preg_replace('/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi', '', $html);
+        $html = (string) preg_replace('/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/is', '', $html);
 
         // Remove object and embed tags
-        $html = preg_replace('/<(object|embed)[^>]*>/gi', '', $html);
+        $html = (string) preg_replace('/<(object|embed)[^>]*>.*?<\/(object|embed)>/is', '', $html);
+        $html = (string) preg_replace('/<(object|embed)[^>]*\/?>/is', '', $html);
 
         return $html;
     }

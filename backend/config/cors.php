@@ -16,9 +16,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => app()->isProduction()
-        ? explode(',', env('ALLOWED_ORIGINS', ''))
-        : explode(',', env('ALLOWED_ORIGINS', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000'))),
+    'allowed_origins' => (env('APP_ENV') === 'production')
+        ? array_values(array_filter(array_map('trim', explode(',', env('ALLOWED_ORIGINS', env('CORS_ALLOWED_ORIGINS', ''))))))
+        : array_values(array_filter(array_map('trim', explode(',', env('ALLOWED_ORIGINS', env('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:3000')))))),
+
 
     'allowed_origins_patterns' => [],
 

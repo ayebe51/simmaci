@@ -52,7 +52,7 @@ class PublicMeetingScannerController extends Controller
             );
         }
 
-        if ($request->pin !== $storedPin) {
+        if (! hash_equals((string) $storedPin, (string) $request->pin)) {
             return $this->errorResponse('PIN salah. Coba lagi.', null, 401);
         }
 
@@ -308,6 +308,6 @@ class PublicMeetingScannerController extends Controller
     private function validatePin(string $pin): bool
     {
         $storedPin = Setting::getValue(self::PIN_SETTING_KEY);
-        return $storedPin && $pin === $storedPin;
+        return $storedPin && hash_equals((string) $storedPin, (string) $pin);
     }
 }

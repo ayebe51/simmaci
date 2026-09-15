@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Traits\SanitizesExportFormulas;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class ActivityLogController extends Controller
 {
+    use SanitizesExportFormulas;
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -86,11 +88,11 @@ class ActivityLogController extends Controller
             foreach ($logs as $log) {
                 fputcsv($file, [
                     $log->created_at->format('Y-m-d H:i:s'),
-                    $log->causer ? $log->causer->name : 'System',
-                    $log->causer ? $log->causer->role : '-',
-                    $log->school ? $log->school->nama : '-',
-                    $log->event ?? 'System',
-                    $log->description
+                    self::sanitizeFormula($log->causer ? $log->causer->name : 'System'),
+                    self::sanitizeFormula($log->causer ? $log->causer->role : '-'),
+                    self::sanitizeFormula($log->school ? $log->school->nama : '-'),
+                    self::sanitizeFormula($log->event ?? 'System'),
+                    self::sanitizeFormula($log->description)
                 ], ';');
             }
             fclose($file);

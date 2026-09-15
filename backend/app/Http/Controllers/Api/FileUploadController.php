@@ -15,14 +15,45 @@ class FileUploadController extends Controller
      */
     public function upload(Request $request): JsonResponse
     {
-        // Validate folder and disk first
+        $user = $request->user();
+
+        // 1. Validate folder format and disk
         $request->validate([
-            'folder' => 'nullable|string',
-            'disk' => 'nullable|string|in:local,public,s3',
+            'folder' => ['nullable', 'string', 'regex:/^[a-zA-Z0-9_\-\/]+$/'],
+            'disk'   => 'nullable|string|in:public,s3',
         ]);
 
+        $rawFolder = (string) ($request->folder ?? 'uploads');
+
+        // Path traversal and absolute path protection on folder
+        if (
+            str_contains($rawFolder, '..')
+            || str_starts_with($rawFolder, '/')
+            || str_starts_with($rawFolder, '\\')
+            || str_contains($rawFolder, ':')
+            || str_contains($rawFolder, "\0")
+        ) {
+            abort(403, 'Akses ditolak: Pola path traversal terdeteksi pada parameter folder.');
+        }
+
+        $folder = trim(str_replace('\\', '/', $rawFolder), '/');
+
+        // Protected system directories (restricted to super_admin)
+        $protectedFolders = ['sk-templates', 'templates', 'backups', 'system', 'logs', 'seeds'];
+        foreach ($protectedFolders as $protected) {
+            if (str_starts_with($folder, $protected . '/') || $folder === $protected) {
+                if (! $user || ! $user->isSuperAdmin()) {
+                    abort(403, 'Akses ditolak: Hanya Super Admin yang dapat mengunggah file ke direktori sistem/template.');
+                }
+            }
+        }
+
+        // Allowed document & image extensions allowlist
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'jpg', 'jpeg', 'png', 'webp'];
+        $mimesRule = 'mimes:' . implode(',', $allowedExtensions);
+
         // Conditional validation: ijazah folder requires PDF only, max 5MB
-        if ($request->folder && str_starts_with($request->folder, 'ijazah')) {
+        if (str_starts_with($folder, 'ijazah')) {
             $request->validate([
                 'file' => 'required|file|mimes:pdf|max:5120',
             ], [
@@ -31,15 +62,23 @@ class FileUploadController extends Controller
             ]);
         } else {
             $request->validate([
-                'file' => 'required|file|max:10240', // 10MB limit for other folders
+                'file' => ['required', 'file', $mimesRule, 'max:10240'],
+            ], [
+                'file.mimes' => 'Format file tidak diizinkan. Hanya diperbolehkan dokumen (PDF, DOC, DOCX, XLS, XLSX, CSV) dan gambar (JPG, PNG, WEBP).',
+                'file.max' => 'Ukuran file maksimal 10 MB.',
             ]);
         }
 
         $file = $request->file('file');
-        $disk = $request->disk ?? (config('filesystems.disks.s3.key') ? 's3' : 'public');
-        $folder = $request->folder ?? 'uploads';
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (! in_array($extension, $allowedExtensions, true)) {
+            return response()->json([
+                'error' => 'Ekstensi file tidak diizinkan.'
+            ], 422);
+        }
 
-        $filename = Str::random(40) . '.' . $file->getClientOriginalExtension();
+        $disk = $request->disk ?? (config('filesystems.disks.s3.key') ? 's3' : 'public');
+        $filename = Str::random(40) . '.' . $extension;
         
         try {
             $path = $file->storeAs($folder, $filename, $disk);
@@ -231,10 +270,16 @@ class FileUploadController extends Controller
 
         // Stream the file instead of loading entirely into memory to prevent 504 Timeouts
         $mimeType = Storage::disk($disk)->mimeType($path);
-        
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        // Allow inline viewing only for safe previewable files (PDF and images)
+        $safeInlineExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        $disposition = in_array($extension, $safeInlineExtensions, true) ? 'inline' : 'attachment';
+
         return Storage::disk($disk)->response($path, basename($path), [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="' . basename($path) . '"'
+            'Content-Type' => $mimeType ?: 'application/octet-stream',
+            'Content-Disposition' => $disposition . '; filename="' . basename($path) . '"',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 }

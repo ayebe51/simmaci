@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Meeting;
+use App\Traits\SanitizesExportFormulas;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -19,6 +20,7 @@ use PhpOffice\PhpWord\Settings;
  */
 class MeetingReportService
 {
+    use SanitizesExportFormulas;
     /**
      * Generate PDF report for meeting attendance.
      *
@@ -197,16 +199,30 @@ class MeetingReportService
                         ? 'Mewakili: ' . ($attendance->delegatedForParticipant?->name ?? '-')
                         : '-';
 
-                    $data[] = [$no++, $participant->name, $participant->jabatan, $participant->instansi, $status, $checkedInAt, $verification, $notes];
+                    $data[] = [
+                        $no++,
+                        MeetingReportService::sanitizeFormula($participant->name),
+                        MeetingReportService::sanitizeFormula($participant->jabatan),
+                        MeetingReportService::sanitizeFormula($participant->instansi),
+                        MeetingReportService::sanitizeFormula($status),
+                        $checkedInAt,
+                        MeetingReportService::sanitizeFormula($verification),
+                        MeetingReportService::sanitizeFormula($notes)
+                    ];
                 }
 
                 // Walk-in attendees
                 $walkIns = $this->meeting->attendances()->where('attendance_type', 'qr_umum')->whereNull('participant_id')->get();
                 foreach ($walkIns as $walkIn) {
                     $data[] = [
-                        $no++, $walkIn->walk_in_name, $walkIn->walk_in_jabatan, $walkIn->walk_in_instansi,
-                        'Hadir (Walk-in)', $walkIn->checked_in_at->format('d-m-Y H:i:s'),
-                        'Terverifikasi via QR Umum', 'Peserta walk-in',
+                        $no++,
+                        MeetingReportService::sanitizeFormula($walkIn->walk_in_name),
+                        MeetingReportService::sanitizeFormula($walkIn->walk_in_jabatan),
+                        MeetingReportService::sanitizeFormula($walkIn->walk_in_instansi),
+                        'Hadir (Walk-in)',
+                        $walkIn->checked_in_at->format('d-m-Y H:i:s'),
+                        'Terverifikasi via QR Umum',
+                        'Peserta walk-in',
                     ];
                 }
 

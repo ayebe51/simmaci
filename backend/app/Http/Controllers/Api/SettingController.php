@@ -11,7 +11,7 @@ class SettingController extends Controller
 {
     private function isSensitiveKey(string $key): bool
     {
-        return (bool) preg_match('/pin|secret|token|password|api_key|private|wa_blast/i', $key);
+        return (bool) preg_match('/pin|secret|token|password|api_key|private|wa_blast|credential|gateway|master_key|scanner/i', $key);
     }
 
     public function index(Request $request): JsonResponse
@@ -22,12 +22,19 @@ class SettingController extends Controller
         $query = Setting::withoutTenantScope()
             ->when($schoolId, fn($q) => $q->where('school_id', $schoolId));
 
-        if ($user?->isOperator()) {
-            $query->where(function ($q) {
-                $q->where('key', 'not ilike', '%pin%')
-                  ->where('key', 'not ilike', '%secret%')
-                  ->where('key', 'not ilike', '%token%')
-                  ->where('key', 'not ilike', '%password%');
+        $isPrivilegedAdmin = in_array($user?->role, ['super_admin', 'admin_yayasan'], true);
+
+        if (! $isPrivilegedAdmin) {
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'not ilike' : 'not like';
+            $query->where(function ($q) use ($like) {
+                $q->where('key', $like, '%pin%')
+                  ->where('key', $like, '%secret%')
+                  ->where('key', $like, '%token%')
+                  ->where('key', $like, '%password%')
+                  ->where('key', $like, '%credential%')
+                  ->where('key', $like, '%gateway%')
+                  ->where('key', $like, '%master_key%')
+                  ->where('key', $like, '%api_key%');
             });
         }
 
@@ -62,8 +69,8 @@ class SettingController extends Controller
         ]);
 
         $user = $request->user();
-        if ($user?->isOperator() && $this->isSensitiveKey($request->key)) {
-            abort(403, 'Akses ditolak: Operator tidak dapat mengubah konfigurasi rahasia.');
+        if (! in_array($user?->role, ['super_admin', 'admin_yayasan'], true) && $this->isSensitiveKey($request->key)) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk mengubah konfigurasi rahasia.');
         }
 
         $schoolId = $user?->isOperator()

@@ -62,6 +62,32 @@ class MinioProxyController extends Controller
                 $path = substr($path, strlen($bucket) + 1);
             }
 
+            // Authentication check: user must be authenticated via Sanctum token
+            $user = $request->user('sanctum') ?? auth('sanctum')->user();
+            if (! $user) {
+                return response()->json(['error' => 'Unauthenticated.'], 401);
+            }
+
+            // Protected system directories (restricted to super_admin)
+            $protectedFolders = ['sk-templates', 'templates', 'backups', 'system', 'logs', 'seeds'];
+            foreach ($protectedFolders as $folder) {
+                if (str_starts_with($path, $folder . '/') || $path === $folder) {
+                    if ($user->role !== 'super_admin') {
+                        return response()->json(['error' => 'Akses ditolak: Hanya Super Admin yang dapat mengakses file pada direktori sistem/template.'], 403);
+                    }
+                }
+            }
+
+            // Operator tenant isolation on school-prefixed paths (e.g. schools/123/... or school_123/...)
+            if ($user->role === 'operator') {
+                if ($user->school_id && preg_match('/schools?[_\/](\d+)/', $path, $matches)) {
+                    $fileSchoolId = (int) $matches[1];
+                    if ($fileSchoolId !== (int) $user->school_id) {
+                        return response()->json(['error' => 'Akses ditolak: Anda tidak berwenang mengakses file milik madrasah lain.'], 403);
+                    }
+                }
+            }
+
             // Check if file exists in MinIO
             $disk = Storage::disk('s3');
 
@@ -70,31 +96,31 @@ class MinioProxyController extends Controller
                 return response()->json(['error' => 'File not found', 'path' => $path], 404);
             }
 
-            // Get file content
-            $content = $disk->get($path);
+            // Determine MIME type from extension first to avoid unnecessary remote metadata calls
+            $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $mimeType = self::MIME_MAP[$ext] ?? null;
 
-            // Determine MIME type — S3/MinIO may return false, so fall back to extension
-            $mimeType = $disk->mimeType($path);
-            if (!$mimeType || $mimeType === 'application/octet-stream') {
-                $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-                $mimeType = self::MIME_MAP[$ext] ?? 'application/octet-stream';
+            if (!$mimeType) {
+                try {
+                    $mimeType = $disk->mimeType($path) ?: 'application/octet-stream';
+                } catch (\Throwable $e) {
+                    $mimeType = 'application/octet-stream';
+                }
             }
 
             // For PDFs and images, serve inline so the browser renders them directly.
             // For other types, force download.
             $inlineTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/svg+xml'];
-            $disposition = in_array($mimeType, $inlineTypes)
-                ? 'inline; filename="' . basename($path) . '"'
-                : 'attachment; filename="' . basename($path) . '"';
+            $disposition = in_array($mimeType, $inlineTypes) ? 'inline' : 'attachment';
 
-            return response($content, 200, [
-                'Content-Type'        => $mimeType,
-                'Content-Disposition' => $disposition,
-                'Content-Length'      => strlen($content),
-                'Cache-Control'       => 'private, max-age=3600',
-                // Override the global nosniff header so the browser trusts our Content-Type
+            $headers = [
+                'Content-Type'           => $mimeType,
+                'Cache-Control'          => 'private, max-age=86400, stale-while-revalidate=3600',
                 'X-Content-Type-Options' => 'nosniff',
-            ]);
+            ];
+
+            // Stream response directly from S3 adapter without loading the entire file into PHP memory
+            return $disk->response($path, basename($path), $headers, $disposition);
         } catch (\Exception $e) {
             \Log::error('[MinioProxy] Exception', [
                 'path'    => $path ?? 'null',

@@ -80,7 +80,9 @@ class AuthController extends Controller
     {
         $request->validate([
             'old_password' => 'required|string',
-            'new_password' => 'required|string|min:6',
+            'new_password' => 'required|string|min:8',
+        ], [
+            'new_password.min' => 'Password baru minimal 8 karakter.',
         ]);
 
         $user = $request->user();
@@ -90,6 +92,20 @@ class AuthController extends Controller
         }
 
         $user->update(['password' => $request->new_password]);
+
+        // Revoke all other active tokens upon password change
+        $currentTokenId = $user->currentAccessToken()?->id;
+        if ($currentTokenId) {
+            $user->tokens()->where('id', '!=', $currentTokenId)->delete();
+        }
+
+        \App\Models\ActivityLog::log(
+            description: "User {$user->name} berhasil mengubah password",
+            event: 'change_password',
+            logName: 'auth',
+            causer: $user,
+            schoolId: $user->school_id
+        );
 
         return $this->successResponse(null, 'Password berhasil diubah.');
     }

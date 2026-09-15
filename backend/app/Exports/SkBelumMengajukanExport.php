@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Traits\SanitizesExportFormulas;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -13,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SkBelumMengajukanExport implements FromCollection, WithHeadings, WithEvents, WithStyles
 {
+    use SanitizesExportFormulas;
     private ?string $jenjang;
     private ?string $kecamatan;
     private ?string $search;
@@ -83,12 +85,12 @@ class SkBelumMengajukanExport implements FromCollection, WithHeadings, WithEvent
         return $data->map(function ($item, $index) {
             return [
                 'no' => $index + 1,
-                'nama' => $item->nama ?? '-',
-                'npsn' => $item->npsn ?? '-',
-                'jenjang' => $item->jenjang ?? '-',
-                'kecamatan' => $item->kecamatan ?? '-',
-                'kepala_madrasah' => $item->kepala_madrasah ?? '-',
-                'telepon' => $item->telepon ?? '-',
+                'nama' => self::sanitizeFormula($item->nama ?? '-'),
+                'npsn' => self::sanitizeFormula($item->npsn ?? '-'),
+                'jenjang' => self::sanitizeFormula($item->jenjang ?? '-'),
+                'kecamatan' => self::sanitizeFormula($item->kecamatan ?? '-'),
+                'kepala_madrasah' => self::sanitizeFormula($item->kepala_madrasah ?? '-'),
+                'telepon' => self::sanitizeFormula($item->telepon ?? '-'),
             ];
         });
     }

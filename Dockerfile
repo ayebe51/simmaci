@@ -42,6 +42,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy custom Nginx configuration for React Router
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/security-headers.conf /etc/nginx/security-headers.conf
 
 # Copy entrypoint script
 COPY nginx/entrypoint.sh /entrypoint.sh

@@ -34,7 +34,5 @@ $app = Application::configure(basePath: dirname(__DIR__))
         //
     })->create();
 
-// Compatibility Bridge for Legacy Packages/Middlewares
-$app->instance('env', 'local');
-
 return $app;
+

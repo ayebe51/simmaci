@@ -223,6 +223,11 @@ export default function JuryScoringPage() {
         sum += (v * c.weight) / 100;
       }
     });
+    // Fallback if breakdown wasn't parsed but overall score exists
+    if (sum === 0 && scores[pid]?.score) {
+      const rawScore = parseFloat(scores[pid]?.score);
+      if (!isNaN(rawScore) && rawScore > 0) return rawScore;
+    }
     return sum;
   };
 
@@ -715,7 +720,7 @@ export default function JuryScoringPage() {
                                 onChange={e => setBreakdown(p.id, c.component, e.target.value)}
                                 placeholder="0–100"
                                 disabled={isLocked}
-                                className={`h-9 text-sm font-bold ${isLocked ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}`}
+                                className={`h-9 text-sm font-bold disabled:opacity-100 disabled:text-slate-900 ${isLocked ? 'bg-slate-100/90 text-slate-900 cursor-not-allowed' : 'bg-white'}`}
                               />
                             </div>
                           ))}
@@ -759,13 +764,13 @@ export default function JuryScoringPage() {
                           readOnly={activeCriteria.length > 0 || isLocked}
                           disabled={isLocked}
                           placeholder="—"
-                          className="h-8 text-sm font-bold bg-slate-50 text-slate-700 disabled:opacity-80"
+                          className="h-8 text-sm font-bold bg-slate-100 text-slate-900 disabled:opacity-100 disabled:text-slate-900"
                         />
                       </div>
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">Juara (Otomatis)</Label>
                         <Select value={s.rank} onValueChange={v => setScore(p.id, 'rank', v)} disabled={isLocked}>
-                          <SelectTrigger className="h-8 text-sm" disabled={isLocked}><SelectValue placeholder="—"/></SelectTrigger>
+                          <SelectTrigger className="h-8 text-sm font-semibold disabled:opacity-100 disabled:text-slate-900 disabled:bg-slate-100/90" disabled={isLocked}><SelectValue placeholder="—"/></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1">🥇 Juara 1</SelectItem>
                             <SelectItem value="2">🥈 Juara 2</SelectItem>
@@ -777,7 +782,7 @@ export default function JuryScoringPage() {
                       </div>
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">Catatan</Label>
-                        <Input value={s.notes} onChange={e => setScore(p.id, 'notes', e.target.value)} placeholder="Catatan juri..." disabled={isLocked} className="h-8 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed" />
+                        <Input value={s.notes} onChange={e => setScore(p.id, 'notes', e.target.value)} placeholder="Catatan juri..." disabled={isLocked} className="h-8 text-sm disabled:opacity-100 disabled:text-slate-800 disabled:bg-slate-100/90 disabled:cursor-not-allowed" />
                       </div>
                     </div>
 

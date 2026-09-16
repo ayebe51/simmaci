@@ -54,10 +54,8 @@ class RecalculateCompetitionScores extends Command
 
         $isAnugerah = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
 
-        // Step 1: Universal normalization if requested (works for ANY competition with criteria)
-        if ($shouldNormalize) {
-            $this->normalizeCompetitionJuryScores($competition);
-        }
+        // Step 1: Universal normalization (auto-detects raw points anomalies across all competitions)
+        $this->normalizeCompetitionJuryScores($competition);
 
         // Step 2: Recalculate aggregates and ranks
         DB::transaction(function () use ($competition, $isAnugerah) {
@@ -117,12 +115,27 @@ class RecalculateCompetitionScores extends Command
             $criteria = $this->getDefaultCriteria($competition->lomba_type);
         }
 
+        // Even if criteria is still empty, infer from competition name
         if (empty($criteria)) {
-            return;
+            $cName = strtolower($competition->name);
+            if (str_contains($cName, 'mtq') || str_contains($cName, 'tilawat') || str_contains($cName, 'qur\'an') || str_contains($cName, 'quran')) {
+                $criteria = $this->getDefaultCriteria('mtq');
+            } elseif (str_contains($cName, 'mars')) {
+                $criteria = $this->getDefaultCriteria('mars_maarif');
+            } elseif (str_contains($cName, 'puji')) {
+                $criteria = $this->getDefaultCriteria('puji_pujian');
+            } elseif (str_contains($cName, 'film')) {
+                $criteria = $this->getDefaultCriteria('film_dokumenter');
+            } elseif (str_contains($cName, 'guru')) {
+                $criteria = $this->getDefaultCriteria('guru_berprestasi');
+            } elseif (str_contains($cName, 'madrasah')) {
+                $criteria = $this->getDefaultCriteria('madrasah_berprestasi');
+            }
         }
 
         $scores = CompetitionJuryScore::where('competition_id', $competition->id)->get();
         $normalizedCount = 0;
+
 
         foreach ($scores as $js) {
             $bd = $js->score_breakdown;

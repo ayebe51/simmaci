@@ -197,6 +197,33 @@ class CompetitionRankingService
                 }
             }
 
+            // Keyword-based fallback for standard competition criteria
+            if ($weight <= 0) {
+                if (str_contains($compName, 'tajwid')) {
+                    $weight = 45.0;
+                } elseif (str_contains($compName, 'lagu') || str_contains($compName, 'irama')) {
+                    $weight = 35.0;
+                } elseif (str_contains($compName, 'adab') || str_contains($compName, 'penampilan') || str_contains($compName, 'fasohah') || str_contains($compName, 'fashahah')) {
+                    $weight = 20.0;
+                } elseif (str_contains($compName, 'vokal') || str_contains($compName, 'harmoni')) {
+                    $weight = 35.0;
+                } elseif (str_contains($compName, 'penjiwaan') || str_contains($compName, 'ekspresi')) {
+                    $weight = 30.0;
+                } elseif (str_contains($compName, 'makhraj') || str_contains($compName, 'artikulasi')) {
+                    $weight = 35.0;
+                } elseif (str_contains($compName, 'tema') || str_contains($compName, 'konten')) {
+                    $weight = 35.0;
+                } elseif (str_contains($compName, 'alur') || str_contains($compName, 'sinematografi') || str_contains($compName, 'editing')) {
+                    $weight = 25.0;
+                } elseif (str_contains($compName, 'kreativitas') || str_contains($compName, 'estetika') || str_contains($compName, 'aswaja') || str_contains($compName, 'wawancara')) {
+                    $weight = 15.0;
+                } elseif (str_contains($compName, 'prestasi') || str_contains($compName, 'kejuaraan')) {
+                    $weight = 40.0;
+                } elseif (str_contains($compName, 'naskah') || str_contains($compName, 'praktik')) {
+                    $weight = 30.0;
+                }
+            }
+
             // Handle fraction weights (e.g. 0.45 -> 45)
             if ($weight > 0 && $weight <= 1.0) {
                 $weight = $weight * 100.0;
@@ -247,6 +274,31 @@ class CompetitionRankingService
                         }
                     }
                 }
+                if ($weight <= 0) {
+                    if (str_contains($compName, 'tajwid')) {
+                        $weight = 45.0;
+                    } elseif (str_contains($compName, 'lagu') || str_contains($compName, 'irama')) {
+                        $weight = 35.0;
+                    } elseif (str_contains($compName, 'adab') || str_contains($compName, 'penampilan') || str_contains($compName, 'fasohah') || str_contains($compName, 'fashahah')) {
+                        $weight = 20.0;
+                    } elseif (str_contains($compName, 'vokal') || str_contains($compName, 'harmoni')) {
+                        $weight = 35.0;
+                    } elseif (str_contains($compName, 'penjiwaan') || str_contains($compName, 'ekspresi')) {
+                        $weight = 30.0;
+                    } elseif (str_contains($compName, 'makhraj') || str_contains($compName, 'artikulasi')) {
+                        $weight = 35.0;
+                    } elseif (str_contains($compName, 'tema') || str_contains($compName, 'konten')) {
+                        $weight = 35.0;
+                    } elseif (str_contains($compName, 'alur') || str_contains($compName, 'sinematografi') || str_contains($compName, 'editing')) {
+                        $weight = 25.0;
+                    } elseif (str_contains($compName, 'kreativitas') || str_contains($compName, 'estetika') || str_contains($compName, 'aswaja') || str_contains($compName, 'wawancara')) {
+                        $weight = 15.0;
+                    } elseif (str_contains($compName, 'prestasi') || str_contains($compName, 'kejuaraan')) {
+                        $weight = 40.0;
+                    } elseif (str_contains($compName, 'naskah') || str_contains($compName, 'praktik')) {
+                        $weight = 30.0;
+                    }
+                }
                 if ($weight > 0 && $weight <= 1.0) {
                     $weight = $weight * 100.0;
                 }
@@ -262,6 +314,7 @@ class CompetitionRankingService
 
                 $normalizedBreakdown[] = $item;
             }
+
 
 
             return [

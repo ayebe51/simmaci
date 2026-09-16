@@ -20,6 +20,10 @@ echo ""
 CONTAINER_ID=$(docker ps --filter "name=backend" --filter "status=running" --format "{{.Names}}" | head -n 1)
 
 if [ -z "$CONTAINER_ID" ]; then
+    CONTAINER_ID=$(docker ps --filter "name=app" --filter "status=running" --format "{{.Names}}" | head -n 1)
+fi
+
+if [ -z "$CONTAINER_ID" ]; then
     echo "❌ Error: Container backend tidak ditemukan atau tidak sedang berjalan."
     echo "Pastikan docker running dengan: docker ps"
     exit 1

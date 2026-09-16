@@ -691,6 +691,14 @@ class PublicEventController extends Controller
                 $scoreVal = $phaseCalc['total_score'];
             }
 
+            // Auto-detect and normalize if jury entered raw component points (<= weight)
+            $criteria = $competition->scoring_criteria ?? $this->getCriteria($competition->lomba_type);
+            $norm = \App\Services\CompetitionRankingService::detectAndNormalizeBreakdown($finalBreakdown, $scoreVal, $criteria);
+            if ($norm !== null) {
+                $finalBreakdown = $norm['normalized_breakdown'];
+                $scoreVal = $norm['real_score'];
+            }
+
             // 1. Record score specifically for this jury
             \App\Models\CompetitionJuryScore::updateOrCreate(
                 [
@@ -742,6 +750,14 @@ class PublicEventController extends Controller
             ->where('competition_id', $competitionId)
             ->firstOrFail();
 
+        // Auto-detect and normalize if jury entered raw component points (<= weight)
+        $criteria = $competition->scoring_criteria ?? $this->getCriteria($competition->lomba_type);
+        $norm = \App\Services\CompetitionRankingService::detectAndNormalizeBreakdown($data['score_breakdown'] ?? null, $scoreVal, $criteria);
+        if ($norm !== null) {
+            $data['score_breakdown'] = $norm['normalized_breakdown'];
+            $scoreVal = $norm['real_score'];
+        }
+
         // 1. Record score specifically for this jury
         \App\Models\CompetitionJuryScore::updateOrCreate(
             [
@@ -755,6 +771,7 @@ class PublicEventController extends Controller
                 'notes'           => $data['notes'] ?? null,
             ]
         );
+
 
         // 2. Aggregate all jury scores for this participant (Average)
         $allJuryScores = \App\Models\CompetitionJuryScore::where('competition_id', $competitionId)

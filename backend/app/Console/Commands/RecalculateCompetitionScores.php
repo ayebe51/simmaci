@@ -52,14 +52,11 @@ class RecalculateCompetitionScores extends Command
         $this->line("──────────────────────────────────────────────────");
         $this->info("Memproses Lomba: [{$competition->id}] {$competition->name} ({$competition->lomba_type})");
 
-        $isMtq = in_array($competition->lomba_type, ['mtq', 'mtq_pa', 'mtq_pi'], true) 
-            || str_contains(strtolower($competition->name), 'mtq');
-
         $isAnugerah = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
 
-        // Step 1: Normalization if requested (or auto-detect MTQ input anomaly)
-        if ($isMtq && $shouldNormalize) {
-            $this->normalizeMtqJuryScores($competition);
+        // Step 1: Universal normalization if requested (works for ANY competition with criteria)
+        if ($shouldNormalize) {
+            $this->normalizeCompetitionJuryScores($competition);
         }
 
         // Step 2: Recalculate aggregates and ranks
@@ -113,8 +110,17 @@ class RecalculateCompetitionScores extends Command
         });
     }
 
-    private function normalizeMtqJuryScores(Competition $competition): void
+    private function normalizeCompetitionJuryScores(Competition $competition): void
     {
+        $criteria = $competition->scoring_criteria ?? [];
+        if (empty($criteria)) {
+            $criteria = $this->getDefaultCriteria($competition->lomba_type);
+        }
+
+        if (empty($criteria)) {
+            return;
+        }
+
         $scores = CompetitionJuryScore::where('competition_id', $competition->id)->get();
         $normalizedCount = 0;
 
@@ -124,61 +130,77 @@ class RecalculateCompetitionScores extends Command
                 continue;
             }
 
-            // Extract values
-            $tajwid = null;
-            $lagu = null;
-            $adab = null;
+            $normResult = CompetitionRankingService::detectAndNormalizeBreakdown($bd, (float) $js->score, $criteria);
+            if ($normResult !== null) {
+                $oldScore = $js->score;
+                $js->update([
+                    'score'           => $normResult['real_score'],
+                    'score_breakdown' => $normResult['normalized_breakdown'],
+                ]);
 
-            foreach ($bd as $item) {
-                $name = strtolower($item['component'] ?? '');
-                $val = isset($item['value']) ? (float) $item['value'] : null;
-
-                if (str_contains($name, 'tajwid')) {
-                    $tajwid = $val;
-                } elseif (str_contains($name, 'lagu') || str_contains($name, 'irama')) {
-                    $lagu = $val;
-                } elseif (str_contains($name, 'adab') || str_contains($name, 'penampilan')) {
-                    $adab = $val;
-                }
-            }
-
-            // Detection: Tajwid <= 45, Lagu <= 35, Adab <= 20, and sum >= 40, and calculated score < 45
-            if ($tajwid !== null && $lagu !== null && $adab !== null) {
-                $rawSum = $tajwid + $lagu + $adab;
-                if ($tajwid <= 45 && $lagu <= 35 && $adab <= 20 && $rawSum >= 40 && (float) $js->score < 45) {
-                    // Normalize to 0-100 scale for each component
-                    $normTajwid = round(($tajwid / 45.0) * 100.0, 2);
-                    $normLagu   = round(($lagu / 35.0) * 100.0, 2);
-                    $normAdab   = round(($adab / 20.0) * 100.0, 2);
-                    $realTotal  = round($rawSum, 2);
-
-                    $updatedBd = array_map(function ($item) use ($normTajwid, $normLagu, $normAdab) {
-                        $name = strtolower($item['component'] ?? '');
-                        if (str_contains($name, 'tajwid')) {
-                            $item['value'] = $normTajwid;
-                        } elseif (str_contains($name, 'lagu') || str_contains($name, 'irama')) {
-                            $item['value'] = $normLagu;
-                        } elseif (str_contains($name, 'adab') || str_contains($name, 'penampilan')) {
-                            $item['value'] = $normAdab;
-                        }
-                        return $item;
-                    }, $bd);
-
-                    $js->update([
-                        'score'           => $realTotal,
-                        'score_breakdown' => $updatedBd,
-                    ]);
-
-                    $this->warn("  [NORMALISASI] Juri '{$js->jury_name}' (Peserta ID: {$js->participant_id}): {$js->getOriginal('score')} -> {$realTotal} (Tajwid: {$tajwid}->{$normTajwid}, Lagu: {$lagu}->{$normLagu}, Adab: {$adab}->{$normAdab})");
-                    $normalizedCount++;
-                }
+                $targetLabel = $js->participant_id ? "Peserta ID: {$js->participant_id}" : "Pendaftar ID: {$js->anugerah_registration_id}";
+                $this->warn("  [NORMALISASI] Juri '{$js->jury_name}' ({$targetLabel}): {$oldScore} -> {$normResult['real_score']}");
+                $normalizedCount++;
             }
         }
 
         if ($normalizedCount > 0) {
-            $this->info("  -> Berhasil menormalisasi {$normalizedCount} entri nilai juri MTQ.");
+            $this->info("  -> Berhasil menormalisasi {$normalizedCount} entri nilai juri di cabang [{$competition->name}].");
         }
     }
+
+    private function getDefaultCriteria(string $lombaType): array
+    {
+        $map = [
+            'mars_maarif'     => [
+                ['component' => 'Teknik Vokal', 'weight' => 35],
+                ['component' => 'Harmonisasi & Keselarasan', 'weight' => 35],
+                ['component' => 'Penjiwaan & Ekspresi', 'weight' => 30],
+            ],
+            'mtq'             => [
+                ['component' => 'Tajwid', 'weight' => 45],
+                ['component' => 'Lagu & Irama', 'weight' => 35],
+                ['component' => 'Adab & Penampilan', 'weight' => 20],
+            ],
+            'mtq_pa'          => [
+                ['component' => 'Tajwid', 'weight' => 45],
+                ['component' => 'Lagu & Irama', 'weight' => 35],
+                ['component' => 'Adab & Penampilan', 'weight' => 20],
+            ],
+            'mtq_pi'          => [
+                ['component' => 'Tajwid', 'weight' => 45],
+                ['component' => 'Lagu & Irama', 'weight' => 35],
+                ['component' => 'Adab & Penampilan', 'weight' => 20],
+            ],
+            'puji_pujian'     => [
+                ['component' => 'Makhraj & Artikulasi Bahasa Jawa', 'weight' => 35],
+                ['component' => 'Penjiwaan & Penghayatan', 'weight' => 30],
+                ['component' => 'Harmonisasi Suara & Irama', 'weight' => 25],
+                ['component' => 'Adab & Penampilan', 'weight' => 10],
+            ],
+            'film_dokumenter' => [
+                ['component' => 'Kesesuaian Tema & Kedalaman Konten', 'weight' => 35],
+                ['component' => 'Alur Cerita & Struktur Narasi', 'weight' => 25],
+                ['component' => 'Sinematografi & Editing', 'weight' => 25],
+                ['component' => 'Kreativitas & Estetika', 'weight' => 15],
+            ],
+            'guru_berprestasi' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40],
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30],
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15],
+            ],
+            'madrasah_berprestasi' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25],
+                ['component' => 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', 'weight' => 15],
+                ['component' => 'Presentasi Kepala Madrasah & Visitasi / Fact Checking', 'weight' => 15],
+            ],
+        ];
+
+        return $map[$lombaType] ?? [];
+    }
+
 
     private function aggregateBreakdowns($juryScores, ?array $fallback = null): ?array
     {

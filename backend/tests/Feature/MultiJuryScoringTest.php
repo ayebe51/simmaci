@@ -489,5 +489,119 @@ class MultiJuryScoringTest extends TestCase
         $this->assertEquals(74.00, (float) $result->score);
         $this->assertEquals(1, $result->rank);
     }
+
+    public function test_universal_normalization_for_mars_maarif_and_anugerah(): void
+    {
+        $event = Event::create([
+            'name'     => 'Festival Aswaja 2026',
+            'slug'     => 'festival-universal-norm-2026',
+            'category' => 'Festival',
+            'date'     => '2026-09-19',
+            'location' => 'Cilacap',
+            'status'   => 'OPEN',
+        ]);
+
+        // 1. Test Mars Ma'arif (weight: 35, 35, 30)
+        $marsComp = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Paduan Suara Mars Ma\'arif',
+            'category'   => 'Seni Budaya',
+            'type'       => 'Group',
+            'lomba_type' => 'mars_maarif',
+            'status'     => 'OPEN',
+            'scoring_criteria' => [
+                ['component' => 'Teknik Vokal', 'weight' => 35],
+                ['component' => 'Harmonisasi & Keselarasan', 'weight' => 35],
+                ['component' => 'Penjiwaan & Ekspresi', 'weight' => 30],
+            ],
+        ]);
+
+        $timPadus = CompetitionParticipant::create([
+            'competition_id' => $marsComp->id,
+            'name'           => 'Tim Padus MI 01',
+            'institution'    => 'MI Ma\'arif 01',
+        ]);
+
+        // Juri entered raw points 28 (out of 35), 28 (out of 35), 24 (out of 30) -> raw sum = 80
+        // Calculated was 28*0.35 + 28*0.35 + 24*0.30 = 9.8 + 9.8 + 7.2 = 26.80
+        CompetitionJuryScore::create([
+            'competition_id'  => $marsComp->id,
+            'participant_id'  => $timPadus->id,
+            'jury_name'       => 'Juri Mars A',
+            'score'           => 26.80,
+            'score_breakdown' => [
+                ['component' => 'Teknik Vokal', 'weight' => 35, 'value' => 28.0],
+                ['component' => 'Harmonisasi & Keselarasan', 'weight' => 35, 'value' => 28.0],
+                ['component' => 'Penjiwaan & Ekspresi', 'weight' => 30, 'value' => 24.0],
+            ],
+        ]);
+
+        // 2. Test Anugerah Guru Berprestasi (weight: 40, 30, 15, 15)
+        $guruComp = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Guru Berprestasi',
+            'category'   => 'Akademik',
+            'type'       => 'Individual',
+            'lomba_type' => 'guru_berprestasi',
+            'status'     => 'OPEN',
+            'scoring_criteria' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40],
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30],
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15],
+            ],
+        ]);
+
+        $guruReg = AnugerahRegistration::create([
+            'event_id'        => $event->id,
+            'competition_id'  => $guruComp->id,
+            'registration_no' => 'REG-GURU-NORM-01',
+            'category'        => 'guru',
+            'jenjang'         => 'MI/SD',
+            'applicant_name'  => 'Guru Teladan',
+            'school_name'     => 'MI Ma\'arif 01',
+            'status'          => 'submitted',
+        ]);
+
+        // Juri entered raw points 32 (out of 40), 24 (out of 30), 12 (out of 15), 12 (out of 15) -> raw sum = 80
+        // Calculated was 32*0.40 + 24*0.30 + 12*0.15 + 12*0.15 = 12.8 + 7.2 + 1.8 + 1.8 = 23.60
+        CompetitionJuryScore::create([
+            'competition_id'           => $guruComp->id,
+            'anugerah_registration_id' => $guruReg->id,
+            'jury_name'                => 'Juri Guru A',
+            'score'                    => 23.60,
+            'score_breakdown'          => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40, 'value' => 32.0],
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30, 'value' => 24.0],
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15, 'value' => 12.0],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15, 'value' => 12.0],
+            ],
+        ]);
+
+        // Run universal recalculate scores with --normalize
+        $this->artisan('competition:recalculate-scores --normalize')
+            ->assertExitCode(0);
+
+        // Check Mars Ma'arif score normalized to 80.00
+        $marsScore = CompetitionJuryScore::where('competition_id', $marsComp->id)->first();
+        $this->assertEquals(80.00, (float) $marsScore->score);
+        $this->assertEquals(80.00, (float) $marsScore->score_breakdown[0]['value']); // 28/35 * 100 = 80.00
+
+        // Check result of Mars Ma'arif
+        $marsRes = CompetitionResult::where('competition_id', $marsComp->id)->first();
+        $this->assertEquals(80.00, (float) $marsRes->score);
+        $this->assertEquals(1, $marsRes->rank);
+
+        // Check Anugerah score normalized to 80.00
+        $guruScore = CompetitionJuryScore::where('competition_id', $guruComp->id)->first();
+        $this->assertEquals(80.00, (float) $guruScore->score);
+        $this->assertEquals(80.00, (float) $guruScore->score_breakdown[0]['value']); // 32/40 * 100 = 80.00
+
+        // Check Anugerah registration total_score and rank
+        $guruReg->refresh();
+        $this->assertEquals(80.00, (float) $guruReg->total_score);
+        $this->assertEquals(1, $guruReg->rank);
+    }
 }
+
 

@@ -146,4 +146,131 @@ class CompetitionRankingService
             }
         });
     }
+
+    /**
+     * Detect if a jury entered raw component points (<= weight) instead of a 0-100 scale,
+     * and normalize it back to 0-100 scale with real intended total score.
+     */
+    public static function detectAndNormalizeBreakdown(?array $breakdown, float $storedScore, array $competitionCriteria = []): ?array
+    {
+        if (empty($breakdown) || !is_array($breakdown)) {
+            return null;
+        }
+
+        $criteriaWeightMap = [];
+        foreach ($competitionCriteria as $c) {
+            if (isset($c['component'], $c['weight'])) {
+                $criteriaWeightMap[strtolower(trim($c['component']))] = (float) $c['weight'];
+            }
+        }
+
+        $rawSum = 0.0;
+        $allComponentsWithinWeight = true;
+        $hasSignificantWeight = false;
+        $componentCount = 0;
+
+        foreach ($breakdown as $item) {
+            if (!isset($item['component'])) {
+                continue;
+            }
+
+            $compName = strtolower(trim($item['component']));
+            $weight = isset($item['weight']) ? (float) $item['weight'] : ($criteriaWeightMap[$compName] ?? 0);
+            $val = isset($item['value']) ? (float) $item['value'] : null;
+
+            if ($val === null) {
+                continue;
+            }
+
+            // If weight is not set, try partial word matching against criteria
+            if ($weight <= 0) {
+                foreach ($criteriaWeightMap as $cName => $w) {
+                    if (str_contains($compName, $cName) || str_contains($cName, $compName)) {
+                        $weight = $w;
+                        break;
+                    }
+                    $firstWord = explode(' ', $compName)[0] ?? '';
+                    if (strlen($firstWord) >= 3 && str_contains($cName, $firstWord)) {
+                        $weight = $w;
+                        break;
+                    }
+                }
+            }
+
+            // Handle fraction weights (e.g. 0.45 -> 45)
+            if ($weight > 0 && $weight <= 1.0) {
+                $weight = $weight * 100.0;
+            }
+
+            $componentCount++;
+            $rawSum += $val;
+
+            if ($weight <= 0) {
+                $allComponentsWithinWeight = false;
+                break;
+            }
+
+            // Anomaly check: value is within the component weight (+1.0 tolerance for slight overage)
+            if ($val > ($weight + 1.0)) {
+                $allComponentsWithinWeight = false;
+                break;
+            }
+
+            if ($weight <= 50) {
+                $hasSignificantWeight = true;
+            }
+        }
+
+        // Conditions for raw points anomaly:
+        // 1. At least 2 components evaluated
+        // 2. All component values <= weight + 1.0 (e.g. 35 <= 45, 26 <= 35, 12 <= 20)
+        // 3. At least one component has weight <= 50
+        // 4. Raw sum of component values >= 35.0 (indicates intended real score, e.g. 70-95)
+        // 5. Stored/calculated score is <= 45.0 (because re-multiplying by weight fractions scaled it down)
+        if ($componentCount >= 2 && $allComponentsWithinWeight && $hasSignificantWeight && $rawSum >= 35.0 && $storedScore <= 45.0) {
+            $normalizedBreakdown = [];
+            $realTotal = 0.0;
+
+            foreach ($breakdown as $item) {
+                $compName = strtolower(trim($item['component'] ?? ''));
+                $weight = isset($item['weight']) ? (float) $item['weight'] : ($criteriaWeightMap[$compName] ?? 0);
+                if ($weight <= 0) {
+                    foreach ($criteriaWeightMap as $cName => $w) {
+                        if (str_contains($compName, $cName) || str_contains($cName, $compName)) {
+                            $weight = $w;
+                            break;
+                        }
+                        $firstWord = explode(' ', $compName)[0] ?? '';
+                        if (strlen($firstWord) >= 3 && str_contains($cName, $firstWord)) {
+                            $weight = $w;
+                            break;
+                        }
+                    }
+                }
+                if ($weight > 0 && $weight <= 1.0) {
+                    $weight = $weight * 100.0;
+                }
+
+                $val = isset($item['value']) ? (float) $item['value'] : 0.0;
+
+                if ($weight > 0) {
+                    $normVal = round(($val / $weight) * 100.0, 2);
+                    $item['value'] = $normVal;
+                    $item['weight'] = $weight;
+                    $realTotal += $val;
+                }
+
+                $normalizedBreakdown[] = $item;
+            }
+
+
+            return [
+                'normalized_breakdown' => $normalizedBreakdown,
+                'real_score'           => round($realTotal, 2),
+            ];
+        }
+
+        return null;
+    }
 }
+

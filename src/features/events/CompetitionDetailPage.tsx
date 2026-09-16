@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle, Phone, Sparkles, Award } from 'lucide-react';
+import { ArrowLeft, Loader2, Users, BarChart3, FileVideo, QrCode, Copy, Check, Key, Trash2, FolderOpen, ExternalLink, Edit, Save, AlertCircle, Phone, Sparkles, Award, Lock, Unlock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import ParticipantList from './components/ParticipantList';
 import ResultInput from './components/ResultInput';
@@ -116,6 +116,11 @@ export default function CompetitionDetailPage() {
                 {competition.jenjang && (
                   <Badge variant="outline" className="text-[9px] uppercase">{competition.jenjang}</Badge>
                 )}
+                {competition.is_locked && (
+                  <Badge className="text-[9px] font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-100 flex items-center gap-1">
+                    <Lock size={10} /> Nilai Terkunci (Final)
+                  </Badge>
+                )}
               </div>
               <CardTitle className="text-xl font-black text-slate-900">{competition.name}</CardTitle>
               <p className="text-sm text-slate-500 mt-1">{competition.event?.name}</p>
@@ -125,6 +130,47 @@ export default function CompetitionDetailPage() {
               {competition.location && <p>{competition.location}</p>}
               {competition.deadline && (
                 <p className="text-amber-600 font-semibold">Batas: {new Date(competition.deadline).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>
+              )}
+              {isSuperAdmin && (
+                <div className="pt-2 flex justify-end">
+                  {competition.is_locked ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 gap-1.5 border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                      onClick={async () => {
+                        if (!window.confirm(`Buka kembali kunci penilaian lomba "${competition.name}"? Juri dan operator akan dapat merubah nilai kembali.`)) return;
+                        try {
+                          await eventApi.competitions.unlockScores(competition.id);
+                          toast.success('Kunci nilai berhasil dibuka.');
+                          load();
+                        } catch (e: any) {
+                          toast.error(e?.response?.data?.message || 'Gagal membuka kunci nilai');
+                        }
+                      }}
+                    >
+                      <Unlock size={11} /> Buka Kunci Nilai
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-7 gap-1.5 border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer"
+                      onClick={async () => {
+                        if (!window.confirm(`Kunci nilai lomba "${competition.name}" secara final? Setelah dikunci, juri dan operator tidak dapat lagi menambah atau mengubah nilai.`)) return;
+                        try {
+                          await eventApi.competitions.lockScores(competition.id);
+                          toast.success('Nilai lomba berhasil dikunci permanen.');
+                          load();
+                        } catch (e: any) {
+                          toast.error(e?.response?.data?.message || 'Gagal mengunci nilai');
+                        }
+                      }}
+                    >
+                      <Lock size={11} /> Kunci Nilai (Final)
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>

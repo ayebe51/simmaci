@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Loader2, CheckCircle2, Save, LogOut, Award, Info, RefreshCw, Filter, 
-  ExternalLink, FileText, Video, FolderOpen, AlertCircle, UserCheck, Sparkles 
+  ExternalLink, FileText, Video, FolderOpen, AlertCircle, UserCheck, Sparkles, Lock 
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -207,6 +207,7 @@ export default function JuryScoringPage() {
 
   // Get active criteria based on competition type and phase
   const isTwoPhase = Boolean(competition?.is_two_phase);
+  const isLocked = Boolean(competition?.is_locked);
   const activeCriteria: Criterion[] = isTwoPhase
     ? (selectedPhase === 1 ? (competition?.phase1_criteria ?? []) : (competition?.phase2_criteria ?? []))
     : (competition?.criteria ?? []);
@@ -226,6 +227,10 @@ export default function JuryScoringPage() {
   };
 
   const handleSave = async (pid: string | number) => {
+    if (isLocked) {
+      toast.error('Penilaian untuk cabang lomba ini telah dikunci/final. Nilai tidak dapat diubah.');
+      return;
+    }
     setSavingId(pid);
     try {
       const s = scores[pid] ?? {};
@@ -407,7 +412,14 @@ export default function JuryScoringPage() {
                 </span>
               )}
             </div>
-            <h1 className="font-black text-lg truncate">{competition?.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-black text-lg truncate">{competition?.name}</h1>
+              {isLocked && (
+                <Badge className="bg-amber-400 text-amber-950 font-black text-[10px] uppercase gap-1 hover:bg-amber-400 flex-shrink-0">
+                  <Lock size={10} /> Terkunci (Final)
+                </Badge>
+              )}
+            </div>
             <p className="text-xs opacity-80">{competition?.event} {competition?.jenjang ? `· ${competition.jenjang}` : ''}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -436,6 +448,28 @@ export default function JuryScoringPage() {
       </div>
 
       <div className="max-w-4xl mx-auto p-4 space-y-4">
+        {/* Banner Penilaian Terkunci */}
+        {isLocked && (
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 text-amber-950 rounded-2xl flex items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-amber-200/80 rounded-xl text-amber-900 mt-0.5 sm:mt-0 flex-shrink-0">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm sm:text-base text-amber-950 flex items-center gap-2">
+                  Penilaian Telah Dikunci & Final
+                </h4>
+                <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                  Penginputan dan perubahan nilai untuk cabang lomba ini telah ditutup oleh panitia. Anda berada dalam mode <strong>Hanya-Baca (Read-Only)</strong>.
+                </p>
+              </div>
+            </div>
+            <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-amber-200 text-amber-900 border border-amber-300 flex-shrink-0">
+              🔒 Final / Read-Only
+            </span>
+          </div>
+        )}
+
         {/* Phase Tabs for Anugerah Competitions */}
         {isTwoPhase && (
           <div className="bg-white p-2 rounded-2xl shadow-sm border flex items-center gap-2">
@@ -680,7 +714,8 @@ export default function JuryScoringPage() {
                                 value={s.breakdown?.[c.component] ?? ''}
                                 onChange={e => setBreakdown(p.id, c.component, e.target.value)}
                                 placeholder="0–100"
-                                className="h-9 text-sm font-bold bg-white"
+                                disabled={isLocked}
+                                className={`h-9 text-sm font-bold ${isLocked ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}`}
                               />
                             </div>
                           ))}
@@ -720,16 +755,17 @@ export default function JuryScoringPage() {
                         <Input
                           type="number" min="0" max="100" step="0.01"
                           value={isTwoPhase ? (selectedPhase === 2 ? totalCombined : activeSubtotal) : (activeCriteria.length > 0 ? activeSubtotal.toFixed(2) : s.score)}
-                          onChange={e => { if (activeCriteria.length === 0) setScore(p.id, 'score', e.target.value); }}
-                          readOnly={activeCriteria.length > 0}
+                          onChange={e => { if (activeCriteria.length === 0 && !isLocked) setScore(p.id, 'score', e.target.value); }}
+                          readOnly={activeCriteria.length > 0 || isLocked}
+                          disabled={isLocked}
                           placeholder="—"
-                          className="h-8 text-sm font-bold bg-slate-50 text-slate-700"
+                          className="h-8 text-sm font-bold bg-slate-50 text-slate-700 disabled:opacity-80"
                         />
                       </div>
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">Juara (Otomatis)</Label>
-                        <Select value={s.rank} onValueChange={v => setScore(p.id, 'rank', v)}>
-                          <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="—"/></SelectTrigger>
+                        <Select value={s.rank} onValueChange={v => setScore(p.id, 'rank', v)} disabled={isLocked}>
+                          <SelectTrigger className="h-8 text-sm" disabled={isLocked}><SelectValue placeholder="—"/></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1">🥇 Juara 1</SelectItem>
                             <SelectItem value="2">🥈 Juara 2</SelectItem>
@@ -741,26 +777,41 @@ export default function JuryScoringPage() {
                       </div>
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">Catatan</Label>
-                        <Input value={s.notes} onChange={e => setScore(p.id, 'notes', e.target.value)} placeholder="Catatan juri..." className="h-8 text-sm" />
+                        <Input value={s.notes} onChange={e => setScore(p.id, 'notes', e.target.value)} placeholder="Catatan juri..." disabled={isLocked} className="h-8 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed" />
                       </div>
                     </div>
 
                     <Button
                       size="sm"
-                      className={`w-full gap-1.5 cursor-pointer font-bold ${
-                        isTwoPhase && selectedPhase === 2
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                          : isSaved ? 'bg-green-600 hover:bg-green-700 text-white' : ''
+                      className={`w-full gap-1.5 font-bold ${
+                        isLocked
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed hover:bg-slate-100'
+                          : isTwoPhase && selectedPhase === 2
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer'
+                          : isSaved ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer' : 'cursor-pointer'
                       }`}
                       onClick={() => handleSave(p.id)}
-                      disabled={isSaving}
+                      disabled={isSaving || isLocked}
                     >
-                      {isSaving ? <Loader2 size={13} className="animate-spin"/> : isSaved ? <CheckCircle2 size={13}/> : <Save size={13}/>}
-                      {isTwoPhase 
-                        ? (selectedPhase === 1 
-                            ? (isSaved ? 'Tersimpan — Perbarui Nilai Berkas' : 'Simpan Nilai Berkas (Fase 1)') 
-                            : (isSaved ? 'Tersimpan — Perbarui Nilai Wawancara' : 'Simpan Nilai Wawancara (Fase 2)'))
-                        : (isSaved ? 'Tersimpan — Update Nilai' : 'Simpan Nilai')}
+                      {isLocked ? (
+                        <>
+                          <Lock size={13} />
+                          <span>Nilai Telah Dikunci (Read-Only)</span>
+                        </>
+                      ) : isSaving ? (
+                        <Loader2 size={13} className="animate-spin"/>
+                      ) : isSaved ? (
+                        <CheckCircle2 size={13}/>
+                      ) : (
+                        <Save size={13}/>
+                      )}
+                      {!isLocked && (
+                        isTwoPhase 
+                          ? (selectedPhase === 1 
+                              ? (isSaved ? 'Tersimpan — Perbarui Nilai Berkas' : 'Simpan Nilai Berkas (Fase 1)') 
+                              : (isSaved ? 'Tersimpan — Perbarui Nilai Wawancara' : 'Simpan Nilai Wawancara (Fase 2)'))
+                          : (isSaved ? 'Tersimpan — Update Nilai' : 'Simpan Nilai')
+                      )}
                     </Button>
                   </CardContent>
                 </Card>

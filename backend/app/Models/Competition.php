@@ -73,4 +73,67 @@ class Competition extends Model
     {
         return $this->participants()->where('school_id', $schoolId)->count();
     }
+
+    /**
+     * Check if scores/evaluation for this competition are locked.
+     */
+    public function isScoresLocked(): bool
+    {
+        // 1. Global lock
+        if (\App\Models\Setting::getValue('all_competition_scores_locked') === 'true') {
+            return true;
+        }
+
+        // 2. Per-competition lock setting
+        if (\App\Models\Setting::getValue("competition_scores_locked_{$this->id}") === 'true') {
+            return true;
+        }
+
+        // 3. Competition status FINISHED or LOCKED
+        if (in_array(strtoupper((string) $this->status), ['FINISHED', 'LOCKED'], true)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Lock scores for this competition.
+     */
+    public function lockScores(): void
+    {
+        \App\Models\Setting::setValue("competition_scores_locked_{$this->id}", 'true');
+        $this->update(['status' => 'FINISHED']);
+    }
+
+    /**
+     * Unlock scores for this competition.
+     */
+    public function unlockScores(): void
+    {
+        \App\Models\Setting::setValue("competition_scores_locked_{$this->id}", 'false');
+        $this->update(['status' => 'OPEN']);
+    }
+
+    /**
+     * Lock scores for ALL competitions globally.
+     */
+    public static function lockAllScores(): void
+    {
+        \App\Models\Setting::setValue('all_competition_scores_locked', 'true');
+        static::query()->update(['status' => 'FINISHED']);
+    }
+
+    /**
+     * Unlock scores for ALL competitions globally.
+     */
+    public static function unlockAllScores(): void
+    {
+        \App\Models\Setting::setValue('all_competition_scores_locked', 'false');
+        foreach (static::all() as $c) {
+            \App\Models\Setting::setValue("competition_scores_locked_{$c->id}", 'false');
+        }
+        static::query()->update(['status' => 'OPEN']);
+    }
 }
+

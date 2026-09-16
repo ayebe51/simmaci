@@ -626,6 +626,8 @@ class PublicEventController extends Controller
                 'phase2_criteria'  => $phaseInfo['phase2'],
                 'phase1_max_score' => $phaseInfo['phase1_max'],
                 'phase2_max_score' => $phaseInfo['phase2_max'],
+                'is_locked'        => $competition->isScoresLocked(),
+                'status'           => $competition->status,
             ],
             'participants' => $participants,
         ]);
@@ -646,6 +648,10 @@ class PublicEventController extends Controller
         $juryName      = $session['jury_name'];
 
         $competition = Competition::findOrFail($competitionId);
+
+        if ($competition->isScoresLocked()) {
+            return $this->error('Penilaian untuk cabang lomba ini telah dikunci/final. Nilai tidak dapat diubah.', null, 403);
+        }
 
         $data = $request->validate([
             'participant_id'  => 'required', // Can be integer (competition participant) or string ('reg_X' for anugerah)

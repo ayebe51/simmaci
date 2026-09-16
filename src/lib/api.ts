@@ -561,6 +561,14 @@ export const eventApi = {
     promoteFinalists: (competitionId: number) => apiClient.post(`/competitions/${competitionId}/promote-finalists`).then((r) => r.data),
     /** Reset seluruh nilai juri dan peringkat untuk cabang lomba */
     resetScores: (competitionId: number) => apiClient.post(`/competitions/${competitionId}/reset-scores`).then((r) => r.data),
+    /** Kunci nilai untuk satu cabang lomba */
+    lockScores: (competitionId: number) => apiClient.post(`/competitions/${competitionId}/lock-scores`).then((r) => r.data),
+    /** Buka kunci nilai untuk satu cabang lomba */
+    unlockScores: (competitionId: number) => apiClient.post(`/competitions/${competitionId}/unlock-scores`).then((r) => r.data),
+    /** Kunci semua nilai cabang lomba secara global */
+    lockAllScores: () => apiClient.post(`/competitions/lock-all-scores`).then((r) => r.data),
+    /** Buka kunci semua nilai cabang lomba secara global */
+    unlockAllScores: () => apiClient.post(`/competitions/unlock-all-scores`).then((r) => r.data),
   },
 
   // Participants

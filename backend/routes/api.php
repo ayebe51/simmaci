@@ -231,8 +231,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('competitions/{competition}/jury-pin',          [CompetitionController::class, 'setJuryPin']);
 
             // Promote Finalists for Anugerah
-            Route::post('competitions/{competition}/promote-finalists', [CompetitionController::class, 'promoteFinalists']);
             Route::post('competitions/{competition}/reset-scores',     [CompetitionController::class, 'resetScores']);
+            Route::post('competitions/{competition}/lock-scores',       [CompetitionController::class, 'lockScores']);
+            Route::post('competitions/{competition}/unlock-scores',     [CompetitionController::class, 'unlockScores']);
+            Route::post('competitions/lock-all-scores',                 [CompetitionController::class, 'lockAllScores']);
+            Route::post('competitions/unlock-all-scores',               [CompetitionController::class, 'unlockAllScores']);
 
             // Anugerah Review
             Route::post('anugerah-registrations/{anugerahRegistration}/review', [AnugerahRegistrationController::class, 'review']);

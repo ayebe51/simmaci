@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, CheckCircle2, Loader2, Trophy, Filter } from 'lucide-react';
+import { Save, CheckCircle2, Loader2, Trophy, Filter, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import ExcelImportModal from '@/features/master-data/components/ExcelImportModal';
 import CompetitionExportModal from './CompetitionExportModal';
@@ -25,6 +25,7 @@ export default function ResultInput({ competitionId, competition, participants, 
   const [map, setMap] = useState<Record<string, any>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [filterJenjang, setFilterJenjang] = useState<string>('all');
+  const isLocked = Boolean(competition?.is_locked);
 
   useEffect(() => {
     const m: Record<string, any> = {};
@@ -145,6 +146,10 @@ export default function ResultInput({ competitionId, competition, participants, 
   };
 
   const handleSave = async (pid: string | number) => {
+    if (isLocked) {
+      toast.error('Nilai cabang lomba ini telah dikunci/final. Perubahan nilai tidak diizinkan.');
+      return;
+    }
     setSavingId(String(pid));
     const item = map[pid] ?? {};
     const p = participants.find(part => part.id == pid);
@@ -198,6 +203,10 @@ export default function ResultInput({ competitionId, competition, participants, 
   };
 
   const handleImport = async (file: File) => {
+    if (isLocked) {
+      toast.error('Nilai cabang lomba ini telah dikunci/final. Import nilai tidak diizinkan.');
+      return;
+    }
     try {
       const res = await eventApi.results.import(Number(competitionId), file);
       toast.success(`${res.imported ?? '?'} hasil berhasil diimport`);
@@ -217,6 +226,26 @@ export default function ResultInput({ competitionId, competition, participants, 
   return (
     <Card>
       <CardContent className="p-6 space-y-4">
+        {/* Banner Penilaian Terkunci */}
+        {isLocked && (
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 text-amber-950 rounded-xl flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-amber-200/80 rounded-lg text-amber-900 flex-shrink-0">
+                <Lock size={18} />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-amber-950">Nilai Cabang Lomba Telah Dikunci (Final)</h4>
+                <p className="text-xs text-amber-800">
+                  Seluruh nilai telah berstatus final dan tidak dapat diubah lagi oleh dewan juri maupun operator.
+                </p>
+              </div>
+            </div>
+            <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-200 text-amber-900 border border-amber-300 flex-shrink-0">
+              🔒 Read-Only
+            </span>
+          </div>
+        )}
+
         {/* Scoring criteria reference */}
         {criteria.length > 0 && (
           <div className="p-3 bg-slate-50 rounded-xl border text-xs space-y-1">
@@ -255,12 +284,14 @@ export default function ResultInput({ competitionId, competition, participants, 
               }))}
               filterJenjang={filterJenjang}
             />
-            <ExcelImportModal
-              title="Import Hasil Kompetisi"
-              description="Upload file Excel (.xlsx). Kolom: Juara, Nama, Lembaga, Nilai."
-              triggerLabel="Import Hasil (Excel)"
-              onFileImport={handleImport}
-            />
+            {!isLocked && (
+              <ExcelImportModal
+                title="Import Hasil Kompetisi"
+                description="Upload file Excel (.xlsx). Kolom: Juara, Nama, Lembaga, Nilai."
+                triggerLabel="Import Hasil (Excel)"
+                onFileImport={handleImport}
+              />
+            )}
           </div>
         </div>
 
@@ -325,7 +356,8 @@ export default function ResultInput({ competitionId, competition, participants, 
                             onChange={e => setBreakdown(p.id, c.component, e.target.value)}
                             placeholder="0-100"
                             className="h-8 text-sm px-2 text-center"
-                            readOnly={Boolean(p.jury_scores && p.jury_scores.length > 0)}
+                            disabled={isLocked}
+                            readOnly={isLocked || Boolean(p.jury_scores && p.jury_scores.length > 0)}
                             title={p.jury_scores && p.jury_scores.length > 0 ? `Rata-rata dari ${p.jury_scores.length} dewan juri` : undefined}
                           />
                         </TableCell>
@@ -336,8 +368,9 @@ export default function ResultInput({ competitionId, competition, participants, 
                         <Input 
                           type="number" 
                           value={getDisplayTotalScore(p)} 
-                          onChange={e => { if (criteria.length === 0 && !(p.jury_scores && p.jury_scores.length > 0)) set(p.id, 'score', e.target.value); }} 
-                          readOnly={criteria.length > 0 || Boolean(p.jury_scores && p.jury_scores.length > 0)}
+                          onChange={e => { if (criteria.length === 0 && !(p.jury_scores && p.jury_scores.length > 0) && !isLocked) set(p.id, 'score', e.target.value); }} 
+                          readOnly={criteria.length > 0 || Boolean(p.jury_scores && p.jury_scores.length > 0) || isLocked}
+                          disabled={isLocked}
                           placeholder="—" 
                           className={`h-8 text-sm font-bold ${
                             p.jury_scores && p.jury_scores.length > 0
@@ -356,16 +389,16 @@ export default function ResultInput({ competitionId, competition, participants, 
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">
-                        <Input type="number" min="1" max="10" value={r.rank ?? ''} onChange={e => set(p.id, 'rank', e.target.value)} placeholder="Auto" className="h-8 text-sm" />
+                        <Input type="number" min="1" max="10" value={r.rank ?? ''} onChange={e => set(p.id, 'rank', e.target.value)} placeholder="Auto" disabled={isLocked} className="h-8 text-sm" />
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Input value={r.notes ?? ''} onChange={e => set(p.id, 'notes', e.target.value)} placeholder="Catatan..." className="h-8 text-sm" />
+                      <Input value={r.notes ?? ''} onChange={e => set(p.id, 'notes', e.target.value)} placeholder="Catatan..." disabled={isLocked} className="h-8 text-sm" />
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => handleSave(p.id)} disabled={isSaving}>
-                        {isSaving ? <Loader2 size={11} className="animate-spin"/> : <Save size={11}/>}
-                        Simpan
+                      <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => handleSave(p.id)} disabled={isSaving || isLocked}>
+                        {isLocked ? <Lock size={11} /> : isSaving ? <Loader2 size={11} className="animate-spin"/> : <Save size={11}/>}
+                        {isLocked ? 'Terkunci' : 'Simpan'}
                       </Button>
                     </TableCell>
                   </TableRow>

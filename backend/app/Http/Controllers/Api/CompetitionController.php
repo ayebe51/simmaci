@@ -125,6 +125,7 @@ class CompetitionController extends Controller
         }
 
         $data = $competition->toArray();
+        $data['is_locked'] = $competition->isScoresLocked();
         $data['anugerah_registrations'] = $anugerahRegistrations;
 
         return $this->success($data);
@@ -155,7 +156,7 @@ class CompetitionController extends Controller
         return $this->success($competition->loadCount(['participants', 'anugerahRegistrations', 'results']));
     }
 
-    // ── Delete competition ─────────────────────────────────────────────────────
+    // ── Delete competition ────────────────────────────────────────────────
     public function destroy(Competition $competition): JsonResponse
     {
         if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'])) {
@@ -296,6 +297,10 @@ class CompetitionController extends Controller
             abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menyimpan hasil lomba.');
         }
 
+        if ($competition->isScoresLocked() && ! in_array($request->user()?->role, ['super_admin'], true)) {
+            return $this->error('Nilai cabang lomba ini telah dikunci/final. Perubahan nilai tidak diizinkan.', null, 403);
+        }
+
         $data = $request->validate([
             'participant_id'  => 'required', // Can be integer or string (reg_X)
             'rank'            => 'nullable|integer|min:1',
@@ -371,6 +376,10 @@ class CompetitionController extends Controller
             abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat menyimpan hasil lomba.');
         }
 
+        if ($competition->isScoresLocked() && ! in_array($request->user()?->role, ['super_admin'], true)) {
+            return $this->error('Nilai cabang lomba ini telah dikunci/final. Perubahan nilai tidak diizinkan.', null, 403);
+        }
+
         $request->validate([
             'results'                           => 'required|array',
             'results.*.participant_id'          => 'required', // Can be integer or string (reg_X)
@@ -419,6 +428,10 @@ class CompetitionController extends Controller
     {
         if (! in_array($request->user()?->role, ['super_admin', 'admin_yayasan'], true)) {
             abort(403, 'Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengimport hasil lomba.');
+        }
+
+        if ($competition->isScoresLocked() && ! in_array($request->user()?->role, ['super_admin'], true)) {
+            return $this->error('Nilai cabang lomba ini telah dikunci/final. Perubahan nilai tidak diizinkan.', null, 403);
         }
 
         $request->validate(['file' => 'required|file|mimes:xlsx,csv|max:5120']);
@@ -572,6 +585,10 @@ class CompetitionController extends Controller
     {
         if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'], true)) {
             return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mereset nilai lomba.', 403);
+        }
+
+        if ($competition->isScoresLocked() && ! in_array(Auth::user()?->role, ['super_admin'], true)) {
+            return $this->error('Nilai cabang lomba ini telah dikunci/final. Tidak dapat direset.', null, 403);
         }
 
         $deletedCount = 0;
@@ -803,5 +820,59 @@ class CompetitionController extends Controller
             ['pin' => $data['pin'], 'competition_id' => $competition->id],
             'PIN Juri berhasil disimpan dan berlaku untuk semua cabang lomba pada event ini.'
         );
+    }
+
+    public function lockScores(Request $request, Competition $competition): JsonResponse
+    {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan', 'admin'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengunci nilai lomba.', null, 403);
+        }
+
+        $competition->lockScores();
+
+        return $this->success([
+            'competition_id' => $competition->id,
+            'name'           => $competition->name,
+            'is_locked'      => true,
+            'status'         => $competition->status,
+        ], "Nilai cabang lomba '{$competition->name}' berhasil dikunci/final.");
+    }
+
+    public function unlockScores(Request $request, Competition $competition): JsonResponse
+    {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat membuka kunci nilai lomba.', null, 403);
+        }
+
+        $competition->unlockScores();
+
+        return $this->success([
+            'competition_id' => $competition->id,
+            'name'           => $competition->name,
+            'is_locked'      => false,
+            'status'         => $competition->status,
+        ], "Kunci nilai cabang lomba '{$competition->name}' berhasil dibuka.");
+    }
+
+    public function lockAllScores(Request $request): JsonResponse
+    {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat mengunci semua nilai lomba.', null, 403);
+        }
+
+        Competition::lockAllScores();
+
+        return $this->success(null, 'Semua nilai cabang lomba berhasil dikunci secara global.');
+    }
+
+    public function unlockAllScores(Request $request): JsonResponse
+    {
+        if (! in_array(Auth::user()?->role, ['super_admin', 'admin_yayasan'], true)) {
+            return $this->error('Akses ditolak: Hanya Super Admin / Admin Yayasan yang dapat membuka kunci semua nilai lomba.', null, 403);
+        }
+
+        Competition::unlockAllScores();
+
+        return $this->success(null, 'Kunci semua nilai cabang lomba berhasil dibuka secara global.');
     }
 }

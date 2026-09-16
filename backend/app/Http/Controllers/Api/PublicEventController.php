@@ -711,12 +711,13 @@ class PublicEventController extends Controller
                 ->get();
 
             $avgScore = round((float) $allJuryScores->avg('score'), 2);
+            $aggregatedBreakdown = $this->aggregateJuryBreakdowns($allJuryScores, $finalBreakdown ?? $reg->score_breakdown);
 
             // 3. Update main registration record with aggregated average
             $reg->update([
                 'total_score'     => $avgScore,
                 'reviewer_notes'  => $data['notes'] ?? $reg->reviewer_notes,
-                'score_breakdown' => $finalBreakdown ?? $reg->score_breakdown,
+                'score_breakdown' => $aggregatedBreakdown,
             ]);
 
             // 4. Automatically recalculate and assign ranks in real-time
@@ -761,14 +762,15 @@ class PublicEventController extends Controller
             ->get();
 
         $avgScore = round((float) $allJuryScores->avg('score'), 2);
+        $aggregatedBreakdown = $this->aggregateJuryBreakdowns($allJuryScores, $data['score_breakdown'] ?? null);
 
-        // 3. Update competition_results with aggregated average
+        // 3. Update competition_results with aggregated average and aggregated breakdown
         $result = CompetitionResult::updateOrCreate(
             ['competition_id' => $competitionId, 'participant_id' => $participant->id],
             [
                 'score'           => $avgScore,
                 'notes'           => $data['notes'] ?? null,
-                'score_breakdown' => $data['score_breakdown'] ?? null,
+                'score_breakdown' => $aggregatedBreakdown,
             ]
         );
 
@@ -887,4 +889,45 @@ class PublicEventController extends Controller
         ];
         return $map[$lombaType] ?? [];
     }
+
+    /**
+     * Compute aggregated score_breakdown across all jury scores.
+     */
+    private function aggregateJuryBreakdowns($juryScores, ?array $fallbackBreakdown = null): ?array
+    {
+        $componentSums = [];
+        $componentCounts = [];
+        $componentWeights = [];
+
+        foreach ($juryScores as $js) {
+            $bd = $js->score_breakdown;
+            if (is_array($bd)) {
+                foreach ($bd as $item) {
+                    if (isset($item['component'])) {
+                        $comp = $item['component'];
+                        $componentSums[$comp] = ($componentSums[$comp] ?? 0) + (float) ($item['value'] ?? 0);
+                        $componentCounts[$comp] = ($componentCounts[$comp] ?? 0) + 1;
+                        $componentWeights[$comp] = (float) ($item['weight'] ?? 0);
+                    }
+                }
+            }
+        }
+
+        if (empty($componentSums)) {
+            return $fallbackBreakdown;
+        }
+
+        $aggregated = [];
+        foreach ($componentSums as $comp => $sum) {
+            $count = $componentCounts[$comp] ?: 1;
+            $aggregated[] = [
+                'component' => $comp,
+                'weight'    => $componentWeights[$comp],
+                'value'     => round($sum / $count, 2),
+            ];
+        }
+
+        return $aggregated;
+    }
 }
+

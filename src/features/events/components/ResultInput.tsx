@@ -43,6 +43,37 @@ export default function ResultInput({ competitionId, competition, participants, 
   const set = (pid: string | number, field: string, value: string) =>
     setMap(p => ({ ...p, [pid]: { ...p[pid], participant_id: pid, [field]: value } }));
 
+  // Helper to get component average across all juries if jury_scores exist
+  const getJuryAverageBreakdown = (p: any, component: string): string | null => {
+    if (!p?.jury_scores || p.jury_scores.length === 0) return null;
+    let sum = 0;
+    let count = 0;
+    for (const js of p.jury_scores) {
+      const raw = js.score_breakdown;
+      if (!raw) continue;
+      let val: number | null = null;
+      if (Array.isArray(raw)) {
+        const item = raw.find((b: any) => b.component === component);
+        if (item?.value != null) val = Number(item.value);
+      } else if (typeof raw === 'object' && raw[component] != null) {
+        val = Number(raw[component]);
+      }
+      if (val !== null && !isNaN(val)) {
+        sum += val;
+        count++;
+      }
+    }
+    if (count === 0) return null;
+    return (sum / count).toFixed(2);
+  };
+
+  // Helper to get average total score across all juries
+  const getJuryAverageTotal = (p: any): string | null => {
+    if (!p?.jury_scores || p.jury_scores.length === 0) return null;
+    const sum = p.jury_scores.reduce((acc: number, js: any) => acc + (Number(js.score) || 0), 0);
+    return (sum / p.jury_scores.length).toFixed(2);
+  };
+
   const getBreakdownValue = (pid: string | number, component: string): string => {
     const raw = map[pid]?.score_breakdown;
     if (!raw) return '';
@@ -53,6 +84,18 @@ export default function ResultInput({ competitionId, competition, participants, 
     if (typeof raw === 'object') {
       return raw[component] != null ? String(raw[component]) : '';
     }
+    return '';
+  };
+
+  const getDisplayBreakdownValue = (p: any, component: string): string => {
+    // If operator manually modified breakdown in local state, prioritize that
+    const localVal = getBreakdownValue(p.id, component);
+    if (localVal !== '') return localVal;
+
+    // Otherwise, if jury scores exist, use average across juries
+    const juryAvg = getJuryAverageBreakdown(p, component);
+    if (juryAvg !== null) return juryAvg;
+
     return '';
   };
 
@@ -83,22 +126,68 @@ export default function ResultInput({ competitionId, competition, participants, 
     return total.toFixed(2);
   };
 
+  const getDisplayTotalScore = (p: any): string => {
+    const r = map[p.id] ?? {};
+    const hasJuryScores = p.jury_scores && p.jury_scores.length > 0;
+
+    if (hasJuryScores) {
+      // If jury scores exist, the true score is the multi-jury average
+      const juryAvg = getJuryAverageTotal(p);
+      if (juryAvg !== null) return juryAvg;
+      if (r.score != null) return Number(r.score).toFixed(2);
+    }
+
+    if (criteria.length > 0) {
+      return calcWeightedScore(p.id);
+    }
+
+    return r.score != null ? String(r.score) : '';
+  };
+
   const handleSave = async (pid: string | number) => {
     setSavingId(String(pid));
     const item = map[pid] ?? {};
+    const p = participants.find(part => part.id == pid);
+    const hasJuryScores = p?.jury_scores && p.jury_scores.length > 0;
+
     try {
-      const breakdown = criteria.length > 0
-        ? criteria.map(c => ({ component: c.component, weight: c.weight, value: parseFloat(getBreakdownValue(pid, c.component)) || 0 }))
-        : item.score_breakdown;
+      let finalScore: number | undefined;
+      let finalBreakdown: any;
+
+      if (hasJuryScores) {
+        // Multi-jury evaluation: preserve the aggregated average score
+        const avgTot = getJuryAverageTotal(p);
+        finalScore = avgTot !== null ? Number(avgTot) : (item.score ? Number(item.score) : undefined);
+        finalBreakdown = criteria.length > 0
+          ? criteria.map(c => ({
+              component: c.component,
+              weight: c.weight,
+              value: parseFloat(getDisplayBreakdownValue(p, c.component)) || 0,
+            }))
+          : item.score_breakdown;
+      } else if (criteria.length > 0) {
+        // Manual operator scoring with criteria
+        finalScore = Number(calcWeightedScore(pid));
+        finalBreakdown = criteria.map(c => ({
+          component: c.component,
+          weight: c.weight,
+          value: parseFloat(getBreakdownValue(pid, c.component)) || 0,
+        }));
+      } else {
+        // Simple score
+        finalScore = item.score ? Number(item.score) : undefined;
+        finalBreakdown = item.score_breakdown;
+      }
 
       await eventApi.results.save(Number(competitionId), {
         participant_id: typeof pid === 'string' && pid.startsWith('reg_') ? pid : Number(pid),
-        score: criteria.length > 0 ? Number(calcWeightedScore(pid)) : (item.score ? Number(item.score) : undefined),
+        score: finalScore,
         rank: item.rank ? Number(item.rank) : undefined,
         notes: item.notes,
-        score_breakdown: breakdown,
+        score_breakdown: finalBreakdown,
       });
-      const name = participants.find(p => p.id == pid)?.name ?? '';
+
+      const name = p?.name ?? '';
       toast.success(`Nilai "${name}" tersimpan & juara otomatis dihitung`, { icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> });
       onSaved?.();
     } catch {
@@ -232,23 +321,38 @@ export default function ResultInput({ competitionId, competition, participants, 
                         <TableCell key={c.component} className="p-2">
                           <Input
                             type="number" min="0" max="100" step="0.5"
-                            value={getBreakdownValue(p.id, c.component)}
+                            value={getDisplayBreakdownValue(p, c.component)}
                             onChange={e => setBreakdown(p.id, c.component, e.target.value)}
                             placeholder="0-100"
                             className="h-8 text-sm px-2 text-center"
+                            readOnly={Boolean(p.jury_scores && p.jury_scores.length > 0)}
+                            title={p.jury_scores && p.jury_scores.length > 0 ? `Rata-rata dari ${p.jury_scores.length} dewan juri` : undefined}
                           />
                         </TableCell>
                       ))
                     ) : null}
                     <TableCell>
-                      <Input 
-                        type="number" 
-                        value={criteria.length > 0 ? calcWeightedScore(p.id) : (r.score ?? '')} 
-                        onChange={e => { if (criteria.length === 0) set(p.id, 'score', e.target.value); }} 
-                        readOnly={criteria.length > 0}
-                        placeholder="—" 
-                        className={`h-8 text-sm ${criteria.length > 0 ? 'bg-slate-50 font-bold text-slate-600' : ''}`} 
-                      />
+                      <div className="space-y-0.5">
+                        <Input 
+                          type="number" 
+                          value={getDisplayTotalScore(p)} 
+                          onChange={e => { if (criteria.length === 0 && !(p.jury_scores && p.jury_scores.length > 0)) set(p.id, 'score', e.target.value); }} 
+                          readOnly={criteria.length > 0 || Boolean(p.jury_scores && p.jury_scores.length > 0)}
+                          placeholder="—" 
+                          className={`h-8 text-sm font-bold ${
+                            p.jury_scores && p.jury_scores.length > 0
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                              : criteria.length > 0
+                              ? 'bg-slate-50 text-slate-600'
+                              : ''
+                          }`} 
+                        />
+                        {p.jury_scores && p.jury_scores.length > 0 && (
+                          <span className="text-[9px] font-bold text-emerald-700 block text-center leading-none">
+                            Rata-rata ({p.jury_scores.length} Juri)
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">

@@ -42,8 +42,9 @@ class CompetitionRankingService
             return;
         }
 
-        // Group by jenjang if present, otherwise single group
-        $hasDistinctJenjang = $participants->pluck('jenjang')->filter()->unique()->count() > 1;
+        // Group by jenjang if present, unless competition is a single overall pool (e.g. film_dokumenter)
+        $isSinglePool = in_array($competition->lomba_type, ['film_dokumenter'], true);
+        $hasDistinctJenjang = !$isSinglePool && $participants->pluck('jenjang')->filter()->unique()->count() > 1;
         $groups = $hasDistinctJenjang
             ? $participants->groupBy(fn ($p) => $p->jenjang ?: 'Umum')
             : collect(['all' => $participants]);

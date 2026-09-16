@@ -153,9 +153,15 @@ export default function CompetitionExportModal({
           });
         }
 
-        const finalScore = p.result?.score != null
-          ? Number(p.result.score).toFixed(2)
-          : (p.total_score != null ? Number(p.total_score).toFixed(2) : '-');
+        const juryAvg = (p.jury_scores && p.jury_scores.length > 0)
+          ? (p.jury_scores.reduce((sum: number, js: any) => sum + (Number(js.score) || 0), 0) / p.jury_scores.length).toFixed(2)
+          : null;
+
+        const finalScore = juryAvg !== null
+          ? juryAvg
+          : (p.result?.score != null
+            ? Number(p.result.score).toFixed(2)
+            : (p.total_score != null ? Number(p.total_score).toFixed(2) : '-'));
 
         rowData['Nilai Akhir (Rata-rata)'] = finalScore;
         rowData['Catatan Dewan Juri'] = p.result?.notes || p.reviewer_notes || '-';
@@ -365,9 +371,15 @@ export default function CompetitionExportModal({
                     </tr>
                   ) : (
                     sorted.map((p, idx) => {
-                      const finalScore = p.result?.score != null
-                        ? Number(p.result.score).toFixed(2)
-                        : (p.total_score != null ? Number(p.total_score).toFixed(2) : '-');
+                      const juryAvg = (p.jury_scores && p.jury_scores.length > 0)
+                        ? (p.jury_scores.reduce((sum: number, js: any) => sum + (Number(js.score) || 0), 0) / p.jury_scores.length).toFixed(2)
+                        : null;
+
+                      const finalScore = juryAvg !== null
+                        ? juryAvg
+                        : (p.result?.score != null
+                          ? Number(p.result.score).toFixed(2)
+                          : (p.total_score != null ? Number(p.total_score).toFixed(2) : '-'));
 
                       const isWinner = p.result?.rank && p.result.rank <= 3;
 

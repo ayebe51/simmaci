@@ -69,14 +69,59 @@ class CompetitionController extends Controller
             'results.participant',
         ]);
 
+        $needsAutoRank = false;
+
         // For anugerah types, also load registrations with jury scores
         $anugerahRegistrations = [];
         if (in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'])) {
-            $anugerahRegistrations = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+            $anugerahQuery = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
                 ->with('juryScores')
                 ->orderBy('school_name')->orderBy('applicant_name')
-                ->get()
-                ->toArray();
+                ->get();
+
+            foreach ($anugerahQuery as $reg) {
+                if ($reg->juryScores && $reg->juryScores->isNotEmpty()) {
+                    $expectedAvg = round((float) $reg->juryScores->avg('score'), 2);
+                    if ($reg->total_score === null || abs((float) $reg->total_score - $expectedAvg) >= 0.01) {
+                        $reg->update(['total_score' => $expectedAvg]);
+                        $needsAutoRank = true;
+                    }
+                }
+            }
+
+            if ($needsAutoRank) {
+                \App\Services\CompetitionRankingService::autoRank($competition);
+                $anugerahQuery = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                    ->with('juryScores')
+                    ->orderBy('school_name')->orderBy('applicant_name')
+                    ->get();
+            }
+
+            $anugerahRegistrations = $anugerahQuery->toArray();
+        } else {
+            // For festival / regular competitions, ensure results match multi-jury average
+            foreach ($competition->participants as $p) {
+                if ($p->juryScores && $p->juryScores->isNotEmpty()) {
+                    $expectedAvg = round((float) $p->juryScores->avg('score'), 2);
+                    $curScore = $p->result ? (float) $p->result->score : null;
+                    if ($curScore === null || abs($curScore - $expectedAvg) >= 0.01) {
+                        \App\Models\CompetitionResult::updateOrCreate(
+                            ['competition_id' => $competition->id, 'participant_id' => $p->id],
+                            ['score' => $expectedAvg]
+                        );
+                        $needsAutoRank = true;
+                    }
+                }
+            }
+
+            if ($needsAutoRank) {
+                \App\Services\CompetitionRankingService::autoRank($competition);
+                $competition->load([
+                    'event',
+                    'participants' => fn ($q) => $q->with(['result', 'juryScores'])->orderBy('institution')->orderBy('name'),
+                    'results.participant',
+                ]);
+            }
         }
 
         $data = $competition->toArray();
@@ -266,9 +311,16 @@ class CompetitionController extends Controller
                 ->where('competition_id', $competition->id)
                 ->firstOrFail();
 
+            $juryScores = \App\Models\CompetitionJuryScore::where('competition_id', $competition->id)
+                ->where('anugerah_registration_id', $regId)->get();
+
+            $finalScore = $juryScores->isNotEmpty()
+                ? round((float) $juryScores->avg('score'), 2)
+                : ($data['score'] !== null ? (float) $data['score'] : null);
+
             $reg->update([
                 'rank'            => $data['rank'] ?? null,
-                'total_score'     => $data['score'] !== null ? (float) $data['score'] : null,
+                'total_score'     => $finalScore,
                 'reviewer_notes'  => $data['notes'] ?? null,
                 'score_breakdown' => $data['score_breakdown'] ?? null,
             ]);
@@ -286,14 +338,22 @@ class CompetitionController extends Controller
             ], 'Nilai berhasil disimpan & juara otomatis diperbarui');
         }
 
+        $partId = (int) $data['participant_id'];
+        $juryScores = \App\Models\CompetitionJuryScore::where('competition_id', $competition->id)
+            ->where('participant_id', $partId)->get();
+
+        $finalScore = $juryScores->isNotEmpty()
+            ? round((float) $juryScores->avg('score'), 2)
+            : ($data['score'] !== null ? (float) $data['score'] : null);
+
         $result = CompetitionResult::updateOrCreate(
             [
                 'competition_id' => $competition->id,
-                'participant_id' => $data['participant_id'],
+                'participant_id' => $partId,
             ],
             [
                 'rank'            => $data['rank'] ?? null,
-                'score'           => $data['score'] !== null ? (float) $data['score'] : null,
+                'score'           => $finalScore,
                 'notes'           => $data['notes'] ?? null,
                 'score_breakdown' => $data['score_breakdown'] ?? null,
             ]

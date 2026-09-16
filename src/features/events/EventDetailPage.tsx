@@ -276,7 +276,7 @@ function FestivalGrid({ competitions }: { competitions: any[] }) {
     mtq_pa:          { icon: '📖', desc: 'Perorangan Putra, maqra\' bebas, live record' },
     mtq_pi:          { icon: '📖', desc: 'Perorangan Putri, maqra\' bebas, live record' },
     puji_pujian:     { icon: '🕌', desc: 'Kelompok 3–5 anak MI/SD, syi\'iran Jawa tradisi pesantren' },
-    film_dokumenter: { icon: '🎬', desc: 'Tim maks 5 orang, full HD 1080p, tema tokoh/tradisi NU' },
+    film_dokumenter: { icon: '🎬', desc: 'Tim maks 5 orang, full HD 1080p, tema tokoh/tradisi NU (Juara Umum, tidak per jenjang)' },
   };
 
   return (

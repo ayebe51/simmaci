@@ -337,4 +337,157 @@ class MultiJuryScoringTest extends TestCase
         $res->assertStatus(422);
         $this->assertStringContainsString('PIN juri belum dikonfigurasi', $res->json('message'));
     }
+
+    public function test_film_dokumenter_is_ranked_in_single_pool_across_all_jenjang(): void
+    {
+        $event = Event::create([
+            'name'     => 'Festival Aswaja 2026',
+            'slug'     => 'festival-film-dokumenter-2026',
+            'category' => 'Festival',
+            'date'     => '2026-09-19',
+            'location' => 'Cilacap',
+            'status'   => 'OPEN',
+        ]);
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Film Pendek Dokumenter',
+            'category'   => 'Karya Ilmiah & Seni',
+            'type'       => 'Group',
+            'lomba_type' => 'film_dokumenter',
+            'status'     => 'OPEN',
+        ]);
+
+        $p1 = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'name'           => 'Film Tim SMA',
+            'institution'    => 'MA Ma\'arif 01',
+            'jenjang'        => 'SMA/MA/SMK',
+        ]);
+        $p2 = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'name'           => 'Film Tim SMP',
+            'institution'    => 'MTs Ma\'arif 01',
+            'jenjang'        => 'SMP/MTs',
+        ]);
+        $p3 = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'name'           => 'Film Tim SD',
+            'institution'    => 'MI Ma\'arif 01',
+            'jenjang'        => 'MI/SD',
+        ]);
+
+        // Create results with different scores: p2 (92) > p1 (88) > p3 (80)
+        CompetitionResult::create([
+            'competition_id' => $competition->id,
+            'participant_id' => $p1->id,
+            'score'          => 88.00,
+        ]);
+        CompetitionResult::create([
+            'competition_id' => $competition->id,
+            'participant_id' => $p2->id,
+            'score'          => 92.00,
+        ]);
+        CompetitionResult::create([
+            'competition_id' => $competition->id,
+            'participant_id' => $p3->id,
+            'score'          => 80.00,
+        ]);
+
+        \App\Services\CompetitionRankingService::autoRank($competition);
+
+        // Verify ranks:
+        // Rank 1: p2 (92.00) - SMP/MTs
+        // Rank 2: p1 (88.00) - SMA/MA/SMK
+        // Rank 3: p3 (80.00) - MI/SD
+        // Ranks must NOT reset per jenjang!
+        $this->assertDatabaseHas('competition_results', [
+            'participant_id' => $p2->id,
+            'rank'           => 1,
+        ]);
+        $this->assertDatabaseHas('competition_results', [
+            'participant_id' => $p1->id,
+            'rank'           => 2,
+        ]);
+        $this->assertDatabaseHas('competition_results', [
+            'participant_id' => $p3->id,
+            'rank'           => 3,
+        ]);
+    }
+
+    public function test_recalculate_scores_command_normalizes_mtq_and_reaggregates(): void
+    {
+        $event = Event::create([
+            'name'     => 'Festival MTQ 2026',
+            'slug'     => 'festival-mtq-recalc-2026',
+            'category' => 'Festival',
+            'date'     => '2026-09-19',
+            'location' => 'Cilacap',
+            'status'   => 'OPEN',
+        ]);
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Musabaqah Tilawatil Qur\'an',
+            'category'   => 'Keagamaan',
+            'type'       => 'Individual',
+            'lomba_type' => 'mtq',
+            'status'     => 'OPEN',
+        ]);
+
+        $part = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'name'           => 'Qari Ahmad',
+            'institution'    => 'MTs Ma\'arif 01',
+            'jenjang'        => 'SMP/MTs',
+        ]);
+
+        // Juri 1 (Kyai Ridwan): input 0-100 scale correctly
+        CompetitionJuryScore::create([
+            'competition_id'  => $competition->id,
+            'participant_id'  => $part->id,
+            'jury_name'       => 'Kyai Ridwan',
+            'score'           => 75.00,
+            'score_breakdown' => [
+                ['component' => 'Tajwid', 'weight' => 0.45, 'value' => 75.0],
+                ['component' => 'Lagu & Irama', 'weight' => 0.35, 'value' => 75.0],
+                ['component' => 'Adab & Fashahah', 'weight' => 0.20, 'value' => 75.0],
+            ],
+        ]);
+
+        // Juri 2 (Zen Muzaki): input raw component points (35/45, 26/35, 12/20) which resulted in 27.25
+        CompetitionJuryScore::create([
+            'competition_id'  => $competition->id,
+            'participant_id'  => $part->id,
+            'jury_name'       => 'Zen Muzaki',
+            'score'           => 27.25,
+            'score_breakdown' => [
+                ['component' => 'Tajwid', 'weight' => 0.45, 'value' => 35.0],
+                ['component' => 'Lagu & Irama', 'weight' => 0.35, 'value' => 26.0],
+                ['component' => 'Adab & Fashahah', 'weight' => 0.20, 'value' => 12.0],
+            ],
+        ]);
+
+        // Run artisan command with --normalize
+        $this->artisan("competition:recalculate-scores {$competition->id} --normalize")
+            ->assertExitCode(0);
+
+        // Verify Zen Muzaki's score was normalized to 73.00
+        $zenScore = CompetitionJuryScore::where('competition_id', $competition->id)
+            ->where('jury_name', 'Zen Muzaki')
+            ->first();
+
+        $this->assertNotNull($zenScore);
+        $this->assertEquals(73.00, (float) $zenScore->score);
+
+        // Verify competition_results has average: (75.00 + 73.00) / 2 = 74.00
+        $result = CompetitionResult::where('competition_id', $competition->id)
+            ->where('participant_id', $part->id)
+            ->first();
+
+        $this->assertNotNull($result);
+        $this->assertEquals(74.00, (float) $result->score);
+        $this->assertEquals(1, $result->rank);
+    }
 }
+

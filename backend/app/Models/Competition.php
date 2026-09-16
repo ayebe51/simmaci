@@ -130,10 +130,44 @@ class Competition extends Model
     public static function unlockAllScores(): void
     {
         \App\Models\Setting::setValue('all_competition_scores_locked', 'false');
+        \App\Models\Setting::setValue('freeze_submitted_scores', 'false');
         foreach (static::all() as $c) {
             \App\Models\Setting::setValue("competition_scores_locked_{$c->id}", 'false');
+            \App\Models\Setting::setValue("freeze_submitted_scores_{$c->id}", 'false');
         }
         static::query()->update(['status' => 'OPEN']);
+    }
+
+    /**
+     * Check if submitted scores cannot be modified (freeze submitted scores).
+     */
+    public function isFreezeSubmittedScores(): bool
+    {
+        return \App\Models\Setting::getValue('freeze_submitted_scores') === 'true'
+            || \App\Models\Setting::getValue("freeze_submitted_scores_{$this->id}") === 'true';
+    }
+
+    public function freezeSubmittedScores(): void
+    {
+        \App\Models\Setting::setValue("freeze_submitted_scores_{$this->id}", 'true');
+    }
+
+    public function unfreezeSubmittedScores(): void
+    {
+        \App\Models\Setting::setValue("freeze_submitted_scores_{$this->id}", 'false');
+    }
+
+    public static function freezeAllSubmittedScores(): void
+    {
+        \App\Models\Setting::setValue('freeze_submitted_scores', 'true');
+    }
+
+    public static function unfreezeAllSubmittedScores(): void
+    {
+        \App\Models\Setting::setValue('freeze_submitted_scores', 'false');
+        foreach (static::all() as $c) {
+            \App\Models\Setting::setValue("freeze_submitted_scores_{$c->id}", 'false');
+        }
     }
 }
 

@@ -10,6 +10,7 @@ class LockCompetitionScores extends Command
     protected $signature = 'competition:lock-scores
                             {competition_id? : ID Cabang Lomba tertentu (opsional)}
                             {--all : Kunci seluruh cabang lomba secara global}
+                            {--freeze-submitted : Bekukan nilai yang sudah diinput agar tidak bisa diedit, tapi juri masih bisa menilai peserta yang belum dinilai}
                             {--unlock : Buka kembali kunci penilaian}';
 
     protected $description = 'Kunci nilai lomba agar dewan juri dan operator tidak dapat lagi menambah atau merubah nilai.';
@@ -19,17 +20,21 @@ class LockCompetitionScores extends Command
         $id       = $this->argument('competition_id');
         $isAll    = (bool) $this->option('all');
         $isUnlock = (bool) $this->option('unlock');
+        $isFreeze = (bool) $this->option('freeze-submitted');
 
         $this->info("================================================================================");
         $this->info($isUnlock 
             ? "       BUKA KUNCI NILAI CABANG LOMBA SIMMACI" 
-            : "       KUNCI NILAI CABANG LOMBA SIMMACI (FINALISASI HASIL)");
+            : ($isFreeze 
+                ? "       BEKUKAN NILAI YANG SUDAH DIINPUT (PESERTA SISA TETAP BISA DINILAI)" 
+                : "       KUNCI NILAI CABANG LOMBA SIMMACI (FINALISASI HASIL)"));
         $this->info("================================================================================");
 
         if ($isUnlock) {
             if ($id) {
                 $comp = Competition::findOrFail($id);
                 $comp->unlockScores();
+                $comp->unfreezeSubmittedScores();
                 $this->info("✓ Kunci nilai cabang lomba [{$comp->id}] {$comp->name} berhasil DIBUKA.");
             } else {
                 Competition::unlockAllScores();
@@ -39,7 +44,23 @@ class LockCompetitionScores extends Command
             return 0;
         }
 
-        // Lock mode
+        if ($isFreeze) {
+            if ($id) {
+                $comp = Competition::findOrFail($id);
+                $comp->freezeSubmittedScores();
+                $this->info("✓ Mode BEKUKAN NILAI TERISI aktif untuk cabang [{$comp->id}] {$comp->name}.");
+            } else {
+                Competition::freezeAllSubmittedScores();
+                $this->info("✓ Mode BEKUKAN NILAI TERISI aktif untuk SELURUH cabang lomba.");
+            }
+            $this->info("\n✓ Aturan Aktif:");
+            $this->line("  1. Nilai peserta yang SUDAH disimpan oleh juri dikunci permanen (tidak bisa diedit).");
+            $this->line("  2. Juri yang BELUM selesai tetap bisa menginput nilai untuk peserta yang tersisa.");
+            $this->showStatusTable();
+            return 0;
+        }
+
+        // Lock mode (Total Lock)
         if ($id) {
             $comp = Competition::findOrFail($id);
             $comp->lockScores();
@@ -72,7 +93,9 @@ class LockCompetitionScores extends Command
             $c->name,
             $c->lomba_type ?: '-',
             $c->status,
-            $c->isScoresLocked() ? '🔒 TERKUNCI' : '🔓 TERBUKA',
+            $c->isScoresLocked() 
+                ? '🔒 KUNCI TOTAL' 
+                : ($c->isFreezeSubmittedScores() ? '❄️ KUNCI NILAI TERISI' : '🔓 TERBUKA'),
         ])->toArray();
 
         $this->table(

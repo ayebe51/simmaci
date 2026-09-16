@@ -208,6 +208,7 @@ export default function JuryScoringPage() {
   // Get active criteria based on competition type and phase
   const isTwoPhase = Boolean(competition?.is_two_phase);
   const isLocked = Boolean(competition?.is_locked);
+  const isFreezeSubmitted = Boolean(competition?.freeze_submitted_scores);
   const activeCriteria: Criterion[] = isTwoPhase
     ? (selectedPhase === 1 ? (competition?.phase1_criteria ?? []) : (competition?.phase2_criteria ?? []))
     : (competition?.criteria ?? []);
@@ -232,8 +233,10 @@ export default function JuryScoringPage() {
   };
 
   const handleSave = async (pid: string | number) => {
-    if (isLocked) {
-      toast.error('Penilaian untuk cabang lomba ini telah dikunci/final. Nilai tidak dapat diubah.');
+    const pObj = participants.find(p => p.id === pid);
+    const isAlreadyScored = Boolean(pObj?.result?.is_scored_by_me || savedIds.has(pid));
+    if (isLocked || (isFreezeSubmitted && isAlreadyScored)) {
+      toast.error('Nilai untuk peserta ini sudah pernah disimpan dan telah dikunci.');
       return;
     }
     setSavingId(pid);
@@ -475,6 +478,28 @@ export default function JuryScoringPage() {
           </div>
         )}
 
+        {/* Banner Kunci Nilai Terisi */}
+        {!isLocked && isFreezeSubmitted && (
+          <div className="p-4 bg-blue-50 border-2 border-blue-200 text-blue-950 rounded-2xl flex items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-blue-200/80 rounded-xl text-blue-900 mt-0.5 sm:mt-0 flex-shrink-0">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm sm:text-base text-blue-950 flex items-center gap-2">
+                  Mode Kunci Nilai Terisi (Immutability)
+                </h4>
+                <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
+                  Nilai untuk peserta yang <strong>sudah Anda simpan</strong> telah dikunci permanen. Anda masih dapat menilai <strong>peserta yang belum dinilai</strong> hingga selesai.
+                </p>
+              </div>
+            </div>
+            <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-blue-200 text-blue-900 border border-blue-300 flex-shrink-0">
+              🔒 Terkunci Saat Disimpan
+            </span>
+          </div>
+        )}
+
         {/* Phase Tabs for Anugerah Competitions */}
         {isTwoPhase && (
           <div className="bg-white p-2 rounded-2xl shadow-sm border flex items-center gap-2">
@@ -578,6 +603,7 @@ export default function JuryScoringPage() {
               const isSaving = savingId === p.id;
               const isSaved = savedIds.has(p.id);
               const alreadyScored = p.result?.is_scored_by_me;
+              const isParticipantLocked = isLocked || (isFreezeSubmitted && (alreadyScored || isSaved));
               const activeSubtotal = calcActiveSubtotal(p.id);
               const rankNum = s.rank ? Number(s.rank) : undefined;
               const p1Saved = Number(p.result?.phase1_score || 0);
@@ -719,8 +745,8 @@ export default function JuryScoringPage() {
                                 value={s.breakdown?.[c.component] ?? ''}
                                 onChange={e => setBreakdown(p.id, c.component, e.target.value)}
                                 placeholder="0–100"
-                                disabled={isLocked}
-                                className={`h-9 text-sm font-bold disabled:opacity-100 disabled:text-slate-900 ${isLocked ? 'bg-slate-100/90 text-slate-900 cursor-not-allowed' : 'bg-white'}`}
+                                disabled={isParticipantLocked}
+                                className={`h-9 text-sm font-bold disabled:opacity-100 disabled:text-slate-900 ${isParticipantLocked ? 'bg-slate-100/90 text-slate-900 cursor-not-allowed' : 'bg-white'}`}
                               />
                             </div>
                           ))}
@@ -760,17 +786,17 @@ export default function JuryScoringPage() {
                         <Input
                           type="number" min="0" max="100" step="0.01"
                           value={isTwoPhase ? (selectedPhase === 2 ? totalCombined : activeSubtotal) : (activeCriteria.length > 0 ? activeSubtotal.toFixed(2) : s.score)}
-                          onChange={e => { if (activeCriteria.length === 0 && !isLocked) setScore(p.id, 'score', e.target.value); }}
-                          readOnly={activeCriteria.length > 0 || isLocked}
-                          disabled={isLocked}
+                          onChange={e => { if (activeCriteria.length === 0 && !isParticipantLocked) setScore(p.id, 'score', e.target.value); }}
+                          readOnly={activeCriteria.length > 0 || isParticipantLocked}
+                          disabled={isParticipantLocked}
                           placeholder="—"
                           className="h-8 text-sm font-bold bg-slate-100 text-slate-900 disabled:opacity-100 disabled:text-slate-900"
                         />
                       </div>
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">Juara (Otomatis)</Label>
-                        <Select value={s.rank} onValueChange={v => setScore(p.id, 'rank', v)} disabled={isLocked}>
-                          <SelectTrigger className="h-8 text-sm font-semibold disabled:opacity-100 disabled:text-slate-900 disabled:bg-slate-100/90" disabled={isLocked}><SelectValue placeholder="—"/></SelectTrigger>
+                        <Select value={s.rank} onValueChange={v => setScore(p.id, 'rank', v)} disabled={isParticipantLocked}>
+                          <SelectTrigger className="h-8 text-sm font-semibold disabled:opacity-100 disabled:text-slate-900 disabled:bg-slate-100/90" disabled={isParticipantLocked}><SelectValue placeholder="—"/></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1">🥇 Juara 1</SelectItem>
                             <SelectItem value="2">🥈 Juara 2</SelectItem>
@@ -782,26 +808,26 @@ export default function JuryScoringPage() {
                       </div>
                       <div className="space-y-0.5">
                         <Label className="text-[10px] text-slate-500">Catatan</Label>
-                        <Input value={s.notes} onChange={e => setScore(p.id, 'notes', e.target.value)} placeholder="Catatan juri..." disabled={isLocked} className="h-8 text-sm disabled:opacity-100 disabled:text-slate-800 disabled:bg-slate-100/90 disabled:cursor-not-allowed" />
+                        <Input value={s.notes} onChange={e => setScore(p.id, 'notes', e.target.value)} placeholder="Catatan juri..." disabled={isParticipantLocked} className="h-8 text-sm disabled:opacity-100 disabled:text-slate-800 disabled:bg-slate-100/90 disabled:cursor-not-allowed" />
                       </div>
                     </div>
 
                     <Button
                       size="sm"
                       className={`w-full gap-1.5 font-bold ${
-                        isLocked
+                        isParticipantLocked
                           ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed hover:bg-slate-100'
                           : isTwoPhase && selectedPhase === 2
                           ? 'bg-purple-600 hover:bg-purple-700 text-white cursor-pointer'
                           : isSaved ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer' : 'cursor-pointer'
                       }`}
                       onClick={() => handleSave(p.id)}
-                      disabled={isSaving || isLocked}
+                      disabled={isSaving || isParticipantLocked}
                     >
-                      {isLocked ? (
+                      {isParticipantLocked ? (
                         <>
                           <Lock size={13} />
-                          <span>Nilai Telah Dikunci (Read-Only)</span>
+                          <span>Nilai Tersimpan (Terkunci)</span>
                         </>
                       ) : isSaving ? (
                         <Loader2 size={13} className="animate-spin"/>
@@ -810,7 +836,7 @@ export default function JuryScoringPage() {
                       ) : (
                         <Save size={13}/>
                       )}
-                      {!isLocked && (
+                      {!isParticipantLocked && (
                         isTwoPhase 
                           ? (selectedPhase === 1 
                               ? (isSaved ? 'Tersimpan — Perbarui Nilai Berkas' : 'Simpan Nilai Berkas (Fase 1)') 

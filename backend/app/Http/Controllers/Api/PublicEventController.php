@@ -626,8 +626,9 @@ class PublicEventController extends Controller
                 'phase2_criteria'  => $phaseInfo['phase2'],
                 'phase1_max_score' => $phaseInfo['phase1_max'],
                 'phase2_max_score' => $phaseInfo['phase2_max'],
-                'is_locked'        => $competition->isScoresLocked(),
-                'status'           => $competition->status,
+                'is_locked'               => $competition->isScoresLocked(),
+                'freeze_submitted_scores' => $competition->isFreezeSubmittedScores(),
+                'status'                  => $competition->status,
             ],
             'participants' => $participants,
         ]);
@@ -676,6 +677,10 @@ class PublicEventController extends Controller
                 'anugerah_registration_id' => $regId,
                 'jury_name'                => $juryName,
             ])->first();
+
+            if ($competition->isFreezeSubmittedScores() && $existingJuryScore !== null) {
+                return $this->error('Nilai untuk peserta ini sudah tersimpan dan telah dikunci. Nilai tidak dapat diubah lagi.', null, 403);
+            }
 
             // Merge score_breakdown to preserve Phase 1 scores when Phase 2 is submitted (and vice versa)
             $newBreakdown = $data['score_breakdown'] ?? [];
@@ -747,6 +752,16 @@ class PublicEventController extends Controller
         $participant = CompetitionParticipant::where('id', (int) $data['participant_id'])
             ->where('competition_id', $competitionId)
             ->firstOrFail();
+
+        $existingJuryScore = \App\Models\CompetitionJuryScore::where([
+            'competition_id' => $competitionId,
+            'participant_id' => $participant->id,
+            'jury_name'      => $juryName,
+        ])->first();
+
+        if ($competition->isFreezeSubmittedScores() && $existingJuryScore !== null) {
+            return $this->error('Nilai untuk peserta ini sudah tersimpan dan telah dikunci. Nilai tidak dapat diubah lagi.', null, 403);
+        }
 
         // 1. Record score specifically for this jury
         \App\Models\CompetitionJuryScore::updateOrCreate(

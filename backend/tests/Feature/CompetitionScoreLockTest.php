@@ -141,4 +141,51 @@ class CompetitionScoreLockTest extends TestCase
         $this->assertFalse($this->competition->fresh()->isScoresLocked());
         $this->assertEquals('OPEN', $this->competition->fresh()->status);
     }
+
+    public function test_freeze_submitted_scores_allows_unscored_and_blocks_already_scored(): void
+    {
+        $reg2 = AnugerahRegistration::create([
+            'event_id'       => $this->event->id,
+            'competition_id' => $this->competition->id,
+            'category'       => 'Siswa',
+            'applicant_name' => 'Fatimah Az-Zahra',
+            'school_name'    => 'MTs Ma\'arif 02',
+            'jenjang'        => 'MTs/SMP',
+            'status'         => 'submitted',
+        ]);
+
+        $loginRes = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $this->competition->id,
+            'pin'            => '1234',
+            'jury_name'      => 'Juri A',
+        ]);
+        $token = $loginRes->json('data.token');
+
+        // Score first participant
+        $this->postJson("/api/public/jury/{$token}/score", [
+            'participant_id' => "reg_{$this->registration->id}",
+            'score'          => 85.0,
+        ])->assertStatus(200);
+
+        // Turn on freeze submitted scores mode
+        $this->competition->freezeSubmittedScores();
+        $this->assertTrue($this->competition->fresh()->isFreezeSubmittedScores());
+
+        // Attempting to re-score or edit first participant must be BLOCKED
+        $editRes = $this->postJson("/api/public/jury/{$token}/score", [
+            'participant_id' => "reg_{$this->registration->id}",
+            'score'          => 95.0,
+        ]);
+        $editRes->assertStatus(403);
+        $editRes->assertJsonFragment([
+            'message' => 'Nilai untuk peserta ini sudah tersimpan dan telah dikunci. Nilai tidak dapat diubah lagi.',
+        ]);
+
+        // But scoring the second (unscored) participant MUST SUCCEED
+        $newScoreRes = $this->postJson("/api/public/jury/{$token}/score", [
+            'participant_id' => "reg_{$reg2->id}",
+            'score'          => 90.0,
+        ]);
+        $newScoreRes->assertStatus(200);
+    }
 }

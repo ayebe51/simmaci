@@ -256,7 +256,7 @@ export default function JuryScoringPage() {
       let saveScore = Number(activeSubtotal.toFixed(2));
       if (isTwoPhase && selectedPhase === 2) {
         const pObj = participants.find(p => p.id === pid);
-        const p1 = Number(pObj?.result?.phase1_score || 0);
+        const p1 = Number(pObj?.result?.phase1_effective_score ?? pObj?.result?.phase1_avg_score ?? pObj?.result?.phase1_score ?? 0);
         saveScore = Number((p1 + activeSubtotal).toFixed(2));
       }
 
@@ -606,7 +606,7 @@ export default function JuryScoringPage() {
               const isParticipantLocked = isLocked || (isFreezeSubmitted && (alreadyScored || isSaved));
               const activeSubtotal = calcActiveSubtotal(p.id);
               const rankNum = s.rank ? Number(s.rank) : undefined;
-              const p1Saved = Number(p.result?.phase1_score || 0);
+              const p1Saved = Number(p.result?.phase1_effective_score ?? p.result?.phase1_avg_score ?? p.result?.phase1_score ?? 0);
               const totalCombined = isTwoPhase && selectedPhase === 2 ? Number((p1Saved + activeSubtotal).toFixed(2)) : activeSubtotal;
 
               return (
@@ -711,7 +711,7 @@ export default function JuryScoringPage() {
                           <CheckCircle2 size={16} className="text-emerald-600" />
                           <div>
                             <span className="font-bold text-emerald-950 block">Skor Seleksi Berkas (Fase 1)</span>
-                            <span className="text-[11px] text-emerald-700">Tersimpan dari lembar penilaian berkas portofolio Anda</span>
+                            <span className="text-[11px] text-emerald-700">Skor portofolio & seleksi berkas resmi Fase 1</span>
                           </div>
                         </div>
                         <div className="text-right">

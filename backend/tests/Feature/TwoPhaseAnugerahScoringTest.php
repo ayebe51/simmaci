@@ -243,4 +243,137 @@ class TwoPhaseAnugerahScoringTest extends TestCase
 
         $this->assertEquals(0, CompetitionJuryScore::where('competition_id', $competition->id)->count());
     }
+
+    public function test_phase2_displays_official_phase1_scores_across_different_juries_and_merges_properly(): void
+    {
+        $event = Event::create([
+            'name'     => 'Harlah LP Ma\'arif 97 Multi-Jury',
+            'slug'     => 'harlah-97-multi-jury-p2',
+            'category' => 'Anugerah',
+            'date'     => '2026-09-19',
+            'status'   => 'OPEN',
+        ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'pin123');
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Guru Berprestasi',
+            'category'   => 'Akademik',
+            'type'       => 'Individual',
+            'lomba_type' => 'guru_berprestasi',
+            'status'     => 'OPEN',
+            'scoring_criteria' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40],
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30],
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15],
+            ],
+        ]);
+
+        // Peserta 1: Jenjang MI
+        $regMI = AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $competition->id,
+            'category'       => 'Guru',
+            'applicant_name' => 'Guru MI Hebat',
+            'school_name'    => 'MI Ma\'arif 01',
+            'jenjang'        => 'MI/SD',
+            'status'         => 'finalis',
+        ]);
+
+        // Peserta 2: Jenjang MTs
+        $regMTs = AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $competition->id,
+            'category'       => 'Guru',
+            'applicant_name' => 'Guru MTs Keren',
+            'school_name'    => 'MTs Ma\'arif 01',
+            'jenjang'        => 'MTs/SMP',
+            'status'         => 'finalis',
+        ]);
+
+        // Juri MI: "Juri Muhtarom" scores Peserta MI only in Phase 1
+        $loginJuryMI = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Juri Muhtarom',
+        ]);
+        $tokenMI = $loginJuryMI->json('data.token');
+
+        $this->postJson("/api/public/jury/{$tokenMI}/score", [
+            'participant_id'  => "reg_{$regMI->id}",
+            'score'           => 58.0,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40, 'value' => 85], // 34.0
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30, 'value' => 80], // 24.0
+            ],
+        ])->assertStatus(200);
+
+        // Juri MTs: "Juri Badawi" scores Peserta MTs only in Phase 1
+        $loginJuryMTs = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Juri Badawi',
+        ]);
+        $tokenMTs = $loginJuryMTs->json('data.token');
+
+        $this->postJson("/api/public/jury/{$tokenMTs}/score", [
+            'participant_id'  => "reg_{$regMTs->id}",
+            'score'           => 61.0,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40, 'value' => 90], // 36.0
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30, 'value' => 83.33], // 25.0
+            ],
+        ])->assertStatus(200);
+
+        // Now Phase 2 starts!
+        // 1. When Juri Muhtarom logs into Phase 2:
+        // Even though Muhtarom only scored MI, Muhtarom MUST see Peserta MTs with their official Phase 1 score (61.0)!
+        $listResMuhtarom = $this->getJson("/api/public/jury/{$tokenMI}/participants?phase=2");
+        $listResMuhtarom->assertStatus(200);
+        $participants = collect($listResMuhtarom->json('data.participants'));
+
+        $pMI = $participants->firstWhere('name', 'Guru MI Hebat');
+        $pMTs = $participants->firstWhere('name', 'Guru MTs Keren');
+
+        $this->assertEquals(58.0, (float) $pMI['result']['phase1_score']);
+        $this->assertEquals(61.0, (float) $pMTs['result']['phase1_score'], 'MTs finalist must show official Phase 1 score to MI jury, not 0.00!');
+
+        // 2. A dedicated interview jury "Dr. Wawancara" logs into Phase 2
+        // Dr. Wawancara NEVER scored anyone in Phase 1!
+        $loginWawancara = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Dr. Wawancara',
+        ]);
+        $tokenWawancara = $loginWawancara->json('data.token');
+
+        $listResWawancara = $this->getJson("/api/public/jury/{$tokenWawancara}/participants?phase=2");
+        $listResWawancara->assertStatus(200);
+        $wawancaraParticipants = collect($listResWawancara->json('data.participants'));
+
+        $wMI = $wawancaraParticipants->firstWhere('name', 'Guru MI Hebat');
+        $wMTs = $wawancaraParticipants->firstWhere('name', 'Guru MTs Keren');
+
+        $this->assertEquals(58.0, (float) $wMI['result']['phase1_score'], 'Interview jury must see official Phase 1 score for MI!');
+        $this->assertEquals(61.0, (float) $wMTs['result']['phase1_score'], 'Interview jury must see official Phase 1 score for MTs!');
+
+        // 3. Dr. Wawancara scores Phase 2 for Peserta MTs:
+        // Aswaja (15%) = 90 (13.5) + Wawancara (15%) = 80 (12.0) = 25.5 subtotal
+        // Overall total score must be 61.0 + 25.5 = 86.5!
+        $saveMTsRes = $this->postJson("/api/public/jury/{$tokenWawancara}/score", [
+            'participant_id'  => "reg_{$regMTs->id}",
+            'score'           => 25.5,
+            'phase'           => 2,
+            'score_breakdown' => [
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15, 'value' => 90],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15, 'value' => 80],
+            ],
+        ]);
+        $saveMTsRes->assertStatus(200);
+
+        // Verify that Peserta MTs score was properly combined and NOT wiped out!
+        $freshMTs = $regMTs->fresh();
+        $this->assertEquals(86.5, (float) $freshMTs->total_score, 'Total score must combine Phase 1 (61.0) + Phase 2 (25.5) = 86.5!');
+    }
 }

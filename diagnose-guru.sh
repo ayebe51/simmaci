@@ -1,17 +1,17 @@
 #!/bin/bash
 # ==============================================================================
-# Script Hapus Nilai Juri Muhtarom (Non-MI) pada Lomba Guru Berprestasi SIMMACI
+# Script Diagnosa Nilai Fase 1 & Fase 2 Guru Berprestasi (Production VPS)
 # Aman digunakan saat server berjalan (Zero Downtime / Non-Destructive)
 #
 # Penggunaan di VPS:
-#   bash fix-muhtarom.sh            # Eksekusi langsung (hapus non-MI & hitung ulang)
-#   bash fix-muhtarom.sh --dry-run  # Preview daftar nilai tanpa mengubah data
+#   bash diagnose-guru.sh          # Menampilkan diagnosa nilai 9 finalis
+#   bash diagnose-guru.sh --repair # Sinkronkan & perbaiki breakdown jika ada yang kosong
 # ==============================================================================
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "======================================================="
-echo "   HAPUS NILAI NON-MI JURI MUHTAROM (GURU BERPRESTASI)"
+echo "   DIAGNOSA NILAI GURU BERPRESTASI (FASE 1 & FASE 2)"
 echo "======================================================="
 echo "Argumen: $@"
 echo ""
@@ -44,11 +44,11 @@ docker cp "$SCRIPT_DIR/backend/routes/." "$CONTAINER_ID":/var/www/html/routes/
 # 4. Bersihkan cache Laravel di dalam container
 docker exec -i "$CONTAINER_ID" php artisan optimize:clear > /dev/null 2>&1
 
-echo "✓ Menjalankan pembersihan nilai..."
+echo "Menjalankan php artisan competition:diagnose-guru $@ ..."
 echo ""
 
 # 5. Jalankan perintah artisan di dalam container
-docker exec -i "$CONTAINER_ID" php artisan competition:fix-guru-muhtarom "$@"
+docker exec -i "$CONTAINER_ID" php artisan competition:diagnose-guru "$@"
 
 echo ""
 echo "======================================================="

@@ -508,16 +508,42 @@ class PublicEventController extends Controller
                 ->orderBy('applicant_name')
                 ->get();
 
-            $participants = $registrations->map(function ($r) use ($juryName, $lombaType) {
+            $participants = $registrations->map(function ($r) use ($juryName, $lombaType, $phase, $phaseInfo) {
                 $myScore   = $r->juryScores->firstWhere('jury_name', $juryName);
                 $allScores = $r->juryScores;
                 $jCount    = $allScores->count();
                 $avgScore  = $jCount > 0 ? round((float) $allScores->avg('score'), 2) : (float) $r->total_score;
 
-                // Calculate Phase breakdown
+                // Calculate Phase breakdown for the logged-in jury
                 $myBreakdownCalc = $this->calculateBreakdownPhases($lombaType, $myScore?->score_breakdown);
-                $phase1Scores = $allScores->map(fn ($s) => $this->calculateBreakdownPhases($lombaType, $s->score_breakdown)['phase1_score']);
-                $avgPhase1 = $phase1Scores->count() > 0 ? round((float) $phase1Scores->avg(), 2) : 0.0;
+
+                // 1. Calculate Phase 1 scores from all juries who actually evaluated Phase 1 components (> 0)
+                $validPhase1Scores = $allScores->map(function ($s) use ($lombaType) {
+                    return $this->calculateBreakdownPhases($lombaType, $s->score_breakdown)['phase1_score'];
+                })->filter(fn ($score) => (float) $score > 0);
+
+                $avgPhase1 = $validPhase1Scores->count() > 0 ? round((float) $validPhase1Scores->avg(), 2) : 0.0;
+
+                // 2. If no jury scores have Phase 1 > 0, fallback to $r->score_breakdown
+                if ($avgPhase1 <= 0 && !empty($r->score_breakdown)) {
+                    $regCalc = $this->calculateBreakdownPhases($lombaType, $r->score_breakdown);
+                    if ($regCalc['phase1_score'] > 0) {
+                        $avgPhase1 = $regCalc['phase1_score'];
+                    }
+                }
+
+                // 3. If still 0, and participant is promoted finalist or in Phase 2 with total_score <= phase1_max
+                if ($avgPhase1 <= 0 && ($phase === 2 || in_array($r->status, ['finalis', 'winner'], true))) {
+                    $maxP1 = (float) ($phaseInfo['phase1_max'] ?? 70);
+                    if ((float) $r->total_score > 0 && (float) $r->total_score <= $maxP1) {
+                        $avgPhase1 = round((float) $r->total_score, 2);
+                    }
+                }
+
+                // In Phase 2, finalists have an established Phase 1 score.
+                // If the logged-in jury gave a Phase 1 score > 0, we can use that,
+                // otherwise fallback to the participant's official Phase 1 score ($avgPhase1).
+                $effectivePhase1 = ($myBreakdownCalc['phase1_score'] > 0) ? $myBreakdownCalc['phase1_score'] : $avgPhase1;
 
                 return [
                     'id'            => 'reg_' . $r->id,
@@ -544,17 +570,18 @@ class PublicEventController extends Controller
                     ]),
                     'video_url'     => null,
                     'result'        => [
-                        'rank'             => $r->rank,
-                        'score'            => $myScore ? (float) $myScore->score : null,
-                        'notes'            => $myScore?->notes ?? '',
-                        'score_breakdown'  => $myScore?->score_breakdown ?? null,
-                        'phase1_score'     => $myBreakdownCalc['phase1_score'],
-                        'phase2_score'     => $myBreakdownCalc['phase2_score'],
-                        'phase1_avg_score' => $avgPhase1,
-                        'final_score'      => $avgScore,
-                        'juries_count'     => $jCount,
-                        'is_scored_by_me'  => ($myScore !== null),
-                        'all_jury_scores'  => $allScores->map(fn ($s) => [
+                        'rank'                   => $r->rank,
+                        'score'                  => $myScore ? (float) $myScore->score : null,
+                        'notes'                  => $myScore?->notes ?? '',
+                        'score_breakdown'        => $myScore?->score_breakdown ?? null,
+                        'phase1_score'           => $effectivePhase1,
+                        'phase2_score'           => $myBreakdownCalc['phase2_score'],
+                        'phase1_avg_score'       => $avgPhase1,
+                        'phase1_effective_score' => $effectivePhase1,
+                        'final_score'            => $avgScore,
+                        'juries_count'           => $jCount,
+                        'is_scored_by_me'        => ($myScore !== null),
+                        'all_jury_scores'        => $allScores->map(fn ($s) => [
                             'jury_name' => $s->jury_name,
                             'score'     => (float) $s->score,
                         ])->values(),
@@ -682,21 +709,56 @@ class PublicEventController extends Controller
                 return $this->error('Nilai untuk peserta ini sudah tersimpan dan telah dikunci. Nilai tidak dapat diubah lagi.', null, 403);
             }
 
-            // Merge score_breakdown to preserve Phase 1 scores when Phase 2 is submitted (and vice versa)
+            $isTwoPhase = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
             $newBreakdown = $data['score_breakdown'] ?? [];
-            if ($existingJuryScore && is_array($existingJuryScore->score_breakdown) && !empty($newBreakdown)) {
+
+            // Merge score_breakdown to preserve Phase 1 scores when Phase 2 is submitted (and vice versa)
+            $mergedMap = collect();
+            if ($existingJuryScore && is_array($existingJuryScore->score_breakdown)) {
                 $mergedMap = collect($existingJuryScore->score_breakdown)->keyBy('component');
-                foreach ($newBreakdown as $item) {
-                    if (isset($item['component'])) {
-                        $mergedMap[$item['component']] = $item;
-                    }
-                }
-                $finalBreakdown = $mergedMap->values()->toArray();
-            } else {
-                $finalBreakdown = !empty($newBreakdown) ? $newBreakdown : ($existingJuryScore?->score_breakdown ?? null);
             }
 
-            // Recalculate total score from merged breakdown if available
+            // In two-phase competition: If submitting Phase 2 and mergedMap is missing Phase 1 components,
+            // inherit Phase 1 components from the registration's existing score_breakdown or other Phase 1 jury scores!
+            if ($isTwoPhase && !empty($newBreakdown)) {
+                $calcMerged = $this->calculateBreakdownPhases($competition->lomba_type, $mergedMap->values()->toArray());
+                if ($calcMerged['phase1_score'] <= 0) {
+                    // 1. Try from $reg->score_breakdown
+                    if (is_array($reg->score_breakdown)) {
+                        foreach ($reg->score_breakdown as $item) {
+                            if (isset($item['component']) && !isset($mergedMap[$item['component']])) {
+                                $mergedMap[$item['component']] = $item;
+                            }
+                        }
+                    }
+                    // 2. If still missing, look for another jury score that evaluated Phase 1
+                    $calcMerged2 = $this->calculateBreakdownPhases($competition->lomba_type, $mergedMap->values()->toArray());
+                    if ($calcMerged2['phase1_score'] <= 0) {
+                        $p1JuryScore = \App\Models\CompetitionJuryScore::where('competition_id', $competitionId)
+                            ->where('anugerah_registration_id', $regId)
+                            ->whereNotNull('score_breakdown')
+                            ->get()
+                            ->first(fn ($js) => $this->calculateBreakdownPhases($competition->lomba_type, $js->score_breakdown)['phase1_score'] > 0);
+                        if ($p1JuryScore && is_array($p1JuryScore->score_breakdown)) {
+                            foreach ($p1JuryScore->score_breakdown as $item) {
+                                if (isset($item['component']) && !isset($mergedMap[$item['component']])) {
+                                    $mergedMap[$item['component']] = $item;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Overlay the newly submitted breakdown components
+            foreach ($newBreakdown as $item) {
+                if (isset($item['component'])) {
+                    $mergedMap[$item['component']] = $item;
+                }
+            }
+            $finalBreakdown = $mergedMap->isNotEmpty() ? $mergedMap->values()->toArray() : ($existingJuryScore?->score_breakdown ?? null);
+
+            // Recalculate total score for this jury from merged breakdown if available
             if (!empty($finalBreakdown)) {
                 $phaseCalc = $this->calculateBreakdownPhases($competition->lomba_type, $finalBreakdown);
                 $scoreVal = $phaseCalc['total_score'];
@@ -721,8 +783,15 @@ class PublicEventController extends Controller
                 ->where('anugerah_registration_id', $regId)
                 ->get();
 
-            $avgScore = round((float) $allJuryScores->avg('score'), 2);
             $aggregatedBreakdown = $this->aggregateJuryBreakdowns($allJuryScores, $finalBreakdown ?? $reg->score_breakdown);
+
+            // In two-phase competitions, the true total score is calculated from the full aggregated breakdown
+            if ($isTwoPhase && !empty($aggregatedBreakdown)) {
+                $phaseCalc = $this->calculateBreakdownPhases($competition->lomba_type, $aggregatedBreakdown);
+                $avgScore = $phaseCalc['total_score'];
+            } else {
+                $avgScore = round((float) $allJuryScores->avg('score'), 2);
+            }
 
             // 3. Update main registration record with aggregated average
             $reg->update([

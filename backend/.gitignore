@@ -38,9 +38,10 @@ sim_maarif
 *.pfx
 
 # Local diagnostic & scratch scripts
-test_*.php
-fix_*.php
-diag*.php
+!app/Console/Commands/**
+/test_*.php
+/fix_*.php
+/diag*.php
 setup_db.php
 reflect.php
 query.php

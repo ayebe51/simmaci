@@ -376,4 +376,130 @@ class TwoPhaseAnugerahScoringTest extends TestCase
         $freshMTs = $regMTs->fresh();
         $this->assertEquals(86.5, (float) $freshMTs->total_score, 'Total score must combine Phase 1 (61.0) + Phase 2 (25.5) = 86.5!');
     }
+
+    public function test_madrasah_berprestasi_two_phase_flow_and_multi_jury(): void
+    {
+        $event = Event::create([
+            'name'     => 'Harlah LP Ma\'arif 97 Madrasah',
+            'slug'     => 'harlah-97-madrasah-p2',
+            'category' => 'Anugerah',
+            'date'     => '2026-09-19',
+            'status'   => 'OPEN',
+        ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'pin123');
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Madrasah Berprestasi',
+            'category'   => 'Lembaga',
+            'type'       => 'Institution',
+            'lomba_type' => 'madrasah_berprestasi',
+            'status'     => 'OPEN',
+            'scoring_criteria' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25],
+                ['component' => 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', 'weight' => 15],
+                ['component' => 'Presentasi Kepala Madrasah & Visitasi / Fact Checking', 'weight' => 15],
+            ],
+        ]);
+
+        // Madrasah MI
+        $regMI = AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $competition->id,
+            'category'       => 'Madrasah',
+            'applicant_name' => 'Kepala MI Unggulan',
+            'school_name'    => 'MI Ma\'arif Unggulan',
+            'jenjang'        => 'MI/SD',
+            'status'         => 'finalis',
+        ]);
+
+        // Madrasah MTs
+        $regMTs = AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $competition->id,
+            'category'       => 'Madrasah',
+            'applicant_name' => 'Kepala MTs Teladan',
+            'school_name'    => 'MTs Ma\'arif Teladan',
+            'jenjang'        => 'MTs/SMP',
+            'status'         => 'finalis',
+        ]);
+
+        // Juri MI: "H. Zaini" scores MI in Phase 1
+        // 90 (45%) = 40.5 + 80 (25%) = 20.0 + 80 (15%) = 12.0 => Total 72.5 / 85
+        $loginZaini = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'H. Zaini',
+        ]);
+        $tokenZaini = $loginZaini->json('data.token');
+
+        $this->postJson("/api/public/jury/{$tokenZaini}/score", [
+            'participant_id'  => "reg_{$regMI->id}",
+            'score'           => 72.5,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45, 'value' => 90],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25, 'value' => 80],
+                ['component' => 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', 'weight' => 15, 'value' => 80],
+            ],
+        ])->assertStatus(200);
+
+        // Juri MTs: "Dra. Siti" scores MTs in Phase 1
+        // 90 (45%) = 40.5 + 90 (25%) = 22.5 + 90 (15%) = 13.5 => Total 76.5 / 85
+        $loginSiti = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Dra. Siti',
+        ]);
+        $tokenSiti = $loginSiti->json('data.token');
+
+        $this->postJson("/api/public/jury/{$tokenSiti}/score", [
+            'participant_id'  => "reg_{$regMTs->id}",
+            'score'           => 76.5,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45, 'value' => 90],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25, 'value' => 90],
+                ['component' => 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', 'weight' => 15, 'value' => 90],
+            ],
+        ])->assertStatus(200);
+
+        // In Phase 2:
+        // When H. Zaini (MI jury) views Phase 2, MTs must display 76.5 / 85!
+        $listRes = $this->getJson("/api/public/jury/{$tokenZaini}/participants?phase=2");
+        $listRes->assertStatus(200);
+        $participants = collect($listRes->json('data.participants'));
+
+        $pMI = $participants->firstWhere('institution', 'MI Ma\'arif Unggulan');
+        $pMTs = $participants->firstWhere('institution', 'MTs Ma\'arif Teladan');
+
+        $this->assertEquals(72.5, (float) $pMI['result']['phase1_score']);
+        $this->assertEquals(76.5, (float) $pMTs['result']['phase1_score'], 'MTs Madrasah Phase 1 score must be visible to MI jury!');
+
+        // Juri Visitasi (new jury) logs into Phase 2
+        $loginVisitasi = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Tim Asesor Visitasi',
+        ]);
+        $tokenVisitasi = $loginVisitasi->json('data.token');
+
+        $visitasiRes = $this->getJson("/api/public/jury/{$tokenVisitasi}/participants?phase=2");
+        $vMTs = collect($visitasiRes->json('data.participants'))->firstWhere('institution', 'MTs Ma\'arif Teladan');
+        $this->assertEquals(76.5, (float) $vMTs['result']['phase1_score'], 'Asesor visitasi must see Phase 1 score for MTs!');
+
+        // Save Phase 2 (Presentasi & Visitasi 15%): value 90 => 13.5
+        // Total score must be 76.5 + 13.5 = 90.0!
+        $saveRes = $this->postJson("/api/public/jury/{$tokenVisitasi}/score", [
+            'participant_id'  => "reg_{$regMTs->id}",
+            'score'           => 13.5,
+            'phase'           => 2,
+            'score_breakdown' => [
+                ['component' => 'Presentasi Kepala Madrasah & Visitasi / Fact Checking', 'weight' => 15, 'value' => 90],
+            ],
+        ]);
+        $saveRes->assertStatus(200);
+
+        $freshMTs = $regMTs->fresh();
+        $this->assertEquals(90.0, (float) $freshMTs->total_score, 'Total score must combine Phase 1 (76.5) + Phase 2 (13.5) = 90.0!');
+    }
 }

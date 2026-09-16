@@ -17,6 +17,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/warmup.php'));
         },
     )
+    ->withCommands([
+        __DIR__.'/../app/Console/Commands',
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         // Note: NOT using EnsureFrontendRequestsAreStateful because
         // this app uses token-based auth (Bearer), not cookie/session auth.

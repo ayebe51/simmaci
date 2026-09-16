@@ -8,6 +8,8 @@
 #   bash fix-muhtarom.sh --dry-run  # Preview daftar nilai tanpa mengubah data
 # ==============================================================================
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 echo "======================================================="
 echo "   HAPUS NILAI NON-MI JURI MUHTAROM (GURU BERPRESTASI)"
 echo "======================================================="
@@ -28,11 +30,21 @@ if [ -z "$CONTAINER_ID" ]; then
 fi
 
 echo "✓ Menggunakan container: $CONTAINER_ID"
-echo "Menjalankan php artisan competition:fix-guru-muhtarom --force $@ ..."
+echo "✓ Menyinkronkan file backend terbaru ke dalam container..."
+
+# 2. Sinkronkan file app, bootstrap, dan runner script ke dalam container Docker
+docker cp "$SCRIPT_DIR/backend/app/." "$CONTAINER_ID":/var/www/html/app/
+docker cp "$SCRIPT_DIR/backend/bootstrap/." "$CONTAINER_ID":/var/www/html/bootstrap/
+docker cp "$SCRIPT_DIR/backend/run_muhtarom_fix.php" "$CONTAINER_ID":/var/www/html/run_muhtarom_fix.php
+
+# 3. Bersihkan cache Laravel di dalam container
+docker exec -i "$CONTAINER_ID" php artisan optimize:clear > /dev/null 2>&1
+
+echo "✓ Menjalankan pembersihan nilai..."
 echo ""
 
-# 2. Jalankan perintah artisan di dalam container
-docker exec -i "$CONTAINER_ID" php artisan competition:fix-guru-muhtarom --force "$@"
+# 4. Jalankan script runner di dalam container
+docker exec -i "$CONTAINER_ID" php /var/www/html/run_muhtarom_fix.php "$@"
 
 echo ""
 echo "======================================================="

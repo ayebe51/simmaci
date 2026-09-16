@@ -30,6 +30,47 @@ class CompetitionRankingService
     }
 
     /**
+     * Aggregate score breakdowns across multiple juries by computing the arithmetic average
+     * per criterion component.
+     */
+    public static function aggregateBreakdowns($juryScores, ?array $fallback = null): ?array
+    {
+        $componentSums = [];
+        $componentCounts = [];
+        $componentWeights = [];
+
+        foreach ($juryScores as $js) {
+            $bd = $js->score_breakdown;
+            if (is_array($bd)) {
+                foreach ($bd as $item) {
+                    if (isset($item['component'])) {
+                        $c = $item['component'];
+                        $componentSums[$c] = ($componentSums[$c] ?? 0) + (float) ($item['value'] ?? 0);
+                        $componentCounts[$c] = ($componentCounts[$c] ?? 0) + 1;
+                        $componentWeights[$c] = (float) ($item['weight'] ?? 0);
+                    }
+                }
+            }
+        }
+
+        if (empty($componentSums)) {
+            return $fallback;
+        }
+
+        $aggregated = [];
+        foreach ($componentSums as $c => $sum) {
+            $count = $componentCounts[$c] ?: 1;
+            $aggregated[] = [
+                'component' => $c,
+                'weight'    => $componentWeights[$c],
+                'value'     => round($sum / $count, 2),
+            ];
+        }
+
+        return $aggregated;
+    }
+
+    /**
      * Auto-rank regular festival competition participants.
      */
     protected static function autoRankFestival(Competition $competition): void

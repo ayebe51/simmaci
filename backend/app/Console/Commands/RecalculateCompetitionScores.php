@@ -54,8 +54,10 @@ class RecalculateCompetitionScores extends Command
 
         $isAnugerah = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
 
-        // Step 1: Universal normalization (auto-detects raw points anomalies across all competitions)
-        $this->normalizeCompetitionJuryScores($competition);
+        // Step 1: Normalization (HANYA jika opsi --normalize diberikan secara eksplisit)
+        if ($shouldNormalize) {
+            $this->normalizeCompetitionJuryScores($competition);
+        }
 
         // Step 2: Recalculate aggregates and ranks
         DB::transaction(function () use ($competition, $isAnugerah) {
@@ -68,7 +70,7 @@ class RecalculateCompetitionScores extends Command
                 foreach ($registrations as $reg) {
                     if ($reg->juryScores && $reg->juryScores->isNotEmpty()) {
                         $avgScore = round((float) $reg->juryScores->avg('score'), 2);
-                        $aggregatedBreakdown = $this->aggregateBreakdowns($reg->juryScores, $reg->score_breakdown);
+                        $aggregatedBreakdown = CompetitionRankingService::aggregateBreakdowns($reg->juryScores, $reg->score_breakdown);
 
                         $reg->update([
                             'total_score'     => $avgScore,
@@ -87,7 +89,7 @@ class RecalculateCompetitionScores extends Command
                 foreach ($participants as $p) {
                     if ($p->juryScores && $p->juryScores->isNotEmpty()) {
                         $avgScore = round((float) $p->juryScores->avg('score'), 2);
-                        $aggregatedBreakdown = $this->aggregateBreakdowns($p->juryScores, $p->result?->score_breakdown);
+                        $aggregatedBreakdown = CompetitionRankingService::aggregateBreakdowns($p->juryScores, $p->result?->score_breakdown);
 
                         CompetitionResult::updateOrCreate(
                             ['competition_id' => $competition->id, 'participant_id' => $p->id],

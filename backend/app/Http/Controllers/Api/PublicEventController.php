@@ -656,6 +656,8 @@ class PublicEventController extends Controller
                 'is_locked'               => $competition->isScoresLocked(),
                 'freeze_submitted_scores' => $competition->isFreezeSubmittedScores(),
                 'status'                  => $competition->status,
+                'is_phase1_locked'        => $competition->isPhase1Locked(),
+                'has_finalists'           => $isAnugerah && \App\Models\AnugerahRegistration::where('competition_id', $competitionId)->whereIn('status', ['finalis', 'winner'])->exists(),
             ],
             'participants' => $participants,
         ]);
@@ -711,6 +713,12 @@ class PublicEventController extends Controller
 
             $isTwoPhase = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
             $newBreakdown = $data['score_breakdown'] ?? [];
+
+            // If two-phase competition has Phase 1 locked (finalists already promoted),
+            // prevent any modifications to Phase 1 (Seleksi Berkas)
+            if ($isTwoPhase && isset($data['phase']) && (int) $data['phase'] === 1 && $competition->isPhase1Locked()) {
+                return $this->error('Penilaian seleksi berkas (Fase 1) telah selesai dan dikunci permanen karena tahapan lomba telah memasuki Fase 2 (Wawancara & Visitasi). Nilai Fase 1 tidak dapat diubah lagi.', null, 403);
+            }
 
             // Merge score_breakdown to preserve Phase 1 scores when Phase 2 is submitted (and vice versa)
             $mergedMap = collect();

@@ -209,6 +209,7 @@ export default function JuryScoringPage() {
   const isTwoPhase = Boolean(competition?.is_two_phase);
   const isLocked = Boolean(competition?.is_locked);
   const isFreezeSubmitted = Boolean(competition?.freeze_submitted_scores);
+  const isPhase1Locked = Boolean(isTwoPhase && selectedPhase === 1 && (competition?.is_phase1_locked || competition?.has_finalists));
   const activeCriteria: Criterion[] = isTwoPhase
     ? (selectedPhase === 1 ? (competition?.phase1_criteria ?? []) : (competition?.phase2_criteria ?? []))
     : (competition?.criteria ?? []);
@@ -235,8 +236,12 @@ export default function JuryScoringPage() {
   const handleSave = async (pid: string | number) => {
     const pObj = participants.find(p => p.id === pid);
     const isAlreadyScored = Boolean(pObj?.result?.is_scored_by_me || savedIds.has(pid));
-    if (isLocked || (isFreezeSubmitted && isAlreadyScored)) {
-      toast.error('Nilai untuk peserta ini sudah pernah disimpan dan telah dikunci.');
+    if (isLocked || isPhase1Locked || (isFreezeSubmitted && isAlreadyScored)) {
+      if (isPhase1Locked) {
+        toast.error('Penilaian seleksi berkas (Fase 1) telah selesai dan dikunci permanen.');
+      } else {
+        toast.error('Nilai untuk peserta ini sudah pernah disimpan dan telah dikunci.');
+      }
       return;
     }
     setSavingId(pid);
@@ -500,6 +505,28 @@ export default function JuryScoringPage() {
           </div>
         )}
 
+        {/* Banner Penilaian Fase 1 Terkunci Permanen */}
+        {!isLocked && isPhase1Locked && (
+          <div className="p-4 bg-emerald-50 border-2 border-emerald-300 text-emerald-950 rounded-2xl flex items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="p-2 bg-emerald-200/80 rounded-xl text-emerald-900 mt-0.5 sm:mt-0 flex-shrink-0">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm sm:text-base text-emerald-950 flex items-center gap-2">
+                  Tahap 1 (Seleksi Berkas) Telah Selesai & Terkunci
+                </h4>
+                <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                  Tahap seleksi berkas resmi ditutup karena 3 besar finalis telah ditetapkan untuk melaju ke <strong>Fase 2 (Wawancara & Visitasi)</strong>. Nilai berkas berada dalam mode <strong>Hanya-Baca (Read-Only)</strong> dan tidak dapat diubah lagi.
+                </p>
+              </div>
+            </div>
+            <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-200 text-emerald-900 border border-emerald-300 flex-shrink-0">
+              🔒 Berkas Terkunci
+            </span>
+          </div>
+        )}
+
         {/* Phase Tabs for Anugerah Competitions */}
         {isTwoPhase && (
           <div className="bg-white p-2 rounded-2xl shadow-sm border flex items-center gap-2">
@@ -513,7 +540,7 @@ export default function JuryScoringPage() {
               }`}
             >
               <FileText size={15} />
-              <span>Fase 1: Seleksi Berkas (Semua Peserta)</span>
+              <span>Fase 1: Seleksi Berkas {competition?.is_phase1_locked || competition?.has_finalists ? '🔒 (Terkunci)' : '(Semua Peserta)'}</span>
             </button>
             <button
               type="button"
@@ -603,7 +630,7 @@ export default function JuryScoringPage() {
               const isSaving = savingId === p.id;
               const isSaved = savedIds.has(p.id);
               const alreadyScored = p.result?.is_scored_by_me;
-              const isParticipantLocked = isLocked || (isFreezeSubmitted && (alreadyScored || isSaved));
+              const isParticipantLocked = isLocked || isPhase1Locked || (isFreezeSubmitted && (alreadyScored || isSaved));
               const activeSubtotal = calcActiveSubtotal(p.id);
               const rankNum = s.rank ? Number(s.rank) : undefined;
               const p1Saved = Number(p.result?.phase1_effective_score ?? p.result?.phase1_avg_score ?? p.result?.phase1_score ?? 0);
@@ -827,7 +854,7 @@ export default function JuryScoringPage() {
                       {isParticipantLocked ? (
                         <>
                           <Lock size={13} />
-                          <span>Nilai Tersimpan (Terkunci)</span>
+                          <span>{isPhase1Locked ? 'Fase 1 Selesai & Terkunci (Read-Only)' : 'Nilai Tersimpan (Terkunci)'}</span>
                         </>
                       ) : isSaving ? (
                         <Loader2 size={13} className="animate-spin"/>

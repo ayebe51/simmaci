@@ -98,6 +98,32 @@ class Competition extends Model
     }
 
     /**
+     * Check if Phase 1 (Seleksi Berkas) is locked.
+     * Locked when:
+     * - Entire competition scores are locked
+     * - Or this is a two-phase competition (guru_berprestasi / madrasah_berprestasi)
+     *   and top 3 finalists have been promoted to Phase 2.
+     */
+    public function isPhase1Locked(): bool
+    {
+        if ($this->isScoresLocked()) {
+            return true;
+        }
+
+        if (!in_array($this->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true)) {
+            return false;
+        }
+
+        if (\App\Models\Setting::getValue("phase1_locked_competition_{$this->id}") === 'true') {
+            return true;
+        }
+
+        return \App\Models\AnugerahRegistration::where('competition_id', $this->id)
+            ->whereIn('status', ['finalis', 'winner'])
+            ->exists();
+    }
+
+    /**
      * Lock scores for this competition.
      */
     public function lockScores(): void

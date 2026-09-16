@@ -502,4 +502,80 @@ class TwoPhaseAnugerahScoringTest extends TestCase
         $freshMTs = $regMTs->fresh();
         $this->assertEquals(90.0, (float) $freshMTs->total_score, 'Total score must combine Phase 1 (76.5) + Phase 2 (13.5) = 90.0!');
     }
+
+    public function test_phase1_is_locked_once_finalists_promoted_and_rejects_modifications(): void
+    {
+        $event = Event::create([
+            'name'     => 'Harlah LP Ma\'arif 97 Lock Test',
+            'slug'     => 'harlah-97-lock-test',
+            'category' => 'Anugerah',
+            'date'     => '2026-09-19',
+            'status'   => 'OPEN',
+        ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'pin123');
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Guru Berprestasi',
+            'category'   => 'Akademik',
+            'type'       => 'Individual',
+            'lomba_type' => 'guru_berprestasi',
+            'status'     => 'OPEN',
+            'scoring_criteria' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40],
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30],
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15],
+            ],
+        ]);
+
+        $reg = AnugerahRegistration::create([
+            'event_id'       => $event->id,
+            'competition_id' => $competition->id,
+            'category'       => 'Guru',
+            'applicant_name' => 'Guru Juara 1',
+            'school_name'    => 'MI Ma\'arif 01',
+            'jenjang'        => 'MI/SD',
+            'status'         => 'finalis', // promoted finalist
+        ]);
+
+        $loginJury = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Juri Seleksi Berkas',
+        ]);
+        $token = $loginJury->json('data.token');
+
+        // Check juryParticipants returns is_phase1_locked: true
+        $pRes = $this->getJson("/api/public/jury/{$token}/participants?phase=1");
+        $pRes->assertStatus(200);
+        $this->assertTrue($pRes->json('data.competition.is_phase1_locked'));
+
+        // Attempt to submit Phase 1 score while Phase 1 is locked -> MUST BE 403 Forbidden!
+        $p1Submit = $this->postJson("/api/public/jury/{$token}/score", [
+            'participant_id'  => "reg_{$reg->id}",
+            'score'           => 60.0,
+            'phase'           => 1,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan / Prestasi', 'weight' => 40, 'value' => 90],
+                ['component' => 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', 'weight' => 30, 'value' => 80],
+            ],
+        ]);
+        $p1Submit->assertStatus(403);
+        $this->assertStringContainsString('Fase 1', $p1Submit->json('message'));
+        $this->assertStringContainsString('dikunci', $p1Submit->json('message'));
+
+        // Submitting Phase 2 score (phase = 2) must succeed!
+        $p2Submit = $this->postJson("/api/public/jury/{$token}/score", [
+            'participant_id'  => "reg_{$reg->id}",
+            'score'           => 25.0,
+            'phase'           => 2,
+            'score_breakdown' => [
+                ['component' => 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', 'weight' => 15, 'value' => 85],
+                ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15, 'value' => 85],
+            ],
+        ]);
+        $p2Submit->assertStatus(200);
+    }
 }
+

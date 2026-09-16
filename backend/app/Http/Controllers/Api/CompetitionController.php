@@ -568,6 +568,7 @@ class CompetitionController extends Controller
             }
         });
 
+        \App\Models\Setting::setValue("phase1_locked_competition_{$competition->id}", 'true');
         \App\Services\CompetitionRankingService::autoRank($competition);
 
         $count = count($promotedFinalists);
@@ -590,6 +591,8 @@ class CompetitionController extends Controller
         if ($competition->isScoresLocked() && ! in_array(Auth::user()?->role, ['super_admin'], true)) {
             return $this->error('Nilai cabang lomba ini telah dikunci/final. Tidak dapat direset.', null, 403);
         }
+
+        \App\Models\Setting::setValue("phase1_locked_competition_{$competition->id}", 'false');
 
         $deletedCount = 0;
         DB::transaction(function () use ($competition, &$deletedCount) {

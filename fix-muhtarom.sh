@@ -30,20 +30,25 @@ if [ -z "$CONTAINER_ID" ]; then
 fi
 
 echo "✓ Menggunakan container: $CONTAINER_ID"
-echo "✓ Menyinkronkan file backend terbaru ke dalam container..."
+echo "✓ Membersihkan cache lama & menyinkronkan file backend terbaru..."
 
-# 2. Sinkronkan file app, bootstrap, dan runner script ke dalam container Docker
+# 2. Hapus file cache usang di dalam container
+docker exec -i "$CONTAINER_ID" rm -f /var/www/html/bootstrap/cache/config.php /var/www/html/bootstrap/cache/routes-*.php /var/www/html/bootstrap/cache/packages.php /var/www/html/bootstrap/cache/services.php
+
+# 3. Sinkronkan file app, config, bootstrap, routes, dan runner script ke dalam container Docker
+docker cp "$SCRIPT_DIR/backend/config/." "$CONTAINER_ID":/var/www/html/config/
 docker cp "$SCRIPT_DIR/backend/app/." "$CONTAINER_ID":/var/www/html/app/
 docker cp "$SCRIPT_DIR/backend/bootstrap/." "$CONTAINER_ID":/var/www/html/bootstrap/
+docker cp "$SCRIPT_DIR/backend/routes/." "$CONTAINER_ID":/var/www/html/routes/
 docker cp "$SCRIPT_DIR/backend/run_muhtarom_fix.php" "$CONTAINER_ID":/var/www/html/run_muhtarom_fix.php
 
-# 3. Bersihkan cache Laravel di dalam container
+# 4. Bersihkan cache Laravel di dalam container
 docker exec -i "$CONTAINER_ID" php artisan optimize:clear > /dev/null 2>&1
 
 echo "✓ Menjalankan pembersihan nilai..."
 echo ""
 
-# 4. Jalankan script runner di dalam container
+# 5. Jalankan script runner di dalam container
 docker exec -i "$CONTAINER_ID" php /var/www/html/run_muhtarom_fix.php "$@"
 
 echo ""

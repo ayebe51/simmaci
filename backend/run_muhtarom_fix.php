@@ -1,30 +1,28 @@
+#!/usr/bin/env php
 <?php
 
-// Standalone execution script for FixMuhtaromGuruScores
+use Illuminate\Foundation\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+// 1. Autoloader
 require __DIR__ . '/vendor/autoload.php';
+
+// 2. Bootstrap Laravel 11/12
+/** @var Application $app */
 $app = require_once __DIR__ . '/bootstrap/app.php';
 
-$kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
+// 3. Prepare argv input for handleCommand
+$rawArgs = array_slice($argv, 1);
+$inputArgs = ['artisan', 'competition:fix-guru-muhtarom', '--force'];
 
-$args = array_slice($argv, 1);
-$isDryRun = in_array('--dry-run', $args, true);
-
-$params = [
-    '--force'   => true,
-    '--dry-run' => $isDryRun,
-];
-
-foreach ($args as $arg) {
-    if (str_starts_with($arg, '--jury=')) {
-        $params['--jury'] = substr($arg, 7);
-    } elseif (str_starts_with($arg, '--competition=')) {
-        $params['--competition'] = substr($arg, 14);
-    } elseif (str_starts_with($arg, '--keep-jenjang=')) {
-        $params['--keep-jenjang'] = substr($arg, 15);
+foreach ($rawArgs as $arg) {
+    if ($arg !== '--force') {
+        $inputArgs[] = $arg;
     }
 }
 
-$exitCode = $kernel->call(\App\Console\Commands\FixMuhtaromGuruScores::class, $params);
-echo $kernel->output();
-exit($exitCode);
+$status = $app->handleCommand(new ArgvInput($inputArgs));
+
+exit($status);

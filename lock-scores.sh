@@ -4,10 +4,11 @@
 # Mengunci seluruh nilai yang telah diinput agar tidak ada lagi yang bisa merubah
 #
 # Penggunaan di VPS:
-#   bash lock-scores.sh                      # Kunci TOTAL SELURUH cabang lomba (setelah semua selesai)
-#   bash lock-scores.sh --freeze-submitted   # Kunci nilai yang SUDAH diisi (peserta sisa tetap bisa dinilai)
-#   bash lock-scores.sh <id_lomba>           # Kunci satu cabang lomba tertentu
-#   bash lock-scores.sh --unlock             # Buka kembali kunci (jika diperlukan)
+#   bash lock-scores.sh --phase1            # Kunci seleksi berkas FASE 1 (Fase 2 wawancara tetap bisa dinilai)
+#   bash lock-scores.sh                     # Kunci TOTAL SELURUH cabang lomba (setelah semua selesai)
+#   bash lock-scores.sh --freeze-submitted  # Kunci nilai yang SUDAH diisi (peserta sisa tetap bisa dinilai)
+#   bash lock-scores.sh <id_lomba>          # Kunci satu cabang lomba tertentu
+#   bash lock-scores.sh --unlock            # Buka kembali kunci (jika diperlukan)
 # ==============================================================================
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

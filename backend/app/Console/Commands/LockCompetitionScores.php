@@ -11,6 +11,7 @@ class LockCompetitionScores extends Command
                             {competition_id? : ID Cabang Lomba tertentu (opsional)}
                             {--all : Kunci seluruh cabang lomba secara global}
                             {--freeze-submitted : Bekukan nilai yang sudah diinput agar tidak bisa diedit, tapi juri masih bisa menilai peserta yang belum dinilai}
+                            {--phase1 : Kunci seleksi berkas Fase 1 untuk lomba Guru & Madrasah Berprestasi (Fase 2 tetap bisa dinilai)}
                             {--unlock : Buka kembali kunci penilaian}';
 
     protected $description = 'Kunci nilai lomba agar dewan juri dan operator tidak dapat lagi menambah atau merubah nilai.';
@@ -21,13 +22,16 @@ class LockCompetitionScores extends Command
         $isAll    = (bool) $this->option('all');
         $isUnlock = (bool) $this->option('unlock');
         $isFreeze = (bool) $this->option('freeze-submitted');
+        $isPhase1 = (bool) $this->option('phase1');
 
         $this->info("================================================================================");
         $this->info($isUnlock 
             ? "       BUKA KUNCI NILAI CABANG LOMBA SIMMACI" 
-            : ($isFreeze 
-                ? "       BEKUKAN NILAI YANG SUDAH DIINPUT (PESERTA SISA TETAP BISA DINILAI)" 
-                : "       KUNCI NILAI CABANG LOMBA SIMMACI (FINALISASI HASIL)"));
+            : ($isPhase1
+                ? "       KUNCI SELEKSI BERKAS FASE 1 (GURU & MADRASAH BERPRESTASI)"
+                : ($isFreeze 
+                    ? "       BEKUKAN NILAI YANG SUDAH DIINPUT (PESERTA SISA TETAP BISA DINILAI)" 
+                    : "       KUNCI NILAI CABANG LOMBA SIMMACI (FINALISASI HASIL)")));
         $this->info("================================================================================");
 
         if ($isUnlock) {
@@ -35,11 +39,36 @@ class LockCompetitionScores extends Command
                 $comp = Competition::findOrFail($id);
                 $comp->unlockScores();
                 $comp->unfreezeSubmittedScores();
+                \App\Models\Setting::setValue("phase1_locked_competition_{$comp->id}", 'false');
                 $this->info("✓ Kunci nilai cabang lomba [{$comp->id}] {$comp->name} berhasil DIBUKA.");
             } else {
                 Competition::unlockAllScores();
+                foreach (Competition::all() as $c) {
+                    \App\Models\Setting::setValue("phase1_locked_competition_{$c->id}", 'false');
+                }
                 $this->info("✓ Kunci nilai SELURUH cabang lomba berhasil DIBUKA secara global.");
             }
+            $this->showStatusTable();
+            return 0;
+        }
+
+        if ($isPhase1) {
+            $query = Competition::query();
+            if ($id) {
+                $query->where('id', $id);
+            } else {
+                $query->whereIn('lomba_type', ['guru_berprestasi', 'madrasah_berprestasi'])
+                    ->orWhere('name', 'like', '%Guru Berprestasi%')
+                    ->orWhere('name', 'like', '%Madrasah Berprestasi%');
+            }
+            $comps = $query->get();
+            foreach ($comps as $c) {
+                \App\Models\Setting::setValue("phase1_locked_competition_{$c->id}", 'true');
+                $this->info("✓ Nilai berkas Fase 1 [ID: {$c->id}] {$c->name} BERHASIL DIKUNCI PERMANEN.");
+            }
+            $this->info("\n✓ Aturan Aktif:");
+            $this->line("  1. Nilai seleksi berkas (Fase 1) dikunci permanen untuk SEMUA juri.");
+            $this->line("  2. Tab Fase 2 (Wawancara & Visitasi) tetap terbuka penuh bagi juri yang sedang bertugas.");
             $this->showStatusTable();
             return 0;
         }
@@ -95,7 +124,9 @@ class LockCompetitionScores extends Command
             $c->status,
             $c->isScoresLocked() 
                 ? '🔒 KUNCI TOTAL' 
-                : ($c->isFreezeSubmittedScores() ? '❄️ KUNCI NILAI TERISI' : '🔓 TERBUKA'),
+                : ($c->isPhase1Locked()
+                    ? '🔒 FASE 1 TERKUNCI (FASE 2 TERBUKA)'
+                    : ($c->isFreezeSubmittedScores() ? '❄️ KUNCI NILAI TERISI' : '🔓 TERBUKA')),
         ])->toArray();
 
         $this->table(

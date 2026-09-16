@@ -114,13 +114,12 @@ class Competition extends Model
             return false;
         }
 
-        if (\App\Models\Setting::getValue("phase1_locked_competition_{$this->id}") === 'true') {
+        if (\App\Models\Setting::getValue("phase1_locked_competition_{$this->id}") === 'true'
+            || \App\Models\Setting::getValue('phase1_locked_all') === 'true') {
             return true;
         }
 
-        return \App\Models\AnugerahRegistration::where('competition_id', $this->id)
-            ->whereIn('status', ['finalis', 'winner'])
-            ->exists();
+        return false;
     }
 
     /**

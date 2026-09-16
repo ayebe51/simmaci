@@ -714,10 +714,46 @@ class PublicEventController extends Controller
             $isTwoPhase = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
             $newBreakdown = $data['score_breakdown'] ?? [];
 
-            // If two-phase competition has Phase 1 locked (finalists already promoted),
-            // prevent any modifications to Phase 1 (Seleksi Berkas)
-            if ($isTwoPhase && isset($data['phase']) && (int) $data['phase'] === 1 && $competition->isPhase1Locked()) {
-                return $this->error('Penilaian seleksi berkas (Fase 1) telah selesai dan dikunci permanen karena tahapan lomba telah memasuki Fase 2 (Wawancara & Visitasi). Nilai Fase 1 tidak dapat diubah lagi.', null, 403);
+            // If two-phase competition has Phase 1 locked (finalists already promoted):
+            if ($isTwoPhase && $competition->isPhase1Locked()) {
+                $submittedPhase = isset($data['phase']) ? (int) $data['phase'] : null;
+
+                // Check submitted components
+                $hasPhase2Components = false;
+                $hasPhase1Components = false;
+                foreach ($newBreakdown as $item) {
+                    $cName = strtolower($item['component'] ?? '');
+                    if ($competition->lomba_type === 'guru_berprestasi') {
+                        if (str_contains($cName, 'aswaja') || str_contains($cName, 'wawancara') || str_contains($cName, 'interview')) {
+                            $hasPhase2Components = true;
+                        } else {
+                            $hasPhase1Components = true;
+                        }
+                    } elseif ($competition->lomba_type === 'madrasah_berprestasi') {
+                        if (str_contains($cName, 'presentasi') || str_contains($cName, 'visitasi') || str_contains($cName, 'fact checking')) {
+                            $hasPhase2Components = true;
+                        } else {
+                            $hasPhase1Components = true;
+                        }
+                    }
+                }
+
+                // If explicitly phase 1 or only submitting phase 1 components, reject!
+                if ($submittedPhase === 1 || ($hasPhase1Components && !$hasPhase2Components)) {
+                    return $this->error('Penilaian seleksi berkas (Fase 1) telah selesai dan dikunci permanen karena tahapan lomba telah memasuki Fase 2 (Wawancara & Visitasi). Nilai Fase 1 tidak dapat diubah lagi.', null, 403);
+                }
+
+                // In Phase 2: Discard any Phase 1 components from $newBreakdown so Phase 1 is never altered
+                if ($hasPhase2Components) {
+                    $newBreakdown = array_values(array_filter($newBreakdown, function ($item) use ($competition) {
+                        $cName = strtolower($item['component'] ?? '');
+                        if ($competition->lomba_type === 'guru_berprestasi') {
+                            return str_contains($cName, 'aswaja') || str_contains($cName, 'wawancara') || str_contains($cName, 'interview');
+                        } else {
+                            return str_contains($cName, 'presentasi') || str_contains($cName, 'visitasi') || str_contains($cName, 'fact checking');
+                        }
+                    }));
+                }
             }
 
             // Merge score_breakdown to preserve Phase 1 scores when Phase 2 is submitted (and vice versa)

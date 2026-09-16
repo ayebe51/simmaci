@@ -528,6 +528,7 @@ class TwoPhaseAnugerahScoringTest extends TestCase
                 ['component' => 'Presentasi, Wawancara, & Deep Interview', 'weight' => 15],
             ],
         ]);
+        \App\Models\Setting::setValue("phase1_locked_competition_{$competition->id}", 'true');
 
         $reg = AnugerahRegistration::create([
             'event_id'       => $event->id,

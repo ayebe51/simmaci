@@ -52,16 +52,66 @@ export default function CompetitionExportModal({
     )
   );
 
-  const getRankTitle = (rank?: number) => {
+  // Fallback jury names for signatures if no juries were explicitly named
+  const displayJuryNames = allJuryNames.length > 0 ? allJuryNames : ['Dewan Juri 1', 'Dewan Juri 2', 'Dewan Juri 3'];
+
+  // Check if any participant has notes
+  const hasNotes = sorted.some((p) => Boolean(p.result?.notes || p.reviewer_notes));
+
+  const getRankTitle = (rank?: number, withEmoji = false) => {
     if (!rank) return '-';
-    if (rank === 1) return 'Juara I 🥇';
-    if (rank === 2) return 'Juara II 🥈';
-    if (rank === 3) return 'Juara III 🥉';
+    if (rank === 1) return withEmoji ? 'Juara I 🥇' : 'Juara I';
+    if (rank === 2) return withEmoji ? 'Juara II 🥈' : 'Juara II';
+    if (rank === 3) return withEmoji ? 'Juara III 🥉' : 'Juara III';
     if (rank === 4) return 'Harapan I';
     if (rank === 5) return 'Harapan II';
     if (rank === 6) return 'Harapan III';
     return `Peringkat ${rank}`;
   };
+
+  const getParticipantJuryScore = (p: any, juryName: string) => {
+    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
+    const found = scores.find((s: any) => (s.jury_name || s.name) === juryName);
+    if (!found) return '-';
+    const sc = found.score ?? found.total_score;
+    return sc != null && !isNaN(Number(sc)) ? Number(sc).toFixed(2) : '-';
+  };
+
+  const getParticipantFinalScore = (p: any) => {
+    if (p.result?.score != null && !isNaN(Number(p.result.score)) && Number(p.result.score) > 0) {
+      return Number(p.result.score).toFixed(2);
+    }
+    if (p.total_score != null && !isNaN(Number(p.total_score)) && Number(p.total_score) > 0) {
+      return Number(p.total_score).toFixed(2);
+    }
+    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
+    if (scores.length > 0) {
+      const valids = scores
+        .map((s: any) => Number(s.score ?? s.total_score ?? 0))
+        .filter((s: number) => !isNaN(s) && s > 0);
+      if (valids.length > 0) {
+        return (valids.reduce((a: number, b: number) => a + b, 0) / valids.length).toFixed(2);
+      }
+    }
+    return '-';
+  };
+
+  const eventName = typeof competition?.event === 'object'
+    ? competition?.event?.name
+    : (competition?.event || 'HARLAH LP MA\'ARIF NU KE-97 TAHUN 2026');
+  const compName = competition?.name || 'Cabang Lomba';
+  const jenjangStr = filterJenjang !== 'all'
+    ? filterJenjang
+    : (competition?.jenjang || competition?.category || 'Semua Jenjang');
+  const compDateFormatted = competition?.date
+    ? new Date(competition.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const locationStr = competition?.location || 'Gedung PC LP Ma\'arif NU Cilacap';
+  const currentDateFormatted = new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 
   // ── 1. Export Excel (.xlsx) ────────────────────────────────────────────────
   const handleExportExcel = () => {
@@ -73,17 +123,13 @@ export default function CompetitionExportModal({
     try {
       const wb = XLSX.utils.book_new();
 
-      // Meta Header info
-      const eventName = competition?.event?.name || competition?.event || 'Event LP Ma\'arif NU';
-      const compName  = competition?.name || 'Cabang Lomba';
-      const jenjangStr = filterJenjang !== 'all' ? filterJenjang : (competition?.jenjang || 'Semua Jenjang');
-
       const headers = [
-        ['PENGURUS CABANG LEMBAGA PENDIDIKAN MA\'ARIF NU CILACAP'],
-        ['REKAPITULASI PENILAIAN DEWAN JURI & HASIL KEJUARAAN'],
+        ['BERITA ACARA HASIL PENILAIAN DEWAN JURI & REKAPITULASI KEJUARAAN'],
         [`Event: ${eventName}`],
         [`Cabang Lomba: ${compName} | Jenjang: ${jenjangStr}`],
-        [`Tanggal Unduh: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}`],
+        [`Hari / Tanggal: ${compDateFormatted}`],
+        [`Tempat: ${locationStr}`],
+        [`Waktu Unduh: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}`],
         [], // empty row
       ];
 
@@ -91,7 +137,7 @@ export default function CompetitionExportModal({
       const dataRows = sorted.map((p, idx) => {
         const rowData: Record<string, any> = {
           'No': idx + 1,
-          'Peringkat / Juara': getRankTitle(p.result?.rank),
+          'Peringkat / Juara': getRankTitle(p.result?.rank, false),
           'Nama Peserta / Pendaftar': p.name || p.applicant_name || '-',
           'Asal Lembaga / Madrasah': p.institution || p.school_name || '-',
           'Jenjang': p.jenjang || compName,
@@ -100,22 +146,11 @@ export default function CompetitionExportModal({
         // If specific jury scores exist, add each jury's score
         if (allJuryNames.length > 0) {
           allJuryNames.forEach((jName) => {
-            const js = (p.jury_scores ?? []).find((s: any) => s.jury_name === jName);
-            rowData[`Nilai (${jName})`] = js ? Number(js.score).toFixed(2) : '-';
+            rowData[`Nilai (${jName})`] = getParticipantJuryScore(p, jName);
           });
         }
 
-        const juryAvg = (p.jury_scores && p.jury_scores.length > 0)
-          ? (p.jury_scores.reduce((sum: number, js: any) => sum + (Number(js.score) || 0), 0) / p.jury_scores.length).toFixed(2)
-          : null;
-
-        const finalScore = juryAvg !== null
-          ? juryAvg
-          : (p.result?.score != null
-            ? Number(p.result.score).toFixed(2)
-            : (p.total_score != null ? Number(p.total_score).toFixed(2) : '-'));
-
-        rowData['Nilai Akhir (Rata-rata)'] = finalScore;
+        rowData['Nilai Akhir'] = getParticipantFinalScore(p);
         rowData['Catatan Dewan Juri'] = p.result?.notes || p.reviewer_notes || '-';
 
         return rowData;
@@ -132,7 +167,7 @@ export default function CompetitionExportModal({
         { wch: 32 }, // Lembaga
         { wch: 14 }, // Jenjang
         ...allJuryNames.map(() => ({ wch: 18 })), // Tiap Juri
-        { wch: 24 }, // Nilai Akhir
+        { wch: 18 }, // Nilai Akhir
         { wch: 35 }, // Catatan
       ];
       ws['!cols'] = colWidths;
@@ -140,7 +175,7 @@ export default function CompetitionExportModal({
       XLSX.utils.book_append_sheet(wb, ws, 'Rekapitulasi Nilai');
 
       const sanitizedName = compName.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Rekap_Nilai_${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filename = `Berita_Acara_Nilai_${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       XLSX.writeFile(wb, filename);
       toast.success('Rekap nilai berhasil diunduh ke Excel (.xlsx)', {
@@ -152,16 +187,404 @@ export default function CompetitionExportModal({
     }
   };
 
-  // ── 2. Print Berita Acara PDF ─────────────────────────────────────────────
+  // ── 2. Print Berita Acara PDF via Isolated Iframe ──────────────────────────
   const handlePrint = () => {
-    window.print();
-  };
+    try {
+      // Build standalone HTML for high-fidelity printing without dialog/overflow clipping
+      const printIframe = document.createElement('iframe');
+      printIframe.style.position = 'fixed';
+      printIframe.style.left = '-9999px';
+      printIframe.style.top = '-9999px';
+      printIframe.style.width = '210mm';
+      printIframe.style.height = '297mm';
+      printIframe.style.border = 'none';
+      document.body.appendChild(printIframe);
 
-  const currentDateFormatted = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+      const doc = printIframe.contentWindow?.document;
+      if (!doc) {
+        window.print();
+        return;
+      }
+
+      // Generate HTML for jury columns in header
+      const juryHeaderCols = allJuryNames.length > 0
+        ? allJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
+        : '';
+
+      // Generate table rows
+      const tableRowsHtml = sorted.length === 0
+        ? `<tr><td colspan="${4 + (allJuryNames.length > 0 ? allJuryNames.length : 0) + 1 + (hasNotes ? 1 : 0)}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
+        : sorted.map((p, idx) => {
+            const rankTitle = getRankTitle(p.result?.rank, false);
+            const isWinner = p.result?.rank && p.result.rank <= 3;
+            const finalScore = getParticipantFinalScore(p);
+
+            const juryCellsHtml = allJuryNames.length > 0
+              ? allJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
+              : '';
+
+            const notesCellHtml = hasNotes
+              ? `<td class="col-notes">${p.result?.notes || p.reviewer_notes || '-'}</td>`
+              : '';
+
+            return `
+              <tr class="${isWinner ? 'row-winner' : ''}">
+                <td class="col-no">${idx + 1}</td>
+                <td class="col-rank ${isWinner ? 'rank-highlight' : ''}">${rankTitle}</td>
+                <td class="col-name">${p.name || p.applicant_name || '-'}</td>
+                <td class="col-inst">${p.institution || p.school_name || '-'}</td>
+                ${juryCellsHtml}
+                <td class="col-final-score">${finalScore}</td>
+                ${notesCellHtml}
+              </tr>
+            `;
+          }).join('');
+
+      // Generate Signatures Table
+      const juryCount = displayJuryNames.length;
+      let signatureRowsHtml = '';
+
+      if (juryCount <= 3) {
+        const cellWidth = Math.floor(100 / Math.max(juryCount, 1));
+        const cells = displayJuryNames.map((jName, idx) => `
+          <td style="width: ${cellWidth}%; text-align: center; vertical-align: top; padding: 0 12px;">
+            <div class="jury-label">${jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}</div>
+            <div class="jury-space"></div>
+            <div class="jury-name-line">( ${jName} )</div>
+          </td>
+        `).join('');
+        signatureRowsHtml = `<tr>${cells}</tr>`;
+      } else {
+        // Chunk into rows of 2 or 3
+        const row1 = displayJuryNames.slice(0, 3);
+        const row2 = displayJuryNames.slice(3);
+
+        const cells1 = row1.map((jName, idx) => `
+          <td style="width: 33.33%; text-align: center; vertical-align: top; padding: 0 12px;">
+            <div class="jury-label">${jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}</div>
+            <div class="jury-space"></div>
+            <div class="jury-name-line">( ${jName} )</div>
+          </td>
+        `).join('');
+
+        const cells2 = row2.map((jName, idx) => `
+          <td style="width: ${Math.floor(100 / row2.length)}%; text-align: center; vertical-align: top; padding: 16px 12px 0 12px;">
+            <div class="jury-label">${jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 4}`}</div>
+            <div class="jury-space"></div>
+            <div class="jury-name-line">( ${jName} )</div>
+          </td>
+        `).join('');
+
+        signatureRowsHtml = `<tr>${cells1}</tr><tr>${cells2}</tr>`;
+      }
+
+      const notesHeaderHtml = hasNotes ? `<th class="col-notes">Catatan</th>` : '';
+
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+          <meta charset="utf-8" />
+          <title>Berita Acara - ${compName} - ${eventName}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 15mm 12mm 15mm 12mm;
+            }
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+              color: #0f172a;
+              background: #ffffff;
+              margin: 0;
+              padding: 0;
+              font-size: 9.5pt;
+              line-height: 1.4;
+            }
+            .page-container {
+              width: 100%;
+              margin: 0 auto;
+            }
+            .doc-header {
+              text-align: center;
+              margin-bottom: 16px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #0f172a;
+            }
+            .doc-header h1 {
+              font-size: 13pt;
+              font-weight: 800;
+              text-transform: uppercase;
+              letter-spacing: 0.04em;
+              margin: 0 0 4px 0;
+              color: #0f172a;
+            }
+            .doc-header h2 {
+              font-size: 10.5pt;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.02em;
+              margin: 0;
+              color: #334155;
+            }
+            .meta-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 14px;
+              font-size: 9.5pt;
+            }
+            .meta-table td {
+              padding: 2.5px 0;
+              vertical-align: top;
+            }
+            .meta-label {
+              width: 150px;
+              font-weight: bold;
+              color: #1e293b;
+            }
+            .meta-sep {
+              width: 14px;
+              text-align: center;
+              font-weight: bold;
+              color: #1e293b;
+            }
+            .meta-val {
+              font-weight: 600;
+              color: #0f172a;
+            }
+            .section-heading {
+              font-size: 9.5pt;
+              font-weight: bold;
+              text-transform: uppercase;
+              letter-spacing: 0.02em;
+              color: #0f172a;
+              margin-bottom: 6px;
+            }
+            table.data-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 14px;
+              font-size: 8.5pt;
+            }
+            table.data-table thead {
+              display: table-header-group;
+            }
+            table.data-table th {
+              background-color: #f1f5f9 !important;
+              color: #0f172a;
+              font-weight: 700;
+              text-transform: uppercase;
+              font-size: 8.5pt;
+              padding: 6px 5px;
+              border: 1px solid #1e293b;
+              text-align: center;
+            }
+            table.data-table td {
+              padding: 5px 6px;
+              border: 1px solid #334155;
+              vertical-align: middle;
+            }
+            table.data-table tr {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            table.data-table tr.row-winner {
+              background-color: #f8fafc;
+            }
+            .col-no {
+              width: 28px;
+              text-align: center;
+            }
+            .col-rank {
+              width: 85px;
+              text-align: center;
+              font-weight: bold;
+            }
+            .rank-highlight {
+              color: #0f172a;
+            }
+            .col-name {
+              text-align: left;
+              font-weight: 600;
+              color: #0f172a;
+            }
+            .col-inst {
+              text-align: left;
+              color: #1e293b;
+            }
+            .col-jury {
+              width: 50px;
+              text-align: center;
+              font-size: 8pt;
+            }
+            .col-jury-score {
+              width: 50px;
+              text-align: center;
+              font-variant-numeric: tabular-nums;
+            }
+            .col-final-score {
+              width: 65px;
+              text-align: center;
+              font-weight: bold;
+              background-color: #f1f5f9 !important;
+              font-variant-numeric: tabular-nums;
+              font-size: 9pt;
+            }
+            .col-notes {
+              width: 90px;
+              font-size: 8pt;
+              color: #475569;
+            }
+            .closing-clause {
+              font-size: 9pt;
+              line-height: 1.5;
+              text-align: justify;
+              color: #1e293b;
+              margin: 14px 0 20px 0;
+            }
+            .signatures-box {
+              page-break-inside: avoid;
+              break-inside: avoid;
+              margin-top: 18px;
+            }
+            .signature-date {
+              text-align: right;
+              font-size: 9pt;
+              font-weight: 600;
+              color: #1e293b;
+              margin-bottom: 10px;
+            }
+            .signature-title {
+              text-align: center;
+              font-size: 9.5pt;
+              font-weight: bold;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              color: #0f172a;
+              margin-bottom: 14px;
+            }
+            table.signatures-table {
+              width: 100%;
+              border-collapse: collapse;
+              border: none;
+            }
+            table.signatures-table td {
+              border: none;
+            }
+            .jury-label {
+              font-size: 9pt;
+              font-weight: bold;
+              color: #334155;
+            }
+            .jury-space {
+              height: 60px;
+            }
+            .jury-name-line {
+              font-size: 9pt;
+              font-weight: bold;
+              color: #0f172a;
+              border-bottom: 1.5px solid #0f172a;
+              display: inline-block;
+              min-width: 150px;
+              padding-bottom: 2px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="page-container">
+            <!-- Header Dokumen Formal -->
+            <div class="doc-header">
+              <h1>BERITA ACARA HASIL PENILAIAN DEWAN JURI</h1>
+              <h2>${eventName}</h2>
+            </div>
+
+            <!-- Identitas Cabang Lomba -->
+            <table class="meta-table">
+              <tr>
+                <td class="meta-label">Cabang Lomba</td>
+                <td class="meta-sep">:</td>
+                <td class="meta-val">${compName}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Kategori / Jenjang</td>
+                <td class="meta-sep">:</td>
+                <td class="meta-val">${jenjangStr}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Hari / Tanggal</td>
+                <td class="meta-sep">:</td>
+                <td class="meta-val">${compDateFormatted}</td>
+              </tr>
+              <tr>
+                <td class="meta-label">Tempat Pelaksanaan</td>
+                <td class="meta-sep">:</td>
+                <td class="meta-val">${locationStr}</td>
+              </tr>
+            </table>
+
+            <!-- Tabel Hasil Rekapitulasi -->
+            <div class="section-heading">A. Hasil Rekapitulasi & Penetapan Kejuaraan:</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="col-no">No</th>
+                  <th class="col-rank">Peringkat / Juara</th>
+                  <th>Nama Peserta / Pendaftar</th>
+                  <th>Asal Madrasah / Sekolah</th>
+                  ${juryHeaderCols}
+                  <th class="col-final-score">Nilai Akhir</th>
+                  ${notesHeaderHtml}
+                </tr>
+              </thead>
+              <tbody>
+                ${tableRowsHtml}
+              </tbody>
+            </table>
+
+            <!-- Klausul Berita Acara -->
+            <div class="closing-clause">
+              Demikian Berita Acara Hasil Penilaian ini dibuat dengan sesungguhnya berdasarkan hasil rekapitulasi penilaian objektif dari Dewan Juri yang bertugas pada cabang lomba tersebut di atas. Keputusan Dewan Juri bersifat mutlak, mengikat, dan tidak dapat diganggu gugat.
+            </div>
+
+            <!-- Tanda Tangan Dewan Juri Saja -->
+            <div class="signatures-box">
+              <div class="signature-date">Cilacap, ${currentDateFormatted}</div>
+              <div class="signature-title">DEWAN JURI PENILAI:</div>
+              <table class="signatures-table">
+                ${signatureRowsHtml}
+              </table>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
+      doc.close();
+
+      setTimeout(() => {
+        try {
+          printIframe.contentWindow?.focus();
+          printIframe.contentWindow?.print();
+        } catch (err) {
+          console.error('Print iframe error:', err);
+          window.print();
+        } finally {
+          setTimeout(() => {
+            if (document.body.contains(printIframe)) {
+              document.body.removeChild(printIframe);
+            }
+          }, 3000);
+        }
+      }, 300);
+    } catch (e) {
+      console.error(e);
+      window.print();
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -182,7 +605,7 @@ export default function CompetitionExportModal({
                 Rekapitulasi Nilai & Berita Acara Kejuaraan
               </DialogTitle>
               <p className="text-xs text-slate-500 mt-1">
-                {competition?.name} • {filterJenjang !== 'all' ? `Jenjang ${filterJenjang}` : (competition?.jenjang || 'Semua Jenjang')}
+                {compName} • {jenjangStr}
               </p>
             </div>
 
@@ -199,137 +622,132 @@ export default function CompetitionExportModal({
               <Button
                 size="sm"
                 onClick={handlePrint}
-                className="gap-1.5 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800"
+                className="gap-1.5 text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 shadow"
               >
                 <Printer className="w-4 h-4" />
-                Cetak Berita Acara (PDF)
+                Cetak / Simpan PDF
               </Button>
             </div>
           </div>
         </DialogHeader>
 
-        {/* ── Document Paper Container (A4 preview) ── */}
-        <div className="p-6 bg-slate-100 flex justify-center">
+        {/* ── Document Paper Container (A4 Preview) ── */}
+        <div className="p-4 sm:p-6 bg-slate-200/70 flex justify-center">
           <div
             id="printable-berita-acara"
-            className="bg-white w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-12 shadow-md rounded-xl text-black font-sans relative border print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full"
+            className="bg-white w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-12 shadow-xl rounded text-slate-900 font-sans relative border border-slate-200 print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full"
           >
-            {/* ── JUDUL DOKUMEN (TANPA KOP SURAT) ── */}
-            <div className="text-center mb-6 pt-1">
-              <h2 className="font-black text-base sm:text-lg uppercase tracking-wider text-slate-900">
+            {/* ── JUDUL DOKUMEN FORMAL (TANPA KOP SURAT) ── */}
+            <div className="text-center mb-5 pb-3 border-b-2 border-slate-900">
+              <h2 className="font-extrabold text-base sm:text-lg uppercase tracking-wider text-slate-900 leading-tight">
                 BERITA ACARA HASIL PENILAIAN DEWAN JURI
               </h2>
-              <p className="font-bold text-xs uppercase tracking-wide text-slate-700 mt-1">
-                {competition?.event?.name || competition?.event || 'HARLAH LP MA\'ARIF NU KE-97 TAHUN 2026'}
+              <p className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-700 mt-1">
+                {eventName}
               </p>
-              <div className="w-20 h-0.5 bg-slate-400 mx-auto mt-2 print:bg-black" />
             </div>
 
             {/* ── IDENTITAS CABANG LOMBA ── */}
-            <div className="mb-6 text-xs text-slate-800 space-y-1 bg-slate-50/60 p-3 rounded-lg border border-slate-200">
-              <div className="grid grid-cols-4 gap-2">
-                <span className="font-bold text-slate-600">Cabang Lomba</span>
-                <span className="col-span-3 font-semibold text-slate-900">: {competition?.name}</span>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                <span className="font-bold text-slate-600">Kategori / Jenjang</span>
-                <span className="col-span-3 font-semibold text-slate-900">
-                  : {competition?.category} • {filterJenjang !== 'all' ? filterJenjang : (competition?.jenjang || 'Semua Jenjang')}
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                <span className="font-bold text-slate-600">Waktu & Tempat</span>
-                <span className="col-span-3 font-semibold text-slate-900">
-                  : {competition?.date ? new Date(competition.date).toLocaleDateString('id-ID', { dateStyle: 'full' }) : '-'} {competition?.location ? `(${competition.location})` : ''}
-                </span>
-              </div>
-            </div>
+            <table className="w-full mb-5 text-xs text-slate-900 leading-relaxed">
+              <tbody>
+                <tr>
+                  <td className="w-36 font-bold text-slate-700 py-0.5">Cabang Lomba</td>
+                  <td className="w-4 text-center font-bold py-0.5">:</td>
+                  <td className="font-semibold py-0.5">{compName}</td>
+                </tr>
+                <tr>
+                  <td className="font-bold text-slate-700 py-0.5">Kategori / Jenjang</td>
+                  <td className="text-center font-bold py-0.5">:</td>
+                  <td className="py-0.5">{jenjangStr}</td>
+                </tr>
+                <tr>
+                  <td className="font-bold text-slate-700 py-0.5">Hari / Tanggal</td>
+                  <td className="text-center font-bold py-0.5">:</td>
+                  <td className="py-0.5">{compDateFormatted}</td>
+                </tr>
+                <tr>
+                  <td className="font-bold text-slate-700 py-0.5">Tempat Pelaksanaan</td>
+                  <td className="text-center font-bold py-0.5">:</td>
+                  <td className="py-0.5">{locationStr}</td>
+                </tr>
+              </tbody>
+            </table>
 
             {/* ── TABEL REKAPITULASI HASIL ── */}
-            <div className="mb-6">
-              <p className="text-xs font-bold text-slate-800 mb-2 uppercase">
+            <div className="mb-5">
+              <p className="text-xs font-bold text-slate-900 mb-2 uppercase tracking-wide">
                 A. Hasil Rekapitulasi & Peringkat Kejuaraan:
               </p>
-              <table className="w-full border-collapse border border-slate-300 text-xs">
+              <table className="w-full border-collapse border border-slate-800 text-xs">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-800">
-                    <th className="border border-slate-300 p-2 text-center w-8">No</th>
-                    <th className="border border-slate-300 p-2 text-left w-28">Peringkat / Juara</th>
-                    <th className="border border-slate-300 p-2 text-left">Nama Peserta / Pendaftar</th>
-                    <th className="border border-slate-300 p-2 text-left">Asal Madrasah / Sekolah</th>
+                  <tr className="bg-slate-100 text-slate-900">
+                    <th className="border border-slate-800 p-2 text-center w-8">No</th>
+                    <th className="border border-slate-800 p-2 text-center w-28">Peringkat / Juara</th>
+                    <th className="border border-slate-800 p-2 text-left">Nama Peserta / Pendaftar</th>
+                    <th className="border border-slate-800 p-2 text-left">Asal Madrasah / Sekolah</th>
                     {allJuryNames.map((jName, i) => (
-                      <th key={i} className="border border-slate-300 p-2 text-center w-16 text-[10px] leading-tight">
+                      <th key={i} className="border border-slate-800 p-2 text-center w-16 text-[10px] leading-tight">
                         {jName}
                       </th>
                     ))}
-                    <th className="border border-slate-300 p-2 text-center w-20 font-black">Nilai Akhir</th>
-                    <th className="border border-slate-300 p-2 text-left w-24">Catatan</th>
+                    <th className="border border-slate-800 p-2 text-center w-20 font-black">Nilai Akhir</th>
+                    {hasNotes && (
+                      <th className="border border-slate-800 p-2 text-left w-24">Catatan</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {sorted.length === 0 ? (
                     <tr>
-                      <td colSpan={6 + allJuryNames.length} className="border border-slate-300 p-4 text-center text-slate-400">
+                      <td colSpan={4 + (allJuryNames.length > 0 ? allJuryNames.length : 0) + 1 + (hasNotes ? 1 : 0)} className="border border-slate-700 p-4 text-center text-slate-400">
                         Belum ada data nilai peserta.
                       </td>
                     </tr>
                   ) : (
                     sorted.map((p, idx) => {
-                      const juryAvg = (p.jury_scores && p.jury_scores.length > 0)
-                        ? (p.jury_scores.reduce((sum: number, js: any) => sum + (Number(js.score) || 0), 0) / p.jury_scores.length).toFixed(2)
-                        : null;
-
-                      const finalScore = juryAvg !== null
-                        ? juryAvg
-                        : (p.result?.score != null
-                          ? Number(p.result.score).toFixed(2)
-                          : (p.total_score != null ? Number(p.total_score).toFixed(2) : '-'));
-
+                      const finalScore = getParticipantFinalScore(p);
                       const isWinner = p.result?.rank && p.result.rank <= 3;
 
                       return (
                         <tr
                           key={idx}
                           className={
-                            p.result?.rank === 1
-                              ? 'bg-amber-50/50 font-medium'
-                              : p.result?.rank === 2
-                              ? 'bg-slate-50'
-                              : p.result?.rank === 3
-                              ? 'bg-orange-50/30'
+                            isWinner
+                              ? 'bg-amber-50/40 font-medium'
+                              : idx % 2 === 1
+                              ? 'bg-slate-50/60'
                               : ''
                           }
                         >
-                          <td className="border border-slate-300 p-1.5 text-center">{idx + 1}</td>
-                          <td className="border border-slate-300 p-1.5 font-bold">
+                          <td className="border border-slate-700 p-1.5 text-center">{idx + 1}</td>
+                          <td className="border border-slate-700 p-1.5 text-center font-bold">
                             {isWinner ? (
-                              <span className="text-amber-700 flex items-center gap-1">
-                                {getRankTitle(p.result?.rank)}
+                              <span className="text-slate-950">
+                                {getRankTitle(p.result?.rank, false)}
                               </span>
                             ) : (
-                              getRankTitle(p.result?.rank)
+                              getRankTitle(p.result?.rank, false)
                             )}
                           </td>
-                          <td className="border border-slate-300 p-1.5 font-semibold text-slate-900">
-                            {p.name || p.applicant_name}
+                          <td className="border border-slate-700 p-1.5 font-semibold text-slate-900">
+                            {p.name || p.applicant_name || '-'}
                           </td>
-                          <td className="border border-slate-300 p-1.5 text-slate-700">
-                            {p.institution || p.school_name}
+                          <td className="border border-slate-700 p-1.5 text-slate-700">
+                            {p.institution || p.school_name || '-'}
                           </td>
-                          {allJuryNames.map((jName, jIdx) => {
-                            const js = (p.jury_scores ?? []).find((s: any) => s.jury_name === jName);
-                            return (
-                              <td key={jIdx} className="border border-slate-300 p-1.5 text-center font-mono">
-                                {js ? Number(js.score).toFixed(2) : '-'}
-                              </td>
-                            );
-                          })}
-                          <td className="border border-slate-300 p-1.5 text-center font-black font-mono text-slate-900 bg-slate-50/80">
+                          {allJuryNames.map((jName, jIdx) => (
+                            <td key={jIdx} className="border border-slate-700 p-1.5 text-center font-mono">
+                              {getParticipantJuryScore(p, jName)}
+                            </td>
+                          ))}
+                          <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
                             {finalScore}
                           </td>
-                          <td className="border border-slate-300 p-1.5 text-[11px] text-slate-600">
-                            {p.result?.notes || p.reviewer_notes || '-'}
-                          </td>
+                          {hasNotes && (
+                            <td className="border border-slate-700 p-1.5 text-[11px] text-slate-600">
+                              {p.result?.notes || p.reviewer_notes || '-'}
+                            </td>
+                          )}
                         </tr>
                       );
                     })
@@ -339,18 +757,18 @@ export default function CompetitionExportModal({
             </div>
 
             {/* ── KLAUSUL BERITA ACARA ── */}
-            <div className="text-[11px] text-slate-700 leading-relaxed mb-8">
+            <div className="text-[11px] text-slate-800 leading-relaxed mb-6 text-justify">
               <p>
-                Demikian Berita Acara Hasil Penilaian ini dibuat dengan sebenarnya dan sejujur-jujurnya berdasarkan
-                akumulasi penilaian objektif Dewan Juri yang bertugas. Keputusan Dewan Juri bersifat mutlak dan tidak
-                dapat diganggu gugat.
+                Demikian Berita Acara Hasil Penilaian ini dibuat dengan sesungguhnya berdasarkan
+                hasil rekapitulasi penilaian objektif dari Dewan Juri yang bertugas pada cabang lomba tersebut di atas.
+                Keputusan Dewan Juri bersifat mutlak, mengikat, dan tidak dapat diganggu gugat.
               </p>
             </div>
 
             {/* ── TANDA TANGAN DEWAN JURI ── */}
             <div className="pt-2 text-xs break-inside-avoid print:break-inside-avoid">
-              <div className="flex justify-end mb-4">
-                <p className="text-slate-800 font-medium">
+              <div className="flex justify-end mb-3">
+                <p className="text-slate-900 font-semibold">
                   Cilacap, {currentDateFormatted}
                 </p>
               </div>
@@ -362,21 +780,21 @@ export default function CompetitionExportModal({
                 </p>
                 <div
                   className={`grid ${
-                    allJuryNames.length === 1
+                    displayJuryNames.length === 1
                       ? 'grid-cols-1 max-w-xs mx-auto'
-                      : allJuryNames.length === 2
+                      : displayJuryNames.length === 2
                       ? 'grid-cols-2 max-w-lg mx-auto'
-                      : allJuryNames.length <= 3
+                      : displayJuryNames.length <= 3
                       ? 'grid-cols-3'
                       : 'grid-cols-4'
                   } gap-6 text-center`}
                 >
-                  {(allJuryNames.length > 0 ? allJuryNames : ['Juri 1', 'Juri 2', 'Juri 3']).map((jName, idx) => (
+                  {displayJuryNames.map((jName, idx) => (
                     <div key={idx} className="flex flex-col items-center">
-                      <p className="font-bold text-slate-700 text-[11px] mb-16">
+                      <p className="font-bold text-slate-700 text-[11px] mb-14">
                         {jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}
                       </p>
-                      <p className="font-bold border-b border-slate-900 pb-0.5 px-3 min-w-[140px] text-slate-900">
+                      <p className="font-bold border-b-2 border-slate-900 pb-0.5 px-3 min-w-[140px] text-slate-900">
                         ( {jName} )
                       </p>
                     </div>
@@ -387,30 +805,34 @@ export default function CompetitionExportModal({
           </div>
         </div>
 
-        {/* ── CSS PRINT STYLES ── */}
+        {/* ── CSS PRINT STYLES UNTUK CTRL+P DI HALAMAN UTAMA ── */}
         <style>{`
           @media print {
             @page {
               size: A4 portrait;
-              margin: 12mm 12mm 15mm 12mm;
+              margin: 15mm 12mm 15mm 12mm;
             }
-            body * {
-              visibility: hidden;
+            body {
+              visibility: hidden !important;
             }
             #printable-berita-acara,
             #printable-berita-acara * {
-              visibility: visible;
+              visibility: visible !important;
             }
             #printable-berita-acara {
-              position: absolute;
-              left: 0;
-              top: 0;
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
               width: 100% !important;
               max-width: 100% !important;
               padding: 0 !important;
               margin: 0 !important;
               box-shadow: none !important;
               border: none !important;
+              background: white !important;
+              color: black !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
           }
         `}</style>

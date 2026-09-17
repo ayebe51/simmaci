@@ -14,6 +14,7 @@ RUN npm config set fetch-retries 5 \
 # Copy source files (explicitly, no .env files from host)
 COPY src ./src
 COPY public ./public
+COPY scripts ./scripts
 COPY index.html ./
 COPY tsconfig.* ./
 COPY vite.config.ts ./

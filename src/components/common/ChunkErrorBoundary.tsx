@@ -35,9 +35,11 @@ export class ChunkErrorBoundary extends Component<Props, State> {
   }
 
   private handleRetry = () => {
-    // Clear the error state — this triggers a re-render which re-attempts
-    // the lazy import (React.lazy will retry the dynamic import() call)
-    this.setState({ hasError: false, error: null })
+    // Clear recovery counters and reset boundary error state so lazyWithRetry can re-attempt the import
+    sessionStorage.removeItem('simmaci_chunk_recovery');
+    sessionStorage.removeItem('simmaci_preload_reload');
+    sessionStorage.removeItem('chunk_reload_retry');
+    this.setState({ hasError: false, error: null });
   }
 
   public render() {

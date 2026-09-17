@@ -37,7 +37,11 @@ RUN NODE_OPTIONS="--max-old-space-size=1536" npm run build
 # Stage 2: Serve static files with Nginx
 FROM nginx:alpine
 
-# Copy built assets from Stage 1
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Copy built assets from Stage 1 to staging directory and docroot
+COPY --from=build /app/dist /app/dist
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy custom Nginx configuration for React Router
@@ -48,8 +52,12 @@ COPY nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY nginx/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Healthcheck to verify Nginx and version endpoint are responding
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 --start-period=5s \
+  CMD curl -f http://localhost/version.json || exit 1
+
 # Expose port
 EXPOSE 80
 
-# Use entrypoint to inject BACKEND_URL at runtime
+# Use entrypoint to sync assets and launch Nginx
 ENTRYPOINT ["/entrypoint.sh"]

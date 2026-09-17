@@ -14,6 +14,18 @@ use Illuminate\Support\Facades\Cache;
 |
 */
 
+// Version endpoint - returns safe build metadata
+Route::get('/version', function () {
+    return response()->json([
+        'version'     => config('app.version', '1.0.0'),
+        'build'       => env('APP_BUILD_ID', 'production'),
+        'environment' => app()->environment(),
+        'timestamp'   => now()->toIso8601String(),
+    ], 200, [
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    ]);
+});
+
 // Simple health check (no DB, no cache)
 Route::get('/health', function () {
     return response()->json(['status' => 'ok'], 200);

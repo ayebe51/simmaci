@@ -9,6 +9,7 @@ import { GlobalErrorBoundary } from "./components/common/GlobalErrorBoundary"
 import { ChunkErrorBoundary } from "./components/common/ChunkErrorBoundary"
 import { PageTransition } from "./components/common/PageTransition"
 import { usePwaUpdate } from "./hooks/usePwaUpdate"
+import { UpdateNotification } from "./components/common/UpdateNotification"
 import SkeletonPage from "./components/common/SkeletonPage"
 import AppShell from "./components/layout/AppShell"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
@@ -309,6 +310,7 @@ export default function App() {
         </Suspense>
         </ChunkErrorBoundary>
         <Toaster />
+        <UpdateNotification />
       </BrowserRouter>
     </QueryClientProvider>
   )

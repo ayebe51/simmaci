@@ -1,4 +1,5 @@
 import { lazy, ComponentType, LazyExoticComponent } from 'react';
+import { versionManager } from '@/lib/versionManager';
 
 interface LazyWithRetryOptions {
   retries?: number;
@@ -11,7 +12,8 @@ interface LazyWithRetryOptions {
  * when network connection drops, experiences packet loss, or is slow.
  *
  * If after all retries it still fails and reloadOnChunkMismatch is true,
- * it will attempt a one-time clean page reload to fetch the latest chunk manifest.
+ * it safely attempts a one-time clean page reload to fetch the latest chunk manifest,
+ * protected against infinite reload loops and respecting user busy states.
  */
 export function lazyWithRetry<T extends ComponentType<any>>(
   componentImport: () => Promise<{ default: T }>,
@@ -24,9 +26,12 @@ export function lazyWithRetry<T extends ComponentType<any>>(
   } = options;
 
   return lazy(async () => {
-    const pageAlreadyRefreshed = JSON.parse(
-      window.sessionStorage.getItem('chunk_reload_retry') || 'false'
+    const RECOVERY_KEY = 'simmaci_chunk_recovery';
+    const recoveryRecord = JSON.parse(
+      window.sessionStorage.getItem(RECOVERY_KEY) || '{"count":0,"time":0}'
     );
+    const now = Date.now();
+    const recentlyRecovered = now - recoveryRecord.time < 30000 && recoveryRecord.count >= 1;
 
     let currentAttempt = 0;
 
@@ -52,24 +57,32 @@ export function lazyWithRetry<T extends ComponentType<any>>(
           return executeImport();
         }
 
-        // If all retries failed and it's a chunk error, try refreshing page once
-        if (reloadOnChunkMismatch && isNetworkOrChunkError && !pageAlreadyRefreshed) {
-          window.sessionStorage.setItem('chunk_reload_retry', 'true');
-          console.warn('[lazyWithRetry] Mencoba memuat ulang halaman untuk memperbarui chunk manifest...');
-          window.location.reload();
-          // Return a pending promise so React doesn't render error boundary during reload
-          return new Promise(() => {});
+        // If retries failed, check server version in background
+        versionManager.checkNow().catch(() => {});
+
+        // If chunk error and we haven't recently auto-reloaded in the last 30s
+        if (reloadOnChunkMismatch && isNetworkOrChunkError && !recentlyRecovered) {
+          // If user is busy with active forms or dialogs, don't abrupt reload
+          if (!versionManager.isUserBusy()) {
+            window.sessionStorage.setItem(
+              RECOVERY_KEY,
+              JSON.stringify({ count: recoveryRecord.count + 1, time: now })
+            );
+            console.warn('[lazyWithRetry] Chunk mismatch terdeteksi. Memuat ulang halaman untuk manifest terbaru...');
+            window.location.reload();
+            return new Promise(() => {});
+          }
         }
 
-        // Reset the flag for future navigations
-        window.sessionStorage.setItem('chunk_reload_retry', 'false');
         throw error;
       }
     };
 
     const result = await executeImport();
-    // Reset refresh flag on successful import
-    window.sessionStorage.setItem('chunk_reload_retry', 'false');
+    // Reset recovery record on successful import after 10 seconds of stability
+    setTimeout(() => {
+      window.sessionStorage.removeItem(RECOVERY_KEY);
+    }, 10000);
     return result;
   });
 }

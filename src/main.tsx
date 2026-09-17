@@ -9,15 +9,28 @@
 })();
 
 // ── Auto-recover from dynamic import chunk mismatches after redeploy ──
-window.addEventListener('vite:preloadError', () => {
+window.addEventListener('vite:preloadError', (event) => {
   const reloadKey = 'simmaci_preload_reload';
   const lastReload = sessionStorage.getItem(reloadKey);
   const now = Date.now();
-  // Prevent infinite reload loops if network is completely down
-  if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+  
+  // Anti-loop: Allow at most 1 automatic reload attempt within 30 seconds
+  if (!lastReload || now - parseInt(lastReload, 10) > 30000) {
     sessionStorage.setItem(reloadKey, String(now));
-    console.warn('SIMMACI: Versi aplikasi baru terdeteksi. Memuat ulang halaman...');
-    window.location.reload();
+    console.warn('SIMMACI: Versi aplikasi baru terdeteksi via preloadError. Memuat ulang halaman...');
+    
+    // Check if user is actively typing or inside a modal
+    const activeEl = document.activeElement;
+    const isTyping = activeEl && (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) || activeEl.getAttribute('contenteditable') === 'true');
+    const isModalOpen = !!document.querySelector('[role="dialog"], [role="alertdialog"]');
+
+    if (!isTyping && !isModalOpen) {
+      window.location.reload();
+    } else {
+      console.warn('SIMMACI: Pengguna sedang aktif. Menunda reload otomatis preloadError...');
+    }
+  } else {
+    console.warn('SIMMACI: Preload error berulang dalam 30 detik. Menghentikan reload untuk mencegah infinite loop.');
   }
 });
 

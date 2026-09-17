@@ -283,6 +283,14 @@ services:
       MINIO_URL: http://minio:9000
     expose:
       - "80"
+    volumes:
+      - frontend-assets:/usr/share/nginx/html/assets
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/version.json"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     networks:
       - simmaci-network
     labels:
@@ -303,3 +311,4 @@ volumes:
   redis-data:
   minio-data:
   gowa-data:
+  frontend-assets:

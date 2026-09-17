@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -14,7 +17,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['logo-icon-192.png', 'logo-icon-512.png', 'logo-maarif-hijau.png'],
       manifest: {
         name: 'SIMMACI - Absensi Sekolah',
@@ -56,7 +59,10 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        navigateFallbackDenylist: [/^\/.*\.xlsx$/, /^\/api\/.*$/],
+        // CRITICAL: Exclude index.html from precache so navigation always validates fresh HTML with Nginx
+        globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest,woff,woff2}'],
+        globIgnores: ['**/index.html'],
+        navigateFallbackDenylist: [/^\/.*\.xlsx$/, /^\/api\/.*$/, /^\/version.*$/],
         runtimeCaching: [
           {
             // Cache public attendance API responses for offline resilience

@@ -42,21 +42,55 @@ export default function CompetitionExportModal({
     return scoreB - scoreA;
   });
 
-  // Extract all distinct jury names across participants
-  const allJuryNames = Array.from(
+  // Helper to identify organization or system account names that shouldn't be displayed as individual jury persons
+  const isOrgOrSystemName = (name: string) => {
+    if (!name) return true;
+    const lower = name.toLowerCase().trim();
+    return (
+      lower.includes('ma\'arif') ||
+      lower.includes('maarif') ||
+      lower.includes('admin') ||
+      lower.includes('operator') ||
+      lower.includes('panitia') ||
+      lower.includes('sekretariat') ||
+      lower.includes('pengurus') ||
+      lower.includes('pc lp')
+    );
+  };
+
+  // Extract all distinct legitimate jury names across participants (excluding system/org accounts)
+  const distinctJuryNames = Array.from(
     new Set(
       participants.flatMap((p) => {
         const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
         return scores.map((js: any) => js.jury_name || js.name).filter(Boolean);
       })
     )
-  );
+  ).filter((name) => !isOrgOrSystemName(name));
 
-  // Fallback jury names for signatures if no juries were explicitly named
-  const displayJuryNames = allJuryNames.length > 0 ? allJuryNames : ['Dewan Juri 1', 'Dewan Juri 2', 'Dewan Juri 3'];
+  // Only show individual jury score columns if there are 2 or more distinct juries.
+  // If only 1 jury or 0 juries exist, only show Nilai Akhir to avoid redundant columns.
+  const showJuryColumns = distinctJuryNames.length > 1;
 
-  // Check if any participant has notes
-  const hasNotes = sorted.some((p) => Boolean(p.result?.notes || p.reviewer_notes));
+  // Build signatures list:
+  // If distinct real juries exist, list them
+  // If no distinct real juries exist, provide standard blank spots: Dewan Juri 1, 2, 3 with blank lines for manual signing
+  const displayJuries = distinctJuryNames.length === 0
+    ? [
+        { label: 'Dewan Juri 1', name: '' },
+        { label: 'Dewan Juri 2', name: '' },
+        { label: 'Dewan Juri 3', name: '' },
+      ]
+    : distinctJuryNames.length === 1
+    ? [
+        { label: 'Dewan Juri 1', name: distinctJuryNames[0] },
+        { label: 'Dewan Juri 2', name: '' },
+        { label: 'Dewan Juri 3', name: '' },
+      ]
+    : distinctJuryNames.map((name, idx) => ({
+        label: name.startsWith('Dewan') || name.startsWith('Juri') ? name : `Dewan Juri ${idx + 1}`,
+        name: name.startsWith('Dewan') || name.startsWith('Juri') ? '' : name,
+      }));
 
   const getRankTitle = (rank?: number, withEmoji = false) => {
     if (!rank) return '-';
@@ -106,7 +140,6 @@ export default function CompetitionExportModal({
   const compDateFormatted = competition?.date
     ? new Date(competition.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const locationStr = competition?.location || 'Gedung PC LP Ma\'arif NU Cilacap';
   const currentDateFormatted = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -128,12 +161,11 @@ export default function CompetitionExportModal({
         [`Event: ${eventName}`],
         [`Cabang Lomba: ${compName} | Jenjang: ${jenjangStr}`],
         [`Hari / Tanggal: ${compDateFormatted}`],
-        [`Tempat: ${locationStr}`],
-        [`Waktu Unduh: ${new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}`],
+        ...(competition?.location ? [[`Tempat: ${competition.location}`]] : []),
         [], // empty row
       ];
 
-      // Build data rows
+      // Build data rows (hanya nilai, tanpa catatan)
       const dataRows = sorted.map((p, idx) => {
         const rowData: Record<string, any> = {
           'No': idx + 1,
@@ -143,15 +175,14 @@ export default function CompetitionExportModal({
           'Jenjang': p.jenjang || compName,
         };
 
-        // If specific jury scores exist, add each jury's score
-        if (allJuryNames.length > 0) {
-          allJuryNames.forEach((jName) => {
+        // If multiple distinct jury scores exist, add each jury's score
+        if (showJuryColumns) {
+          distinctJuryNames.forEach((jName) => {
             rowData[`Nilai (${jName})`] = getParticipantJuryScore(p, jName);
           });
         }
 
         rowData['Nilai Akhir'] = getParticipantFinalScore(p);
-        rowData['Catatan Dewan Juri'] = p.result?.notes || p.reviewer_notes || '-';
 
         return rowData;
       });
@@ -166,16 +197,15 @@ export default function CompetitionExportModal({
         { wch: 28 }, // Nama
         { wch: 32 }, // Lembaga
         { wch: 14 }, // Jenjang
-        ...allJuryNames.map(() => ({ wch: 18 })), // Tiap Juri
+        ...(showJuryColumns ? distinctJuryNames.map(() => ({ wch: 18 })) : []), // Tiap Juri
         { wch: 18 }, // Nilai Akhir
-        { wch: 35 }, // Catatan
       ];
       ws['!cols'] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, 'Rekapitulasi Nilai');
 
       const sanitizedName = compName.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Berita_Acara_Nilai_${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filename = `Rekap_Nilai_${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       XLSX.writeFile(wb, filename);
       toast.success('Rekap nilai berhasil diunduh ke Excel (.xlsx)', {
@@ -206,25 +236,21 @@ export default function CompetitionExportModal({
         return;
       }
 
-      // Generate HTML for jury columns in header
-      const juryHeaderCols = allJuryNames.length > 0
-        ? allJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
+      // Generate HTML for jury columns in header (only if > 1 distinct juries)
+      const juryHeaderCols = showJuryColumns
+        ? distinctJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
         : '';
 
-      // Generate table rows
+      // Generate table rows (scores only, no notes column)
       const tableRowsHtml = sorted.length === 0
-        ? `<tr><td colspan="${4 + (allJuryNames.length > 0 ? allJuryNames.length : 0) + 1 + (hasNotes ? 1 : 0)}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
+        ? `<tr><td colspan="${4 + (showJuryColumns ? distinctJuryNames.length : 0) + 1}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
         : sorted.map((p, idx) => {
             const rankTitle = getRankTitle(p.result?.rank, false);
             const isWinner = p.result?.rank && p.result.rank <= 3;
             const finalScore = getParticipantFinalScore(p);
 
-            const juryCellsHtml = allJuryNames.length > 0
-              ? allJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
-              : '';
-
-            const notesCellHtml = hasNotes
-              ? `<td class="col-notes">${p.result?.notes || p.reviewer_notes || '-'}</td>`
+            const juryCellsHtml = showJuryColumns
+              ? distinctJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
               : '';
 
             return `
@@ -235,50 +261,47 @@ export default function CompetitionExportModal({
                 <td class="col-inst">${p.institution || p.school_name || '-'}</td>
                 ${juryCellsHtml}
                 <td class="col-final-score">${finalScore}</td>
-                ${notesCellHtml}
               </tr>
             `;
           }).join('');
 
       // Generate Signatures Table
-      const juryCount = displayJuryNames.length;
+      const juryCount = displayJuries.length;
       let signatureRowsHtml = '';
 
       if (juryCount <= 3) {
         const cellWidth = Math.floor(100 / Math.max(juryCount, 1));
-        const cells = displayJuryNames.map((jName, idx) => `
+        const cells = displayJuries.map((j) => `
           <td style="width: ${cellWidth}%; text-align: center; vertical-align: top; padding: 0 12px;">
-            <div class="jury-label">${jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}</div>
+            <div class="jury-label">${j.label}</div>
             <div class="jury-space"></div>
-            <div class="jury-name-line">( ${jName} )</div>
+            <div class="jury-name-line">${j.name ? `( ${j.name} )` : '(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)'}</div>
           </td>
         `).join('');
         signatureRowsHtml = `<tr>${cells}</tr>`;
       } else {
-        // Chunk into rows of 2 or 3
-        const row1 = displayJuryNames.slice(0, 3);
-        const row2 = displayJuryNames.slice(3);
+        // Chunk into rows of 3 and remainder
+        const row1 = displayJuries.slice(0, 3);
+        const row2 = displayJuries.slice(3);
 
-        const cells1 = row1.map((jName, idx) => `
+        const cells1 = row1.map((j) => `
           <td style="width: 33.33%; text-align: center; vertical-align: top; padding: 0 12px;">
-            <div class="jury-label">${jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}</div>
+            <div class="jury-label">${j.label}</div>
             <div class="jury-space"></div>
-            <div class="jury-name-line">( ${jName} )</div>
+            <div class="jury-name-line">${j.name ? `( ${j.name} )` : '(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)'}</div>
           </td>
         `).join('');
 
-        const cells2 = row2.map((jName, idx) => `
+        const cells2 = row2.map((j) => `
           <td style="width: ${Math.floor(100 / row2.length)}%; text-align: center; vertical-align: top; padding: 16px 12px 0 12px;">
-            <div class="jury-label">${jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 4}`}</div>
+            <div class="jury-label">${j.label}</div>
             <div class="jury-space"></div>
-            <div class="jury-name-line">( ${jName} )</div>
+            <div class="jury-name-line">${j.name ? `( ${j.name} )` : '(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)'}</div>
           </td>
         `).join('');
 
         signatureRowsHtml = `<tr>${cells1}</tr><tr>${cells2}</tr>`;
       }
-
-      const notesHeaderHtml = hasNotes ? `<th class="col-notes">Catatan</th>` : '';
 
       doc.open();
       doc.write(`
@@ -290,7 +313,7 @@ export default function CompetitionExportModal({
           <style>
             @page {
               size: A4 portrait;
-              margin: 15mm 12mm 15mm 12mm;
+              margin: 0;
             }
             * {
               box-sizing: border-box;
@@ -302,7 +325,7 @@ export default function CompetitionExportModal({
               color: #0f172a;
               background: #ffffff;
               margin: 0;
-              padding: 0;
+              padding: 14mm 12mm 14mm 12mm;
               font-size: 9.5pt;
               line-height: 1.4;
             }
@@ -368,7 +391,7 @@ export default function CompetitionExportModal({
             table.data-table {
               width: 100%;
               border-collapse: collapse;
-              margin-bottom: 14px;
+              margin-bottom: 18px;
               font-size: 8.5pt;
             }
             table.data-table thead {
@@ -418,46 +441,34 @@ export default function CompetitionExportModal({
               color: #1e293b;
             }
             .col-jury {
-              width: 50px;
+              width: 65px;
               text-align: center;
               font-size: 8pt;
             }
             .col-jury-score {
-              width: 50px;
+              width: 65px;
               text-align: center;
               font-variant-numeric: tabular-nums;
             }
             .col-final-score {
-              width: 65px;
+              width: 75px;
               text-align: center;
               font-weight: bold;
               background-color: #f1f5f9 !important;
               font-variant-numeric: tabular-nums;
               font-size: 9pt;
             }
-            .col-notes {
-              width: 90px;
-              font-size: 8pt;
-              color: #475569;
-            }
-            .closing-clause {
-              font-size: 9pt;
-              line-height: 1.5;
-              text-align: justify;
-              color: #1e293b;
-              margin: 14px 0 20px 0;
-            }
             .signatures-box {
               page-break-inside: avoid;
               break-inside: avoid;
-              margin-top: 18px;
+              margin-top: 24px;
             }
             .signature-date {
               text-align: right;
               font-size: 9pt;
               font-weight: 600;
               color: #1e293b;
-              margin-bottom: 10px;
+              margin-bottom: 12px;
             }
             .signature-title {
               text-align: center;
@@ -520,15 +531,16 @@ export default function CompetitionExportModal({
                 <td class="meta-sep">:</td>
                 <td class="meta-val">${compDateFormatted}</td>
               </tr>
+              ${competition?.location ? `
               <tr>
                 <td class="meta-label">Tempat Pelaksanaan</td>
                 <td class="meta-sep">:</td>
-                <td class="meta-val">${locationStr}</td>
-              </tr>
+                <td class="meta-val">${competition.location}</td>
+              </tr>` : ''}
             </table>
 
-            <!-- Tabel Hasil Rekapitulasi -->
-            <div class="section-heading">A. Hasil Rekapitulasi & Penetapan Kejuaraan:</div>
+            <!-- Tabel Hasil Rekapitulasi (Hanya Nilai) -->
+            <div class="section-heading">Hasil Rekapitulasi & Penetapan Kejuaraan:</div>
             <table class="data-table">
               <thead>
                 <tr>
@@ -538,18 +550,12 @@ export default function CompetitionExportModal({
                   <th>Asal Madrasah / Sekolah</th>
                   ${juryHeaderCols}
                   <th class="col-final-score">Nilai Akhir</th>
-                  ${notesHeaderHtml}
                 </tr>
               </thead>
               <tbody>
                 ${tableRowsHtml}
               </tbody>
             </table>
-
-            <!-- Klausul Berita Acara -->
-            <div class="closing-clause">
-              Demikian Berita Acara Hasil Penilaian ini dibuat dengan sesungguhnya berdasarkan hasil rekapitulasi penilaian objektif dari Dewan Juri yang bertugas pada cabang lomba tersebut di atas. Keputusan Dewan Juri bersifat mutlak, mengikat, dan tidak dapat diganggu gugat.
-            </div>
 
             <!-- Tanda Tangan Dewan Juri Saja -->
             <div class="signatures-box">
@@ -665,18 +671,20 @@ export default function CompetitionExportModal({
                   <td className="text-center font-bold py-0.5">:</td>
                   <td className="py-0.5">{compDateFormatted}</td>
                 </tr>
-                <tr>
-                  <td className="font-bold text-slate-700 py-0.5">Tempat Pelaksanaan</td>
-                  <td className="text-center font-bold py-0.5">:</td>
-                  <td className="py-0.5">{locationStr}</td>
-                </tr>
+                {competition?.location && (
+                  <tr>
+                    <td className="font-bold text-slate-700 py-0.5">Tempat Pelaksanaan</td>
+                    <td className="text-center font-bold py-0.5">:</td>
+                    <td className="py-0.5">{competition.location}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
 
-            {/* ── TABEL REKAPITULASI HASIL ── */}
-            <div className="mb-5">
+            {/* ── TABEL REKAPITULASI HASIL (HANYA NILAI) ── */}
+            <div className="mb-6">
               <p className="text-xs font-bold text-slate-900 mb-2 uppercase tracking-wide">
-                A. Hasil Rekapitulasi & Peringkat Kejuaraan:
+                Hasil Rekapitulasi & Peringkat Kejuaraan:
               </p>
               <table className="w-full border-collapse border border-slate-800 text-xs">
                 <thead>
@@ -685,21 +693,18 @@ export default function CompetitionExportModal({
                     <th className="border border-slate-800 p-2 text-center w-28">Peringkat / Juara</th>
                     <th className="border border-slate-800 p-2 text-left">Nama Peserta / Pendaftar</th>
                     <th className="border border-slate-800 p-2 text-left">Asal Madrasah / Sekolah</th>
-                    {allJuryNames.map((jName, i) => (
+                    {showJuryColumns && distinctJuryNames.map((jName, i) => (
                       <th key={i} className="border border-slate-800 p-2 text-center w-16 text-[10px] leading-tight">
                         {jName}
                       </th>
                     ))}
                     <th className="border border-slate-800 p-2 text-center w-20 font-black">Nilai Akhir</th>
-                    {hasNotes && (
-                      <th className="border border-slate-800 p-2 text-left w-24">Catatan</th>
-                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {sorted.length === 0 ? (
                     <tr>
-                      <td colSpan={4 + (allJuryNames.length > 0 ? allJuryNames.length : 0) + 1 + (hasNotes ? 1 : 0)} className="border border-slate-700 p-4 text-center text-slate-400">
+                      <td colSpan={4 + (showJuryColumns ? distinctJuryNames.length : 0) + 1} className="border border-slate-700 p-4 text-center text-slate-400">
                         Belum ada data nilai peserta.
                       </td>
                     </tr>
@@ -735,7 +740,7 @@ export default function CompetitionExportModal({
                           <td className="border border-slate-700 p-1.5 text-slate-700">
                             {p.institution || p.school_name || '-'}
                           </td>
-                          {allJuryNames.map((jName, jIdx) => (
+                          {showJuryColumns && distinctJuryNames.map((jName, jIdx) => (
                             <td key={jIdx} className="border border-slate-700 p-1.5 text-center font-mono">
                               {getParticipantJuryScore(p, jName)}
                             </td>
@@ -743,26 +748,12 @@ export default function CompetitionExportModal({
                           <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
                             {finalScore}
                           </td>
-                          {hasNotes && (
-                            <td className="border border-slate-700 p-1.5 text-[11px] text-slate-600">
-                              {p.result?.notes || p.reviewer_notes || '-'}
-                            </td>
-                          )}
                         </tr>
                       );
                     })
                   )}
                 </tbody>
               </table>
-            </div>
-
-            {/* ── KLAUSUL BERITA ACARA ── */}
-            <div className="text-[11px] text-slate-800 leading-relaxed mb-6 text-justify">
-              <p>
-                Demikian Berita Acara Hasil Penilaian ini dibuat dengan sesungguhnya berdasarkan
-                hasil rekapitulasi penilaian objektif dari Dewan Juri yang bertugas pada cabang lomba tersebut di atas.
-                Keputusan Dewan Juri bersifat mutlak, mengikat, dan tidak dapat diganggu gugat.
-              </p>
             </div>
 
             {/* ── TANDA TANGAN DEWAN JURI ── */}
@@ -780,22 +771,22 @@ export default function CompetitionExportModal({
                 </p>
                 <div
                   className={`grid ${
-                    displayJuryNames.length === 1
+                    displayJuries.length === 1
                       ? 'grid-cols-1 max-w-xs mx-auto'
-                      : displayJuryNames.length === 2
+                      : displayJuries.length === 2
                       ? 'grid-cols-2 max-w-lg mx-auto'
-                      : displayJuryNames.length <= 3
+                      : displayJuries.length <= 3
                       ? 'grid-cols-3'
                       : 'grid-cols-4'
                   } gap-6 text-center`}
                 >
-                  {displayJuryNames.map((jName, idx) => (
+                  {displayJuries.map((j, idx) => (
                     <div key={idx} className="flex flex-col items-center">
                       <p className="font-bold text-slate-700 text-[11px] mb-14">
-                        {jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}
+                        {j.label}
                       </p>
-                      <p className="font-bold border-b-2 border-slate-900 pb-0.5 px-3 min-w-[140px] text-slate-900">
-                        ( {jName} )
+                      <p className="font-bold border-b-2 border-slate-900 pb-0.5 px-3 min-w-[140px] text-slate-900 text-center inline-block">
+                        {j.name ? `( ${j.name} )` : '(\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0)'}
                       </p>
                     </div>
                   ))}
@@ -810,7 +801,7 @@ export default function CompetitionExportModal({
           @media print {
             @page {
               size: A4 portrait;
-              margin: 15mm 12mm 15mm 12mm;
+              margin: 0;
             }
             body {
               visibility: hidden !important;
@@ -825,7 +816,7 @@ export default function CompetitionExportModal({
               top: 0 !important;
               width: 100% !important;
               max-width: 100% !important;
-              padding: 0 !important;
+              padding: 14mm 12mm 14mm 12mm !important;
               margin: 0 !important;
               box-shadow: none !important;
               border: none !important;

@@ -25,13 +25,19 @@ export default function CompetitionExportModal({
   trigger,
 }: CompetitionExportModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [viewScope, setViewScope] = useState<'winners' | 'all'>('winners');
 
   // Filter participants by jenjang if selected
   const filtered = participants.filter(
     (p) => filterJenjang === 'all' || p.jenjang === filterJenjang
   );
 
-  // Sort participants by rank (1, 2, 3, etc.) then by score descending
+  // Check if there are ranked winners (Juara 1, 2, 3)
+  const hasRankedWinners = filtered.some(
+    (p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3
+  );
+
+  // Sort participants by rank (1, 2, 3) then by score descending
   const sorted = [...filtered].sort((a, b) => {
     const rankA = a.result?.rank ?? 9999;
     const rankB = b.result?.rank ?? 9999;
@@ -41,6 +47,11 @@ export default function CompetitionExportModal({
     const scoreB = Number(b.result?.score ?? b.total_score ?? 0);
     return scoreB - scoreA;
   });
+
+  // Display only Juara 1, 2, 3 when viewScope is 'winners' and winners exist, otherwise show all
+  const displayedParticipants = (viewScope === 'winners' && hasRankedWinners)
+    ? sorted.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
+    : sorted;
 
   // Helper to identify organization or system account names that shouldn't be displayed as individual jury persons
   const isOrgOrSystemName = (name: string) => {
@@ -93,14 +104,11 @@ export default function CompetitionExportModal({
       }));
 
   const getRankTitle = (rank?: number, withEmoji = false) => {
-    if (!rank) return '-';
+    if (!rank || rank > 3) return '-';
     if (rank === 1) return withEmoji ? 'Juara I 🥇' : 'Juara I';
     if (rank === 2) return withEmoji ? 'Juara II 🥈' : 'Juara II';
     if (rank === 3) return withEmoji ? 'Juara III 🥉' : 'Juara III';
-    if (rank === 4) return 'Harapan I';
-    if (rank === 5) return 'Harapan II';
-    if (rank === 6) return 'Harapan III';
-    return `Peringkat ${rank}`;
+    return '-';
   };
 
   const getParticipantJuryScore = (p: any, juryName: string) => {
@@ -149,7 +157,7 @@ export default function CompetitionExportModal({
 
   // ── 1. Export Excel (.xlsx) ────────────────────────────────────────────────
   const handleExportExcel = () => {
-    if (sorted.length === 0) {
+    if (displayedParticipants.length === 0) {
       toast.error('Tidak ada data peserta untuk diexport.');
       return;
     }
@@ -157,8 +165,12 @@ export default function CompetitionExportModal({
     try {
       const wb = XLSX.utils.book_new();
 
+      const docTitle = (viewScope === 'winners' && hasRankedWinners)
+        ? 'BERITA ACARA PENETAPAN KEJUARAAN (JUARA 1, 2, 3)'
+        : 'BERITA ACARA HASIL PENILAIAN DEWAN JURI & REKAPITULASI KEJUARAAN';
+
       const headers = [
-        ['BERITA ACARA HASIL PENILAIAN DEWAN JURI & REKAPITULASI KEJUARAAN'],
+        [docTitle],
         [`Event: ${eventName}`],
         [`Cabang Lomba: ${compName} | Jenjang: ${jenjangStr}`],
         [`Hari / Tanggal: ${compDateFormatted}`],
@@ -166,8 +178,8 @@ export default function CompetitionExportModal({
         [], // empty row
       ];
 
-      // Build data rows (hanya nilai, tanpa catatan)
-      const dataRows = sorted.map((p, idx) => {
+      // Build data rows (hanya nilai, tanpa catatan, hanya juara 1, 2, 3)
+      const dataRows = displayedParticipants.map((p, idx) => {
         const rowData: Record<string, any> = {
           'No': idx + 1,
           'Peringkat / Juara': getRankTitle(p.result?.rank, false),
@@ -206,7 +218,7 @@ export default function CompetitionExportModal({
       XLSX.utils.book_append_sheet(wb, ws, 'Rekapitulasi Nilai');
 
       const sanitizedName = compName.replace(/[^a-zA-Z0-9]/g, '_');
-      const filename = `Rekap_Nilai_${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const filename = `Berita_Acara_${(viewScope === 'winners' && hasRankedWinners) ? 'Juara_1_2_3_' : 'Rekap_Nilai_'}${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
       XLSX.writeFile(wb, filename);
       toast.success('Rekap nilai berhasil diunduh ke Excel (.xlsx)', {
@@ -242,10 +254,10 @@ export default function CompetitionExportModal({
         ? distinctJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
         : '';
 
-      // Generate table rows (scores only, no notes column)
-      const tableRowsHtml = sorted.length === 0
+      // Generate table rows (scores only, no notes column, juara only 1, 2, 3)
+      const tableRowsHtml = displayedParticipants.length === 0
         ? `<tr><td colspan="${4 + (showJuryColumns ? distinctJuryNames.length : 0) + 1}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
-        : sorted.map((p, idx) => {
+        : displayedParticipants.map((p, idx) => {
             const rankTitle = getRankTitle(p.result?.rank, false);
             const isWinner = p.result?.rank && p.result.rank <= 3;
             const finalScore = getParticipantFinalScore(p);
@@ -540,7 +552,11 @@ export default function CompetitionExportModal({
             </table>
 
             <!-- Tabel Hasil Rekapitulasi (Hanya Nilai) -->
-            <div class="section-heading">Hasil Rekapitulasi & Penetapan Kejuaraan:</div>
+            <div class="section-heading">${
+              viewScope === 'winners' && hasRankedWinners
+                ? 'Hasil Penetapan Kejuaraan (Juara 1, 2, 3):'
+                : 'Hasil Rekapitulasi & Penetapan Kejuaraan:'
+            }</div>
             <table class="data-table">
               <thead>
                 <tr>
@@ -615,7 +631,33 @@ export default function CompetitionExportModal({
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {hasRankedWinners && (
+                <div className="flex items-center bg-slate-200/90 p-0.5 rounded-lg text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setViewScope('winners')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      viewScope === 'winners'
+                        ? 'bg-white text-slate-900 shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    🏆 Hanya Juara (1, 2, 3)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewScope('all')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      viewScope === 'all'
+                        ? 'bg-white text-slate-900 shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    📋 Semua Peserta ({filtered.length})
+                  </button>
+                </div>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -681,9 +723,18 @@ export default function CompetitionExportModal({
 
             {/* ── TABEL REKAPITULASI HASIL (HANYA NILAI) ── */}
             <div className="mb-6">
-              <p className="text-xs font-bold text-slate-900 mb-2 uppercase tracking-wide">
-                Hasil Rekapitulasi & Peringkat Kejuaraan:
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                  {viewScope === 'winners' && hasRankedWinners
+                    ? 'Hasil Penetapan Kejuaraan (Juara 1, 2, 3):'
+                    : 'Hasil Rekapitulasi & Peringkat Kejuaraan:'}
+                </p>
+                {viewScope === 'winners' && hasRankedWinners && (
+                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                    Menampilkan Juara 1, 2, 3
+                  </span>
+                )}
+              </div>
               <table className="w-full border-collapse border border-slate-800 text-xs">
                 <thead>
                   <tr className="bg-slate-100 text-slate-900">
@@ -700,14 +751,14 @@ export default function CompetitionExportModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.length === 0 ? (
+                  {displayedParticipants.length === 0 ? (
                     <tr>
                       <td colSpan={4 + (showJuryColumns ? distinctJuryNames.length : 0) + 1} className="border border-slate-700 p-4 text-center text-slate-400">
                         Belum ada data nilai peserta.
                       </td>
                     </tr>
                   ) : (
-                    sorted.map((p, idx) => {
+                    displayedParticipants.map((p, idx) => {
                       const finalScore = getParticipantFinalScore(p);
                       const isWinner = p.result?.rank && p.result.rank <= 3;
 

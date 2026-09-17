@@ -58,6 +58,12 @@ class CompetitionAutoRankTest extends TestCase
             'institution'    => 'MI Ma\'arif 03',
         ]);
 
+        $p4 = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'name'           => 'Tim D',
+            'institution'    => 'MI Ma\'arif 04',
+        ]);
+
         $token = $this->createJuryToken($competition->id);
 
         // Score p1 = 78.5
@@ -81,10 +87,18 @@ class CompetitionAutoRankTest extends TestCase
             'notes'          => 'Bagus',
         ])->assertStatus(200);
 
+        // Score p4 = 70.0 (4th place -> should have rank = null, no juara harapan)
+        $this->postJson("/api/public/jury/{$token}/score", [
+            'participant_id' => (string) $p4->id,
+            'score'          => 70.0,
+            'notes'          => 'Peserta ke-4',
+        ])->assertStatus(200);
+
         // Verify automatic ranks:
         // p2 (92.0) -> rank 1
         // p3 (85.0) -> rank 2
         // p1 (78.5) -> rank 3
+        // p4 (70.0) -> rank null (juara harapan tidak dicatat)
         $this->assertDatabaseHas('competition_results', [
             'participant_id' => $p2->id,
             'rank'           => 1,
@@ -99,6 +113,11 @@ class CompetitionAutoRankTest extends TestCase
             'participant_id' => $p1->id,
             'rank'           => 3,
             'score'          => 78.5,
+        ]);
+        $this->assertDatabaseHas('competition_results', [
+            'participant_id' => $p4->id,
+            'rank'           => null,
+            'score'          => 70.0,
         ]);
     }
 

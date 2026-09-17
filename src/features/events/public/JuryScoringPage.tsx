@@ -828,8 +828,6 @@ export default function JuryScoringPage() {
                             <SelectItem value="1">🥇 Juara 1</SelectItem>
                             <SelectItem value="2">🥈 Juara 2</SelectItem>
                             <SelectItem value="3">🥉 Juara 3</SelectItem>
-                            <SelectItem value="4">Harapan 1</SelectItem>
-                            <SelectItem value="5">Harapan 2</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

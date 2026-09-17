@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class CompetitionRankingService
 {
     /**
-     * Automatically calculate and assign ranks (Juara 1, 2, 3, Harapan 1, 2)
+     * Automatically calculate and assign ranks (Juara 1, 2, 3)
      * for all participants with scores in a competition based on score descending.
      * Groups by jenjang if the competition has multi-jenjang categories.
      *
@@ -116,7 +116,7 @@ class CompetitionRankingService
                         $prevScore = $score;
                     }
 
-                    $assignedRank = ($rank <= 5) ? $rank : null;
+                    $assignedRank = ($rank <= 3) ? $rank : null;
 
                     if ($p->result) {
                         if ($p->result->rank !== $assignedRank) {
@@ -178,7 +178,7 @@ class CompetitionRankingService
                         $prevScore = $score;
                     }
 
-                    $assignedRank = ($rank <= 5) ? $rank : null;
+                    $assignedRank = ($rank <= 3) ? $rank : null;
 
                     if ($r->rank !== $assignedRank) {
                         $r->update(['rank' => $assignedRank]);

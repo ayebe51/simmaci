@@ -145,6 +145,7 @@ export default function CompetitionExportModal({
     month: 'long',
     year: 'numeric',
   });
+  const locationStr = competition?.location || 'LP Ma\'arif NU Cilacap';
 
   // ── 1. Export Excel (.xlsx) ────────────────────────────────────────────────
   const handleExportExcel = () => {
@@ -161,7 +162,7 @@ export default function CompetitionExportModal({
         [`Event: ${eventName}`],
         [`Cabang Lomba: ${compName} | Jenjang: ${jenjangStr}`],
         [`Hari / Tanggal: ${compDateFormatted}`],
-        ...(competition?.location ? [[`Tempat: ${competition.location}`]] : []),
+        [`Tempat: ${locationStr}`],
         [], // empty row
       ];
 
@@ -531,12 +532,11 @@ export default function CompetitionExportModal({
                 <td class="meta-sep">:</td>
                 <td class="meta-val">${compDateFormatted}</td>
               </tr>
-              ${competition?.location ? `
               <tr>
                 <td class="meta-label">Tempat Pelaksanaan</td>
                 <td class="meta-sep">:</td>
-                <td class="meta-val">${competition.location}</td>
-              </tr>` : ''}
+                <td class="meta-val">${locationStr}</td>
+              </tr>
             </table>
 
             <!-- Tabel Hasil Rekapitulasi (Hanya Nilai) -->
@@ -671,13 +671,11 @@ export default function CompetitionExportModal({
                   <td className="text-center font-bold py-0.5">:</td>
                   <td className="py-0.5">{compDateFormatted}</td>
                 </tr>
-                {competition?.location && (
-                  <tr>
-                    <td className="font-bold text-slate-700 py-0.5">Tempat Pelaksanaan</td>
-                    <td className="text-center font-bold py-0.5">:</td>
-                    <td className="py-0.5">{competition.location}</td>
-                  </tr>
-                )}
+                <tr>
+                  <td className="font-bold text-slate-700 py-0.5">Tempat Pelaksanaan</td>
+                  <td className="text-center font-bold py-0.5">:</td>
+                  <td className="py-0.5">{locationStr}</td>
+                </tr>
               </tbody>
             </table>
 

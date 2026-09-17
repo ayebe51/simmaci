@@ -40,11 +40,20 @@ class SafeExternalUrl implements ValidationRule
             return;
         }
 
-        // Allow internal service hostnames when running in testing or development
-        // or when configured via env
+        // Allow internal service hostnames and RFC test domains when running in testing or development
         $isLocalOrTesting = $this->allowLocalInTesting && app()->environment('local', 'testing');
-        if ($isLocalOrTesting && in_array(strtolower($host), ['localhost', '127.0.0.1', 'gowa', 'minio', 'postgres'], true)) {
-            return;
+        if ($isLocalOrTesting) {
+            $lowerHost = strtolower($host);
+            if (
+                in_array($lowerHost, ['localhost', '127.0.0.1', 'gowa', 'minio', 'postgres'], true)
+                || str_ends_with($lowerHost, '.example.com')
+                || str_ends_with($lowerHost, '.test')
+                || str_ends_with($lowerHost, '.local')
+                || str_ends_with($lowerHost, '.invalid')
+                || $lowerHost === 'example.com'
+            ) {
+                return;
+            }
         }
 
         // 3. Resolve host to IP addresses

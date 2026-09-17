@@ -155,7 +155,7 @@ class AdversarialSecurityBypassTest extends TestCase
         // Super Admin succeeds
         $resAdmin = $this->actingAs($this->superAdmin, 'sanctum')
             ->getJson('/api/minio/sk-templates/official_template.docx');
-        $this->assertEquals(200, $resAdmin->status());
+        $resAdmin->assertStatus(200);
     }
 
     // ── SEC-NEW-02 & AUTH-004: Setting Controller Secrets Protection ──

@@ -182,7 +182,7 @@ class IjazahUploadValidationTest extends TestCase
      */
     public function test_property_11_non_ijazah_folder_uses_default_validation(): void
     {
-        $nonIjazahFolders = ['uploads', 'documents', 'surat', 'templates', null];
+        $nonIjazahFolders = ['uploads', 'documents', 'surat', 'photos', null];
 
         foreach ($nonIjazahFolders as $folder) {
             $file = UploadedFile::fake()->create('document.jpg', 100, 'image/jpeg');

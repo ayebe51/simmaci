@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   Dialog,
@@ -10,7 +10,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { FileSpreadsheet, Printer, Trophy, Download, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { settingApi } from '@/lib/api';
 
 interface CompetitionExportModalProps {
   competition: any;
@@ -26,54 +25,6 @@ export default function CompetitionExportModal({
   trigger,
 }: CompetitionExportModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [kopUrl, setKopUrl] = useState<string>('');
-  const [kopCandidates, setKopCandidates] = useState<string[]>([]);
-  const [kopCandidateIndex, setKopCandidateIndex] = useState<number>(0);
-
-  // Fetch official kop surat template from settings (uploaded in Settings page)
-  useEffect(() => {
-    const fetchKop = async () => {
-      try {
-        let val: string | null = null;
-        try {
-          const res = await settingApi.get('kop_surat_meeting');
-          val = res?.data?.value ?? res?.value ?? null;
-        } catch {
-          // fallback to list
-          const listRes = await settingApi.list();
-          const listData = listRes?.data ?? listRes;
-          if (Array.isArray(listData)) {
-            val = listData.find((s: any) => s?.key === 'kop_surat_meeting')?.value ?? null;
-          } else if (listData && typeof listData === 'object') {
-            val = listData.kop_surat_meeting?.value ?? listData.kop_surat_meeting ?? null;
-          }
-        }
-
-        if (val && typeof val === 'string' && val !== 'null' && val !== 'undefined' && val.trim() !== '') {
-          if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) {
-            setKopCandidates([val]);
-            setKopUrl(val);
-          } else {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-            const cleanPath = val.replace(/^\/?(storage\/|api\/minio\/|api\/files\/view\/)?/, '');
-            const candidateUrls = [
-              `${apiUrl}/files/view/${cleanPath.split('/').map(encodeURIComponent).join('/')}`,
-              `${apiUrl}/minio/${cleanPath}`,
-              `/storage/${cleanPath}`,
-              `/${cleanPath}`
-            ];
-            setKopCandidates(candidateUrls);
-            setKopCandidateIndex(0);
-            setKopUrl(candidateUrls[0]);
-          }
-        }
-      } catch (err) {
-        console.warn('Could not load kop_surat_meeting setting:', err);
-      }
-    };
-
-    fetchKop();
-  }, []);
 
   // Filter participants by jenjang if selected
   const filtered = participants.filter(
@@ -94,9 +45,10 @@ export default function CompetitionExportModal({
   // Extract all distinct jury names across participants
   const allJuryNames = Array.from(
     new Set(
-      participants.flatMap((p) =>
-        (p.jury_scores ?? []).map((js: any) => js.jury_name).filter(Boolean)
-      )
+      participants.flatMap((p) => {
+        const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
+        return scores.map((js: any) => js.jury_name || js.name).filter(Boolean);
+      })
     )
   );
 
@@ -262,63 +214,15 @@ export default function CompetitionExportModal({
             id="printable-berita-acara"
             className="bg-white w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-12 shadow-md rounded-xl text-black font-sans relative border print:border-0 print:shadow-none print:p-0 print:m-0 print:max-w-none print:w-full"
           >
-            {/* ── KOP SURAT RESMI LP MA'ARIF NU CILACAP (DARI SETTING APLIKASI) ── */}
-            {kopUrl ? (
-              <div className="mb-6 pb-2 border-b-[3px] border-double border-green-700">
-                <img
-                  src={kopUrl}
-                  alt="Kop Surat Resmi LP Ma'arif NU Cilacap"
-                  className="w-full h-auto max-h-40 object-contain mx-auto block print:max-h-none print:w-full"
-                  onError={() => {
-                    const next = kopCandidateIndex + 1;
-                    if (next < kopCandidates.length) {
-                      setKopCandidateIndex(next);
-                      setKopUrl(kopCandidates[next]);
-                    } else {
-                      setKopUrl('');
-                    }
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 border-b-[3px] border-double border-green-700 pb-2 mb-6 justify-center relative">
-                <div className="w-24 h-24 flex items-center justify-center absolute left-0">
-                  <img
-                    src="/logo-nu.png"
-                    alt="Logo Ma'arif NU"
-                    className="w-full object-contain"
-                    onError={(e) => {
-                      e.currentTarget.src = '/logo_maarif.png';
-                    }}
-                  />
-                </div>
-
-                <div className="flex-1 text-center text-green-700 w-full pl-24 pr-4">
-                  <h4 className="font-bold text-lg sm:text-xl uppercase tracking-wide leading-none font-serif">
-                    PENGURUS CABANG NAHDLATUL ULAMA CILACAP
-                  </h4>
-                  <h2 className="font-bold text-xl sm:text-2xl uppercase tracking-wider leading-none mt-1.5 font-serif">
-                    LEMBAGA PENDIDIKAN MA'ARIF NU
-                  </h2>
-                  <div className="text-[11px] text-black font-sans mt-2 leading-tight space-y-0.5">
-                    <p>Jl. Masjid No I/36 Kel. Sidanegara Kec. Cilacap Tengah Kab. Cilacap</p>
-                    <p>Telepon: (0280) 521141 | Call Center: 082227438003</p>
-                    <div className="flex justify-center gap-4 text-blue-700 font-semibold mt-0.5">
-                      <span>📧 email.maarifnuclp@gmail.com</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── JUDUL DOKUMEN ── */}
-            <div className="text-center mb-6">
-              <h3 className="font-black text-base uppercase underline decoration-2 underline-offset-4 tracking-wider">
+            {/* ── JUDUL DOKUMEN (TANPA KOP SURAT) ── */}
+            <div className="text-center mb-6 pt-1">
+              <h2 className="font-black text-base sm:text-lg uppercase tracking-wider text-slate-900">
                 BERITA ACARA HASIL PENILAIAN DEWAN JURI
-              </h3>
-              <p className="font-bold text-xs uppercase tracking-wide text-slate-800 mt-1">
+              </h2>
+              <p className="font-bold text-xs uppercase tracking-wide text-slate-700 mt-1">
                 {competition?.event?.name || competition?.event || 'HARLAH LP MA\'ARIF NU KE-97 TAHUN 2026'}
               </p>
+              <div className="w-20 h-0.5 bg-slate-400 mx-auto mt-2 print:bg-black" />
             </div>
 
             {/* ── IDENTITAS CABANG LOMBA ── */}
@@ -443,17 +347,17 @@ export default function CompetitionExportModal({
               </p>
             </div>
 
-            {/* ── TANDA TANGAN DEWAN JURI & PANITIA ── */}
-            <div className="pt-2 text-xs">
+            {/* ── TANDA TANGAN DEWAN JURI ── */}
+            <div className="pt-2 text-xs break-inside-avoid print:break-inside-avoid">
               <div className="flex justify-end mb-4">
-                <p className="text-slate-800">
+                <p className="text-slate-800 font-medium">
                   Cilacap, {currentDateFormatted}
                 </p>
               </div>
 
               {/* Baris Dewan Juri */}
-              <div className="mb-6">
-                <p className="font-bold text-center mb-3 uppercase tracking-wider text-slate-900">
+              <div>
+                <p className="font-bold text-center mb-4 uppercase tracking-wider text-slate-900">
                   DEWAN JURI PENILAI:
                 </p>
                 <div
@@ -462,32 +366,21 @@ export default function CompetitionExportModal({
                       ? 'grid-cols-1 max-w-xs mx-auto'
                       : allJuryNames.length === 2
                       ? 'grid-cols-2 max-w-lg mx-auto'
-                      : 'grid-cols-3'
-                  } gap-4 text-center`}
+                      : allJuryNames.length <= 3
+                      ? 'grid-cols-3'
+                      : 'grid-cols-4'
+                  } gap-6 text-center`}
                 >
                   {(allJuryNames.length > 0 ? allJuryNames : ['Juri 1', 'Juri 2', 'Juri 3']).map((jName, idx) => (
                     <div key={idx} className="flex flex-col items-center">
-                      <p className="font-bold text-slate-700 text-[11px] mb-12">
-                        {jName.startsWith('Juri') ? jName : `Juri ${idx + 1}`}
+                      <p className="font-bold text-slate-700 text-[11px] mb-16">
+                        {jName.startsWith('Juri') || jName.startsWith('Dewan') ? jName : `Dewan Juri ${idx + 1}`}
                       </p>
-                      <p className="font-bold border-b border-slate-800 pb-0.5 px-3 min-w-[140px]">
+                      <p className="font-bold border-b border-slate-900 pb-0.5 px-3 min-w-[140px] text-slate-900">
                         ( {jName} )
                       </p>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Baris Mengetahui (Ketua PC LP Ma'arif NU Cilacap) */}
-              <div className="mt-8 flex justify-center text-center">
-                <div className="flex flex-col items-center">
-                  <p className="text-[11px] text-slate-700">Mengetahui,</p>
-                  <p className="font-bold text-slate-900 uppercase text-[11px] mb-14">
-                    Ketua PC LP Ma'arif NU Cilacap
-                  </p>
-                  <p className="font-bold border-b border-slate-900 pb-0.5 px-6 min-w-[200px] text-slate-900 text-xs">
-                    ( H. Ali Sodiqin, S.Ag., M.Pd.I. )
-                  </p>
                 </div>
               </div>
             </div>
@@ -497,6 +390,10 @@ export default function CompetitionExportModal({
         {/* ── CSS PRINT STYLES ── */}
         <style>{`
           @media print {
+            @page {
+              size: A4 portrait;
+              margin: 12mm 12mm 15mm 12mm;
+            }
             body * {
               visibility: hidden;
             }
@@ -510,7 +407,7 @@ export default function CompetitionExportModal({
               top: 0;
               width: 100% !important;
               max-width: 100% !important;
-              padding: 10mm !important;
+              padding: 0 !important;
               margin: 0 !important;
               box-shadow: none !important;
               border: none !important;

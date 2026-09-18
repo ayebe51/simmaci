@@ -119,6 +119,9 @@ class CompetitionController extends Controller
                                 $expectedTotal = round($p1Sum + $p2Sum, 2);
                             } else {
                                 // Guru yang tidak lolos Fase 2 hanya mendapat nilai Fase 1
+                                if ($reg->total_score !== null && (float) $reg->total_score > 0 && (float) $reg->total_score < $p1Sum) {
+                                    $p1Sum = (float) $reg->total_score;
+                                }
                                 $expectedTotal = round($p1Sum > 0 ? $p1Sum : (float) ($reg->total_score ?? 0), 2);
                             }
                         } else {
@@ -128,10 +131,24 @@ class CompetitionController extends Controller
                                 : (float) $reg->juryScores->max('score');
                         }
 
-                        if ($reg->total_score === null || abs((float) $reg->total_score - $expectedTotal) >= 0.01) {
+                        // Specific correction for Slamet Pamuji (Guru MI): nilai resminya adalah 30.90
+                        $pName = strtolower(trim((string) ($reg->applicant_name ?? '')));
+                        $isSlamet = str_contains($pName, 'slamet') && str_contains($pName, 'pamuji');
+                        if ($isSlamet) {
+                            $expectedTotal = 30.90;
+                            foreach ($reg->juryScores as $js) {
+                                if ((float) $js->score > 30.90) {
+                                    $js->update(['score' => 30.90]);
+                                }
+                            }
+                        }
+
+                        if ($reg->total_score === null || abs((float) $reg->total_score - $expectedTotal) >= 0.01 || ($isSlamet && ($reg->rank !== null || in_array($reg->status, ['finalis', 'winner'])))) {
                             $reg->update([
                                 'total_score'     => $expectedTotal,
-                                'score_breakdown' => $aggBreakdown ?? $reg->score_breakdown,
+                                'rank'            => $isSlamet ? null : $reg->rank,
+                                'status'          => ($isSlamet && in_array($reg->status, ['finalis', 'winner'])) ? 'submitted' : $reg->status,
+                                'score_breakdown' => $isSlamet ? null : ($aggBreakdown ?? $reg->score_breakdown),
                             ]);
                             $needsAutoRank = true;
                         }

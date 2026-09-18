@@ -79,12 +79,55 @@ class CompetitionController extends Controller
                 ->orderBy('school_name')->orderBy('applicant_name')
                 ->get();
 
+            $isTwoPhase = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
             foreach ($anugerahQuery as $reg) {
                 if ($reg->juryScores && $reg->juryScores->isNotEmpty()) {
-                    $expectedAvg = round((float) $reg->juryScores->avg('score'), 2);
-                    if ($reg->total_score === null || abs((float) $reg->total_score - $expectedAvg) >= 0.01) {
-                        $reg->update(['total_score' => $expectedAvg]);
-                        $needsAutoRank = true;
+                    if ($isTwoPhase) {
+                        // In two-phase competitions, aggregate breakdowns across juries (component by component)
+                        $aggBreakdown = \App\Services\CompetitionRankingService::aggregateBreakdowns($reg->juryScores, $reg->score_breakdown);
+                        if (!empty($aggBreakdown)) {
+                            $p1Sum = 0.0;
+                            $p2Sum = 0.0;
+                            foreach ($aggBreakdown as $idx => $item) {
+                                $weight = (float) ($item['weight'] ?? 0);
+                                $val = (float) ($item['value'] ?? 0);
+                                $compScore = ($val * $weight) / 100.0;
+                                $name = strtolower($item['component'] ?? '');
+
+                                $isP1 = ($competition->lomba_type === 'guru_berprestasi') ? ($idx < 2) : ($idx < 3);
+                                if ($competition->lomba_type === 'guru_berprestasi' && (str_contains($name, 'aswaja') || str_contains($name, 'wawancara') || str_contains($name, 'interview'))) {
+                                    $isP1 = false;
+                                } elseif ($competition->lomba_type === 'madrasah_berprestasi' && (str_contains($name, 'presentasi') || str_contains($name, 'visitasi') || str_contains($name, 'fact checking'))) {
+                                    $isP1 = false;
+                                }
+
+                                if ($isP1) {
+                                    $p1Sum += $compScore;
+                                } else {
+                                    $p2Sum += $compScore;
+                                }
+                            }
+                            $expectedTotal = round($p1Sum + $p2Sum, 2);
+                        } else {
+                            // If no breakdown available, preserve valid total_score or use highest jury score
+                            $expectedTotal = ($reg->total_score !== null && (float) $reg->total_score > 0)
+                                ? (float) $reg->total_score
+                                : (float) $reg->juryScores->max('score');
+                        }
+
+                        if ($reg->total_score === null || abs((float) $reg->total_score - $expectedTotal) >= 0.01) {
+                            $reg->update([
+                                'total_score'     => $expectedTotal,
+                                'score_breakdown' => $aggBreakdown ?? $reg->score_breakdown,
+                            ]);
+                            $needsAutoRank = true;
+                        }
+                    } else {
+                        $expectedAvg = round((float) $reg->juryScores->avg('score'), 2);
+                        if ($reg->total_score === null || abs((float) $reg->total_score - $expectedAvg) >= 0.01) {
+                            $reg->update(['total_score' => $expectedAvg]);
+                            $needsAutoRank = true;
+                        }
                     }
                 }
             }
@@ -319,9 +362,65 @@ class CompetitionController extends Controller
             $juryScores = \App\Models\CompetitionJuryScore::where('competition_id', $competition->id)
                 ->where('anugerah_registration_id', $regId)->get();
 
-            $finalScore = $juryScores->isNotEmpty()
-                ? round((float) $juryScores->avg('score'), 2)
-                : ($data['score'] !== null ? (float) $data['score'] : null);
+            $isTwoPhase = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
+            if ($isTwoPhase) {
+                if (!empty($data['score_breakdown']) && is_array($data['score_breakdown'])) {
+                    $p1Sum = 0.0;
+                    $p2Sum = 0.0;
+                    foreach ($data['score_breakdown'] as $idx => $item) {
+                        $weight = (float) ($item['weight'] ?? 0);
+                        $val = (float) ($item['value'] ?? 0);
+                        $compScore = ($val * $weight) / 100.0;
+                        $name = strtolower($item['component'] ?? '');
+                        $isP1 = ($competition->lomba_type === 'guru_berprestasi') ? ($idx < 2) : ($idx < 3);
+                        if ($competition->lomba_type === 'guru_berprestasi' && (str_contains($name, 'aswaja') || str_contains($name, 'wawancara') || str_contains($name, 'interview'))) {
+                            $isP1 = false;
+                        } elseif ($competition->lomba_type === 'madrasah_berprestasi' && (str_contains($name, 'presentasi') || str_contains($name, 'visitasi') || str_contains($name, 'fact checking'))) {
+                            $isP1 = false;
+                        }
+                        if ($isP1) {
+                            $p1Sum += $compScore;
+                        } else {
+                            $p2Sum += $compScore;
+                        }
+                    }
+                    $finalScore = round($p1Sum + $p2Sum, 2);
+                } elseif ($data['score'] !== null) {
+                    $finalScore = (float) $data['score'];
+                } elseif ($juryScores->isNotEmpty()) {
+                    $aggBreakdown = \App\Services\CompetitionRankingService::aggregateBreakdowns($juryScores, $reg->score_breakdown);
+                    if (!empty($aggBreakdown)) {
+                        $p1Sum = 0.0;
+                        $p2Sum = 0.0;
+                        foreach ($aggBreakdown as $idx => $item) {
+                            $weight = (float) ($item['weight'] ?? 0);
+                            $val = (float) ($item['value'] ?? 0);
+                            $compScore = ($val * $weight) / 100.0;
+                            $name = strtolower($item['component'] ?? '');
+                            $isP1 = ($competition->lomba_type === 'guru_berprestasi') ? ($idx < 2) : ($idx < 3);
+                            if ($competition->lomba_type === 'guru_berprestasi' && (str_contains($name, 'aswaja') || str_contains($name, 'wawancara') || str_contains($name, 'interview'))) {
+                                $isP1 = false;
+                            } elseif ($competition->lomba_type === 'madrasah_berprestasi' && (str_contains($name, 'presentasi') || str_contains($name, 'visitasi') || str_contains($name, 'fact checking'))) {
+                                $isP1 = false;
+                            }
+                            if ($isP1) {
+                                $p1Sum += $compScore;
+                            } else {
+                                $p2Sum += $compScore;
+                            }
+                        }
+                        $finalScore = round($p1Sum + $p2Sum, 2);
+                    } else {
+                        $finalScore = $reg->total_score !== null ? (float) $reg->total_score : (float) $juryScores->max('score');
+                    }
+                } else {
+                    $finalScore = null;
+                }
+            } else {
+                $finalScore = $juryScores->isNotEmpty()
+                    ? round((float) $juryScores->avg('score'), 2)
+                    : ($data['score'] !== null ? (float) $data['score'] : null);
+            }
 
             $reg->update([
                 'rank'            => $data['rank'] ?? null,

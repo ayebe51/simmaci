@@ -791,6 +791,53 @@ class PublicEventController extends Controller
                             }
                         }
                     }
+
+                    // 3. Fallback #3: If still missing Phase 1 breakdown, synthesize from established Phase 1 score
+                    $calcMerged3 = $this->calculateBreakdownPhases($competition->lomba_type, $mergedMap->values()->toArray());
+                    if ($calcMerged3['phase1_score'] <= 0 && ((int) ($data['phase'] ?? 0) === 2 || in_array($reg->status, ['finalis', 'winner'], true))) {
+                        $phase1Max = ($competition->lomba_type === 'guru_berprestasi') ? 70.0 : 85.0;
+                        $existingP1 = 0.0;
+                        if ((float) $reg->total_score > 0 && (float) $reg->total_score <= $phase1Max) {
+                            $existingP1 = (float) $reg->total_score;
+                        } else {
+                            $p1ScoreVal = \App\Models\CompetitionJuryScore::where('competition_id', $competitionId)
+                                ->where('anugerah_registration_id', $regId)
+                                ->where('score', '<=', $phase1Max)
+                                ->where('score', '>', 0)
+                                ->avg('score');
+                            if ($p1ScoreVal > 0) {
+                                $existingP1 = (float) $p1ScoreVal;
+                            }
+                        }
+
+                        if ($existingP1 > 0) {
+                            if ($competition->lomba_type === 'guru_berprestasi') {
+                                $normalizedVal = round(($existingP1 / 70.0) * 100.0, 2);
+                                $c1 = 'Akumulasi Skor Kejuaraan / Prestasi';
+                                $c2 = 'Naskah Praktik Baik / Karya Inovasi Pembelajaran';
+                                if (!isset($mergedMap[$c1])) {
+                                    $mergedMap[$c1] = ['component' => $c1, 'weight' => 40, 'value' => $normalizedVal];
+                                }
+                                if (!isset($mergedMap[$c2])) {
+                                    $mergedMap[$c2] = ['component' => $c2, 'weight' => 30, 'value' => $normalizedVal];
+                                }
+                            } elseif ($competition->lomba_type === 'madrasah_berprestasi') {
+                                $normalizedVal = round(($existingP1 / 85.0) * 100.0, 2);
+                                $c1 = 'Akumulasi Skor Kejuaraan Lembaga';
+                                $c2 = 'Tata Kelola Institusi & Penguatan Karakter Aswaja';
+                                $c3 = 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial';
+                                if (!isset($mergedMap[$c1])) {
+                                    $mergedMap[$c1] = ['component' => $c1, 'weight' => 45, 'value' => $normalizedVal];
+                                }
+                                if (!isset($mergedMap[$c2])) {
+                                    $mergedMap[$c2] = ['component' => $c2, 'weight' => 25, 'value' => $normalizedVal];
+                                }
+                                if (!isset($mergedMap[$c3])) {
+                                    $mergedMap[$c3] = ['component' => $c3, 'weight' => 15, 'value' => $normalizedVal];
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

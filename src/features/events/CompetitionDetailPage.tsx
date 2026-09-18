@@ -49,15 +49,15 @@ const JUKNIS_CRITERIA: Record<string, { component: string; weight: number }[]> =
   ],
   guru_berprestasi: [
     { component: 'Akumulasi Skor Kejuaraan / Prestasi', weight: 40 },
-    { component: 'Naskah Praktik Baik / Karya Inovasi', weight: 30 },
-    { component: 'Pemahaman & Pengamalan Nilai Aswaja', weight: 15 },
+    { component: 'Naskah Praktik Baik / Karya Inovasi Pembelajaran', weight: 30 },
+    { component: 'Pemahaman & Pengamalan Nilai Aswaja An-Nahdliyah', weight: 15 },
     { component: 'Presentasi, Wawancara, & Deep Interview', weight: 15 },
   ],
   madrasah_berprestasi: [
     { component: 'Akumulasi Skor Kejuaraan Lembaga', weight: 45 },
     { component: 'Tata Kelola Institusi & Penguatan Karakter Aswaja', weight: 25 },
-    { component: 'Kemitraan, SIMNU & SIMMACI, & Kontribusi Sosial', weight: 15 },
-    { component: 'Presentasi Kepala Madrasah & Visitasi', weight: 15 },
+    { component: 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', weight: 15 },
+    { component: 'Presentasi Kepala Madrasah & Visitasi / Fact Checking', weight: 15 },
   ],
 };
 

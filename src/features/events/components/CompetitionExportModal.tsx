@@ -138,6 +138,106 @@ export default function CompetitionExportModal({
     return '-';
   };
 
+  const isTwoPhase = competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi' || competition?.is_two_phase;
+
+  const getParticipantPhaseScores = (p: any) => {
+    const lombaType = competition?.lomba_type;
+    const isGuru = lombaType === 'guru_berprestasi';
+    const isMadrasah = lombaType === 'madrasah_berprestasi';
+
+    let breakdown = p.result?.score_breakdown ?? p.score_breakdown ?? null;
+    if (typeof breakdown === 'string') {
+      try { breakdown = JSON.parse(breakdown); } catch {}
+    }
+
+    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
+    if (!breakdown || (Array.isArray(breakdown) && breakdown.length === 0)) {
+      let bestBd: any[] = [];
+      for (const js of scores) {
+        let bd = js.score_breakdown;
+        if (typeof bd === 'string') {
+          try { bd = JSON.parse(bd); } catch {}
+        }
+        if (Array.isArray(bd) && bd.length > bestBd.length) {
+          bestBd = bd;
+        }
+      }
+      if (bestBd.length > 0) {
+        breakdown = bestBd;
+      }
+    }
+
+    let p1Sum = 0;
+    let p2Sum = 0;
+    if (Array.isArray(breakdown) && breakdown.length > 0) {
+      breakdown.forEach((item: any, idx: number) => {
+        const weight = Number(item.weight) || 0;
+        const val = Number(item.value) || 0;
+        const compScore = (val * weight) / 100;
+        const name = String(item.component || '').toLowerCase();
+
+        let isP1 = isGuru ? idx < 2 : idx < 3;
+        if (isGuru && (name.includes('aswaja') || name.includes('wawancara') || name.includes('interview'))) {
+          isP1 = false;
+        } else if (isMadrasah && (name.includes('presentasi') || name.includes('visitasi') || name.includes('fact checking'))) {
+          isP1 = false;
+        }
+
+        if (isP1) {
+          p1Sum += compScore;
+        } else {
+          p2Sum += compScore;
+        }
+      });
+    }
+
+    const maxP1 = isGuru ? 70 : 85;
+
+    // Fallback for Phase 1
+    if (p1Sum <= 0) {
+      const p1Jury = scores.find((s: any) => s.phase === 1 || (Number(s.score) > 0 && Number(s.score) <= maxP1));
+      if (p1Jury && Number(p1Jury.score) > 0) {
+        p1Sum = Number(p1Jury.score);
+      } else if (p.phase1_score && Number(p.phase1_score) > 0) {
+        p1Sum = Number(p.phase1_score);
+      } else if (p.total_score && Number(p.total_score) <= maxP1 && (!scores.some((s: any) => s.phase === 2))) {
+        p1Sum = Number(p.total_score);
+      }
+    }
+
+    // Fallback for Phase 2
+    if (p2Sum <= 0) {
+      const p2Jury = scores.find((s: any) => s.phase === 2);
+      if (p2Jury) {
+        const p2Raw = Number(p2Jury.score) || 0;
+        if (p2Raw > p1Sum && p1Sum > 0) {
+          p2Sum = p2Raw - p1Sum;
+        } else if (p2Raw > 0 && p2Raw <= (100 - maxP1 + 5)) {
+          p2Sum = p2Raw;
+        }
+      }
+    }
+
+    let finalScore = 0;
+    if (p.result?.score != null && Number(p.result.score) > 0) {
+      finalScore = Number(p.result.score);
+    } else if (p.total_score != null && Number(p.total_score) > 0) {
+      finalScore = Number(p.total_score);
+    } else if (p1Sum > 0 || p2Sum > 0) {
+      finalScore = p1Sum + p2Sum;
+    }
+
+    if (p2Sum <= 0 && finalScore > p1Sum && p1Sum > 0) {
+      p2Sum = finalScore - p1Sum;
+    }
+
+    return {
+      phase1: p1Sum > 0 ? p1Sum.toFixed(2) : '-',
+      phase2: p2Sum > 0 ? p2Sum.toFixed(2) : '-',
+      final: finalScore > 0 ? finalScore.toFixed(2) : (p1Sum > 0 ? p1Sum.toFixed(2) : '-'),
+    };
+  };
+
   const eventName = typeof competition?.event === 'object'
     ? competition?.event?.name
     : (competition?.event || 'HARLAH LP MA\'ARIF NU KE-97 TAHUN 2026');
@@ -188,14 +288,20 @@ export default function CompetitionExportModal({
           'Jenjang': p.jenjang || compName,
         };
 
-        // If multiple distinct jury scores exist, add each jury's score
-        if (showJuryColumns) {
-          distinctJuryNames.forEach((jName) => {
-            rowData[`Nilai (${jName})`] = getParticipantJuryScore(p, jName);
-          });
+        if (isTwoPhase) {
+          const pScores = getParticipantPhaseScores(p);
+          rowData['Nilai Fase 1 (Berkas / Portofolio)'] = pScores.phase1;
+          rowData['Nilai Fase 2 (Wawancara & Visitasi)'] = pScores.phase2;
+          rowData['Nilai Akhir (Akumulasi)'] = pScores.final;
+        } else {
+          // If multiple distinct jury scores exist, add each jury's score
+          if (showJuryColumns) {
+            distinctJuryNames.forEach((jName) => {
+              rowData[`Nilai (${jName})`] = getParticipantJuryScore(p, jName);
+            });
+          }
+          rowData['Nilai Akhir'] = getParticipantFinalScore(p);
         }
-
-        rowData['Nilai Akhir'] = getParticipantFinalScore(p);
 
         return rowData;
       });
@@ -204,15 +310,26 @@ export default function CompetitionExportModal({
       XLSX.utils.sheet_add_json(ws, dataRows, { origin: headers.length });
 
       // Auto-fit column widths
-      const colWidths = [
-        { wch: 6 },  // No
-        { wch: 18 }, // Juara
-        { wch: 28 }, // Nama
-        { wch: 32 }, // Lembaga
-        { wch: 14 }, // Jenjang
-        ...(showJuryColumns ? distinctJuryNames.map(() => ({ wch: 18 })) : []), // Tiap Juri
-        { wch: 18 }, // Nilai Akhir
-      ];
+      const colWidths = isTwoPhase
+        ? [
+            { wch: 6 },  // No
+            { wch: 18 }, // Juara
+            { wch: 28 }, // Nama
+            { wch: 32 }, // Lembaga
+            { wch: 14 }, // Jenjang
+            { wch: 24 }, // Nilai Fase 1
+            { wch: 24 }, // Nilai Fase 2
+            { wch: 20 }, // Nilai Akhir
+          ]
+        : [
+            { wch: 6 },  // No
+            { wch: 18 }, // Juara
+            { wch: 28 }, // Nama
+            { wch: 32 }, // Lembaga
+            { wch: 14 }, // Jenjang
+            ...(showJuryColumns ? distinctJuryNames.map(() => ({ wch: 18 })) : []), // Tiap Juri
+            { wch: 18 }, // Nilai Akhir
+          ];
       ws['!cols'] = colWidths;
 
       XLSX.utils.book_append_sheet(wb, ws, 'Rekapitulasi Nilai');
@@ -249,22 +366,41 @@ export default function CompetitionExportModal({
         return;
       }
 
-      // Generate HTML for jury columns in header (only if > 1 distinct juries)
-      const juryHeaderCols = showJuryColumns
-        ? distinctJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
-        : '';
+      // Generate HTML for jury/phase columns in header
+      const juryHeaderCols = isTwoPhase
+        ? `<th class="col-phase">Nilai Fase 1<br><span style="font-size:7pt; font-weight:normal; text-transform:none;">(Berkas / Portofolio)</span></th>
+           <th class="col-phase">Nilai Fase 2<br><span style="font-size:7pt; font-weight:normal; text-transform:none;">(Wawancara & Visitasi)</span></th>`
+        : (showJuryColumns
+            ? distinctJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
+            : '');
+
+      const colspanTotal = 4 + (isTwoPhase ? 2 : (showJuryColumns ? distinctJuryNames.length : 0)) + 1;
 
       // Generate table rows (scores only, no notes column, juara only 1, 2, 3)
       const tableRowsHtml = displayedParticipants.length === 0
-        ? `<tr><td colspan="${4 + (showJuryColumns ? distinctJuryNames.length : 0) + 1}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
+        ? `<tr><td colspan="${colspanTotal}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
         : displayedParticipants.map((p, idx) => {
             const rankTitle = getRankTitle(p.result?.rank, false);
             const isWinner = p.result?.rank && p.result.rank <= 3;
-            const finalScore = getParticipantFinalScore(p);
 
-            const juryCellsHtml = showJuryColumns
-              ? distinctJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
-              : '';
+            let middleColsHtml = '';
+            if (isTwoPhase) {
+              const pScores = getParticipantPhaseScores(p);
+              middleColsHtml = `
+                <td class="col-phase-score">${pScores.phase1}</td>
+                <td class="col-phase-score">${pScores.phase2}</td>
+                <td class="col-final-score">${pScores.final}</td>
+              `;
+            } else {
+              const juryCellsHtml = showJuryColumns
+                ? distinctJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
+                : '';
+              const finalScore = getParticipantFinalScore(p);
+              middleColsHtml = `
+                ${juryCellsHtml}
+                <td class="col-final-score">${finalScore}</td>
+              `;
+            }
 
             return `
               <tr class="${isWinner ? 'row-winner' : ''}">
@@ -272,8 +408,7 @@ export default function CompetitionExportModal({
                 <td class="col-rank ${isWinner ? 'rank-highlight' : ''}">${rankTitle}</td>
                 <td class="col-name">${p.name || p.applicant_name || '-'}</td>
                 <td class="col-inst">${p.institution || p.school_name || '-'}</td>
-                ${juryCellsHtml}
-                <td class="col-final-score">${finalScore}</td>
+                ${middleColsHtml}
               </tr>
             `;
           }).join('');
@@ -463,6 +598,17 @@ export default function CompetitionExportModal({
               text-align: center;
               font-variant-numeric: tabular-nums;
             }
+            .col-phase {
+              width: 85px;
+              text-align: center;
+              font-size: 8pt;
+              vertical-align: middle;
+            }
+            .col-phase-score {
+              width: 85px;
+              text-align: center;
+              font-variant-numeric: tabular-nums;
+            }
             .col-final-score {
               width: 75px;
               text-align: center;
@@ -565,7 +711,7 @@ export default function CompetitionExportModal({
                   <th>Nama Peserta / Pendaftar</th>
                   <th>Asal Madrasah / Sekolah</th>
                   ${juryHeaderCols}
-                  <th class="col-final-score">Nilai Akhir</th>
+                  <th class="col-final-score">${isTwoPhase ? 'Nilai Akhir<br><span style="font-size:7pt; font-weight:normal; text-transform:none;">(Akumulasi 100)</span>' : 'Nilai Akhir'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -742,18 +888,34 @@ export default function CompetitionExportModal({
                     <th className="border border-slate-800 p-2 text-center w-28">Peringkat / Juara</th>
                     <th className="border border-slate-800 p-2 text-left">Nama Peserta / Pendaftar</th>
                     <th className="border border-slate-800 p-2 text-left">Asal Madrasah / Sekolah</th>
-                    {showJuryColumns && distinctJuryNames.map((jName, i) => (
-                      <th key={i} className="border border-slate-800 p-2 text-center w-16 text-[10px] leading-tight">
-                        {jName}
-                      </th>
-                    ))}
-                    <th className="border border-slate-800 p-2 text-center w-20 font-black">Nilai Akhir</th>
+                    {isTwoPhase ? (
+                      <>
+                        <th className="border border-slate-800 p-2 text-center w-24 text-[11px] leading-tight">
+                          Nilai Fase 1<br/><span className="text-[9px] font-normal text-slate-500">(Berkas)</span>
+                        </th>
+                        <th className="border border-slate-800 p-2 text-center w-24 text-[11px] leading-tight">
+                          Nilai Fase 2<br/><span className="text-[9px] font-normal text-slate-500">(Wawancara)</span>
+                        </th>
+                        <th className="border border-slate-800 p-2 text-center w-20 font-black">
+                          Nilai Akhir<br/><span className="text-[9px] font-normal text-slate-500">(Akumulasi)</span>
+                        </th>
+                      </>
+                    ) : (
+                      <>
+                        {showJuryColumns && distinctJuryNames.map((jName, i) => (
+                          <th key={i} className="border border-slate-800 p-2 text-center w-16 text-[10px] leading-tight">
+                            {jName}
+                          </th>
+                        ))}
+                        <th className="border border-slate-800 p-2 text-center w-20 font-black">Nilai Akhir</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {displayedParticipants.length === 0 ? (
                     <tr>
-                      <td colSpan={4 + (showJuryColumns ? distinctJuryNames.length : 0) + 1} className="border border-slate-700 p-4 text-center text-slate-400">
+                      <td colSpan={4 + (isTwoPhase ? 2 : (showJuryColumns ? distinctJuryNames.length : 0)) + 1} className="border border-slate-700 p-4 text-center text-slate-400">
                         Belum ada data nilai peserta.
                       </td>
                     </tr>
@@ -761,6 +923,7 @@ export default function CompetitionExportModal({
                     displayedParticipants.map((p, idx) => {
                       const finalScore = getParticipantFinalScore(p);
                       const isWinner = p.result?.rank && p.result.rank <= 3;
+                      const phaseScores = isTwoPhase ? getParticipantPhaseScores(p) : null;
 
                       return (
                         <tr
@@ -789,14 +952,30 @@ export default function CompetitionExportModal({
                           <td className="border border-slate-700 p-1.5 text-slate-700">
                             {p.institution || p.school_name || '-'}
                           </td>
-                          {showJuryColumns && distinctJuryNames.map((jName, jIdx) => (
-                            <td key={jIdx} className="border border-slate-700 p-1.5 text-center font-mono">
-                              {getParticipantJuryScore(p, jName)}
-                            </td>
-                          ))}
-                          <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
-                            {finalScore}
-                          </td>
+                          {isTwoPhase && phaseScores ? (
+                            <>
+                              <td className="border border-slate-700 p-1.5 text-center font-mono">
+                                {phaseScores.phase1}
+                              </td>
+                              <td className="border border-slate-700 p-1.5 text-center font-mono">
+                                {phaseScores.phase2}
+                              </td>
+                              <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
+                                {phaseScores.final}
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              {showJuryColumns && distinctJuryNames.map((jName, jIdx) => (
+                                <td key={jIdx} className="border border-slate-700 p-1.5 text-center font-mono">
+                                  {getParticipantJuryScore(p, jName)}
+                                </td>
+                              ))}
+                              <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
+                                {finalScore}
+                              </td>
+                            </>
+                          )}
                         </tr>
                       );
                     })

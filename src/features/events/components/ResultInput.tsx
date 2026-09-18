@@ -127,9 +127,20 @@ export default function ResultInput({ competitionId, competition, participants, 
     return total.toFixed(2);
   };
 
+  const isTwoPhase = competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi' || competition?.is_two_phase;
+
   const getDisplayTotalScore = (p: any): string => {
     const r = map[p.id] ?? {};
     const hasJuryScores = p.jury_scores && p.jury_scores.length > 0;
+
+    if (isTwoPhase) {
+      if (r.score != null && Number(r.score) > 0) return Number(r.score).toFixed(2);
+      if (p.total_score != null && Number(p.total_score) > 0) return Number(p.total_score).toFixed(2);
+      if (criteria.length > 0) {
+        const weighted = calcWeightedScore(p.id);
+        if (Number(weighted) > 0) return weighted;
+      }
+    }
 
     if (hasJuryScores) {
       // If jury scores exist, the true score is the multi-jury average
@@ -159,7 +170,15 @@ export default function ResultInput({ competitionId, competition, participants, 
       let finalScore: number | undefined;
       let finalBreakdown: any;
 
-      if (hasJuryScores) {
+      if (isTwoPhase && criteria.length > 0) {
+        // In two-phase competitions, compute the true accumulated total from criteria
+        finalScore = Number(calcWeightedScore(pid)) || (item.score ? Number(item.score) : undefined);
+        finalBreakdown = criteria.map(c => ({
+          component: c.component,
+          weight: c.weight,
+          value: parseFloat(getDisplayBreakdownValue(p, c.component)) || 0,
+        }));
+      } else if (hasJuryScores) {
         // Multi-jury evaluation: preserve the aggregated average score
         const avgTot = getJuryAverageTotal(p);
         finalScore = avgTot !== null ? Number(avgTot) : (item.score ? Number(item.score) : undefined);

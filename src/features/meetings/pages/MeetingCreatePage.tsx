@@ -41,12 +41,20 @@ function toBackendDatetime(datetimeLocal: string): string {
 }
 
 const participantSchema = z.object({
+  school_id: z.number().nullable().optional(),
   participant_type: z.enum(['teacher', 'headmaster', 'external']),
-  participant_id: z.number().nullable(),
+  participant_id: z.number().nullable().optional(),
   name: z.string().min(1, 'Nama wajib diisi'),
   jabatan: z.string().min(1, 'Jabatan wajib diisi'),
   instansi: z.string().min(1, 'Instansi wajib diisi'),
-  phone_number: z.string().min(9, 'Nomor WA tidak valid'),
+  phone_number: z
+    .string()
+    .nullish()
+    .transform((val) => val ?? '')
+    .refine(
+      (val) => !val || val.trim() === '' || val.replace(/\D/g, '').length >= 8,
+      { message: 'Nomor WhatsApp minimal 8 digit jika diisi' }
+    ),
 });
 
 const schema = z.object({
@@ -137,22 +145,38 @@ export default function MeetingCreatePage() {
         toast.warning('Tidak ada data kepala sekolah yang ditemukan. Pastikan data kepala madrasah sudah diisi di master data sekolah (menu Kelola Sekolah → edit sekolah).');
         return;
       }
+
+      // Hapus row kosong bawaan pertama jika masih belum diisi
+      if (fields.length === 1 && !fields[0].name?.trim() && !fields[0].instansi?.trim()) {
+        remove(0);
+      }
+
+      let emptyPhoneCount = 0;
       // Append imported participants
       imported.forEach((p: any) => {
+        const phone = p.phone_number || '';
+        if (!phone) {
+          emptyPhoneCount++;
+        }
         append({
+          school_id: p.school_id ?? null,
           participant_type: p.participant_type,
-          participant_id: p.participant_id,
+          participant_id: p.participant_id ?? null,
           name: p.name,
           jabatan: p.jabatan,
           instansi: p.instansi,
-          phone_number: p.phone_number,
+          phone_number: phone,
         });
       });
-      if (skipped > 0) {
-        toast.success(`${imported.length} kepala sekolah berhasil diimpor. ${skipped} sekolah dilewati karena data kepala belum diisi.`);
-      } else {
-        toast.success(`${imported.length} kepala sekolah berhasil diimpor sebagai peserta`);
+
+      let successMsg = `${imported.length} kepala sekolah berhasil diimpor sebagai peserta.`;
+      if (emptyPhoneCount > 0) {
+        successMsg += ` (${emptyPhoneCount} belum ada no. WhatsApp, rapat tetap dapat dibuat).`;
       }
+      if (skipped > 0) {
+        successMsg += ` ${skipped} sekolah dilewati karena data kepala belum diisi.`;
+      }
+      toast.success(successMsg);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Gagal mengimpor peserta');
     } finally {
@@ -202,6 +226,7 @@ export default function MeetingCreatePage() {
       onError: (error: any) => {
         const msg = error?.response?.data?.message || error?.response?.data?.errors?.ended_at?.[0] || 'Gagal membuat rapat';
         console.error('Create meeting error:', msg);
+        toast.error(msg);
       },
     });
   };
@@ -722,12 +747,30 @@ export default function MeetingCreatePage() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label className="text-xs">Nomor WhatsApp *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">
+                        Nomor WhatsApp <span className="text-slate-400 font-normal">(opsional)</span>
+                      </Label>
+                      {!watch(`participants.${index}.phone_number`) ? (
+                        <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          Tanpa WA (undangan WA dilewati)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          Tersimpan ke master sekolah
+                        </span>
+                      )}
+                    </div>
                     <Input
                       className="mt-1 h-8 text-sm"
                       {...register(`participants.${index}.phone_number`)}
-                      placeholder="081234567890"
+                      placeholder="081234567890 (jika diisi, otomatis update ke data madrasah)"
                     />
+                    {errors.participants?.[index]?.phone_number && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {errors.participants[index]?.phone_number?.message}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

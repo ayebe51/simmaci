@@ -77,7 +77,7 @@ export interface MeetingParticipant {
   name: string;
   jabatan: string;
   instansi: string;
-  phone_number: string;
+  phone_number: string | null;
   qr_personal_url: string; // full signed URL for QR code display
   is_token_used: boolean;
   token_used_at: string | null;
@@ -149,12 +149,13 @@ export interface Meeting {
 // ── Request Payloads ──
 
 export interface ParticipantInput {
+  school_id?: number | null;
   participant_type: ParticipantType;
-  participant_id: number | null;
+  participant_id?: number | null;
   name: string;
   jabatan: string;
   instansi: string;
-  phone_number: string;
+  phone_number?: string | null;
 }
 
 export interface CreateMeetingPayload {

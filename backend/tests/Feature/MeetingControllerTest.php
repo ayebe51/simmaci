@@ -586,4 +586,98 @@ class MeetingControllerTest extends TestCase
 
         $response->assertUnauthorized();
     }
+
+    /**
+     * Test creating a meeting with null/empty participant phone number succeeds.
+     */
+    public function test_can_create_meeting_with_participant_having_empty_phone_number(): void
+    {
+        $data = [
+            'title' => 'Rapat Koordinasi Fleksibel',
+            'location' => 'Aula LP Ma\'arif',
+            'started_at' => now()->addDays(3)->format('Y-m-d\TH:i:sP'),
+            'ended_at' => now()->addDays(3)->addHours(2)->format('Y-m-d\TH:i:sP'),
+            'school_ids' => [$this->school1->id],
+            'geolocation_enabled' => false,
+            'participants' => [
+                [
+                    'participant_type' => 'headmaster',
+                    'name' => 'H. Ahmad Sobari',
+                    'jabatan' => 'Kepala MI',
+                    'instansi' => 'MI Darwata',
+                    'phone_number' => '', // Empty phone number
+                    'school_id' => $this->school1->id,
+                ],
+                [
+                    'participant_type' => 'external',
+                    'name' => 'Tamu Undangan',
+                    'jabatan' => 'Tokoh Masyarakat',
+                    'instansi' => 'Kemenag',
+                    'phone_number' => null, // Null phone number
+                ],
+            ],
+            'send_invitation_wa' => false,
+            'send_reminder_wa' => false,
+            'reminder_timing' => 'H-1',
+        ];
+
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/meetings', $data);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('meetings', [
+            'title' => 'Rapat Koordinasi Fleksibel',
+        ]);
+        $this->assertDatabaseHas('meeting_participants', [
+            'name' => 'H. Ahmad Sobari',
+            'phone_number' => null,
+        ]);
+        $this->assertDatabaseHas('meeting_participants', [
+            'name' => 'Tamu Undangan',
+            'phone_number' => null,
+        ]);
+    }
+
+    /**
+     * Test creating a meeting auto-updates school kepala_whatsapp if it was empty.
+     */
+    public function test_creating_meeting_auto_updates_school_kepala_whatsapp(): void
+    {
+        $school = School::factory()->create([
+            'nama' => 'MI Miftahul Huda',
+            'kepala_madrasah' => 'Drs. Subagyo',
+            'kepala_whatsapp' => null, // Empty originally
+        ]);
+
+        $data = [
+            'title' => 'Rapat Auto-Update WA',
+            'location' => 'Aula',
+            'started_at' => now()->addDays(2)->format('Y-m-d\TH:i:sP'),
+            'ended_at' => now()->addDays(2)->addHours(2)->format('Y-m-d\TH:i:sP'),
+            'school_ids' => [$school->id],
+            'geolocation_enabled' => false,
+            'participants' => [
+                [
+                    'participant_type' => 'headmaster',
+                    'name' => 'Drs. Subagyo',
+                    'jabatan' => 'Kepala MI',
+                    'instansi' => 'MI Miftahul Huda',
+                    'phone_number' => '085712345678',
+                    'school_id' => $school->id,
+                ],
+            ],
+            'send_invitation_wa' => false,
+            'send_reminder_wa' => false,
+            'reminder_timing' => 'H-1',
+        ];
+
+        $response = $this->actingAs($this->superAdmin)
+            ->postJson('/api/meetings', $data);
+
+        $response->assertCreated();
+
+        // Verify school's kepala_whatsapp is now updated with normalized phone
+        $school->refresh();
+        $this->assertEquals('6285712345678', $school->kepala_whatsapp);
+    }
 }

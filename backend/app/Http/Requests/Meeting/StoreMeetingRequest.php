@@ -46,7 +46,8 @@ class StoreMeetingRequest extends FormRequest
             'participants.*.name' => 'required|string|max:255',
             'participants.*.jabatan' => 'required|string|max:255',
             'participants.*.instansi' => 'required|string|max:255',
-            'participants.*.phone_number' => 'required|string|max:20',
+            'participants.*.phone_number' => 'nullable|string|max:20',
+            'participants.*.school_id' => 'nullable|integer|exists:schools,id',
             'send_invitation_wa' => 'required|boolean',
             'send_reminder_wa' => 'required|boolean',
             'reminder_timing' => 'required_if:send_reminder_wa,true|nullable|in:H-1,2_hours,custom',
@@ -78,13 +79,16 @@ class StoreMeetingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Normalize phone numbers in participants
+        // Normalize phone numbers in participants if provided
         if ($this->has('participants') && is_array($this->participants)) {
             $participants = $this->participants;
+            $normalizer = app(\App\Services\PhoneNormalizerService::class);
             foreach ($participants as &$participant) {
-                if (isset($participant['phone_number'])) {
-                    $normalizer = app(\App\Services\PhoneNormalizerService::class);
-                    $participant['phone_number'] = $normalizer->normalize($participant['phone_number']);
+                $phone = trim($participant['phone_number'] ?? '');
+                if ($phone !== '') {
+                    $participant['phone_number'] = $normalizer->normalize($phone);
+                } else {
+                    $participant['phone_number'] = null;
                 }
             }
             $this->merge(['participants' => $participants]);

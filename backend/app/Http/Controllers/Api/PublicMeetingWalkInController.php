@@ -190,7 +190,23 @@ class PublicMeetingWalkInController extends Controller
         // ── 7. Simpan attendance record ───────────────────────────────────────
         $attendance = DB::transaction(function () use ($meeting, $validated, $normalizedPhone, $request, $matchedParticipant) {
             if ($matchedParticipant) {
-                // Peserta terdaftar yang scan walk-in QR → hubungkan ke participant record
+                // Peserta terdaftar yang scan walk-in QR → perbarui nomor HP jika sebelumnya kosong
+                if (empty($matchedParticipant->phone_number)) {
+                    $matchedParticipant->update(['phone_number' => $normalizedPhone]);
+                }
+
+                // Sinkronkan ke master data sekolah jika kepala_whatsapp masih kosong
+                $school = \App\Models\School::where('nama', $matchedParticipant->instansi)
+                    ->where('kepala_madrasah', $matchedParticipant->name)
+                    ->first();
+                if (!$school) {
+                    $school = \App\Models\School::where('nama', $matchedParticipant->instansi)->first();
+                }
+                if ($school && (empty($school->kepala_whatsapp) || trim($school->kepala_whatsapp) === '')) {
+                    $school->update(['kepala_whatsapp' => $normalizedPhone]);
+                    \Log::info("WalkIn: Auto-updated school #{$school->id} ({$school->nama}) kepala_whatsapp with {$normalizedPhone}");
+                }
+
                 return MeetingAttendance::create([
                     'meeting_id'       => $meeting->id,
                     'participant_id'   => $matchedParticipant->id,     // terhubung ke peserta terdaftar
@@ -207,6 +223,20 @@ class PublicMeetingWalkInController extends Controller
             }
 
             // Walk-in murni (tidak ada peserta terdaftar yang cocok)
+            // Jika jabatan kepala madrasah/sekolah, sinkronkan juga ke master school jika ada
+            if (str_contains(mb_strtolower($validated['jabatan']), 'kepala')) {
+                $school = \App\Models\School::where('nama', trim($validated['instansi']))
+                    ->where('kepala_madrasah', trim($validated['nama']))
+                    ->first();
+                if (!$school) {
+                    $school = \App\Models\School::where('nama', trim($validated['instansi']))->first();
+                }
+                if ($school && (empty($school->kepala_whatsapp) || trim($school->kepala_whatsapp) === '')) {
+                    $school->update(['kepala_whatsapp' => $normalizedPhone]);
+                    \Log::info("WalkIn: Auto-updated school #{$school->id} ({$school->nama}) kepala_whatsapp with {$normalizedPhone}");
+                }
+            }
+
             return MeetingAttendance::create([
                 'meeting_id'       => $meeting->id,
                 'participant_id'   => null,

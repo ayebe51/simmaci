@@ -355,6 +355,13 @@ class MeetingService
             $normalized = $this->phoneNormalizer->normalize($newPhoneNumber);
             $participant->update(['phone_number' => $normalized]);
             $participant->refresh();
+
+            // Auto-update school kepala_whatsapp if empty
+            $this->syncSchoolKepalaWhatsapp([
+                'name' => $participant->name,
+                'instansi' => $participant->instansi,
+                'phone_number' => $normalized,
+            ]);
         }
 
         // Validate phone number exists
@@ -501,6 +508,8 @@ class MeetingService
     private function createParticipants(Meeting $meeting, array $participants): void
     {
         foreach ($participants as $participantData) {
+            $phoneNumber = !empty($participantData['phone_number']) ? $participantData['phone_number'] : null;
+
             $participant = MeetingParticipant::create([
                 'meeting_id' => $meeting->id,
                 'participant_type' => $participantData['participant_type'],
@@ -508,8 +517,13 @@ class MeetingService
                 'name' => $participantData['name'],
                 'jabatan' => $participantData['jabatan'],
                 'instansi' => $participantData['instansi'],
-                'phone_number' => $participantData['phone_number'],
+                'phone_number' => $phoneNumber,
             ]);
+
+            // Auto-update school kepala_whatsapp if empty
+            if ($phoneNumber) {
+                $this->syncSchoolKepalaWhatsapp($participantData);
+            }
 
             // Generate QR_Personal
             $this->qrService->generatePersonalQrUrl($meeting, $participant);
@@ -530,6 +544,8 @@ class MeetingService
         $newIds = [];
 
         foreach ($participants as $participantData) {
+            $phoneNumber = !empty($participantData['phone_number']) ? $participantData['phone_number'] : null;
+
             if (isset($participantData['id']) && in_array($participantData['id'], $existingIds)) {
                 // Update existing participant
                 $participant = MeetingParticipant::find($participantData['id']);
@@ -537,7 +553,7 @@ class MeetingService
                     'name' => $participantData['name'],
                     'jabatan' => $participantData['jabatan'],
                     'instansi' => $participantData['instansi'],
-                    'phone_number' => $participantData['phone_number'],
+                    'phone_number' => $phoneNumber,
                 ]);
                 $newIds[] = $participant->id;
             } else {
@@ -549,12 +565,17 @@ class MeetingService
                     'name' => $participantData['name'],
                     'jabatan' => $participantData['jabatan'],
                     'instansi' => $participantData['instansi'],
-                    'phone_number' => $participantData['phone_number'],
+                    'phone_number' => $phoneNumber,
                 ]);
 
                 // Generate QR_Personal
                 $this->qrService->generatePersonalQrUrl($meeting, $participant);
                 $newIds[] = $participant->id;
+            }
+
+            // Auto-update school kepala_whatsapp if empty
+            if ($phoneNumber) {
+                $this->syncSchoolKepalaWhatsapp($participantData);
             }
         }
 
@@ -562,6 +583,45 @@ class MeetingService
         $removedIds = array_diff($existingIds, $newIds);
         if (!empty($removedIds)) {
             MeetingParticipant::whereIn('id', $removedIds)->delete();
+        }
+    }
+
+    /**
+     * Automatically update school's kepala_whatsapp if it was empty.
+     *
+     * @param array $participantData
+     * @return void
+     */
+    private function syncSchoolKepalaWhatsapp(array $participantData): void
+    {
+        $phone = $participantData['phone_number'] ?? null;
+        if (empty($phone)) {
+            return;
+        }
+
+        $school = null;
+        if (!empty($participantData['school_id'])) {
+            $school = School::find($participantData['school_id']);
+        }
+
+        if (!$school && !empty($participantData['instansi'])) {
+            $instansi = trim($participantData['instansi']);
+            $name = trim($participantData['name'] ?? '');
+
+            // Try exact school name and headmaster name
+            $school = School::where('nama', $instansi)
+                ->when($name, fn ($q) => $q->where('kepala_madrasah', $name))
+                ->first();
+
+            // Fallback: match by school name only
+            if (!$school) {
+                $school = School::where('nama', $instansi)->first();
+            }
+        }
+
+        if ($school && (empty($school->kepala_whatsapp) || trim($school->kepala_whatsapp) === '')) {
+            $school->update(['kepala_whatsapp' => $phone]);
+            \Log::info("MeetingService: Auto-updated school #{$school->id} ({$school->nama}) kepala_whatsapp with {$phone}");
         }
     }
 

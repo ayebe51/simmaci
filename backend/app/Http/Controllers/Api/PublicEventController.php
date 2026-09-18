@@ -1005,6 +1005,18 @@ class PublicEventController extends Controller
                     'all_jury_scores' => $r->juryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values(),
                 ]);
         } else {
+            if (\App\Services\CompetitionRankingService::isSinglePoolCompetition($competition)) {
+                $hasDuplicateRanks = CompetitionResult::where('competition_id', $competition->id)
+                    ->whereIn('rank', [1, 2, 3])
+                    ->groupBy('rank')
+                    ->selectRaw('rank, count(*) as c')
+                    ->havingRaw('count(*) > 1')
+                    ->exists();
+                if ($hasDuplicateRanks) {
+                    \App\Services\CompetitionRankingService::autoRank($competition);
+                }
+            }
+
             $results = CompetitionResult::where('competition_id', $competition->id)
                 ->with(['participant:id,name,institution,jenjang,gender_category', 'participant.juryScores'])
                 ->where(function ($q) {

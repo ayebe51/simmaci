@@ -71,6 +71,26 @@ class CompetitionRankingService
     }
 
     /**
+     * Check if a competition is evaluated in a single global pool across all schools/jenjang
+     * (e.g. Film Dokumenter NU: Juara Umum, tidak per jenjang).
+     */
+    public static function isSinglePoolCompetition(Competition $competition): bool
+    {
+        $lombaType = strtolower(trim((string) ($competition->lomba_type ?? '')));
+        $name = strtolower(trim((string) ($competition->name ?? '')));
+
+        if (in_array($lombaType, ['film_dokumenter', 'film_dokumenter_nu', 'film', 'dokumenter'], true)) {
+            return true;
+        }
+
+        if (str_contains($name, 'film') || str_contains($name, 'dokumenter')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Auto-rank regular festival competition participants.
      */
     protected static function autoRankFestival(Competition $competition): void
@@ -84,7 +104,7 @@ class CompetitionRankingService
         }
 
         // Group by jenjang if present, unless competition is a single overall pool (e.g. film_dokumenter)
-        $isSinglePool = in_array($competition->lomba_type, ['film_dokumenter'], true);
+        $isSinglePool = static::isSinglePoolCompetition($competition);
         $hasDistinctJenjang = !$isSinglePool && $participants->pluck('jenjang')->filter()->unique()->count() > 1;
         $groups = $hasDistinctJenjang
             ? $participants->groupBy(fn ($p) => $p->jenjang ?: 'Umum')

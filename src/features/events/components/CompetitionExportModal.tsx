@@ -97,6 +97,42 @@ export default function CompetitionExportModal({
     return 4;
   };
 
+  const getParticipantFinalScore = (p: any) => {
+    if (p.result?.score != null && !isNaN(Number(p.result.score)) && Number(p.result.score) > 0) {
+      return Number(p.result.score).toFixed(2);
+    }
+    if (p.total_score != null && !isNaN(Number(p.total_score)) && Number(p.total_score) > 0) {
+      return Number(p.total_score).toFixed(2);
+    }
+    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
+    if (scores.length > 0) {
+      const valids = scores
+        .map((s: any) => Number(s.score ?? s.total_score ?? 0))
+        .filter((s: number) => !isNaN(s) && s > 0);
+      if (valids.length > 0) {
+        return (valids.reduce((a: number, b: number) => a + b, 0) / valids.length).toFixed(2);
+      }
+    }
+    return '-';
+  };
+
+  const getRankTitle = (rank?: number, withEmoji = false) => {
+    if (!rank || rank > 3) return '-';
+    if (rank === 1) return withEmoji ? 'Juara I 🥇' : 'Juara I';
+    if (rank === 2) return withEmoji ? 'Juara II 🥈' : 'Juara II';
+    if (rank === 3) return withEmoji ? 'Juara III 🥉' : 'Juara III';
+    return '-';
+  };
+
+  // Check if competition is a single/global pool across all categories (e.g. Film Dokumenter NU is Juara Umum, tidak per jenjang)
+  const isGlobalPool = Boolean(
+    competition?.is_single_pool ||
+    competition?.lomba_type === 'film_dokumenter' ||
+    competition?.lomba_type === 'film_dokumenter_nu' ||
+    String(competition?.name || '').toLowerCase().includes('film') ||
+    String(competition?.name || '').toLowerCase().includes('dokumenter')
+  );
+
   // Filter participants by jenjang if selected
   const filtered = participants.filter((p) => {
     if (!filterJenjang || filterJenjang === 'all') return true;
@@ -106,54 +142,103 @@ export default function CompetitionExportModal({
     return pNorm === fNorm;
   });
 
-  // Check if there are ranked winners (Juara 1, 2, 3)
-  const hasRankedWinners = filtered.some(
-    (p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3
-  );
+  // Calculate ranks and groups
+  let jenjangGroups: { jenjang: string; items: any[] }[] = [];
+  let displayedParticipants: any[] = [];
+  let isMultiJenjang = false;
+  let hasRankedWinners = false;
 
-  // Group participants by normalized jenjang
-  const jenjangMap = new Map<string, any[]>();
-  filtered.forEach((p) => {
-    const norm = normalizeJenjang(p.jenjang, p.institution || p.school_name);
-    if (!jenjangMap.has(norm)) {
-      jenjangMap.set(norm, []);
-    }
-    jenjangMap.get(norm)!.push(p);
-  });
-
-  // Sort group keys in natural order: MI/SD (1) -> MTs/SMP (2) -> MA/SMA/SMK (3)
-  const sortedGroupKeys = Array.from(jenjangMap.keys()).sort((a, b) => {
-    return getJenjangOrder(a) - getJenjangOrder(b);
-  });
-
-  // Build sorted groups and their items
-  const jenjangGroups = sortedGroupKeys.map((jKey) => {
-    const list = jenjangMap.get(jKey) || [];
-    const sortedList = [...list].sort((a, b) => {
-      const rankA = a.result?.rank ?? 9999;
-      const rankB = b.result?.rank ?? 9999;
-      if (rankA !== rankB) return rankA - rankB;
-
-      const scoreA = Number(a.result?.score ?? a.total_score ?? 0);
-      const scoreB = Number(b.result?.score ?? b.total_score ?? 0);
+  if (isGlobalPool) {
+    // ── Global Pool (Juara Umum / Single Pool, tidak dibedakan per jenjang) ──
+    const poolSorted = [...filtered].sort((a, b) => {
+      const scoreA = Number(getParticipantFinalScore(a) || a.result?.score || a.total_score || 0);
+      const scoreB = Number(getParticipantFinalScore(b) || b.result?.score || b.total_score || 0);
       return scoreB - scoreA;
     });
 
-    const displayedList = (viewScope === 'winners' && hasRankedWinners)
-      ? sortedList.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
-      : sortedList;
+    let currentRank = 0;
+    let prevScore: number | null = null;
 
-    return {
-      jenjang: jKey,
-      items: displayedList,
-    };
-  }).filter((g) => g.items.length > 0);
+    const participantsWithRanks = poolSorted.map((p) => {
+      const scoreStr = getParticipantFinalScore(p);
+      const score = scoreStr !== '-' ? Number(scoreStr) : 0;
+      let assignedRank: number | null = null;
+      if (score > 0) {
+        if (prevScore === null || Math.abs(score - prevScore) >= 0.001) {
+          currentRank++;
+          prevScore = score;
+        }
+        assignedRank = currentRank <= 3 ? currentRank : null;
+      }
+      return {
+        ...p,
+        result: {
+          ...(p.result || {}),
+          rank: assignedRank,
+        },
+      };
+    });
 
-  // Flattened displayed participants
-  const displayedParticipants = jenjangGroups.flatMap((g) => g.items);
+    hasRankedWinners = participantsWithRanks.some(
+      (p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3
+    );
 
-  // Is multi-jenjang? Show headers only if there is more than 1 distinct jenjang group
-  const isMultiJenjang = jenjangGroups.length > 1;
+    displayedParticipants = (viewScope === 'winners' && hasRankedWinners)
+      ? participantsWithRanks.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
+      : participantsWithRanks;
+
+    jenjangGroups = [{
+      jenjang: compName,
+      items: displayedParticipants,
+    }];
+    isMultiJenjang = false;
+  } else {
+    // ── Multi-Jenjang Pool (dibedakan per jenjang: MI, MTs, MA/SMA/SMK) ──
+    hasRankedWinners = filtered.some(
+      (p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3
+    );
+
+    // Group participants by normalized jenjang
+    const jenjangMap = new Map<string, any[]>();
+    filtered.forEach((p) => {
+      const norm = normalizeJenjang(p.jenjang, p.institution || p.school_name);
+      if (!jenjangMap.has(norm)) {
+        jenjangMap.set(norm, []);
+      }
+      jenjangMap.get(norm)!.push(p);
+    });
+
+    // Sort group keys in natural order: MI/SD (1) -> MTs/SMP (2) -> MA/SMA/SMK (3)
+    const sortedGroupKeys = Array.from(jenjangMap.keys()).sort((a, b) => {
+      return getJenjangOrder(a) - getJenjangOrder(b);
+    });
+
+    // Build sorted groups and their items
+    jenjangGroups = sortedGroupKeys.map((jKey) => {
+      const list = jenjangMap.get(jKey) || [];
+      const sortedList = [...list].sort((a, b) => {
+        const rankA = a.result?.rank ?? 9999;
+        const rankB = b.result?.rank ?? 9999;
+        if (rankA !== rankB) return rankA - rankB;
+
+        const scoreA = Number(a.result?.score ?? a.total_score ?? 0);
+        const scoreB = Number(b.result?.score ?? b.total_score ?? 0);
+        return scoreB - scoreA;
+      });
+
+      const displayedList = (viewScope === 'winners' && hasRankedWinners)
+        ? sortedList.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
+        : sortedList;
+
+      return {
+        jenjang: jKey,
+        items: displayedList,
+      };
+    }).filter((g) => g.items.length > 0);
+
+    displayedParticipants = jenjangGroups.flatMap((g) => g.items);
+    isMultiJenjang = jenjangGroups.length > 1;
+  }
 
   // Helper to identify organization or system account names that shouldn't be displayed as individual jury persons
   const isOrgOrSystemName = (name: string) => {
@@ -206,14 +291,6 @@ export default function CompetitionExportModal({
 
   const juryRows = getJuryRows(displayJuries);
 
-  const getRankTitle = (rank?: number, withEmoji = false) => {
-    if (!rank || rank > 3) return '-';
-    if (rank === 1) return withEmoji ? 'Juara I 🥇' : 'Juara I';
-    if (rank === 2) return withEmoji ? 'Juara II 🥈' : 'Juara II';
-    if (rank === 3) return withEmoji ? 'Juara III 🥉' : 'Juara III';
-    return '-';
-  };
-
   const getParticipantJuryScore = (p: any, juryName: string) => {
     const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
     const found = scores.find((s: any) => {
@@ -223,25 +300,6 @@ export default function CompetitionExportModal({
     if (!found) return '-';
     const sc = found.score ?? found.total_score;
     return sc != null && !isNaN(Number(sc)) ? Number(sc).toFixed(2) : '-';
-  };
-
-  const getParticipantFinalScore = (p: any) => {
-    if (p.result?.score != null && !isNaN(Number(p.result.score)) && Number(p.result.score) > 0) {
-      return Number(p.result.score).toFixed(2);
-    }
-    if (p.total_score != null && !isNaN(Number(p.total_score)) && Number(p.total_score) > 0) {
-      return Number(p.total_score).toFixed(2);
-    }
-    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
-    if (scores.length > 0) {
-      const valids = scores
-        .map((s: any) => Number(s.score ?? s.total_score ?? 0))
-        .filter((s: number) => !isNaN(s) && s > 0);
-      if (valids.length > 0) {
-        return (valids.reduce((a: number, b: number) => a + b, 0) / valids.length).toFixed(2);
-      }
-    }
-    return '-';
   };
 
   const isTwoPhase = competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi' || competition?.is_two_phase;

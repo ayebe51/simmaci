@@ -157,6 +157,19 @@ class CompetitionController extends Controller
                 }
             }
 
+            // Check if single pool competition has duplicate ranks (e.g. film_dokumenter ranked per-jenjang previously)
+            if (\App\Services\CompetitionRankingService::isSinglePoolCompetition($competition)) {
+                $hasDuplicateRanks = \App\Models\CompetitionResult::where('competition_id', $competition->id)
+                    ->whereIn('rank', [1, 2, 3])
+                    ->groupBy('rank')
+                    ->selectRaw('rank, count(*) as c')
+                    ->havingRaw('count(*) > 1')
+                    ->exists();
+                if ($hasDuplicateRanks) {
+                    $needsAutoRank = true;
+                }
+            }
+
             if ($needsAutoRank) {
                 \App\Services\CompetitionRankingService::autoRank($competition);
                 $competition->load([

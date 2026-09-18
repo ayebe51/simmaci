@@ -602,6 +602,55 @@ class MultiJuryScoringTest extends TestCase
         $this->assertEquals(80.00, (float) $guruReg->total_score);
         $this->assertEquals(1, $guruReg->rank);
     }
+
+    public function test_competition_detail_show_endpoint_for_film_dokumenter(): void
+    {
+        $superAdmin = \App\Models\User::factory()->create(['role' => 'super_admin']);
+        $event = Event::create([
+            'name'     => 'Festival Aswaja 2026',
+            'slug'     => 'festival-film-dok-show',
+            'category' => 'Festival',
+            'date'     => '2026-09-19',
+            'location' => 'Cilacap',
+            'status'   => 'OPEN',
+        ]);
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Film Pendek Dokumenter',
+            'category'   => 'Karya Ilmiah & Seni',
+            'type'       => 'Group',
+            'lomba_type' => 'film_dokumenter',
+            'status'     => 'OPEN',
+        ]);
+
+        $p1 = CompetitionParticipant::create([
+            'competition_id' => $competition->id,
+            'name'           => 'Tim Film MA',
+            'institution'    => 'MA Ma\'arif',
+            'jenjang'        => 'MA/SMA/SMK',
+        ]);
+
+        CompetitionJuryScore::create([
+            'competition_id' => $competition->id,
+            'participant_id' => $p1->id,
+            'jury_name'      => 'Juri Film A',
+            'score'          => 85.00,
+        ]);
+
+        CompetitionResult::create([
+            'competition_id' => $competition->id,
+            'participant_id' => $p1->id,
+            'score'          => 85.00,
+            'rank'           => 1,
+        ]);
+
+        $res = $this->actingAs($superAdmin)->getJson("/api/competitions/{$competition->id}");
+        $res->assertStatus(200);
+        $this->assertEquals('Film Pendek Dokumenter', $res->json('data.name'));
+        $this->assertCount(1, $res->json('data.participants'));
+    }
 }
+
 
 

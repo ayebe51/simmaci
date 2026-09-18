@@ -61,6 +61,23 @@ export default function CompetitionExportModal({
     return rows;
   };
 
+  const eventName = typeof competition?.event === 'object'
+    ? competition?.event?.name
+    : (competition?.event || 'HARLAH LP MA\'ARIF NU KE-97 TAHUN 2026');
+  const compName = competition?.name || 'Cabang Lomba';
+  const jenjangStr = filterJenjang !== 'all'
+    ? filterJenjang
+    : (competition?.jenjang || competition?.category || 'Semua Jenjang');
+  const compDateFormatted = competition?.date
+    ? new Date(competition.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const currentDateFormatted = new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  const locationStr = competition?.location || 'LP Ma\'arif NU Cilacap';
+
   const isGuru = competition?.lomba_type === 'guru_berprestasi' || String(competition?.name || '').toLowerCase().includes('guru');
   const isMadrasah = competition?.lomba_type === 'madrasah_berprestasi' || String(competition?.name || '').toLowerCase().includes('madrasah');
   const isTwoPhase = Boolean(isGuru || isMadrasah || competition?.is_two_phase || competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi');
@@ -282,9 +299,12 @@ export default function CompetitionExportModal({
   if (isGlobalPool) {
     // ── Global Pool (Juara Umum / Single Pool, tidak dibedakan per jenjang) ──
     const poolSorted = [...filtered].sort((a, b) => {
-      const scoreA = Number(getParticipantFinalScore(a) || a.result?.score || a.total_score || 0);
-      const scoreB = Number(getParticipantFinalScore(b) || b.result?.score || b.total_score || 0);
-      return scoreB - scoreA;
+      const scoreA = Number(getParticipantFinalScore(a) !== '-' ? getParticipantFinalScore(a) : a.result?.score ?? a.total_score ?? 0);
+      const scoreB = Number(getParticipantFinalScore(b) !== '-' ? getParticipantFinalScore(b) : b.result?.score ?? b.total_score ?? 0);
+      if (Math.abs(scoreB - scoreA) >= 0.001) return scoreB - scoreA;
+      const rankA = a.result?.rank ?? a.rank ?? 9999;
+      const rankB = b.result?.rank ?? b.rank ?? 9999;
+      return rankA - rankB;
     });
 
     let currentRank = 0;
@@ -458,23 +478,6 @@ export default function CompetitionExportModal({
     const sc = found.score ?? found.total_score;
     return sc != null && !isNaN(Number(sc)) ? Number(sc).toFixed(2) : '-';
   };
-
-  const eventName = typeof competition?.event === 'object'
-    ? competition?.event?.name
-    : (competition?.event || 'HARLAH LP MA\'ARIF NU KE-97 TAHUN 2026');
-  const compName = competition?.name || 'Cabang Lomba';
-  const jenjangStr = filterJenjang !== 'all'
-    ? filterJenjang
-    : (competition?.jenjang || competition?.category || 'Semua Jenjang');
-  const compDateFormatted = competition?.date
-    ? new Date(competition.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    : new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  const currentDateFormatted = new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-  const locationStr = competition?.location || 'LP Ma\'arif NU Cilacap';
 
   // ── 1. Export Excel (.xlsx) ────────────────────────────────────────────────
   const handleExportExcel = () => {

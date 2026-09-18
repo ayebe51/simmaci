@@ -46,12 +46,16 @@ export default function ResultInput({ competitionId, competition, participants, 
 
   // Helper to get component average across all juries if jury_scores exist
   const getJuryAverageBreakdown = (p: any, component: string): string | null => {
-    if (!p?.jury_scores || p.jury_scores.length === 0) return null;
+    const scores = p?.jury_scores ?? p?.juryScores ?? [];
+    if (!scores || scores.length === 0) return null;
     let sum = 0;
     let count = 0;
-    for (const js of p.jury_scores) {
-      const raw = js.score_breakdown;
+    for (const js of scores) {
+      let raw = js.score_breakdown;
       if (!raw) continue;
+      if (typeof raw === 'string') {
+        try { raw = JSON.parse(raw); } catch {}
+      }
       let val: number | null = null;
       if (Array.isArray(raw)) {
         const item = raw.find((b: any) => b.component === component);
@@ -70,14 +74,18 @@ export default function ResultInput({ competitionId, competition, participants, 
 
   // Helper to get average total score across all juries
   const getJuryAverageTotal = (p: any): string | null => {
-    if (!p?.jury_scores || p.jury_scores.length === 0) return null;
-    const sum = p.jury_scores.reduce((acc: number, js: any) => acc + (Number(js.score) || 0), 0);
-    return (sum / p.jury_scores.length).toFixed(2);
+    const scores = p?.jury_scores ?? p?.juryScores ?? [];
+    if (!scores || scores.length === 0) return null;
+    const sum = scores.reduce((acc: number, js: any) => acc + (Number(js.score) || 0), 0);
+    return (sum / scores.length).toFixed(2);
   };
 
   const getBreakdownValue = (pid: string | number, component: string): string => {
-    const raw = map[pid]?.score_breakdown;
+    let raw = map[pid]?.score_breakdown;
     if (!raw) return '';
+    if (typeof raw === 'string') {
+      try { raw = JSON.parse(raw); } catch {}
+    }
     if (Array.isArray(raw)) {
       const found = raw.find((b: any) => b.component === component);
       return found?.value != null ? String(found.value) : '';

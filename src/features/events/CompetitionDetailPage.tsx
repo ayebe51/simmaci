@@ -240,7 +240,7 @@ export default function CompetitionDetailPage() {
                   }))
                 : (competition.participants ?? []).map((p: any) => ({
                     ...p,
-                    jury_scores: p.jury_scores ?? [],
+                    jury_scores: p.jury_scores ?? p.juryScores ?? [],
                   }))
             }
             results={

@@ -289,13 +289,16 @@ export default function CompetitionExportModal({
     return '-';
   };
 
-  // Check if competition is a single/global pool across all categories (e.g. Film Dokumenter NU is Juara Umum, tidak per jenjang)
-  const isGlobalPool = Boolean(
-    competition?.is_single_pool ||
+  // Check if competition is Film Dokumenter or single/global pool
+  const isFilm = Boolean(
     competition?.lomba_type === 'film_dokumenter' ||
     competition?.lomba_type === 'film_dokumenter_nu' ||
     String(competition?.name || '').toLowerCase().includes('film') ||
     String(competition?.name || '').toLowerCase().includes('dokumenter')
+  );
+
+  const isGlobalPool = Boolean(
+    competition?.is_single_pool || isFilm
   );
 
   // Filter participants by jenjang if selected
@@ -454,6 +457,7 @@ export default function CompetitionExportModal({
   const isOrgOrSystemName = (name: string) => {
     if (!name) return true;
     const lower = name.toLowerCase().trim();
+    if (isFilm && lower.includes('media')) return false;
     return (
       lower.includes('ma\'arif') ||
       lower.includes('maarif') ||
@@ -482,7 +486,15 @@ export default function CompetitionExportModal({
   const showJuryColumns = distinctJuryNames.length > 1;
 
   // Build signatures list:
-  const displayJuries = distinctJuryNames.length === 0
+  // Khusus Film Dokumenter, penilai resmi adalah TIM Media LP Ma'arif NU Cilacap
+  const displayJuries = isFilm
+    ? [
+        {
+          label: 'Dewan Juri',
+          name: 'TIM Media LP Ma\'arif NU Cilacap',
+        },
+      ]
+    : distinctJuryNames.length === 0
     ? [
         { label: 'Dewan Juri 1', name: '' },
         { label: 'Dewan Juri 2', name: '' },
@@ -942,7 +954,7 @@ export default function CompetitionExportModal({
               border-bottom: 1.5px solid #0f172a;
               display: inline-block;
               min-width: 140px;
-              max-width: 230px;
+              max-width: 320px;
               white-space: nowrap;
               padding-bottom: 2px;
             }
@@ -1365,7 +1377,7 @@ export default function CompetitionExportModal({
                       {row.map((j, jIdx) => (
                         <div
                           key={jIdx}
-                          className="flex-1 max-w-[220px] min-w-[150px] flex flex-col items-center text-center"
+                          className="flex-1 max-w-[320px] min-w-[150px] flex flex-col items-center text-center"
                         >
                           <p className="font-bold text-slate-700 text-[11px] sm:text-xs mb-14">
                             {j.label}

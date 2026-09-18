@@ -167,11 +167,26 @@ class CompetitionRankingService
             return;
         }
 
-        // Anugerah Guru/Madrasah is grouped by jenjang (MI/SD, MTs/SMP, MA/SMA/SMK)
-        $hasDistinctJenjang = $registrations->pluck('jenjang')->filter()->unique()->count() > 1;
-        $groups = $hasDistinctJenjang
-            ? $registrations->groupBy(fn ($r) => $r->jenjang ?: 'Umum')
-            : collect(['all' => $registrations]);
+        $isMadrasah = $competition->lomba_type === 'madrasah_berprestasi' || str_contains(strtolower($competition->name), 'madrasah');
+
+        if ($isMadrasah) {
+            // Pada madrasah berprestasi: hanya jenjang MI/SD dan SMP/MTs/SMA/SMK jadi 1 (karena jenjang MTs sampai SMA hanya 3 pendaftar)
+            $normJenjang = function ($r) {
+                $j = strtoupper(trim((string) $r->jenjang));
+                $inst = strtoupper(trim((string) $r->school_name));
+                if (str_contains($j, 'MI') || str_contains($j, 'SD') || preg_match('/\b(MI|SD|IBTIDAIYAH)\b/i', $inst)) {
+                    return 'MI/SD';
+                }
+                return 'SMP/MTs/SMA/SMK';
+            };
+            $groups = $registrations->groupBy($normJenjang);
+        } else {
+            // Anugerah Guru: grouped by jenjang (MI/SD, MTs/SMP, MA/SMA/SMK)
+            $hasDistinctJenjang = $registrations->pluck('jenjang')->filter()->unique()->count() > 1;
+            $groups = $hasDistinctJenjang
+                ? $registrations->groupBy(fn ($r) => $r->jenjang ?: 'Umum')
+                : collect(['all' => $registrations]);
+        }
 
         DB::transaction(function () use ($groups) {
             foreach ($groups as $group) {

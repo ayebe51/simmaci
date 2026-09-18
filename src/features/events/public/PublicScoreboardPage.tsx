@@ -88,6 +88,7 @@ export default function PublicScoreboardPage() {
               competition={{
                 id: competitionId,
                 name: data.competition,
+                lomba_type: data.lomba_type,
                 event: { name: data.event },
                 jenjang: data.jenjang,
               }}
@@ -95,11 +96,16 @@ export default function PublicScoreboardPage() {
                 name: r.name,
                 institution: r.institution,
                 jenjang: r.jenjang || data.jenjang,
+                status: r.status,
+                score_breakdown: r.score_breakdown,
+                phase1_score: r.phase1_score,
+                total_score: r.total_score ?? r.score,
                 jury_scores: r.all_jury_scores ?? [],
                 result: {
                   rank: r.rank,
                   score: r.score,
                   notes: r.notes,
+                  score_breakdown: r.score_breakdown,
                 }
               }))}
               trigger={

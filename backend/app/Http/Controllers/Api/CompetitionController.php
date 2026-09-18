@@ -107,7 +107,20 @@ class CompetitionController extends Controller
                                     $p2Sum += $compScore;
                                 }
                             }
-                            $expectedTotal = round($p1Sum + $p2Sum, 2);
+
+                            $isFinalist = in_array($reg->status, ['finalis', 'winner'], true);
+
+                            if ($competition->lomba_type === 'madrasah_berprestasi') {
+                                // Pada madrasah berprestasi: Fase 2 belum diinput nilai sama sekali
+                                // Nilai total adalah murni nilai seleksi berkas Fase 1
+                                $expectedTotal = round($p1Sum > 0 ? $p1Sum : (float) ($reg->total_score ?? 0), 2);
+                            } elseif ($isFinalist) {
+                                // Finalis Guru: Akumulasi Fase 1 + Fase 2
+                                $expectedTotal = round($p1Sum + $p2Sum, 2);
+                            } else {
+                                // Guru yang tidak lolos Fase 2 hanya mendapat nilai Fase 1
+                                $expectedTotal = round($p1Sum > 0 ? $p1Sum : (float) ($reg->total_score ?? 0), 2);
+                            }
                         } else {
                             // If no breakdown available, preserve valid total_score or use highest jury score
                             $expectedTotal = ($reg->total_score !== null && (float) $reg->total_score > 0)
@@ -129,6 +142,16 @@ class CompetitionController extends Controller
                             $needsAutoRank = true;
                         }
                     }
+                }
+            }
+
+            // Check if Madrasah Berprestasi needs re-ranking (e.g. legacy 3-group ranks instead of 2 groups: MI/SD and SMP/MTs/SMA/SMK)
+            if ($competition->lomba_type === 'madrasah_berprestasi') {
+                $hasLegacySecondaryRank1 = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                    ->where('rank', 1)
+                    ->count() > 2;
+                if ($hasLegacySecondaryRank1) {
+                    $needsAutoRank = true;
                 }
             }
 
@@ -648,7 +671,19 @@ class CompetitionController extends Controller
         });
 
         // Group by jenjang and take top 3 in each jenjang
-        $grouped = $scoredRegistrations->groupBy('jenjang');
+        if ($competition->lomba_type === 'madrasah_berprestasi') {
+            $normJenjang = function ($item) {
+                $j = strtoupper(trim((string) $item['registration']->jenjang));
+                $inst = strtoupper(trim((string) $item['registration']->school_name));
+                if (str_contains($j, 'MI') || str_contains($j, 'SD') || preg_match('/\b(MI|SD|IBTIDAIYAH)\b/i', $inst)) {
+                    return 'MI/SD';
+                }
+                return 'SMP/MTs/SMA/SMK';
+            };
+            $grouped = $scoredRegistrations->groupBy($normJenjang);
+        } else {
+            $grouped = $scoredRegistrations->groupBy('jenjang');
+        }
         $promotedFinalists = [];
         $demotedCount = 0;
 

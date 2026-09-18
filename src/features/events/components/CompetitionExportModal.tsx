@@ -61,8 +61,134 @@ export default function CompetitionExportModal({
     return rows;
   };
 
+  const isGuru = competition?.lomba_type === 'guru_berprestasi' || String(competition?.name || '').toLowerCase().includes('guru');
+  const isMadrasah = competition?.lomba_type === 'madrasah_berprestasi' || String(competition?.name || '').toLowerCase().includes('madrasah');
+  const isTwoPhase = Boolean(isGuru || isMadrasah || competition?.is_two_phase || competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi');
+
+  const phase2Label = isGuru 
+    ? 'Presentasi & Wawancara' 
+    : isMadrasah 
+    ? 'Visitasi Lapangan' 
+    : 'Presentasi & Wawancara';
+
+  const getParticipantPhaseScores = (p: any) => {
+    const isFinalist = Boolean(
+      p.status === 'finalis' ||
+      p.status === 'winner' ||
+      p.is_finalist ||
+      (p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3) ||
+      (p.rank != null && p.rank >= 1 && p.rank <= 3)
+    );
+
+    let breakdown = p.result?.score_breakdown ?? p.score_breakdown ?? null;
+    if (typeof breakdown === 'string') {
+      try { breakdown = JSON.parse(breakdown); } catch {}
+    }
+
+    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
+    if (!breakdown || (Array.isArray(breakdown) && breakdown.length === 0)) {
+      let bestBd: any[] = [];
+      for (const js of scores) {
+        let bd = js.score_breakdown;
+        if (typeof bd === 'string') {
+          try { bd = JSON.parse(bd); } catch {}
+        }
+        if (Array.isArray(bd) && bd.length > bestBd.length) {
+          bestBd = bd;
+        }
+      }
+      if (bestBd.length > 0) {
+        breakdown = bestBd;
+      }
+    }
+
+    let p1Sum = 0;
+    let p2Sum = 0;
+    if (Array.isArray(breakdown) && breakdown.length > 0) {
+      breakdown.forEach((item: any, idx: number) => {
+        const weight = Number(item.weight) || 0;
+        const val = Number(item.value) || 0;
+        const compScore = (val * weight) / 100;
+        const name = String(item.component || '').toLowerCase();
+
+        let isP1 = isGuru ? idx < 2 : idx < 3;
+        if (isGuru && (name.includes('aswaja') || name.includes('wawancara') || name.includes('interview') || name.includes('presentasi'))) {
+          isP1 = false;
+        } else if (isMadrasah && (name.includes('presentasi') || name.includes('visitasi') || name.includes('fact checking'))) {
+          isP1 = false;
+        }
+
+        if (isP1) {
+          p1Sum += compScore;
+        } else {
+          p2Sum += compScore;
+        }
+      });
+    }
+
+    const maxP1 = isGuru ? 70 : 85;
+
+    // Fallback for Phase 1
+    if (p1Sum <= 0) {
+      const p1Jury = scores.find((s: any) => s.phase === 1 || (Number(s.score) > 0 && Number(s.score) <= maxP1));
+      if (p1Jury && Number(p1Jury.score) > 0) {
+        p1Sum = Number(p1Jury.score);
+      } else if (p.phase1_score && Number(p.phase1_score) > 0) {
+        p1Sum = Number(p.phase1_score);
+      } else if (p.total_score && Number(p.total_score) <= maxP1 && (!scores.some((s: any) => s.phase === 2))) {
+        p1Sum = Number(p.total_score);
+      }
+    }
+
+    // SPECIAL RULE 1: Madrasah Berprestasi - Fase 2 belum diinput nilai sama sekali!
+    // Never show Phase 2 score for madrasah_berprestasi until Phase 2 is actually conducted.
+    if (isMadrasah) {
+      p2Sum = 0;
+    }
+
+    // SPECIAL RULE 2: Guru Berprestasi - Hanya peserta yang lolos ke Fase 2 (finalis) yang berhak mendapat nilai Fase 2!
+    // Peserta yang tidak lolos Fase 2 TIDAK boleh mendapat nilai Fase 2.
+    if (!isFinalist) {
+      p2Sum = 0;
+    }
+
+    // Determine final score:
+    let finalScore = 0;
+    if (isMadrasah) {
+      // Madrasah Berprestasi: Phase 2 belum ada, nilai akhir adalah nilai seleksi berkas Fase 1
+      finalScore = p1Sum > 0 ? p1Sum : (Number(p.result?.score ?? p.total_score ?? 0));
+    } else if (!isFinalist) {
+      // Guru yang tidak lolos Fase 2: nilai akhir murni nilai seleksi berkas Fase 1
+      finalScore = p1Sum > 0 ? p1Sum : (Number(p.result?.score ?? p.total_score ?? 0));
+    } else {
+      // Finalis Fase 2 (Guru): Akumulasi Fase 1 + Fase 2
+      if (p1Sum > 0 || p2Sum > 0) {
+        finalScore = p1Sum + p2Sum;
+      } else if (p.result?.score != null && Number(p.result.score) > 0) {
+        finalScore = Number(p.result.score);
+      } else if (p.total_score != null && Number(p.total_score) > 0) {
+        finalScore = Number(p.total_score);
+      }
+    }
+
+    return {
+      phase1: p1Sum > 0 ? p1Sum.toFixed(2) : '-',
+      phase2: p2Sum > 0 ? p2Sum.toFixed(2) : '-',
+      final: finalScore > 0 ? finalScore.toFixed(2) : (p1Sum > 0 ? p1Sum.toFixed(2) : '-'),
+    };
+  };
+
   // Helper to normalize educational level (jenjang)
   const normalizeJenjang = (rawJenjang?: string, institution?: string): string => {
+    if (isMadrasah) {
+      const j = String(rawJenjang || '').trim().toUpperCase();
+      const inst = String(institution || '').trim().toUpperCase();
+      if (j === 'MI' || j === 'SD' || j.includes('MI') || j.includes('SD') || /\bMI\b|\bSD\b|IBTIDAIYAH/i.test(inst)) {
+        return 'MI / SD';
+      }
+      return 'SMP / MTs / SMA / SMK';
+    }
+
     const j = String(rawJenjang || '').trim().toUpperCase();
     if (j.includes('MI') && (j.includes('MTS') || j.includes('MA'))) {
       const inst = String(institution || '').trim().toUpperCase();
@@ -92,12 +218,17 @@ export default function CompetitionExportModal({
 
   const getJenjangOrder = (jenjang: string): number => {
     if (jenjang === 'MI / SD') return 1;
+    if (jenjang === 'SMP / MTs / SMA / SMK') return 2;
     if (jenjang === 'MTs / SMP') return 2;
     if (jenjang === 'MA / SMA / SMK') return 3;
     return 4;
   };
 
   const getParticipantFinalScore = (p: any) => {
+    if (isTwoPhase) {
+      const ps = getParticipantPhaseScores(p);
+      return ps.final;
+    }
     if (p.result?.score != null && !isNaN(Number(p.result.score)) && Number(p.result.score) > 0) {
       return Number(p.result.score).toFixed(2);
     }
@@ -217,18 +348,44 @@ export default function CompetitionExportModal({
     jenjangGroups = sortedGroupKeys.map((jKey) => {
       const list = jenjangMap.get(jKey) || [];
       const sortedList = [...list].sort((a, b) => {
-        const rankA = a.result?.rank ?? 9999;
-        const rankB = b.result?.rank ?? 9999;
-        if (rankA !== rankB) return rankA - rankB;
+        const scoreA = Number(getParticipantFinalScore(a) !== '-' ? getParticipantFinalScore(a) : a.result?.score ?? a.total_score ?? 0);
+        const scoreB = Number(getParticipantFinalScore(b) !== '-' ? getParticipantFinalScore(b) : b.result?.score ?? b.total_score ?? 0);
+        if (Math.abs(scoreB - scoreA) >= 0.001) return scoreB - scoreA;
 
-        const scoreA = Number(a.result?.score ?? a.total_score ?? 0);
-        const scoreB = Number(b.result?.score ?? b.total_score ?? 0);
-        return scoreB - scoreA;
+        const rankA = a.result?.rank ?? a.rank ?? 9999;
+        const rankB = b.result?.rank ?? b.rank ?? 9999;
+        return rankA - rankB;
       });
 
-      const displayedList = (viewScope === 'winners' && hasRankedWinners)
-        ? sortedList.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
+      // For Madrasah Berprestasi: re-rank dynamically so SMP/MTs/SMA/SMK has ranks 1, 2, 3
+      let currentRank = 0;
+      let prevScore: number | null = null;
+      const reRankedList = isMadrasah
+        ? sortedList.map((p) => {
+            const scoreStr = getParticipantFinalScore(p);
+            const score = scoreStr !== '-' ? Number(scoreStr) : 0;
+            let assignedRank: number | null = null;
+            if (score > 0) {
+              if (prevScore === null || Math.abs(score - prevScore) >= 0.001) {
+                currentRank++;
+                prevScore = score;
+              }
+              assignedRank = currentRank <= 3 ? currentRank : null;
+            }
+            return {
+              ...p,
+              result: {
+                ...(p.result || {}),
+                rank: assignedRank,
+              },
+              rank: assignedRank,
+            };
+          })
         : sortedList;
+
+      const displayedList = (viewScope === 'winners' && hasRankedWinners)
+        ? reRankedList.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
+        : reRankedList;
 
       return {
         jenjang: jKey,
@@ -300,110 +457,6 @@ export default function CompetitionExportModal({
     if (!found) return '-';
     const sc = found.score ?? found.total_score;
     return sc != null && !isNaN(Number(sc)) ? Number(sc).toFixed(2) : '-';
-  };
-
-  const isTwoPhase = competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi' || competition?.is_two_phase;
-  const isGuru = competition?.lomba_type === 'guru_berprestasi' || String(competition?.name || '').toLowerCase().includes('guru');
-  const isMadrasah = competition?.lomba_type === 'madrasah_berprestasi' || String(competition?.name || '').toLowerCase().includes('madrasah');
-
-  const phase2Label = isGuru 
-    ? 'Presentasi & Wawancara' 
-    : isMadrasah 
-    ? 'Visitasi Lapangan' 
-    : 'Presentasi & Wawancara';
-
-  const getParticipantPhaseScores = (p: any) => {
-    let breakdown = p.result?.score_breakdown ?? p.score_breakdown ?? null;
-    if (typeof breakdown === 'string') {
-      try { breakdown = JSON.parse(breakdown); } catch {}
-    }
-
-    const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
-    if (!breakdown || (Array.isArray(breakdown) && breakdown.length === 0)) {
-      let bestBd: any[] = [];
-      for (const js of scores) {
-        let bd = js.score_breakdown;
-        if (typeof bd === 'string') {
-          try { bd = JSON.parse(bd); } catch {}
-        }
-        if (Array.isArray(bd) && bd.length > bestBd.length) {
-          bestBd = bd;
-        }
-      }
-      if (bestBd.length > 0) {
-        breakdown = bestBd;
-      }
-    }
-
-    let p1Sum = 0;
-    let p2Sum = 0;
-    if (Array.isArray(breakdown) && breakdown.length > 0) {
-      breakdown.forEach((item: any, idx: number) => {
-        const weight = Number(item.weight) || 0;
-        const val = Number(item.value) || 0;
-        const compScore = (val * weight) / 100;
-        const name = String(item.component || '').toLowerCase();
-
-        let isP1 = isGuru ? idx < 2 : idx < 3;
-        if (isGuru && (name.includes('aswaja') || name.includes('wawancara') || name.includes('interview') || name.includes('presentasi'))) {
-          isP1 = false;
-        } else if (isMadrasah && (name.includes('presentasi') || name.includes('visitasi') || name.includes('fact checking'))) {
-          isP1 = false;
-        }
-
-        if (isP1) {
-          p1Sum += compScore;
-        } else {
-          p2Sum += compScore;
-        }
-      });
-    }
-
-    const maxP1 = isGuru ? 70 : 85;
-
-    // Fallback for Phase 1
-    if (p1Sum <= 0) {
-      const p1Jury = scores.find((s: any) => s.phase === 1 || (Number(s.score) > 0 && Number(s.score) <= maxP1));
-      if (p1Jury && Number(p1Jury.score) > 0) {
-        p1Sum = Number(p1Jury.score);
-      } else if (p.phase1_score && Number(p.phase1_score) > 0) {
-        p1Sum = Number(p.phase1_score);
-      } else if (p.total_score && Number(p.total_score) <= maxP1 && (!scores.some((s: any) => s.phase === 2))) {
-        p1Sum = Number(p.total_score);
-      }
-    }
-
-    // Fallback for Phase 2
-    if (p2Sum <= 0) {
-      const p2Jury = scores.find((s: any) => s.phase === 2);
-      if (p2Jury) {
-        const p2Raw = Number(p2Jury.score) || 0;
-        if (p2Raw > p1Sum && p1Sum > 0) {
-          p2Sum = p2Raw - p1Sum;
-        } else if (p2Raw > 0 && p2Raw <= (100 - maxP1 + 5)) {
-          p2Sum = p2Raw;
-        }
-      }
-    }
-
-    let finalScore = 0;
-    if (p.result?.score != null && Number(p.result.score) > 0) {
-      finalScore = Number(p.result.score);
-    } else if (p.total_score != null && Number(p.total_score) > 0) {
-      finalScore = Number(p.total_score);
-    } else if (p1Sum > 0 || p2Sum > 0) {
-      finalScore = p1Sum + p2Sum;
-    }
-
-    if (p2Sum <= 0 && finalScore > p1Sum && p1Sum > 0) {
-      p2Sum = finalScore - p1Sum;
-    }
-
-    return {
-      phase1: p1Sum > 0 ? p1Sum.toFixed(2) : '-',
-      phase2: p2Sum > 0 ? p2Sum.toFixed(2) : '-',
-      final: finalScore > 0 ? finalScore.toFixed(2) : (p1Sum > 0 ? p1Sum.toFixed(2) : '-'),
-    };
   };
 
   const eventName = typeof competition?.event === 'object'

@@ -987,6 +987,21 @@ class PublicEventController extends Controller
         $isAnugerah = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi']);
 
         if ($isAnugerah) {
+            if ($competition->lomba_type === 'madrasah_berprestasi') {
+                $secondaryRank1Count = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                    ->where('rank', 1)
+                    ->where(function ($q) {
+                        $q->where('jenjang', '!=', 'MI')
+                          ->where('jenjang', '!=', 'SD')
+                          ->where('jenjang', '!=', 'MI/SD')
+                          ->where('jenjang', 'not like', '%MI%');
+                    })
+                    ->count();
+                if ($secondaryRank1Count > 1) {
+                    \App\Services\CompetitionRankingService::autoRank($competition);
+                }
+            }
+
             $results = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
                 ->with('juryScores')
                 ->where(function ($q) {
@@ -1001,9 +1016,18 @@ class PublicEventController extends Controller
                     'institution'     => $r->school_name,
                     'jenjang'         => $r->jenjang,
                     'score'           => (float) $r->total_score,
+                    'total_score'     => (float) $r->total_score,
+                    'status'          => $r->status,
+                    'score_breakdown' => $r->score_breakdown,
+                    'phase1_score'    => $r->phase1_score,
                     'notes'           => $r->reviewer_notes,
                     'juries_count'    => $r->juryScores->count(),
-                    'all_jury_scores' => $r->juryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values(),
+                    'all_jury_scores' => $r->juryScores->map(fn ($s) => [
+                        'jury_name'       => $s->jury_name,
+                        'score'           => (float) $s->score,
+                        'phase'           => $s->phase,
+                        'score_breakdown' => $s->score_breakdown,
+                    ])->values(),
                 ]);
         } else {
             if (\App\Services\CompetitionRankingService::isSinglePoolCompetition($competition)) {
@@ -1032,15 +1056,22 @@ class PublicEventController extends Controller
                     'institution'     => $r->participant?->institution,
                     'jenjang'         => $r->participant?->jenjang,
                     'score'           => (float) $r->score,
+                    'total_score'     => (float) $r->score,
                     'notes'           => $r->notes,
                     'juries_count'    => $r->participant?->juryScores ? $r->participant->juryScores->count() : 0,
-                    'all_jury_scores' => $r->participant?->juryScores ? $r->participant->juryScores->map(fn ($s) => ['jury_name' => $s->jury_name, 'score' => (float) $s->score])->values() : [],
+                    'all_jury_scores' => $r->participant?->juryScores ? $r->participant->juryScores->map(fn ($s) => [
+                        'jury_name'       => $s->jury_name,
+                        'score'           => (float) $s->score,
+                        'phase'           => $s->phase,
+                        'score_breakdown' => $s->score_breakdown,
+                    ])->values() : [],
                 ]);
         }
 
         return $this->success([
             'event'       => $event->name,
             'competition' => $competition->name,
+            'lomba_type'  => $competition->lomba_type,
             'jenjang'     => $competition->jenjang,
             'results'     => $results,
         ]);

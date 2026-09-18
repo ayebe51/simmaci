@@ -94,6 +94,10 @@ export default function PublicScoreboardPage() {
               }}
               participants={results.map(r => ({
                 name: r.name,
+                group_name: r.group_name,
+                member_count: r.member_count,
+                members: r.members,
+                contact_phone: r.contact_phone,
                 institution: r.institution,
                 jenjang: r.jenjang || data.jenjang,
                 status: r.status,

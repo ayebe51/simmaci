@@ -1050,7 +1050,7 @@ class PublicEventController extends Controller
             }
 
             $results = CompetitionResult::where('competition_id', $competition->id)
-                ->with(['participant:id,name,institution,jenjang,gender_category', 'participant.juryScores'])
+                ->with(['participant:id,name,institution,jenjang,gender_category,group_name,member_count,members,contact_phone', 'participant.juryScores'])
                 ->where(function ($q) {
                     $q->whereNotNull('rank')->orWhere('score', '>', 0);
                 })
@@ -1060,6 +1060,10 @@ class PublicEventController extends Controller
                 ->map(fn ($r) => [
                     'rank'            => $r->rank,
                     'name'            => $r->participant?->name,
+                    'group_name'      => $r->participant?->group_name,
+                    'member_count'    => $r->participant?->member_count,
+                    'members'         => $r->participant?->members,
+                    'contact_phone'   => $r->participant?->contact_phone,
                     'institution'     => $r->participant?->institution,
                     'jenjang'         => $r->participant?->jenjang,
                     'score'           => (float) $r->score,

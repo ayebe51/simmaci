@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, Printer, Trophy, Download, CheckCircle2 } from 'lucide-react';
+import { FileSpreadsheet, Printer, Trophy, Download, CheckCircle2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CompetitionExportModalProps {
@@ -524,6 +524,36 @@ export default function CompetitionExportModal({
     return sc != null && !isNaN(Number(sc)) ? Number(sc).toFixed(2) : '-';
   };
 
+  const renderParticipantNameCell = (p: any) => {
+    let members: any[] = [];
+    const rawMembers = p.members;
+    if (Array.isArray(rawMembers)) {
+      members = rawMembers;
+    } else if (typeof rawMembers === 'string' && rawMembers.trim() !== '') {
+      try {
+        const parsed = JSON.parse(rawMembers);
+        if (Array.isArray(parsed)) members = parsed;
+      } catch {}
+    }
+
+    const reguTitle = p.group_name || p.name || p.applicant_name || '-';
+
+    return (
+      <div className="space-y-0.5">
+        <span className="font-bold text-slate-950">{reguTitle}</span>
+        {p.group_name && p.name && p.group_name !== p.name && (
+          <span className="block text-[10px] text-slate-500 font-normal">Pendaftar: {p.name}</span>
+        )}
+        {members.length > 0 && (
+          <div className="text-[10px] text-slate-600 font-normal border-t border-slate-200/90 pt-0.5 mt-0.5 leading-tight">
+            <span className="font-semibold text-slate-700">Anggota ({members.length}): </span>
+            {members.map((m: any) => typeof m === 'object' && m ? m.name : m).filter(Boolean).join(', ')}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ── 1. Export Excel (.xlsx) ────────────────────────────────────────────────
   const handleExportExcel = () => {
     if (displayedParticipants.length === 0) {
@@ -650,6 +680,133 @@ export default function CompetitionExportModal({
     }
   };
 
+  // ── 2. Export Khusus Daftar Nama Peserta / Anggota Regu (.xlsx) ───────────
+  const handleExportParticipantNames = () => {
+    if (displayedParticipants.length === 0) {
+      toast.error('Tidak ada data peserta untuk diexport.');
+      return;
+    }
+
+    try {
+      const wb = XLSX.utils.book_new();
+
+      const scopeTitle = (viewScope === 'winners' && hasRankedWinners)
+        ? 'DAFTAR NAMA PESERTA / ANGGOTA REGU JUARA (JUARA 1, 2, 3)'
+        : 'DAFTAR NAMA PESERTA / ANGGOTA REGU LOMBA';
+
+      const headers = [
+        [scopeTitle],
+        [`Event: ${eventName}`],
+        [`Cabang Lomba: ${compName} | Jenjang: ${jenjangStr}`],
+        [`Tanggal Unduh: ${currentDateFormatted}`],
+        [], // empty row
+      ];
+
+      const dataRows: Record<string, any>[] = [];
+      let runningNo = 1;
+
+      const processParticipantNames = (p: any, jenjangName: string) => {
+        let members: any[] = [];
+        const rawMembers = p.members;
+        if (Array.isArray(rawMembers)) {
+          members = rawMembers;
+        } else if (typeof rawMembers === 'string' && rawMembers.trim() !== '') {
+          try {
+            const parsed = JSON.parse(rawMembers);
+            if (Array.isArray(parsed)) members = parsed;
+          } catch {}
+        }
+
+        const rankTitle = getRankTitle(p.result?.rank, false);
+        const finalScore = getParticipantFinalScore(p);
+        const reguName = p.group_name || p.name || '-';
+        const institution = p.institution || p.school_name || '-';
+        const contactPerson = p.name || p.applicant_name || '-';
+        const contactPhone = p.contact_phone || '-';
+
+        if (members.length > 0) {
+          // Buat baris terpisah untuk setiap anggota siswa di dalam regu
+          members.forEach((m: any) => {
+            const mName = typeof m === 'object' && m !== null ? (m.name || '-') : String(m);
+            const mNim = typeof m === 'object' && m !== null ? (m.nim || m.class || '-') : '-';
+            const mRole = typeof m === 'object' && m !== null ? (m.role || '-') : '-';
+
+            dataRows.push({
+              'No': runningNo++,
+              'Peringkat / Juara': rankTitle,
+              'Nama Regu / Grup': reguName,
+              'Nama Peserta / Anggota Siswa': mName,
+              'NIM / Kelas': mNim,
+              'Peran di Regu': mRole,
+              'Asal Lembaga / Madrasah': institution,
+              'Jenjang': jenjangName,
+              'Nilai Akhir': finalScore,
+              'Kontak Pendaftar': contactPerson,
+              'No. HP': contactPhone,
+            });
+          });
+        } else {
+          // Lomba perorangan atau grup tanpa rincian anggota terpisah
+          dataRows.push({
+            'No': runningNo++,
+            'Peringkat / Juara': rankTitle,
+            'Nama Regu / Grup': p.group_name ? p.group_name : '-',
+            'Nama Peserta / Anggota Siswa': p.name || p.applicant_name || '-',
+            'NIM / Kelas': p.nim || '-',
+            'Peran di Regu': '-',
+            'Asal Lembaga / Madrasah': institution,
+            'Jenjang': jenjangName,
+            'Nilai Akhir': finalScore,
+            'Kontak Pendaftar': contactPerson,
+            'No. HP': contactPhone,
+          });
+        }
+      };
+
+      if (isMultiJenjang) {
+        jenjangGroups.forEach((group) => {
+          group.items.forEach((p) => {
+            processParticipantNames(p, group.jenjang);
+          });
+        });
+      } else {
+        displayedParticipants.forEach((p) => {
+          processParticipantNames(p, p.jenjang || compName);
+        });
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(headers);
+      XLSX.utils.sheet_add_json(ws, dataRows, { origin: headers.length });
+
+      ws['!cols'] = [
+        { wch: 6 },  // No
+        { wch: 18 }, // Juara
+        { wch: 28 }, // Nama Regu
+        { wch: 32 }, // Nama Anggota Siswa
+        { wch: 16 }, // NIM / Kelas
+        { wch: 16 }, // Peran
+        { wch: 34 }, // Lembaga
+        { wch: 14 }, // Jenjang
+        { wch: 14 }, // Nilai
+        { wch: 22 }, // Kontak
+        { wch: 16 }, // HP
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Daftar Nama Peserta');
+
+      const sanitizedName = compName.replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Daftar_Nama_Peserta_${(viewScope === 'winners' && hasRankedWinners) ? 'Juara_1_2_3_' : 'Semua_'}${sanitizedName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      XLSX.writeFile(wb, filename);
+      toast.success(`Daftar nama peserta ${(viewScope === 'winners' && hasRankedWinners) ? 'regu juara ' : ''}berhasil diunduh ke Excel (.xlsx)`, {
+        icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />,
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal mengekspor daftar nama peserta.');
+    }
+  };
+
   // ── 2. Print Berita Acara PDF via Isolated Iframe ──────────────────────────
   const handlePrint = () => {
     try {
@@ -703,11 +860,30 @@ export default function CompetitionExportModal({
           `;
         }
 
+        let members: any[] = [];
+        const rawMembers = p.members;
+        if (Array.isArray(rawMembers)) {
+          members = rawMembers;
+        } else if (typeof rawMembers === 'string' && rawMembers.trim() !== '') {
+          try {
+            const parsed = JSON.parse(rawMembers);
+            if (Array.isArray(parsed)) members = parsed;
+          } catch {}
+        }
+
+        const memberNamesStr = members.length > 0
+          ? `<div style="font-size:7pt; color:#475569; font-weight:normal; margin-top:2px; line-height:1.3;"><b>Anggota:</b> ${members.map((m: any) => typeof m === 'object' && m ? m.name : m).filter(Boolean).join(', ')}</div>`
+          : '';
+
+        const nameCellHtml = p.group_name && p.name && p.group_name !== p.name
+          ? `<div style="font-weight:bold; color:#0f172a;">${p.group_name}</div><div style="font-size:7pt; color:#64748b;">Pendaftar: ${p.name}</div>${memberNamesStr}`
+          : `<div style="font-weight:bold; color:#0f172a;">${p.group_name || p.name || p.applicant_name || '-'}</div>${memberNamesStr}`;
+
         return `
           <tr class="${isWinner ? 'row-winner' : ''}">
             <td class="col-no">${idx + 1}</td>
             <td class="col-rank ${isWinner ? 'rank-highlight' : ''}">${rankTitle}</td>
-            <td class="col-name">${p.name || p.applicant_name || '-'}</td>
+            <td class="col-name">${nameCellHtml}</td>
             <td class="col-inst">${p.institution || p.school_name || '-'}</td>
             ${middleColsHtml}
           </tr>
@@ -1102,11 +1278,21 @@ export default function CompetitionExportModal({
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleExportParticipantNames}
+                className="gap-1.5 text-xs font-bold border-blue-300 text-blue-700 hover:bg-blue-50"
+                title="Unduh file Excel khusus daftar nama-nama peserta / anggota regu"
+              >
+                <Users className="w-4 h-4 text-blue-600" />
+                Unduh Nama Peserta (.xlsx)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleExportExcel}
                 className="gap-1.5 text-xs font-bold border-emerald-300 text-emerald-700 hover:bg-emerald-50"
               >
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                Unduh Excel (.xlsx)
+                Unduh Berita Acara (.xlsx)
               </Button>
               <Button
                 size="sm"
@@ -1255,7 +1441,7 @@ export default function CompetitionExportModal({
                                 )}
                               </td>
                               <td className="border border-slate-700 p-1.5 font-semibold text-slate-900">
-                                {p.name || p.applicant_name || '-'}
+                                {renderParticipantNameCell(p)}
                               </td>
                               <td className="border border-slate-700 p-1.5 text-slate-700">
                                 {p.institution || p.school_name || '-'}
@@ -1317,7 +1503,7 @@ export default function CompetitionExportModal({
                             )}
                           </td>
                           <td className="border border-slate-700 p-1.5 font-semibold text-slate-900">
-                            {p.name || p.applicant_name || '-'}
+                            {renderParticipantNameCell(p)}
                           </td>
                           <td className="border border-slate-700 p-1.5 text-slate-700">
                             {p.institution || p.school_name || '-'}

@@ -27,31 +27,133 @@ export default function CompetitionExportModal({
   const [isOpen, setIsOpen] = useState(false);
   const [viewScope, setViewScope] = useState<'winners' | 'all'>('winners');
 
+  // Clean jury name helper
+  const cleanJuryName = (name: string): string => {
+    if (!name) return '';
+    let cleaned = name.trim();
+    // Strip accidental brackets or characters like [LMuji -> Muji
+    cleaned = cleaned.replace(/^\[+[A-Za-z]?\s*/, '');
+    cleaned = cleaned.replace(/[\[\]]/g, '');
+    // Ensure space after commas in academic titles (e.g. S.Pd.I,M.Pd -> S.Pd.I, M.Pd)
+    cleaned = cleaned.replace(/,([^\s])/g, ', $1');
+    return cleaned.trim();
+  };
+
+  // Jury rows balancer for clean, symmetrical signature grid
+  const getJuryRows = (juries: { label: string; name: string }[]) => {
+    const count = juries.length;
+    if (count <= 3) {
+      return [juries];
+    }
+    if (count === 4) {
+      return [juries.slice(0, 2), juries.slice(2, 4)];
+    }
+    if (count === 5) {
+      return [juries.slice(0, 3), juries.slice(3, 5)];
+    }
+    if (count === 6) {
+      return [juries.slice(0, 3), juries.slice(3, 6)];
+    }
+    const rows: { label: string; name: string }[][] = [];
+    for (let i = 0; i < count; i += 3) {
+      rows.push(juries.slice(i, i + 3));
+    }
+    return rows;
+  };
+
+  // Helper to normalize educational level (jenjang)
+  const normalizeJenjang = (rawJenjang?: string, institution?: string): string => {
+    const j = String(rawJenjang || '').trim().toUpperCase();
+    if (j.includes('MI') && (j.includes('MTS') || j.includes('MA'))) {
+      const inst = String(institution || '').trim().toUpperCase();
+      if (/\bMI\b|\bSD\b|IBTIDAIYAH/i.test(inst)) return 'MI / SD';
+      if (/\bMTS\b|\bSMP\b|TSANAWIYAH/i.test(inst)) return 'MTs / SMP';
+      if (/\bMA\b|\bSMA\b|\bSMK\b|ALIYAH/i.test(inst)) return 'MA / SMA / SMK';
+      return 'Umum';
+    }
+
+    if (j === 'MI' || j === 'SD' || j === 'MI/SD' || j.includes('MI') || j.includes('SD')) {
+      return 'MI / SD';
+    }
+    if (j === 'MTS' || j === 'SMP' || j === 'MTS/SMP' || j.includes('MTS') || j.includes('SMP')) {
+      return 'MTs / SMP';
+    }
+    if (j === 'MA' || j === 'SMA' || j === 'SMK' || j === 'MA/SMA/SMK' || j.includes('MA') || j.includes('SMA') || j.includes('SMK')) {
+      return 'MA / SMA / SMK';
+    }
+
+    const inst = String(institution || '').trim().toUpperCase();
+    if (/\bMI\b|\bSD\b|IBTIDAIYAH/i.test(inst)) return 'MI / SD';
+    if (/\bMTS\b|\bSMP\b|TSANAWIYAH/i.test(inst)) return 'MTs / SMP';
+    if (/\bMA\b|\bSMA\b|\bSMK\b|ALIYAH/i.test(inst)) return 'MA / SMA / SMK';
+
+    return rawJenjang?.trim() || 'Umum';
+  };
+
+  const getJenjangOrder = (jenjang: string): number => {
+    if (jenjang === 'MI / SD') return 1;
+    if (jenjang === 'MTs / SMP') return 2;
+    if (jenjang === 'MA / SMA / SMK') return 3;
+    return 4;
+  };
+
   // Filter participants by jenjang if selected
-  const filtered = participants.filter(
-    (p) => filterJenjang === 'all' || p.jenjang === filterJenjang
-  );
+  const filtered = participants.filter((p) => {
+    if (!filterJenjang || filterJenjang === 'all') return true;
+    if (p.jenjang === filterJenjang) return true;
+    const pNorm = normalizeJenjang(p.jenjang, p.institution || p.school_name);
+    const fNorm = normalizeJenjang(filterJenjang);
+    return pNorm === fNorm;
+  });
 
   // Check if there are ranked winners (Juara 1, 2, 3)
   const hasRankedWinners = filtered.some(
     (p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3
   );
 
-  // Sort participants by rank (1, 2, 3) then by score descending
-  const sorted = [...filtered].sort((a, b) => {
-    const rankA = a.result?.rank ?? 9999;
-    const rankB = b.result?.rank ?? 9999;
-    if (rankA !== rankB) return rankA - rankB;
-
-    const scoreA = Number(a.result?.score ?? a.total_score ?? 0);
-    const scoreB = Number(b.result?.score ?? b.total_score ?? 0);
-    return scoreB - scoreA;
+  // Group participants by normalized jenjang
+  const jenjangMap = new Map<string, any[]>();
+  filtered.forEach((p) => {
+    const norm = normalizeJenjang(p.jenjang, p.institution || p.school_name);
+    if (!jenjangMap.has(norm)) {
+      jenjangMap.set(norm, []);
+    }
+    jenjangMap.get(norm)!.push(p);
   });
 
-  // Display only Juara 1, 2, 3 when viewScope is 'winners' and winners exist, otherwise show all
-  const displayedParticipants = (viewScope === 'winners' && hasRankedWinners)
-    ? sorted.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
-    : sorted;
+  // Sort group keys in natural order: MI/SD (1) -> MTs/SMP (2) -> MA/SMA/SMK (3)
+  const sortedGroupKeys = Array.from(jenjangMap.keys()).sort((a, b) => {
+    return getJenjangOrder(a) - getJenjangOrder(b);
+  });
+
+  // Build sorted groups and their items
+  const jenjangGroups = sortedGroupKeys.map((jKey) => {
+    const list = jenjangMap.get(jKey) || [];
+    const sortedList = [...list].sort((a, b) => {
+      const rankA = a.result?.rank ?? 9999;
+      const rankB = b.result?.rank ?? 9999;
+      if (rankA !== rankB) return rankA - rankB;
+
+      const scoreA = Number(a.result?.score ?? a.total_score ?? 0);
+      const scoreB = Number(b.result?.score ?? b.total_score ?? 0);
+      return scoreB - scoreA;
+    });
+
+    const displayedList = (viewScope === 'winners' && hasRankedWinners)
+      ? sortedList.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)
+      : sortedList;
+
+    return {
+      jenjang: jKey,
+      items: displayedList,
+    };
+  }).filter((g) => g.items.length > 0);
+
+  // Flattened displayed participants
+  const displayedParticipants = jenjangGroups.flatMap((g) => g.items);
+
+  // Is multi-jenjang? Show headers only if there is more than 1 distinct jenjang group
+  const isMultiJenjang = jenjangGroups.length > 1;
 
   // Helper to identify organization or system account names that shouldn't be displayed as individual jury persons
   const isOrgOrSystemName = (name: string) => {
@@ -69,23 +171,22 @@ export default function CompetitionExportModal({
     );
   };
 
-  // Extract all distinct legitimate jury names across participants (excluding system/org accounts)
+  // Extract all distinct legitimate jury names across participants (clean names, excluding system/org accounts)
   const distinctJuryNames = Array.from(
     new Set(
       participants.flatMap((p) => {
         const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
-        return scores.map((js: any) => js.jury_name || js.name).filter(Boolean);
+        return scores
+          .map((js: any) => cleanJuryName(js.jury_name || js.name))
+          .filter(Boolean);
       })
     )
   ).filter((name) => !isOrgOrSystemName(name));
 
   // Only show individual jury score columns if there are 2 or more distinct juries.
-  // If only 1 jury or 0 juries exist, only show Nilai Akhir to avoid redundant columns.
   const showJuryColumns = distinctJuryNames.length > 1;
 
   // Build signatures list:
-  // If distinct real juries exist, list them
-  // If no distinct real juries exist, provide standard blank spots: Dewan Juri 1, 2, 3 with blank lines for manual signing
   const displayJuries = distinctJuryNames.length === 0
     ? [
         { label: 'Dewan Juri 1', name: '' },
@@ -103,6 +204,8 @@ export default function CompetitionExportModal({
         name: name.startsWith('Dewan') || name.startsWith('Juri') ? '' : name,
       }));
 
+  const juryRows = getJuryRows(displayJuries);
+
   const getRankTitle = (rank?: number, withEmoji = false) => {
     if (!rank || rank > 3) return '-';
     if (rank === 1) return withEmoji ? 'Juara I 🥇' : 'Juara I';
@@ -113,7 +216,10 @@ export default function CompetitionExportModal({
 
   const getParticipantJuryScore = (p: any, juryName: string) => {
     const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
-    const found = scores.find((s: any) => (s.jury_name || s.name) === juryName);
+    const found = scores.find((s: any) => {
+      const raw = s.jury_name || s.name;
+      return raw === juryName || cleanJuryName(raw) === juryName;
+    });
     if (!found) return '-';
     const sc = found.score ?? found.total_score;
     return sc != null && !isNaN(Number(sc)) ? Number(sc).toFixed(2) : '-';
@@ -279,13 +385,15 @@ export default function CompetitionExportModal({
       ];
 
       // Build data rows (hanya nilai, tanpa catatan, hanya juara 1, 2, 3)
-      const dataRows = displayedParticipants.map((p, idx) => {
+      const dataRows: Record<string, any>[] = [];
+
+      const buildParticipantRow = (p: any, idx: number, jenjangName: string) => {
         const rowData: Record<string, any> = {
           'No': idx + 1,
           'Peringkat / Juara': getRankTitle(p.result?.rank, false),
           'Nama Peserta / Pendaftar': p.name || p.applicant_name || '-',
           'Asal Lembaga / Madrasah': p.institution || p.school_name || '-',
-          'Jenjang': p.jenjang || compName,
+          'Jenjang': jenjangName,
         };
 
         if (isTwoPhase) {
@@ -294,7 +402,6 @@ export default function CompetitionExportModal({
           rowData['Nilai Fase 2 (Wawancara & Visitasi)'] = pScores.phase2;
           rowData['Nilai Akhir (Akumulasi)'] = pScores.final;
         } else {
-          // If multiple distinct jury scores exist, add each jury's score
           if (showJuryColumns) {
             distinctJuryNames.forEach((jName) => {
               rowData[`Nilai (${jName})`] = getParticipantJuryScore(p, jName);
@@ -304,7 +411,40 @@ export default function CompetitionExportModal({
         }
 
         return rowData;
-      });
+      };
+
+      if (isMultiJenjang) {
+        jenjangGroups.forEach((group) => {
+          const headerRow: Record<string, any> = {
+            'No': `=== JENJANG: ${group.jenjang} ===`,
+            'Peringkat / Juara': '',
+            'Nama Peserta / Pendaftar': '',
+            'Asal Lembaga / Madrasah': '',
+            'Jenjang': group.jenjang,
+          };
+          if (isTwoPhase) {
+            headerRow['Nilai Fase 1 (Berkas / Portofolio)'] = '';
+            headerRow['Nilai Fase 2 (Wawancara & Visitasi)'] = '';
+            headerRow['Nilai Akhir (Akumulasi)'] = '';
+          } else {
+            if (showJuryColumns) {
+              distinctJuryNames.forEach((jName) => {
+                headerRow[`Nilai (${jName})`] = '';
+              });
+            }
+            headerRow['Nilai Akhir'] = '';
+          }
+          dataRows.push(headerRow);
+
+          group.items.forEach((p, idx) => {
+            dataRows.push(buildParticipantRow(p, idx, group.jenjang));
+          });
+        });
+      } else {
+        displayedParticipants.forEach((p, idx) => {
+          dataRows.push(buildParticipantRow(p, idx, p.jenjang || compName));
+        });
+      }
 
       const ws = XLSX.utils.aoa_to_sheet(headers);
       XLSX.utils.sheet_add_json(ws, dataRows, { origin: headers.length });
@@ -376,80 +516,70 @@ export default function CompetitionExportModal({
 
       const colspanTotal = 4 + (isTwoPhase ? 2 : (showJuryColumns ? distinctJuryNames.length : 0)) + 1;
 
-      // Generate table rows (scores only, no notes column, juara only 1, 2, 3)
+      // Helper to render participant row in HTML
+      const renderParticipantRowHtml = (p: any, idx: number) => {
+        const rankTitle = getRankTitle(p.result?.rank, false);
+        const isWinner = p.result?.rank && p.result.rank <= 3;
+
+        let middleColsHtml = '';
+        if (isTwoPhase) {
+          const pScores = getParticipantPhaseScores(p);
+          middleColsHtml = `
+            <td class="col-phase-score">${pScores.phase1}</td>
+            <td class="col-phase-score">${pScores.phase2}</td>
+            <td class="col-final-score">${pScores.final}</td>
+          `;
+        } else {
+          const juryCellsHtml = showJuryColumns
+            ? distinctJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
+            : '';
+          const finalScore = getParticipantFinalScore(p);
+          middleColsHtml = `
+            ${juryCellsHtml}
+            <td class="col-final-score">${finalScore}</td>
+          `;
+        }
+
+        return `
+          <tr class="${isWinner ? 'row-winner' : ''}">
+            <td class="col-no">${idx + 1}</td>
+            <td class="col-rank ${isWinner ? 'rank-highlight' : ''}">${rankTitle}</td>
+            <td class="col-name">${p.name || p.applicant_name || '-'}</td>
+            <td class="col-inst">${p.institution || p.school_name || '-'}</td>
+            ${middleColsHtml}
+          </tr>
+        `;
+      };
+
+      // Generate table rows grouped by jenjang
       const tableRowsHtml = displayedParticipants.length === 0
         ? `<tr><td colspan="${colspanTotal}" style="text-align:center; padding:16px; color:#64748b;">Belum ada data nilai peserta.</td></tr>`
-        : displayedParticipants.map((p, idx) => {
-            const rankTitle = getRankTitle(p.result?.rank, false);
-            const isWinner = p.result?.rank && p.result.rank <= 3;
-
-            let middleColsHtml = '';
-            if (isTwoPhase) {
-              const pScores = getParticipantPhaseScores(p);
-              middleColsHtml = `
-                <td class="col-phase-score">${pScores.phase1}</td>
-                <td class="col-phase-score">${pScores.phase2}</td>
-                <td class="col-final-score">${pScores.final}</td>
-              `;
-            } else {
-              const juryCellsHtml = showJuryColumns
-                ? distinctJuryNames.map((jName) => `<td class="col-jury-score">${getParticipantJuryScore(p, jName)}</td>`).join('')
-                : '';
-              const finalScore = getParticipantFinalScore(p);
-              middleColsHtml = `
-                ${juryCellsHtml}
-                <td class="col-final-score">${finalScore}</td>
-              `;
-            }
-
-            return `
-              <tr class="${isWinner ? 'row-winner' : ''}">
-                <td class="col-no">${idx + 1}</td>
-                <td class="col-rank ${isWinner ? 'rank-highlight' : ''}">${rankTitle}</td>
-                <td class="col-name">${p.name || p.applicant_name || '-'}</td>
-                <td class="col-inst">${p.institution || p.school_name || '-'}</td>
-                ${middleColsHtml}
+        : isMultiJenjang
+        ? jenjangGroups.map((group) => {
+            const groupHeader = `
+              <tr class="row-jenjang-header">
+                <td colspan="${colspanTotal}" style="background-color: #e2e8f0 !important; font-weight: 800; text-align: left; padding: 6px 10px; text-transform: uppercase; font-size: 8.5pt; border: 1px solid #1e293b; color: #0f172a;">
+                  <span style="background-color: #0f172a; color: #ffffff; padding: 2px 6px; border-radius: 3px; font-size: 7.5pt; margin-right: 6px; font-weight: bold;">JENJANG</span> ${group.jenjang}
+                </td>
               </tr>
             `;
-          }).join('');
+            const groupRows = group.items.map((p, idx) => renderParticipantRowHtml(p, idx)).join('');
+            return groupHeader + groupRows;
+          }).join('')
+        : displayedParticipants.map((p, idx) => renderParticipantRowHtml(p, idx)).join('');
 
-      // Generate Signatures Table
-      const juryCount = displayJuries.length;
-      let signatureRowsHtml = '';
-
-      if (juryCount <= 3) {
-        const cellWidth = Math.floor(100 / Math.max(juryCount, 1));
-        const cells = displayJuries.map((j) => `
-          <td style="width: ${cellWidth}%; text-align: center; vertical-align: top; padding: 0 12px;">
+      // Generate Signatures Table with balanced rows
+      const signatureRowsHtml = juryRows.map((row, rIdx) => {
+        const cellWidth = Math.floor(100 / Math.max(row.length, 1));
+        const cells = row.map((j) => `
+          <td style="width: ${cellWidth}%; text-align: center; vertical-align: top; padding: ${rIdx > 0 ? '22px' : '0'} 10px 0 10px;">
             <div class="jury-label">${j.label}</div>
             <div class="jury-space"></div>
             <div class="jury-name-line">${j.name ? `( ${j.name} )` : '(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)'}</div>
           </td>
         `).join('');
-        signatureRowsHtml = `<tr>${cells}</tr>`;
-      } else {
-        // Chunk into rows of 3 and remainder
-        const row1 = displayJuries.slice(0, 3);
-        const row2 = displayJuries.slice(3);
-
-        const cells1 = row1.map((j) => `
-          <td style="width: 33.33%; text-align: center; vertical-align: top; padding: 0 12px;">
-            <div class="jury-label">${j.label}</div>
-            <div class="jury-space"></div>
-            <div class="jury-name-line">${j.name ? `( ${j.name} )` : '(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)'}</div>
-          </td>
-        `).join('');
-
-        const cells2 = row2.map((j) => `
-          <td style="width: ${Math.floor(100 / row2.length)}%; text-align: center; vertical-align: top; padding: 16px 12px 0 12px;">
-            <div class="jury-label">${j.label}</div>
-            <div class="jury-space"></div>
-            <div class="jury-name-line">${j.name ? `( ${j.name} )` : '(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)'}</div>
-          </td>
-        `).join('');
-
-        signatureRowsHtml = `<tr>${cells1}</tr><tr>${cells2}</tr>`;
-      }
+        return `<tr>${cells}</tr>`;
+      }).join('');
 
       doc.open();
       doc.write(`
@@ -636,7 +766,7 @@ export default function CompetitionExportModal({
               text-transform: uppercase;
               letter-spacing: 0.05em;
               color: #0f172a;
-              margin-bottom: 14px;
+              margin-bottom: 16px;
             }
             table.signatures-table {
               width: 100%;
@@ -647,20 +777,22 @@ export default function CompetitionExportModal({
               border: none;
             }
             .jury-label {
-              font-size: 9pt;
+              font-size: 8.5pt;
               font-weight: bold;
               color: #334155;
             }
             .jury-space {
-              height: 60px;
+              height: 52px;
             }
             .jury-name-line {
-              font-size: 9pt;
+              font-size: 8.5pt;
               font-weight: bold;
               color: #0f172a;
               border-bottom: 1.5px solid #0f172a;
               display: inline-block;
-              min-width: 150px;
+              min-width: 140px;
+              max-width: 230px;
+              white-space: nowrap;
               padding-bottom: 2px;
             }
           </style>
@@ -919,6 +1051,81 @@ export default function CompetitionExportModal({
                         Belum ada data nilai peserta.
                       </td>
                     </tr>
+                  ) : isMultiJenjang ? (
+                    jenjangGroups.map((group, gIdx) => (
+                      <React.Fragment key={gIdx}>
+                        <tr className="bg-slate-200/90 font-bold border border-slate-700">
+                          <td
+                            colSpan={4 + (isTwoPhase ? 2 : (showJuryColumns ? distinctJuryNames.length : 0)) + 1}
+                            className="border border-slate-700 py-1.5 px-3 text-left font-black text-slate-800 tracking-wider text-xs uppercase bg-slate-200/80"
+                          >
+                            <span className="inline-block py-0.5 px-2 bg-slate-800 text-white rounded text-[10px] mr-2 font-bold tracking-normal">
+                              JENJANG
+                            </span>
+                            {group.jenjang}
+                          </td>
+                        </tr>
+                        {group.items.map((p, idx) => {
+                          const finalScore = getParticipantFinalScore(p);
+                          const isWinner = p.result?.rank && p.result.rank <= 3;
+                          const phaseScores = isTwoPhase ? getParticipantPhaseScores(p) : null;
+
+                          return (
+                            <tr
+                              key={idx}
+                              className={
+                                isWinner
+                                  ? 'bg-amber-50/40 font-medium'
+                                  : idx % 2 === 1
+                                  ? 'bg-slate-50/60'
+                                  : ''
+                              }
+                            >
+                              <td className="border border-slate-700 p-1.5 text-center font-semibold">{idx + 1}</td>
+                              <td className="border border-slate-700 p-1.5 text-center font-bold">
+                                {isWinner ? (
+                                  <span className="text-slate-950">
+                                    {getRankTitle(p.result?.rank, false)}
+                                  </span>
+                                ) : (
+                                  getRankTitle(p.result?.rank, false)
+                                )}
+                              </td>
+                              <td className="border border-slate-700 p-1.5 font-semibold text-slate-900">
+                                {p.name || p.applicant_name || '-'}
+                              </td>
+                              <td className="border border-slate-700 p-1.5 text-slate-700">
+                                {p.institution || p.school_name || '-'}
+                              </td>
+                              {isTwoPhase && phaseScores ? (
+                                <>
+                                  <td className="border border-slate-700 p-1.5 text-center font-mono">
+                                    {phaseScores.phase1}
+                                  </td>
+                                  <td className="border border-slate-700 p-1.5 text-center font-mono">
+                                    {phaseScores.phase2}
+                                  </td>
+                                  <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
+                                    {phaseScores.final}
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  {showJuryColumns && distinctJuryNames.map((jName, jIdx) => (
+                                    <td key={jIdx} className="border border-slate-700 p-1.5 text-center font-mono">
+                                      {getParticipantJuryScore(p, jName)}
+                                    </td>
+                                  ))}
+                                  <td className="border border-slate-700 p-1.5 text-center font-black font-mono text-slate-950 bg-slate-100">
+                                    {finalScore}
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </React.Fragment>
+                    ))
                   ) : (
                     displayedParticipants.map((p, idx) => {
                       const finalScore = getParticipantFinalScore(p);
@@ -936,7 +1143,7 @@ export default function CompetitionExportModal({
                               : ''
                           }
                         >
-                          <td className="border border-slate-700 p-1.5 text-center">{idx + 1}</td>
+                          <td className="border border-slate-700 p-1.5 text-center font-semibold">{idx + 1}</td>
                           <td className="border border-slate-700 p-1.5 text-center font-bold">
                             {isWinner ? (
                               <span className="text-slate-950">
@@ -985,37 +1192,40 @@ export default function CompetitionExportModal({
             </div>
 
             {/* ── TANDA TANGAN DEWAN JURI ── */}
-            <div className="pt-2 text-xs break-inside-avoid print:break-inside-avoid">
-              <div className="flex justify-end mb-3">
-                <p className="text-slate-900 font-semibold">
+            <div className="pt-4 text-xs break-inside-avoid print:break-inside-avoid">
+              <div className="flex justify-end mb-4">
+                <p className="text-slate-900 font-semibold text-xs">
                   Cilacap, {currentDateFormatted}
                 </p>
               </div>
 
               {/* Baris Dewan Juri */}
               <div>
-                <p className="font-bold text-center mb-4 uppercase tracking-wider text-slate-900">
+                <p className="font-bold text-center mb-6 uppercase tracking-wider text-slate-900 text-xs">
                   DEWAN JURI PENILAI:
                 </p>
-                <div
-                  className={`grid ${
-                    displayJuries.length === 1
-                      ? 'grid-cols-1 max-w-xs mx-auto'
-                      : displayJuries.length === 2
-                      ? 'grid-cols-2 max-w-lg mx-auto'
-                      : displayJuries.length <= 3
-                      ? 'grid-cols-3'
-                      : 'grid-cols-4'
-                  } gap-6 text-center`}
-                >
-                  {displayJuries.map((j, idx) => (
-                    <div key={idx} className="flex flex-col items-center">
-                      <p className="font-bold text-slate-700 text-[11px] mb-14">
-                        {j.label}
-                      </p>
-                      <p className="font-bold border-b-2 border-slate-900 pb-0.5 px-3 min-w-[140px] text-slate-900 text-center inline-block">
-                        {j.name ? `( ${j.name} )` : '(\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0)'}
-                      </p>
+
+                <div className="space-y-8">
+                  {juryRows.map((row, rIdx) => (
+                    <div
+                      key={rIdx}
+                      className="flex justify-center items-start gap-8 sm:gap-12"
+                    >
+                      {row.map((j, jIdx) => (
+                        <div
+                          key={jIdx}
+                          className="flex-1 max-w-[220px] min-w-[150px] flex flex-col items-center text-center"
+                        >
+                          <p className="font-bold text-slate-700 text-[11px] sm:text-xs mb-14">
+                            {j.label}
+                          </p>
+                          <div className="w-full text-center">
+                            <span className="font-bold border-b border-slate-900 pb-0.5 px-2 text-slate-900 text-[10.5px] sm:text-xs inline-block whitespace-nowrap">
+                              {j.name ? `( ${j.name} )` : '(\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0)'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>

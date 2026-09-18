@@ -94,7 +94,7 @@ export default function PublicScoreboardPage() {
               participants={results.map(r => ({
                 name: r.name,
                 institution: r.institution,
-                jenjang: data.jenjang,
+                jenjang: r.jenjang || data.jenjang,
                 jury_scores: r.all_jury_scores ?? [],
                 result: {
                   rank: r.rank,

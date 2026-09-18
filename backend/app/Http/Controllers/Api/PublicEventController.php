@@ -998,6 +998,7 @@ class PublicEventController extends Controller
                     'rank'            => $r->rank,
                     'name'            => $r->applicant_name,
                     'institution'     => $r->school_name,
+                    'jenjang'         => $r->jenjang,
                     'score'           => (float) $r->total_score,
                     'notes'           => $r->reviewer_notes,
                     'juries_count'    => $r->juryScores->count(),
@@ -1005,7 +1006,7 @@ class PublicEventController extends Controller
                 ]);
         } else {
             $results = CompetitionResult::where('competition_id', $competition->id)
-                ->with(['participant:id,name,institution,gender_category', 'participant.juryScores'])
+                ->with(['participant:id,name,institution,jenjang,gender_category', 'participant.juryScores'])
                 ->where(function ($q) {
                     $q->whereNotNull('rank')->orWhere('score', '>', 0);
                 })
@@ -1016,6 +1017,7 @@ class PublicEventController extends Controller
                     'rank'            => $r->rank,
                     'name'            => $r->participant?->name,
                     'institution'     => $r->participant?->institution,
+                    'jenjang'         => $r->participant?->jenjang,
                     'score'           => (float) $r->score,
                     'notes'           => $r->notes,
                     'juries_count'    => $r->participant?->juryScores ? $r->participant->juryScores->count() : 0,

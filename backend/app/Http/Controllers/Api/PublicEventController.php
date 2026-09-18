@@ -740,7 +740,8 @@ class PublicEventController extends Controller
 
                 // If explicitly phase 1 or only submitting phase 1 components, reject!
                 if ($submittedPhase === 1 || ($hasPhase1Components && !$hasPhase2Components)) {
-                    return $this->error('Penilaian seleksi berkas (Fase 1) telah selesai dan dikunci permanen karena tahapan lomba telah memasuki Fase 2 (Wawancara & Visitasi). Nilai Fase 1 tidak dapat diubah lagi.', null, 403);
+                    $f2Label = $competition->lomba_type === 'guru_berprestasi' ? 'Presentasi & Wawancara' : ($competition->lomba_type === 'madrasah_berprestasi' ? 'Visitasi Lapangan' : 'Presentasi & Wawancara / Visitasi');
+                    return $this->error("Penilaian seleksi berkas (Fase 1) telah selesai dan dikunci permanen karena tahapan lomba telah memasuki Fase 2 ({$f2Label}). Nilai Fase 1 tidak dapat diubah lagi.", null, 403);
                 }
 
                 // In Phase 2: Discard any Phase 1 components from $newBreakdown so Phase 1 is never altered
@@ -748,7 +749,7 @@ class PublicEventController extends Controller
                     $newBreakdown = array_values(array_filter($newBreakdown, function ($item) use ($competition) {
                         $cName = strtolower($item['component'] ?? '');
                         if ($competition->lomba_type === 'guru_berprestasi') {
-                            return str_contains($cName, 'aswaja') || str_contains($cName, 'wawancara') || str_contains($cName, 'interview');
+                            return str_contains($cName, 'aswaja') || str_contains($cName, 'wawancara') || str_contains($cName, 'interview') || str_contains($cName, 'presentasi');
                         } else {
                             return str_contains($cName, 'presentasi') || str_contains($cName, 'visitasi') || str_contains($cName, 'fact checking');
                         }

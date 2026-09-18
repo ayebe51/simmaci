@@ -207,6 +207,14 @@ export default function JuryScoringPage() {
 
   // Get active criteria based on competition type and phase
   const isTwoPhase = Boolean(competition?.is_two_phase);
+  const isGuru = competition?.lomba_type === 'guru_berprestasi' || String(competition?.name || '').toLowerCase().includes('guru');
+  const isMadrasah = competition?.lomba_type === 'madrasah_berprestasi' || String(competition?.name || '').toLowerCase().includes('madrasah');
+
+  const phase2Label = isGuru 
+    ? 'Presentasi & Wawancara' 
+    : isMadrasah 
+    ? 'Visitasi Lapangan' 
+    : 'Presentasi & Wawancara';
   const isLocked = Boolean(competition?.is_locked);
   const isFreezeSubmitted = Boolean(competition?.freeze_submitted_scores);
   const isPhase1Locked = Boolean(isTwoPhase && selectedPhase === 1 && (competition?.is_phase1_locked || competition?.has_finalists));
@@ -517,7 +525,7 @@ export default function JuryScoringPage() {
                   Tahap 1 (Seleksi Berkas) Telah Selesai & Terkunci
                 </h4>
                 <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
-                  Tahap seleksi berkas resmi ditutup karena 3 besar finalis telah ditetapkan untuk melaju ke <strong>Fase 2 (Wawancara & Visitasi)</strong>. Nilai berkas berada dalam mode <strong>Hanya-Baca (Read-Only)</strong> dan tidak dapat diubah lagi.
+                  Tahap seleksi berkas resmi ditutup karena 3 besar finalis telah ditetapkan untuk melaju ke <strong>Fase 2 ({phase2Label})</strong>. Nilai berkas berada dalam mode <strong>Hanya-Baca (Read-Only)</strong> dan tidak dapat diubah lagi.
                 </p>
               </div>
             </div>
@@ -552,7 +560,7 @@ export default function JuryScoringPage() {
               }`}
             >
               <Sparkles size={15} />
-              <span>Fase 2: Wawancara & Visitasi (3 Besar Finalis)</span>
+              <span>Fase 2: {phase2Label} (3 Besar Finalis)</span>
             </button>
           </div>
         )}
@@ -567,7 +575,7 @@ export default function JuryScoringPage() {
             <p className="font-bold flex items-center gap-1.5 mb-2">
               <Info size={13}/>
               {isTwoPhase 
-                ? (selectedPhase === 1 ? 'Kriteria Penilaian Fase 1 (Seleksi Berkas)' : 'Kriteria Penilaian Fase 2 (Wawancara & Visitasi)')
+                ? (selectedPhase === 1 ? 'Kriteria Penilaian Fase 1 (Seleksi Berkas)' : `Kriteria Penilaian Fase 2 (${phase2Label})`)
                 : 'Kriteria Penilaian (Juknis)'}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -581,7 +589,7 @@ export default function JuryScoringPage() {
               {isTwoPhase 
                 ? (selectedPhase === 1 
                     ? `Hanya komponen berkas Fase 1 yang dinilai (Bobot maksimal: ${phase1Max}%).` 
-                    : `Hanya komponen wawancara Fase 2 yang dinilai (Bobot maksimal: ${phase2Max}%). Nilai berkas Fase 1 terakumulasi otomatis.`)
+                    : `Hanya komponen ${phase2Label.toLowerCase()} Fase 2 yang dinilai (Bobot maksimal: ${phase2Max}%). Nilai berkas Fase 1 terakumulasi otomatis.`)
                 : 'Skor akhir dihitung otomatis dari rata-rata tertimbang di atas.'}
             </p>
           </div>
@@ -756,7 +764,7 @@ export default function JuryScoringPage() {
                         <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase tracking-wider">
                           <span>
                             {isTwoPhase 
-                              ? (selectedPhase === 1 ? 'Kriteria Berkas (Fase 1)' : 'Kriteria Wawancara / Visitasi (Fase 2)') 
+                              ? (selectedPhase === 1 ? 'Kriteria Berkas (Fase 1)' : `Kriteria ${phase2Label} (Fase 2)`) 
                               : 'Kriteria Penilaian'}
                           </span>
                           <span className="text-[11px] text-emerald-700 lowercase font-medium">skor 0 – 100</span>
@@ -787,7 +795,7 @@ export default function JuryScoringPage() {
                         <div>
                           <span className="font-bold text-purple-950 block">Akumulasi Nilai Akhir (Fase 1 + Fase 2)</span>
                           <span className="text-[11px] text-purple-700">
-                            Berkas ({p1Saved.toFixed(1)}) + Wawancara ({activeSubtotal.toFixed(1)})
+                            Berkas ({p1Saved.toFixed(1)}) + {isGuru ? 'Pres. & Wawancara' : isMadrasah ? 'Visitasi' : 'Fase 2'} ({activeSubtotal.toFixed(1)})
                           </span>
                         </div>
                         <div className="text-right">
@@ -865,7 +873,7 @@ export default function JuryScoringPage() {
                         isTwoPhase 
                           ? (selectedPhase === 1 
                               ? (isSaved ? 'Tersimpan — Perbarui Nilai Berkas' : 'Simpan Nilai Berkas (Fase 1)') 
-                              : (isSaved ? 'Tersimpan — Perbarui Nilai Wawancara' : 'Simpan Nilai Wawancara (Fase 2)'))
+                              : (isSaved ? `Tersimpan — Perbarui Nilai ${isGuru ? 'Presentasi & Wawancara' : 'Visitasi'}` : `Simpan Nilai ${isGuru ? 'Presentasi & Wawancara' : 'Visitasi'} (Fase 2)`))
                           : (isSaved ? 'Tersimpan — Update Nilai' : 'Simpan Nilai')
                       )}
                     </Button>

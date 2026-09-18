@@ -303,12 +303,16 @@ export default function CompetitionExportModal({
   };
 
   const isTwoPhase = competition?.lomba_type === 'guru_berprestasi' || competition?.lomba_type === 'madrasah_berprestasi' || competition?.is_two_phase;
+  const isGuru = competition?.lomba_type === 'guru_berprestasi' || String(competition?.name || '').toLowerCase().includes('guru');
+  const isMadrasah = competition?.lomba_type === 'madrasah_berprestasi' || String(competition?.name || '').toLowerCase().includes('madrasah');
+
+  const phase2Label = isGuru 
+    ? 'Presentasi & Wawancara' 
+    : isMadrasah 
+    ? 'Visitasi Lapangan' 
+    : 'Presentasi & Wawancara';
 
   const getParticipantPhaseScores = (p: any) => {
-    const lombaType = competition?.lomba_type;
-    const isGuru = lombaType === 'guru_berprestasi';
-    const isMadrasah = lombaType === 'madrasah_berprestasi';
-
     let breakdown = p.result?.score_breakdown ?? p.score_breakdown ?? null;
     if (typeof breakdown === 'string') {
       try { breakdown = JSON.parse(breakdown); } catch {}
@@ -341,7 +345,7 @@ export default function CompetitionExportModal({
         const name = String(item.component || '').toLowerCase();
 
         let isP1 = isGuru ? idx < 2 : idx < 3;
-        if (isGuru && (name.includes('aswaja') || name.includes('wawancara') || name.includes('interview'))) {
+        if (isGuru && (name.includes('aswaja') || name.includes('wawancara') || name.includes('interview') || name.includes('presentasi'))) {
           isP1 = false;
         } else if (isMadrasah && (name.includes('presentasi') || name.includes('visitasi') || name.includes('fact checking'))) {
           isP1 = false;
@@ -457,7 +461,7 @@ export default function CompetitionExportModal({
         if (isTwoPhase) {
           const pScores = getParticipantPhaseScores(p);
           rowData['Nilai Fase 1 (Berkas / Portofolio)'] = pScores.phase1;
-          rowData['Nilai Fase 2 (Wawancara & Visitasi)'] = pScores.phase2;
+          rowData[`Nilai Fase 2 (${phase2Label})`] = pScores.phase2;
           rowData['Nilai Akhir (Akumulasi)'] = pScores.final;
         } else {
           if (showJuryColumns) {
@@ -482,7 +486,7 @@ export default function CompetitionExportModal({
           };
           if (isTwoPhase) {
             headerRow['Nilai Fase 1 (Berkas / Portofolio)'] = '';
-            headerRow['Nilai Fase 2 (Wawancara & Visitasi)'] = '';
+            headerRow[`Nilai Fase 2 (${phase2Label})`] = '';
             headerRow['Nilai Akhir (Akumulasi)'] = '';
           } else {
             if (showJuryColumns) {
@@ -516,7 +520,7 @@ export default function CompetitionExportModal({
             { wch: 32 }, // Lembaga
             { wch: 14 }, // Jenjang
             { wch: 24 }, // Nilai Fase 1
-            { wch: 24 }, // Nilai Fase 2
+            { wch: 30 }, // Nilai Fase 2
             { wch: 20 }, // Nilai Akhir
           ]
         : [
@@ -567,7 +571,7 @@ export default function CompetitionExportModal({
       // Generate HTML for jury/phase columns in header
       const juryHeaderCols = isTwoPhase
         ? `<th class="col-phase">Nilai Fase 1<br><span style="font-size:7pt; font-weight:normal; text-transform:none;">(Berkas / Portofolio)</span></th>
-           <th class="col-phase">Nilai Fase 2<br><span style="font-size:7pt; font-weight:normal; text-transform:none;">(Wawancara & Visitasi)</span></th>`
+           <th class="col-phase">Nilai Fase 2<br><span style="font-size:7pt; font-weight:normal; text-transform:none;">(${phase2Label})</span></th>`
         : (showJuryColumns
             ? distinctJuryNames.map((j) => `<th class="col-jury">${j}</th>`).join('')
             : '');
@@ -1083,8 +1087,8 @@ export default function CompetitionExportModal({
                         <th className="border border-slate-800 p-2 text-center w-24 text-[11px] leading-tight">
                           Nilai Fase 1<br/><span className="text-[9px] font-normal text-slate-500">(Berkas)</span>
                         </th>
-                        <th className="border border-slate-800 p-2 text-center w-24 text-[11px] leading-tight">
-                          Nilai Fase 2<br/><span className="text-[9px] font-normal text-slate-500">(Wawancara)</span>
+                        <th className="border border-slate-800 p-2 text-center w-28 text-[11px] leading-tight">
+                          Nilai Fase 2<br/><span className="text-[9px] font-normal text-slate-500">({phase2Label})</span>
                         </th>
                         <th className="border border-slate-800 p-2 text-center w-20 font-black">
                           Nilai Akhir<br/><span className="text-[9px] font-normal text-slate-500">(Akumulasi)</span>

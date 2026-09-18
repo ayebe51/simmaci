@@ -594,7 +594,7 @@ function AnnugerahRegistrantList({ competition, registrations, onReload }: { com
               Seleksi 2 Fase: Tetapkan 3 Besar Finalis
             </h4>
             <p className="text-xs text-purple-700 mt-0.5">
-              Pilih otomatis 3 peserta terbaik per jenjang berdasarkan akumulasi skor seleksi berkas (Fase 1) dewan juri untuk masuk ke sesi wawancara (Fase 2).
+              Pilih otomatis 3 peserta terbaik per jenjang berdasarkan akumulasi skor seleksi berkas (Fase 1) dewan juri untuk masuk ke {competition?.lomba_type === 'guru_berprestasi' ? 'sesi presentasi & wawancara' : competition?.lomba_type === 'madrasah_berprestasi' ? 'sesi visitasi lapangan' : 'sesi presentasi & wawancara / visitasi'} (Fase 2).
             </p>
           </div>
           <Button

@@ -112,18 +112,38 @@ export default function CompetitionExportModal({
 
     const scores = p.jury_scores ?? p.juryScores ?? p.result?.all_jury_scores ?? [];
     if (!breakdown || (Array.isArray(breakdown) && breakdown.length === 0)) {
-      let bestBd: any[] = [];
-      for (const js of scores) {
-        let bd = js.score_breakdown;
-        if (typeof bd === 'string') {
-          try { bd = JSON.parse(bd); } catch {}
+      if (scores.length > 0) {
+        const compSums: Record<string, { sum: number; count: number; weight: number }> = {};
+        scores.forEach((js: any) => {
+          let bd = js.score_breakdown;
+          if (typeof bd === 'string') {
+            try { bd = JSON.parse(bd); } catch {}
+          }
+          if (Array.isArray(bd)) {
+            bd.forEach((item: any) => {
+              if (item?.component) {
+                const cKey = String(item.component).trim();
+                const val = Number(item.value) || 0;
+                const weight = Number(item.weight) || 0;
+                if (!compSums[cKey]) {
+                  compSums[cKey] = { sum: 0, count: 0, weight };
+                }
+                compSums[cKey].sum += val;
+                compSums[cKey].count += 1;
+                if (weight > 0) compSums[cKey].weight = weight;
+              }
+            });
+          }
+        });
+
+        const aggKeys = Object.keys(compSums);
+        if (aggKeys.length > 0) {
+          breakdown = aggKeys.map((cKey) => ({
+            component: cKey,
+            weight: compSums[cKey].weight,
+            value: Math.round((compSums[cKey].sum / (compSums[cKey].count || 1)) * 100) / 100,
+          }));
         }
-        if (Array.isArray(bd) && bd.length > bestBd.length) {
-          bestBd = bd;
-        }
-      }
-      if (bestBd.length > 0) {
-        breakdown = bestBd;
       }
     }
 
@@ -177,10 +197,19 @@ export default function CompetitionExportModal({
 
     // Fallback for Phase 2 (for finalists where Phase 2 was recorded)
     if (p2Sum <= 0 && isFinalist) {
-      const p2Jury = scores.find((s: any) => s.phase === 2);
-      if (p2Jury && Number(p2Jury.score) > 0) {
-        p2Sum = Number(p2Jury.score);
-      } else {
+      const p2Juries = scores.filter((s: any) => s.phase === 2);
+      if (p2Juries.length > 0) {
+        const p2Scores = p2Juries
+          .map((s: any) => Number(s.score))
+          .filter((s: number) => !isNaN(s) && s > 0);
+        if (p2Scores.length > 0) {
+          const avgScore = p2Scores.reduce((a: number, b: number) => a + b, 0) / p2Scores.length;
+          p2Sum = (avgScore > maxP1 && p1Sum > 0) ? Math.max(0, avgScore - p1Sum) : avgScore;
+        }
+      }
+
+      if (p2Sum <= 0) {
+        const juryP2Values: number[] = [];
         for (const js of scores) {
           let bd = js.score_breakdown;
           if (typeof bd === 'string') {
@@ -203,10 +232,13 @@ export default function CompetitionExportModal({
                 itemP2 += compScore;
               }
             });
-            if (itemP2 > p2Sum) {
-              p2Sum = itemP2;
+            if (itemP2 > 0) {
+              juryP2Values.push(itemP2);
             }
           }
+        }
+        if (juryP2Values.length > 0) {
+          p2Sum = juryP2Values.reduce((a, b) => a + b, 0) / juryP2Values.length;
         }
       }
 

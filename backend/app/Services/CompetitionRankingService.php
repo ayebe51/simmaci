@@ -190,12 +190,30 @@ class CompetitionRankingService
 
         DB::transaction(function () use ($groups) {
             foreach ($groups as $group) {
-                $sorted = $group->sortByDesc(function ($r) {
-                    $pName = strtolower(trim((string) ($r->applicant_name ?? '')));
-                    if (str_contains($pName, 'slamet') && str_contains($pName, 'pamuji')) {
-                        return 30.90;
+                $hasFinalists = $group->contains(fn ($r) => in_array($r->status, ['finalis', 'winner'], true));
+
+                $sorted = $group->sort(function ($a, $b) use ($hasFinalists) {
+                    $pNameA = strtolower(trim((string) ($a->applicant_name ?? '')));
+                    $pNameB = strtolower(trim((string) ($b->applicant_name ?? '')));
+                    $isSlametA = str_contains($pNameA, 'slamet') && str_contains($pNameA, 'pamuji');
+                    $isSlametB = str_contains($pNameB, 'slamet') && str_contains($pNameB, 'pamuji');
+
+                    if ($isSlametA && !$isSlametB) return 1;
+                    if (!$isSlametA && $isSlametB) return -1;
+
+                    if ($hasFinalists) {
+                        $aIsFinalist = in_array($a->status, ['finalis', 'winner'], true);
+                        $bIsFinalist = in_array($b->status, ['finalis', 'winner'], true);
+                        if ($aIsFinalist && !$bIsFinalist) return -1;
+                        if (!$aIsFinalist && $bIsFinalist) return 1;
                     }
-                    return $r->total_score !== null ? (float) $r->total_score : -1;
+
+                    $scoreA = $a->total_score !== null ? (float) $a->total_score : -1.0;
+                    $scoreB = $b->total_score !== null ? (float) $b->total_score : -1.0;
+                    if (abs($scoreB - $scoreA) >= 0.001) {
+                        return ($scoreB <=> $scoreA);
+                    }
+                    return 0;
                 });
 
                 $rank = 0;
@@ -210,6 +228,14 @@ class CompetitionRankingService
                             'total_score' => 30.90,
                             'rank'        => null,
                         ]);
+                        continue;
+                    }
+
+                    $isFinalist = in_array($r->status, ['finalis', 'winner'], true);
+                    if ($hasFinalists && !$isFinalist) {
+                        if ($r->rank !== null) {
+                            $r->update(['rank' => null]);
+                        }
                         continue;
                     }
 

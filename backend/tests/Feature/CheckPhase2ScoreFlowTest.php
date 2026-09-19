@@ -270,4 +270,170 @@ class CheckPhase2ScoreFlowTest extends TestCase
         $this->assertEquals(87.0, (float) $reg->fresh()->total_score);
         $this->assertEquals(87.0, (float) CompetitionJuryScore::where('competition_id', $competition->id)->first()->score);
     }
+
+    public function test_madrasah_berprestasi_phase2_scoring_and_non_finalist_no_rank(): void
+    {
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $event = Event::create([
+            'name'     => 'Harlah LP Maarif 97',
+            'slug'     => 'harlah-97-madrasah-test',
+            'category' => 'Anugerah',
+            'date'     => '2026-09-19',
+            'status'   => 'OPEN',
+        ]);
+        \App\Models\Setting::setValue("jury_pin_event_{$event->id}", 'pin123');
+
+        $competition = Competition::create([
+            'event_id'   => $event->id,
+            'name'       => 'Anugerah Madrasah Berprestasi',
+            'category'   => 'Kelembagaan',
+            'type'       => 'Institution',
+            'lomba_type' => 'madrasah_berprestasi',
+            'status'     => 'OPEN',
+            'scoring_criteria' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25],
+                ['component' => 'Kemitraan, Keaktifan SIMNU & SIMMACI, Kontribusi Sosial', 'weight' => 15],
+                ['component' => 'Visitasi Lapangan & Verifikasi Faktual', 'weight' => 15],
+            ],
+        ]);
+
+        // Create 3 finalists and 1 non-finalist in MI/SD
+        // Finalist 1: MI Al Huda (P1: 50.0, P2: 14.0 -> Total: 64.0)
+        $fin1 = AnugerahRegistration::create([
+            'event_id'        => $event->id,
+            'competition_id'  => $competition->id,
+            'category'        => 'Madrasah',
+            'applicant_name'  => 'Kepala MI Al Huda',
+            'school_name'     => 'MI Al Huda',
+            'jenjang'         => 'MI/SD',
+            'status'          => 'finalis',
+            'total_score'     => 50.0,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45, 'value' => 80],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25, 'value' => 56],
+            ],
+        ]);
+
+        // Finalist 2: MI Maarif 01 (P1: 45.0, P2: 13.0 -> Total: 58.0)
+        $fin2 = AnugerahRegistration::create([
+            'event_id'        => $event->id,
+            'competition_id'  => $competition->id,
+            'category'        => 'Madrasah',
+            'applicant_name'  => 'Kepala MI Maarif 01',
+            'school_name'     => 'MI Maarif 01',
+            'jenjang'         => 'MI/SD',
+            'status'          => 'finalis',
+            'total_score'     => 45.0,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45, 'value' => 70],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25, 'value' => 54],
+            ],
+        ]);
+
+        // Finalist 3: MI Darwata 01 (P1: 42.0, P2: 12.0 -> Total: 54.0)
+        $fin3 = AnugerahRegistration::create([
+            'event_id'        => $event->id,
+            'competition_id'  => $competition->id,
+            'category'        => 'Madrasah',
+            'applicant_name'  => 'Kepala MI Darwata 01',
+            'school_name'     => 'MI Darwata 01',
+            'jenjang'         => 'MI/SD',
+            'status'          => 'finalis',
+            'total_score'     => 42.0,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45, 'value' => 60],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25, 'value' => 60],
+            ],
+        ]);
+
+        // Non-Finalist: MI Darwata Glempang (P1: 40.50, status: submitted, legacy rank: 3)
+        $nonFin = AnugerahRegistration::create([
+            'event_id'        => $event->id,
+            'competition_id'  => $competition->id,
+            'category'        => 'Madrasah',
+            'applicant_name'  => 'Kepala MI Darwata Glempang',
+            'school_name'     => 'MI Darwata Glempang',
+            'jenjang'         => 'MI/SD',
+            'status'          => 'submitted',
+            'rank'            => 3, // Legacy incorrect rank
+            'total_score'     => 40.50,
+            'score_breakdown' => [
+                ['component' => 'Akumulasi Skor Kejuaraan Lembaga', 'weight' => 45, 'value' => 60],
+                ['component' => 'Tata Kelola Institusi & Penguatan Karakter Aswaja', 'weight' => 25, 'value' => 54],
+            ],
+        ]);
+
+        // Score Phase 2 for finalists
+        $loginP2 = $this->postJson('/api/public/jury/verify-pin', [
+            'competition_id' => $competition->id,
+            'pin'            => 'pin123',
+            'jury_name'      => 'Juri Visitasi',
+        ]);
+        $tokenP2 = $loginP2->json('data.token');
+
+        // Score Fin 1 Visitasi: 90 (15%) = 13.5 -> Total = 50.0 + 13.5 = 63.5
+        $this->postJson("/api/public/jury/{$tokenP2}/score", [
+            'participant_id'  => "reg_{$fin1->id}",
+            'score'           => 63.5,
+            'phase'           => 2,
+            'score_breakdown' => [
+                ['component' => 'Visitasi Lapangan & Verifikasi Faktual', 'weight' => 15, 'value' => 90],
+            ],
+        ])->assertStatus(200);
+
+        // Score Fin 2 Visitasi: 85 (15%) = 12.75 -> Total = 45.0 + 12.75 = 57.75
+        $this->postJson("/api/public/jury/{$tokenP2}/score", [
+            'participant_id'  => "reg_{$fin2->id}",
+            'score'           => 57.75,
+            'phase'           => 2,
+            'score_breakdown' => [
+                ['component' => 'Visitasi Lapangan & Verifikasi Faktual', 'weight' => 15, 'value' => 85],
+            ],
+        ])->assertStatus(200);
+
+        // Score Fin 3 Visitasi: 80 (15%) = 12.0 -> Total = 42.0 + 12.0 = 54.0
+        $this->postJson("/api/public/jury/{$tokenP2}/score", [
+            'participant_id'  => "reg_{$fin3->id}",
+            'score'           => 54.0,
+            'phase'           => 2,
+            'score_breakdown' => [
+                ['component' => 'Visitasi Lapangan & Verifikasi Faktual', 'weight' => 15, 'value' => 80],
+            ],
+        ])->assertStatus(200);
+
+        // Call CompetitionController::show
+        $showRes = $this->actingAs($superAdmin)->getJson("/api/competitions/{$competition->id}");
+        $showRes->assertStatus(200);
+
+        // Refresh all registrations
+        $fin1Fresh = $fin1->fresh();
+        $fin2Fresh = $fin2->fresh();
+        $fin3Fresh = $fin3->fresh();
+        $nonFinFresh = $nonFin->fresh();
+
+        // 1. Check score accumulation: Phase 1 + Phase 2 must be preserved!
+        $this->assertEquals(63.5, (float) $fin1Fresh->total_score);
+        $this->assertEquals(57.75, (float) $fin2Fresh->total_score);
+        $this->assertEquals(54.0, (float) $fin3Fresh->total_score);
+        $this->assertEquals(40.50, (float) $nonFinFresh->total_score);
+
+        // 2. Check ranks: Finalists get 1, 2, 3 in order; non-finalist MI Darwata Glempang rank MUST BE NULL!
+        $this->assertEquals(1, $fin1Fresh->rank);
+        $this->assertEquals(2, $fin2Fresh->rank);
+        $this->assertEquals(3, $fin3Fresh->rank);
+        $this->assertNull($nonFinFresh->rank);
+
+        // 3. Check public scoreboard: MI Darwata Glempang is not ranked 1-3
+        $sbRes = $this->getJson("/api/public/events/{$event->id}/scoreboard/{$competition->id}");
+        $sbRes->assertStatus(200);
+        $results = collect($sbRes->json('data.results'));
+
+        $fin3InSb = $results->firstWhere('name', 'Kepala MI Darwata 01');
+        $nonFinInSb = $results->firstWhere('name', 'Kepala MI Darwata Glempang');
+
+        $this->assertEquals(3, $fin3InSb['rank']);
+        $this->assertNull($nonFinInSb['rank']);
+    }
 }

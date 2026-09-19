@@ -101,12 +101,8 @@ export default function CompetitionExportModal({
       };
     }
 
-    const isFinalist = Boolean(
-      p.status === 'finalis' ||
-      p.status === 'winner' ||
-      p.is_finalist ||
-      (p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3) ||
-      (p.rank != null && p.rank >= 1 && p.rank <= 3)
+    const hasAnyFinalistsInCompetition = participants.some(
+      (part: any) => part.status === 'finalis' || part.status === 'winner' || part.is_finalist
     );
 
     let breakdown = p.result?.score_breakdown ?? p.score_breakdown ?? null;
@@ -169,14 +165,59 @@ export default function CompetitionExportModal({
       }
     }
 
-    // SPECIAL RULE 1: Madrasah Berprestasi - Fase 2 belum diinput nilai sama sekali!
-    // Never show Phase 2 score for madrasah_berprestasi until Phase 2 is actually conducted.
-    if (isMadrasah) {
-      p2Sum = 0;
+    const isFinalist = hasAnyFinalistsInCompetition
+      ? Boolean(p.status === 'finalis' || p.status === 'winner' || p.is_finalist || p2Sum > 0)
+      : Boolean(
+          p.status === 'finalis' ||
+          p.status === 'winner' ||
+          p.is_finalist ||
+          (p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3) ||
+          (p.rank != null && p.rank >= 1 && p.rank <= 3)
+        );
+
+    // Fallback for Phase 2 (for finalists where Phase 2 was recorded)
+    if (p2Sum <= 0 && isFinalist) {
+      const p2Jury = scores.find((s: any) => s.phase === 2);
+      if (p2Jury && Number(p2Jury.score) > 0) {
+        p2Sum = Number(p2Jury.score);
+      } else {
+        for (const js of scores) {
+          let bd = js.score_breakdown;
+          if (typeof bd === 'string') {
+            try { bd = JSON.parse(bd); } catch {}
+          }
+          if (Array.isArray(bd)) {
+            let itemP2 = 0;
+            bd.forEach((item: any, idx: number) => {
+              const weight = Number(item.weight) || 0;
+              const val = Number(item.value) || 0;
+              const compScore = (val * weight) / 100;
+              const name = String(item.component || '').toLowerCase();
+              let isP1 = isGuru ? idx < 2 : idx < 3;
+              if (isGuru && (name.includes('aswaja') || name.includes('wawancara') || name.includes('interview') || name.includes('presentasi'))) {
+                isP1 = false;
+              } else if (isMadrasah && (name.includes('presentasi') || name.includes('visitasi') || name.includes('fact checking'))) {
+                isP1 = false;
+              }
+              if (!isP1) {
+                itemP2 += compScore;
+              }
+            });
+            if (itemP2 > p2Sum) {
+              p2Sum = itemP2;
+            }
+          }
+        }
+      }
+
+      // If still 0, check if total_score > maxP1 and p1Sum > 0
+      const currentTotal = Number(p.total_score ?? p.result?.score ?? 0);
+      if (p2Sum <= 0 && currentTotal > maxP1 && p1Sum > 0 && currentTotal > p1Sum) {
+        p2Sum = currentTotal - p1Sum;
+      }
     }
 
-    // SPECIAL RULE 2: Guru Berprestasi - Hanya peserta yang lolos ke Fase 2 (finalis) yang berhak mendapat nilai Fase 2!
-    // Peserta yang tidak lolos Fase 2 TIDAK boleh mendapat nilai Fase 2.
+    // Only finalists receive Phase 2 scores
     if (!isFinalist) {
       p2Sum = 0;
       // Jika peserta non-finalis memiliki total_score resmi di database yang lebih rendah dari p1Sum,
@@ -188,14 +229,11 @@ export default function CompetitionExportModal({
 
     // Determine final score:
     let finalScore = 0;
-    if (isMadrasah) {
-      // Madrasah Berprestasi: Phase 2 belum ada, nilai akhir adalah nilai seleksi berkas Fase 1
-      finalScore = p1Sum > 0 ? p1Sum : (Number(p.result?.score ?? p.total_score ?? 0));
-    } else if (!isFinalist) {
-      // Guru yang tidak lolos Fase 2: nilai akhir murni nilai seleksi berkas Fase 1
+    if (!isFinalist) {
+      // Guru & Madrasah non-finalis: nilai akhir murni nilai seleksi berkas Fase 1
       finalScore = p1Sum > 0 ? p1Sum : (Number(p.result?.score ?? p.total_score ?? 0));
     } else {
-      // Finalis Fase 2 (Guru): Akumulasi Fase 1 + Fase 2
+      // Finalis Fase 2 (Guru & Madrasah): Akumulasi Fase 1 + Fase 2
       if (p1Sum > 0 || p2Sum > 0) {
         finalScore = p1Sum + p2Sum;
       } else if (p.result?.score != null && Number(p.result.score) > 0) {
@@ -366,7 +404,8 @@ export default function CompetitionExportModal({
   } else {
     // ── Multi-Jenjang Pool (dibedakan per jenjang: MI, MTs, MA/SMA/SMK) ──
     hasRankedWinners = filtered.some(
-      (p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3
+      (p) => (p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3) ||
+             (p.status === 'finalis' || p.status === 'winner' || p.is_finalist)
     );
 
     // Group participants by normalized jenjang
@@ -403,7 +442,21 @@ export default function CompetitionExportModal({
         }
         return p;
       });
+
+      // Check if this group has established finalists
+      const hasFinalistsInGroup = sanitizedList.some(
+        (p) => p.status === 'finalis' || p.status === 'winner' || p.is_finalist
+      );
+
       const sortedList = [...sanitizedList].sort((a, b) => {
+        if (isTwoPhase && hasFinalistsInGroup) {
+          const aIsFinalist = Boolean(a.status === 'finalis' || a.status === 'winner' || a.is_finalist);
+          const bIsFinalist = Boolean(b.status === 'finalis' || b.status === 'winner' || b.is_finalist);
+          // Finalists must always come before non-finalists
+          if (aIsFinalist && !bIsFinalist) return -1;
+          if (!aIsFinalist && bIsFinalist) return 1;
+        }
+
         const scoreA = Number(getParticipantFinalScore(a) !== '-' ? getParticipantFinalScore(a) : a.result?.score ?? a.total_score ?? 0);
         const scoreB = Number(getParticipantFinalScore(b) !== '-' ? getParticipantFinalScore(b) : b.result?.score ?? b.total_score ?? 0);
         if (Math.abs(scoreB - scoreA) >= 0.001) return scoreB - scoreA;
@@ -413,31 +466,43 @@ export default function CompetitionExportModal({
         return rankA - rankB;
       });
 
-      // For Madrasah Berprestasi: re-rank dynamically so SMP/MTs/SMA/SMK has ranks 1, 2, 3
       let currentRank = 0;
       let prevScore: number | null = null;
-      const reRankedList = isMadrasah
-        ? sortedList.map((p) => {
-            const scoreStr = getParticipantFinalScore(p);
-            const score = scoreStr !== '-' ? Number(scoreStr) : 0;
-            let assignedRank: number | null = null;
-            if (score > 0) {
-              if (prevScore === null || Math.abs(score - prevScore) >= 0.001) {
-                currentRank++;
-                prevScore = score;
-              }
-              assignedRank = currentRank <= 3 ? currentRank : null;
-            }
-            return {
-              ...p,
-              result: {
-                ...(p.result || {}),
-                rank: assignedRank,
-              },
-              rank: assignedRank,
-            };
-          })
-        : sortedList;
+      const reRankedList = sortedList.map((p) => {
+        const isFinalist = Boolean(p.status === 'finalis' || p.status === 'winner' || p.is_finalist);
+
+        // If two-phase with finalists established, non-finalists CANNOT be Juara 1, 2, 3!
+        if (isTwoPhase && hasFinalistsInGroup && !isFinalist) {
+          return {
+            ...p,
+            result: {
+              ...(p.result || {}),
+              rank: null,
+            },
+            rank: null,
+          };
+        }
+
+        const scoreStr = getParticipantFinalScore(p);
+        const score = scoreStr !== '-' ? Number(scoreStr) : 0;
+        let assignedRank: number | null = null;
+        if (score > 0) {
+          if (prevScore === null || Math.abs(score - prevScore) >= 0.001) {
+            currentRank++;
+            prevScore = score;
+          }
+          assignedRank = currentRank <= 3 ? currentRank : null;
+        }
+
+        return {
+          ...p,
+          result: {
+            ...(p.result || {}),
+            rank: assignedRank,
+          },
+          rank: assignedRank,
+        };
+      });
 
       const displayedList = (viewScope === 'winners' && hasRankedWinners)
         ? reRankedList.filter((p) => p.result?.rank != null && p.result.rank >= 1 && p.result.rank <= 3)

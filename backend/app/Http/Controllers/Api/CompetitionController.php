@@ -80,6 +80,7 @@ class CompetitionController extends Controller
                 ->get();
 
             $isTwoPhase = in_array($competition->lomba_type, ['guru_berprestasi', 'madrasah_berprestasi'], true);
+            $hasFinalistsInQuery = $anugerahQuery->contains(fn ($r) => in_array($r->status, ['finalis', 'winner'], true));
             foreach ($anugerahQuery as $reg) {
                 if ($reg->juryScores && $reg->juryScores->isNotEmpty()) {
                     if ($isTwoPhase) {
@@ -110,15 +111,11 @@ class CompetitionController extends Controller
 
                             $isFinalist = in_array($reg->status, ['finalis', 'winner'], true);
 
-                            if ($competition->lomba_type === 'madrasah_berprestasi') {
-                                // Pada madrasah berprestasi: Fase 2 belum diinput nilai sama sekali
-                                // Nilai total adalah murni nilai seleksi berkas Fase 1
-                                $expectedTotal = round($p1Sum > 0 ? $p1Sum : (float) ($reg->total_score ?? 0), 2);
-                            } elseif ($isFinalist) {
-                                // Finalis Guru: Akumulasi Fase 1 + Fase 2
+                            if ($isFinalist) {
+                                // Finalis (Guru & Madrasah): Akumulasi Fase 1 + Fase 2
                                 $expectedTotal = round($p1Sum + $p2Sum, 2);
                             } else {
-                                // Guru yang tidak lolos Fase 2 hanya mendapat nilai Fase 1
+                                // Peserta yang tidak lolos Fase 2 hanya mendapat nilai Fase 1
                                 if ($reg->total_score !== null && (float) $reg->total_score > 0 && (float) $reg->total_score < $p1Sum) {
                                     $p1Sum = (float) $reg->total_score;
                                 }
@@ -143,10 +140,13 @@ class CompetitionController extends Controller
                             }
                         }
 
-                        if ($reg->total_score === null || abs((float) $reg->total_score - $expectedTotal) >= 0.01 || ($isSlamet && ($reg->rank !== null || in_array($reg->status, ['finalis', 'winner'])))) {
+                        $isFinalist = in_array($reg->status, ['finalis', 'winner'], true);
+                        $shouldClearRank = ($hasFinalistsInQuery && !$isFinalist && $reg->rank !== null);
+
+                        if ($reg->total_score === null || abs((float) $reg->total_score - $expectedTotal) >= 0.01 || $shouldClearRank || ($isSlamet && ($reg->rank !== null || in_array($reg->status, ['finalis', 'winner'])))) {
                             $reg->update([
                                 'total_score'     => $expectedTotal,
-                                'rank'            => $isSlamet ? null : $reg->rank,
+                                'rank'            => ($isSlamet || $shouldClearRank) ? null : $reg->rank,
                                 'status'          => ($isSlamet && in_array($reg->status, ['finalis', 'winner'])) ? 'submitted' : $reg->status,
                                 'score_breakdown' => $isSlamet ? null : ($aggBreakdown ?? $reg->score_breakdown),
                             ]);
@@ -159,6 +159,17 @@ class CompetitionController extends Controller
                             $needsAutoRank = true;
                         }
                     }
+                }
+            }
+
+            // Check if Madrasah / Guru Berprestasi has non-finalists holding a rank when finalists exist
+            if ($hasFinalistsInQuery) {
+                $hasNonFinalistWithRank = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                    ->whereNotIn('status', ['finalis', 'winner'])
+                    ->whereNotNull('rank')
+                    ->exists();
+                if ($hasNonFinalistWithRank) {
+                    $needsAutoRank = true;
                 }
             }
 

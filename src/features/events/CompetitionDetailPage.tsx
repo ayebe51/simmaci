@@ -235,6 +235,10 @@ export default function CompetitionDetailPage() {
                     name: r.applicant_name,
                     institution: r.school_name,
                     jenjang: r.jenjang,
+                    status: r.status,
+                    total_score: r.total_score,
+                    phase1_score: r.phase1_score,
+                    score_breakdown: r.score_breakdown,
                     jury_scores: r.jury_scores ?? [],
                     result: r.total_score != null || r.rank != null || r.score_breakdown ? { rank: r.rank, score: r.total_score, notes: r.reviewer_notes, score_breakdown: r.score_breakdown } : null,
                   }))

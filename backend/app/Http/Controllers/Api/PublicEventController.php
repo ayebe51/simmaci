@@ -1002,6 +1002,19 @@ class PublicEventController extends Controller
                 }
             }
 
+            $hasFinalists = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                ->whereIn('status', ['finalis', 'winner'])
+                ->exists();
+            if ($hasFinalists) {
+                $hasNonFinalistWithRank = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
+                    ->whereNotIn('status', ['finalis', 'winner'])
+                    ->whereNotNull('rank')
+                    ->exists();
+                if ($hasNonFinalistWithRank) {
+                    \App\Services\CompetitionRankingService::autoRank($competition);
+                }
+            }
+
             $results = \App\Models\AnugerahRegistration::where('competition_id', $competition->id)
                 ->with('juryScores')
                 ->where(function ($q) {

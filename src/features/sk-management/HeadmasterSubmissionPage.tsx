@@ -171,6 +171,7 @@ export default function HeadmasterSubmissionPage() {
             start_date: data.tmt,
             end_date: endDate.toISOString().split('T')[0],
             sk_url: finalUrl,
+            surat_permohonan_url: finalUrl,
             keterangan: data.keterangan || null,
             surat_permohonan_number: data.surat_permohonan_number || null,
             surat_permohonan_date: data.surat_permohonan_date || null,

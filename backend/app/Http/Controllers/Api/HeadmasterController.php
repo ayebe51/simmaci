@@ -44,6 +44,8 @@ class HeadmasterController extends Controller
             'start_date' => 'required|string',
             'end_date' => 'required|string',
             'nomor_sk' => 'nullable|string',
+            'sk_url' => 'nullable|string',
+            'surat_permohonan_url' => 'nullable|string',
             'surat_permohonan_number' => 'nullable|string',
             'surat_permohonan_date' => 'nullable|string',
             'nomor_surat_rekomendasi' => 'nullable|string',
@@ -51,6 +53,14 @@ class HeadmasterController extends Controller
             'keterangan' => 'nullable|string',
             'golongan' => 'nullable|string|max:10',
         ]);
+
+        // Pastikan surat_permohonan_url terisi dari surat_permohonan_url atau sk_url
+        if (empty($data['surat_permohonan_url']) && !empty($data['sk_url'])) {
+            $data['surat_permohonan_url'] = $data['sk_url'];
+        }
+        if (empty($data['sk_url']) && !empty($data['surat_permohonan_url'])) {
+            $data['sk_url'] = $data['surat_permohonan_url'];
+        }
 
         $user = $request->user();
         if ($user?->isOperator()) {
@@ -105,11 +115,12 @@ class HeadmasterController extends Controller
         }
 
         $data = $request->validate([
-            'status'             => 'sometimes|string',
-            'nomor_sk'           => 'sometimes|nullable|string',
-            'tanggal_penetapan'  => 'sometimes|nullable|date',
-            'sk_url'             => 'sometimes|nullable|string',
-            'keterangan'         => 'sometimes|nullable|string',
+            'status'               => 'sometimes|string',
+            'nomor_sk'             => 'sometimes|nullable|string',
+            'tanggal_penetapan'    => 'sometimes|nullable|date',
+            'sk_url'               => 'sometimes|nullable|string',
+            'surat_permohonan_url' => 'sometimes|nullable|string',
+            'keterangan'           => 'sometimes|nullable|string',
         ]);
 
         $headmasterTenure->update($data);

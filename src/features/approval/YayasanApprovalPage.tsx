@@ -1,9 +1,15 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { BadgeCheck, Download, Upload, Loader2, Settings2, Trash2 } from "lucide-react"
+import { 
+  BadgeCheck, Download, Upload, Loader2, Settings2, Trash2,
+  Eye, FileText, ExternalLink, FileWarning, Calendar, User, 
+  Building2, CheckCircle2, AlertCircle, RefreshCw, GraduationCap,
+  Award, FileCheck
+} from "lucide-react"
 import { useState } from "react"
-import { headmasterApi, mediaApi, authApi, skTemplateApi, schoolApi } from "@/lib/api"
+import { headmasterApi, mediaApi, authApi, skTemplateApi, schoolApi, API_BASE_URL } from "@/lib/api"
+import { getActiveSkTemplateBinary } from "@/lib/templateFetcher"
 import { getSkVerificationUrl } from "@/utils/verification"
 import { toast } from "sonner"
 import QRCode from "qrcode"
@@ -12,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -25,6 +32,61 @@ import PizZip from "pizzip"
 import Docxtemplater from "docxtemplater"
 import ImageModule from "docxtemplater-image-module-free"
 import { saveAs } from "file-saver"
+
+// Helper untuk mengunduh dokumen persyaratan terotentikasi
+async function fetchDocumentBlob(rawUrl: string): Promise<{ blob: Blob; mimeType: string }> {
+  const token = localStorage.getItem('auth_token')
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const urlsToTry: string[] = []
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    urlsToTry.push(rawUrl)
+    try {
+      const parsed = new URL(rawUrl)
+      const pathPart = parsed.pathname.replace(/^\/api\/minio\//, '').replace(/^\/api\/files\/view\//, '').replace(/^\/+/, '')
+      if (pathPart) {
+        urlsToTry.push(`${API_BASE_URL}/minio/${pathPart}`)
+        urlsToTry.push(`${API_BASE_URL}/files/view/${pathPart}`)
+      }
+    } catch (_) {}
+  } else {
+    const clean = rawUrl.replace(/^\/+/, '').replace(/^api\/minio\//, '').replace(/^api\/files\/view\//, '')
+    urlsToTry.push(`${API_BASE_URL}/minio/${clean}`)
+    urlsToTry.push(`${API_BASE_URL}/files/view/${clean}`)
+  }
+
+  let lastError: any = null
+  for (const url of urlsToTry) {
+    try {
+      const res = await fetch(url, { headers })
+      if (res.ok) {
+        const blob = await res.blob()
+        const mimeType = res.headers.get('content-type') || blob.type || 'application/octet-stream'
+        return { blob, mimeType }
+      }
+    } catch (e) {
+      lastError = e
+    }
+  }
+
+  throw lastError || new Error("Gagal mengunduh berkas dokumen.")
+}
+
+function resolveViewerUrl(rawUrl: string): string {
+  const token = localStorage.getItem('auth_token')
+  let finalUrl = rawUrl
+  if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+    const clean = finalUrl.replace(/^\/+/, '').replace(/^api\/minio\//, '')
+    finalUrl = `${API_BASE_URL}/minio/${clean}`
+  }
+  if (token && !finalUrl.includes('token=')) {
+    finalUrl += (finalUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`
+  }
+  return finalUrl
+}
 
 export default function YayasanApprovalPage() {
   const user = authApi.getStoredUser()
@@ -47,6 +109,17 @@ export default function YayasanApprovalPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // --- DOCUMENT VIEWER STATES ---
+  const [isDocViewerOpen, setIsDocViewerOpen] = useState(false)
+  const [selectedCandidate, setSelectedCandidate] = useState<any>(null)
+  const [activeDocTab, setActiveDocTab] = useState<"surat_permohonan" | "ijazah" | "metadata">("surat_permohonan")
+  const [docBlobUrl, setDocBlobUrl] = useState<string | null>(null)
+  const [docHtml, setDocHtml] = useState<string | null>(null)
+  const [docLoading, setDocLoading] = useState(false)
+  const [docError, setDocError] = useState<string | null>(null)
+  const [docFileType, setDocFileType] = useState<"pdf" | "docx" | "image" | "other" | null>(null)
+  const [currentDocUrl, setCurrentDocUrl] = useState<string | null>(null)
 
   // --- SK SETTINGS — persisten di localStorage ---
   const [nomorFormat, setNomorFormat] = useState(() =>
@@ -145,6 +218,89 @@ export default function YayasanApprovalPage() {
     }
   }
 
+  const loadCandidateDocument = async (candidate: any, tab: "surat_permohonan" | "ijazah" | "metadata") => {
+    if (docBlobUrl) {
+      URL.revokeObjectURL(docBlobUrl)
+      setDocBlobUrl(null)
+    }
+    setDocHtml(null)
+    setDocError(null)
+    setDocFileType(null)
+    setCurrentDocUrl(null)
+
+    if (tab === "metadata") {
+      setDocLoading(false)
+      return
+    }
+
+    const targetUrl = tab === "surat_permohonan"
+      ? (candidate?.surat_permohonan_url || candidate?.sk_url || candidate?.teacher?.surat_permohonan_url)
+      : candidate?.teacher?.ijazah_url
+
+    if (!targetUrl) {
+      setDocLoading(false)
+      setDocError(tab === "surat_permohonan" 
+        ? "Surat Permohonan belum diunggah oleh madrasah pengaju." 
+        : "Berkas Ijazah belum tersedia pada profil guru.")
+      return
+    }
+
+    setCurrentDocUrl(targetUrl)
+    setDocLoading(true)
+
+    try {
+      const { blob, mimeType } = await fetchDocumentBlob(targetUrl)
+      const urlExt = targetUrl.split('?')[0].split('#')[0].split('.').pop()?.toLowerCase() || ''
+      const isPdf = mimeType.includes('pdf') || urlExt === 'pdf'
+      const isDocx = mimeType.includes('word') || mimeType.includes('officedocument') || urlExt === 'docx' || urlExt === 'doc'
+      const isImg = mimeType.startsWith('image/') || ['png', 'jpg', 'jpeg', 'webp'].includes(urlExt)
+
+      const blobUrl = URL.createObjectURL(blob)
+      setDocBlobUrl(blobUrl)
+
+      if (isDocx) {
+        setDocFileType('docx')
+        try {
+          const mammoth = await import('mammoth')
+          const arrayBuffer = await blob.arrayBuffer()
+          const result = await mammoth.default.convertToHtml({ arrayBuffer })
+          setDocHtml(result.value)
+        } catch (docxErr) {
+          console.warn("Gagal parse docx", docxErr)
+        }
+      } else if (isPdf) {
+        setDocFileType('pdf')
+      } else if (isImg) {
+        setDocFileType('image')
+      } else {
+        setDocFileType('other')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setDocError(err.message || "Gagal memuat berkas dokumen.")
+    } finally {
+      setDocLoading(false)
+    }
+  }
+
+  const handleOpenDocViewer = (candidate: any, tab: "surat_permohonan" | "ijazah" | "metadata" = "surat_permohonan") => {
+    setSelectedCandidate(candidate)
+    setIsDocViewerOpen(true)
+    setActiveDocTab(tab)
+    loadCandidateDocument(candidate, tab)
+  }
+
+  const handleCloseDocViewer = () => {
+    if (docBlobUrl) {
+      URL.revokeObjectURL(docBlobUrl)
+      setDocBlobUrl(null)
+    }
+    setDocHtml(null)
+    setDocError(null)
+    setIsDocViewerOpen(false)
+    setSelectedCandidate(null)
+  }
+
   const handleGenerateSK = async (item: any) => {
     const loaderId = toast.loading("Menyiapkan Dokumen SK Kepala...")
     try {
@@ -185,20 +341,18 @@ export default function YayasanApprovalPage() {
             kamadSkType = "kamad_nonpns"
         }
 
-        // 2. Ambil template aktif sesuai varian, fallback ke kamad_nonpns jika tidak ada
-        let templateRes = await skTemplateApi.getActive(kamadSkType).catch(() => null)
-        // getActive mengembalikan { success, data: { file_url, ... } } — ambil dari .data
-        let templateData = templateRes?.data ?? templateRes
-        if (!templateData?.file_url) {
-            throw new Error(`Template SK Kamad (${kamadSkType}) belum diupload atau belum diaktifkan. Silakan periksa di menu Template SK.`);
+        // 2. Ambil template aktif sesuai varian secara aman & terotentikasi (dengan auto-fallback ke template statis)
+        let arrayBuffer: ArrayBuffer
+        try {
+            arrayBuffer = await getActiveSkTemplateBinary(kamadSkType)
+        } catch (err: any) {
+            console.warn(`Gagal ambil template ${kamadSkType}, mencoba fallback kamad_nonpns/kamad...`, err)
+            try {
+                arrayBuffer = await getActiveSkTemplateBinary('kamad_nonpns')
+            } catch {
+                arrayBuffer = await getActiveSkTemplateBinary('kamad')
+            }
         }
-
-        // 3. Fetch template sebagai binary
-        const resp = await fetch(templateData.file_url, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-        })
-        if (!resp.ok) throw new Error("Gagal mengunduh template SK")
-        const arrayBuffer = await resp.arrayBuffer()
 
         // 4. QR Code
         const verificationUrl = getSkVerificationUrl(item.id)
@@ -447,6 +601,7 @@ export default function YayasanApprovalPage() {
                         <TableRow>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Informasi Calon</TableHead>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Madrasah Tujuan</TableHead>
+                            <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Berkas Persyaratan</TableHead>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Periode</TableHead>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest">Status</TableHead>
                             <TableHead className="p-8 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Opsi</TableHead>
@@ -454,16 +609,45 @@ export default function YayasanApprovalPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={5} className="text-center py-24 animate-pulse uppercase font-black text-slate-300 text-xs italic tracking-widest">Syincing Approval Queue...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} className="text-center py-24 animate-pulse uppercase font-black text-slate-300 text-xs italic tracking-widest">Syincing Approval Queue...</TableCell></TableRow>
                         ) : requests.length === 0 ? (
-                            <TableRow><TableCell colSpan={5} className="text-center py-24 font-bold text-slate-300 text-xs italic">Tidak ada antrian pengajuan</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} className="text-center py-24 font-bold text-slate-300 text-xs italic">Tidak ada antrian pengajuan</TableCell></TableRow>
                         ) : requests.map((item: any) => (
                             <TableRow key={item.id} className="hover:bg-slate-50/30 transition-colors">
                                 <TableCell className="p-8">
-                                    <div className="font-black text-slate-800 text-sm tracking-tight">{item.teacher?.nama}</div>
+                                    <div className="font-black text-slate-800 text-sm tracking-tight">{item.teacher?.nama || item.teacher_name}</div>
                                     <div className="text-[9px] font-bold text-slate-400 uppercase mt-1">NIP: {item.teacher?.nip || '-'}</div>
                                 </TableCell>
-                                <TableCell className="p-8 font-bold text-slate-500 text-xs">{item.school?.nama}</TableCell>
+                                <TableCell className="p-8 font-bold text-slate-500 text-xs">{item.school?.nama || item.school_name}</TableCell>
+                                <TableCell className="p-8">
+                                    {item.surat_permohonan_url || item.sk_url || item.teacher?.surat_permohonan_url ? (
+                                        <div className="flex flex-col gap-1.5 items-start">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleOpenDocViewer(item, 'surat_permohonan')}
+                                                className="h-8 text-[11px] font-bold rounded-xl border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-100/80 hover:border-blue-300 transition-all flex items-center gap-1.5 shadow-sm"
+                                            >
+                                                <FileText className="w-3.5 h-3.5 text-blue-600" />
+                                                <span>Surat Permohonan</span>
+                                            </Button>
+                                            {item.surat_permohonan_number && (
+                                                <span className="text-[10px] text-slate-500 font-mono tracking-tight">
+                                                    No: {item.surat_permohonan_number}
+                                                </span>
+                                            )}
+                                            {item.surat_permohonan_date && (
+                                                <span className="text-[9px] text-slate-400 flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" /> {item.surat_permohonan_date}
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Badge variant="outline" className="text-[10px] font-medium text-slate-400 border-dashed border-slate-200 bg-slate-50/50 py-1 px-2.5">
+                                            <FileWarning className="w-3 h-3 mr-1 text-slate-400" /> Belum Diupload
+                                        </Badge>
+                                    )}
+                                </TableCell>
                                 <TableCell className="p-8 text-center font-black text-xs">
                                      <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg">Ke-{item.periode}</span>
                                 </TableCell>
@@ -477,6 +661,16 @@ export default function YayasanApprovalPage() {
                                 </TableCell>
                                 <TableCell className="p-8 text-right">
                                     <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            title="Lihat Berkas Persyaratan & Detail"
+                                            onClick={() => handleOpenDocViewer(item, 'surat_permohonan')}
+                                            className="h-10 rounded-xl border-slate-200 font-black uppercase text-[10px] tracking-widest px-3.5 text-slate-700 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm flex items-center gap-1.5"
+                                        >
+                                            <Eye className="w-4 h-4 text-blue-600" />
+                                            <span className="hidden sm:inline">Berkas</span>
+                                        </Button>
                                         {item.status === 'pending' && (
                                             <>
                                                 <Button size="sm" onClick={() => handleApprove(item.id)} disabled={isProcessing} className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest px-6 shadow-lg shadow-emerald-100">
@@ -574,6 +768,320 @@ export default function YayasanApprovalPage() {
                     <Input type="file" accept=".pdf" onChange={e => e.target.files?.[0] && handleUploadSkFinal(e.target.files[0])} className="hidden" id="sk-upload" />
                     <Button asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest bg-white border shadow-sm text-slate-600 hover:bg-slate-50">
                         <label htmlFor="sk-upload">Pilih Berkas PDF</label>
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+
+        {/* Document Viewer Modal */}
+        <Dialog open={isDocViewerOpen} onOpenChange={(v) => { if (!v) handleCloseDocViewer() }}>
+            <DialogContent className="max-w-5xl w-[95vw] h-[90vh] max-h-[900px] p-0 border-0 shadow-2xl rounded-[2.5rem] overflow-hidden flex flex-col bg-white">
+                {/* Modal Header */}
+                <div className="p-6 sm:p-8 border-b bg-gradient-to-r from-slate-50 via-blue-50/20 to-slate-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 shadow-sm">
+                            <FileCheck className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight truncate">
+                                    {selectedCandidate?.teacher?.nama || selectedCandidate?.teacher_name || "Calon Kepala"}
+                                </h2>
+                                <Badge className={cn("rounded-lg text-[9px] font-black uppercase px-2.5 py-0.5", 
+                                    selectedCandidate?.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 
+                                    selectedCandidate?.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                                )}>
+                                    {selectedCandidate?.status === 'active' ? 'Disetujui' : selectedCandidate?.status === 'rejected' ? 'Ditolak' : 'Menunggu Approval'}
+                                </Badge>
+                                <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black">
+                                    Periode Ke-{selectedCandidate?.periode}
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium mt-1 flex items-center gap-2 truncate">
+                                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>{selectedCandidate?.school?.nama || selectedCandidate?.school_name}</span>
+                                {selectedCandidate?.teacher?.nip && (
+                                    <span className="text-slate-400">· NIP: {selectedCandidate.teacher.nip}</span>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                        {currentDocUrl && docBlobUrl && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const ext = currentDocUrl.split('.').pop() || 'pdf'
+                                        const fname = `Berkas_${(selectedCandidate?.teacher?.nama || selectedCandidate?.teacher_name || 'calon').replace(/\s+/g, '_')}.${ext}`
+                                        saveAs(docBlobUrl, fname)
+                                    }}
+                                    className="h-10 rounded-xl border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 flex items-center gap-1.5"
+                                >
+                                    <Download className="w-4 h-4 text-slate-500" />
+                                    <span className="hidden md:inline">Unduh Berkas</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => window.open(resolveViewerUrl(currentDocUrl), '_blank')}
+                                    className="h-10 rounded-xl border-slate-200 text-blue-600 font-bold text-xs hover:bg-blue-50 flex items-center gap-1.5"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    <span className="hidden md:inline">Tab Baru</span>
+                                </Button>
+                            </>
+                        )}
+                        {selectedCandidate?.status === 'pending' && (
+                            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                                <Button
+                                    size="sm"
+                                    onClick={async () => {
+                                        await handleApprove(selectedCandidate.id)
+                                        handleCloseDocViewer()
+                                    }}
+                                    disabled={isProcessing}
+                                    className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-widest px-4 shadow-lg shadow-emerald-100 flex items-center gap-1.5"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>Approve</span>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setSelectedId(selectedCandidate.id)
+                                        setRejectReason("")
+                                        setIsRejectModalOpen(true)
+                                        handleCloseDocViewer()
+                                    }}
+                                    className="h-10 rounded-xl text-rose-600 font-black uppercase text-[10px] tracking-widest px-3 hover:bg-rose-50 flex items-center gap-1.5"
+                                >
+                                    <AlertCircle className="w-4 h-4" />
+                                    <span>Reject</span>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Tabs Bar */}
+                <div className="border-b px-6 sm:px-8 bg-white">
+                    <Tabs
+                        value={activeDocTab}
+                        onValueChange={(v: any) => {
+                            setActiveDocTab(v)
+                            loadCandidateDocument(selectedCandidate, v)
+                        }}
+                    >
+                        <TabsList className="h-12 bg-transparent p-0 gap-6 border-b-0">
+                            <TabsTrigger
+                                value="surat_permohonan"
+                                className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:bg-transparent font-bold text-xs uppercase tracking-wider px-1 gap-2"
+                            >
+                                <FileText className="w-4 h-4" />
+                                Surat Permohonan
+                                {(selectedCandidate?.surat_permohonan_url || selectedCandidate?.sk_url || selectedCandidate?.teacher?.surat_permohonan_url) && (
+                                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                                )}
+                            </TabsTrigger>
+                            {selectedCandidate?.teacher?.ijazah_url && (
+                                <TabsTrigger
+                                    value="ijazah"
+                                    className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:bg-transparent font-bold text-xs uppercase tracking-wider px-1 gap-2"
+                                >
+                                    <GraduationCap className="w-4 h-4" />
+                                    Ijazah Guru
+                                </TabsTrigger>
+                            )}
+                            <TabsTrigger
+                                value="metadata"
+                                className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:bg-transparent font-bold text-xs uppercase tracking-wider px-1 gap-2"
+                            >
+                                <User className="w-4 h-4" />
+                                Rincian & Rekomendasi
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
+
+                {/* Preview / Content Body */}
+                <div className="flex-1 overflow-auto p-6 sm:p-8 bg-slate-50/50">
+                    {activeDocTab === 'metadata' ? (
+                        <div className="max-w-3xl mx-auto space-y-6">
+                            <Card className="border border-slate-100 shadow-sm rounded-2xl bg-white overflow-hidden">
+                                <CardHeader className="p-6 border-b bg-slate-50/60">
+                                    <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <FileText className="w-4 h-4 text-blue-500" />
+                                        Informasi Berkas & Surat Pengantar
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Nomor Surat Permohonan</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.surat_permohonan_number || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Tanggal Surat Permohonan</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.surat_permohonan_date || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Nomor Surat Rekomendasi MWCNU</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.nomor_surat_rekomendasi || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Tanggal Rekomendasi</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.tanggal_surat_rekomendasi || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Pangkat / Golongan</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.golongan || selectedCandidate?.teacher?.golongan || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">TMT & Selesai Masa Jabatan</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">
+                                            {selectedCandidate?.start_date || '-'} s/d {selectedCandidate?.end_date || '-'}
+                                        </div>
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Catatan / Keterangan</div>
+                                        <div className="font-medium text-slate-600 mt-0.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            {selectedCandidate?.keterangan || 'Tidak ada catatan tambahan dari pengaju.'}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border border-slate-100 shadow-sm rounded-2xl bg-white overflow-hidden">
+                                <CardHeader className="p-6 border-b bg-slate-50/60">
+                                    <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <User className="w-4 h-4 text-emerald-500" />
+                                        Biodata Calon Kepala
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Nama Lengkap</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.teacher?.nama || selectedCandidate?.teacher_name || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Nomor Induk Ma'arif (NIM)</div>
+                                        <div className="font-mono font-bold text-slate-800 mt-0.5">{selectedCandidate?.teacher?.nomor_induk_maarif || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">NIP / Status</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">
+                                            {selectedCandidate?.teacher?.nip || '-'} ({selectedCandidate?.teacher?.status || 'Non-PNS'})
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">NUPTK</div>
+                                        <div className="font-mono font-bold text-slate-800 mt-0.5">{selectedCandidate?.teacher?.nuptk || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Pendidikan Terakhir</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.teacher?.pendidikan_terakhir || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] font-black uppercase text-slate-400">Nomor KTA</div>
+                                        <div className="font-bold text-slate-800 mt-0.5">{selectedCandidate?.teacher?.kta_number || '-'}</div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    ) : docLoading ? (
+                        <div className="h-full min-h-[450px] flex flex-col items-center justify-center gap-3">
+                            <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+                            <p className="font-black text-slate-600 text-sm uppercase tracking-widest">
+                                Mengunduh dan Memuat Berkas Dokumen...
+                            </p>
+                            <p className="text-xs text-slate-400">Menghubungkan ke media server terotentikasi</p>
+                        </div>
+                    ) : docError ? (
+                        <div className="h-full min-h-[450px] flex flex-col items-center justify-center gap-4 text-center max-w-md mx-auto p-6">
+                            <div className="w-16 h-16 rounded-3xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <FileWarning className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Berkas Tidak Tersedia</h3>
+                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">{docError}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => loadCandidateDocument(selectedCandidate, activeDocTab)}
+                                    className="rounded-xl font-bold text-xs"
+                                >
+                                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Muat Ulang
+                                </Button>
+                                {currentDocUrl && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => window.open(resolveViewerUrl(currentDocUrl), '_blank')}
+                                        className="rounded-xl font-bold text-xs bg-blue-600 text-white hover:bg-blue-700"
+                                    >
+                                        <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Buka Tautan
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    ) : docFileType === 'pdf' && docBlobUrl ? (
+                        <div className="h-full min-h-[550px] rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm flex flex-col">
+                            <iframe
+                                src={docBlobUrl}
+                                className="w-full flex-1 border-0"
+                                title="Pratinjau PDF Berkas Persyaratan"
+                            />
+                        </div>
+                    ) : docFileType === 'docx' && docHtml ? (
+                        <div className="h-full min-h-[550px] p-8 sm:p-12 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-y-auto prose prose-slate max-w-none text-slate-800">
+                            <div dangerouslySetInnerHTML={{ __html: docHtml }} />
+                        </div>
+                    ) : docFileType === 'image' && docBlobUrl ? (
+                        <div className="h-full min-h-[550px] rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center p-4 overflow-auto">
+                            <img
+                                src={docBlobUrl}
+                                alt="Pratinjau Berkas"
+                                className="max-h-[500px] max-w-full object-contain rounded-xl shadow-md border border-slate-100"
+                            />
+                        </div>
+                    ) : (
+                        <div className="h-full min-h-[450px] flex flex-col items-center justify-center gap-4 text-center">
+                            <FileText className="w-16 h-16 text-slate-300" />
+                            <div>
+                                <h3 className="text-base font-black text-slate-800 uppercase">Format Berkas Siap Diunduh</h3>
+                                <p className="text-xs text-slate-500 mt-1">Pratinjau langsung tidak didukung untuk format ini.</p>
+                            </div>
+                            {docBlobUrl && (
+                                <Button
+                                    size="sm"
+                                    onClick={() => {
+                                        const ext = currentDocUrl?.split('.').pop() || 'dat'
+                                        saveAs(docBlobUrl, `Berkas_${selectedCandidate?.teacher_name || 'calon'}.${ext}`)
+                                    }}
+                                    className="rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    <Download className="w-4 h-4 mr-1.5" /> Unduh Berkas
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Modal Footer */}
+                <div className="p-4 sm:p-6 border-t bg-white flex justify-between items-center">
+                    <div className="text-[11px] text-slate-400 font-medium">
+                        {currentDocUrl ? `Lokasi: ${currentDocUrl.split('/').slice(-2).join('/')}` : 'Detail Kredensial'}
+                    </div>
+                    <Button
+                        variant="ghost"
+                        onClick={handleCloseDocViewer}
+                        className="rounded-xl font-black uppercase text-[10px] tracking-widest text-slate-500 hover:bg-slate-100 px-6"
+                    >
+                        Tutup
                     </Button>
                 </div>
             </DialogContent>

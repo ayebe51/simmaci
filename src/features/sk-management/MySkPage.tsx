@@ -14,6 +14,7 @@ import { skApi, headmasterApi, authApi, skTemplateApi, getFileUrl } from "@/lib/
 import { getSkVerificationUrl } from "@/utils/verification"
 import { deriveEndDate } from "@/features/sk-management/utils/skDateUtils"
 import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
+import { getActiveSkTemplateBinary } from "@/lib/templateFetcher"
 
 // DOCX Generation Imports
 import Docxtemplater from "docxtemplater"
@@ -204,27 +205,7 @@ export default function MySkPage() {
         return (isUnder11Months || isFirstGty) ? "diangkat sebagai" : "diangkat kembali sebagai"
       })()
 
-      let fileUrl = `/templates/sk-${templateId}-template.docx`;
-      try {
-          const res = await skTemplateApi.getActive(templateId);
-          if (res?.file_url) {
-              fileUrl = getFileUrl(res.file_url);
-          }
-      } catch (err: any) {
-          if (err.response?.status !== 404) {
-              console.warn("Failed to fetch active template from db, falling back to static", err);
-          }
-      }
-
-      const resp = await fetch(fileUrl)
-      if (!resp.ok) throw new Error(`Gagal mengunduh file template (${resp.status})`)
-      
-      const arrayBuffer = await resp.arrayBuffer()
-      const bytes = new Uint8Array(arrayBuffer)
-      let binary = ''
-      for (let b = 0; b < bytes.byteLength; b++) {
-          binary += String.fromCharCode(bytes[b])
-      }
+      const { arrayBuffer, binary } = await getActiveSkTemplateBinary(templateId)
 
       const verificationUrl = getSkVerificationUrl(sk.nomor_sk)
       const qrDataUrl = await QRCode.toDataURL(verificationUrl, { width: 400, margin: 1 })

@@ -64,6 +64,12 @@ class MinioProxyController extends Controller
 
             // Authentication check: user must be authenticated via Sanctum token
             $user = $request->user('sanctum') ?? auth('sanctum')->user();
+            if (! $user && $request->filled('token')) {
+                $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($request->query('token'));
+                if ($personalAccessToken) {
+                    $user = $personalAccessToken->tokenable;
+                }
+            }
             if (! $user) {
                 return response()->json(['error' => 'Unauthenticated.'], 401);
             }

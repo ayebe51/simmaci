@@ -9,7 +9,7 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
  */
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const API_BASE_URL = API_URL;
+export const API_BASE_URL = API_URL;
 export const API_STORAGE_URL = API_BASE_URL.replace('/api', '/storage');
 
 export const getFileUrl = (path: string) => {
@@ -701,6 +701,9 @@ export const skTemplateApi = {
 
   downloadUrl: (id: number) =>
     apiClient.get(`/sk-templates/${id}/download`, { responseType: 'blob' }).then((r) => r),
+
+  downloadArrayBuffer: (id: number): Promise<ArrayBuffer> =>
+    apiClient.get(`/sk-templates/${id}/download`, { responseType: 'arraybuffer' }).then((r) => r.data),
 
   /**
    * Returns the direct stream URL for a template file.

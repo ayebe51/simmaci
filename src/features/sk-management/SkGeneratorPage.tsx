@@ -18,6 +18,7 @@ import { Link } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { skApi, teacherApi, authApi, schoolApi } from "@/lib/api"
 import { useSkTemplate } from "@/features/sk-management/hooks/useSkTemplate"
+import { getActiveSkTemplateBinary } from "@/lib/templateFetcher"
 import { calculatePeriode } from "@/features/sk-management/utils/calculatePeriode"
 import { deriveStartDate, deriveEndDate, deriveTahunAjaran, getCurrentSkYear } from "@/features/sk-management/utils/skDateUtils"
 import { getSkVerificationUrl } from "@/utils/verification"
@@ -543,22 +544,7 @@ export default function SkGeneratorPage() {
             
             // 2. Fetch Template if not cached
             if (!templateCache[templateId]) {
-                const hookResult = skTemplateByType[templateId]
-                if (hookResult?.error) {
-                    throw new Error(hookResult.error)
-                }
-                const templateUrl = hookResult?.templateUrl
-                if (!templateUrl) {
-                    throw new Error(`Template ${templateId} tidak tersedia.`)
-                }
-                const resp = await fetch(templateUrl)
-                if (!resp.ok) throw new Error(`Gagal mengunduh template: ${templateId}`)
-                const arrayBuffer = await resp.arrayBuffer()
-                const bytes = new Uint8Array(arrayBuffer)
-                let binary = ''
-                for (let b = 0; b < bytes.byteLength; b++) {
-                    binary += String.fromCharCode(bytes[b])
-                }
+                const { arrayBuffer, binary } = await getActiveSkTemplateBinary(templateId)
                 templateCache[templateId] = { binary, buffer: arrayBuffer }
             }
             

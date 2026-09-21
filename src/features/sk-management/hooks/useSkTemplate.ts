@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { skTemplateApi } from '@/lib/api'
 import axios from 'axios'
 
+import { STATIC_SK_TEMPLATES } from '@/lib/templateFetcher'
+
 interface UseSkTemplateResult {
   templateUrl: string | null
   isLoading: boolean

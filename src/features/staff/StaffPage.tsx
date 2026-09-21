@@ -13,8 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
-import { Edit, Trash, Trash2, QrCode, Plus, Camera, Loader2, CheckCircle2, Search } from 'lucide-react';
+import { Edit, Trash, Trash2, QrCode, Plus, Camera, Loader2, CheckCircle2, Search, Printer, Download, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import QRCode from 'qrcode';
+import { cn } from '@/lib/utils';
 import * as faceapi from 'face-api.js';
 
 export default function StaffPage() {
@@ -26,6 +28,7 @@ export default function StaffPage() {
   const [isQrOpen, setIsQrOpen] = useState(false);
   const [isFaceOpen, setIsFaceOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [qrMode, setQrMode] = useState<'no_text' | 'with_text'>('no_text');
 
   const [formData, setFormData] = useState({
     nama: '',
@@ -105,7 +108,96 @@ export default function StaffPage() {
 
   const openQr = (staff: any) => {
     setSelectedStaff(staff);
+    setQrMode('no_text');
     setIsQrOpen(true);
+  };
+
+  const handleDownloadQrPng = async () => {
+    if (!selectedStaff?.qr_code) return;
+    try {
+      const qrDataUrl = await QRCode.toDataURL(selectedStaff.qr_code, {
+        width: 1024,
+        margin: 0,
+        errorCorrectionLevel: 'H',
+      });
+
+      const qrImg = new Image();
+      qrImg.src = qrDataUrl;
+      await new Promise((resolve, reject) => {
+        qrImg.onload = resolve;
+        qrImg.onerror = reject;
+      });
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const isNoText = qrMode === 'no_text';
+      const cardWidth = 600;
+      const cardHeight = isNoText ? 600 : 780;
+      const radius = 32;
+
+      canvas.width = cardWidth;
+      canvas.height = cardHeight;
+
+      // Fill white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cardWidth, cardHeight);
+
+      // Draw card border
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(16, 16, cardWidth - 32, cardHeight - 32, radius);
+      } else {
+        ctx.rect(16, 16, cardWidth - 32, cardHeight - 32);
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // Draw QR Code
+      const qrSize = 500;
+      const qrX = (cardWidth - qrSize) / 2;
+      const qrY = isNoText ? (cardHeight - qrSize) / 2 : 50;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+      // Draw Text if not no_text
+      if (!isNoText) {
+        ctx.textAlign = 'center';
+        
+        // Nama
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.fillText(selectedStaff.nama || '', cardWidth / 2, 600);
+
+        // Nomor ID
+        if (selectedStaff.nomor_id) {
+          ctx.font = '600 22px sans-serif';
+          ctx.fillStyle = '#475569';
+          ctx.fillText(selectedStaff.nomor_id, cardWidth / 2, 640);
+        }
+
+        // Jabatan
+        if (selectedStaff.jabatan) {
+          ctx.font = '500 20px sans-serif';
+          ctx.fillStyle = '#64748b';
+          ctx.fillText(selectedStaff.jabatan, cardWidth / 2, 680);
+        }
+      }
+
+      const pngUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      const safeName = (selectedStaff.nama || 'staff').replace(/[\\/*?:"<>|]/g, '').replace(/\s+/g, '_');
+      link.download = `QR_Staff_${safeName}_${isNoText ? 'Tanpa_Teks' : 'Lengkap'}.png`;
+      link.href = pngUrl;
+      link.click();
+      toast.success('QR Code berhasil diunduh (PNG)');
+    } catch (err) {
+      console.error('Failed to download QR PNG:', err);
+      toast.error('Gagal mengunduh QR Code');
+    }
   };
 
   const openFace = (staff: any) => {
@@ -267,31 +359,76 @@ export default function StaffPage() {
       </Dialog>
 
       <Dialog open={isQrOpen} onOpenChange={setIsQrOpen}>
-        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center">
-          <DialogHeader>
-            <DialogTitle className="text-center no-print">QR Code Staff</DialogTitle>
+        <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-6 bg-white rounded-3xl border border-slate-100 shadow-2xl">
+          <DialogHeader className="w-full">
+            <DialogTitle className="text-center no-print text-lg font-black tracking-tight text-slate-900">
+              QR Code Staff
+            </DialogTitle>
           </DialogHeader>
-          <div id="staff-qr-print" className="p-8 bg-white rounded-xl shadow-sm border flex flex-col items-center space-y-4">
+
+          {/* Mode Selector */}
+          <div className="w-full flex bg-slate-100 p-1 rounded-2xl no-print mt-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setQrMode('no_text')}
+              className={cn(
+                "flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer",
+                qrMode === 'no_text'
+                  ? "bg-white text-emerald-800 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Tanpa Teks (Border Saja)
+            </button>
+            <button
+              type="button"
+              onClick={() => setQrMode('with_text')}
+              className={cn(
+                "flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all cursor-pointer",
+                qrMode === 'with_text'
+                  ? "bg-white text-emerald-800 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Dengan Teks
+            </button>
+          </div>
+
+          <div
+            id="staff-qr-print"
+            className={cn(
+              "bg-white rounded-2xl shadow-sm border-2 border-slate-200 flex flex-col items-center justify-center transition-all",
+              qrMode === 'no_text' ? "p-6 space-y-0" : "p-8 space-y-3"
+            )}
+            style={{
+              width: qrMode === 'no_text' ? '304px' : '310px',
+            }}
+          >
             <style>
               {`
                 @media print {
                   body * {
-                    visibility: hidden;
+                    visibility: hidden !important;
                   }
                   #staff-qr-print, #staff-qr-print * {
-                    visibility: visible;
+                    visibility: visible !important;
                   }
                   #staff-qr-print {
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    transform: translate(-50%, -50%);
+                    position: absolute !important;
+                    left: 50% !important;
+                    top: 50% !important;
+                    transform: translate(-50%, -50%) !important;
                     border: 2px solid #e2e8f0 !important;
                     border-radius: 16px !important;
                     box-shadow: none !important;
-                    width: 300px;
-                    padding: 40px;
-                    margin: 0;
+                    margin: 0 !important;
+                    background-color: #ffffff !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: ${qrMode === 'no_text' ? '304px' : '310px'} !important;
+                    padding: ${qrMode === 'no_text' ? '24px' : '32px 24px 28px 24px'} !important;
                   }
                   .no-print {
                     display: none !important;
@@ -302,18 +439,26 @@ export default function StaffPage() {
             {selectedStaff?.qr_code ? (
               <>
                 <QRCodeSVG value={selectedStaff.qr_code} size={256} level="H" />
-                <p className="font-semibold">{selectedStaff.nama}</p>
-                {selectedStaff.nomor_id && <p className="text-sm font-medium">{selectedStaff.nomor_id}</p>}
-                <p className="text-sm text-muted-foreground">{selectedStaff.jabatan}</p>
+                {qrMode === 'with_text' && (
+                  <div className="text-center pt-2 space-y-0.5 w-full">
+                    <p className="font-bold text-slate-900 text-sm">{selectedStaff.nama}</p>
+                    {selectedStaff.nomor_id && (
+                      <p className="text-xs font-semibold text-slate-500">{selectedStaff.nomor_id}</p>
+                    )}
+                    <p className="text-xs text-slate-400 font-medium">{selectedStaff.jabatan || 'Staff'}</p>
+                  </div>
+                )}
               </>
             ) : (
-              <p>QR Code belum di-generate.</p>
+              <p className="text-sm text-slate-400 py-6">QR Code belum di-generate.</p>
             )}
           </div>
-          <DialogFooter className="w-full sm:justify-between flex-row no-print mt-4">
-            <Button variant="outline" onClick={() => window.print()}>Cetak</Button>
-            <Button 
-              variant="destructive" 
+
+          <DialogFooter className="w-full flex flex-col sm:flex-row sm:justify-between items-center gap-2 no-print mt-5 pt-3 border-t border-slate-100">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto"
               onClick={() => {
                 if (confirm('Generate ulang akan membuat QR Code lama tidak berlaku. Yakin?')) {
                   generateQrMutation.mutate(selectedStaff.id);
@@ -321,8 +466,31 @@ export default function StaffPage() {
               }}
               disabled={generateQrMutation.isPending}
             >
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               Generate Ulang
             </Button>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs w-full sm:w-auto"
+                onClick={handleDownloadQrPng}
+                disabled={!selectedStaff?.qr_code}
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5 text-slate-600" />
+                Download PNG
+              </Button>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold w-full sm:w-auto"
+                onClick={() => window.print()}
+                disabled={!selectedStaff?.qr_code}
+              >
+                <Printer className="h-3.5 w-3.5 mr-1.5" />
+                Cetak / PDF
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

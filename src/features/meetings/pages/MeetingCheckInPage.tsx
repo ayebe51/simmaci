@@ -162,10 +162,27 @@ export default function MeetingCheckInPage() {
                   size="sm"
                   className="h-8 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 bg-white"
                   onClick={() => {
+                    const dateStr = meeting?.started_at
+                      ? new Date(meeting.started_at).toLocaleDateString('id-ID', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })
+                      : undefined;
+                    const timeStr = meeting?.started_at
+                      ? `Pukul ${new Date(meeting.started_at).toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })} WIB`
+                      : undefined;
+
                     downloadQrCardImage({
                       text: currentUrl,
                       title: meeting?.title || 'Presensi Rapat',
                       subtitle: participant ? `${participant.name} (${participant.jabatan})` : 'Presensi Kehadiran Peserta',
+                      dateText: dateStr,
+                      timeText: timeStr,
                       locationText: meeting?.location || undefined,
                       filename: `Kartu_QR_${participant ? sanitizeFilename(participant.name) : 'Peserta'}.png`,
                     });

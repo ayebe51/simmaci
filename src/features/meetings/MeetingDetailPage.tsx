@@ -320,10 +320,14 @@ export const MeetingDetailPage: React.FC = () => {
                             const dateStr = meeting.started_at
                               ? formatMeetingDate(meeting.started_at, 'EEEE, d MMMM yyyy')
                               : undefined;
+                            const timeStr = meeting.started_at
+                              ? `Pukul ${formatMeetingDate(meeting.started_at, 'HH:mm')} WIB`
+                              : undefined;
                             await downloadQrCardImage({
                               text: qrVal,
                               title: meeting.title,
                               dateText: dateStr,
+                              timeText: timeStr,
                               locationText: meeting.location || undefined,
                             });
                           } finally {

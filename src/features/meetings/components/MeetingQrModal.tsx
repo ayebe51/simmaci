@@ -148,10 +148,14 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
       const dateStr = meeting.started_at
         ? formatMeetingDate(meeting.started_at, 'EEEE, d MMMM yyyy')
         : undefined;
+      const timeStr = meeting.started_at
+        ? `Pukul ${formatMeetingDate(meeting.started_at, 'HH:mm')} WIB`
+        : undefined;
       await downloadQrCardImage({
         text: qrUrl,
         title: meeting.title,
         dateText: dateStr,
+        timeText: timeStr,
         locationText: meeting.location || undefined,
       });
     } catch {

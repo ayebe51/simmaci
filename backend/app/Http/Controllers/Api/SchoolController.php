@@ -28,6 +28,51 @@ class SchoolController extends Controller
             $query->where('kecamatan', $request->kecamatan);
         }
 
+        if ($request->filled('jenjang') && $request->jenjang !== 'all') {
+            $jenjang = strtoupper(trim($request->jenjang));
+            $query->where(function ($q) use ($jenjang) {
+                if ($jenjang === 'MI') {
+                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['MI'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['MI %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% MI %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%IBTIDAIYAH%']);
+                } elseif ($jenjang === 'MTS') {
+                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['MTS'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['MTS %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% MTS %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%TSANAWIYAH%']);
+                } elseif ($jenjang === 'MA') {
+                    $q->where(function ($sub) {
+                        $sub->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['MA'])
+                            ->orWhere(function ($s2) {
+                                $s2->whereRaw('UPPER(nama) LIKE ?', ['MA %'])
+                                   ->whereRaw('UPPER(nama) NOT LIKE ?', ['SMA %'])
+                                   ->whereRaw('UPPER(nama) NOT LIKE ?', ['SMK %']);
+                            })
+                            ->orWhereRaw('UPPER(nama) LIKE ?', ['%ALIYAH%']);
+                    });
+                } elseif ($jenjang === 'SMK') {
+                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['SMK'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['SMK %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% SMK %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%KEJURUAN%']);
+                } elseif ($jenjang === 'RA') {
+                    $q->where(function ($sub) {
+                        $sub->whereRaw('UPPER(COALESCE(jenjang, \'\')) IN (?, ?, ?, ?)', ['RA', 'TK', 'PAUD', 'BA'])
+                            ->orWhereRaw('UPPER(nama) LIKE ?', ['RA %'])
+                            ->orWhereRaw('UPPER(nama) LIKE ?', ['TK %'])
+                            ->orWhereRaw('UPPER(nama) LIKE ?', ['PAUD %'])
+                            ->orWhereRaw('UPPER(nama) LIKE ?', ['%RAUDHATUL%'])
+                            ->orWhereRaw('UPPER(nama) LIKE ?', ['%BUSTANUL%']);
+                    });
+                } else {
+                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', [$jenjang])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ["{$jenjang} %"])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ["% {$jenjang} %"]);
+                }
+            });
+        }
+
         $schools = $query->orderBy('nama')
             ->paginate($request->input('per_page', 15));
 

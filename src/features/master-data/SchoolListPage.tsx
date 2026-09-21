@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog, School as SchoolIcon } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog, School as SchoolIcon, Filter, Layers, CheckCircle2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useNavigate, Link } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -26,6 +26,37 @@ import { toast } from "sonner"
 import ExcelImportModal from "./components/ExcelImportModal"
 import * as XLSX from "xlsx"
 import HeadmasterProfileForm from "../schools/components/HeadmasterProfileForm"
+import { cn } from "@/lib/utils"
+
+export function detectSchoolJenjang(school: { jenjang?: string | null; nama?: string | null }): string {
+  if (school.jenjang && school.jenjang.trim() !== '') {
+    const j = school.jenjang.trim().toUpperCase()
+    if (j.includes('RA') || j.includes('TK') || j.includes('PAUD') || j.includes('BA')) return 'RA'
+    if (j.includes('MI') || j.includes('SD')) return 'MI'
+    if (j.includes('MTS') || j.includes('SMP')) return 'MTs'
+    if (j.includes('SMK')) return 'SMK'
+    if (j.includes('MA') || j.includes('SMA')) return 'MA'
+    return j
+  }
+
+  const name = (school.nama || '').trim().toUpperCase()
+  if (/\b(RA|TK|PAUD|BA)\b|RAUDHATUL|BUSTANUL/i.test(name)) return 'RA'
+  if (/\b(MI|SD)\b|IBTIDAIYAH/i.test(name)) return 'MI'
+  if (/\b(MTS|SMP)\b|TSANAWIYAH/i.test(name)) return 'MTs'
+  if (/\bSMK\b|KEJURUAN/i.test(name)) return 'SMK'
+  if (/\b(MA|SMA)\b|ALIYAH/i.test(name)) return 'MA'
+
+  return 'Lainnya'
+}
+
+export const JENJANG_OPTIONS = [
+  { value: 'all', label: 'Semua Jenjang', fullName: 'Kolektif Multi-Sheet', color: 'emerald' },
+  { value: 'RA', label: 'RA / PAUD', fullName: 'Raudhatul Athfal / PAUD', color: 'purple' },
+  { value: 'MI', label: 'MI', fullName: 'Madrasah Ibtidaiyah', color: 'emerald' },
+  { value: 'MTs', label: 'MTs', fullName: 'Madrasah Tsanawiyah', color: 'blue' },
+  { value: 'MA', label: 'MA', fullName: 'Madrasah Aliyah', color: 'amber' },
+  { value: 'SMK', label: 'SMK', fullName: 'Sekolah Menengah Kejuruan', color: 'rose' },
+]
 
 interface School {
   id: number
@@ -68,20 +99,74 @@ export default function SchoolListPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [filterKecamatan, setFilterKecamatan] = useState("all")
+  const [filterJenjang, setFilterJenjang] = useState("all")
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
+  const [modalFilterJenjang, setModalFilterJenjang] = useState("all")
+  const [modalFilterKecamatan, setModalFilterKecamatan] = useState("all")
   const [selectedHeadmasterSchool, setSelectedHeadmasterSchool] = useState<School | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 15
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchTerm, filterKecamatan, filterJenjang])
+
   // 🔥 REST API QUERY
   const { data: schoolsData, isLoading } = useQuery({
-    queryKey: ['schools', currentPage, debouncedSearchTerm, filterKecamatan],
+    queryKey: ['schools', currentPage, debouncedSearchTerm, filterKecamatan, filterJenjang],
     queryFn: () => schoolApi.paginate({
       page: currentPage,
       per_page: itemsPerPage,
       search: debouncedSearchTerm || undefined,
-      kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan
+      kecamatan: filterKecamatan === "all" ? undefined : filterKecamatan,
+      jenjang: filterJenjang === "all" ? undefined : filterJenjang
     })
   })
+
+  // Summary query for counts per jenjang
+  const { data: allSchoolsSummary } = useQuery({
+    queryKey: ['schools-all-summary'],
+    queryFn: () => schoolApi.paginate({ page: 1, per_page: 9999 }),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const countsByJenjang = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: 0,
+      RA: 0,
+      MI: 0,
+      MTs: 0,
+      MA: 0,
+      SMK: 0,
+    }
+    const list = allSchoolsSummary?.data || []
+    counts.all = list.length
+    list.forEach((s: any) => {
+      const j = detectSchoolJenjang(s)
+      if (counts[j] !== undefined) {
+        counts[j]++
+      }
+    })
+    return counts
+  }, [allSchoolsSummary?.data])
+
+  const getJenjangBadge = (school: { jenjang?: string | null; nama?: string | null }) => {
+    const j = detectSchoolJenjang(school)
+    switch (j) {
+      case 'RA':
+        return <Badge className="bg-purple-100 text-purple-700 border-purple-200 font-semibold px-2 py-0.5 text-xs">RA</Badge>
+      case 'MI':
+        return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-semibold px-2 py-0.5 text-xs">MI</Badge>
+      case 'MTs':
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200 font-semibold px-2 py-0.5 text-xs">MTs</Badge>
+      case 'MA':
+        return <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-semibold px-2 py-0.5 text-xs">MA</Badge>
+      case 'SMK':
+        return <Badge className="bg-rose-100 text-rose-700 border-rose-200 font-semibold px-2 py-0.5 text-xs">SMK</Badge>
+      default:
+        return <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 font-semibold px-2 py-0.5 text-xs">{j}</Badge>
+    }
+  }
 
   const schools = schoolsData?.data || []
   const totalPages = schoolsData?.last_page || 1
@@ -164,57 +249,78 @@ export default function SchoolListPage() {
     "Cilacap Selatan", "Cilacap Tengah", "Cilacap Utara", "Kesugihan", "Adipala", "Maos", "Kroya", "Binangun", "Nusawungu", "Sampang", "Karangpucung", "Cimanggu", "Majenang", "Wanareja", "Dayeuhluhur", "Gandrungmangu", "Sidareja", "Kedungreja", "Patimuan", "Bantarsari", "Kawunganten", "Jeruklegi", "Kampung Laut", "Cipari"
   ].sort()
 
-  // ── Export Excel (client-side, grouped by kecamatan) ──
-  const handleExportExcel = async () => {
+  // ── Export Excel (client-side, grouped by jenjang & kecamatan) ──
+  const handleExportExcel = async (targetJenjang: string = 'all', targetKecamatan: string = 'all') => {
     setIsExporting(true)
     try {
       const res = await schoolApi.paginate({ page: 1, per_page: 9999 })
-      const allSchools: any[] = res.data || []
+      let allSchools: any[] = res.data || []
 
       if (allSchools.length === 0) {
-        toast.error('Tidak ada data lembaga untuk diekspor')
+        toast.error('Tidak ada data satuan pendidikan untuk diekspor')
+        return
+      }
+
+      // Filter by Jenjang if specified
+      if (targetJenjang !== 'all') {
+        allSchools = allSchools.filter(s => detectSchoolJenjang(s) === targetJenjang)
+      }
+
+      // Filter by Kecamatan if specified
+      if (targetKecamatan !== 'all') {
+        allSchools = allSchools.filter(s => (s.kecamatan || '').trim().toLowerCase() === targetKecamatan.trim().toLowerCase())
+      }
+
+      if (allSchools.length === 0) {
+        toast.warning(`Tidak ada data satuan pendidikan untuk jenjang ${targetJenjang} di kecamatan ${targetKecamatan}`)
         return
       }
 
       // ── Header definitions ──────────────────────────────────────────
-      // Sheet "Semua Lembaga" — termasuk kolom Kecamatan
+      // Sheet dengan kolom Kecamatan
       const HEADERS_ALL = [
-        'No', 'Kecamatan', 'Nama Sekolah', 'NSM', 'NPSN', 'NPSM-NU',
-        'Kepala Madrasah', 'No. HP', 'Akreditasi', 'Status',
-        'Alamat', 'Email',
+        'No', 'Kecamatan', 'Nama Satpend', 'Jenjang', 'NSM', 'NPSN', 'NPSM-NU',
+        'Kepala Madrasah', 'No. HP', 'Akreditasi', 'Status Lembaga', 'Status Jamiyyah',
+        'Alamat', 'Kelurahan', 'Email',
       ]
       const COL_WIDTHS_ALL = [
         { wch: 5 },   // No
         { wch: 18 },  // Kecamatan
-        { wch: 35 },  // Nama Sekolah
+        { wch: 35 },  // Nama Satpend
+        { wch: 10 },  // Jenjang
         { wch: 18 },  // NSM
-        { wch: 12 },  // NPSN
-        { wch: 14 },  // NPSM-NU
-        { wch: 30 },  // Kepala Madrasah
+        { wch: 14 },  // NPSN
+        { wch: 16 },  // NPSM-NU
+        { wch: 28 },  // Kepala Madrasah
         { wch: 16 },  // No. HP
         { wch: 12 },  // Akreditasi
-        { wch: 18 },  // Status
+        { wch: 16 },  // Status Lembaga
+        { wch: 16 },  // Status Jamiyyah
         { wch: 40 },  // Alamat
+        { wch: 18 },  // Kelurahan
         { wch: 28 },  // Email
       ]
 
-      // Sheet per kecamatan — tanpa kolom Kecamatan
+      // Sheet per kecamatan (tanpa kolom Kecamatan)
       const HEADERS_KEC = [
-        'No', 'Nama Sekolah', 'NSM', 'NPSN', 'NPSM-NU',
-        'Kepala Madrasah', 'No. HP', 'Akreditasi', 'Status',
-        'Alamat', 'Email',
+        'No', 'Nama Satpend', 'Jenjang', 'NSM', 'NPSN', 'NPSM-NU',
+        'Kepala Madrasah', 'No. HP', 'Akreditasi', 'Status Lembaga', 'Status Jamiyyah',
+        'Alamat', 'Kelurahan', 'Email',
       ]
       const COL_WIDTHS_KEC = [
         { wch: 5 },   // No
-        { wch: 35 },  // Nama Sekolah
+        { wch: 35 },  // Nama Satpend
+        { wch: 10 },  // Jenjang
         { wch: 18 },  // NSM
-        { wch: 12 },  // NPSN
-        { wch: 14 },  // NPSM-NU
-        { wch: 30 },  // Kepala Madrasah
+        { wch: 14 },  // NPSN
+        { wch: 16 },  // NPSM-NU
+        { wch: 28 },  // Kepala Madrasah
         { wch: 16 },  // No. HP
         { wch: 12 },  // Akreditasi
-        { wch: 18 },  // Status
+        { wch: 16 },  // Status Lembaga
+        { wch: 16 },  // Status Jamiyyah
         { wch: 40 },  // Alamat
+        { wch: 18 },  // Kelurahan
         { wch: 28 },  // Email
       ]
 
@@ -227,8 +333,8 @@ export default function SchoolListPage() {
       const enc = (r: number, c: number) => XLSX.utils.encode_cell({ r, c })
 
       // ── Build one worksheet ──────────────────────────────────────────
-      const buildSheet = (schools: any[], headers: string[], colWidths: any[], includeKecamatan: boolean) => {
-        const sorted = [...schools].sort((a, b) => {
+      const buildSheet = (schoolsList: any[], headers: string[], colWidths: any[], includeKecamatan: boolean) => {
+        const sorted = [...schoolsList].sort((a, b) => {
           if (includeKecamatan) {
             const kecCmp = (a.kecamatan || '').localeCompare(b.kecamatan || '', 'id')
             if (kecCmp !== 0) return kecCmp
@@ -238,15 +344,19 @@ export default function SchoolListPage() {
 
         const wsData: any[][] = [headers]
         sorted.forEach((s, i) => {
+          const jenjangVal = detectSchoolJenjang(s)
           const base = [
+            jenjangVal,
             s.nsm || '',
             s.npsn || '',
             s.npsm_nu || '',
             s.kepala_madrasah || '',
             s.telepon || '',
             s.akreditasi || '',
+            s.status_lembaga || '',
             s.status_jamiyyah || '',
             s.alamat || '',
+            s.kelurahan || '',
             s.email || '',
           ]
           const row = includeKecamatan
@@ -267,12 +377,12 @@ export default function SchoolListPage() {
               border: borderStyle,
               alignment: {
                 vertical: 'center',
-                wrapText: c === (includeKecamatan ? 11 : 10), // wrap Alamat & Email
-                horizontal: c === 0 ? 'center' : 'left',
+                wrapText: c === (includeKecamatan ? 12 : 11), // wrap Alamat
+                horizontal: c === 0 || c === (includeKecamatan ? 3 : 2) ? 'center' : 'left',
               },
               ...(r === 0 ? {
                 font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-                fill: { fgColor: { rgb: '1F7A4D' } }, // same green as teacher export
+                fill: { fgColor: { rgb: '1F7A4D' } }, // LP Ma'arif green
               } : {
                 font: { sz: 10 },
                 fill: { fgColor: { rgb: r % 2 !== 0 ? 'FFFFFF' : 'EEF4FF' } },
@@ -283,25 +393,69 @@ export default function SchoolListPage() {
         return ws
       }
 
-      // ── Group by kecamatan ───────────────────────────────────────────
-      const grouped = new Map<string, any[]>()
-      for (const s of allSchools) {
-        const kec = s.kecamatan || '(Tidak Diketahui)'
-        if (!grouped.has(kec)) grouped.set(kec, [])
-        grouped.get(kec)!.push(s)
-      }
-      const sortedKecamatan = [...grouped.keys()].sort((a, b) => a.localeCompare(b, 'id'))
-
       // ── Build workbook ───────────────────────────────────────────────
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, buildSheet(allSchools, HEADERS_ALL, COL_WIDTHS_ALL, true), 'Semua Lembaga')
-      for (const kec of sortedKecamatan) {
-        const sheetName = kec.replace(/[:\\/?*[\]]/g, '').slice(0, 31)
-        XLSX.utils.book_append_sheet(wb, buildSheet(grouped.get(kec)!, HEADERS_KEC, COL_WIDTHS_KEC, false), sheetName)
+      const dateStr = new Date().toISOString().slice(0, 10)
+
+      if (targetJenjang === 'all' && targetKecamatan === 'all') {
+        // Main summary sheet: Semua Satpend
+        XLSX.utils.book_append_sheet(wb, buildSheet(allSchools, HEADERS_ALL, COL_WIDTHS_ALL, true), 'Semua Satpend')
+
+        // Add sub-sheets per jenjang
+        const jenjangList = ['MI', 'MTs', 'MA', 'SMK', 'RA']
+        for (const j of jenjangList) {
+          const filtered = allSchools.filter(s => detectSchoolJenjang(s) === j)
+          if (filtered.length > 0) {
+            XLSX.utils.book_append_sheet(wb, buildSheet(filtered, HEADERS_ALL, COL_WIDTHS_ALL, true), `Satpend ${j}`)
+          }
+        }
+
+        // Add sub-sheets per kecamatan
+        const groupedKec = new Map<string, any[]>()
+        for (const s of allSchools) {
+          const kec = s.kecamatan || '(Lainnya)'
+          if (!groupedKec.has(kec)) groupedKec.set(kec, [])
+          groupedKec.get(kec)!.push(s)
+        }
+        const sortedKecamatan = [...groupedKec.keys()].sort((a, b) => a.localeCompare(b, 'id'))
+        for (const kec of sortedKecamatan) {
+          const sheetName = kec.replace(/[:\\/?*[\]]/g, '').slice(0, 31)
+          XLSX.utils.book_append_sheet(wb, buildSheet(groupedKec.get(kec)!, HEADERS_KEC, COL_WIDTHS_KEC, false), sheetName)
+        }
+
+        XLSX.writeFile(wb, `Data_Satpend_Semua_Jenjang_${dateStr}.xlsx`)
+        toast.success(`Berhasil export ${allSchools.length} satpend (Semua Jenjang & Kecamatan)!`)
+      } else if (targetJenjang !== 'all' && targetKecamatan === 'all') {
+        // Single jenjang, all kecamatan
+        XLSX.utils.book_append_sheet(wb, buildSheet(allSchools, HEADERS_ALL, COL_WIDTHS_ALL, true), `Semua Satpend ${targetJenjang}`)
+
+        // Group by kecamatan for this jenjang
+        const groupedKec = new Map<string, any[]>()
+        for (const s of allSchools) {
+          const kec = s.kecamatan || '(Lainnya)'
+          if (!groupedKec.has(kec)) groupedKec.set(kec, [])
+          groupedKec.get(kec)!.push(s)
+        }
+        const sortedKecamatan = [...groupedKec.keys()].sort((a, b) => a.localeCompare(b, 'id'))
+        for (const kec of sortedKecamatan) {
+          const sheetName = kec.replace(/[:\\/?*[\]]/g, '').slice(0, 31)
+          XLSX.utils.book_append_sheet(wb, buildSheet(groupedKec.get(kec)!, HEADERS_KEC, COL_WIDTHS_KEC, false), sheetName)
+        }
+
+        XLSX.writeFile(wb, `Data_Satpend_${targetJenjang}_Semua_Kecamatan_${dateStr}.xlsx`)
+        toast.success(`Berhasil export ${allSchools.length} satpend jenjang ${targetJenjang}!`)
+      } else {
+        // Specific jenjang and/or specific kecamatan
+        const titleSheet = `${targetJenjang !== 'all' ? targetJenjang : 'Satpend'} ${targetKecamatan !== 'all' ? targetKecamatan : ''}`.trim().slice(0, 31)
+        XLSX.utils.book_append_sheet(wb, buildSheet(allSchools, HEADERS_ALL, COL_WIDTHS_ALL, true), titleSheet)
+
+        const kecSafe = targetKecamatan !== 'all' ? targetKecamatan.replace(/\s+/g, '_') : 'Semua'
+        const jenjangSafe = targetJenjang !== 'all' ? targetJenjang : 'Semua'
+        XLSX.writeFile(wb, `Data_Satpend_${jenjangSafe}_${kecSafe}_${dateStr}.xlsx`)
+        toast.success(`Berhasil export ${allSchools.length} satpend terfilter!`)
       }
 
-      XLSX.writeFile(wb, `Data_Lembaga_${new Date().toISOString().slice(0, 10)}.xlsx`)
-      toast.success(`Berhasil export ${allSchools.length} lembaga dalam ${sortedKecamatan.length} kecamatan!`)
+      setIsDownloadModalOpen(false)
     } catch (e: any) {
       toast.error('Gagal export: ' + (e.response?.data?.message || e.message))
     } finally {
@@ -393,7 +547,12 @@ export default function SchoolListPage() {
         title="Data Satpend"
         description="Kelola data dan identitas satuan pendidikan di lingkungan LP Ma'arif NU Cilacap."
         actions={[
-          { label: isExporting ? 'Mengekspor...' : 'Export Excel', onClick: handleExportExcel, variant: 'outline', icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" /> },
+          {
+            label: isExporting ? 'Mengekspor...' : 'Download Data Satpend',
+            onClick: () => setIsDownloadModalOpen(true),
+            variant: 'outline',
+            icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-emerald-600" />
+          },
           ...(canToggleSk ? [
               { label: 'Tutup Pengajuan SK', onClick: () => setIsConfirmTutupSkOpen(true), variant: 'outline', icon: <Lock className="h-4 w-4 text-amber-600" /> },
           ] : []),
@@ -419,17 +578,32 @@ export default function SchoolListPage() {
                     />
                 </div>
                 
-                <Select value={filterKecamatan} onValueChange={setFilterKecamatan}>
-                    <SelectTrigger className="w-full sm:w-[220px] h-10 rounded-2xl bg-white border-slate-200">
-                        <SelectValue placeholder="Semua Kecamatan" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-slate-100">
-                        <SelectItem value="all">Semua Kecamatan</SelectItem>
-                        {uniqueKecamatan.map(k => (
-                          <SelectItem key={k} value={k}>{k}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    <Select value={filterJenjang} onValueChange={setFilterJenjang}>
+                        <SelectTrigger className="w-full sm:w-[170px] h-10 rounded-2xl bg-white border-slate-200">
+                            <Layers className="h-4 w-4 mr-2 text-emerald-600" />
+                            <SelectValue placeholder="Semua Jenjang" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-100">
+                            {JENJANG_OPTIONS.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={filterKecamatan} onValueChange={setFilterKecamatan}>
+                        <SelectTrigger className="w-full sm:w-[200px] h-10 rounded-2xl bg-white border-slate-200">
+                            <MapPin className="h-4 w-4 mr-2 text-emerald-600" />
+                            <SelectValue placeholder="Semua Kecamatan" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl border-slate-100">
+                            <SelectItem value="all">Semua Kecamatan</SelectItem>
+                            {uniqueKecamatan.map(k => (
+                              <SelectItem key={k} value={k}>{k}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -437,9 +611,10 @@ export default function SchoolListPage() {
                 <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                     <TableRow className="border-b-0 hover:bg-transparent">
                         <TableHead className="py-3 px-4 font-bold text-emerald-800">NSM</TableHead>
-                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Nama Sekolah</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Jenjang</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Nama Satpend</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800">Kecamatan</TableHead>
-                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Kepala Sekolah</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-emerald-800">Kepala Madrasah</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800 text-center">Pengajuan SK</TableHead>
                         <TableHead className="py-3 px-4 font-bold text-emerald-800 text-right rounded-tr-xl">Aksi</TableHead>
                     </TableRow>
@@ -466,6 +641,7 @@ export default function SchoolListPage() {
                         schools.map((item: School) => (
                             <TableRow key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
                                 <TableCell className="px-4 py-3 font-semibold text-slate-700 text-sm">{item.nsm}</TableCell>
+                                <TableCell className="px-4 py-3">{getJenjangBadge(item)}</TableCell>
                                 <TableCell className="px-4 py-3">
                                     <div className="font-bold text-slate-900 text-sm">{item.nama}</div>
                                     <div className="text-xs text-slate-400 mt-0.5 flex items-start gap-1 max-w-[220px]">
@@ -787,6 +963,151 @@ export default function SchoolListPage() {
           })
         }}
       />
+
+      {/* ── Dialog Download Data Satpend per Jenjang ── */}
+      <Dialog open={isDownloadModalOpen} onOpenChange={setIsDownloadModalOpen}>
+        <DialogContent className="max-w-2xl rounded-3xl p-6 sm:p-8 bg-white border border-slate-100 shadow-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                <FileSpreadsheet className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black tracking-tight text-slate-900">
+                  Download Data Satpend (Excel)
+                </DialogTitle>
+                <DialogDescription className="text-slate-500 text-xs">
+                  Unduh data lembaga satuan pendidikan dalam format file Microsoft Excel (.xlsx) per jenjang atau kolektif.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-6">
+            {/* Quick 1-Click Cards */}
+            <div>
+              <Label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 block">
+                Pilihan Cepat Berdasarkan Jenjang
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {JENJANG_OPTIONS.map((item) => {
+                  const count = countsByJenjang[item.value] ?? 0
+                  const isAll = item.value === 'all'
+                  return (
+                    <button
+                      key={item.value}
+                      onClick={() => handleExportExcel(item.value, 'all')}
+                      disabled={isExporting}
+                      className={cn(
+                        "group relative flex flex-col justify-between p-3.5 rounded-2xl border text-left transition-all duration-200",
+                        "hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 cursor-pointer",
+                        isAll
+                          ? "bg-gradient-to-br from-emerald-50 to-teal-50/40 border-emerald-200 hover:border-emerald-400"
+                          : "bg-slate-50/60 hover:bg-white border-slate-200 hover:border-emerald-300"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full mb-2">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "rounded-lg font-bold text-[10px] px-2 py-0.5 border",
+                            isAll && "bg-emerald-600 text-white border-emerald-600",
+                            item.value === 'RA' && "bg-purple-100 text-purple-700 border-purple-200",
+                            item.value === 'MI' && "bg-emerald-100 text-emerald-700 border-emerald-200",
+                            item.value === 'MTs' && "bg-blue-100 text-blue-700 border-blue-200",
+                            item.value === 'MA' && "bg-amber-100 text-amber-700 border-amber-200",
+                            item.value === 'SMK' && "bg-rose-100 text-rose-700 border-rose-200"
+                          )}
+                        >
+                          {item.label}
+                        </Badge>
+                        <Download className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-800 truncate group-hover:text-emerald-800">
+                          {item.fullName}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5 font-medium">
+                          {count} Lembaga
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Custom Filter Section */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-emerald-600" />
+                <span className="text-xs font-bold text-slate-700">Filter Khusus (Jenjang & Kecamatan)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-500">Jenjang</Label>
+                  <Select value={modalFilterJenjang} onValueChange={setModalFilterJenjang}>
+                    <SelectTrigger className="h-9 rounded-xl bg-white border-slate-200 text-xs">
+                      <SelectValue placeholder="Semua Jenjang" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-100">
+                      {JENJANG_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                          {opt.label} ({opt.fullName})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-slate-500">Kecamatan</Label>
+                  <Select value={modalFilterKecamatan} onValueChange={setModalFilterKecamatan}>
+                    <SelectTrigger className="h-9 rounded-xl bg-white border-slate-200 text-xs">
+                      <SelectValue placeholder="Semua Kecamatan" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-100">
+                      <SelectItem value="all" className="text-xs">Semua Kecamatan</SelectItem>
+                      {uniqueKecamatan.map((k) => (
+                        <SelectItem key={k} value={k} className="text-xs">{k}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => handleExportExcel(modalFilterJenjang, modalFilterKecamatan)}
+                disabled={isExporting}
+                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm mt-2"
+              >
+                {isExporting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                    Mengekspor Data...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-3.5 w-3.5 mr-2" />
+                    Download Sesuai Filter
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 sm:justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDownloadModalOpen(false)}
+              className="rounded-xl text-xs"
+            >
+              Tutup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

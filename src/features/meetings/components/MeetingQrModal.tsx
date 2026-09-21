@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { settingApi } from '@/lib/api';
 import { downloadQrCodeImage, downloadQrCardImage, sanitizeFilename } from '../utils/qrDownload';
 import { formatMeetingDate } from '../utils/dateHelpers';
 
@@ -62,9 +61,6 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
 
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [kopUrl, setKopUrl] = useState<string>('');
-  const [kopCandidates, setKopCandidates] = useState<string[]>([]);
-  const [kopCandidateIndex, setKopCandidateIndex] = useState<number>(0);
 
   // Ambil URL QR Walk-In
   const qrRaw = meeting.qr_umum_url || meeting.qr_umum_token || '';
@@ -75,50 +71,6 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
     : qrRaw
     ? `${window.location.origin}/meetings/${meeting.id}/walk-in?token=${qrRaw}`
     : `${window.location.origin}/meetings/${meeting.id}/walk-in`;
-
-  // Fetch KOP resmi template dari setting
-  useEffect(() => {
-    const fetchKop = async () => {
-      try {
-        let val: string | null = null;
-        try {
-          const res = await settingApi.get('kop_surat_meeting');
-          val = res?.data?.value ?? res?.value ?? null;
-        } catch {
-          const listRes = await settingApi.list();
-          const listData = listRes?.data ?? listRes;
-          if (Array.isArray(listData)) {
-            val = listData.find((s: any) => s?.key === 'kop_surat_meeting')?.value ?? null;
-          } else if (listData && typeof listData === 'object') {
-            val = listData.kop_surat_meeting?.value ?? listData.kop_surat_meeting ?? null;
-          }
-        }
-
-        if (val && typeof val === 'string' && val !== 'null' && val !== 'undefined' && val.trim() !== '') {
-          if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) {
-            setKopCandidates([val]);
-            setKopUrl(val);
-          } else {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-            const cleanPath = val.replace(/^\/?(storage\/|api\/minio\/|api\/files\/view\/)?/, '');
-            const candidateUrls = [
-              `${apiUrl}/files/view/${cleanPath.split('/').map(encodeURIComponent).join('/')}`,
-              `${apiUrl.replace(/\/api$/, '')}/storage/${cleanPath}`,
-              `/storage/${cleanPath}`,
-            ];
-            setKopCandidates(candidateUrls);
-            setKopUrl(candidateUrls[0]);
-          }
-        }
-      } catch (err) {
-        console.warn('Gagal memuat template kop surat resmi:', err);
-      }
-    };
-
-    if (isOpen) {
-      fetchKop();
-    }
-  }, [isOpen]);
 
   const handleCopyLink = () => {
     if (!qrUrl) return;
@@ -168,7 +120,11 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
   const handlePrint = () => {
     try {
       const standeeEl = document.getElementById('printable-qr-standee');
-      const qrSvgEl = standeeEl?.querySelector('svg');
+      // Pastikan mengambil SVG QR Code yang benar, bukan icon SVG Lucide
+      const qrSvgEl =
+        standeeEl?.querySelector('#standee-qr-code-svg') ||
+        standeeEl?.querySelector('.qr-container-standee svg') ||
+        document.getElementById('standee-qr-code-svg');
 
       if (!qrSvgEl) {
         window.print();
@@ -184,22 +140,10 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
         : '';
       const locationStr = meeting.location || '';
 
-      // Header Kop: image jika ada, atau fallback teks resmi
-      const kopHtml = kopUrl
-        ? `<div style="width: 100%; max-width: 650px; display: flex; justify-content: center; border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
-            <img src="${kopUrl}" alt="Kop Surat Resmi LP Ma'arif NU Cilacap" style="max-height: 100px; max-width: 100%; object-fit: contain;" />
-           </div>`
-        : `<div style="width: 100%; border-bottom: 4px double #065f46; padding-bottom: 12px; margin-bottom: 16px; text-align: center;">
-            <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #047857; margin: 0 0 4px 0;">
-              PENGURUS CABANG NAHDLATUL ULAMA KABUPATEN CILACAP
-            </p>
-            <h2 style="font-size: 22px; font-weight: 900; color: #064e3b; margin: 0 0 4px 0; letter-spacing: -0.02em;">
-              LEMBAGA PENDIDIKAN MA'ARIF NU CILACAP
-            </h2>
-            <p style="font-size: 11px; color: #475569; margin: 0;">
-              Jl. Masjid No. 09 Kel. Sidanegara, Kec. Cilacap Tengah, Kab. Cilacap, Jawa Tengah 53223
-            </p>
-           </div>`;
+      // Bersihkan SVG agar responsive mengisi container besar
+      const qrSvgCleanHtml = qrSvgEl.outerHTML
+        .replace(/width="[^"]*"/, 'width="100%"')
+        .replace(/height="[^"]*"/, 'height="100%"');
 
       // Buat iframe terisolasi untuk proses cetak
       const iframe = document.createElement('iframe');
@@ -227,7 +171,7 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
           <style>
             @page {
               size: A4 portrait;
-              margin: 10mm 15mm;
+              margin: 10mm 12mm;
             }
             * {
               box-sizing: border-box;
@@ -243,122 +187,249 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             }
             .standee-container {
               width: 100%;
-              max-width: 190mm;
-              min-height: 265mm;
+              max-width: 185mm;
+              min-height: 270mm;
               margin: 0 auto;
-              padding: 6mm 8mm;
+              padding: 7mm 10mm;
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: space-between;
               text-align: center;
               background: #ffffff;
+              border: 3px double #a7f3d0;
+              border-radius: 20px;
+            }
+            .header-section {
+              width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+            }
+            .logo {
+              height: 56px;
+              width: auto;
+              max-width: 90px;
+              object-fit: contain;
+              margin-bottom: 6px;
+            }
+            .institution-name {
+              font-size: 16px;
+              font-weight: 800;
+              color: #065f46;
+              letter-spacing: 0.06em;
+              margin-bottom: 5px;
             }
             .badge {
               display: inline-block;
-              padding: 5px 16px;
+              padding: 4px 14px;
               border-radius: 9999px;
-              background-color: #d1fae5;
-              color: #065f46;
+              background-color: #ecfdf5;
+              border: 1.5px solid #a7f3d0;
+              color: #047857;
               font-size: 11px;
               font-weight: 800;
               text-transform: uppercase;
               letter-spacing: 0.08em;
-              margin-bottom: 8px;
+            }
+            .header-divider {
+              width: 140mm;
+              height: 1.5px;
+              background: #f1f5f9;
+              border-top: 1px solid #e2e8f0;
+              margin: 10px auto 12px auto;
             }
             .title {
               font-size: 24px;
               font-weight: 900;
               color: #0f172a;
-              margin: 4px 0 10px 0;
-              line-height: 1.3;
-              max-width: 650px;
+              margin: 0 0 10px 0;
+              line-height: 1.35;
+              max-width: 165mm;
             }
             .meta {
               display: flex;
               flex-wrap: wrap;
               justify-content: center;
-              gap: 16px;
-              font-size: 13px;
-              color: #475569;
+              align-items: center;
+              gap: 8px 14px;
+              font-size: 12.5px;
+              color: #334155;
               font-weight: 600;
-              margin-bottom: 12px;
+              margin-bottom: 10px;
+              max-width: 165mm;
+            }
+            .meta-pill {
+              background: #f8fafc;
+              border: 1px solid #e2e8f0;
+              border-radius: 9999px;
+              padding: 4px 12px;
+              display: inline-flex;
+              align-items: center;
             }
             .qr-wrapper {
-              background: white;
-              border: 4px solid #059669;
-              border-radius: 20px;
+              background: #ffffff;
+              border: 4.5px solid #059669;
+              border-radius: 22px;
               padding: 16px;
-              box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-              display: inline-block;
-              margin: 8px 0;
+              box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 6px auto;
+              position: relative;
+              width: 105mm;
+              height: 105mm;
+              box-sizing: border-box;
+            }
+            .qr-wrapper svg {
+              width: 100% !important;
+              height: 100% !important;
+              max-width: 100% !important;
+              max-height: 100% !important;
+              display: block;
+            }
+            .corner {
+              position: absolute;
+              width: 22px;
+              height: 22px;
+              border-color: #047857;
+              border-style: solid;
+              pointer-events: none;
+            }
+            .corner-tl { top: 6px; left: 6px; border-width: 4px 0 0 4px; border-radius: 6px 0 0 0; }
+            .corner-tr { top: 6px; right: 6px; border-width: 4px 4px 0 0; border-radius: 0 6px 0 0; }
+            .corner-bl { bottom: 6px; left: 6px; border-width: 0 0 4px 4px; border-radius: 0 0 0 6px; }
+            .corner-br { bottom: 6px; right: 6px; border-width: 0 4px 4px 0; border-radius: 0 0 6px 0; }
+
+            .action-callout {
+              margin-top: 8px;
+            }
+            .action-title {
+              font-size: 19px;
+              font-weight: 800;
+              color: #065f46;
+              letter-spacing: 0.04em;
+            }
+            .action-subtitle {
+              font-size: 12.5px;
+              color: #64748b;
+              margin-top: 4px;
             }
             .instructions {
               background-color: #f0fdf4;
-              border: 1.5px solid #a7f3d0;
-              border-radius: 14px;
-              padding: 14px 24px;
-              max-width: 480px;
-              margin: 12px auto 0 auto;
-              text-align: left;
+              border: 1.5px solid #bbf7d0;
+              border-radius: 12px;
+              padding: 10px 16px;
+              max-width: 165mm;
+              width: 100%;
+              margin: 10px auto 0 auto;
             }
             .instructions-title {
               font-size: 11px;
               font-weight: 800;
-              color: #064e3b;
+              color: #065f46;
               text-transform: uppercase;
               letter-spacing: 0.06em;
-              margin: 0 0 6px 0;
+              margin-bottom: 6px;
+              text-align: center;
             }
-            .instructions ol {
-              font-size: 12px;
-              color: #065f46;
-              margin: 0;
-              padding-left: 18px;
-              line-height: 1.6;
+            .steps-grid {
+              display: flex;
+              align-items: center;
+              justify-content: space-around;
+              font-size: 11.5px;
+              color: #064e3b;
+              font-weight: 600;
+            }
+            .step-col {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              text-align: left;
+            }
+            .step-num {
+              background: #059669;
+              color: white;
+              width: 19px;
+              height: 19px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 10px;
+              font-weight: 800;
+              flex-shrink: 0;
+            }
+            .step-arrow {
+              color: #10b981;
+              font-size: 15px;
             }
             .footer {
               width: 100%;
               border-top: 1px solid #e2e8f0;
-              padding-top: 12px;
-              margin-top: 16px;
+              padding-top: 8px;
+              margin-top: 10px;
               display: flex;
               justify-content: space-between;
-              font-size: 11px;
+              font-size: 10.5px;
               color: #94a3b8;
+              font-weight: 600;
+              letter-spacing: 0.04em;
             }
           </style>
         </head>
         <body>
           <div class="standee-container">
-            <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-              ${kopHtml}
+            <div class="header-section">
+              <img src="/logo-maarif-hijau.png" onerror="this.onerror=null; this.src='/logo_maarif.png';" class="logo" alt="LP Ma'arif NU" />
+              <div class="institution-name">LP MA'ARIF NU CILACAP</div>
               <div class="badge">PRESENSI DIGITAL RAPAT</div>
+              <div class="header-divider"></div>
               <h1 class="title">${meeting.title}</h1>
               <div class="meta">
-                ${dateStr ? `<span>📅 ${dateStr}</span>` : ''}
-                ${timeStr ? `<span>⏰ Pukul ${timeStr} WIB</span>` : ''}
-                ${locationStr ? `<span>📍 ${locationStr}</span>` : ''}
+                ${dateStr ? `<span class="meta-pill">🗓️ ${dateStr}</span>` : ''}
+                ${timeStr ? `<span class="meta-pill">⏰ Pukul ${timeStr} WIB</span>` : ''}
+                ${locationStr ? `<span class="meta-pill">📍 ${locationStr}</span>` : ''}
               </div>
             </div>
 
             <div class="qr-wrapper">
-              ${qrSvgEl.outerHTML}
+              <div class="corner corner-tl"></div>
+              <div class="corner corner-tr"></div>
+              <div class="corner corner-bl"></div>
+              <div class="corner corner-br"></div>
+              ${qrSvgCleanHtml}
+            </div>
+
+            <div class="action-callout">
+              <div class="action-title">SCAN QR CODE UNTUK PRESENSI</div>
+              <div class="action-subtitle">Arahkan kamera HP Anda untuk mengisi data presensi kehadiran</div>
             </div>
 
             <div class="instructions">
-              <p class="instructions-title">Petunjuk Presensi Kehadiran:</p>
-              <ol>
-                <li>Buka kamera smartphone atau aplikasi pemindai QR Code</li>
-                <li>Arahkan kamera ke QR Code di atas</li>
-                <li>Klik tautan yang muncul untuk membuka formulir kehadiran</li>
-                <li>Isi nama, instansi, jabatan, lalu klik <strong>Kirim Kehadiran</strong></li>
-              </ol>
+              <div class="instructions-title">PANDUAN PRESENSI KEHADIRAN:</div>
+              <div class="steps-grid">
+                <div class="step-col">
+                  <span class="step-num">1</span>
+                  <span>Buka Kamera HP / Pemindai QR</span>
+                </div>
+                <div class="step-arrow">➜</div>
+                <div class="step-col">
+                  <span class="step-num">2</span>
+                  <span>Arahkan ke QR Code & Buka Link</span>
+                </div>
+                <div class="step-arrow">➜</div>
+                <div class="step-col">
+                  <span class="step-num">3</span>
+                  <span>Isi Data & Konfirmasi Hadir</span>
+                </div>
+              </div>
             </div>
 
             <div class="footer">
-              <span>LP Ma'arif NU Cilacap</span>
-              <span>Sistem Informasi Manajemen Madrasah & Rapat Digital (SIMMACI)</span>
+              <span>LP MA'ARIF NU CILACAP</span>
+              <span>SIMMACI • Sistem Presensi Digital Rapat</span>
             </div>
           </div>
         </body>
@@ -382,14 +453,14 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
         }
       };
 
-      // Tunggu gambar (kop surat) termuat sempurna jika ada
+      // Tunggu logo termuat sempurna jika ada
       const imgs = iframe.contentWindow?.document.images;
       if (imgs && imgs.length > 0) {
         let loaded = 0;
         const total = imgs.length;
         const onImgDone = () => {
           loaded++;
-          if (loaded >= total) setTimeout(triggerPrint, 250);
+          if (loaded >= total) setTimeout(triggerPrint, 200);
         };
         for (let i = 0; i < total; i++) {
           if (imgs[i].complete) {
@@ -399,9 +470,9 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             imgs[i].onerror = onImgDone;
           }
         }
-        if (loaded >= total) setTimeout(triggerPrint, 250);
+        if (loaded >= total) setTimeout(triggerPrint, 200);
       } else {
-        setTimeout(triggerPrint, 250);
+        setTimeout(triggerPrint, 200);
       }
     } catch (e) {
       console.error('Error saat cetak standee:', e);
@@ -459,15 +530,23 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
               align-items: center !important;
               justify-content: space-between !important;
               width: 100% !important;
-              max-width: 190mm !important;
-              min-height: 265mm !important;
+              max-width: 185mm !important;
+              min-height: 270mm !important;
               margin: 0 auto !important;
-              padding: 6mm 4mm !important;
-              border: none !important;
+              padding: 7mm 10mm !important;
+              border: 3px double #a7f3d0 !important;
+              border-radius: 20px !important;
               box-shadow: none !important;
               background: white !important;
               page-break-inside: avoid !important;
               break-inside: avoid !important;
+            }
+            #printable-qr-standee .qr-container-standee svg {
+              width: 95mm !important;
+              height: 95mm !important;
+              max-width: 100% !important;
+              max-height: 100% !important;
+              display: block !important;
             }
           }
         ` }} />
@@ -547,68 +626,50 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
         {/* Tampilan Standee / Poster Cetak (Ditampilkan di layar sebagai preview & dicetak pada printer) */}
         <div
           id="printable-qr-standee"
-          className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 flex flex-col items-center text-center shadow-sm relative overflow-hidden"
+          className="bg-white rounded-2xl border-2 border-emerald-100 p-6 sm:p-8 flex flex-col items-center text-center shadow-sm relative overflow-hidden"
         >
-          {/* Header Kop Surat Template Resmi */}
-          <div className="w-full mb-6 flex flex-col items-center">
-            {kopUrl ? (
-              <div className="w-full max-w-2xl flex justify-center border-b-2 border-slate-800 pb-3 mb-4">
-                <img
-                  src={kopUrl}
-                  alt="Kop Surat Resmi LP Ma'arif NU Cilacap"
-                  className="max-h-24 sm:max-h-28 object-contain"
-                  onError={() => {
-                    if (kopCandidateIndex + 1 < kopCandidates.length) {
-                      const nextIndex = kopCandidateIndex + 1;
-                      setKopCandidateIndex(nextIndex);
-                      setKopUrl(kopCandidates[nextIndex]);
-                    } else {
-                      setKopUrl('');
-                    }
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="w-full border-b-4 border-double border-emerald-800 pb-4 mb-5">
-                <p className="text-xs uppercase font-bold tracking-widest text-emerald-700">
-                  PENGURUS CABANG NAHDLATUL ULAMA KABUPATEN CILACAP
-                </p>
-                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-900 mt-0.5">
-                  LEMBAGA PENDIDIKAN MA'ARIF NU CILACAP
-                </h2>
-                <p className="text-xs text-slate-600 mt-1">
-                  Jl. Masjid No. 09 Kel. Sidanegara, Kec. Cilacap Tengah, Kab. Cilacap, Jawa Tengah 53223
-                </p>
-              </div>
-            )}
-
-            {/* Badge Absensi */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">
+          {/* Header Resmi Tanpa Kop */}
+          <div className="w-full mb-3 flex flex-col items-center">
+            <img
+              src="/logo-maarif-hijau.png"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('/logo_maarif.png')) {
+                  target.src = '/logo_maarif.png';
+                }
+              }}
+              alt="Logo LP Ma'arif NU"
+              className="h-14 w-auto object-contain mb-2"
+            />
+            <h2 className="text-xs uppercase font-extrabold tracking-widest text-emerald-800">
+              LP MA'ARIF NU CILACAP
+            </h2>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mt-1.5 mb-2">
               <QrCode className="h-3.5 w-3.5" />
               Presensi Digital Rapat
             </div>
 
             {/* Judul Rapat */}
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 max-w-xl leading-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 max-w-xl leading-tight mt-1">
               {meeting.title}
             </h1>
 
             {/* Tanggal & Lokasi */}
-            <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-2.5 text-xs sm:text-sm text-slate-600 mt-2 font-medium">
               {meeting.started_at && (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
                   <Calendar className="h-3.5 w-3.5 text-emerald-600" />
                   {formatMeetingDate(meeting.started_at, 'EEEE, d MMMM yyyy')}
                 </span>
               )}
               {meeting.started_at && (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
                   <Clock className="h-3.5 w-3.5 text-emerald-600" />
                   Pukul {formatMeetingDate(meeting.started_at, 'HH:mm')} WIB
                 </span>
               )}
               {meeting.location && (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
                   <MapPin className="h-3.5 w-3.5 text-emerald-600" />
                   {meeting.location}
                 </span>
@@ -617,33 +678,52 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
           </div>
 
           {/* QR Code Frame Besar */}
-          <div className="my-2 p-4 bg-white rounded-2xl border-4 border-emerald-600 shadow-md inline-block">
+          <div className="my-2 p-4 bg-white rounded-2xl border-4 border-emerald-600 shadow-md inline-block relative qr-container-standee">
             <QRCodeSVG
+              id="standee-qr-code-svg"
               value={qrUrl}
-              size={240}
+              size={280}
               level="H"
               includeMargin={true}
               className="mx-auto"
             />
           </div>
 
-          {/* Petunjuk Pengisian */}
-          <div className="mt-5 max-w-md bg-emerald-50/80 rounded-xl p-3 border border-emerald-200">
-            <p className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
-              Petunjuk Presensi Kehadiran:
+          {/* Action Heading */}
+          <div className="mt-3 mb-1">
+            <p className="text-base font-extrabold text-emerald-900 tracking-wide">
+              SCAN QR CODE UNTUK PRESENSI
             </p>
-            <ol className="text-left text-xs text-emerald-800 list-decimal list-inside space-y-1 mt-1.5 leading-relaxed">
-              <li>Buka kamera smartphone atau aplikasi pemindai QR Code</li>
-              <li>Arahkan kamera ke QR Code di atas</li>
-              <li>Klik tautan yang muncul untuk membuka formulir kehadiran</li>
-              <li>Isi nama, instansi, jabatan, lalu klik <strong>Kirim Kehadiran</strong></li>
-            </ol>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Arahkan kamera smartphone Anda untuk mengisi data presensi kehadiran
+            </p>
+          </div>
+
+          {/* Petunjuk Pengisian 3 Langkah */}
+          <div className="mt-2 max-w-md w-full bg-emerald-50/80 rounded-xl p-3 border border-emerald-200">
+            <p className="text-xs font-bold text-emerald-900 uppercase tracking-wide text-center mb-2">
+              Panduan Presensi Kehadiran
+            </p>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs text-emerald-800 font-semibold">
+              <div className="flex flex-col items-center">
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold mb-1">1</span>
+                <span>Buka Kamera HP</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold mb-1">2</span>
+                <span>Pindai QR Code</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold mb-1">3</span>
+                <span>Kirim Kehadiran</span>
+              </div>
+            </div>
           </div>
 
           {/* Footer Standee */}
-          <div className="mt-6 pt-4 border-t border-slate-200 w-full flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-6 pt-3 border-t border-slate-200 w-full flex items-center justify-between text-[11px] text-slate-400 font-medium">
             <span>LP Ma'arif NU Cilacap</span>
-            <span>Sistem Informasi Manajemen Madrasah & Rapat Digital (SIMMACI)</span>
+            <span>SIMMACI • Sistem Presensi Digital Rapat</span>
           </div>
         </div>
 

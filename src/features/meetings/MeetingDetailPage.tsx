@@ -253,7 +253,7 @@ export const MeetingDetailPage: React.FC = () => {
                             className="h-8 text-xs bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-100"
                           >
                             <Printer className="h-3.5 w-3.5 mr-1.5" />
-                            Cetak Standee A4
+                            Cetak Standee A5
                           </Button>
                         }
                       />

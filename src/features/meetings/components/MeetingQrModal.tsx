@@ -150,8 +150,8 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
       iframe.style.position = 'fixed';
       iframe.style.left = '-10000px';
       iframe.style.top = '-10000px';
-      iframe.style.width = '210mm';
-      iframe.style.height = '297mm';
+      iframe.style.width = '148mm';
+      iframe.style.height = '210mm';
       iframe.style.border = 'none';
       document.body.appendChild(iframe);
 
@@ -167,11 +167,11 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
         <html lang="id">
         <head>
           <meta charset="utf-8">
-          <title>Standee QR Absensi - ${meeting.title}</title>
+          <title>Standee QR Absensi A5 - ${meeting.title}</title>
           <style>
             @page {
-              size: A4 portrait;
-              margin: 10mm 12mm;
+              size: A5 portrait;
+              margin: 5mm 6mm;
             }
             * {
               box-sizing: border-box;
@@ -187,18 +187,19 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             }
             .standee-container {
               width: 100%;
-              max-width: 185mm;
-              min-height: 270mm;
+              max-width: 136mm;
+              min-height: 198mm;
               margin: 0 auto;
-              padding: 7mm 10mm;
+              padding: 4mm 5mm;
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: space-between;
               text-align: center;
               background: #ffffff;
-              border: 3px double #a7f3d0;
-              border-radius: 20px;
+              border: 2px double #a7f3d0;
+              border-radius: 14px;
+              box-sizing: border-box;
             }
             .header-section {
               width: 100%;
@@ -207,79 +208,79 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
               align-items: center;
             }
             .logo {
-              height: 56px;
+              height: 42px;
               width: auto;
-              max-width: 90px;
+              max-width: 75px;
               object-fit: contain;
-              margin-bottom: 6px;
+              margin-bottom: 4px;
             }
             .institution-name {
-              font-size: 16px;
+              font-size: 13px;
               font-weight: 800;
               color: #065f46;
-              letter-spacing: 0.06em;
-              margin-bottom: 5px;
+              letter-spacing: 0.05em;
+              margin-bottom: 3px;
             }
             .badge {
               display: inline-block;
-              padding: 4px 14px;
+              padding: 2.5px 10px;
               border-radius: 9999px;
               background-color: #ecfdf5;
-              border: 1.5px solid #a7f3d0;
+              border: 1px solid #a7f3d0;
               color: #047857;
-              font-size: 11px;
+              font-size: 9.5px;
               font-weight: 800;
               text-transform: uppercase;
-              letter-spacing: 0.08em;
+              letter-spacing: 0.06em;
             }
             .header-divider {
-              width: 140mm;
-              height: 1.5px;
+              width: 105mm;
+              height: 1px;
               background: #f1f5f9;
               border-top: 1px solid #e2e8f0;
-              margin: 10px auto 12px auto;
+              margin: 6px auto 7px auto;
             }
             .title {
-              font-size: 24px;
+              font-size: 16px;
               font-weight: 900;
               color: #0f172a;
-              margin: 0 0 10px 0;
-              line-height: 1.35;
-              max-width: 165mm;
+              margin: 0 0 6px 0;
+              line-height: 1.3;
+              max-width: 126mm;
             }
             .meta {
               display: flex;
               flex-wrap: wrap;
               justify-content: center;
               align-items: center;
-              gap: 8px 14px;
-              font-size: 12.5px;
+              gap: 4px 8px;
+              font-size: 10px;
               color: #334155;
               font-weight: 600;
-              margin-bottom: 10px;
-              max-width: 165mm;
+              margin-bottom: 6px;
+              max-width: 126mm;
             }
             .meta-pill {
               background: #f8fafc;
               border: 1px solid #e2e8f0;
               border-radius: 9999px;
-              padding: 4px 12px;
+              padding: 2.5px 8px;
               display: inline-flex;
               align-items: center;
             }
             .qr-wrapper {
               background: #ffffff;
-              border: 4.5px solid #059669;
-              border-radius: 22px;
-              padding: 16px;
-              box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+              border: 3.5px solid #059669;
+              border-radius: 16px;
+              padding: 10px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
               display: flex;
               align-items: center;
               justify-content: center;
-              margin: 6px auto;
+              margin: 4px auto;
               position: relative;
-              width: 105mm;
-              height: 105mm;
+              width: 72mm;
+              height: 72mm;
               box-sizing: border-box;
             }
             .qr-wrapper svg {
@@ -291,91 +292,91 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             }
             .corner {
               position: absolute;
-              width: 22px;
-              height: 22px;
+              width: 16px;
+              height: 16px;
               border-color: #047857;
               border-style: solid;
               pointer-events: none;
             }
-            .corner-tl { top: 6px; left: 6px; border-width: 4px 0 0 4px; border-radius: 6px 0 0 0; }
-            .corner-tr { top: 6px; right: 6px; border-width: 4px 4px 0 0; border-radius: 0 6px 0 0; }
-            .corner-bl { bottom: 6px; left: 6px; border-width: 0 0 4px 4px; border-radius: 0 0 0 6px; }
-            .corner-br { bottom: 6px; right: 6px; border-width: 0 4px 4px 0; border-radius: 0 0 6px 0; }
+            .corner-tl { top: 4px; left: 4px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+            .corner-tr { top: 4px; right: 4px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+            .corner-bl { bottom: 4px; left: 4px; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+            .corner-br { bottom: 4px; right: 4px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
 
             .action-callout {
-              margin-top: 8px;
+              margin-top: 5px;
             }
             .action-title {
-              font-size: 19px;
+              font-size: 14px;
               font-weight: 800;
               color: #065f46;
               letter-spacing: 0.04em;
             }
             .action-subtitle {
-              font-size: 12.5px;
+              font-size: 10px;
               color: #64748b;
-              margin-top: 4px;
+              margin-top: 2px;
             }
             .instructions {
               background-color: #f0fdf4;
-              border: 1.5px solid #bbf7d0;
-              border-radius: 12px;
-              padding: 10px 16px;
-              max-width: 165mm;
+              border: 1px solid #bbf7d0;
+              border-radius: 10px;
+              padding: 6px 10px;
+              max-width: 126mm;
               width: 100%;
-              margin: 10px auto 0 auto;
+              margin: 6px auto 0 auto;
             }
             .instructions-title {
-              font-size: 11px;
+              font-size: 9px;
               font-weight: 800;
               color: #065f46;
               text-transform: uppercase;
               letter-spacing: 0.06em;
-              margin-bottom: 6px;
+              margin-bottom: 4px;
               text-align: center;
             }
             .steps-grid {
               display: flex;
               align-items: center;
               justify-content: space-around;
-              font-size: 11.5px;
+              font-size: 9.5px;
               color: #064e3b;
               font-weight: 600;
             }
             .step-col {
               display: flex;
               align-items: center;
-              gap: 6px;
+              gap: 4px;
               text-align: left;
             }
             .step-num {
               background: #059669;
               color: white;
-              width: 19px;
-              height: 19px;
+              width: 16px;
+              height: 16px;
               border-radius: 50%;
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 10px;
+              font-size: 8.5px;
               font-weight: 800;
               flex-shrink: 0;
             }
             .step-arrow {
               color: #10b981;
-              font-size: 15px;
+              font-size: 12px;
             }
             .footer {
               width: 100%;
               border-top: 1px solid #e2e8f0;
-              padding-top: 8px;
-              margin-top: 10px;
+              padding-top: 5px;
+              margin-top: 6px;
               display: flex;
               justify-content: space-between;
-              font-size: 10.5px;
+              font-size: 9px;
               color: #94a3b8;
               font-weight: 600;
-              letter-spacing: 0.04em;
+              letter-spacing: 0.03em;
             }
           </style>
         </head>
@@ -412,17 +413,17 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
               <div class="steps-grid">
                 <div class="step-col">
                   <span class="step-num">1</span>
-                  <span>Buka Kamera HP / Pemindai QR</span>
+                  <span>Buka Kamera HP / QR</span>
                 </div>
                 <div class="step-arrow">➜</div>
                 <div class="step-col">
                   <span class="step-num">2</span>
-                  <span>Arahkan ke QR Code & Buka Link</span>
+                  <span>Arahkan ke QR Code</span>
                 </div>
                 <div class="step-arrow">➜</div>
                 <div class="step-col">
                   <span class="step-num">3</span>
-                  <span>Isi Data & Konfirmasi Hadir</span>
+                  <span>Isi Data & Kirim</span>
                 </div>
               </div>
             </div>
@@ -449,31 +450,12 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             if (document.body.contains(iframe)) {
               document.body.removeChild(iframe);
             }
-          }, 2000);
+          }, 3000);
         }
       };
 
-      // Tunggu logo termuat sempurna jika ada
-      const imgs = iframe.contentWindow?.document.images;
-      if (imgs && imgs.length > 0) {
-        let loaded = 0;
-        const total = imgs.length;
-        const onImgDone = () => {
-          loaded++;
-          if (loaded >= total) setTimeout(triggerPrint, 200);
-        };
-        for (let i = 0; i < total; i++) {
-          if (imgs[i].complete) {
-            loaded++;
-          } else {
-            imgs[i].onload = onImgDone;
-            imgs[i].onerror = onImgDone;
-          }
-        }
-        if (loaded >= total) setTimeout(triggerPrint, 200);
-      } else {
-        setTimeout(triggerPrint, 200);
-      }
+      // Berikan waktu kecil agar aset (logo/svg) di iframe siap
+      setTimeout(triggerPrint, 350);
     } catch (e) {
       console.error('Error saat cetak standee:', e);
       window.print();
@@ -485,12 +467,12 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-6 print:p-0 print:border-0 print:shadow-none print:max-w-none print:w-full print:bg-white">
-        {/* Style khusus untuk cetak Standee / Poster A4 jika user tekan Ctrl+P */}
+        {/* Style khusus untuk cetak Standee / Poster A5 jika user tekan Ctrl+P */}
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
             @page {
-              size: A4 portrait;
-              margin: 8mm 12mm;
+              size: A5 portrait;
+              margin: 5mm 6mm;
             }
             html, body {
               overflow: visible !important;
@@ -530,20 +512,20 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
               align-items: center !important;
               justify-content: space-between !important;
               width: 100% !important;
-              max-width: 185mm !important;
-              min-height: 270mm !important;
+              max-width: 136mm !important;
+              min-height: 198mm !important;
               margin: 0 auto !important;
-              padding: 7mm 10mm !important;
-              border: 3px double #a7f3d0 !important;
-              border-radius: 20px !important;
+              padding: 4mm 5mm !important;
+              border: 2px double #a7f3d0 !important;
+              border-radius: 14px !important;
               box-shadow: none !important;
               background: white !important;
               page-break-inside: avoid !important;
               break-inside: avoid !important;
             }
             #printable-qr-standee .qr-container-standee svg {
-              width: 95mm !important;
-              height: 95mm !important;
+              width: 70mm !important;
+              height: 70mm !important;
               max-width: 100% !important;
               max-height: 100% !important;
               display: block !important;
@@ -560,7 +542,7 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             </DialogTitle>
           </div>
           <p className="text-xs text-slate-500">
-            Unduh gambar QR Code untuk dibagikan, atau cetak standee meja untuk ditempel di lokasi rapat.
+            Unduh gambar QR Code untuk dibagikan, atau cetak standee meja A5 untuk diletakkan di lokasi rapat.
           </p>
         </DialogHeader>
 
@@ -596,7 +578,7 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
               onClick={handlePrint}
             >
               <Printer className="h-3.5 w-3.5 mr-1.5" />
-              Cetak Standee A4
+              Cetak Standee A5
             </Button>
           </div>
 
@@ -626,7 +608,7 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
         {/* Tampilan Standee / Poster Cetak (Ditampilkan di layar sebagai preview & dicetak pada printer) */}
         <div
           id="printable-qr-standee"
-          className="bg-white rounded-2xl border-2 border-emerald-100 p-6 sm:p-8 flex flex-col items-center text-center shadow-sm relative overflow-hidden"
+          className="bg-white rounded-2xl border-2 border-emerald-100 p-5 sm:p-7 max-w-lg w-full mx-auto flex flex-col items-center text-center shadow-sm relative overflow-hidden"
         >
           {/* Header Resmi Tanpa Kop */}
           <div className="w-full mb-3 flex flex-col items-center">
@@ -639,7 +621,7 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
                 }
               }}
               alt="Logo LP Ma'arif NU"
-              className="h-14 w-auto object-contain mb-2"
+              className="h-12 w-auto object-contain mb-2"
             />
             <h2 className="text-xs uppercase font-extrabold tracking-widest text-emerald-800">
               LP MA'ARIF NU CILACAP
@@ -650,26 +632,26 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             </div>
 
             {/* Judul Rapat */}
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 max-w-xl leading-tight mt-1">
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 max-w-xl leading-tight mt-1">
               {meeting.title}
             </h1>
 
             {/* Tanggal & Lokasi */}
-            <div className="flex flex-wrap items-center justify-center gap-2.5 text-xs sm:text-sm text-slate-600 mt-2 font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm text-slate-600 mt-2 font-medium">
               {meeting.started_at && (
-                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5">
                   <Calendar className="h-3.5 w-3.5 text-emerald-600" />
                   {formatMeetingDate(meeting.started_at, 'EEEE, d MMMM yyyy')}
                 </span>
               )}
               {meeting.started_at && (
-                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5">
                   <Clock className="h-3.5 w-3.5 text-emerald-600" />
                   Pukul {formatMeetingDate(meeting.started_at, 'HH:mm')} WIB
                 </span>
               )}
               {meeting.location && (
-                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
+                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-full px-2.5 py-0.5">
                   <MapPin className="h-3.5 w-3.5 text-emerald-600" />
                   {meeting.location}
                 </span>
@@ -677,12 +659,12 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             </div>
           </div>
 
-          {/* QR Code Frame Besar */}
-          <div className="my-2 p-4 bg-white rounded-2xl border-4 border-emerald-600 shadow-md inline-block relative qr-container-standee">
+          {/* QR Code Frame */}
+          <div className="my-2 p-3 bg-white rounded-2xl border-4 border-emerald-600 shadow-md inline-block relative qr-container-standee">
             <QRCodeSVG
               id="standee-qr-code-svg"
               value={qrUrl}
-              size={280}
+              size={240}
               level="H"
               includeMargin={true}
               className="mx-auto"

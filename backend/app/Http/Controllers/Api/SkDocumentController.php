@@ -1858,8 +1858,9 @@ class SkDocumentController extends Controller
      */
     private function maybeSyncHeadmasterProfile(\App\Models\SkDocument $sk): void
     {
-        // Hanya untuk SK Kamad (semua varian: kamad_nonpns, kamad_pns, kamad_plt, dll.)
-        if (!str_contains(strtolower($sk->jenis_sk ?? ''), 'kamad')) {
+        // Hanya untuk SK Kamad / Kepala Madrasah (semua varian: kamad, kamad_nonpns, kamad_pns, kamad_plt, kepala madrasah, dll.)
+        $jenis = strtolower($sk->jenis_sk ?? '');
+        if (!str_contains($jenis, 'kamad') && !str_contains($jenis, 'kepala')) {
             return;
         }
 
@@ -1880,13 +1881,14 @@ class SkDocumentController extends Controller
             return;
         }
 
-        // Ambil NIM dan NUPTK dari relasi teacher jika tersedia
+        // Ambil NIM, NUPTK, dan No WA dari relasi teacher jika tersedia
         $teacher = $sk->relationLoaded('teacher') ? $sk->teacher : \App\Models\Teacher::find($sk->teacher_id);
 
         $school->update([
             'kepala_madrasah'        => $sk->nama,
             'kepala_nim'             => ($teacher?->nomor_induk_maarif) ?: $school->kepala_nim,
             'kepala_nuptk'           => ($teacher?->nuptk) ?: $school->kepala_nuptk,
+            'kepala_whatsapp'        => ($teacher?->phone_number) ?: $school->kepala_whatsapp,
             'kepala_jabatan_mulai'   => $mulai->toDateString(),
             'kepala_jabatan_selesai' => $selesai->toDateString(),
         ]);

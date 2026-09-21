@@ -83,15 +83,74 @@ class HeadmasterController extends Controller
             abort(403, 'Hanya Super Admin / Admin Yayasan yang berwenang menyetujui pengangkatan kepala madrasah.');
         }
 
+        $tanggalPenetapan = $request->tanggal_penetapan ?: ($headmasterTenure->tanggal_penetapan ?: now()->toDateString());
+
         $headmasterTenure->update([
             'status' => 'active',
             'approved_by' => $request->user()->name,
             'approved_at' => now(),
-            'nomor_sk' => $request->nomor_sk,
-            'sk_url' => $request->sk_url,
+            'nomor_sk' => $request->nomor_sk ?: $headmasterTenure->nomor_sk,
+            'tanggal_penetapan' => $tanggalPenetapan,
+            'sk_url' => $request->sk_url ?: $headmasterTenure->sk_url,
         ]);
 
-        return response()->json($headmasterTenure->fresh());
+        // 1. Nonaktifkan masa jabatan aktif sebelumnya pada sekolah ini (tandai completed)
+        if ($headmasterTenure->school_id) {
+            HeadmasterTenure::where('school_id', $headmasterTenure->school_id)
+                ->where('id', '!=', $headmasterTenure->id)
+                ->where('status', 'active')
+                ->update(['status' => 'completed']);
+        }
+
+        // 2. Auto-sync profil kepala madrasah ke tabel schools
+        $school = $headmasterTenure->school ?: School::find($headmasterTenure->school_id);
+        $teacher = $headmasterTenure->teacher ?: \App\Models\Teacher::find($headmasterTenure->teacher_id);
+
+        if ($school) {
+            $startDate = $headmasterTenure->start_date ?: $tanggalPenetapan;
+            $endDate = $headmasterTenure->end_date;
+
+            if (!$endDate && $startDate) {
+                try {
+                    $endDate = \Carbon\Carbon::parse($startDate)->addYears(4)->toDateString();
+                } catch (\Throwable) {
+                    $endDate = null;
+                }
+            }
+
+            $schoolUpdateData = [
+                'kepala_madrasah' => $headmasterTenure->teacher_name ?: ($teacher?->nama ?? $school->kepala_madrasah),
+            ];
+
+            if ($teacher?->nomor_induk_maarif) {
+                $schoolUpdateData['kepala_nim'] = $teacher->nomor_induk_maarif;
+            }
+            if ($teacher?->nuptk) {
+                $schoolUpdateData['kepala_nuptk'] = $teacher->nuptk;
+            }
+            if ($teacher?->phone_number) {
+                $schoolUpdateData['kepala_whatsapp'] = $teacher->phone_number;
+            }
+            if ($startDate) {
+                $schoolUpdateData['kepala_jabatan_mulai'] = $startDate;
+            }
+            if ($endDate) {
+                $schoolUpdateData['kepala_jabatan_selesai'] = $endDate;
+            }
+
+            $school->update($schoolUpdateData);
+        }
+
+        // 3. Catat Activity Log
+        \App\Models\ActivityLog::log(
+            description: "Menyetujui pengangkatan kepala madrasah: {$headmasterTenure->teacher_name} — " . ($school?->nama ?? $headmasterTenure->school_name) . " (Periode {$headmasterTenure->periode})",
+            event: 'approve_headmaster_tenure',
+            logName: 'headmaster',
+            causer: $request->user(),
+            schoolId: $headmasterTenure->school_id,
+        );
+
+        return response()->json($headmasterTenure->fresh()->load('teacher', 'school'));
     }
 
     public function reject(Request $request, HeadmasterTenure $headmasterTenure): JsonResponse

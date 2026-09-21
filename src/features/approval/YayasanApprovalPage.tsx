@@ -176,6 +176,7 @@ export default function YayasanApprovalPage() {
             tanggal_penetapan: tanggalPenetapan || new Date().toISOString().split('T')[0]
         })
         toast.success("SK Kepala Disetujui!")
+        queryClient.invalidateQueries({ queryKey: ['schools'] })
         refetch()
     } catch (e: any) {
         toast.error("Gagal: " + (e.response?.data?.message || "Unknown error"))

@@ -97,6 +97,7 @@ export default function HeadmasterProfileForm({
       toast.success("Profil kepala madrasah berhasil diperbarui!")
       
       // Invalidate and refetch school list queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['schools'] })
       queryClient.invalidateQueries({ queryKey: ['admin-schools'] })
       
       // Invalidate school detail query if it exists

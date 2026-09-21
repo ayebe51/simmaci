@@ -66,19 +66,21 @@ class PublicMeetingWalkInController extends Controller
             );
         }
 
-        // ── 2. Rate limiting — max 3 per IP per 5 menit ──────────────────────
-        $rateLimitKey = 'meeting-walkin:' . $request->ip() . ':' . $meeting->id;
+        // ── 2. Rate limiting ─────────────────────────────────────────────────
+        // Batasi per-IP secara longgar (1000 per 5 menit) agar ratusan perangkat
+        // yang berbagi Wi-Fi aula / NAT yang sama tidak terblokir saat scan bersamaan.
+        $ipRateLimitKey = 'meeting-walkin-ip:' . $request->ip() . ':' . $meeting->id;
 
-        if (RateLimiter::tooManyAttempts($rateLimitKey, maxAttempts: 3)) {
-            $seconds = RateLimiter::availableIn($rateLimitKey);
+        if (RateLimiter::tooManyAttempts($ipRateLimitKey, maxAttempts: 1000)) {
+            $seconds = RateLimiter::availableIn($ipRateLimitKey);
             return $this->errorResponse(
-                "Terlalu banyak percobaan. Silakan tunggu {$seconds} detik sebelum mencoba lagi.",
+                "Terlalu banyak permintaan dari jaringan ini. Silakan tunggu {$seconds} detik.",
                 null,
                 429
             );
         }
 
-        RateLimiter::hit($rateLimitKey, decaySeconds: 300);
+        RateLimiter::hit($ipRateLimitKey, decaySeconds: 300);
 
         // ── 3. Validate input ────────────────────────────────────────────────
         $validated = $request->validate([
@@ -107,6 +109,18 @@ class PublicMeetingWalkInController extends Controller
                 'errors'  => ['no_hp' => ['Nomor HP tidak valid. Contoh format: 08123456789 atau 6281234567890']],
             ], 422);
         }
+
+        // Batasi per nomor HP (max 5 kali per 5 menit per rapat) untuk mencegah spam
+        $phoneRateLimitKey = 'meeting-walkin-phone:' . $meeting->id . ':' . md5($normalizedPhone);
+        if (RateLimiter::tooManyAttempts($phoneRateLimitKey, maxAttempts: 5)) {
+            $seconds = RateLimiter::availableIn($phoneRateLimitKey);
+            return $this->errorResponse(
+                "Terlalu banyak percobaan untuk nomor HP ini. Silakan tunggu {$seconds} detik sebelum mencoba lagi.",
+                null,
+                429
+            );
+        }
+        RateLimiter::hit($phoneRateLimitKey, decaySeconds: 300);
 
         // ── 5. Geolocation validation (opsional) ─────────────────────────────
         if ($meeting->geolocation_enabled && $meeting->latitude && $meeting->longitude) {
@@ -180,6 +194,19 @@ class PublicMeetingWalkInController extends Controller
             if ($alreadyAttended) {
                 return $this->errorResponse(
                     "Kehadiran Anda ({$matchedParticipant->name}) sudah tercatat sebelumnya. Terima kasih!",
+                    null,
+                    409
+                );
+            }
+        } else {
+            // Cegah double-submit untuk peserta walk-in murni dengan nomor HP yang sama
+            $alreadyWalkInAttended = MeetingAttendance::where('meeting_id', $meeting->id)
+                ->where('walk_in_phone', $normalizedPhone)
+                ->first();
+
+            if ($alreadyWalkInAttended) {
+                return $this->errorResponse(
+                    "Kehadiran atas nama {$alreadyWalkInAttended->walk_in_name} sudah tercatat sebelumnya. Terima kasih!",
                     null,
                     409
                 );

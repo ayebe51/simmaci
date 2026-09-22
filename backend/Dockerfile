@@ -1,32 +1,30 @@
 FROM php:8.3-fpm
 WORKDIR /var/www/html
 
-# Install system dependencies and PHP extensions in one layer
-# Use pre-built redis extension via install-php-extensions to avoid long pecl compile
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     bash \
     curl \
-    libpng-dev \
-    libzip-dev \
-    zlib1g-dev \
-    libicu-dev \
-    libpq-dev \
-    libonig-dev \
-    libfreetype6-dev \
-    libjpeg62-turbo-dev \
     supervisor \
     nginx \
     unzip \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-# Pin specific version of install-php-extensions for reproducible builds
+# Install PHP extensions using official extension installer (uses prebuilt binaries and manages memory efficiently)
 ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/download/2.7.12/install-php-extensions /usr/local/bin/
 
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_pgsql mbstring zip gd intl bcmath exif pcntl opcache \
-    && install-php-extensions redis
+RUN install-php-extensions \
+    pdo_pgsql \
+    mbstring \
+    zip \
+    gd \
+    intl \
+    bcmath \
+    exif \
+    pcntl \
+    opcache \
+    redis
 
 # PHP configuration for file uploads and memory
 RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \

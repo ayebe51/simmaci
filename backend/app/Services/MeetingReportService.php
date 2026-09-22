@@ -196,7 +196,7 @@ class MeetingReportService
                     $checkedInAt = $attendance?->checked_in_at?->format('d-m-Y H:i:s') ?? '-';
                     $verification = $this->getVerification($attendance);
                     $notes = $attendance?->is_delegation
-                        ? 'Mewakili: ' . ($attendance->delegatedForParticipant?->name ?? '-')
+                        ? 'Diwakili oleh: ' . ($attendance->walk_in_name ?? '-') . ($attendance->walk_in_jabatan ? ' (' . $attendance->walk_in_jabatan . ')' : '')
                         : '-';
 
                     $data[] = [
@@ -272,7 +272,7 @@ class MeetingReportService
             $checkedInAt = $attendance?->checked_in_at?->format('d-m-Y H:i:s') ?? '-';
             $verification = $this->getVerification($attendance);
             $notes = $attendance?->is_delegation
-                ? 'Mewakili: ' . ($attendance->delegatedForParticipant?->name ?? '-')
+                ? 'Diwakili oleh: ' . ($attendance->walk_in_name ?? '-') . ($attendance->walk_in_jabatan ? ' (' . $attendance->walk_in_jabatan . ')' : '')
                 : '-';
 
             $table->addRow();

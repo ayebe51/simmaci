@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Meeting\StoreMeetingRequest;
 use App\Http\Requests\Meeting\UpdateMeetingRequest;
 use App\Models\Meeting;
+use App\Models\MeetingAttendance;
 use App\Models\MeetingParticipant;
 use App\Services\MeetingService;
 use App\Traits\ApiResponse;
@@ -287,6 +288,47 @@ class MeetingController extends Controller
             ]);
 
             return $this->errorResponse('Gagal mereset check-in. Silakan coba lagi.', null, 500);
+        }
+    }
+
+    /**
+     * Delete an attendance record (walk-in or mistakenly marked).
+     *
+     * Only super_admin and admin_yayasan can delete attendance records.
+     *
+     * @param Meeting $meeting
+     * @param MeetingAttendance $attendance
+     * @return JsonResponse
+     */
+    public function deleteAttendance(Meeting $meeting, MeetingAttendance $attendance): JsonResponse
+    {
+        try {
+            if ($attendance->meeting_id !== $meeting->id) {
+                return $this->errorResponse('Data absensi tidak sesuai dengan rapat.', null, 404);
+            }
+
+            // If this attendance was linked to a participant, reset participant's token used status
+            if ($attendance->participant_id) {
+                $participant = MeetingParticipant::find($attendance->participant_id);
+                if ($participant) {
+                    $participant->update([
+                        'is_token_used' => false,
+                        'token_used_at' => null,
+                    ]);
+                }
+            }
+
+            $attendance->delete();
+
+            return $this->successResponse(null, 'Data kehadiran berhasil dihapus.');
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete attendance', [
+                'meeting_id' => $meeting->id,
+                'attendance_id' => $attendance->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->errorResponse('Gagal menghapus data kehadiran.', null, 500);
         }
     }
 

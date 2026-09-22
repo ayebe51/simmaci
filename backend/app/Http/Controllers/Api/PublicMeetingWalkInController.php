@@ -84,18 +84,21 @@ class PublicMeetingWalkInController extends Controller
 
         // ── 3. Validate input ────────────────────────────────────────────────
         $validated = $request->validate([
-            'nama'      => 'required|string|min:3|max:255',
-            'jabatan'   => 'required|string|max:255',
-            'instansi'  => 'required|string|max:255',
-            'no_hp'     => 'required|string|min:8|max:20',
-            'latitude'  => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
+            'nama'               => 'required|string|min:3|max:255',
+            'jabatan'            => 'required|string|max:255',
+            'instansi'           => 'required|string|max:255',
+            'no_hp'              => 'required|string|min:8|max:20',
+            'kehadiran_sebagai'  => 'nullable|string|in:peserta,perwakilan,walk_in',
+            'mewakili_nama'      => 'nullable|string|max:255',
+            'participant_id'     => 'nullable|integer',
+            'latitude'           => 'nullable|numeric|between:-90,90',
+            'longitude'          => 'nullable|numeric|between:-180,180',
         ], [
             'nama.required'     => 'Nama lengkap wajib diisi.',
             'nama.min'          => 'Nama minimal 3 karakter.',
             'jabatan.required'  => 'Jabatan wajib diisi.',
-            'instansi.required' => 'Asal instansi wajib diisi.',
-            'no_hp.required'    => 'Nomor HP wajib diisi.',
+            'instansi.required' => 'Asal instansi / sekolah wajib diisi.',
+            'no_hp.required'    => 'Nomor HP / WhatsApp wajib diisi.',
             'no_hp.min'         => 'Nomor HP tidak valid.',
         ]);
 
@@ -106,7 +109,7 @@ class PublicMeetingWalkInController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Validasi gagal.',
-                'errors'  => ['no_hp' => ['Nomor HP tidak valid. Contoh format: 08123456789 atau 6281234567890']],
+                'errors'  => ['no_hp' => ['Nomor WhatsApp tidak valid. Contoh format: 08123456789 atau 6281234567890']],
             ], 422);
         }
 
@@ -149,144 +152,169 @@ class PublicMeetingWalkInController extends Controller
                     );
                 }
             }
-            // Jika lat/lng tidak dikirim padahal geolokasi aktif → tetap diizinkan (opsional)
         }
 
-        // ── 6. Smart Fuzzy Auto-Match: Nama + Instansi ──────────────────────────
-        //
-        // Tiga strategi pencocokan (diambil nilai tertinggi):
-        //   1. Contains-check : menangani singkatan ("Luluk" ada dalam "Luluk Imtihanah")
-        //   2. Word-level     : tiap kata input dibandingkan ("neg" cocok "negeri")
-        //   3. Character-level: similar_text() sebagai fallback umum
-        //
-        // Threshold: nama >= 60%, instansi >= 50%.
-        // Jika peserta sudah hadir -> tolak agar tidak double-checkin.
-        $inputName     = mb_strtolower(trim($validated['nama']));
-        $inputInstansi = mb_strtolower(trim($validated['instansi']));
+        // ── 6. Identifikasi Kategori Kehadiran ────────────────────────────────
+        $kehadiranSebagai = $validated['kehadiran_sebagai'] ?? null;
+        $isPerwakilan = ($kehadiranSebagai === 'perwakilan')
+            || str_contains(mb_strtolower($validated['jabatan']), 'wakil')
+            || str_contains(mb_strtolower($validated['jabatan']), 'utusan')
+            || str_contains(mb_strtolower($validated['jabatan']), 'delegasi');
 
-        $allParticipants    = $meeting->participants()->whereNull('deleted_at')->get();
-        $matchedParticipant = null;
-        $bestScore          = 0.0;
+        $isExplicitWalkIn = ($kehadiranSebagai === 'walk_in');
 
-        foreach ($allParticipants as $p) {
-            $nameScore     = $this->fuzzyScore($inputName, mb_strtolower($p->name));
-            $instansiScore = $this->fuzzyScore($inputInstansi, mb_strtolower($p->instansi ?? ''));
+        $allParticipants = $meeting->participants()->whereNull('deleted_at')->get();
+        $targetParticipant = null;
 
-            // Kedua field harus memenuhi threshold masing-masing
-            if ($nameScore < 60.0 || $instansiScore < 50.0) {
-                continue;
-            }
-
-            // Nama diberi bobot lebih besar (60%) dari instansi (40%)
-            $combined = ($nameScore * 0.6) + ($instansiScore * 0.4);
-
-            if ($combined > $bestScore) {
-                $bestScore          = $combined;
-                $matchedParticipant = $p;
-            }
+        // A. Jika ada participant_id eksplisit (dipilih dari dropdown/daftar peserta)
+        if (!empty($validated['participant_id'])) {
+            $targetParticipant = $allParticipants->firstWhere('id', (int) $validated['participant_id']);
         }
 
-        if ($matchedParticipant) {
+        // B. Jika perwakilan tapi belum ada participant_id eksplisit: cari peserta yang diwakili
+        if ($isPerwakilan && !$targetParticipant) {
+            $targetParticipant = $this->findParticipantForDelegation(
+                $allParticipants,
+                $validated['instansi'],
+                $validated['mewakili_nama'] ?? null
+            );
+        }
+
+        // C. Jika bukan explicit walk-in dan bukan perwakilan: coba strict matching
+        if (!$isExplicitWalkIn && !$isPerwakilan && !$targetParticipant) {
+            $targetParticipant = $this->findStrictParticipantMatch(
+                $allParticipants,
+                $validated['nama'],
+                $validated['instansi']
+            );
+        }
+
+        // ── 7. Pengecekan Duplikasi Kehadiran ─────────────────────────────────
+        if ($targetParticipant) {
             $alreadyAttended = MeetingAttendance::where('meeting_id', $meeting->id)
-                ->where('participant_id', $matchedParticipant->id)
-                ->exists();
+                ->where('participant_id', $targetParticipant->id)
+                ->first();
 
             if ($alreadyAttended) {
+                $statusDetail = $alreadyAttended->is_delegation && $alreadyAttended->walk_in_name
+                    ? "diwakili oleh {$alreadyAttended->walk_in_name}"
+                    : "tercatat hadir pada {$alreadyAttended->checked_in_at->format('H:i')}";
+
                 return $this->errorResponse(
-                    "Kehadiran Anda ({$matchedParticipant->name}) sudah tercatat sebelumnya. Terima kasih!",
+                    "Kehadiran untuk {$targetParticipant->name} ({$targetParticipant->instansi}) sudah {$statusDetail}. Terima kasih!",
                     null,
                     409
                 );
             }
         } else {
-            // Cegah double-submit untuk peserta walk-in murni dengan nomor HP yang sama
+            // Cegah double-submit untuk walk-in murni HANYA jika NAMA + INSTANSI + NO_HP persis sama
             $alreadyWalkInAttended = MeetingAttendance::where('meeting_id', $meeting->id)
                 ->where('walk_in_phone', $normalizedPhone)
+                ->where(function ($q) use ($validated) {
+                    $q->whereRaw('LOWER(TRIM(walk_in_name)) = ?', [mb_strtolower(trim($validated['nama']))])
+                      ->orWhereRaw('LOWER(TRIM(walk_in_instansi)) = ?', [mb_strtolower(trim($validated['instansi']))]);
+                })
                 ->first();
 
             if ($alreadyWalkInAttended) {
                 return $this->errorResponse(
-                    "Kehadiran atas nama {$alreadyWalkInAttended->walk_in_name} sudah tercatat sebelumnya. Terima kasih!",
+                    "Kehadiran atas nama {$alreadyWalkInAttended->walk_in_name} ({$alreadyWalkInAttended->walk_in_instansi}) sudah tercatat sebelumnya. Terima kasih!",
                     null,
                     409
                 );
             }
         }
 
-
-        // ── 7. Simpan attendance record ───────────────────────────────────────
-        $attendance = DB::transaction(function () use ($meeting, $validated, $normalizedPhone, $request, $matchedParticipant) {
-            if ($matchedParticipant) {
-                // Peserta terdaftar yang scan walk-in QR → perbarui nomor HP jika sebelumnya kosong
-                if (empty($matchedParticipant->phone_number)) {
-                    $matchedParticipant->update(['phone_number' => $normalizedPhone]);
-                }
-
-                // Sinkronkan ke master data sekolah jika kepala_whatsapp masih kosong
-                $school = \App\Models\School::where('nama', $matchedParticipant->instansi)
-                    ->where('kepala_madrasah', $matchedParticipant->name)
-                    ->first();
-                if (!$school) {
-                    $school = \App\Models\School::where('nama', $matchedParticipant->instansi)->first();
-                }
-                if ($school && (empty($school->kepala_whatsapp) || trim($school->kepala_whatsapp) === '')) {
-                    $school->update(['kepala_whatsapp' => $normalizedPhone]);
-                    \Log::info("WalkIn: Auto-updated school #{$school->id} ({$school->nama}) kepala_whatsapp with {$normalizedPhone}");
+        // ── 8. Simpan Attendance Record ──────────────────────────────────────
+        $attendance = DB::transaction(function () use (
+            $meeting, $validated, $normalizedPhone, $request,
+            $targetParticipant, $isPerwakilan
+        ) {
+            // Skenario 1: Hadir sebagai Perwakilan / Delegasi
+            if ($isPerwakilan) {
+                if ($targetParticipant) {
+                    $targetParticipant->update([
+                        'is_token_used' => true,
+                        'token_used_at' => now(),
+                    ]);
                 }
 
                 return MeetingAttendance::create([
-                    'meeting_id'       => $meeting->id,
-                    'participant_id'   => $matchedParticipant->id,     // terhubung ke peserta terdaftar
-                    'attendance_type'  => 'qr_umum',                   // tetap dicatat via QR umum
-                    'is_delegation'    => false,
-                    'walk_in_name'     => null,                        // tidak perlu, sudah ada di participant
-                    'walk_in_jabatan'  => null,
-                    'walk_in_instansi' => null,
-                    'walk_in_phone'    => null,
-                    'checked_in_at'    => now(),
-                    'ip_address'       => $request->ip(),
-                    'device_info'      => $this->extractDeviceInfo($request),
+                    'meeting_id'                   => $meeting->id,
+                    'participant_id'               => $targetParticipant?->id,
+                    'attendance_type'              => 'qr_umum',
+                    'is_delegation'                => true,
+                    'delegated_for_participant_id' => $targetParticipant?->id,
+                    'walk_in_name'                 => trim($validated['nama']), // Nama orang yang hadir
+                    'walk_in_jabatan'              => trim($validated['jabatan']),
+                    'walk_in_instansi'             => trim($validated['instansi']),
+                    'walk_in_phone'                => $normalizedPhone,
+                    'checked_in_at'                => now(),
+                    'ip_address'                   => $request->ip(),
+                    'device_info'                  => $this->extractDeviceInfo($request),
                 ]);
             }
 
-            // Walk-in murni (tidak ada peserta terdaftar yang cocok)
-            // Jika jabatan kepala madrasah/sekolah, sinkronkan juga ke master school jika ada
+            // Skenario 2: Hadir sebagai Peserta Terdaftar Langsung
+            if ($targetParticipant) {
+                if (empty($targetParticipant->phone_number)) {
+                    $targetParticipant->update(['phone_number' => $normalizedPhone]);
+                }
+                $targetParticipant->update([
+                    'is_token_used' => true,
+                    'token_used_at' => now(),
+                ]);
+
+                // Sinkronkan nomor WhatsApp kepala jika belum terisi di master sekolah
+                $this->syncSchoolHeadmasterPhone($targetParticipant->instansi, $targetParticipant->name, $normalizedPhone);
+
+                return MeetingAttendance::create([
+                    'meeting_id'                   => $meeting->id,
+                    'participant_id'               => $targetParticipant->id,
+                    'attendance_type'              => 'qr_umum',
+                    'is_delegation'                => false,
+                    'walk_in_name'                 => trim($validated['nama']),
+                    'walk_in_jabatan'              => trim($validated['jabatan']),
+                    'walk_in_instansi'             => trim($validated['instansi']),
+                    'walk_in_phone'                => $normalizedPhone,
+                    'checked_in_at'                => now(),
+                    'ip_address'                   => $request->ip(),
+                    'device_info'                  => $this->extractDeviceInfo($request),
+                ]);
+            }
+
+            // Skenario 3: Walk-in Murni / Tamu Tambahan (Tidak ada kecocokan di peserta terdaftar)
             if (str_contains(mb_strtolower($validated['jabatan']), 'kepala')) {
-                $school = \App\Models\School::where('nama', trim($validated['instansi']))
-                    ->where('kepala_madrasah', trim($validated['nama']))
-                    ->first();
-                if (!$school) {
-                    $school = \App\Models\School::where('nama', trim($validated['instansi']))->first();
-                }
-                if ($school && (empty($school->kepala_whatsapp) || trim($school->kepala_whatsapp) === '')) {
-                    $school->update(['kepala_whatsapp' => $normalizedPhone]);
-                    \Log::info("WalkIn: Auto-updated school #{$school->id} ({$school->nama}) kepala_whatsapp with {$normalizedPhone}");
-                }
+                $this->syncSchoolHeadmasterPhone($validated['instansi'], $validated['nama'], $normalizedPhone);
             }
 
             return MeetingAttendance::create([
-                'meeting_id'       => $meeting->id,
-                'participant_id'   => null,
-                'attendance_type'  => 'qr_umum',
-                'is_delegation'    => false,
-                'walk_in_name'     => trim($validated['nama']),
-                'walk_in_jabatan'  => trim($validated['jabatan']),
-                'walk_in_instansi' => trim($validated['instansi']),
-                'walk_in_phone'    => $normalizedPhone,
-                'checked_in_at'    => now(),
-                'ip_address'       => $request->ip(),
-                'device_info'      => $this->extractDeviceInfo($request),
+                'meeting_id'                   => $meeting->id,
+                'participant_id'               => null,
+                'attendance_type'              => 'qr_umum',
+                'is_delegation'                => false,
+                'walk_in_name'                 => trim($validated['nama']),
+                'walk_in_jabatan'              => trim($validated['jabatan']),
+                'walk_in_instansi'             => trim($validated['instansi']),
+                'walk_in_phone'                => $normalizedPhone,
+                'checked_in_at'                => now(),
+                'ip_address'                   => $request->ip(),
+                'device_info'                  => $this->extractDeviceInfo($request),
             ]);
         });
 
-        // Tentukan nama yang akan ditampilkan di respons
-        $displayName    = $matchedParticipant?->name    ?? $attendance->walk_in_name;
-        $displayJabatan = $matchedParticipant?->jabatan ?? $attendance->walk_in_jabatan;
-        $displayInstansi= $matchedParticipant?->instansi?? $attendance->walk_in_instansi;
+        // ── 9. Respons Sukses ────────────────────────────────────────────────
+        $displayName     = trim($validated['nama']);
+        $displayJabatan  = trim($validated['jabatan']);
+        $displayInstansi = trim($validated['instansi']);
 
-        $message = $matchedParticipant
-            ? "Halo, {$displayName}! Kehadiran Anda berhasil dicatat. Selamat datang!"
-            : 'Kehadiran Anda berhasil dicatat. Selamat datang!';
+        if ($isPerwakilan && $targetParticipant) {
+            $message = "Halo, {$displayName}! Kehadiran Anda mewakili {$targetParticipant->name} ({$targetParticipant->instansi}) berhasil dicatat. Terima kasih!";
+        } elseif ($targetParticipant) {
+            $message = "Halo, {$targetParticipant->name}! Kehadiran Anda berhasil dicatat. Selamat datang!";
+        } else {
+            $message = "Kehadiran Anda sebagai peserta walk-in ({$displayName}) berhasil dicatat. Selamat datang!";
+        }
 
         return $this->successResponse([
             'nama'          => $displayName,
@@ -294,11 +322,151 @@ class PublicMeetingWalkInController extends Controller
             'instansi'      => $displayInstansi,
             'checked_in_at' => $attendance->checked_in_at->format('H:i:s'),
             'meeting_title' => $meeting->title,
-            'matched'       => $matchedParticipant !== null, // flag apakah auto-match berhasil
+            'is_delegation' => $attendance->is_delegation,
+            'mewakili'      => $targetParticipant?->name ?? null,
+            'matched'       => $targetParticipant !== null,
         ], $message, 201);
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Find participant being represented for delegation.
+     */
+    private function findParticipantForDelegation(
+        $allParticipants,
+        string $inputInstansi,
+        ?string $mewakiliNama
+    ): ?object {
+        $distinctiveInput = $this->extractDistinctiveInstansiTokens($inputInstansi);
+
+        // 1. Coba cari berdasarkan kecocokan instansi
+        if (!empty($distinctiveInput)) {
+            foreach ($allParticipants as $p) {
+                $distinctiveP = $this->extractDistinctiveInstansiTokens($p->instansi ?? '');
+                // Semua token pembeda input harus ada di candidate instansi
+                if (!empty($distinctiveP) && empty(array_diff($distinctiveInput, $distinctiveP))) {
+                    return $p;
+                }
+            }
+        }
+
+        // 2. Jika nama yang diwakili diberikan, cari berdasarkan nama
+        if ($mewakiliNama && mb_strlen(trim($mewakiliNama)) >= 3) {
+            $cleanMewakili = $this->cleanTitleAndHonorifics($mewakiliNama);
+            foreach ($allParticipants as $p) {
+                $cleanP = $this->cleanTitleAndHonorifics($p->name);
+                if ($cleanMewakili === $cleanP || str_contains($cleanP, $cleanMewakili)) {
+                    return $p;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Strict participant matching:
+     * Menghindari salah pencocokan nama ("Khayat" dengan "Khayat Munasir")
+     * dengan mewajibkan kesamaan instansi spesifik dan kemiripan nama yang sangat tinggi.
+     */
+    private function findStrictParticipantMatch(
+        $allParticipants,
+        string $inputName,
+        string $inputInstansi
+    ): ?object {
+        $cleanInputName = $this->cleanTitleAndHonorifics($inputName);
+        $distinctiveInput = $this->extractDistinctiveInstansiTokens($inputInstansi);
+
+        if (empty($distinctiveInput) || mb_strlen($cleanInputName) < 3) {
+            return null;
+        }
+
+        $bestScore = 0.0;
+        $bestMatch = null;
+
+        foreach ($allParticipants as $p) {
+            $distinctiveP = $this->extractDistinctiveInstansiTokens($p->instansi ?? '');
+
+            // Instansi WAJIB memiliki token pembeda yang sama (contoh: 'patimuan', '01')
+            // Jika token pembeda beda (misal 'patimuan' vs 'kawunganten'), BATALKAN langsung
+            if (empty($distinctiveP) || !empty(array_diff($distinctiveInput, $distinctiveP))) {
+                continue;
+            }
+
+            $cleanPName = $this->cleanTitleAndHonorifics($p->name);
+
+            // Nama inti persis sama setelah gelar dihapus
+            if ($cleanInputName === $cleanPName) {
+                return $p;
+            }
+
+            // Hitung similar_text antar nama bersih
+            similar_text($cleanInputName, $cleanPName, $namePercent);
+
+            // Threshold kemiripan nama harus sangat tinggi (>= 88%)
+            // Mencegah "Khayat" (6) cocok dengan "Khayat Munasir" (14, similarity ~60%)
+            if ($namePercent >= 88.0 && $namePercent > $bestScore) {
+                $bestScore = $namePercent;
+                $bestMatch = $p;
+            }
+        }
+
+        return $bestMatch;
+    }
+
+    /**
+     * Ekstrak kata pembeda instansi (menghilangkan kata umum seperti MI, MTs, Maarif, NU, Cilacap).
+     */
+    private function extractDistinctiveInstansiTokens(string $instansi): array
+    {
+        $stopwords = [
+            'mi', 'mts', 'smp', 'ma', 'smk', 'sd', 'tk', 'ra',
+            'maarif', 'nu', 'lp', 'madrasah', 'sekolah', 'negeri', 'swasta',
+            'yayasan', 'cabang', 'cilacap', 'kabupaten', 'kecamatan', 'desa'
+        ];
+
+        $tokens = preg_split('/[\s,.\-\/]+/u', mb_strtolower($instansi));
+        $distinctive = [];
+
+        foreach ($tokens as $t) {
+            $t = trim($t);
+            if (mb_strlen($t) >= 2 && !in_array($t, $stopwords, true)) {
+                $distinctive[] = $t;
+            }
+        }
+
+        return array_values(array_unique($distinctive));
+    }
+
+    /**
+     * Bersihkan gelar dan tanda baca dari nama peserta untuk perbandingan akurat.
+     */
+    private function cleanTitleAndHonorifics(string $name): string
+    {
+        $patterns = [
+            '/\b(dr|dra|drs|h|hj|kh|kyai|gus|prof|ir|st|se|sh|spd|spdi|mpd|mag|msi|phd|llm|ba)\b\.?/iu',
+            '/[.,\-]/u',
+        ];
+        $cleaned = preg_replace($patterns, ' ', mb_strtolower($name));
+        return trim(preg_replace('/\s+/', ' ', $cleaned));
+    }
+
+    /**
+     * Sinkronkan nomor WhatsApp kepala madrasah ke tabel schools jika masih kosong.
+     */
+    private function syncSchoolHeadmasterPhone(string $instansi, string $nama, string $phone): void
+    {
+        try {
+            $school = \App\Models\School::where('nama', trim($instansi))->first();
+            if ($school && (empty($school->kepala_whatsapp) || trim($school->kepala_whatsapp) === '')) {
+                $school->update(['kepala_whatsapp' => $phone]);
+                \Log::info("WalkIn: Auto-updated school #{$school->id} ({$school->nama}) kepala_whatsapp with {$phone}");
+            }
+        } catch (\Exception $e) {
+            \Log::warning("WalkIn: Failed to sync school phone: " . $e->getMessage());
+        }
+    }
 
     /**
      * Calculate distance in meters between two GPS coordinates using Haversine formula.
@@ -327,7 +495,6 @@ class PublicMeetingWalkInController extends Controller
     {
         $ua = $request->userAgent() ?? '';
 
-        // Simple device type detection
         $deviceType = 'desktop';
         if (preg_match('/Mobile|Android|iPhone|iPod|BlackBerry|Windows Phone/i', $ua)) {
             $deviceType = 'mobile';
@@ -339,87 +506,5 @@ class PublicMeetingWalkInController extends Controller
             'user_agent'  => substr($ua, 0, 512),
             'device_type' => $deviceType,
         ];
-    }
-
-    /**
-     * Fuzzy similarity score (0-100) antara dua string.
-     *
-     * Menggabungkan tiga strategi dan mengambil nilai tertinggi:
-     *   1. Contains-check  — menangani kasus input merupakan bagian dari kandidat
-     *                        atau sebaliknya (misal singkatan nama "Luluk" ada di
-     *                        "Luluk Imtihanah, S.Pd.I").
-     *   2. Word-level score — membandingkan tiap kata input dengan tiap kata
-     *                        kandidat (toleran terhadap singkatan per kata).
-     *   3. Character-level — similar_text() sebagai fallback umum.
-     */
-    private function fuzzyScore(string $input, string $candidate): float
-    {
-        if ($input === '' || $candidate === '') {
-            return $input === $candidate ? 100.0 : 0.0;
-        }
-
-        if ($input === $candidate) {
-            return 100.0;
-        }
-
-        // ── Strategi 1: Contains-check (singkatan / nama pendek) ─────────────
-        $shorter = mb_strlen($input) <= mb_strlen($candidate) ? $input : $candidate;
-        $longer  = mb_strlen($input) <= mb_strlen($candidate) ? $candidate : $input;
-
-        if (str_contains($longer, $shorter)) {
-            $ratio = mb_strlen($shorter) / mb_strlen($longer);
-            if ($ratio >= 0.35) {
-                return max(75.0, $ratio * 100);
-            }
-        }
-
-        // ── Strategi 2: Word-level matching ──────────────────────────────────
-        $wordScore = $this->wordLevelScore($input, $candidate);
-
-        // ── Strategi 3: Character-level (similar_text) ───────────────────────
-        similar_text($input, $candidate, $charScore);
-
-        return max($wordScore, (float) $charScore);
-    }
-
-    /**
-     * Word-level fuzzy score (0-100).
-     *
-     * Memecah kedua string menjadi token kata, lalu menghitung berapa persen
-     * kata-kata dari input yang punya pasangan di kandidat dengan similar_text >= 75%.
-     *
-     * Contoh: "sd neg 1 cilacap" vs "sd negeri 1 cilacap"
-     *   kata "neg" vs "negeri" = ~75% -> match
-     *   kata "cilacap" vs "cilacap" = 100% -> match
-     *   => skor tinggi
-     */
-    private function wordLevelScore(string $input, string $candidate): float
-    {
-        $tokenize = static function (string $s): array {
-            return array_values(array_filter(
-                preg_split('/[\s,.\\/\-]+/u', $s),
-                static fn ($w) => mb_strlen($w) >= 2
-            ));
-        };
-
-        $inputWords     = $tokenize($input);
-        $candidateWords = $tokenize($candidate);
-
-        if (empty($inputWords) || empty($candidateWords)) {
-            return 0.0;
-        }
-
-        $matched = 0;
-        foreach ($inputWords as $iw) {
-            foreach ($candidateWords as $cw) {
-                similar_text($iw, $cw, $pct);
-                if ($pct >= 75.0) {
-                    $matched++;
-                    break;
-                }
-            }
-        }
-
-        return ($matched / count($inputWords)) * 100.0;
     }
 }

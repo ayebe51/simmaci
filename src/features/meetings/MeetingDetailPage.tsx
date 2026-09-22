@@ -15,7 +15,7 @@ import { MeetingPhotoGallery } from './components/MeetingPhotoGallery';
 import { MeetingPhotoUploader } from './components/MeetingPhotoUploader';
 import { useMeetingMinutes, useCreateMeetingMinutes, useUpdateMeetingMinutes } from './hooks/useMeetingMinutes';
 import { useMeetingPhotos } from './hooks/useMeetingPhotos';
-import { useMeeting, useDownloadMeetingPdf, useDownloadMeetingExcel, useManualCheckIn } from './hooks/useMeeting';
+import { useMeeting, useDownloadMeetingPdf, useDownloadMeetingExcel, useManualCheckIn, useResetCheckIn, useDeleteAttendance } from './hooks/useMeeting';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +23,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Edit2, ArrowLeft, Pencil, FileText, FileSpreadsheet,
   MapPin, Clock, Users, CheckCircle2, XCircle, UserCheck, QrCode, ExternalLink,
-  Download, Printer, Share2, Loader2,
+  Download, Printer, Share2, Loader2, UserPlus, Trash2, RotateCcw,
 } from 'lucide-react';
 import { MeetingQrModal } from './components/MeetingQrModal';
 import { downloadQrCodeImage, downloadQrCardImage, sanitizeFilename } from './utils/qrDownload';
@@ -65,6 +65,8 @@ export const MeetingDetailPage: React.FC = () => {
   const downloadPdfMutation = useDownloadMeetingPdf();
   const downloadExcelMutation = useDownloadMeetingExcel();
   const manualCheckInMutation = useManualCheckIn();
+  const resetCheckInMutation = useResetCheckIn();
+  const deleteAttendanceMutation = useDeleteAttendance();
 
   if (!meetingId) {
     return <div className="p-4 text-red-600">Invalid meeting ID</div>;
@@ -355,75 +357,171 @@ export const MeetingDetailPage: React.FC = () => {
             );
           })()}
 
-          {meeting && meeting.participants && meeting.participants.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center justify-between">
-                  <span>Daftar Peserta</span>
-                  <span className="text-sm font-normal text-slate-500">
-                    {meeting.attendance_stats?.present ?? 0} hadir dari {meeting.attendance_stats?.total ?? 0} peserta
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="divide-y">
-                  {meeting.participants.map((participant) => (
-                    <div key={participant.id} className="py-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">{participant.name}</p>
-                          <p className="text-xs text-slate-500">{participant.jabatan} · {participant.instansi}</p>
-                          {!participant.phone_number && (
-                            <p className="text-xs text-amber-600 mt-0.5">⚠ Nomor HP belum diisi</p>
-                          )}
+          {(() => {
+            const walkIns = meeting?.attendances?.filter((a) => !a.participant_id && (a.walk_in_name || a.attendance_type === 'qr_umum')) || [];
+
+            return (
+              <>
+                {meeting && meeting.participants && meeting.participants.length > 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center justify-between">
+                        <span>Daftar Peserta Terdaftar</span>
+                        <span className="text-sm font-normal text-slate-500">
+                          {meeting.attendance_stats?.present ?? 0} hadir dari {meeting.attendance_stats?.total ?? 0} peserta
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="divide-y">
+                        {meeting.participants.map((participant) => (
+                          <div key={participant.id} className="py-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-sm">{participant.name}</p>
+                                <p className="text-xs text-slate-500">{participant.jabatan} · {participant.instansi}</p>
+                                {!participant.phone_number && (
+                                  <p className="text-xs text-amber-600 mt-0.5">⚠ Nomor HP belum diisi</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {participant.attendance ? (
+                                  <div className="flex items-center gap-2">
+                                    {participant.attendance.is_delegation ? (
+                                      <div className="text-right">
+                                        <span className="flex items-center gap-1 text-xs text-amber-700 font-medium justify-end">
+                                          <Users className="h-3.5 w-3.5 text-amber-600" />
+                                          Hadir (Delegasi) · {format(new Date(participant.attendance.checked_in_at), 'HH:mm')}
+                                        </span>
+                                        <p className="text-xs text-slate-600 mt-0.5">
+                                          Diwakili: <span className="font-semibold text-slate-800">{participant.attendance.walk_in_name || '-'}</span>
+                                          {participant.attendance.walk_in_jabatan ? ` (${participant.attendance.walk_in_jabatan})` : ''}
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                                        <CheckCircle2 className="h-3.5 w-3.5" />
+                                        Hadir · {format(new Date(participant.attendance.checked_in_at), 'HH:mm')}
+                                      </span>
+                                    )}
+                                    {isAdmin && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 ml-1"
+                                        disabled={resetCheckInMutation.isPending}
+                                        onClick={() => {
+                                          if (confirm(`Reset status kehadiran ${participant.name}?`)) {
+                                            resetCheckInMutation.mutate({ meetingId: meetingId!, participantId: participant.id });
+                                          }
+                                        }}
+                                        title="Reset check-in jika salah absen"
+                                      >
+                                        <RotateCcw className="h-3 w-3 mr-1" />
+                                        Reset
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                                      <XCircle className="h-3.5 w-3.5" />
+                                      Belum hadir
+                                    </span>
+                                    {isAdmin && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                        disabled={manualCheckInMutation.isPending && checkInTarget === participant.id}
+                                        onClick={() => {
+                                          setCheckInTarget(participant.id);
+                                          manualCheckInMutation.mutate(
+                                            { meetingId: meetingId!, participantId: participant.id },
+                                            { onSettled: () => setCheckInTarget(null) }
+                                          );
+                                        }}
+                                      >
+                                        {manualCheckInMutation.isPending && checkInTarget === participant.id
+                                          ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                          : <UserCheck className="h-3 w-3 mr-1" />}
+                                        Catat Hadir
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="p-8 text-center text-slate-400">
+                    <Users className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                    <p>Belum ada peserta terdaftar</p>
+                  </div>
+                )}
+
+                {/* Peserta Walk-In & Tamu Tambahan */}
+                {walkIns.length > 0 && (
+                  <Card className="border-blue-200 mt-4">
+                    <CardHeader className="bg-blue-50/50 pb-3">
+                      <CardTitle className="text-base flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-blue-900">
+                          <UserPlus className="h-4 w-4 text-blue-600" />
+                          <span>Peserta Walk-In & Tamu Tambahan</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {participant.attendance ? (
-                            <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Hadir · {format(new Date(participant.attendance.checked_in_at), 'HH:mm')}
-                            </span>
-                          ) : (
-                            <>
-                              <span className="flex items-center gap-1 text-xs text-slate-400">
-                                <XCircle className="h-3.5 w-3.5" />
-                                Belum hadir
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">
+                          {walkIns.length} hadir
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="divide-y">
+                        {walkIns.map((walkIn) => (
+                          <div key={walkIn.id} className="py-3 flex items-center justify-between gap-4">
+                            <div>
+                              <p className="font-semibold text-sm text-slate-800">{walkIn.walk_in_name || '-'}</p>
+                              <p className="text-xs text-slate-600">
+                                {walkIn.walk_in_jabatan || '-'} · <span className="font-medium text-slate-700">{walkIn.walk_in_instansi || '-'}</span>
+                              </p>
+                              {walkIn.walk_in_phone && (
+                                <p className="text-xs text-slate-400 mt-0.5">WhatsApp: {walkIn.walk_in_phone}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="flex items-center gap-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md font-medium">
+                                <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                                Walk-In · {format(new Date(walkIn.checked_in_at), 'HH:mm')}
                               </span>
                               {isAdmin && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                                  disabled={manualCheckInMutation.isPending && checkInTarget === participant.id}
+                                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  disabled={deleteAttendanceMutation.isPending}
                                   onClick={() => {
-                                    setCheckInTarget(participant.id);
-                                    manualCheckInMutation.mutate(
-                                      { meetingId: meetingId!, participantId: participant.id },
-                                      { onSettled: () => setCheckInTarget(null) }
-                                    );
+                                    if (confirm(`Hapus data kehadiran walk-in untuk ${walkIn.walk_in_name}?`)) {
+                                      deleteAttendanceMutation.mutate({ meetingId: meetingId!, attendanceId: walkIn.id });
+                                    }
                                   }}
+                                  title="Hapus kehadiran walk-in ini"
                                 >
-                                  {manualCheckInMutation.isPending && checkInTarget === participant.id
-                                    ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                    : <UserCheck className="h-3 w-3 mr-1" />}
-                                  Catat Hadir
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
-                            </>
-                          )}
-                        </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="p-8 text-center text-slate-400">
-              <Users className="h-10 w-10 mx-auto mb-2 opacity-40" />
-              <p>Belum ada peserta terdaftar</p>
-            </div>
-          )}
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
 
         {/* Minutes Tab */}

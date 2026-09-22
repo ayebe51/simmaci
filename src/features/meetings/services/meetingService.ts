@@ -71,6 +71,10 @@ export const meetingService = {
     await apiClient.post(`/meetings/${meetingId}/participants/${participantId}/reset-check-in`);
   },
 
+  deleteAttendance: async (meetingId: number, attendanceId: number): Promise<void> => {
+    await apiClient.delete(`/meetings/${meetingId}/attendances/${attendanceId}`);
+  },
+
   regenerateQr: async (meetingId: number, participantId: number): Promise<void> => {
     await apiClient.post(`/meetings/${meetingId}/participants/${participantId}/regenerate-qr`);
   },

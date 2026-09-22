@@ -134,6 +134,7 @@ export interface Meeting {
   qr_umum_token: string | null; // raw column name from backend serialization
   schools: School[];
   participants: MeetingParticipant[];
+  attendances?: MeetingAttendance[];
   attendance_stats: AttendanceStats;
   minutes: MeetingMinutes | null;
   photos: MeetingPhoto[];

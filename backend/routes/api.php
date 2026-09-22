@@ -374,6 +374,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy']);
         Route::post('meetings/{meeting}/participants/{participant}/check-in', [MeetingController::class, 'manualCheckIn']);
         Route::post('meetings/{meeting}/participants/{participant}/reset-check-in', [MeetingController::class, 'resetCheckIn']);
+        Route::delete('meetings/{meeting}/attendances/{attendance}', [MeetingController::class, 'deleteAttendance']);
         Route::post('meetings/{meeting}/participants/{participant}/regenerate-qr', [MeetingController::class, 'regenerateQr']);
         Route::post('meetings/{meeting}/participants/{participant}/resend-wa', [MeetingController::class, 'resendWa']);
     });
@@ -517,6 +518,17 @@ Route::prefix('public/meetings')->group(function () {
             ], 410);
         }
 
+        // Ambil daftar peserta terdaftar untuk memudahkan pencarian/pemilihan di form walk-in
+        $registeredParticipants = $meeting->participants()
+            ->whereNull('deleted_at')
+            ->get(['id', 'name', 'jabatan', 'instansi'])
+            ->map(fn ($p) => [
+                'id'       => $p->id,
+                'name'     => $p->name,
+                'jabatan'  => $p->jabatan,
+                'instansi' => $p->instansi,
+            ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Silakan isi data kehadiran Anda.',
@@ -532,6 +544,7 @@ Route::prefix('public/meetings')->group(function () {
                     'longitude'                => $meeting->longitude,
                     'geolocation_radius_meters' => $meeting->geolocation_radius_meters,
                 ],
+                'registered_participants'      => $registeredParticipants,
                 'mode' => 'walk_in',
             ],
         ]);

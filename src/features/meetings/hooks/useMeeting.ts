@@ -55,6 +55,24 @@ export const useResetCheckIn = () => {
   });
 };
 
+/** Delete an attendance record */
+export const useDeleteAttendance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ meetingId, attendanceId }: { meetingId: number; attendanceId: number }) =>
+      meetingService.deleteAttendance(meetingId, attendanceId),
+    onSuccess: (_, { meetingId }) => {
+      queryClient.invalidateQueries({ queryKey: ['meeting', meetingId] });
+      queryClient.invalidateQueries({ queryKey: ['meeting-attendance', meetingId] });
+      toast.success('Data kehadiran berhasil dihapus');
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Gagal menghapus data kehadiran';
+      toast.error(message);
+    },
+  });
+};
+
 /** Regenerate QR code for a participant */
 export const useRegenerateQr = () => {
   const queryClient = useQueryClient();

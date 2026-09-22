@@ -62,15 +62,9 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Ambil URL QR Walk-In
-  const qrRaw = meeting.qr_umum_url || meeting.qr_umum_token || '';
-  const qrUrl = qrRaw.startsWith('http')
-    ? qrRaw
-    : qrRaw.startsWith('/')
-    ? `${window.location.origin}${qrRaw}`
-    : qrRaw
-    ? `${window.location.origin}/meetings/${meeting.id}/walk-in?token=${qrRaw}`
-    : `${window.location.origin}/meetings/${meeting.id}/walk-in`;
+  // Prioritaskan URL Walk-In bersih agar QR Code ringkas, cepat dipindai, dan tidak terbebani query params signature
+  // Format bersih: ${origin}/meetings/${meeting.id}/walk-in (Level M ~29x29 modul, terbaca instan di semua HP)
+  const qrUrl = `${window.location.origin}/meetings/${meeting.id}/walk-in`;
 
   const handleCopyLink = () => {
     if (!qrUrl) return;
@@ -406,6 +400,9 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             <div class="action-callout">
               <div class="action-title">SCAN QR CODE UNTUK PRESENSI</div>
               <div class="action-subtitle">Arahkan kamera HP Anda untuk mengisi data presensi kehadiran</div>
+              <div style="margin-top: 4px; font-size: 9.5px; color: #047857; font-weight: 700; word-break: break-all;">
+                Atau buka browser: <span style="text-decoration: underline;">${qrUrl}</span>
+              </div>
             </div>
 
             <div class="instructions">
@@ -665,7 +662,7 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
               id="standee-qr-code-svg"
               value={qrUrl}
               size={240}
-              level="H"
+              level="M"
               includeMargin={true}
               className="mx-auto"
             />
@@ -678,6 +675,9 @@ export const MeetingQrModal: React.FC<MeetingQrModalProps> = ({
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               Arahkan kamera smartphone Anda untuk mengisi data presensi kehadiran
+            </p>
+            <p className="text-[11px] text-emerald-700 font-semibold mt-1">
+              Atau buka di browser: <span className="underline select-all">{qrUrl}</span>
             </p>
           </div>
 

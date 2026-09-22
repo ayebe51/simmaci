@@ -62,7 +62,17 @@ export default defineConfig({
         // CRITICAL: Exclude index.html from precache so navigation always validates fresh HTML with Nginx
         globPatterns: ['**/*.{js,css,ico,png,svg,webmanifest,woff,woff2}'],
         globIgnores: ['**/index.html'],
-        navigateFallbackDenylist: [/^\/.*\.xlsx$/, /^\/api\/.*$/, /^\/version.*$/],
+        // CRITICAL: Jangan izinkan Service Worker mencegat navigasi rute rapat / publik dengan index.html usang
+        navigateFallbackDenylist: [
+          /^\/.*\.xlsx$/,
+          /^\/api\/.*$/,
+          /^\/version.*$/,
+          /^\/meetings\/.*/,
+          /^\/scan.*/,
+          /^\/verify\/.*/,
+          /^\/daftar\/.*/,
+          /^\/ppdb\/.*/,
+        ],
         runtimeCaching: [
           {
             // Cache public attendance API responses for offline resilience

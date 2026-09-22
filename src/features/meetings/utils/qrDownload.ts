@@ -35,7 +35,7 @@ export async function downloadQrCodeImage(
     const dataUrl = await QRCode.toDataURL(text, {
       width: 1024,
       margin: 2,
-      errorCorrectionLevel: 'H',
+      errorCorrectionLevel: 'M',
       color: {
         dark: '#000000',
         light: '#ffffff',
@@ -175,13 +175,13 @@ export async function downloadQrCardImage({
   filename,
 }: QrCardOptions): Promise<void> {
   try {
-    // Generate ultra high resolution QR code data
+    // Generate ultra high resolution QR code data with Level M (optimasi HP entry-level)
     const rawQrDataUrl = await QRCode.toDataURL(text, {
       width: 1024,
       margin: 1,
-      errorCorrectionLevel: 'H',
+      errorCorrectionLevel: 'M',
       color: {
-        dark: '#047857', // Emerald-700
+        dark: '#0f172a', // Slate-900 (High contrast untuk kamera HP murah)
         light: '#ffffff',
       },
     });
@@ -382,10 +382,11 @@ export async function downloadQrCardImage({
     const footerTextY = cardBottom - 26;
     const footerDividerY = footerTextY - 20;
     const stepBoxHeight = 54;
-    const stepBoxY = footerDividerY - 18 - stepBoxHeight;
-    const instrSubtitleY = stepBoxY - 14;
-    const instrTitleY = instrSubtitleY - 26;
-    const bottomAreaTop = instrTitleY - 28;
+    const stepBoxY = footerDividerY - 16 - stepBoxHeight;
+    const manualUrlY = stepBoxY - 12;
+    const instrSubtitleY = manualUrlY - 18;
+    const instrTitleY = instrSubtitleY - 24;
+    const bottomAreaTop = instrTitleY - 26;
 
     // 7. Middle QR Code Section (Vertically Centered between Meta and Bottom Section)
     const availableQrHeight = bottomAreaTop - currentY;
@@ -459,6 +460,11 @@ export async function downloadQrCardImage({
     ctx.fillStyle = '#64748b'; // slate-500
     ctx.font = '400 16px "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.fillText('Arahkan kamera HP Anda untuk mengisi data presensi kehadiran', width / 2, instrSubtitleY);
+
+    // Teks tautan manual bagi peserta yang kameranya bermasalah
+    ctx.fillStyle = '#047857'; // emerald-700
+    ctx.font = '600 14px "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(`Atau ketik di browser: ${text}`, width / 2, manualUrlY);
 
     // 3-Step Quick Guide Box (Fills bottom void beautifully)
     const stepBoxWidth = cardWidth - 100; // ~896px

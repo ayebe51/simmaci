@@ -133,6 +133,9 @@ const PpdbRegistrationPage = lazyWithRetry(() => import("./features/ppdb/public/
 const PpdbStatusCheckPage = lazyWithRetry(() => import("./features/ppdb/public/PpdbStatusCheckPage"))
 const PpdbCenterPage = lazyWithRetry(() => import("./features/ppdb/admin/PpdbCenterPage"))
 
+// ── Common / Error Pages ──────────────────────────────────────────────────────
+const NotFoundPage = lazyWithRetry(() => import("./components/common/NotFoundPage"))
+
 // ── QueryClient ───────────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -305,7 +308,7 @@ export default function App() {
             />
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<div className="p-10 text-center">404 - Page Not Found (Catch-all)</div>} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
         </ChunkErrorBoundary>

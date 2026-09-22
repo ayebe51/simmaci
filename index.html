@@ -11,7 +11,18 @@
     <title>SIM Maarif NU Cilacap</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display:flex;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;background-color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:1rem;box-sizing:border-box;">
+        <div style="width:44px;height:44px;border:3.5px solid #e2e8f0;border-top-color:#059669;border-radius:50%;animation:simmaci_spin 0.75s linear infinite;margin-bottom:16px;"></div>
+        <p style="margin:0;font-size:14px;font-weight:700;color:#065f46;letter-spacing:0.02em;">LP MA'ARIF NU CILACAP</p>
+        <p style="margin:4px 0 0 0;font-size:12px;color:#64748b;">Memuat aplikasi SIMMACI...</p>
+        <style>
+          @keyframes simmaci_spin {
+            to { transform: rotate(360deg); }
+          }
+        </style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -65,7 +65,7 @@ services:
 
   # ── MinIO bucket setup (runs once) ────────────────────────
   createbuckets:
-    image: quay.io/minio/mc
+    image: cgr.dev/chainguard/minio-client:latest-dev
     container_name: simmaci-mc
     restart: no
     depends_on:
@@ -75,10 +75,11 @@ services:
       - simmaci-network
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required} ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required};
-      /usr/bin/mc mb --ignore-existing local/simmaci-storage;
+      (command -v mc >/dev/null 2>&1 && mc alias set local http://minio:9000 ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required} ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required} || /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required} ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required});
+      (command -v mc >/dev/null 2>&1 && mc mb --ignore-existing local/simmaci-storage || /usr/bin/mc mb --ignore-existing local/simmaci-storage || true);
       exit 0;
       "
+
 
   # ── Backend (Laravel) ─────────────────────────────────────
   backend:

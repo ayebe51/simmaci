@@ -100,7 +100,7 @@ services:
 
   # Automatic Bucket Creator
   createbuckets:
-      image: quay.io/minio/mc
+      image: cgr.dev/chainguard/minio-client:latest-dev
       container_name: simmaci-mc
       depends_on:
           - minio
@@ -108,9 +108,9 @@ services:
           - simmaci-network
       entrypoint: >
           /bin/sh -c "
-          /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-          /usr/bin/mc mb --ignore-existing local/simmaci-storage;
-          /usr/bin/mc anonymous set public local/simmaci-storage;
+          (command -v mc >/dev/null 2>&1 && mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} || /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin});
+          (command -v mc >/dev/null 2>&1 && mc mb --ignore-existing local/simmaci-storage || /usr/bin/mc mb --ignore-existing local/simmaci-storage || true);
+          (command -v mc >/dev/null 2>&1 && mc anonymous set public local/simmaci-storage || /usr/bin/mc anonymous set public local/simmaci-storage || true);
           exit 0;
           "
 

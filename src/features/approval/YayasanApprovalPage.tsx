@@ -343,16 +343,23 @@ export default function YayasanApprovalPage() {
         }
 
         // 2. Ambil template aktif sesuai varian secara aman & terotentikasi (dengan auto-fallback ke template statis)
-        let arrayBuffer: ArrayBuffer
+        let templateBinary = ""
         try {
-            arrayBuffer = await getActiveSkTemplateBinary(kamadSkType)
+            const res = await getActiveSkTemplateBinary(kamadSkType)
+            templateBinary = res.binary
         } catch (err: any) {
             console.warn(`Gagal ambil template ${kamadSkType}, mencoba fallback kamad_nonpns/kamad...`, err)
             try {
-                arrayBuffer = await getActiveSkTemplateBinary('kamad_nonpns')
+                const res = await getActiveSkTemplateBinary('kamad_nonpns')
+                templateBinary = res.binary
             } catch {
-                arrayBuffer = await getActiveSkTemplateBinary('kamad')
+                const res = await getActiveSkTemplateBinary('kamad')
+                templateBinary = res.binary
             }
+        }
+
+        if (!templateBinary) {
+            throw new Error(`Template SK (${kamadSkType}) tidak ditemukan atau gagal dimuat`)
         }
 
         // 4. QR Code
@@ -461,7 +468,7 @@ export default function YayasanApprovalPage() {
             "TEMBUSAN 1": tembusanList[0].isi,
             "TEMBUSAN 2": tembusanList[1].isi,
             "TEMBUSAN 3": tembusanList[2].isi,
-            "TEMBUSAN 4": tembusanList[3].isi,
+            "TEMBUSAN 4": tembusanList[4].isi,
             "TEMBUSAN 5": tembusanList[4].isi,
             "TEMBUSAN 6": tembusanList[5].isi,
             // Fallback satu blok teks (jika template pakai {TEMBUSAN} saja)
@@ -469,15 +476,33 @@ export default function YayasanApprovalPage() {
         }
 
         // 8. Generate DOCX
-        const zip = new PizZip(arrayBuffer)
+        const zip = new PizZip(templateBinary)
 
         // Auto-fix tag QR di document.xml jika perlu
         const docFile = zip.file("word/document.xml")
         if (docFile) {
             let content = docFile.asText()
             if (content.includes("qrcode") && !content.includes("%qrcode")) {
-                content = content.replace(/{qrcode}/g, "{%qrcode}")
+                content = content.replace(/\{[\s]*qrcode[\s]*\}/g, "{%qrcode}")
                 zip.file("word/document.xml", content)
+            }
+        }
+
+        const normalizeTag = (str: string) => str.toLowerCase().replace(/[_\s]/g, "")
+        const customParser = (tag: string) => {
+            return {
+                get: (scope: any) => {
+                    if (scope[tag] !== undefined) return scope[tag]
+                    const lowerTag = tag.toLowerCase()
+                    for (const k of Object.keys(scope)) {
+                        if (k.toLowerCase() === lowerTag) return scope[k]
+                    }
+                    const cleanTag = tag.toLowerCase().replace(/[_\s]/g, "")
+                    for (const k of Object.keys(scope)) {
+                        if (normalizeTag(k) === cleanTag) return scope[k]
+                    }
+                    return ""
+                }
             }
         }
 
@@ -485,16 +510,23 @@ export default function YayasanApprovalPage() {
             modules: [new ImageModule({
                 centered: false,
                 getImage: (tagValue: string) => {
-                    const b64 = tagValue.replace(/^data:image\/(png|jpg|svg|svg\+xml);base64,/, "")
-                    const bin = window.atob(b64)
-                    const bytes = new Uint8Array(bin.length)
-                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-                    return bytes.buffer
+                    try {
+                        const b64 = (tagValue || "").replace(/^data:image\/(png|jpg|svg|svg\+xml);base64,/, "")
+                        if (!b64) return new ArrayBuffer(0)
+                        const bin = window.atob(b64)
+                        const bytes = new Uint8Array(bin.length)
+                        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+                        return bytes.buffer
+                    } catch (err) {
+                        console.error("Gagal membaca gambar QR Code:", err)
+                        return new ArrayBuffer(0)
+                    }
                 },
                 getSize: () => [100, 100]
             })],
             paragraphLoop: true,
             linebreaks: true,
+            parser: customParser,
             nullGetter: () => ""
         })
 

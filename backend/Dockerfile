@@ -1,5 +1,9 @@
-FROM php:8.3-fpm
+FROM php:8.3-fpm-bookworm
 WORKDIR /var/www/html
+
+# Environment settings for lightweight fast extension compilation
+# Disable AVIF/SVT-AV1/RAV1E video codecs in GD to prevent heavy compilation, high memory usage, and build exit 255
+ENV IPE_GD_WITHOUTAVIF=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,8 +15,8 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions using official extension installer (uses prebuilt binaries and manages memory efficiently)
-ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/download/2.7.12/install-php-extensions /usr/local/bin/
+# Install PHP extensions using official extension installer image
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/local/bin/
 
 RUN install-php-extensions \
     pdo_pgsql \
@@ -37,11 +41,17 @@ RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Copy only composer manifest files first to leverage Docker layer caching
+COPY composer.json composer.lock ./
+
+# Install dependencies (cached unless composer.json or composer.lock changes)
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --no-scripts --no-autoloader
+
 # Copy project files
 COPY . .
 
-# Install dependencies
-RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --optimize-autoloader --no-dev --no-scripts
+# Generate optimized autoloader with application classes
+RUN composer dump-autoload --optimize --no-dev
 
 # Set permissions
 RUN chown -R www-data:www-data storage bootstrap/cache

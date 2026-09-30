@@ -63,14 +63,13 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'sslmode' => 'prefer',
             'options' => [
                 // Persistent connections must remain FALSE to prevent stale TCP sockets and session leakage after idle
                 PDO::ATTR_PERSISTENT => false,
                 // Fail-fast connect timeout (seconds)
                 PDO::ATTR_TIMEOUT => 5,
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_EMULATE_PREPARES => false,
             ],
         ],
 
@@ -124,9 +123,6 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DATABASE', '0'),
-            'timeout' => (float) env('REDIS_TIMEOUT', 2.0),
-            'read_timeout' => (float) env('REDIS_READ_TIMEOUT', 2.0),
-            'retry_interval' => 100,
         ],
 
         'cache' => [
@@ -136,9 +132,6 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DATABASE', '1'),
-            'timeout' => (float) env('REDIS_TIMEOUT', 2.0),
-            'read_timeout' => (float) env('REDIS_READ_TIMEOUT', 2.0),
-            'retry_interval' => 100,
         ],
 
     ],

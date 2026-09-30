@@ -37,18 +37,18 @@ Route::get('/health/deep', function () {
         // Test database connection with real query (verifies socket is alive)
         DB::select('SELECT 1');
         $dbStatus = 'ok';
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         \Illuminate\Support\Facades\Log::error('[HealthCheck] DB connection failed', ['error' => $e->getMessage()]);
-        $dbStatus = app()->isProduction() ? 'unavailable' : ('error: ' . $e->getMessage());
+        $dbStatus = 'unavailable: ' . $e->getMessage();
     }
 
     try {
         // Test cache connection
         Cache::get('health_check');
         $cacheStatus = 'ok';
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         \Illuminate\Support\Facades\Log::error('[HealthCheck] Cache connection failed', ['error' => $e->getMessage()]);
-        $cacheStatus = app()->isProduction() ? 'unavailable' : ('error: ' . $e->getMessage());
+        $cacheStatus = 'unavailable: ' . $e->getMessage();
     }
 
     $isHealthy = ($dbStatus === 'ok' && $cacheStatus === 'ok');

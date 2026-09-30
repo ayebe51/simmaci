@@ -57,6 +57,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register resilient Redis connector that gracefully handles WRONGPASS (password mismatch / unauthenticated Redis)
+        if ($this->app->bound('redis')) {
+            $this->app->make('redis')->extend('phpredis', function () {
+                return new \App\Support\Redis\ResilientPhpRedisConnector();
+            });
+        }
     }
 }

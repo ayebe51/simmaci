@@ -31,14 +31,11 @@ services:
     restart: unless-stopped
     command: >
       sh -c '
-        if [ -n "$$REDIS_PASSWORD" ]; then
-          exec redis-server --requirepass "$$REDIS_PASSWORD"
-        else
-          exec redis-server
-        fi
+        REDIS_PASS="$${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}"
+        exec redis-server --requirepass "$$REDIS_PASS" --protected-mode no
       '
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
     volumes:
       - redis-data:/data
     networks:
@@ -46,11 +43,8 @@ services:
     healthcheck:
       test: >
         sh -c '
-          if [ -n "$$REDIS_PASSWORD" ]; then
-            redis-cli -a "$$REDIS_PASSWORD" ping
-          else
-            redis-cli ping
-          fi
+          REDIS_PASS="$${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}"
+          redis-cli -a "$$REDIS_PASS" ping
         '
       interval: 10s
       timeout: 5s
@@ -131,7 +125,7 @@ services:
       QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -203,7 +197,7 @@ services:
       QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -250,7 +244,7 @@ services:
       QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}

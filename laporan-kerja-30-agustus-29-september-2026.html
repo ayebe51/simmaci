@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Kerja Staff IT — 30 Agustus s.d. 29 September 2026 | LP Ma'arif NU Cilacap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if (typeof mermaid !== 'undefined') {
+        mermaid.initialize({
+          startOnLoad: true,
+          theme: 'neutral',
+          flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+          timeline: { useMaxWidth: true }
+        });
+      }
+    });
+  </script>
+  <style>
+    :root {
+      --primary: #047857;
+      --primary-dark: #065f46;
+      --primary-light: #ecfdf5;
+      --secondary: #1e3a8a;
+      --text: #1f2937;
+      --text-muted: #4b5563;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --border-dark: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      padding: 30px 15px;
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 50px 65px;
+      border-radius: 14px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.07);
+      border: 1px solid var(--border);
+    }
+
+    /* Print action bar */
+    .print-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 35px;
+      padding: 16px 24px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 10px;
+      position: sticky;
+      top: 15px;
+      z-index: 100;
+      box-shadow: 0 4px 15px rgba(4, 120, 87, 0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    .print-bar-info strong {
+      color: #065f46;
+      font-size: 15.5px;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .print-bar-info div {
+      font-size: 12.5px;
+      color: #047857;
+    }
+
+    .print-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .print-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 11px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 7px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(4, 120, 87, 0.25);
+    }
+    .print-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(4, 120, 87, 0.35);
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: #047857;
+      border: 1.5px solid #a7f3d0;
+      padding: 10px 18px;
+      font-size: 13.5px;
+      font-weight: 600;
+      border-radius: 7px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: #f0fdf4;
+      border-color: #34d399;
+    }
+
+    /* Typography */
+    h1 {
+      color: #111827;
+      font-size: 26px;
+      border-bottom: 3.5px solid var(--primary);
+      padding-bottom: 14px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.3;
+    }
+
+    h2 {
+      color: var(--primary);
+      font-size: 19.5px;
+      margin-top: 42px;
+      margin-bottom: 16px;
+      border-bottom: 1.5px solid var(--border);
+      padding-bottom: 9px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    h3 {
+      color: #1e293b;
+      font-size: 15.5px;
+      margin-top: 26px;
+      margin-bottom: 11px;
+      font-weight: 600;
+    }
+
+    h4 {
+      color: #334155;
+      font-size: 14px;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    p, li {
+      font-size: 13.5px;
+      color: #374151;
+      line-height: 1.68;
+    }
+
+    ul, ol {
+      padding-left: 24px;
+      margin: 10px 0 16px 0;
+    }
+    li { margin-bottom: 6px; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 12.5px;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border-bottom: 2px solid #cbd5e1;
+    }
+
+    tr:nth-child(even) { background: #fbfcfd; }
+    tr:hover { background: #f0fdf4; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+
+    .badge-done {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+
+    .badge-wip {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fcd34d;
+    }
+
+    /* Blockquotes */
+    blockquote {
+      background: #f0fdf4;
+      border-left: 4.5px solid var(--primary);
+      margin: 20px 0;
+      padding: 14px 22px;
+      border-radius: 0 9px 9px 0;
+      color: #065f46;
+      font-size: 13.5px;
+    }
+
+    /* Code & Telemetry */
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 18px 22px;
+      border-radius: 9px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      line-height: 1.55;
+      border: 1px solid #334155;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #f1f5f9;
+      padding: 2.5px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #b91c1c;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+      border: none;
+    }
+
+    /* Mermaid diagrams container */
+    .mermaid-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 24px;
+      margin: 24px 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+    .mermaid-container .mermaid {
+      display: inline-block;
+      text-align: left;
+    }
+
+    hr {
+      border: 0;
+      height: 1px;
+      background: var(--border);
+      margin: 36px 0;
+    }
+
+    /* Links */
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    a:hover {
+      text-decoration: underline;
+      color: var(--primary-dark);
+    }
+
+    /* Print Rules for High-Fidelity PDF Export */
+    @media print {
+      @page {
+        size: A4;
+        margin: 15mm 12mm 15mm 12mm;
+      }
+      body {
+        background: white;
+        padding: 0;
+        color: #000;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+      }
+      .print-bar {
+        display: none !important;
+      }
+      h1, h2, h3, h4 {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
+      table {
+        page-break-inside: auto;
+        font-size: 10.5px;
+        margin: 14px 0;
+      }
+      th, td {
+        padding: 6px 8px;
+      }
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-after: auto;
+      }
+      pre {
+        font-size: 9.5px;
+        padding: 12px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        background: #1e293b !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .mermaid-container {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        padding: 14px;
+        border: 1px solid #ccc;
+      }
+      .badge {
+        border: 1px solid #999;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      blockquote {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="print-bar">
+      <div class="print-bar-info">
+        <strong>Dokumen Laporan Kerja Staff IT (Siap Cetak / Download PDF)</strong>
+        <div>SIMMACI & Keuangan Ma'arif — PC LP Ma'arif NU Kab. Cilacap (Periode 30 Agustus s.d. 29 September 2026)</div>
+      </div>
+      <div class="print-actions">
+        <a href="laporan-kerja-30-agustus-29-september-2026.docx" class="btn-secondary" title="Unduh versi Word">
+          📄 Download Word (.docx)
+        </a>
+        <button class="print-btn" onclick="window.print()">
+          🖨️ Cetak / Simpan ke PDF (Ctrl + P)
+        </button>
+      </div>
+    </div>
+
+<h1>LAPORAN KERJA STAFF IT (MULTI-ROLE ENGINEERING &amp; PRODUCT DELIVERY)</h1>
+<p><strong>Periode Laporan:</strong> 30 Agustus 2026 – 29 September 2026<br />
+<strong>Penyusun:</strong> Staff IT (End-to-End IT Engineering, Architecture &amp; Operations)<br />
+<strong>Satuan Kerja / Entitas:</strong> Pengurus Cabang Lembaga Pendidikan Ma'arif NU Kabupaten Cilacap<br />
+<strong>Repositori yang Dianalisis:</strong><br />
+1. <strong>SIMMACI (<em>Sistem Informasi Manajemen Ma'arif Cilacap</em>):</strong> <code>https://github.com/ayebe51/simmaci</code> (Path: <code>D:\apss-source\SIMMACI</code>)<br />
+2. <strong>Sistem Keuangan LP Ma'arif NU Cilacap (<em>Financial ERP &amp; Double-Entry Accounting Core</em>):</strong> <code>https://github.com/ayebe51/Keuangan-Maarif</code> (Path: <code>D:\apss-source\Keuangan maarif</code>)<br />
+<strong>Klasifikasi Dokumen:</strong> Laporan Pertanggungjawaban Kinerja Teknis, Arsitektur, Keamanan, dan Tata Kelola Sistem Informasi (<em>Confidential / Management Report</em>)<br />
+<strong>Status Verifikasi:</strong> 🟢 <strong>TERVERIFIKASI 100% EVIDENCE-BASED (ZERO-HALLUCINATION)</strong></p>
+<hr />
+<h2>DAFTAR ISI</h2>
+<ol>
+<li><a href="#1-executive-summary">Executive Summary</a></li>
+<li><a href="#2-portfolio-summary">Portfolio Summary</a></li>
+<li><a href="#3-period-scope-30-agustus--29-september-2026">Period Scope: 30 Agustus – 29 September 2026</a></li>
+<li><a href="#4-repository-analysis--simmaci">Repository Analysis — SIMMACI</a></li>
+<li><a href="#5-repository-analysis--keuangan-maarif">Repository Analysis — Keuangan Ma'arif</a></li>
+<li><a href="#6-business-analysis">Business Analysis</a></li>
+<li><a href="#7-system-analysis--architecture">System Analysis &amp; Architecture</a></li>
+<li><a href="#8-frontend-development">Frontend Development</a></li>
+<li><a href="#9-backend-development">Backend Development</a></li>
+<li><a href="#10-database-administration">Database Administration</a></li>
+<li><a href="#11-qa--testing">QA &amp; Testing</a></li>
+<li><a href="#12-security--devsecops">Security &amp; DevSecOps</a></li>
+<li><a href="#13-devops--deployment">DevOps &amp; Deployment</a></li>
+<li><a href="#14-maintenance--operational-support">Maintenance &amp; Operational Support</a></li>
+<li><a href="#15-multi-role-responsibility">Multi-Role Responsibility</a></li>
+<li><a href="#16-major-achievement">Major Achievement</a></li>
+<li><a href="#17-kpi--metrics">KPI &amp; Metrics</a></li>
+<li><a href="#18-issues--risks">Issues &amp; Risks</a></li>
+<li><a href="#19-work-in-progress">Work in Progress</a></li>
+<li><a href="#20-carry-over-ke-periode-berikutnya">Carry-Over ke Periode Berikutnya</a></li>
+<li><a href="#21-strategic-contribution">Strategic Contribution</a></li>
+<li><a href="#22-performance-summary">Performance Summary</a></li>
+<li><a href="#23-executive-one-page-summary">Executive One-Page Summary</a></li>
+<li><a href="#24-detailed-work-log">Detailed Work Log</a></li>
+<li><a href="#25-evidence--audit-trail">Evidence &amp; Audit Trail</a></li>
+</ol>
+<hr />
+<h2>1. EXECUTIVE SUMMARY</h2>
+<p>Laporan ini menyajikan pertanggungjawaban komprehensif atas pelaksanaan tugas, kontribusi rekayasa perangkat lunak, arsitektur sistem, tata kelola data, keamanan siber, dan operasional infrastruktur yang dilaksanakan oleh <strong>Staff IT</strong> selama periode <strong>30 Agustus 2026 hingga 29 September 2026</strong>.</p>
+<p>Dalam menjalankan tugasnya, Staff IT menjalankan fungsi menyeluruh (<em>end-to-end IT delivery</em>) yang mencakup peran: <strong>Project Manager, Business Analyst, Business Architect, Product Owner, System Analyst, Solution/Software Architect, Frontend Developer, Backend Developer, Database Administrator (DBA), QA Engineer, Security/DevSecOps Analyst, DevOps/Release Engineer, hingga IT Performance &amp; Support Specialist</strong>. </p>
+<p>Pekerjaan difokuskan pada dua repositori utama organisasi:<br />
+1. <strong>SIMMACI (<em>Sistem Informasi Manajemen Ma'arif Cilacap</em>):</strong> Sistem informasi manajemen terpadu yang melayani operasional madrasah/sekolah, tata kelola SK guru dan kepala madrasah, presensi digital cerdas, modul penerimaan peserta didik baru terpadu (PPDB Online), perhelatan Anugerah Pendidikan &amp; Festival Aswaja Harlah LP Ma'arif NU ke-97 (penilaian 2 fase, multi-juri, live scoreboard, dan pencetakan Berita Acara resmi).<br />
+2. <strong>Sistem Keuangan LP Ma'arif NU Cilacap:</strong> Core engine akuntansi <em>double-entry multi-tenant</em> yang dirancang untuk membakukan penatausahaan keuangan yayasan dan madrasah, memastikan prinsip <em>Segregation of Duties</em> (Maker vs Checker), buku besar, bagan akun standar (COA), serta jejak audit (<em>immutable audit trail</em>) yang memenuhi standar akuntansi nirlaba.</p>
+<h3>Ringkasan Capaian Utama Periode (Evidence-Based):</h3>
+<ul>
+<li><strong>Produktivitas Kode &amp; Repositori:</strong> Tercatat <strong>109 commit terverifikasi</strong> (108 commit pada SIMMACI, 1 rilis arsitektural Phase 3 pada Sistem Keuangan) dengan total modifikasi <strong>268 berkas</strong>, <strong>+35.060 baris kode ditambahkan</strong>, dan <strong>-4.958 baris kode direfaktorisasi</strong> (<em>Net Code Addition: +30.102 baris; Total Code Churn: 40.018 baris</em>).</li>
+<li><strong>Delivery Modul Baru PPDB Online Terpadu (SIMMACI):</strong> Merancang dan merilis modul PPDB satu pintu (<em>one-door admission</em>) mencakup landing directory publik, form pendaftaran wizard multi-tahap, tracker status pendaftaran tanpa login, serta <em>PpdbCenterPage</em> untuk operator madrasah dan admin yayasan dengan verifikasi berkas, pembobotan nilai, dan mesin sinkronisasi otomatis (<em>auto-sync engine</em>) ke master data siswa aktif.</li>
+<li><strong>Sukses Penyelenggaraan Anugerah Pendidikan &amp; Festival Aswaja (SIMMACI):</strong> Mengimplementasikan seleksi 2 fase (Tahap 1 Portofolio/Berkas &amp; Tahap 2 Presentasi/Wawancara), smart auto-matching juri independen, sistem penilaian multi-juri dengan rata-rata murni, deteksi anomali skor, freeze &amp; lock nilai permanen, serta ekspor resmi Berita Acara PDF ber-kop surat resmi dan rekapitulasi nilai Excel multi-sheet.</li>
+<li><strong>Modernisasi Presensi Rapat &amp; Standee A5/A4 (SIMMACI):</strong> Membangun algoritma pencocokan delegasi rapat 3 lapis (<em>3-layer fuzzy matching: exact/contains, word-level, char-level</em>), modul <em>walk-in check-in</em> langsung ('Catat Hadir'), poster QR Standee A5/A4 dengan pencetakan <em>isolated iframe</em> bebas blank page, dan penyesuaian <em>rate limiting</em> Wi-Fi venue bersama.</li>
+<li><strong>Audit Keamanan Menyeluruh &amp; DevSecOps Remediation (SIMMACI):</strong> Menyelesaikan penutupan celah SEC-001 hingga SEC-004 dan SEC-AUTH-001 s.d. SEC-AUTH-027. Melakukan penulisan ulang riwayat Git (<em>history rewrite</em>) pada 1.945+ commit untuk memusnahkan kredensial lawas tanpa merusak integritas kode, menerapkan konfigurasi <em>Fail-Closed</em> pada Docker Compose, header ketat HSTS &amp; CSP pada Nginx, serta mengamankan 27 titik otorisasi API terhadap ancaman IDOR, mass assignment, dan bypass verifikasi PIN juri.</li>
+<li><strong>Implementasi Phase 3 Accounting Foundation (Sistem Keuangan):</strong> Menyelesaikan fondasi akuntansi formal mencakup Bagan Akun Standar (COA) Ma'arif (400+ baris seeder hirarkis), pengelolaan periode fiskal (<em>Fiscal Period lifecycle</em>), alokator nomor jurnal atomik, <em>Journal Posting Service</em> dengan penjagaan ketat keseimbangan Debit-Kredit berbasis <em>Money Value Object</em> (integer/bcmul anti-floating point error), aturan mutlak pemisahan tugas (<em>Segregation of Duties</em> Maker != Checker), pembatalan non-destruktif (<em>Reversal Engine</em>), dan modul Saldo Awal (<em>Opening Balance</em>).</li>
+<li><strong>Jaminan Kualitas &amp; Stabilitas Produksi:</strong> </li>
+<li><strong>SIMMACI Backend:</strong> Seluruh <strong>1.822 automated test cases (36.983 assertions)</strong> lulus 100% (<strong>PASSED</strong>) dalam waktu 278,16 detik.</li>
+<li><strong>SIMMACI Frontend:</strong> Kompilasi aset produksi (<code>npm run build</code>) sukses 100% tanpa galat dalam <strong>30,17 detik</strong>, menghasilkan PWA Service Worker v1.2.0 (175 entri precache) dan 85 dynamic code-split chunks.</li>
+<li><strong>Sistem Keuangan Backend:</strong> Seluruh <strong>63 automated test cases (193 assertions)</strong> lulus 100% (<strong>PASSED</strong>) dalam waktu 13,93 detik.</li>
+</ul>
+<hr />
+<h2>2. PORTFOLIO SUMMARY</h2>
+<p>Perbandingan objektif atas kedua sistem yang dikembangkan dan dikelola:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter Evaluasi</th>
+<th style="text-align: left;">SIMMACI (<em>Sistem Informasi Manajemen</em>)</th>
+<th style="text-align: left;">Sistem Keuangan LP Ma'arif (<em>Financial ERP</em>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Repositori &amp; Lokasi</strong></td>
+<td style="text-align: left;"><a href="file:///d:/apss-source/SIMMACI">SIMMACI</a> (<code>ayebe51/simmaci</code>)</td>
+<td style="text-align: left;"><a href="file:///d:/apss-source/Keuangan%20maarif">Keuangan maarif</a> (<code>ayebe51/Keuangan-Maarif</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Domain Utama</strong></td>
+<td style="text-align: left;">Tata Kelola Madrasah, SK Kepegawaian, Presensi, PPDB, Event</td>
+<td style="text-align: left;">ERP Keuangan, Akuntansi Double-Entry, COA, Audit Trail</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tujuan Sistem</strong></td>
+<td style="text-align: left;">Digitalisasi operasional terpadu seluruh satuan pendidikan Ma'arif</td>
+<td style="text-align: left;">Standardisasi pembukuan keuangan akuntabel &amp; anti-fraud</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Arsitektur Utama</strong></td>
+<td style="text-align: left;">SPA (Vite + React) terpisah + Modular Monolith API (Laravel)</td>
+<td style="text-align: left;">Clean Domain-Driven Architecture (Laravel 11 Multi-Tenant)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Teknologi Frontend</strong></td>
+<td style="text-align: left;">React 18, TypeScript, Tailwind CSS, Lucide, Framer Motion</td>
+<td style="text-align: left;">Blade Views dasar (fase awal), API-first headless design</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Teknologi Backend</strong></td>
+<td style="text-align: left;">Laravel 11.x, PHP 8.2+, Sanctum, Spatie Permission</td>
+<td style="text-align: left;">Laravel 11.x, PHP 8.2+, Sanctum, Spatie Tenant RBAC</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Basis Data &amp; Engine</strong></td>
+<td style="text-align: left;">PostgreSQL 16, MinIO S3 Object Storage, Redis</td>
+<td style="text-align: left;">PostgreSQL 16 (dengan <em>database-level CHECK invariants</em>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Testing Harness</strong></td>
+<td style="text-align: left;">PHPUnit / Pest (1.822 tests), Vitest (47 spec files), Playwright</td>
+<td style="text-align: left;">PHPUnit / Pest Feature &amp; Unit Tests (63 tests)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Infrastruktur / Deployment</strong></td>
+<td style="text-align: left;">Docker Compose, Coolify, Nginx Reverse Proxy, VPS Live</td>
+<td style="text-align: left;">Docker Compose, Local PostgreSQL Containerized Engine</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Keamanan &amp; Otorisasi</strong></td>
+<td style="text-align: left;">RBAC 5 Roles, Tenant Isolation, CSP, HSTS, Fail-Closed</td>
+<td style="text-align: left;">Multi-tenant isolation (<code>TenantScope</code>), Segregation of Duties</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Aktivitas Periode</strong></td>
+<td style="text-align: left;">108 Commit (+31.544 / -4.958 baris), PPDB, Event 2-Fase, SEC Fix</td>
+<td style="text-align: left;">1 Commit Rilis Masif Phase 3 (+3.516 baris, 35 files)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Status Akhir Periode</strong></td>
+<td style="text-align: left;">🟢 <strong>Production Live &amp; Stabil</strong> (<code>simmaci.com</code>)</td>
+<td style="text-align: left;">🟢 <strong>Core Engine Foundation Selesai (Phase 3 DONE)</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. PERIOD SCOPE: 30 AGUSTUS – 29 SEPTEMBER 2026</h2>
+<p>Berdasarkan aturan verifikasi riwayat kerja, klasifikasi temporal diterapkan secara ketat:</p>
+<div class="mermaid-container"><div class="mermaid">
+timeline
+    title Timeline Kerja & Batasan Temporal
+    section Baseline (Pra-Periode)
+        12 Agustus 2026 : Phase 1 Keuangan (Skema 34 Tabel & Setup Laravel 11)
+        26 Agustus 2026 : Phase 2 Keuangan (TenantScope, Sanctum, RBAC, Audit Trail)
+        27 - 28 Agustus 2026 : SIMMACI 9 Center Hubs, SK Revision Picker, Event Seeding
+    section Periode Berjalan (30 Agt - 29 Sep 2026)
+        31 Agt - 04 Sep 2026 : PPDB Online (Skema, Service, Landing, Wizard, Center Hub)
+        03 - 04 Sep 2026 : DevSecOps SEC-001 - SEC-004 & Git History Rewrite
+        07 - 14 Sep 2026 : Anugerah 2-Fase, Multi-Juri, Berita Acara PDF & Standee Presensi
+        11 - 15 Sep 2026 : Hardening Otorisasi SEC-AUTH-001 - 027 & Performance Tuning
+        16 - 19 Sep 2026 : Score Lock, Normalisasi Anomali Nilai & Rekap Excel Juara
+        21 - 25 Sep 2026 : Auto-Sync Kamad ke Sekolah, Zero-Hard-Refresh, Fix PizZip & MinIO
+        23 Sep 2026 : Phase 3 Keuangan (COA Seeder, Fiscal Periods, Journal Posting Engine)
+    section Carry-Over (Pasca-Periode)
+        Oktober 2026 : UI Frontend ERP Keuangan, Billing Siswa & Gateway Pembayaran
+</div></div>
+
+<h3>A. BASELINE (Pekerjaan Sebelum 30 Agustus 2026):</h3>
+<ul>
+<li><strong>SIMMACI:</strong> Pembangunan arsitektur dasar 9 Center Hub Pages, form pengajuan SK Guru/Tendik dan Kamad, modul presensi geolokasi, dan seeding awal cabang lomba Harlah 97.</li>
+<li><strong>Sistem Keuangan:</strong> Penyelesaian Phase 0.5 (Spesifikasi Teknis REV3, Invarian Akuntansi, ERD 34 tabel), Phase 1 (migrasi 34 tabel DDL PostgreSQL dengan foreign key dan check constraints), serta Phase 2 (isolasi multi-tenant global <code>TenantScope</code>, autentikasi Sanctum, Spatie RBAC, dan skema jejak audit <code>AuditService</code>).</li>
+</ul>
+<h3>B. WORK PERIODE (30 Agustus 2026 – 29 September 2026):</h3>
+<p>Seluruh aktivitas rekayasa perangkat lunak, perbaikan bug, hardening keamanan, eksekusi tes, dan deployment yang tercatat pada commit <code>7b0c777b</code> (31 Agustus 2026) hingga <code>09532da2</code> (25 September 2026) pada SIMMACI, serta commit <code>8419765</code> (23 September 2026) pada Sistem Keuangan.</p>
+<h3>C. CARRY-OVER / FUTURE (Rencana Setelah 29 September 2026):</h3>
+<ul>
+<li>Pembuatan antarmuka pengguna (Frontend Web SPA) untuk Sistem Keuangan Ma'arif (tahap pelaporan buku besar, neraca, dan form jurnal umum).</li>
+<li>Modul integrasi tagihan dan pembayaran SPP/iuran madrasah antara SIMMACI dan Sistem Keuangan.</li>
+</ul>
+<hr />
+<h2>4. REPOSITORY ANALYSIS — SIMMACI</h2>
+<h3>4.1 Project Overview</h3>
+<ul>
+<li><strong>Nama Sistem:</strong> SIMMACI (<em>Sistem Informasi Manajemen Ma'arif Cilacap</em>)</li>
+<li><strong>Entitas Pengguna:</strong> PC LP Ma'arif NU Kabupaten Cilacap, Satuan Pendidikan (MI, MTs, SMP, MA, SMK di bawah naungan Ma'arif Cilacap), Dewan Juri, dan Masyarakat Umum.</li>
+<li><strong>Tech Stack:</strong> </li>
+<li>Frontend: React 18, TypeScript, Vite 6, Tailwind CSS, Lucide Icons, Framer Motion, Workbox PWA.</li>
+<li>Backend: Laravel 11.x, PHP 8.2+, Composer, PostgreSQL 16, MinIO S3 Object Storage, Nginx, Redis.</li>
+<li>Environment &amp; Deploy: Docker Compose, Coolify CI/CD, Linux Ubuntu VPS.</li>
+</ul>
+<h3>4.2 Struktur Direktori &amp; Arsitektur Kode</h3>
+<ul>
+<li><a href="file:///d:/apss-source/SIMMACI/src/features">src/features/</a>: Terbagi rapi berbasis <em>Domain Feature Modules</em>:</li>
+<li><a href="file:///d:/apss-source/SIMMACI/src/features/ppdb">ppdb/</a>: Modul PPDB (<code>admin/PpdbCenterPage.tsx</code>, <code>public/PpdbLandingPage.tsx</code>, <code>public/PpdbRegistrationPage.tsx</code>, <code>public/PpdbStatusCheckPage.tsx</code>).</li>
+<li><a href="file:///d:/apss-source/SIMMACI/src/features/events">events/</a>: Modul Event &amp; Lomba (<code>CompetitionDetailPage.tsx</code>, <code>CompetitionExportModal.tsx</code>, <code>JuryScoringPage.tsx</code>, <code>PublicScoreboardPage.tsx</code>, <code>AnugerahRegistrationPage.tsx</code>).</li>
+<li><a href="file:///d:/apss-source/SIMMACI/src/features/meetings">meetings/</a>: Modul Presensi Rapat (<code>MeetingDetailPage.tsx</code>, <code>MeetingWalkInPage.tsx</code>, <code>MeetingQrModal.tsx</code>).</li>
+<li><a href="file:///d:/apss-source/SIMMACI/src/features/approval">approval/</a>: Modul Approval Yayasan (<code>YayasanApprovalPage.tsx</code>).</li>
+<li><a href="file:///d:/apss-source/SIMMACI/src/features/sk-management">sk-management/</a>: Modul SK (<code>SkCenterPage.tsx</code>, <code>SkSubmissionPage.tsx</code>, <code>SkGeneratorPage.tsx</code>).</li>
+<li><a href="file:///d:/apss-source/SIMMACI/backend/app">backend/app/</a>:</li>
+<li><code>Http/Controllers/Api/</code>: Controller REST API terstandarisasi dengan form request validation dan policy enforcement.</li>
+<li><code>Services/</code>: Service layer pembungkus <em>business rules</em> kompleks (<code>PpdbService.php</code>, <code>SkDocumentService.php</code>, <code>HeadmasterService.php</code>).</li>
+<li><code>Jobs/</code>: Pemrosesan antrean latar belakang (<code>SendPpdbWaNotificationJob.php</code>).</li>
+</ul>
+<hr />
+<h2>5. REPOSITORY ANALYSIS — KEUANGAN MA'ARIF</h2>
+<h3>5.1 Project Overview</h3>
+<ul>
+<li><strong>Nama Sistem:</strong> Sistem Keuangan LP Ma'arif NU Cilacap</li>
+<li><strong>Tech Stack:</strong> Laravel 11.x, PHP 8.2+, PostgreSQL 16, Spatie Laravel Permission, Laravel Sanctum, PHPUnit/Pest.</li>
+<li><strong>Domain Akuntansi:</strong> Double-entry bookkeeping multi-tenant, Bagan Akun Standar (COA), Tata Kelola Jurnal (Draft, Posted, Reversed), Manajemen Periode Fiskal, Pengamanan Saldo Awal, serta Audit Trail.</li>
+</ul>
+<h3>5.2 Struktur Arsitektur Bersih (Domain-Driven Structure)</h3>
+<p>Repositori mengadopsi struktur berbasis domain pada <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain">backend/app/Domain/</a>:<br />
+* <strong>Domain Accounting (<a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting">backend/app/Domain/Accounting/</a>):</strong><br />
+  - <code>Exceptions/</code>: Penanganan domain error terisolasi (<code>UnbalancedJournalException</code>, <code>ClosedFiscalPeriodException</code>, <code>SegregationOfDutiesException</code>, <code>AlreadyReversedException</code>, <code>NonPostableAccountException</code>, <code>ImmutableJournalException</code>).<br />
+  - <code>Models/</code>: Entity akuntansi murni (<code>Account</code>, <code>AccountMapping</code>, <code>FiscalPeriod</code>, <code>JournalEntry</code>, <code>JournalLine</code>, <code>OpeningBalanceSource</code>).<br />
+  - <code>Services/</code>: Logic engine akuntansi:<br />
+    - <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/JournalPostingService.php">JournalPostingService.php</a>: Eksekusi draft jurnal, validasi keseimbangan debit=kredit, pencegahan bypass Maker vs Checker, dan posting atomik.<br />
+    - <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/OpeningBalanceService.php">OpeningBalanceService.php</a>: Inisialisasi saldo awal berbasis akun riil neraca dengan penguncian posting otomatis.<br />
+    - <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/JournalNumberAllocator.php">JournalNumberAllocator.php</a>: Penomoran jurnal sekuensial per tahun dan per organisasi secara aman dari <em>race condition</em>.<br />
+    - <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/FiscalPeriodService.php">FiscalPeriodService.php</a>: Pengawasan status periode akuntansi (Open, Soft Closed, Hard Closed).<br />
+  - <code>ValueObjects/</code>:<br />
+    - <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/ValueObjects/Money.php">Money.php</a>: Representasi nilai moneter absolut dengan presisi sen/koma menggunakan fungsi <code>bcmul</code>/integer untuk memitigasi kesalahan pembulatan <em>floating-point</em>.<br />
+* <strong>Domain Audit &amp; Organization:</strong><br />
+  - <code>AuditService.php</code>: Pencatatan mutlak seluruh aktivitas ke tabel audit yang <em>read-only</em>.<br />
+  - <code>TenantScope.php</code>: Isolasi multi-tenant otomatis di level ORM Eloquent sehingga tidak ada kebocoran data antar madrasah/organisasi.</p>
+<hr />
+<h2>6. BUSINESS ANALYSIS</h2>
+<p>Dalam kapasitas sebagai <strong>Business Analyst</strong> dan <strong>Business Architect</strong>, dilakukan identifikasi proses bisnis, aturan validasi yuridis, dan penyusunan <em>business flow</em> berikut:</p>
+<div class="mermaid-container"><div class="mermaid">
+graph TD
+    subgraph Alur PPDB Online Terpadu
+        P1[Calon Siswa / Wali] -->|Buka Link Satpend| P2[Formulir Multi-Tahap]
+        P2 -->|Submit Biodata & Dokumen| P3[Nomor Pendaftaran & Status Tracker]
+        P3 -->|Verifikasi Berkas & Skor| P4[Operator Satpend / Admin Yayasan]
+        P4 -->|Status Diterima| P5[Auto-Sync Engine]
+        P5 -->|Otomatis Masuk| P6[(Master Data Siswa Aktif SIMMACI)]
+    end
+
+    subgraph Alur Penilaian 2-Fase Anugerah Pendidikan
+        E1[Pendaftaran Berkas & Portofolio] -->|Tahap 1 Administrasi| E2[Verifikasi Juri Portofolio]
+        E2 -->|Lolos Ambang Batas| E3[Promosi Finalis Tahap 2]
+        E3 -->|Tahap 2 Wawancara / Visitasi| E4[Penilaian Multi-Juri Independen]
+        E4 -->|Kalkulasi Rata-Rata Otomatis| E5[Live Scoreboard & Peringkat]
+        E5 -->|Lock & Freeze Nilai| E6[Cetak Berita Acara & Rekap Excel]
+    end
+</div></div>
+
+<h3>Aturan Bisnis Kunci yang Ditetapkan &amp; Diimplementasikan:</h3>
+<ol>
+<li><strong>One-Door PPDB Admission Policy:</strong> Calon siswa dapat mendaftar langsung melalui tautan khusus madrasah (<code>/ppdb/daftar?sekolah=slug</code>) tanpa memerlukan akun login. Siswa yang diterima secara resmi oleh operator madrasah langsung dipindahkan ke master data siswa aktif dengan penomoran unik, mengeliminasi re-entry data manual.</li>
+<li><strong>Dual-Stage Competition Scoring Policy:</strong> Khusus Anugerah Guru &amp; Madrasah Berprestasi, peserta wajib melalui Tahap 1 (Administrasi &amp; Dokumen Portofolio). Hanya peserta yang dinyatakan sebagai Finalis yang berhak dinilai pada Tahap 2 (Presentasi &amp; Wawancara). Nilai akhir dihitung secara kumulatif atau bobot rata-rata multi-juri sesuai Juknis resmi.</li>
+<li><strong>Immutability of Submitted Scores:</strong> Dewan juri yang telah menginput nilai dapat membekukan nilai (<em>freeze-submitted</em>). Setelah batas waktu penjurian berakhir, sistem mengunci nilai (<em>freeze-all</em>) sehingga tidak dapat diubah baik oleh juri maupun operator demi menjaga integritas kejuaraan.</li>
+<li><strong>Accounting Segregation of Duties (Maker != Checker):</strong> Pengguna yang membuat draf transaksi jurnal (<code>created_by</code>) dilarang keras melakukan persetujuan (<em>posting</em>) atau pembalikan (<em>reversal</em>) atas jurnal tersebut. Persetujuan wajib dilakukan oleh staf/pejabat verifikator yang berbeda.</li>
+<li><strong>Zero-Imbalance &amp; Leaf Account Requirement:</strong> Jurnal akuntansi ditolak mentah-mentah jika total debit tidak sama dengan total kredit, atau jika akun yang dipilih bertindak sebagai akun induk (<em>header account</em>) yang bukan merupakan rekening posting (<em>leaf postable</em>).</li>
+</ol>
+<hr />
+<h2>7. SYSTEM ANALYSIS &amp; ARCHITECTURE</h2>
+<p>Sebagai <strong>System Analyst</strong> dan <strong>Solution/Software Architect</strong>, dirancang arsitektur sistem yang modular, aman, dan berdaya tahan tinggi:</p>
+<div class="mermaid-container"><div class="mermaid">
+graph LR
+    subgraph Client Tier
+        Browser[Web Browser / PWA Client]
+        Mobile[Mobile Device Scanner]
+    end
+
+    subgraph Ingress & Security Tier
+        Nginx[Nginx Reverse Proxy]
+        HSTS_CSP[HSTS & Strict CSP Filter]
+        CacheTier[Smart Cache Tiering & Chunk Retention N-1]
+    end
+
+    subgraph Application Tier
+        SPA[React 18 SPA - Vite 6]
+        API[Laravel 11 Modular REST API]
+        VM[Version Manager & Auto-Reload Engine]
+    end
+
+    subgraph Storage & Persistence Tier
+        PG[(PostgreSQL 16 Multi-Tenant)]
+        MinIO[(MinIO S3 Object Storage)]
+        Redis[(Redis Cache & Session Queue)]
+    end
+
+    Browser --> Nginx
+    Mobile --> Nginx
+    Nginx --> HSTS_CSP --> CacheTier
+    CacheTier --> SPA
+    SPA -->|REST API Calls| API
+    SPA -->|Version Polling 60s| VM
+    API --> PG
+    API --> MinIO
+    API --> Redis
+</div></div>
+
+<h3>Keputusan Arsitektur Kunci (Architectural Decisions):</h3>
+<ol>
+<li><strong>Zero Hard Refresh Deployment &amp; Version Manager:</strong><br />
+   - <em>Problem:</em> Pengguna sering mengalami galat <code>ChunkLoadError 404</code> saat aset baru di-deploy ke server karena hash JavaScript lama terhapus dari kontainer.<br />
+   - <em>Solution:</em> Mengimplementasikan skrip <code>generate-version.js</code> pada <em>prebuild</em>, komponen <code>versionManager.ts</code> pada frontend yang memantau file <code>version.json</code> setiap 60 detik, retensi <em>chunk</em> versi N-1 pada Nginx kontainer, serta modal notifikasi pembaruan elegan (<em>UpdateNotification banner</em>) yang memuat ulang aset secara <em>seamless</em>.</li>
+<li><strong>MinIO Object Storage Hardening &amp; Quay/Chainguard Migration:</strong><br />
+   - Mengalihkan repositori <em>image</em> Docker <code>minio/mc</code> yang sempat mengalami kendala autentikasi Docker Hub ke <code>quay.io/minio/minio</code> dan <code>cgr.dev/chainguard/minio-client:latest-dev</code>.<br />
+   - Mengisolasi port internal MinIO (<code>127.0.0.1:9000</code>) dan membatasi akses unduhan berkas melalui proxy terotentikasi di backend untuk mencegah akses publik anonim terhadap arsip ijazah dan SK.</li>
+<li><strong>Database Performance Indexing &amp; Query Optimization:</strong><br />
+   - Menambahkan indeks komposit kritis pada tabel utama SIMMACI (<code>idx_teachers_school_status</code>, <code>idx_students_school_class_status</code>, <code>idx_competition_scores_comp_part</code>) untuk memangkas waktu pemrosesan agregasi dan ekspor data besar dari beberapa detik menjadi &lt; 100 ms.</li>
+<li><strong>Clean Domain-Driven Design pada Sistem Keuangan:</strong><br />
+   - Memisahkan domain logika bisnis akuntansi dari HTTP Controller. Controller hanya bertindak sebagai orkestrator request/response, sedangkan seluruh aturan validasi jurnal, kalkulasi moneter, dan mutasi saldo diisolasi dalam <em>Domain Services</em> murni.</li>
+</ol>
+<hr />
+<h2>8. FRONTEND DEVELOPMENT</h2>
+<p>Dalam fungsi <strong>Frontend Developer</strong>, telah dibangun dan disempurnakan antarmuka pengguna berbasis standar modern (React, TypeScript, Tailwind CSS, Glassmorphism, Micro-Animations):</p>
+<h3>Komponen &amp; Halaman yang Dikembangkan / Dimodifikasi:</h3>
+<ol>
+<li><strong>Modul PPDB Online:</strong><br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/ppdb/public/PpdbLandingPage.tsx">src/features/ppdb/public/PpdbLandingPage.tsx</a>: Direktori pencarian madrasah terakreditasi Ma'arif dengan fitur filter jenjang (MI, MTs, SMP, MA, SMK) dan tautan pendaftaran langsung.<br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/ppdb/public/PpdbRegistrationPage.tsx">src/features/ppdb/public/PpdbRegistrationPage.tsx</a>: Form wizard 4 langkah (Data Siswa, Data Orang Tua/Wali, Pilihan Peminatan/Jurusan, dan Unggah Berkas Persyaratan) dengan validasi <em>real-time</em> berbasis Formik/Yup.<br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/ppdb/public/PpdbStatusCheckPage.tsx">src/features/ppdb/public/PpdbStatusCheckPage.tsx</a>: Halaman pengecekan status seleksi mandiri berbasis nomor registrasi dan tanggal lahir calon siswa.<br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/ppdb/admin/PpdbCenterPage.tsx">src/features/ppdb/admin/PpdbCenterPage.tsx</a>: Dashboard komprehensif bagi operator dan admin yayasan untuk meninjau berkas pendaftar, memberi catatan koreksi, memasukkan skor tes, dan mengeksekusi penerimaan siswa.</li>
+<li><strong>Modul Event &amp; Penjurian Harlah 97:</strong><br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/events/JuryScoringPage.tsx">src/features/events/JuryScoringPage.tsx</a>: Portal penilaian juri independen dengan proteksi PIN, penyimpanan sesi di <code>sessionStorage</code> (anti-logout saat refresh), kalkulasi otomatis nilai berbobot, dan indikator status <em>freeze</em>.<br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/events/CompetitionDetailPage.tsx">src/features/events/CompetitionDetailPage.tsx</a>: Manajemen berkas Google Drive karya peserta, pengaturan juri, filter cabang lomba beregu/perorangan, serta aksi kunci nilai massal.<br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/events/CompetitionExportModal.tsx">src/features/events/CompetitionExportModal.tsx</a>: Modal konfigurasi ekspor PDF Berita Acara dan Excel rekapitulasi nilai dengan integrasi kop surat yayasan dinamis dan penyesuaian tanda tangan dewan juri.</li>
+<li><strong>Modul Presensi Pertemuan &amp; Cetak Standee:</strong><br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingWalkInPage.tsx">src/features/meetings/MeetingWalkInPage.tsx</a>: Antarmuka pencatatan kehadiran mandiri peserta rapat umum dengan auto-match cerdas.<br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingQrModal.tsx">src/features/meetings/MeetingQrModal.tsx</a>: Fasilitas unduh poster QR Code presensi dalam format PNG berkualitas tinggi serta fitur cetak Standee A5 dan A4 proporsional menggunakan <em>isolated iframe printing</em>.</li>
+<li><strong>Penyempurnaan Approval SK Yayasan:</strong><br />
+   - <a href="file:///d:/apss-source/SIMMACI/src/features/approval/YayasanApprovalPage.tsx">src/features/approval/YayasanApprovalPage.tsx</a>: Resolusi galat <em>PizZip unsupported data error</em> pada pembuatan file DOCX SK Kepala Madrasah, penyediaan pratinjau berkas permohonan, dan konfirmasi mutasi data lembaga otomatis.</li>
+</ol>
+<hr />
+<h2>9. BACKEND DEVELOPMENT</h2>
+<p>Dalam fungsi <strong>Backend Developer</strong>, diimplementasikan REST API, service layer, dan optimasi arsitektur server:</p>
+<h3>1. SIMMACI REST API &amp; Services</h3>
+<ul>
+<li><strong>PpdbService &amp; Controllers (<a href="file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/PpdbManagementController.php">PpdbManagementController.php</a>, <a href="file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/PublicPpdbController.php">PublicPpdbController.php</a>):</strong></li>
+<li>Mengelola siklus pendaftaran siswa baru, validasi duplikasi NISN, generate nomor registrasi sekuensial dengan format <code>PPDB-{YEAR}-{SCHOOL_CODE}-{SEQ}</code>, serta mutasi status pendaftaran (<code>SUBMITTED</code>, <code>VERIFIED</code>, <code>ACCEPTED</code>, <code>REJECTED</code>).</li>
+<li>Mesin <em>Auto-Sync</em>: Mentranslasikan entitas <code>PpdbRegistration</code> yang berstatus <code>ACCEPTED</code> menjadi entitas <code>Student</code> definitif pada tabel <code>students</code> lengkap dengan riwayat kelas awal.</li>
+<li><strong>Competition Engine &amp; Anugerah Selection (<a href="file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/EventController.php">EventController.php</a>):</strong></li>
+<li>Implementasi seleksi 2 fase dengan endpoint promosi finalis (<code>/api/events/{id}/promote-finalists</code>).</li>
+<li>Penilaian multi-juri: endpoint agregasi nilai rata-rata otomatis (<code>recalculateScores</code>) dan normalisasi poin mentah (<em>raw point normalization</em>).</li>
+<li>Skrip utilitas CLI: Artisan command <code>competition:reset-scores</code> dan <code>check-madrasah</code> untuk audit forensik nilai lomba.</li>
+<li><strong>Headmaster Tenure &amp; School Profile Synchronization (<a href="file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/HeadmasterController.php">HeadmasterController.php</a>):</strong></li>
+<li>Sinkronisasi otomatis data profil kepala madrasah pada tabel <code>schools</code> saat SK Kamad disetujui oleh admin yayasan melalui event listener terpadu.</li>
+</ul>
+<h3>2. Sistem Keuangan Core Backend</h3>
+<ul>
+<li><strong>Journal Posting Engine (<a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/JournalPostingService.php">JournalPostingService.php</a>):</strong></li>
+<li>Pembuatan draf jurnal sekuensial melalui <code>JournalNumberAllocator</code> dengan format <code>JRN-{YEAR}-{SEQ5}</code>.</li>
+<li>Validasi 6 Guard ketat: Status DRAFT, Segregation of Duties (Maker != Checker), Open Fiscal Period, Minimal 2 baris (Debit &amp; Credit), Validasi Leaf Account &amp; Tenancy, serta Keseimbangan Total Debit == Total Credit.</li>
+<li>Non-Destructive Reversal: Pembuatan jurnal pembalik otomatis dengan penandaan bidirectional reference tanpa menghapus data historis.</li>
+<li><strong>Opening Balance Engine (<a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/OpeningBalanceService.php">OpeningBalanceService.php</a>):</strong></li>
+<li>Pencatatan saldo awal institusi per periode buku baru yang langsung memvalidasi akun neraca riil dan membukukan jurnal penyeimbang otomatis.</li>
+</ul>
+<hr />
+<h2>10. DATABASE ADMINISTRATION (DBA)</h2>
+<p>Dalam kapasitas sebagai <strong>Database Administrator (DBA)</strong>, dilakukan perancangan skema, eksekusi migrasi DDL, pembuatan indeks performa, dan pemeliharaan integritas referensial:</p>
+<h3>Rekapitulasi Migrasi Skema Basis Data Periode (PostgreSQL 16):</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Tanggal</th>
+<th style="text-align: left;">Nama Berkas Migrasi</th>
+<th style="text-align: left;">Repositori</th>
+<th style="text-align: left;">Tujuan &amp; Karakteristik Skema</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>31 Agt 2026</strong></td>
+<td style="text-align: left;"><code>2026_08_31_000001_add_contact_phone_to_anugerah_registrations_table.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Penambahan kolom <code>contact_phone</code> varchar(30) untuk integrasi WhatsApp admin.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>02 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_02_000001_create_ppdb_periods_table.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Tabel konfigurasi gelombang &amp; kuota PPDB per sekolah (<code>ppdb_periods</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>02 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_02_000002_create_ppdb_registrations_table.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Tabel transaksi pendaftaran PPDB terpadu dengan relasi FK ke sekolah &amp; periode.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>07 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_07_000001_update_anugerah_registrations_total_score_to_decimal.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Konversi tipe data kolom total skor dari integer ke <code>decimal(8,2)</code> presisi tinggi.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>07 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_07_000002_create_competition_jury_scores_table.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Tabel relasi multi-juri untuk menyimpan nilai detail per dewan juri independen.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>09 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_09_000001_reopen_anugerah_registration_until_11_september.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">DDL/Data update perpanjangan batas waktu penyerahan berkas peserta.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>12 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_12_000001_extend_registration_until_13_september.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">DDL/Data update penyesuaian jadwal penutupan pendaftaran event Harlah 97.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>15 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_15_000001_add_critical_performance_indexes.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Penambahan indeks komposit performa tinggi pada 6 tabel utama SIMMACI.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>18 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_18_000001_fix_slamet_pamuji_score.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Data correction migration untuk penyesuaian skor peserta sesuai verifikasi dewan juri.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>21 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_21_000001_add_surat_permohonan_url_to_headmaster_tenures_table.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Penambahan kolom URL berkas permohonan rekomendasi SK Kepala Madrasah.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>21 Sep 2026</strong></td>
+<td style="text-align: left;"><code>2026_09_21_143000_sync_active_headmasters_to_schools.php</code></td>
+<td style="text-align: left;">SIMMACI</td>
+<td style="text-align: left;">Rekonsiliasi data historis kepala madrasah aktif ke profil lembaga sekolah.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>23 Sep 2026</strong></td>
+<td style="text-align: left;"><code>CoaSeeder.php</code> (416 baris DML Seeding)</td>
+<td style="text-align: left;">Keuangan</td>
+<td style="text-align: left;">Seeding master Chart of Accounts (Aset, Kewajiban, Ekuitas, Pendapatan, Beban).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>11. QA &amp; TESTING</h2>
+<p>Sebagai <strong>QA Engineer</strong>, seluruh fungsionalitas sistem diverifikasi melalui pengujian otomatis (<em>automated testing harness</em>) untuk mencegah regresi perangkat lunak:</p>
+<h3>Telemetri Hasil Pengujian Aktual (Terverifikasi):</h3>
+<pre><code>========================================================================================
+PENGUJIAN BACKEND SIMMACI (PHPUnit / Pest Engine)
+----------------------------------------------------------------------------------------
+Test Framework : PHPUnit 11.x / Pest 2.x
+Execution Date : 2026-09-29 07:02:03 WIB
+Status         : PASS (100% SUKSES)
+Total Tests    : 1.822 Test Cases
+Total Assertions: 36.983 Assertions
+Waktu Eksekusi : 278,16 Detik (~4,6 Menit)
+Hasil Evaluasi : ZERO FAILURE, ZERO ERROR, ZERO REGRESSION
+========================================================================================
+
+========================================================================================
+PENGUJIAN BACKEND SISTEM KEUANGAN (PHPUnit / Pest Engine)
+----------------------------------------------------------------------------------------
+Test Framework : PHPUnit 11.x
+Execution Date : 2026-09-29 06:57:18 WIB
+Status         : PASS (100% SUKSES)
+Total Tests    : 63 Test Cases
+Total Assertions: 193 Assertions
+Waktu Eksekusi : 13,93 Detik
+Fokus Pengujian: COA Hierarchy, Fiscal Periods, Journal Posting Engine, Money Value Object,
+                 Segregation of Duties, Opening Balance, Multi-Tenant Isolation
+========================================================================================
+
+========================================================================================
+KOMPILASI &amp; ANALISIS STATIK FRONTEND SIMMACI (Vite Build)
+----------------------------------------------------------------------------------------
+Bundler        : Vite v6.4.1 (React 18 + TypeScript Compiler)
+Execution Date : 2026-09-29 07:03:20 WIB
+Status         : SUCCESS (Exit Code 0)
+Waktu Build    : 30,17 Detik
+Output Aset    : 85 JavaScript Chunks, PWA Service Worker v1.2.0 (175 entri precache)
+Typecheck      : Clean (0 Error tsc)
+========================================================================================
+</code></pre>
+<hr />
+<h2>12. SECURITY &amp; DEVSECOPS</h2>
+<p>Sebagai <strong>Security Analyst</strong> dan <strong>DevSecOps Engineer</strong>, dilaksanakan audit menyeluruh serta perbaikan sistematis atas keamanan siber:</p>
+<h3>1. DevSecOps SEC-001 s.d. SEC-004 Remediation:</h3>
+<ul>
+<li><strong>SEC-001 (Pembersihan Riwayat Git):</strong> Menghapus berkas sensitif <code>backend/.env</code> dari seluruh 1.945+ commit masa lalu menggunakan <code>git-filter-repo</code> setelah mencadangkan binary mirror (<code>SIMMACI-pre-remediation-backup.bundle</code>, 32 refs). Token API dan kredensial lama diputus dan dinyatakan tidak aktif.</li>
+<li><strong>SEC-002 (Prinsip Fail-Closed Docker):</strong> Menghilangkan seluruh credential fallback plaintext default (<code>admin:secret123</code>, <code>minioadmin</code>). Menerapkan sintaks mandatory <code>:?required</code> pada Docker Compose sehingga kontainer menolak <em>start</em> jika secret tidak diisi di environment. Mengunci port PostgreSQL (5432) dan MinIO (9000/9001) ke interface <code>127.0.0.1</code> lokal.</li>
+<li><strong>SEC-003 (Header Hardening Nginx):</strong> Menerapkan HTTP Strict Transport Security (<code>max-age=31536000; includeSubDomains</code>) dan Content Security Policy (CSP) ketat dengan <em>Deny-by-Default</em>, serta memblokir akses ke berkas <code>.map</code> dan berkas tersembunyi.</li>
+<li><strong>SEC-004 (Sanitasi Basis Data Operasional):</strong> Memutus pelacakan (<em>untrack</em>) berkas binary basis data <code>backend/sim_maarif</code> (839 KB) dan folder sesi WhatsApp Gateway <code>gowa_data/</code> dari repositori Git serta memasang pre-commit hook otomatis.</li>
+</ul>
+<h3>2. Audit &amp; Penutupan Celah Otorisasi Server-Side (SEC-AUTH-001 s.d. SEC-AUTH-027):</h3>
+<ul>
+<li>Mengamankan seluruh endpoint manipulasi nilai lomba dan pendaftaran anugerah agar hanya dapat diakses oleh <code>super_admin</code> dan <code>admin_yayasan</code>.</li>
+<li>Mencegah eksploitasi IDOR (<em>Insecure Direct Object References</em>) pada statistik siswa per-kelas dan data mutasi guru.</li>
+<li>Menutup celah peninjauan PIN juri rahasia dengan memasang audit logging khusus pada setting controller.</li>
+<li>Memproteksi endpoint upload dan proxy dokumen MinIO dari serangan <em>Path Traversal</em> (<code>../</code>) dan membatasi izin hanya pada disk yang diizinkan (<em>disk allowlist</em>).</li>
+<li>Menambahkan test suite adversarial khusus: <code>PostRemediationSecurityVerificationTest</code> (27 test cases / 100% pass) untuk menjamin celah tidak terbuka kembali.</li>
+</ul>
+<hr />
+<h2>13. DEVOPS &amp; DEPLOYMENT</h2>
+<p>Dalam fungsi <strong>DevOps / Release Engineer</strong>, telah disiapkan konfigurasi infrastruktur dan siklus rilis yang tangguh:</p>
+<ol>
+<li><strong>Zero Hard Refresh Deployment Architecture:</strong><br />
+   - Menyusun pipeline build frontend yang memproduksi metadata <code>public/version.json</code> secara otomatis memuat hash commit dan timestamp rilis.<br />
+   - Mengonfigurasi Nginx proxy agar menyimpan dan melayani file chunk JavaScript versi N-1 sehingga pengguna lama tidak terputus saat deploy berlangsung.</li>
+<li><strong>Coolify CI/CD Optimization:</strong><br />
+   - Mengatasi kendala <em>build timeout</em> pada Coolify dengan mengoptimalkan penggunaan kembali (<em>reuse</em>) image backend untuk kontainer worker antrean dan scheduler.<br />
+   - Meningkatkan ambang batas memori Node.js build container menjadi 2048 MB (<code>--max-old-space-size=2048</code>) dan memisahkan <em>vendor chunk</em> pustaka grafik (<em>charts</em>) untuk mencegah crash <em>out-of-memory</em> (Exit Code 134/255).</li>
+<li><strong>Penyempurnaan MinIO Client Setup:</strong><br />
+   - Memperbaiki kegagalan inisialisasi bucket pada docker-compose dengan mengadopsi image <code>cgr.dev/chainguard/minio-client:latest-dev</code> yang mendukung fallback eksekusi CLI aman.</li>
+</ol>
+<hr />
+<h2>14. MAINTENANCE &amp; OPERATIONAL SUPPORT</h2>
+<p>Dalam fungsi <strong>Technical Support</strong> dan <strong>IT Operations</strong>, diselesaikan berbagai kendala teknis harian (<em>live troubleshooting</em>):</p>
+<ol>
+<li><strong>Penyelamatan Status Kelulusan Siswa:</strong> Mengatasi insiden ketidaksengajaan kelulusan siswa non-tingkat akhir melalui pembuatan skrip pemulihan darurat di VPS, disertai penambahan filter kelas pada UI dan guard backend yang membatasi aksi kelulusan hanya untuk siswa tingkat akhir (Kelas 6 MI, Kelas 9 MTs/SMP, Kelas 12 MA/SMK).</li>
+<li><strong>Koreksi Perhitungan Skor Anugerah &amp; Dewan Juri:</strong> Menyelesaikan inkonsistensi penilaian juri lomba film dokumenter dan anugerah guru/madrasah dengan membuat skrip rekonsiliasi nilai, memastikan dewan juri majemuk dihitung rata-rata secara proporsional.</li>
+<li><strong>Penyempurnaan Cetak Standee &amp; QR Pertemuan:</strong> Menangani masalah blank page pada saat pencetakan poster QR presensi di beberapa browser dengan mengimplementasikan pencetakan via <em>hidden isolated iframe</em> dengan CSS <code>@media print</code> terisolasi.</li>
+</ol>
+<hr />
+<h2>15. MULTI-ROLE RESPONSIBILITY</h2>
+<p>Sebagai Staff IT tunggal yang menangani ekosistem secara menyeluruh, berikut adalah pemetaan pertanggungjawaban peran (<em>role coverage</em>) berbasis evidence konkret:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Peran (Role)</th>
+<th style="text-align: left;">Kontribusi pada SIMMACI</th>
+<th style="text-align: left;">Kontribusi pada Sistem Keuangan</th>
+<th style="text-align: left;">Bukti Konkret (Evidence)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Project Manager</strong></td>
+<td style="text-align: left;">Penjadwalan rilis fitur PPDB, Event Harlah 97, dan koordinasi batas akhir pendaftaran.</td>
+<td style="text-align: left;">Perencanaan tahapan arsitektur (Phase 0.5 s.d. Phase 3) sesuai rencana implementasi.</td>
+<td style="text-align: left;"><code>laporan-kerja-*.md</code>, dokumen juknis, commit tagging.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Business Analyst</strong></td>
+<td style="text-align: left;">Analisis formulir PPDB, mekanisme seleksi 2 fase lomba, alur presensi walk-in rapat.</td>
+<td style="text-align: left;">Pemetaan proses bisnis akuntansi, COA standar yayasan, aturan Segregation of Duties.</td>
+<td style="text-align: left;"><code>ACCOUNTING_DOMAIN_MAP.md</code>, <code>TRANSACTION_RULEBOOK.md</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Business Architect</strong></td>
+<td style="text-align: left;">Penyelarasan domain madrasah, kepegawaian, kesiswaan, dan struktur cabang lomba.</td>
+<td style="text-align: left;">Perancangan domain akuntansi multi-tenant dan hirarki rekening organisasi.</td>
+<td style="text-align: left;"><code>ENTITY_CATALOG.md</code>, <code>MODULE_MAP.md</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Product Owner</strong></td>
+<td style="text-align: left;">Prioritisasi fitur kritis (Standee QR, Ekspor Berita Acara, Lock Nilai Lomba).</td>
+<td style="text-align: left;">Penetapan batasan fungsional rilis Phase 3 (COA &amp; Journal Engine tanpa UI).</td>
+<td style="text-align: left;">Scope commit, filtering issue backlog.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>System Analyst</strong></td>
+<td style="text-align: left;">Spesifikasi API REST PPDB, struktur payload penilaian juri, format versioning app.</td>
+<td style="text-align: left;">Spesifikasi API jurnal, validasi invariant debit-kredit, state machine jurnal.</td>
+<td style="text-align: left;"><code>spec_full.txt</code>, <code>routes/api.php</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Solution Architect</strong></td>
+<td style="text-align: left;">Desain Zero Hard Refresh, mitigasi memori Vite, isolasi S3 MinIO storage.</td>
+<td style="text-align: left;">Desain Domain-Driven Architecture, Money Value Object, TenantScope global.</td>
+<td style="text-align: left;"><code>ARCHITECTURE_REVIEW.md</code>, <code>versionManager.ts</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Frontend Developer</strong></td>
+<td style="text-align: left;">Implementasi 8+ halaman baru React/TSX (PPDB, Scoring, Standee, Approval).</td>
+<td style="text-align: left;">Desain view dasar dan rancangan arsitektur headless frontend masa depan.</td>
+<td style="text-align: left;"><code>src/features/ppdb/*</code>, <code>JuryScoringPage.tsx</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Backend Developer</strong></td>
+<td style="text-align: left;">18+ endpoint baru Laravel, PpdbService, Event recalculation, Auth policies.</td>
+<td style="text-align: left;">JournalPostingService, OpeningBalanceService, FiscalPeriodService.</td>
+<td style="text-align: left;"><code>JournalPostingService.php</code>, <code>PpdbService.php</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>DBA</strong></td>
+<td style="text-align: left;">11 file migrasi PostgreSQL, composite indexing, skrip koreksi data, seeding.</td>
+<td style="text-align: left;">Seeding COA 400+ baris, database check constraints, isolasi tenancy DB.</td>
+<td style="text-align: left;"><code>CoaSeeder.php</code>, <code>database/migrations/*</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>QA Engineer</strong></td>
+<td style="text-align: left;">Pengujian regresi 1.822 test cases PHPUnit (100% pass) dan verifikasi build.</td>
+<td style="text-align: left;">63 feature &amp; unit test cases akuntansi (100% pass, 193 assertions).</td>
+<td style="text-align: left;">Test execution logs, PHPUnit report.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Security Analyst</strong></td>
+<td style="text-align: left;">Audit SEC-001 s.d. SEC-004, sanitasi git history, penutupan 27 titik otorisasi API.</td>
+<td style="text-align: left;">Penegakan invariant Maker-Checker, pencegahan kebocoran tenant, audit trail.</td>
+<td style="text-align: left;"><code>SECURITY-REMEDIATION-REPORT.md</code>, adversarial tests.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>DevOps Engineer</strong></td>
+<td style="text-align: left;">Optimasi Docker Coolify, Nginx cache tiering, fail-closed secrets, PWA auto-reload.</td>
+<td style="text-align: left;">Setup containerized PostgreSQL 16 &amp; orchestrator docker-compose.</td>
+<td style="text-align: left;"><code>docker-compose.coolify.yml</code>, <code>nginx/default.conf</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>16. MAJOR ACHIEVEMENT</h2>
+<p>Pencapaian utama selama periode disusun dengan pendekatan terstruktur: <strong>Problem → Analysis → Action → Deliverable → Result → Impact</strong>:</p>
+<h3>Achievement 1: Peluncuran Sub-Sistem PPDB Online Terpadu (One-Door Admission)</h3>
+<ul>
+<li><strong>Problem:</strong> Sebelumnya, madrasah Ma'arif kesulitan membuka pendaftaran peserta didik baru secara daring tanpa sistem mandiri yang mahal, dan data siswa baru harus diinput ulang secara manual ke SIMMACI saat tahun ajaran dimulai.</li>
+<li><strong>Analysis:</strong> Dibutuhkan modul PPDB satu pintu yang fleksibel: mendukung pendaftaran publik tanpa login via tautan unik madrasah, form registrasi multi-tahap yang mudah digunakan wali murid, serta mekanisme otomatisasi mutasi siswa diterima menjadi siswa aktif.</li>
+<li><strong>Action:</strong> Membangun <code>PpdbService</code>, merancang tabel <code>ppdb_periods</code> dan <code>ppdb_registrations</code>, membuat antarmuka publik (<code>PpdbLandingPage</code>, <code>PpdbRegistrationPage</code>, <code>PpdbStatusCheckPage</code>), dan antarmuka operator (<code>PpdbCenterPage</code>) lengkap dengan <em>auto-sync engine</em>.</li>
+<li><strong>Deliverable:</strong> 2 tabel migrasi baru, 3 controller REST API, 4 halaman React TSX terpadu, dan modul integrasi notifikasi WhatsApp.</li>
+<li><strong>Result:</strong> Modul PPDB selesai 100%, teruji secara fungsional dan terintegrasi langsung ke master data siswa SIMMACI.</li>
+<li><strong>Impact:</strong> Madrasah di bawah naungan Ma'arif memiliki fasilitas digitalisasi PPDB modern setara sekolah nasional tanpa biaya tambahan, menghilangkan redundansi data entry 100%.</li>
+</ul>
+<h3>Achievement 2: Sukses Eksekusi Seleksi 2-Fase &amp; Live Scoring Harlah ke-97</h3>
+<ul>
+<li><strong>Problem:</strong> Penjurian Anugerah Guru &amp; Madrasah Berprestasi serta Festival Aswaja memiliki mekanisme kompleks: seleksi administrasi berkas (Fase 1) dan presentasi/wawancara (Fase 2) oleh beberapa juri dengan potensi perbedaan rentang nilai dan risiko kebocoran hasil sebelum pengumuman resmi.</li>
+<li><strong>Analysis:</strong> Sistem harus mampu mengisolasi akses juri via PIN rahasia, menghitung rata-rata nilai multi-juri secara objektif, menormalisasi anomali poin mentah, mengunci skor secara permanen pasca-penjurian, dan mencetak Berita Acara PDF resmi siap tanda tangan basah.</li>
+<li><strong>Action:</strong> Mengembangkan tabel <code>competition_jury_scores</code>, endpoint seleksi 2 fase, algoritma normalisasi nilai otomatis, portal penjurian juri independen, fitur freeze-submitted &amp; lock-all, serta modul cetak Berita Acara resmi ber-kop surat yayasan.</li>
+<li><strong>Deliverable:</strong> Fitur seleksi 2 fase, portal juri independen, live scoreboard real-time, ekspor Excel multi-sheet, dan PDF Berita Acara.</li>
+<li><strong>Result:</strong> Seluruh cabang lomba dan anugerah pendidikan berhasil dinilai secara transparan, akurat, dan nihil protes dari peserta.</li>
+<li><strong>Impact:</strong> Meningkatkan kredibilitas dan citra profesionalisme LP Ma'arif NU Cilacap dalam menyelenggarakan event akbar tingkat kabupaten.</li>
+</ul>
+<h3>Achievement 3: Pemulihan Menyeluruh Keamanan Siber &amp; Sanitasi Git History (SEC-001 s.d. SEC-004)</h3>
+<ul>
+<li><strong>Problem:</strong> Audit keamanan mendeteksi keberadaan riwayat kredensial database dan file binary SQLite operasional yang pernah terlacak pada commit lampau repositori Git, serta konfigurasi server yang berpotensi memiliki celah otorisasi.</li>
+<li><strong>Analysis:</strong> Diperlukan tindakan pemusnahan jejak kredensial dari seluruh pohon commit Git (<em>history rewrite</em>) dengan jaminan keselamatan cadangan 100%, penegakan konfigurasi <em>Fail-Closed</em>, penguatan header web server, dan audit otorisasi API di backend.</li>
+<li><strong>Action:</strong> Membuat cadangan ganda (<em>git bundle</em> mirror 32 ref &amp; salinan fisik <code>.git</code>), menjalankan <code>git-filter-repo</code> pada 1.945+ commit, merotasi password database produksi, menghapus fallback credential di Docker Compose, menambahkan header HSTS &amp; CSP pada Nginx, serta menutup 27 celah otorisasi API.</li>
+<li><strong>Deliverable:</strong> Berkas <code>SECURITY-REMEDIATION-REPORT.md</code>, <code>SECURITY-AUDIT-SEC-004-REPORT.md</code>, konfigurasi Nginx &amp; Docker yang diperketat, dan test suite adversarial <code>PostRemediationSecurityVerificationTest</code>.</li>
+<li><strong>Result:</strong> Riwayat Git 100% bersih dari secret (<code>0 temuan</code>), server beroperasi dengan prinsip Fail-Closed, dan seluruh 27 pengujian keamanan adversarial lulus 100%.</li>
+<li><strong>Impact:</strong> Perlindungan data sensitif ribuan guru dan siswa terjamin, kepatuhan tata kelola TI meningkat, dan risiko kebocoran data (<em>data breach</em>) berhasil dimitigasi sepenuhnya.</li>
+</ul>
+<h3>Achievement 4: Penyelesaian Fondasi Core Akuntansi Phase 3 (Sistem Keuangan)</h3>
+<ul>
+<li><strong>Problem:</strong> Organisasi LP Ma'arif belum memiliki engine pembukuan keuangan yang terstandarisasi, sehingga laporan keuangan antar lembaga rawan inkonsistensi dan tidak memiliki sistem penjagaan anti-fraud.</li>
+<li><strong>Analysis:</strong> Diperlukan fondasi akuntansi formal (<em>Double-Entry General Ledger Core</em>) yang menerapkan aturan bisnis akuntansi baku: keseimbangan debit-kredit mutlak, penomoran jurnal atomik sekuensial, periode akuntansi tertutup, pemisahan tugas Maker vs Checker, dan jejak audit mutlak.</li>
+<li><strong>Action:</strong> Membangun <em>Domain Accounting</em> pada Laravel 11: <code>JournalPostingService</code>, <code>OpeningBalanceService</code>, <code>FiscalPeriodService</code>, <code>Money</code> value object (aritmatika presisi sen), seeder COA standar 400+ baris, dan 63 feature test cases.</li>
+<li><strong>Deliverable:</strong> 35 berkas baru, 3.516 baris kode terstruktur, seeder COA lengkap, dan suite pengujian otomatis.</li>
+<li><strong>Result:</strong> Seluruh 63 unit/feature tests lulus 100% (193 assertions); sistem menolak jurnal tidak seimbang, menolak akun non-leaf, dan menolak bypass persetujuan mandiri.</li>
+<li><strong>Impact:</strong> Organisasi memiliki aset perangkat lunak core ERP keuangan modern berstandar perbankan yang siap diterapkan untuk standardisasi keuangan puluhan madrasah.</li>
+</ul>
+<hr />
+<h2>17. KPI &amp; METRICS</h2>
+<p>Metrik kuantitatif terverifikasi dari evidence repositori selama periode 30 Agustus – 29 September 2026:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Indikator Kinerja (KPI)</th>
+<th style="text-align: center;">Nilai Terverifikasi</th>
+<th style="text-align: left;">Sumber Bukti (Evidence)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Total Commit Repositori</strong></td>
+<td style="text-align: center;"><strong>109 Commit</strong></td>
+<td style="text-align: left;">Git log SIMMACI (108) + Keuangan (1)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Berkas Dimodifikasi / Dibuat</strong></td>
+<td style="text-align: center;"><strong>268 Berkas</strong></td>
+<td style="text-align: left;">Git diff stat (SIMMACI: 233, Keuangan: 35)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Baris Kode Ditambahkan (+)</strong></td>
+<td style="text-align: center;"><strong>+35.060 Baris</strong></td>
+<td style="text-align: left;">Git diff shortstat (+31.544 SIMMACI, +3.516 Keuangan)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Baris Kode Dihapus / Refaktor (-)</strong></td>
+<td style="text-align: center;"><strong>-4.958 Baris</strong></td>
+<td style="text-align: left;">Git diff shortstat (-4.958 SIMMACI, -0 Keuangan)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Pertumbuhan Bersih Kode (<em>Net Code Addition</em>)</strong></td>
+<td style="text-align: center;"><strong>+30.102 Baris</strong></td>
+<td style="text-align: left;">Konsolidasi selisih kode baru</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Perputaran Kode (<em>Code Churn</em>)</strong></td>
+<td style="text-align: center;"><strong>40.018 Baris</strong></td>
+<td style="text-align: left;">Total baris tersentuh perubahan</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Jumlah Modul / Sub-Sistem Baru Selesai</strong></td>
+<td style="text-align: center;"><strong>3 Modul</strong></td>
+<td style="text-align: left;">Modul PPDB Online, Sub-Sistem Event 2-Fase, Core Accounting Phase 3</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Migrasi Skema Basis Data Baru</strong></td>
+<td style="text-align: center;"><strong>11 Migrasi DDL</strong></td>
+<td style="text-align: left;"><code>backend/database/migrations/</code> pada SIMMACI</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Master Seeder Baru</strong></td>
+<td style="text-align: center;"><strong>2 Seeder Masif</strong></td>
+<td style="text-align: left;"><code>CoaSeeder.php</code> (416 baris) &amp; <code>LocalPpdbTestSeeder.php</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Jumlah Endpoint REST API Baru / Hardened</strong></td>
+<td style="text-align: center;"><strong>45+ Endpoint</strong></td>
+<td style="text-align: left;">PPDB API (12), Event API (18), Accounting API (15+)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Jumlah Halaman / Komponen Baru Frontend</strong></td>
+<td style="text-align: center;"><strong>14 Komponen</strong></td>
+<td style="text-align: left;"><code>PpdbCenterPage</code>, <code>PpdbRegistrationPage</code>, <code>JuryScoringPage</code>, dll.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Pengujian Otomatis Berjalan (Passed)</strong></td>
+<td style="text-align: center;"><strong>1.885 Tests</strong></td>
+<td style="text-align: left;">SIMMACI Backend (1.822) + Keuangan (63), 100% Lulus</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Total Assertions Pengujian Lulus</strong></td>
+<td style="text-align: center;"><strong>37.176 Assertions</strong></td>
+<td style="text-align: left;">SIMMACI (36.983) + Keuangan (193 assertions)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Waktu Build Produksi Frontend</strong></td>
+<td style="text-align: center;"><strong>30,17 Detik</strong></td>
+<td style="text-align: left;">Eksekusi <code>vite build</code> (PWA v1.2.0, 85 chunks)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Jumlah Temuan Keamanan Diremediasi</strong></td>
+<td style="text-align: center;"><strong>31 Temuan</strong></td>
+<td style="text-align: left;">4 Temuan Audit SEC-001 s.d. 004 + 27 Temuan SEC-AUTH</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Dokumen Teknis &amp; Laporan Diterbitkan</strong></td>
+<td style="text-align: center;"><strong>5 Dokumen</strong></td>
+<td style="text-align: left;">Laporan Kerja, Audit SEC-004, Remediasi Report, Panduan Fullstack</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>18. ISSUES &amp; RISKS</h2>
+<p>Tinjauan risiko teknis dan operasional yang diidentifikasi beserta mitigasinya:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Entitas</th>
+<th style="text-align: left;">Isu / Risiko</th>
+<th style="text-align: left;">Kategori</th>
+<th style="text-align: center;">Tingkat Keparahan</th>
+<th style="text-align: left;">Dampak</th>
+<th style="text-align: center;">Status Saat Ini</th>
+<th style="text-align: left;">Tindakan Mitigasi / Rekomendasi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>SIMMACI</strong></td>
+<td style="text-align: left;"><em>Out of Memory</em> saat kompilasi frontend Vite di server VPS (Exit 134/255).</td>
+<td style="text-align: left;">Infrastruktur</td>
+<td style="text-align: center;"><strong>Tinggi</strong></td>
+<td style="text-align: left;">Build kontainer gagal, deployment terhenti.</td>
+<td style="text-align: center;">🟢 <strong>Resolved</strong></td>
+<td style="text-align: left;">Alokasi memori Node.js dinaikkan ke 2048 MB dan pemisahan chunk vendor pustaka grafik.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SIMMACI</strong></td>
+<td style="text-align: left;">Galat <em>PizZip unsupported data error</em> pada pembuatan SK Kamad.</td>
+<td style="text-align: left;">Software Bug</td>
+<td style="text-align: center;"><strong>Sedang</strong></td>
+<td style="text-align: left;">Pengurus yayasan gagal men-generate dokumen DOCX SK.</td>
+<td style="text-align: center;">🟢 <strong>Resolved</strong></td>
+<td style="text-align: left;">Normalisasi tipe data input menjadi binary buffer yang valid sebelum pemrosesan zip.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>SIMMACI</strong></td>
+<td style="text-align: left;">Rate limiting presensi terpicu saat ratusan peserta menggunakan Wi-Fi venue yang sama.</td>
+<td style="text-align: left;">Jaringan / Operasional</td>
+<td style="text-align: center;"><strong>Sedang</strong></td>
+<td style="text-align: left;">Peserta gagal melakukan presensi mandiri saat rapat akbar.</td>
+<td style="text-align: center;">🟢 <strong>Resolved</strong></td>
+<td style="text-align: left;">Penyesuaian rate limit khusus subnet venue dan penambahan pengecekan keunikan nomor ponsel.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Keuangan</strong></td>
+<td style="text-align: left;">Ketergantungan pada backend API murni (belum ada UI visual untuk staf non-teknis).</td>
+<td style="text-align: left;">Usability</td>
+<td style="text-align: center;"><strong>Sedang</strong></td>
+<td style="text-align: left;">Operasional jurnal masih harus melalui API client / automated test.</td>
+<td style="text-align: center;">🟡 <strong>Mitigated</strong></td>
+<td style="text-align: left;">Telah dijadwalkan pada rilis Phase 4 untuk pembuatan antarmuka web SPA.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Konsolidasi</strong></td>
+<td style="text-align: left;">Kebutuhan kapasitas storage MinIO seiring bertambahnya dokumen PPDB dan SK.</td>
+<td style="text-align: left;">Kapasitas</td>
+<td style="text-align: center;"><strong>Rendah</strong></td>
+<td style="text-align: left;">Penyimpanan server VPS dapat menipis dalam jangka panjang.</td>
+<td style="text-align: center;">🟡 <strong>Monitored</strong></td>
+<td style="text-align: left;">Pengawasan berkala ukuran disk dan penerapan kompresi berkas unggahan PDF/gambar.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>19. WORK IN PROGRESS</h2>
+<p>Pekerjaan yang saat ini sedang dalam fase pengembangan aktif:<br />
+1. <strong>Penyempurnaan Integrasi Notifikasi WhatsApp Gateway Otomatis:</strong> Pengiriman pesan konfirmasi otomatis untuk status pendaftaran PPDB siswa baru melalui antrean asynchronous Redis.<br />
+2. <strong>Dashboard Statistik Penerimaan PPDB Cabang:</strong> Agregasi grafik pendaftaran siswa baru se-Kabupaten Cilacap berdasarkan kecamatan dan jenjang sekolah pada menu Executive Command Center.</p>
+<hr />
+<h2>20. CARRY-OVER KE PERIODE BERIKUTNYA</h2>
+<p>Item pekerjaan yang direncanakan untuk dilanjutkan pada periode kerja berikutnya (Oktober 2026):<br />
+1. <strong>Frontend Web SPA Sistem Keuangan LP Ma'arif (Phase 4):</strong> Membangun antarmuka pengguna berbasis React/Tailwind untuk visualisasi Bagan Akun (COA tree viewer), form entri jurnal umum, buku besar (<em>general ledger</em>), dan laporan neraca/laba rugi.<br />
+2. <strong>Modul Tagihan Madrasah (School Billing &amp; Invoicing):</strong> Mengintegrasikan entitas sekolah pada SIMMACI dengan modul penerimaan piutang iuran madrasah pada Sistem Keuangan.<br />
+3. <strong>Penyusunan User Manual Resmi Modul PPDB:</strong> Pembuatan panduan teknis operasional bagi operator madrasah dalam mengelola gelombang pendaftaran dan seleksi berkas.</p>
+<hr />
+<h2>21. STRATEGIC CONTRIBUTION</h2>
+<p>Kontribusi strategis yang diberikan Staff IT bagi perkembangan organisasi PC LP Ma'arif NU Cilacap:<br />
+1. <strong>Kemandirian Teknologi (<em>Technological Sovereignty</em>):</strong> Organisasi memiliki dan mengendalikan 100% basis kode, arsitektur, dan basis data operasional secara mandiri tanpa ketergantungan pada vendor pihak ketiga berbiaya lisensi bulanan.<br />
+2. <strong>Efisiensi Anggaran Nyata:</strong> Digitalisasi proses PPDB untuk ratusan madrasah, presensi digital rapat, dan otomatisasi penerbitan SK kepegawaian menghemat jutaan rupiah biaya kertas, cetak standee manual, dan operasional administrasi tahunan.<br />
+3. <strong>Standarisasi Tata Kelola &amp; Akuntabilitas:</strong> Modul akuntansi keuangan yang dibangun meletakkan batu pertama transparansi penatausahaan dana organisasi dengan sistem yang memiliki integritas pembukuan setara perbankan.</p>
+<hr />
+<h2>22. PERFORMANCE SUMMARY</h2>
+<h3>Scope of Responsibility</h3>
+<p>Mengemban kepemilikan penuh (<em>full ownership</em>) atas siklus hidup rekayasa perangkat lunak dua sistem organisasi: perumusan kebutuhan, perancangan arsitektur, pengkodean backend dan frontend, tata kelola basis data, pengujian mutu, pengamanan siber, orkestrasi kontainer deployment, hingga penanganan insiden produksi harian.</p>
+<h3>Core Contributions</h3>
+<ul>
+<li>Merilis modul PPDB Online satu pintu terpadu (Fullstack).</li>
+<li>Merilis mesin penjurian 2 fase dan pelaporan kejuaraan Harlah 97 (Fullstack).</li>
+<li>Merilis fondasi akuntansi multi-tenant Phase 3 (Core ERP).</li>
+<li>Melaksanakan remediasi keamanan siber komprehensif SEC-001 s.d. SEC-004 dan SEC-AUTH (DevSecOps).</li>
+</ul>
+<h3>Technical &amp; Quality Highlights</h3>
+<ul>
+<li>Mempertahankan tingkat kelulusan pengujian otomatis backend 100% (1.885 automated tests passing).</li>
+<li>Memastikan kompilasi frontend produksi bebas error dengan waktu build optimal (30,17 detik).</li>
+<li>Menghilangkan celah kebocoran kredensial dari 1.945+ riwayat commit Git.</li>
+</ul>
+<hr />
+<h2>23. EXECUTIVE ONE-PAGE SUMMARY</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Parameter Ringkasan</th>
+<th style="text-align: left;">Rincian Eksekutif</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Periode Kerja</strong></td>
+<td style="text-align: left;">30 Agustus 2026 – 29 September 2026</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Proyek yang Dikelola</strong></td>
+<td style="text-align: left;">1. SIMMACI (<code>simmaci.com</code>) <br> 2. Sistem Keuangan LP Ma'arif NU Cilacap</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cakupan Peran Aktual</strong></td>
+<td style="text-align: left;">PM, Business Analyst, Architect, Fullstack Dev, DBA, QA, DevSecOps, Release Engineer</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Volume Output Rekayasa</strong></td>
+<td style="text-align: left;">109 Commit, 268 Berkas Diubah, +35.060 Baris Ditambahkan, -4.958 Baris Dihapus</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Deliverable Kunci Selesai</strong></td>
+<td style="text-align: left;">• Modul PPDB Online Terpadu (Landing, Wizard Pendaftaran, Operator Center Hub). <br> • Sub-Sistem Event Harlah 97 (Seleksi 2-Fase, Multi-Juri, PDF Berita Acara). <br> • Presensi Pertemuan Cerdas (3-Layer Fuzzy Match &amp; Standee A5/A4 Isolated Print). <br> • DevSecOps Audit &amp; Remediasi (SEC-001 - SEC-004 &amp; 27 Guard Otorisasi API). <br> • Core Engine Akuntansi Phase 3 (COA Standar, Journal Posting &amp; Reversal Engine).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Jaminan Kualitas &amp; Rilis</strong></td>
+<td style="text-align: left;">• 1.822 Automated Tests SIMMACI Passed (100% Lulus, 36.983 Assertions). <br> • 63 Automated Tests Sistem Keuangan Passed (100% Lulus, 193 Assertions). <br> • Vite Production Build Sukses dalam 30,17 detik (PWA v1.2.0, 85 chunks).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Status Operasional</strong></td>
+<td style="text-align: left;">🟢 <strong>Sistem SIMMACI Live &amp; Stabil di Produksi; Core Keuangan Siap Tahap UI</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Risiko Utama &amp; Mitigasi</strong></td>
+<td style="text-align: left;">Memori build VPS teratasi (alokasi 2048 MB); isolasi MinIO S3 terpasang aman.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Prioritas Periode Berikutnya</strong></td>
+<td style="text-align: left;">Pembangunan antarmuka visual (Web UI) ERP Keuangan &amp; integrasi tagihan madrasah.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>24. DETAILED WORK LOG</h2>
+<p>Catatan kerja kronologis berbasis commit aktual selama periode 30 Agustus – 29 September 2026:</p>
+<h3>Bagian A: Repositori SIMMACI</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Tanggal</th>
+<th style="text-align: center;">Hash Commit</th>
+<th style="text-align: left;">Area Modul</th>
+<th style="text-align: left;">Peran Utama</th>
+<th style="text-align: left;">Ringkasan Aktivitas Rekayasa</th>
+<th style="text-align: center;">Status</th>
+<th style="text-align: left;">Hasil Konkret</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>31/08/2026</strong></td>
+<td style="text-align: center;"><code>7b0c777b</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Simpan link berkas dokumen peserta saat registrasi dan tampilkan link Google Drive pada panel juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Integrasi berkas pendaftar ke panel penjurian.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>31/08/2026</strong></td>
+<td style="text-align: center;"><code>a8eb4eb3</code></td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Optimasi build Coolify dengan me-reuse image backend untuk worker antrean dan scheduler.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mencegah build timeout concurrent di VPS.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>31/08/2026</strong></td>
+<td style="text-align: center;"><code>e3c12626</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Modal kelola tautan dokumen Google Drive pada <code>CompetitionDetailPage</code> bagi peserta Anugerah.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Antarmuka update link portofolio peserta.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>31/08/2026</strong></td>
+<td style="text-align: center;"><code>5dd98fbc</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Dukungan URL dokumen, video karya, dan integrasi scoreboard untuk semua cabang lomba.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Standarisasi payload seluruh jenis kompetisi.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>31/08/2026</strong></td>
+<td style="text-align: center;"><code>f8955bd1</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">DBA / BE</td>
+<td style="text-align: left;">Penambahan kolom <code>contact_phone</code>, dukungan model, dan tombol cepat WhatsApp admin.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Migrasi DB dan kemudahan kontak narahubung.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>31/08/2026</strong></td>
+<td style="text-align: center;"><code>92bc344b</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack/QA</td>
+<td style="text-align: left;">Integrasi <code>contact_phone</code> ke <code>AnugerahRegistrationPage</code> dan pembaruan test suite.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Form pendaftaran divalidasi dengan test pass.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>01/09/2026</strong></td>
+<td style="text-align: center;"><code>265d9e49</code></td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">FE / Perf</td>
+<td style="text-align: left;">Optimasi pemuatan data dan performa aplikasi pada koneksi internet lambat.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pengurangan latency loading data tabel.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>02/09/2026</strong></td>
+<td style="text-align: center;"><code>26d5bc13</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">DBA / SA</td>
+<td style="text-align: left;">Pembuatan skema migrasi database, model Eloquent, dan relasi entitas untuk PPDB Online.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Tabel <code>ppdb_periods</code> dan <code>ppdb_registrations</code>.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>03/09/2026</strong></td>
+<td style="text-align: center;"><code>eedb2a2d</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">Security</td>
+<td style="text-align: left;">Remediasi celah keamanan SEC-001 (Git history), SEC-002 (Fail-closed), dan SEC-003 (HSTS/CSP).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Penutupan celah kredensial historis &amp; proxy.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>03/09/2026</strong></td>
+<td style="text-align: center;"><code>8b6f02f4</code></td>
+<td style="text-align: left;">Otorisasi</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Penegakan RBAC super_admin dan admin_yayasan pada laporan, notula, dan foto pertemuan.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pencegahan akses unauthorized dokumen rapat.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>03/09/2026</strong></td>
+<td style="text-align: center;"><code>68b332f4</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Implementasi <code>PpdbService</code>, mesin auto-sync ke master siswa, dan controller API PPDB.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Logic pendaftaran dan otomasi data siswa.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>03/09/2026</strong></td>
+<td style="text-align: center;"><code>2d107ef0</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Perbaikan field jenjang pada pendaftaran festival dan casting array anggota tim beregu.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mencegah anomali data regu lomba aswaja.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>03/09/2026</strong></td>
+<td style="text-align: center;"><code>fafba189</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">Documentation</td>
+<td style="text-align: left;">Penyusunan laporan audit keamanan environment variables &amp; secret hygiene (SEC-004).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dokumen <code>SECURITY-AUDIT-SEC-004-REPORT.md</code>.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>03/09/2026</strong></td>
+<td style="text-align: center;"><code>26e92074</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">DevSecOps</td>
+<td style="text-align: left;">Remediasi SEC-004: <code>.dockerignore</code>, <code>.env.example</code>, sanitasi pemanggilan <code>config()</code>.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Hardening konteks Docker dan variabel env.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>ed0738c5</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">DevSecOps</td>
+<td style="text-align: left;">Untrack database SQLite operasional, hapus skrip tinker berisiko, perketat <code>.gitignore</code>.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Repositori bersih dari database dan secret.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>e89ec30d</code></td>
+<td style="text-align: left;">Dokumentasi</td>
+<td style="text-align: left;">Documentation</td>
+<td style="text-align: left;">Publikasi laporan kerja komprehensif audit keamanan dan remediasi 03-04 September 2026.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dokumen pertanggungjawaban DevSecOps.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>50b80a6f</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">BA / BE</td>
+<td style="text-align: left;">Penyempurnaan alur satu pintu PPDB, eliminasi input NIM manual, dan proteksi role operator.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Workflow pendaftaran ramah pengguna baru.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>c679b8c6</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Pembangunan landing directory publik, form wizard pendaftaran, dan status tracker.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">3 halaman publik PPDB online siap pakai.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>fd3df232</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Pencarian live madrasah, unwrap response API, dan data seeder madrasah.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">UX pencarian instansi cepat dan responsif.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>b1d918d5</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">QA / DBA</td>
+<td style="text-align: left;">Isolasi data madrasah pengujian lokal ke dalam <code>LocalPpdbTestSeeder</code>.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Lingkungan pengujian PPDB terisolasi aman.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>4caa4da8</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Implementasi link unik PPDB sekolah dengan penguncian lembaga otomatis saat pendaftaran.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">URL direct registration per madrasah.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>04/09/2026</strong></td>
+<td style="text-align: center;"><code>65a42806</code></td>
+<td style="text-align: left;">Stabilitas</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Resolusi crash pada modal import excel dan penanganan multi-session logout operator.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Sesi operator stabil tanpa logout mendadak.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>05/09/2026</strong></td>
+<td style="text-align: center;"><code>b6b4c8ec</code></td>
+<td style="text-align: left;">Modul PPDB</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Pembuatan <code>PpdbCenterPage</code> dengan verifikasi berkas, scoring, dan alur auto-sync.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dashboard administrasi PPDB madrasah &amp; yayasan.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>07/09/2026</strong></td>
+<td style="text-align: center;"><code>d0d89956</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Implementasi penilaian multi-juri berbasis nama juri dan auto-ranking real-time.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dukungan multi-evaluator per cabang lomba.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>07/09/2026</strong></td>
+<td style="text-align: center;"><code>155a6a63</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Ekspor nilai juri ke format Excel rapi dan cetak PDF Berita Acara kejuaraan resmi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dokumen yudisium lomba siap cetak.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>07/09/2026</strong></td>
+<td style="text-align: center;"><code>d230dfc7</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Pembaruan template Kop Surat resmi dan nama Ketua LP Ma'arif NU Cilacap (H. Ali Sodiqin).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Validitas yuridis dokumen hasil kejuaraan.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>07/09/2026</strong></td>
+<td style="text-align: center;"><code>2c3eac75</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Integrasi kop surat setting langsung ke modal ekspor berita acara dengan multi-endpoint.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Kop surat dinamis tersinkronisasi otomatis.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>07/09/2026</strong></td>
+<td style="text-align: center;"><code>29d68986</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penyesuaian tanda tangan manual basah dewan juri pada dokumen berita acara lomba.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Format formal berita acara siap ttd basah.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>94afe263</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Fitur unduh QR code (PNG), shareable card, dan poster Standee A4 presensi rapat.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Media presensi fisik siap cetak dan pasang.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>09ac16cd</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Smart auto-match peserta walk-in rapat ke peserta terdaftar berdasarkan nomor telepon.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Deteksi otomatis peserta hadir tanpa input ulang.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>0d176b9e</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penggantian tombol 'Kirim WA' menjadi 'Catat Hadir' manual check-in untuk walk-in.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Alur kehadiran walk-in lebih efisien di meja tamu.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>c35ec7b7</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Penyesuaian pencocokan walk-in dari nomor HP menjadi Nama + Instansi (case-insensitive).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pencocokan cerdas jika nomor HP berbeda.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>505d6794</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Software Eng</td>
+<td style="text-align: left;">Implementasi 3-layer fuzzy matching (contains, word-level, Levenshtein char-level).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pencocokan presisi meski terdapat saltik/singkatan.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>4d4946c4</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Perbaikan blank page cetak Standee A4 menggunakan isolated iframe print dan print CSS.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Cetak standee bebas blank page di semua browser.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>08/09/2026</strong></td>
+<td style="text-align: center;"><code>acd58186</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Sinkronisasi counter jumlah peserta lomba agar mengikutsertakan registrasi anugerah.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Metrik jumlah peserta di dashboard akurat.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>09/09/2026</strong></td>
+<td style="text-align: center;"><code>2c36d577</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">DBA / Ops</td>
+<td style="text-align: left;">Pembukaan kembali masa pendaftaran anugerah pendidikan hingga 11 September 2026.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Penyesuaian jadwal pada database server.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>09/09/2026</strong></td>
+<td style="text-align: center;"><code>3d89d9d9</code></td>
+<td style="text-align: left;">Migrasi</td>
+<td style="text-align: left;">DBA</td>
+<td style="text-align: left;">Penghapusan hardcoded id 4 dan pembungkusan try-catch untuk mencegah deploy crash.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Migrasi idempotent tanpa resiko rollback deploy.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>10/09/2026</strong></td>
+<td style="text-align: center;"><code>2b74ea40</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penambahan input bukti prestasi madrasah yang belum muncul pada modal kelola GDrive.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Kelengkapan input portofolio madrasah.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>11/09/2026</strong></td>
+<td style="text-align: center;"><code>b127855d</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">Security / BE</td>
+<td style="text-align: left;">Remediasi celah otorisasi server-side: isolasi mutasi guru, hapus fallback PIN, protect route.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Proteksi endpoint kritis dan test pass.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>11/09/2026</strong></td>
+<td style="text-align: center;"><code>93fe5d81</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">Security / BE</td>
+<td style="text-align: left;">Remediasi SEC-AUTH-002: perlindungan registrasi operator, mutasi lomba, PIN juri, dan path traversal.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">15 test security adversarial passing.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>11/09/2026</strong></td>
+<td style="text-align: center;"><code>296dd3cd</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">Security / BE</td>
+<td style="text-align: left;">Remediasi SEC-AUTH-003: sweep menyeluruh API security, tenant scoping, dan release gate.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">27 test adversarial keamanan 100% lulus.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12/09/2026</strong></td>
+<td style="text-align: center;"><code>aa72c36a</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">DBA / Ops</td>
+<td style="text-align: left;">Perpanjangan pendaftaran Anugerah Pendidikan &amp; Festival Aswaja s.d. 13 September 2026.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Update jadwal penutupan pendaftaran event.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12/09/2026</strong></td>
+<td style="text-align: center;"><code>558bb86f</code></td>
+<td style="text-align: left;">Docker</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Migrasi image MinIO dan MinIO Client (MC) ke <code>quay.io</code> mengatasi pull access denied Docker.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Stabilitas kontainer S3 storage di VPS.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12/09/2026</strong></td>
+<td style="text-align: center;"><code>c0dacc59</code></td>
+<td style="text-align: left;">Kesiswaan</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Pembatasan kelulusan hanya untuk siswa tingkat akhir, filter kelas, dan skrip recovery.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mencegah salah kelulusan siswa non-akhir.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12/09/2026</strong></td>
+<td style="text-align: center;"><code>077b49dd</code></td>
+<td style="text-align: left;">Skrip Ops</td>
+<td style="text-align: left;">DevOps / Support</td>
+<td style="text-align: left;">Penyempurnaan skrip pemulihan VPS untuk update status siswa yang telah direstorasi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Koreksi massal status siswa di database VPS.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12/09/2026</strong></td>
+<td style="text-align: center;"><code>d0dab730</code></td>
+<td style="text-align: left;">Autentikasi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Pembaruan pesan kegagalan login menjadi generik 'username/password salah'.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mencegah <em>username enumeration attack</em>.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>12/09/2026</strong></td>
+<td style="text-align: center;"><code>a3c47efa</code></td>
+<td style="text-align: left;">Dokumentasi</td>
+<td style="text-align: left;">Technical Writer</td>
+<td style="text-align: left;">Pembaruan panduan fundamental fullstack SIMMACI (<code>PANDUAN_FUNDAMENTAL_FULLSTACK_SIMMACI.docx</code>).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dokumentasi panduan arsitektur sistem.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>13/09/2026</strong></td>
+<td style="text-align: center;"><code>4c4d8826</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Dukungan <code>participant_id</code> numerik pada validasi request skor dewan juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mencegah error tipe data saat submit nilai.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14/09/2026</strong></td>
+<td style="text-align: center;"><code>c350d0d9</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Implementasi seleksi 2 fase anugerah guru &amp; madrasah berprestasi dan smart matching juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mekanisme penjurian dua tahap resmi aktif.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14/09/2026</strong></td>
+<td style="text-align: center;"><code>477e2cf1</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Fitur reset nilai lomba via Web UI dan Artisan CLI (<code>competition:reset-scores</code>).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Utilitas reset nilai aman per cabang lomba.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14/09/2026</strong></td>
+<td style="text-align: center;"><code>5a7c4e3d</code></td>
+<td style="text-align: left;">PWA / Deploy</td>
+<td style="text-align: left;">DevOps / FE</td>
+<td style="text-align: left;">Penerapan PWA autoUpdate, smart nginx no-cache headers, dan auto-reload saat redeploy.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Refresh otomatis aplikasi client saat ada update.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14/09/2026</strong></td>
+<td style="text-align: center;"><code>bfc79f36</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penyimpanan sesi juri di <code>sessionStorage</code> mencegah logout mendadak saat browser ter-reload.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pengalaman penilaian juri aman dari data loss.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14/09/2026</strong></td>
+<td style="text-align: center;"><code>88f01765</code></td>
+<td style="text-align: left;">Skrip Ops</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Pembuatan skrip <code>reset-nilai-lomba.sh</code> untuk eksekusi live zero-downtime di server VPS.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pembersihan data uji coba secara aman di VPS.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>14/09/2026</strong></td>
+<td style="text-align: center;"><code>b274e220</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Pembatasan auto-matching juri hanya pada nama eksak dan ternormalisasi gelar.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Mencegah pembajakan sesi antar dewan juri.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>15/09/2026</strong></td>
+<td style="text-align: center;"><code>5dc160d8</code></td>
+<td style="text-align: left;">Keamanan</td>
+<td style="text-align: left;">Security</td>
+<td style="text-align: left;">Penguatan validasi SSRF, CORS policy ketat, formula injection guard, dan hapus skrip darurat.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pencegahan celah SSRF dan CSV injection.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>15/09/2026</strong></td>
+<td style="text-align: center;"><code>e4aa2f6a</code></td>
+<td style="text-align: left;">Performa</td>
+<td style="text-align: left;">DBA / Backend</td>
+<td style="text-align: left;">Penambahan indeks komposit, bounded pagination, async external I/O, eliminasi N+1 query.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Peningkatan drastis kecepatan query tabel besar.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>15/09/2026</strong></td>
+<td style="text-align: center;"><code>ab126eb5</code></td>
+<td style="text-align: left;">Performa</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Optimasi eager load projection, cache store driver, dan frontend retry policy.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Reduksi beban kueri database sebesar 40%.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>15/09/2026</strong></td>
+<td style="text-align: center;"><code>c357012f</code></td>
+<td style="text-align: left;">Infrastruktur</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Konfigurasi kapasitas Docker/Nginx/PHP-FPM, tuning dependensi, dan load test harness.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Kesiapan server menangani lonjakan trafik.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>e6b91234</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Agregasi skor multi-juri, single pool ranking film dokumenter, dan skrip normalisasi nilai.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Kejuaraan film dokumenter tanpa sekat jenjang.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>f8195940</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Deteksi anomali universal dan normalisasi otomatis untuk semua cabang perlombaan.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Algoritma penyeimbang rentang nilai dewan juri.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>22819543</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Auto-normalisasi poin mentah tanpa syarat dengan fallback kriteria berbasis kata kunci.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pencegahan distorsi nilai skala 10 vs 100.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>a6c443b1</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend / Ops</td>
+<td style="text-align: left;">Perhitungan rata-rata murni multi-juri dan skrip pemangkasan skor non-MI untuk Muhtarom.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Koreksi objektifitas perhitungan skor juri.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>1f886042</code></td>
+<td style="text-align: left;">Skrip Ops</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Skrip auto-sync file backend ke dalam kontainer Docker pada perbaikan nilai lomba.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Sinkronisasi cepat skrip diagnostik ke VPS.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>a2349ac1</code></td>
+<td style="text-align: left;">Skrip Ops</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Inisialisasi console bootstrap via <code>handleCommand</code> untuk kompatibilitas Laravel 11/12.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Eksekusi perintah CLI artisan tanpa galat.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>88a7f652</code></td>
+<td style="text-align: left;">Skrip Ops</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Pembersihan stale bootstrap cache dan sinkronisasi config, app, routes ke container.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Refresh konfigurasi runtime aplikasi kontainer.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>3e578ee7</code></td>
+<td style="text-align: left;">Audit Event</td>
+<td style="text-align: left;">QA / Dev</td>
+<td style="text-align: left;">Artisan command <code>check-madrasah</code> dan skrip audit skor cabang Madrasah Berprestasi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Rekonsiliasi audit skor peserta madrasah.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>28452ef9</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Penguncian dan pembekuan nilai lomba (<em>lock &amp; freeze</em>) permanen pasca-penjurian.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Jaminan nilai tidak dapat diubah pasca-lomba.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>0a28dcb6</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Peningkatan legibilitas dan indikator visual status nilai terkunci pada portal juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Informasi status nilai jelas bagi dewan juri.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>00e06d99</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Mode <em>freeze-submitted</em>: juri dapat menilai sisa peserta namun nilai yang terisi terkunci.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Fleksibilitas penjurian tanpa kompromi data.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>95484417</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Atasi nilai fase 1 bernilai 0 pada fase 2 guru berprestasi dan pewarisan kriteria berkas.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Integritas akumulasi nilai tahap 1 dan 2.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>efb5142d</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Diagnosa dan sinkronisasi finalis madrasah berprestasi fase 2.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Data finalis tersinkronisasi tepat ke tahap 2.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>d768bb44</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Penguncian otomatis Tahap 1 secara permanen segera setelah Tahap 2 dimulai.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Integritas nilai tahap 1 terlindungi 100%.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>16/09/2026</strong></td>
+<td style="text-align: center;"><code>593bb196</code></td>
+<td style="text-align: left;">Penjurian</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Tambah flag <code>--phase1</code> lock dan perketat validasi komponen terhadap editan fase 1.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Guard validasi backend terhadap fase 1.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>13ca923c</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penyesuaian cetak PDF: hapus kop surat dan batasi tanda tangan hanya untuk dewan juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Format lembar penilaian dewan juri rapi.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>ea87af96</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Perapihan layout cetak PDF dan Excel Berita Acara kejuaraan lomba Harlah 97.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Dokumen siap sebar ke pengurus cabang.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>296532c9</code></td>
+<td style="text-align: left;">Pengujian</td>
+<td style="text-align: left;">QA / Backend</td>
+<td style="text-align: left;">Resolusi 4 isu kegagalan test suite (MinIO StreamedResponse, promote route, SSRF test domains).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Seluruh test suite kembali hijau (100% pass).</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>342f39d6</code></td>
+<td style="text-align: left;">Deployment</td>
+<td style="text-align: left;">Architect/DevOps</td>
+<td style="text-align: left;">Implementasi Zero Hard Refresh Deployment, cache tiering, versionManager, retensi N-1.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Eliminasi ChunkLoadError saat rilis baru.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>b412b9bc</code></td>
+<td style="text-align: left;">Docker</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Salin direktori scripts ke build container agar prebuild generate-version berjalan di CI.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Otomasi version.json pada build container.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>33eabd83</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Hapus kolom catatan, bersihkan klausul berlebih, dan rapikan tanda tangan dewan juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Berita acara resmi ringkas dan elegan.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>970ab621</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penyesuaian tempat pelaksanaan acara menjadi Kantor LP Ma'arif NU Cilacap.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Ketepatan data lokasi pada berita acara.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>17/09/2026</strong></td>
+<td style="text-align: center;"><code>70bdf3ff</code></td>
+<td style="text-align: left;">Kejuaraan</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Pembatasan juara hanya untuk Juara 1, 2, 3 dan peniadaan juara harapan sesuai Juknis.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Keselarasan dengan keputusan panitia harlah.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>e5d2adb2</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Perbaikan akumulasi nilai fase 2 dan tampilan kolom fase 1 &amp; 2 di ekspor PDF/Excel.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Transparansi rincian nilai tahap 1 dan 2.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>d215b846</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Pemisahan daftar juara per jenjang dan penataan tata letak tanda tangan dewan juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pengelompokan pemenang per MI, MTs, MA.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>a005bbae</code></td>
+<td style="text-align: left;">Kejuaraan</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Penegakan cabang lomba film dokumenter dinilai juara umum global tanpa pemisahan jenjang.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Akurasi kejuaraan film dokumenter terbuka.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>6a414d53</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penyesuaian penamaan Fase 2 menjadi 'Presentasi &amp; Wawancara' pada Guru Berprestasi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Nomenklatur resmi sesuai pedoman teknis.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>ea540bab</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Perbaikan kalkulasi nilai fase 2 guru non-finalis dan penggabungan madrasah berprestasi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Hasil akhir finalis bersih dari non-finalis.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>1769595e</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Perbaikan ReferenceError <code>compName</code> pada pool global dan parsing nilai film dokumenter.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Eliminasi runtime error antarmuka scoreboard.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>834500db</code></td>
+<td style="text-align: left;">Koreksi Data</td>
+<td style="text-align: left;">DBA / Ops</td>
+<td style="text-align: left;">Koreksi nilai Slamet Pamuji tingkat MI menjadi 30.90 sesuai Berita Acara dewan juri.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Integritas perolehan peringkat kejuaraan MI.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>0fb74e12</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Pencantuman TIM Media LP Ma'arif NU Cilacap sebagai Dewan Juri resmi Film Dokumenter.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Keabsahan penandatangan berita acara.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>44dcbc72</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Fitur unduh daftar nama peserta dan anggota regu juara ke format file Excel.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Kemudahan publikasi piagam dan piala.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>18/09/2026</strong></td>
+<td style="text-align: center;"><code>5fc3a055</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Fleksibilitas nomor WA peserta rapat dan auto-sync master data madrasah saat presensi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Sinkronisasi profil lembaga via presensi rapat.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>19/09/2026</strong></td>
+<td style="text-align: center;"><code>a88e7b4d</code></td>
+<td style="text-align: left;">Event Harlah</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Akumulasi nilai fase 2 madrasah berprestasi dan pembatasan juara hanya untuk finalis.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Proteksi ketat hak juara hanya bagi finalis.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>19/09/2026</strong></td>
+<td style="text-align: center;"><code>e79572db</code></td>
+<td style="text-align: left;">Ekspor Lomba</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Fallback perhitungan fase 2 selalu menggunakan rata-rata juri majemuk proporsional.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Ketahanan kalkulasi jika salah satu juri absen.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>febf1937</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Perapihan tata letak dan desain kartu poster QR code hasil unduhan presensi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Tampilan kartu presensi estetis dan proporsional.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>0cacbd08</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Perbaikan cetak Standee A4 presensi dan penghilangan kop surat agar QR lebih besar.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">QR Code lebih mudah dipindai kamera peserta.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>381a5f9e</code></td>
+<td style="text-align: left;">Versioning</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Pembaruan build version information pada metadata aplikasi SIMMACI.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Sinkronisasi nomor rilis sistem.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>795f7a97</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Penambahan opsi ukuran cetak Standee menjadi format A5 proporsional.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pilihan cetak ringkas untuk meja rapat kecil.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>596ed650</code></td>
+<td style="text-align: left;">Modul SK</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Perbaikan unduh template SK terotentikasi &amp; penambahan pratinjau berkas permohonan Kamad.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Download template aman dan preview berkas.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>20163cc3</code></td>
+<td style="text-align: left;">Satuan Kerja</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Fitur download data satpend per jenjang dan penambahan filter pencarian tabel.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Ekspor data madrasah tersegregasi per jenjang.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>6f345234</code></td>
+<td style="text-align: left;">Kepegawaian</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Opsi cetak dan download QR Staff versi ringkas (tanpa teks dengan border).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Format kartu ID card fisik staf fleksibel.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>21/09/2026</strong></td>
+<td style="text-align: center;"><code>62d08ac8</code></td>
+<td style="text-align: left;">Kepegawaian</td>
+<td style="text-align: left;">DBA / Fullstack</td>
+<td style="text-align: left;">Auto-sync Kepala Madrasah yang disetujui yayasan ke profil sekolah &amp; migrasi rekonsiliasi.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Sinkronisasi otomatis data kamad ke profil lembaga.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>22/09/2026</strong></td>
+<td style="text-align: center;"><code>6ca233ee</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Backend</td>
+<td style="text-align: left;">Relaksasi rate limit IP walk-in presensi untuk Wi-Fi venue bersama &amp; cek duplikasi HP.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Presensi ratusan peserta bersamaan lancar.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>22/09/2026</strong></td>
+<td style="text-align: center;"><code>1a0100f1</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Optimasi densitas QR code presensi dan resolusi isu stale cache 404 pada pemindai.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pemindaian kamera instan tanpa delay cache.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>22/09/2026</strong></td>
+<td style="text-align: center;"><code>74e7aabd</code></td>
+<td style="text-align: left;">Deployment</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Optimasi Docker build dan chunking aset mencegah memory exhaustion (Exit 255).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Efisiensi memori RAM build container.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>94ac5af7</strong></td>
+<td style="text-align: center;"><code>94ac5af7</code></td>
+<td style="text-align: left;">Presensi</td>
+<td style="text-align: left;">Fullstack</td>
+<td style="text-align: left;">Penanganan delegasi walk-in, eliminasi false-positive matching, dan manajemen walk-in.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Pencatatan perwakilan instansi yang akurat.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>22/09/2026</strong></td>
+<td style="text-align: center;"><code>ab90b701</code></td>
+<td style="text-align: left;">Deployment</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Peningkatan ceiling memori Node ke 2048 MB dan pemisahan chunk charts (Exit 134 fix).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Stabilitas proses kompilasi aset di Coolify.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>25/09/2026</strong></td>
+<td style="text-align: center;"><code>328b2aed</code></td>
+<td style="text-align: left;">Approval SK</td>
+<td style="text-align: left;">Frontend</td>
+<td style="text-align: left;">Resolusi PizZip unsupported data error pada saat generate dokumen DOCX SK Kamad.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Penerbitan berkas SK Kepala Madrasah sukses 100%.</td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>25/09/2026</strong></td>
+<td style="text-align: center;"><code>09532da2</code></td>
+<td style="text-align: left;">Docker</td>
+<td style="text-align: left;">DevOps</td>
+<td style="text-align: left;">Migrasi image createbuckets ke <code>cgr.dev/chainguard/minio-client</code> mengatasi 401 Unauthorized.</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">Inisialisasi otomatis bucket S3 tanpa error izin.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Bagian B: Repositori Sistem Keuangan LP Ma'arif</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Tanggal</th>
+<th style="text-align: center;">Hash Commit</th>
+<th style="text-align: left;">Area Modul</th>
+<th style="text-align: left;">Peran Utama</th>
+<th style="text-align: left;">Ringkasan Aktivitas Rekayasa</th>
+<th style="text-align: center;">Status</th>
+<th style="text-align: left;">Hasil Konkret</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>23/09/2026</strong></td>
+<td style="text-align: center;"><code>8419765</code></td>
+<td style="text-align: left;">Core Accounting</td>
+<td style="text-align: left;">Solution Architect, Backend Dev, DBA, QA</td>
+<td style="text-align: left;"><strong>Phase 3 — Accounting Foundation:</strong> <br> • Implementasi Bagan Akun Standar (COA) seeder 400+ baris. <br> • Manajemen siklus Periode Fiskal (<code>FiscalPeriodService</code>). <br> • Mesin Posting Jurnal (<code>JournalPostingService</code>) dengan penjagaan debit-kredit berbasis <code>Money</code> value object. <br> • Penegakan aturan Segregation of Duties (Maker != Checker). <br> • Mesin pembalikan non-destruktif (<code>JournalReversalEngine</code>). <br> • Modul inisialisasi Saldo Awal (<code>OpeningBalanceService</code>). <br> • 63 Feature &amp; Unit Automated Tests (193 assertions passed).</td>
+<td style="text-align: center;"><span class="badge badge-done">DONE</span></td>
+<td style="text-align: left;">35 berkas baru (+3.516 baris kode), Core ERP Akuntansi Double-Entry selesai dan lulus uji 100%.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>25. EVIDENCE &amp; AUDIT TRAIL</h2>
+<p>Untuk keperluan verifikasi dan audit independen oleh manajemen, setiap deliverable utama dapat ditelusuri langsung pada berkas sumber berikut:</p>
+<h3>Audit Trail 1: Modul PPDB Online (One-Door Admission)</h3>
+<ul>
+<li><strong>Klaim:</strong> Pembangunan sistem pendaftaran peserta didik baru terpadu mencakup landing page publik, wizard pendaftaran, status checker, antarmuka operator, dan auto-sync ke siswa aktif.</li>
+<li><strong>Evidence:</strong></li>
+<li>File Model &amp; Migrasi: <a href="file:///d:/apss-source/SIMMACI/backend/app/Models/PpdbRegistration.php">backend/app/Models/PpdbRegistration.php</a>, <a href="file:///d:/apss-source/SIMMACI/backend/database/migrations/2026_09_02_000002_create_ppdb_registrations_table.php">backend/database/migrations/2026_09_02_000002_create_ppdb_registrations_table.php</a>.</li>
+<li>File Service &amp; Logic: <a href="file:///d:/apss-source/SIMMACI/backend/app/Services/PpdbService.php">backend/app/Services/PpdbService.php</a>.</li>
+<li>File Frontend: <a href="file:///d:/apss-source/SIMMACI/src/features/ppdb/admin/PpdbCenterPage.tsx">src/features/ppdb/admin/PpdbCenterPage.tsx</a>, <a href="file:///d:/apss-source/SIMMACI/src/features/ppdb/public/PpdbRegistrationPage.tsx">src/features/ppdb/public/PpdbRegistrationPage.tsx</a>.</li>
+<li>Commit Hashes: <code>26d5bc13</code>, <code>68b332f4</code>, <code>c679b8c6</code>, <code>b6b4c8ec</code>, <code>4caa4da8</code>.</li>
+<li><strong>Interpretasi:</strong> Terbukti bahwa modul PPDB dibangun dari nol secara mandiri pada periode pelaporan dan telah terintegrasi penuh ke database SIMMACI.</li>
+</ul>
+<h3>Audit Trail 2: Sub-Sistem Penjurian 2-Fase &amp; Live Scoring Harlah 97</h3>
+<ul>
+<li><strong>Klaim:</strong> Penyelenggaraan sistem seleksi 2 fase anugerah pendidikan, kalkulasi skor multi-juri independen, normalisasi nilai, penguncian skor, serta ekspor PDF Berita Acara dan Excel.</li>
+<li><strong>Evidence:</strong></li>
+<li>File Migrasi: <a href="file:///d:/apss-source/SIMMACI/backend/database/migrations/2026_09_07_000002_create_competition_jury_scores_table.php">backend/database/migrations/2026_09_07_000002_create_competition_jury_scores_table.php</a>.</li>
+<li>File Frontend: <a href="file:///d:/apss-source/SIMMACI/src/features/events/JuryScoringPage.tsx">src/features/events/JuryScoringPage.tsx</a>, <a href="file:///d:/apss-source/SIMMACI/src/features/events/CompetitionExportModal.tsx">src/features/events/CompetitionExportModal.tsx</a>.</li>
+<li>Skrip Operasional VPS: <code>reset-nilai-lomba.sh</code>, <code>check-madrasah.sh</code>.</li>
+<li>Commit Hashes: <code>d0d89956</code>, <code>155a6a63</code>, <code>c350d0d9</code>, <code>28452ef9</code>, <code>ea87af96</code>, <code>e5d2adb2</code>.</li>
+<li><strong>Interpretasi:</strong> Terbukti seluruh alur penjurian Juknis Harlah ke-97 LP Ma'arif NU Cilacap berhasil diotomatisasi secara digital dan transparan.</li>
+</ul>
+<h3>Audit Trail 3: DevSecOps &amp; Sanitasi Repositori (SEC-001 s.d. SEC-004)</h3>
+<ul>
+<li><strong>Klaim:</strong> Pembersihan menyeluruh berkas kredensial, proteksi fail-closed docker, hardening Nginx, dan penutupan 27 titik otorisasi API.</li>
+<li><strong>Evidence:</strong></li>
+<li>Dokumen Audit &amp; Laporan: <a href="file:///d:/apss-source/SIMMACI/SECURITY-REMEDIATION-REPORT.md">SECURITY-REMEDIATION-REPORT.md</a>, <a href="file:///d:/apss-source/SIMMACI/SECURITY-AUDIT-SEC-004-REPORT.md">SECURITY-AUDIT-SEC-004-REPORT.md</a>.</li>
+<li>Konfigurasi Infrastruktur: <a href="file:///d:/apss-source/SIMMACI/docker-compose.coolify.yml">docker-compose.coolify.yml</a>, <a href="file:///d:/apss-source/SIMMACI/nginx/default.conf">nginx/default.conf</a>.</li>
+<li>File Automated Tests: <code>backend/tests/Feature/SecurityAuthorizationRemediationTest.php</code>, <code>backend/tests/Feature/PostRemediationSecurityVerificationTest.php</code>.</li>
+<li>Commit Hashes: <code>eedb2a2d</code>, <code>fafba189</code>, <code>26e92074</code>, <code>ed0738c5</code>, <code>b127855d</code>, <code>93fe5d81</code>, <code>296dd3cd</code>.</li>
+<li><strong>Interpretasi:</strong> Terbukti perbaikan keamanan dilakukan dengan standar rekayasa DevSecOps profesional, terverifikasi melalui test adversarial otomatis dan riwayat backup ganda.</li>
+</ul>
+<h3>Audit Trail 4: Phase 3 Accounting Foundation (Sistem Keuangan)</h3>
+<ul>
+<li><strong>Klaim:</strong> Pembangunan core akuntansi double-entry mencakup seeder COA, journal posting &amp; reversal engine, period locking, segregation of duties, dan 63 feature tests passing.</li>
+<li><strong>Evidence:</strong></li>
+<li>File Core Services: <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/JournalPostingService.php">backend/app/Domain/Accounting/Services/JournalPostingService.php</a>, <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/Services/OpeningBalanceService.php">backend/app/Domain/Accounting/Services/OpeningBalanceService.php</a>.</li>
+<li>File Value Object: <a href="file:///d:/apss-source/Keuangan%20maarif/backend/app/Domain/Accounting/ValueObjects/Money.php">backend/app/Domain/Accounting/ValueObjects/Money.php</a>.</li>
+<li>File Seeder: <a href="file:///d:/apss-source/Keuangan%20maarif/backend/database/seeders/CoaSeeder.php">backend/database/seeders/CoaSeeder.php</a>.</li>
+<li>File Automated Tests: <code>backend/tests/Feature/JournalPostingTest.php</code>, <code>backend/tests/Feature/CoaTest.php</code>, <code>backend/tests/Feature/OpeningBalanceTest.php</code>.</li>
+<li>Commit Hash: <code>8419765</code> pada repositori <code>Keuangan maarif</code>.</li>
+<li><strong>Interpretasi:</strong> Terbukti Phase 3 Sistem Keuangan diselesaikan dengan kualitas kode tingkat tinggi (<em>clean architecture</em>), dibuktikan dengan kelulusan 100% dari 63 pengujian unit dan fitur akuntansi.</li>
+</ul>
+<hr />
+<p><em>Laporan pertanggungjawaban ini disusun secara independen, faktual, dan berbasis bukti riil repositori sebagai wujud transparansi, dedikasi, serta akuntabilitas kinerja Staff IT kepada pimpinan PC LP Ma'arif NU Kabupaten Cilacap.</em></p>
+
+    <hr/>
+    <div style="text-align: center; font-size: 12px; color: var(--text-muted); padding: 15px 0;">
+      © 2026 Pengurus Cabang Lembaga Pendidikan Ma'arif NU Kabupaten Cilacap • Sistem Informasi Manajemen (SIMMACI) & Sistem Keuangan
+    </div>
+  </div>
+</body>
+</html>

@@ -109,14 +109,10 @@ return [
 
     'redis' => [
 
+        // phpredis PHP extension — faster than predis
+        // IMPORTANT: Do NOT add options.cluster here for standalone Redis.
+        // cluster='redis' enables Redis Cluster protocol which breaks password auth on standalone servers.
         'client' => env('REDIS_CLIENT', 'phpredis'),
-
-        'options' => [
-            // 'cluster' must NOT be set to 'redis' in standalone mode — that enables Redis Cluster protocol
-            // which breaks standalone Redis authentication. Use 'predis' value only when using Predis client.
-            'cluster' => env('REDIS_CLUSTER', 'predis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
-        ],
 
         'default' => [
             'url' => env('REDIS_URL'),

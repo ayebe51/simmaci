@@ -29,15 +29,15 @@ services:
     image: redis:7-alpine
     container_name: simmaci-redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026} --protected-mode no
+    command: redis-server --requirepass ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74} --protected-mode no
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
     volumes:
       - redis-data:/data
     networks:
       - simmaci-network
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026} ping || redis-cli ping"]
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74} ping || redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,7 +117,7 @@ services:
       QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -189,7 +189,7 @@ services:
       QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -236,7 +236,7 @@ services:
       QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-simmaci_redis_default_secret_2026}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}

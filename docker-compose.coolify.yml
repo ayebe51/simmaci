@@ -112,9 +112,9 @@ services:
       DB_DATABASE: ${DB_DATABASE:-sim_maarif}
       DB_USERNAME: ${DB_USERNAME:-sim_user}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      SESSION_DRIVER: redis
-      CACHE_STORE: redis
-      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
@@ -184,9 +184,9 @@ services:
       DB_DATABASE: ${DB_DATABASE:-sim_maarif}
       DB_USERNAME: ${DB_USERNAME:-sim_user}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      SESSION_DRIVER: redis
-      CACHE_STORE: redis
-      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
@@ -231,9 +231,9 @@ services:
       DB_DATABASE: ${DB_DATABASE:-sim_maarif}
       DB_USERNAME: ${DB_USERNAME:-sim_user}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      SESSION_DRIVER: redis
-      CACHE_STORE: redis
-      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: ${SESSION_DRIVER:-database}
+      CACHE_STORE: ${CACHE_STORE:-database}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-database}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}

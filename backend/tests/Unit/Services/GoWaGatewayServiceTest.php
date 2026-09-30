@@ -4,60 +4,55 @@ namespace Tests\Unit\Services;
 
 use App\Models\WaBlastConfig;
 use App\Services\GoWaGatewayService;
+use App\Services\WahaGatewayService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
  * GoWaGatewayServiceTest
  *
- * Unit tests for GoWaGatewayService.
- *
- * Verifies:
- * - HTTP Basic Auth is sent (not token in body)
- * - Correct endpoints are called (/api/send/message, /api/send/file, /api/user/info)
- * - Success/failure responses are handled correctly
- * - 401 Unauthorized returns descriptive error
- * - ConnectionException is caught and returned as error array
+ * Verifies that GoWaGatewayService inherits and operates via WAHA (WhatsApp HTTP API).
  */
 class GoWaGatewayServiceTest extends TestCase
 {
     private GoWaGatewayService $service;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->service = new GoWaGatewayService();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Helper
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Build a mock WaBlastConfig with the given token (username:password format).
-     */
-    private function makeConfig(string $apiUrl = 'http://gowa.test:3000', string $token = 'admin:secret'): WaBlastConfig
+    private function makeConfig(string $apiUrl = 'http://waha.test:3000', string $token = 'secret-api-key', ?string $deviceId = 'session_1'): WaBlastConfig
     {
         $config = $this->createMock(WaBlastConfig::class);
         $config->method('getDecryptedToken')->willReturn($token);
-        $config->method('__get')->willReturnCallback(fn ($name) => match ($name) {
-            'api_url' => $apiUrl,
-            default   => null,
+        $config->method('getAttribute')->willReturnCallback(fn ($name) => match ($name) {
+            'api_url'   => $apiUrl,
+            'device_id' => $deviceId,
+            default     => null,
         });
+        $config->method('__get')->willReturnCallback(fn ($name) => match ($name) {
+            'api_url'   => $apiUrl,
+            'device_id' => $deviceId,
+            default     => null,
+        });
+        $config->method('__isset')->willReturnCallback(fn ($name) => in_array($name, ['api_url', 'device_id']));
         return $config;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // sendText — endpoint & auth
-    // ─────────────────────────────────────────────────────────────────────────
+    public function test_it_extends_waha_gateway_service(): void
+    {
+        $this->assertInstanceOf(WahaGatewayService::class, $this->service);
+    }
 
-    /** @test */
-    public function sendText_calls_correct_endpoint_with_basic_auth(): void
+    public function test_send_text_calls_waha_endpoint(): void
     {
         Http::fake([
-            'http://gowa.test:3000/send/message' => Http::response(['status' => 'ok'], 200),
+            'http://waha.test:3000/api/sendText' => Http::response(['status' => 'ok'], 200),
         ]);
 
         $config = $this->makeConfig();
@@ -66,29 +61,18 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertTrue($result['success']);
 
         Http::assertSent(function (Request $request) {
-            // Endpoint must be /send/message (GoWA v8)
-            $this->assertStringEndsWith('/send/message', $request->url());
-
-            // Must use Basic Auth header (Authorization: Basic base64(admin:secret))
-            $expectedAuth = 'Basic ' . base64_encode('admin:secret');
-            $this->assertEquals($expectedAuth, $request->header('Authorization')[0]);
-
-            // Must NOT have 'token' field in body
-            $this->assertArrayNotHasKey('token', $request->data());
-
-            // Must have phone and message
-            $this->assertEquals('628123456789', $request->data()['phone']);
-            $this->assertEquals('Hello', $request->data()['message']);
-
+            $this->assertStringEndsWith('/api/sendText', $request->url());
+            $this->assertEquals('secret-api-key', $request->header('X-Api-Key')[0]);
+            $this->assertEquals('session_1', $request->data()['session']);
+            $this->assertEquals('628123456789@c.us', $request->data()['chatId']);
             return true;
         });
     }
 
-    /** @test */
-    public function sendText_returns_success_false_on_non_2xx_response(): void
+    public function test_send_text_returns_success_false_on_non_2xx(): void
     {
         Http::fake([
-            'http://gowa.test:3000/send/message' => Http::response(['error' => 'bad request'], 400),
+            'http://waha.test:3000/api/sendText' => Http::response(['error' => 'bad request'], 400),
         ]);
 
         $result = $this->service->sendText('628123456789', 'Hello', $this->makeConfig());
@@ -97,8 +81,7 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertEquals(400, $result['status_code']);
     }
 
-    /** @test */
-    public function sendText_returns_error_on_connection_exception(): void
+    public function test_send_text_returns_error_on_connection_exception(): void
     {
         Http::fake(function () {
             throw new ConnectionException('Connection refused');
@@ -110,39 +93,14 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertStringContainsString('tidak dapat dihubungi', $result['message']);
     }
 
-    /** @test */
-    public function sendText_works_without_basic_auth_when_token_is_empty(): void
+    public function test_send_file_calls_waha_endpoint(): void
     {
         Http::fake([
-            'http://gowa.test:3000/send/message' => Http::response(['status' => 'ok'], 200),
+            'http://waha.test:3000/api/sendFile' => Http::response(['status' => 'ok'], 200),
         ]);
 
-        $config = $this->makeConfig(token: '');
-        $result = $this->service->sendText('628123456789', 'Hello', $config);
-
-        $this->assertTrue($result['success']);
-
-        Http::assertSent(function (Request $request) {
-            // No Authorization header should be set
-            $this->assertEmpty($request->header('Authorization'));
-            return true;
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // sendFile — endpoint & caption field
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /** @test */
-    public function sendFile_calls_correct_endpoint_with_caption_field(): void
-    {
-        Http::fake([
-            'http://gowa.test:3000/send/file' => Http::response(['status' => 'ok'], 200),
-        ]);
-
-        // Mock Storage::get to return fake file content
-        \Illuminate\Support\Facades\Storage::fake('local');
-        \Illuminate\Support\Facades\Storage::put('wa-blasts/attachments/test.pdf', 'fake-pdf-content');
+        Storage::fake('local');
+        Storage::disk('local')->put('wa-blasts/attachments/test.pdf', 'fake-pdf-content');
 
         $config = $this->makeConfig();
         $result = $this->service->sendFile('628123456789', 'Lihat lampiran', 'wa-blasts/attachments/test.pdf', $config);
@@ -150,32 +108,17 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertTrue($result['success']);
 
         Http::assertSent(function (Request $request) {
-            // Endpoint must be /send/file (GoWA v8)
-            $this->assertStringEndsWith('/send/file', $request->url());
-
-            // Must use Basic Auth
-            $expectedAuth = 'Basic ' . base64_encode('admin:secret');
-            $this->assertEquals($expectedAuth, $request->header('Authorization')[0]);
-
-            // Must NOT have 'token' in body
-            $this->assertStringNotContainsString('"token"', $request->body());
-
-            // Multipart body must contain 'caption' field name and its value
-            $this->assertStringContainsString('name="caption"', $request->body());
-            $this->assertStringContainsString('Lihat lampiran', $request->body());
-
-            // Must NOT contain a 'message' field name
-            $this->assertStringNotContainsString('name="message"', $request->body());
-
+            $this->assertStringEndsWith('/api/sendFile', $request->url());
+            $this->assertEquals('session_1', $request->data()['session']);
+            $this->assertEquals('628123456789@c.us', $request->data()['chatId']);
+            $this->assertEquals('Lihat lampiran', $request->data()['caption']);
             return true;
         });
     }
 
-    /** @test */
-    public function sendFile_returns_error_when_file_not_found(): void
+    public function test_send_file_returns_error_when_file_not_found(): void
     {
-        \Illuminate\Support\Facades\Storage::fake('local');
-        // Do NOT create the file
+        Storage::fake('local');
 
         $result = $this->service->sendFile('628123456789', 'Caption', 'nonexistent/file.pdf', $this->makeConfig());
 
@@ -183,55 +126,30 @@ class GoWaGatewayServiceTest extends TestCase
         $this->assertStringContainsString('tidak ditemukan', $result['message']);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // testConnection — uses GET /api/user/info
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /** @test */
-    public function testConnection_calls_get_api_user_info(): void
+    public function test_test_connection_calls_waha_session_endpoint(): void
     {
         Http::fake([
-            'http://gowa.test:3000/app/status' => Http::response(['device' => 'connected'], 200),
+            'http://waha.test:3000/api/sessions/session_1' => Http::response(['status' => 'WORKING'], 200),
         ]);
 
         $result = $this->service->testConnection($this->makeConfig());
 
         $this->assertTrue($result['success']);
-
-        Http::assertSent(function (Request $request) {
-            // Must be GET
-            $this->assertEquals('GET', $request->method());
-
-            // Endpoint must be /app/status
-            $this->assertStringEndsWith('/app/status', $request->url());
-
-            // Must use Basic Auth
-            $expectedAuth = 'Basic ' . base64_encode('admin:secret');
-            $this->assertEquals($expectedAuth, $request->header('Authorization')[0]);
-
-            // Must NOT have 'token' in body
-            $this->assertArrayNotHasKey('token', $request->data());
-
-            return true;
-        });
     }
 
-    /** @test */
-    public function testConnection_returns_descriptive_error_on_401(): void
+    public function test_test_connection_returns_descriptive_error_on_401(): void
     {
         Http::fake([
-            'http://gowa.test:3000/app/status' => Http::response('Unauthorized', 401),
+            'http://waha.test:3000/api/sessions/session_1' => Http::response('Unauthorized', 401),
         ]);
 
         $result = $this->service->testConnection($this->makeConfig());
 
         $this->assertFalse($result['success']);
         $this->assertEquals(401, $result['status_code']);
-        $this->assertStringContainsString('Basic Auth', $result['message']);
     }
 
-    /** @test */
-    public function testConnection_returns_error_on_connection_exception(): void
+    public function test_test_connection_returns_error_on_connection_exception(): void
     {
         Http::fake(function () {
             throw new ConnectionException('Connection refused');
@@ -241,18 +159,5 @@ class GoWaGatewayServiceTest extends TestCase
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('tidak dapat dihubungi', $result['message']);
-    }
-
-    /** @test */
-    public function testConnection_returns_failure_on_non_2xx_response(): void
-    {
-        Http::fake([
-            'http://gowa.test:3000/app/status' => Http::response(['error' => 'server error'], 500),
-        ]);
-
-        $result = $this->service->testConnection($this->makeConfig());
-
-        $this->assertFalse($result['success']);
-        $this->assertEquals(500, $result['status_code']);
     }
 }

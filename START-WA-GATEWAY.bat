@@ -12,8 +12,8 @@ echo.
 
 cd /d "d:\SIMMACI"
 
-echo [1/1] Menyalakan Mesin Docker (GoWA dan Localtunnel)...
-docker-compose up -d
+echo [1/1] Menyalakan Mesin Docker (WAHA Gateway)...
+docker-compose -f docker-compose.waha.yml up -d
 echo.
 
 echo ========================================================

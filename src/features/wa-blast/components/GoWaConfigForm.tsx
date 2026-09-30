@@ -10,7 +10,7 @@ import type { SaveConfigPayload } from "../types/waBlast.types";
 
 const configSchema = z.object({
   api_url: z.string().url("URL harus valid").max(500, "URL maksimal 500 karakter"),
-  api_token: z.string().min(1, "API Token tidak boleh kosong"),
+  api_token: z.string().min(1, "API Key tidak boleh kosong"),
   sender_number: z
     .string()
     .regex(/^62[0-9]{9,13}$/, "Nomor harus format 62xxxxxxxxx (9-13 digit)"),
@@ -29,19 +29,21 @@ const configSchema = z.object({
 
 type ConfigFormData = z.infer<typeof configSchema>;
 
-interface GoWaConfigFormProps {
+export interface WahaConfigFormProps {
   initialData?: SaveConfigPayload;
   onSubmit: (data: SaveConfigPayload) => Promise<void>;
   onTestConnection: () => Promise<{ success: boolean; message: string }>;
   loading?: boolean;
 }
 
-export function GoWaConfigForm({
+export type GoWaConfigFormProps = WahaConfigFormProps;
+
+export function WahaConfigForm({
   initialData,
   onSubmit,
   onTestConnection,
   loading = false,
-}: GoWaConfigFormProps) {
+}: WahaConfigFormProps) {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [testing, setTesting] = useState(false);
 
@@ -54,6 +56,7 @@ export function GoWaConfigForm({
     defaultValues: initialData
       ? {
           ...initialData,
+          device_id: initialData.device_id || "default",
           max_recipients_per_session: initialData.max_recipients_per_session || 500,
           max_daily_messages: initialData.max_daily_messages || 1000,
         }
@@ -61,6 +64,7 @@ export function GoWaConfigForm({
           api_url: "",
           api_token: "",
           sender_number: "",
+          device_id: "default",
           max_recipients_per_session: 500,
           max_daily_messages: 1000,
         },
@@ -75,7 +79,7 @@ export function GoWaConfigForm({
     } catch (error) {
       setTestResult({
         success: false,
-        message: "Gagal menghubungi Go-WA Gateway. Periksa konfigurasi Anda.",
+        message: "Gagal menghubungi WAHA Gateway. Periksa konfigurasi Anda.",
       });
     } finally {
       setTesting(false);
@@ -91,11 +95,11 @@ export function GoWaConfigForm({
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* API URL */}
       <div className="space-y-2">
-        <Label htmlFor="api_url">URL Endpoint Go-WA</Label>
+        <Label htmlFor="api_url">URL Endpoint WAHA</Label>
         <Input
           id="api_url"
           type="url"
-          placeholder="https://go-wa.example.com"
+          placeholder="http://localhost:3000 atau https://waha.domain-anda.com"
           {...register("api_url")}
         />
         {errors.api_url && (
@@ -103,20 +107,20 @@ export function GoWaConfigForm({
         )}
       </div>
 
-      {/* API Token */}
+      {/* API Key */}
       <div className="space-y-2">
-        <Label htmlFor="api_token">API Token</Label>
+        <Label htmlFor="api_token">API Key (WAHA)</Label>
         <Input
           id="api_token"
           type="password"
-          placeholder="Masukkan API Token"
+          placeholder="Masukkan API Key (WAHA_API_KEY)"
           {...register("api_token")}
         />
         {errors.api_token && (
           <p className="text-sm text-red-600">{errors.api_token.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Token akan dienkripsi sebelum disimpan ke database.
+          API Key yang dikonfigurasi di WAHA. Token akan dienkripsi dengan aman (AES-256) sebelum disimpan ke database.
         </p>
       </div>
 
@@ -133,26 +137,25 @@ export function GoWaConfigForm({
           <p className="text-sm text-red-600">{errors.sender_number.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Format: 62xxxxxxxxx (tanpa tanda + atau spasi)
+          Nomor WhatsApp yang terhubung di sesi WAHA format: 62xxxxxxxxx (tanpa tanda + atau spasi)
         </p>
       </div>
 
-      {/* Device ID */}
+      {/* Session ID / Device ID */}
       <div className="space-y-2">
-        <Label htmlFor="device_id">Device ID (GoWA v8)</Label>
+        <Label htmlFor="device_id">Session ID (WAHA)</Label>
         <Input
           id="device_id"
           type="text"
-          placeholder="Contoh: Maarif Cilacap"
+          placeholder="default"
           {...register("device_id")}
         />
         {errors.device_id && (
           <p className="text-sm text-red-600">{errors.device_id.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Nama device yang terdaftar di GoWA. Cek di{" "}
-          <code className="bg-muted px-1 rounded">URL-GoWA/app/devices</code>.
-          Kosongkan jika menggunakan GoWA versi lama.
+          Nama session di WAHA (default:{" "}
+          <code className="bg-muted px-1 rounded">default</code>). Dapat dilihat dan dikelola melalui dashboard WAHA.
         </p>
       </div>
 
@@ -225,3 +228,6 @@ export function GoWaConfigForm({
     </form>
   );
 }
+
+// Backward compatible export
+export const GoWaConfigForm = WahaConfigForm;

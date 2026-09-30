@@ -473,22 +473,31 @@ class AttendanceController extends Controller
     {
         $settings = AttendanceSetting::where('school_id', $request->user()->school_id)->first();
         if (! $settings || ! $settings->gowa_url) {
-            return response()->json(['success' => false, 'message' => 'GoWA URL belum dikonfigurasi'], 400);
+            return response()->json(['success' => false, 'message' => 'URL Gateway WhatsApp (WAHA) belum dikonfigurasi'], 400);
         }
 
         try {
-            // Real check would be an HTTP call to GoWA server
-            // For now, we simulate a check to the configured URL
+            $baseUrl = rtrim($settings->gowa_url, '/');
             $client = new Client(['timeout' => 5]);
-            $response = $client->get($settings->gowa_url.'/health'); // Typical health check
+
+            // Check WAHA status (/api/server/status, /api/sessions, or /health)
+            try {
+                $response = $client->get($baseUrl . '/api/server/status');
+            } catch (\Throwable $t) {
+                try {
+                    $response = $client->get($baseUrl . '/api/sessions');
+                } catch (\Throwable $t2) {
+                    $response = $client->get($baseUrl . '/health');
+                }
+            }
 
             return response()->json([
                 'success' => true,
-                'status' => $response->getStatusCode() === 200 ? 'online' : 'offline',
+                'status' => in_array($response->getStatusCode(), [200, 201], true) ? 'online' : 'offline',
                 'details' => $response->getBody()->getContents(),
             ]);
         } catch (\Throwable $e) {
-            // If it fails, we still return a success response with status offline to prevent 500
+            // If it fails, we still return a response with status offline to prevent 500
             return response()->json([
                 'success' => false,
                 'status' => 'offline',

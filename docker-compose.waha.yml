@@ -1,7 +1,7 @@
 version: "3.8"
 
-# WAHA (WhatsApp HTTP API - devlikeapro/waha) — Backward-compatible compose file
-# Run: docker compose -f docker-compose.gowa.yml up -d
+# WAHA (WhatsApp HTTP API - devlikeapro/waha) — local development
+# Run: docker compose -f docker-compose.waha.yml up -d
 # UI:  http://localhost:3000
 # API: http://localhost:3000/api
 

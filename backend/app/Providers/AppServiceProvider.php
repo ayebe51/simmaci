@@ -44,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(MeetingRepositoryInterface::class, MeetingRepository::class);
         $this->app->bind(MeetingParticipantRepositoryInterface::class, MeetingParticipantRepository::class);
         $this->app->bind(MeetingAttendanceRepositoryInterface::class, MeetingAttendanceRepository::class);
+
+        // WhatsApp Gateway Services
+        $this->app->singleton(\App\Services\GoWaGatewayService::class);
+        $this->app->singleton(\App\Services\WahaGatewayService::class, function ($app) {
+            return $app->make(\App\Services\GoWaGatewayService::class);
+        });
     }
 
     /**

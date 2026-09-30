@@ -1,6 +1,6 @@
 @echo off
 :: ==============================================================
-:: SETUP SERVER WHATSAPP (GOWA) & AUTO-SHUTDOWN
+:: SETUP SERVER WHATSAPP (WAHA) & AUTO-SHUTDOWN
 :: ==============================================================
 :: HARAP JALANKAN SCRIPT INI DENGAN KLIK KANAN -> "RUN AS ADMINISTRATOR"
 
@@ -18,7 +18,7 @@ if %errorlevel% == 0 (
 echo.
 
 echo ==============================================================
-echo 2. MENJALANKAN GOWA (WHATSAPP API) DI DOCKER
+echo 2. MENJALANKAN WAHA (WHATSAPP HTTP API) DI DOCKER
 echo ==============================================================
 echo Mengecek koneksi Docker...
 docker info >nul 2>&1
@@ -31,13 +31,13 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo Sedang mendownload dan menjalankan GoWA container...
-docker run -d --name gowa --restart unless-stopped -p 3000:3000 aldinokemal/go-whatsapp-web-multidevice
+echo Sedang mendownload dan menjalankan WAHA container...
+docker run -d --name waha --restart unless-stopped -p 3000:3000 -v waha_sessions:/app/.sessions -e WAHA_PRINT_QR=False -e WAHA_DASHBOARD_ENABLED=True -e WAHA_DASHBOARD_USERNAME=admin devlikeapro/waha:latest
 if %errorlevel% == 0 (
-    echo [v] GoWA berhasil dijalankan di port 3000!
+    echo [v] WAHA berhasil dijalankan di port 3000!
 ) else (
-    echo Container gowa mungkin sudah ada, mencoba menyalakan lagi...
-    docker start gowa
+    echo Container waha mungkin sudah ada, mencoba menyalakan lagi...
+    docker start waha
 )
 echo.
 
@@ -50,10 +50,10 @@ powershell -Command "Invoke-WebRequest -Uri 'https://github.com/cloudflare/cloud
 echo.
 echo [v] SEMUA SELESAI!
 echo -------------------------------------------------------------
-echo Aplikasi GoWA Bapak berjalan di: http://localhost:3000
+echo Dashboard WAHA berjalan di: http://localhost:3000
 echo.
 echo HARAP BACA:
-echo Untuk membuat GoWA bisa diakses lewat internet terus-menerus, 
+echo Untuk membuat WAHA bisa diakses lewat internet terus-menerus, 
 echo Bapak bisa daftar Cloudflare Tunnel gratis atau jalan perintah ini:
 echo C:\cloudflared.exe tunnel --url http://localhost:3000
 echo.

@@ -88,7 +88,7 @@ export default function AttendanceSettingsPage() {
 
   const checkConnection = async () => {
     if (!formState.gowa_url) {
-      toast.error("Masukkan URL GoWA terlebih dahulu");
+      toast.error("Masukkan URL WAHA terlebih dahulu");
       return;
     }
     setWaStatus("checking");
@@ -96,10 +96,10 @@ export default function AttendanceSettingsPage() {
       const res = await attendanceApi.checkWaConnection();
       if (res.status === 'online') {
           setWaStatus("online");
-          toast.success("Koneksi Server WA Berhasil! 🟢");
+          toast.success("Koneksi Server WAHA Berhasil! 🟢");
       } else {
           setWaStatus("offline");
-          toast.error("Server WA Offline: " + (res.message || "Unknown error"));
+          toast.error("Server WAHA Offline: " + (res.message || "Unknown error"));
       }
     } catch (e: any) {
         setWaStatus("offline");
@@ -299,7 +299,7 @@ export default function AttendanceSettingsPage() {
             <CardTitle className="text-base flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-green-600" />
-                Integrasi Gateway WhatsApp (GoWA)
+                Integrasi Gateway WhatsApp (WAHA)
               </div>
               <Badge variant={waStatus === "online" ? "default" : "outline"} className={waStatus === "online" ? "bg-green-500" : ""}>
                 {waStatus.toUpperCase()}
@@ -309,7 +309,7 @@ export default function AttendanceSettingsPage() {
           <CardContent className="pt-4 grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">URL Server Gateway</Label>
+                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">URL Server Gateway (WAHA)</Label>
                 <button 
                   onClick={checkConnection}
                   disabled={waStatus === "checking"}
@@ -320,7 +320,7 @@ export default function AttendanceSettingsPage() {
                 </button>
               </div>
               <Input
-                placeholder="https://wa.maarif-cilacap.or.id"
+                placeholder="http://localhost:3000 atau https://wa.domain-anda.com"
                 value={formState.gowa_url}
                 onChange={(e) => setFormState({...formState, gowa_url: e.target.value})}
                 className="font-mono text-sm rounded-xl h-11"
@@ -328,9 +328,9 @@ export default function AttendanceSettingsPage() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Instance / Device ID</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Session ID (WAHA)</Label>
               <Input
-                placeholder="unit_01"
+                placeholder="default"
                 value={formState.gowa_device_id}
                 onChange={(e) => setFormState({...formState, gowa_device_id: e.target.value})}
                 className="font-mono text-sm rounded-xl h-11"

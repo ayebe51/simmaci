@@ -35,6 +35,8 @@ scratch/
 
 # WhatsApp session data & operational SQLite databases
 gowa_data/
+waha_sessions/
+.sessions/
 *.sqlite
 *.sqlite3
 *.db

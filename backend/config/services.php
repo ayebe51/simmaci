@@ -35,8 +35,12 @@ return [
         ],
     ],
 
+    'waha' => [
+        'internal_url' => env('WAHA_INTERNAL_URL', env('GOWA_INTERNAL_URL')),
+    ],
+
     'gowa' => [
-        'internal_url' => env('GOWA_INTERNAL_URL'),
+        'internal_url' => env('WAHA_INTERNAL_URL', env('GOWA_INTERNAL_URL')),
     ],
 
 ];

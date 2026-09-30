@@ -118,7 +118,10 @@ return [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
-            'password' => env('REDIS_PASSWORD', 'simmaci_redis_default_secret_2026'),
+            // Use ?: not env() default — env() only falls back when var is MISSING.
+            // If Coolify sets REDIS_PASSWORD="" (empty string), env() returns "" and phpredis
+            // skips AUTH entirely causing NOAUTH. The ?: operator also handles empty string.
+            'password' => env('REDIS_PASSWORD') ?: 'simmaci_redis_default_secret_2026',
             'port' => env('REDIS_PORT', '6379'),
             // Database index 0 for sessions and general use
             'database' => '0',
@@ -128,7 +131,8 @@ return [
             'url' => env('REDIS_URL'),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
-            'password' => env('REDIS_PASSWORD', 'simmaci_redis_default_secret_2026'),
+            // Same fix — use ?: to treat empty string as fallback trigger
+            'password' => env('REDIS_PASSWORD') ?: 'simmaci_redis_default_secret_2026',
             'port' => env('REDIS_PORT', '6379'),
             // Database index 1 dedicated for cache to avoid key collisions with sessions
             'database' => '1',

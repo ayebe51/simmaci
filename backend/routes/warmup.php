@@ -34,8 +34,8 @@ Route::get('/health', function () {
 // Deep health check (with DB and cache)
 Route::get('/health/deep', function () {
     try {
-        // Test database connection
-        DB::connection()->getPdo();
+        // Test database connection with real query (verifies socket is alive)
+        DB::select('SELECT 1');
         $dbStatus = 'ok';
     } catch (\Exception $e) {
         \Illuminate\Support\Facades\Log::error('[HealthCheck] DB connection failed', ['error' => $e->getMessage()]);
@@ -64,8 +64,8 @@ Route::get('/health/deep', function () {
 // Warmup endpoint - preloads connections
 Route::get('/warmup', function () {
     try {
-        // Warm up database connection
-        DB::connection()->getPdo();
+        // Warm up database connection with active query
+        DB::select('SELECT 1');
         
         // Warm up cache connection
         Cache::remember('warmup_check', 60, fn() => now()->timestamp);

@@ -112,7 +112,9 @@ return [
         'client' => env('REDIS_CLIENT', 'phpredis'),
 
         'options' => [
-            'cluster' => env('REDIS_CLUSTER', 'redis'),
+            // 'cluster' must NOT be set to 'redis' in standalone mode — that enables Redis Cluster protocol
+            // which breaks standalone Redis authentication. Use 'predis' value only when using Predis client.
+            'cluster' => env('REDIS_CLUSTER', 'predis'),
             'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
         ],
 
@@ -122,7 +124,8 @@ return [
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD', 'simmaci_redis_default_secret_2026'),
             'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_DATABASE', '0'),
+            // Database index 0 for sessions and general use
+            'database' => '0',
         ],
 
         'cache' => [
@@ -131,7 +134,8 @@ return [
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD', 'simmaci_redis_default_secret_2026'),
             'port' => env('REDIS_PORT', '6379'),
-            'database' => env('REDIS_DATABASE', '1'),
+            // Database index 1 dedicated for cache to avoid key collisions with sessions
+            'database' => '1',
         ],
 
     ],

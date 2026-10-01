@@ -146,10 +146,12 @@ services:
       - "traefik.http.routers.backend.rule=Host(`api.simmaci.com`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend.service=backend"
       # Route 2: simmaci.com/api/* (path-based routing)
       - "traefik.http.routers.backend-api.rule=Host(`simmaci.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend-api.entrypoints=websecure"
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-api.service=backend"
       # Upstream resilience: retry network resets/drops gracefully
       - "traefik.http.middlewares.backend-retry.retry.attempts=3"
       - "traefik.http.middlewares.backend-retry.retry.initialinterval=100ms"
@@ -259,12 +261,14 @@ services:
     restart: unless-stopped
     environment:
       - WAHA_WORKER_ID=waha
-      - WAHA_PRINT_QR=False
+      - WAHA_PRINT_QR=false
       - WAHA_API_KEY=${WAHA_API_KEY:-${GOWA_BASIC_AUTH:-secret123}}
-      - WAHA_DASHBOARD_ENABLED=True
+      - WHATSAPP_API_KEY=${WAHA_API_KEY:-${GOWA_BASIC_AUTH:-secret123}}
+      - WAHA_DASHBOARD_ENABLED=true
       - WAHA_DASHBOARD_USERNAME=admin
       - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-admin}
       - WHATSAPP_DEFAULT_ENGINE=NOWEB
+      - WAHA_NOWEB_WA_VERSION=auto-web
     volumes:
       - waha-data:/app/.sessions
     networks:
@@ -272,15 +276,22 @@ services:
         aliases:
           - waha
           - gowa
-      coolify:
+      coolify: {}
     expose:
       - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
       - "traefik.http.routers.waha.rule=Host(`waha.simmaci.com`) || Host(`gowa.simmaci.com`)"
       - "traefik.http.routers.waha.entrypoints=websecure"
       - "traefik.http.routers.waha.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.waha.service=waha"
       - "traefik.http.services.waha.loadbalancer.server.port=3000"
 
   # ── Frontend (React + Nginx) ───────────────────────────────

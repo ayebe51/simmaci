@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Models\School;
 use App\Models\WaBlastConfig;
-use App\Services\GoWaGatewayService;
+use App\Services\WahaGatewayService;
 use App\Services\PhoneNormalizerService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -29,7 +29,7 @@ class NotifyHeadmasterOfSkRejection implements ShouldQueue
         public ?int $schoolId
     ) {}
 
-    public function handle(GoWaGatewayService $goWaService, PhoneNormalizerService $phoneNormalizer): void
+    public function handle(WahaGatewayService $wahaService, PhoneNormalizerService $phoneNormalizer): void
     {
         Log::info('NotifyHeadmasterOfSkRejection: Starting', [
             'sk_id' => $this->skId,

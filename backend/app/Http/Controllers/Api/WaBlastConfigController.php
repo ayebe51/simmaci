@@ -17,7 +17,7 @@ class WaBlastConfigController extends Controller
 
     public function __construct(
         private WaBlastConfigService $configService,
-        private GoWaGatewayService $gatewayService
+        private WahaGatewayService $gatewayService
     ) {}
 
     /**

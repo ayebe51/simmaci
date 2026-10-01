@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Models\WaBlast;
 use App\Repositories\WaBlastRecipientRepository;
 use App\Repositories\WaBlastRepository;
-use App\Services\GoWaGatewayService;
+use App\Services\WahaGatewayService;
 use App\Services\WaBlastConfigService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  *
  * Processes WA Blast sending in the background queue.
  * Iterates over each pending recipient, substitutes template variables,
- * sends via GoWaGatewayService, and updates delivery status.
+ * sends via WahaGatewayService, and updates delivery status.
  *
  * Uses tries = 1 — retries are handled explicitly by the user via retryBlast().
  */
@@ -52,12 +52,12 @@ class SendBlastJob implements ShouldQueue
     /**
      * Execute the job.
      *
-     * Loads Go-WA config, iterates over pending recipients, sends messages,
+     * Loads WAHA config, iterates over pending recipients, sends messages,
      * updates delivery statuses, and finalises blast status.
      */
     public function handle(
         WaBlastConfigService $configService,
-        GoWaGatewayService $gatewayService,
+        WahaGatewayService $gatewayService,
         WaBlastRepository $blastRepository,
         WaBlastRecipientRepository $recipientRepository
     ): void {

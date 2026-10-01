@@ -9,7 +9,7 @@
 
 import { AlertCircle, Settings } from "lucide-react";
 import { toast } from "sonner";
-import { WahaConfigForm } from "../components/GoWaConfigForm";
+import { WahaConfigForm } from "../components/WahaConfigForm";
 import { useWaBlastConfig, useSaveConfig, useTestConnection } from "../hooks/useWaBlastConfig";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

@@ -5,7 +5,7 @@ namespace App\Services;
 /**
  * GoWaGatewayService
  *
- * Backward-compatibility wrapper extending WahaGatewayService.
+ * @deprecated Use WahaGatewayService directly. Retained for queue job and backward compatibility.
  * Replaces GoWA with WAHA (WhatsApp HTTP API - devlikeapro/waha).
  * All methods (sendText, sendFile, testConnection, sendMessage) are inherited.
  */

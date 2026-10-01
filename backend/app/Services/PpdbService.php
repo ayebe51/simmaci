@@ -16,9 +16,9 @@ use Illuminate\Support\Str;
 
 class PpdbService
 {
-    protected GoWaGatewayService $waGatewayService;
+    protected WahaGatewayService $waGatewayService;
 
-    public function __construct(GoWaGatewayService $waGatewayService)
+    public function __construct(WahaGatewayService $waGatewayService)
     {
         $this->waGatewayService = $waGatewayService;
     }

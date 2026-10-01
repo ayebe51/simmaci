@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WaBlastConfig;
-use App\Services\GoWaGatewayService;
+use App\Services\WahaGatewayService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,7 +23,7 @@ class SendPpdbWaNotificationJob implements ShouldQueue
         public string $message
     ) {}
 
-    public function handle(GoWaGatewayService $waGatewayService): void
+    public function handle(WahaGatewayService $waGatewayService): void
     {
         try {
             $config = WaBlastConfig::where('is_active', true)->first();

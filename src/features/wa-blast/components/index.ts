@@ -13,6 +13,6 @@ export { AttachmentUploader } from "./AttachmentUploader";
 export { ScheduleSelector } from "./ScheduleSelector";
 export { BlastProgressBar } from "./BlastProgressBar";
 export { RecipientDetailTable } from "./RecipientDetailTable";
-export { GoWaConfigForm, WahaConfigForm } from "./GoWaConfigForm";
+export { WahaConfigForm, GoWaConfigForm } from "./WahaConfigForm";
 export { TemplateForm } from "./TemplateForm";
 

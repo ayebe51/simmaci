@@ -38,6 +38,11 @@ APP_URL=https://api.yourdomain.com
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=password_minio_ganti_ini
 
+# WhatsApp Gateway (WAHA)
+WAHA_API_KEY=kunci_rahasia_api_waha_anda
+WAHA_DASHBOARD_USERNAME=admin
+WAHA_DASHBOARD_PASSWORD=password_admin_waha_super_aman
+
 # CORS & Sanctum (sesuaikan domain frontend kamu)
 FRONTEND_DOMAIN=yourdomain.com
 FRONTEND_URL=https://yourdomain.com
@@ -54,6 +59,10 @@ VITE_SENTRY_DSN=
 
 Untuk service **frontend**:
 - Tambahkan domain: `yourdomain.com` → port `80`
+
+Untuk service **waha** (WhatsApp Gateway):
+- Tambahkan domain: `waha.yourdomain.com` → port `3000`
+- Panduan lengkap pairing QR & konfigurasi: Lihat [PANDUAN_DEPLOYMENT_WAHA.md](file:///d:/apss-source/SIMMACI/PANDUAN_DEPLOYMENT_WAHA.md)
 
 Untuk service **backend** (opsional, jika butuh akses langsung):
 - Tambahkan domain: `api.yourdomain.com` → port `80`

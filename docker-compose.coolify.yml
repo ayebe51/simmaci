@@ -273,8 +273,8 @@ services:
           - waha
           - gowa
       coolify:
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"

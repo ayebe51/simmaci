@@ -144,12 +144,12 @@ services:
       - "traefik.docker.network=coolify"
       # Route 1: api.simmaci.com (full domain)
       - "traefik.http.routers.backend.rule=Host(`api.simmaci.com`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.entrypoints=https"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.routers.backend.service=backend"
       # Route 2: simmaci.com/api/* (path-based routing)
       - "traefik.http.routers.backend-api.rule=Host(`simmaci.com`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.backend-api.entrypoints=websecure"
+      - "traefik.http.routers.backend-api.entrypoints=https"
       - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.backend-api.service=backend"
       # Upstream resilience: retry network resets/drops gracefully
@@ -286,8 +286,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
-      - "traefik.http.routers.waha.rule=Host(`waha.simmaci.com`) || Host(`gowa.simmaci.com`)"
-      - "traefik.http.routers.waha.entrypoints=websecure"
+      - "traefik.http.routers.waha.rule=Host(`waha.simmaci.com`)"
+      - "traefik.http.routers.waha.entrypoints=https"
       - "traefik.http.routers.waha.tls.certresolver=letsencrypt"
       - "traefik.http.routers.waha.service=waha"
       - "traefik.http.services.waha.loadbalancer.server.port=3000"
@@ -327,7 +327,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
       - "traefik.http.routers.frontend.rule=Host(`simmaci.com`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.entrypoints=https"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
 

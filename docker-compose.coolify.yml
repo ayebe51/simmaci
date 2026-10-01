@@ -126,6 +126,7 @@ services:
       AWS_ENDPOINT: http://minio:9000
       AWS_URL: https://simmaci.com/api/minio
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      WAHA_INTERNAL_URL: http://waha:3000
       GOWA_INTERNAL_URL: http://gowa:3000
       LOG_CHANNEL: stderr
       SANCTUM_STATEFUL_DOMAINS: simmaci.com
@@ -200,6 +201,7 @@ services:
       AWS_ENDPOINT: http://minio:9000
       AWS_URL: https://simmaci.com/api/minio
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      WAHA_INTERNAL_URL: http://waha:3000
       GOWA_INTERNAL_URL: http://gowa:3000
       LOG_CHANNEL: stderr
     networks:
@@ -247,6 +249,7 @@ services:
       AWS_ENDPOINT: http://minio:9000
       AWS_URL: https://simmaci.com/api/minio
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      WAHA_INTERNAL_URL: http://waha:3000
       GOWA_INTERNAL_URL: http://gowa:3000
       LOG_CHANNEL: stderr
     networks:

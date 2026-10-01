@@ -75,7 +75,7 @@ class NotifyHeadmasterOfSkRejection implements ShouldQueue
         $message .= "Terima kasih,\nSistem SIMMACI";
 
         try {
-            $response = $goWaService->sendText($normalizedPhone, $message, $config);
+            $response = $wahaService->sendText($normalizedPhone, $message, $config);
             
             if (!$response['success']) {
                 Log::error('NotifyHeadmasterOfSkRejection: Failed to send WA', [

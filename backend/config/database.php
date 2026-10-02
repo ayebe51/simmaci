@@ -138,6 +138,16 @@ return [
             'database' => '1',
         ],
 
+        'queue' => [
+            'url' => env('REDIS_URL'),
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'username' => env('REDIS_USERNAME'),
+            'password' => env('REDIS_PASSWORD') ?: 'R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74',
+            'port' => env('REDIS_PORT', '6379'),
+            // Database index 2 dedicated for queues to prevent key collisions
+            'database' => env('REDIS_QUEUE_DB', '2'),
+        ],
+
     ],
 
 ];

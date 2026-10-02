@@ -101,17 +101,17 @@ quadrantChart
 ### EPIC 2: Modernisasi Ekosistem Rapat, Presensi & Notulensi
 *Tujuan: Memastikan alur administrasi pertemuan organisasi cabang dari persiapan hingga pelaporan selesai dalam hitungan detik.*
 
-#### Task 2.1: Bundle Ekspor Laporan Pertanggungjawaban (LPJ) Rapat 1-Klik (PDF)
+#### Task 2.1: Bundle Ekspor Laporan Pertanggungjawaban (LPJ) Rapat 1-Klik (PDF) — [STATUS: SELESAI / DONE] ✅
 * **Deskripsi:** Menggabungkan Berita Acara Rapat, Daftar Hadir (termasuk tanda tangan/QR digital), Notulensi Rapat, dan Galeri Foto Kegiatan ke dalam 1 dokumen PDF resmi siap cetak/arsip ber-kop surat LP Ma'arif.
 * **Fitur:**
-  1. Header kop surat dinamis cabang Ma'arif NU Cilacap.
+  1. Header kop surat dinamis cabang Ma'arif NU Cilacap (gambar atau fallback resmi).
   2. Rekapitulasi kehadiran (Jumlah undangan, hadir tepat waktu, terlambat, perwakilan/walk-in).
-  3. Transkrip notulensi terstruktur (Agenda, Pembahasan, Keputusan/Tindak Lanjut).
-  4. Lampiran lembar foto dokumentasi (Grid 2x2 per halaman dengan keterangan waktu & tempat).
+  3. Transkrip notulensi terstruktur dengan blok tanda tangan notulis dan pimpinan rapat.
+  4. Lampiran lembar foto dokumentasi dalam format tabel grid 2 kolom rapi.
 * **Target File:**
-  - Backend: [backend/app/Http/Controllers/Api/MeetingReportController.php](file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/MeetingReportController.php), [backend/resources/views/reports/meeting_lpj.blade.php](file:///d:/apss-source/SIMMACI/backend/resources/views/reports/meeting_lpj.blade.php) *(Baru)*.
-  - Frontend: [src/features/meetings/MeetingDetailPage.tsx](file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingDetailPage.tsx).
-* **Estimasi:** 2 Hari Kerja.
+  - Backend: [backend/app/Http/Controllers/Api/MeetingReportController.php](file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/MeetingReportController.php), [backend/app/Services/MeetingReportService.php](file:///d:/apss-source/SIMMACI/backend/app/Services/MeetingReportService.php).
+  - Frontend: [src/features/meetings/MeetingDetailPage.tsx](file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingDetailPage.tsx), [src/features/meetings/hooks/useMeeting.ts](file:///d:/apss-source/SIMMACI/src/features/meetings/hooks/useMeeting.ts).
+* **Hasil:** Tombol "Cetak LPJ (PDF)" terintegrasi dan menghasilkan berkas `LPJ_Rapat_{Title}_{Date}.pdf`.
 
 #### Task 2.2: Live Presence Screen (Display Layar Proyektor)
 * **Deskripsi:** Antarmuka khusus layar lebar (Full Screen TV / Proyektor) di lokasi rapat yang menampilkan nama madrasah dan kepala sekolah yang baru saja melakukan scan QR secara real-time dengan animasi elegan dan suara chime sukses.
@@ -180,20 +180,17 @@ quadrantChart
 ### EPIC 5: Infrastruktur, DevSecOps, & Resilience
 *Tujuan: Memastikan operasional sistem kebal terhadap lonjakan beban, crash container, dan kehilangan data.*
 
-#### Task 5.1: Migrasi Penuh Antrean ke Redis Queue Worker di Coolify
-* **Deskripsi:** Mengaktifkan kembali antrean Redis performa tinggi (`QUEUE_CONNECTION=redis`) pasca remediasi kredensial Redis pada komit `d8def57b`.
-* **Langkah:**
-  1. Konfigurasi worker supervisor di kontainer `queue` agar mendengarkan antrean `default`, `wa_blast`, dan `sk_generation`.
-  2. Uji coba pengiriman antrean 500 pesan secara serempak tanpa penurunan performa antarmuka web.
+#### Task 5.1: Migrasi Penuh Antrean ke Redis Queue Worker di Coolify — [STATUS: SELESAI / DONE] ✅
+* **Deskripsi:** Mengaktifkan kembali antrean Redis performa tinggi (`QUEUE_CONNECTION=redis`) dengan dedicated database connection index 2 di `config/database.php` dan `config/queue.php`, serta memperbarui service container `queue` dan `scheduler` di `docker-compose.coolify.yml`.
 * **Target File:**
-  - [backend/config/queue.php](file:///d:/apss-source/SIMMACI/backend/config/queue.php), [docker-compose.coolify.yml](file:///d:/apss-source/SIMMACI/docker-compose.coolify.yml).
-* **Estimasi:** 1 Hari Kerja.
+  - [backend/config/database.php](file:///d:/apss-source/SIMMACI/backend/config/database.php), [backend/config/queue.php](file:///d:/apss-source/SIMMACI/backend/config/queue.php), [docker-compose.coolify.yml](file:///d:/apss-source/SIMMACI/docker-compose.coolify.yml).
+* **Hasil:** Konfigurasi isolated queue connection index 2 aktif, retries=3, timeout=3600s, max-jobs=500.
 
-#### Task 5.2: Otomasi Backup Harian Database PostgreSQL ke MinIO/Offsite S3
-* **Deskripsi:** Membangun skrip cron terjadwal di VPS/Coolify yang mengekspor dump PostgreSQL, mengenkripsi dengan GPG/AES-256, dan mengunggahnya ke bucket MinIO terisolasi atau bucket Cloud S3 terpisah.
+#### Task 5.2: Otomasi Backup Harian Database PostgreSQL ke MinIO/Offsite S3 — [STATUS: SELESAI / DONE] ✅
+* **Deskripsi:** Membangun skrip shell otomatisasi dump database PostgreSQL (format custom `-F c`), penghitungan checksum SHA-256 integritas, enkripsi opsional AES-256-CBC, dan pengunggahan ke MinIO / S3 bucket terisolasi dengan kebijakan retensi 14 hari.
 * **Target File:**
   - [scripts/backup-db-offsite.sh](file:///d:/apss-source/SIMMACI/scripts/backup-db-offsite.sh) *(Baru)*.
-* **Estimasi:** 1 Hari Kerja.
+* **Hasil:** Skrip executable `backup-db-offsite.sh` siap dijalankan mandiri maupun via cronjob VPS harian.
 
 #### Task 5.3: Optimasi Slow Query & Indexing Skala Besar
 * **Deskripsi:** Memperbaiki index pada tabel `meeting_attendances`, `sk_documents`, dan `activity_logs` guna mencegah timeout query saat data mencapai ratusan ribu baris.

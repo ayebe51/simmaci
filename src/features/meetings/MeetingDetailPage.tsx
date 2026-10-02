@@ -158,13 +158,15 @@ export const MeetingDetailPage: React.FC = () => {
               {downloadExcelMutation.isPending ? 'Mengunduh...' : 'Excel'}
             </Button>
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
               onClick={() => downloadPdfMutation.mutate(meetingId)}
               disabled={downloadPdfMutation.isPending}
+              title="Unduh Laporan Pertanggungjawaban Lengkap (Daftar Hadir, Notulensi, dan Foto Kegiatan)"
             >
               <FileText className="h-3.5 w-3.5 mr-1.5" />
-              {downloadPdfMutation.isPending ? 'Mengunduh...' : 'PDF'}
+              {downloadPdfMutation.isPending ? 'Menyusun LPJ...' : 'Cetak LPJ (PDF)'}
             </Button>
           </div>
         )}

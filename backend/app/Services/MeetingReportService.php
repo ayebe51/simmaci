@@ -33,7 +33,7 @@ class MeetingReportService
     public function generatePdf(Meeting $meeting): string
     {
         // Ensure participants and attendance are loaded
-        $meeting->loadMissing(['participants.attendance', 'attendances', 'minutes', 'photos']);
+        $meeting->loadMissing(['participants.attendance', 'attendances', 'minutes.creator', 'photos.uploader', 'creator']);
 
         // Configure PHPWord to use DomPDF renderer
         Settings::setPdfRendererName(Settings::PDF_RENDERER_DOMPDF);
@@ -43,13 +43,13 @@ class MeetingReportService
         $phpWord->setDefaultFontName('Calibri');
         $phpWord->setDefaultFontSize(10);
 
-        // ── Page 1: Daftar Hadir (Landscape) ──
+        // ── Page 1: Daftar Hadir & Berita Acara (Landscape) ──
         $section = $phpWord->addSection([
             'orientation' => 'landscape',
-            'marginTop' => 600,
-            'marginBottom' => 600,
-            'marginLeft' => 800,
-            'marginRight' => 800,
+            'marginTop' => 500,
+            'marginBottom' => 500,
+            'marginLeft' => 700,
+            'marginRight' => 700,
         ]);
 
         // Kop surat — load from setting (uploaded via Settings page), fallback to storage paths
@@ -88,48 +88,79 @@ class MeetingReportService
                 'alignment' => 'center',
             ]);
             $section->addTextBreak(1);
+        } else {
+            // Header resmi teks fallback jika kop gambar belum diunggah
+            $section->addText("PENGURUS CABANG LEMBAGA PENDIDIKAN MA'ARIF NU KABUPATEN CILACAP", ['bold' => true, 'size' => 12], ['alignment' => 'center']);
+            $section->addText("SISTEM INFORMASI MANAJEMEN MA'ARIF NU CILACAP (SIMMACI)", ['size' => 9, 'color' => '555555'], ['alignment' => 'center']);
+            $section->addText("Jl. Masjid No. 09 Cilacap 53223 | info@maarifnu-cilacap.or.id", ['size' => 8, 'italic' => true, 'color' => '777777'], ['alignment' => 'center']);
+            $section->addTextBreak(1);
         }
 
         // Header
         $section->addText(
-            'DAFTAR HADIR RAPAT',
-            ['bold' => true, 'size' => 14],
-            ['alignment' => 'center', 'spaceAfter' => 120]
+            'LAPORAN PERTANGGUNGJAWABAN (LPJ) & DAFTAR HADIR RAPAT',
+            ['bold' => true, 'size' => 13],
+            ['alignment' => 'center', 'spaceAfter' => 80]
         );
         $section->addText(
             strtoupper($meeting->title),
-            ['bold' => true, 'size' => 12],
-            ['alignment' => 'center', 'spaceAfter' => 200]
+            ['bold' => true, 'size' => 11],
+            ['alignment' => 'center', 'spaceAfter' => 150]
         );
 
         // Meeting info
-        $section->addText("Hari/Tanggal : {$meeting->started_at->translatedFormat('l, d F Y')}", ['size' => 10]);
-        $section->addText("Waktu        : {$meeting->started_at->format('H:i')} - {$meeting->ended_at->format('H:i')} WIB", ['size' => 10]);
-        $section->addText("Tempat       : {$meeting->location}", ['size' => 10]);
+        $section->addText("Hari / Tanggal : {$meeting->started_at->translatedFormat('l, d F Y')}", ['size' => 9.5]);
+        $section->addText("Waktu          : {$meeting->started_at->format('H:i')} - {$meeting->ended_at->format('H:i')} WIB", ['size' => 9.5]);
+        $section->addText("Tempat         : {$meeting->location}", ['size' => 9.5]);
         if ($meeting->agenda) {
-            $section->addText("Agenda       : {$meeting->agenda}", ['size' => 10]);
+            $section->addText("Agenda         : {$meeting->agenda}", ['size' => 9.5]);
         }
         $section->addTextBreak(1);
 
         // Attendance table
         $this->addAttendanceTable($section, $meeting);
 
-        $section->addTextBreak(2);
+        $section->addTextBreak(1);
 
         // Summary
         $totalParticipants = $meeting->participants->count();
         $presentCount = $meeting->participants->filter(fn($p) => $p->attendance !== null)->count();
+        $walkInsCount = $meeting->attendances()->where('attendance_type', 'qr_umum')->whereNull('participant_id')->count();
+        $totalHadir = $presentCount + $walkInsCount;
+
         $section->addText(
-            "Total Peserta: {$totalParticipants} | Hadir: {$presentCount} | Tidak Hadir: " . ($totalParticipants - $presentCount),
-            ['size' => 10, 'bold' => true]
+            "Rekapitulasi: Undangan: {$totalParticipants} | Hadir: {$presentCount} | Walk-in: {$walkInsCount} | Total Hadir: {$totalHadir} | Tidak Hadir: " . max(0, $totalParticipants - $presentCount),
+            ['size' => 9.5, 'bold' => true]
+        );
+
+        $section->addTextBreak(1);
+
+        // Tanda Tangan Resmi (Pimpinan Rapat & Notulis)
+        $signTable = $section->addTable(['borderSize' => 0, 'cellMargin' => 30]);
+        $signTable->addRow();
+
+        $notulisName = $meeting->minutes?->creator?->name ?? '............................................';
+        $pimpinanName = $meeting->creator?->name ?? '............................................';
+        $tanggalRapat = $meeting->started_at ? $meeting->started_at->translatedFormat('d F Y') : now()->translatedFormat('d F Y');
+
+        $signTable->addCell(6000)->addText(
+            "Notulis Rapat,\n\n\n\n\n( {$notulisName} )",
+            ['size' => 9],
+            ['alignment' => 'center']
+        );
+
+        $signTable->addCell(6000)->addText(
+            "Cilacap, {$tanggalRapat}\nPimpinan Rapat,\n\n\n\n( {$pimpinanName} )",
+            ['size' => 9],
+            ['alignment' => 'center']
         );
 
         $section->addTextBreak(1);
 
         // Footer
         $section->addText(
-            "Dicetak pada: " . now()->format('d-m-Y H:i:s') . " oleh " . (auth()->user()?->name ?? 'Admin'),
-            ['size' => 8, 'italic' => true, 'color' => '666666']
+            "Dokumen LPJ Rapat ini digenerate secara otomatis oleh SIMMACI pada: " . now()->format('d-m-Y H:i:s') . " WIB oleh " . (auth()->user()?->name ?? 'Admin'),
+            ['size' => 7.5, 'italic' => true, 'color' => '777777']
         );
 
         // ── Page 2: Notulensi (if exists) ──
@@ -305,10 +336,14 @@ class MeetingReportService
     {
         $section = $phpWord->addSection([
             'orientation' => 'portrait',
+            'marginTop' => 500,
+            'marginBottom' => 500,
+            'marginLeft' => 700,
+            'marginRight' => 700,
         ]);
 
-        $section->addText('NOTULENSI RAPAT', ['bold' => true, 'size' => 14]);
-        $section->addText($meeting->title, ['size' => 12, 'bold' => true]);
+        $section->addText('NOTULENSI RAPAT & KEPUTUSAN', ['bold' => true, 'size' => 13], ['alignment' => 'center', 'spaceAfter' => 60]);
+        $section->addText(strtoupper($meeting->title), ['size' => 11, 'bold' => true], ['alignment' => 'center', 'spaceAfter' => 120]);
         $section->addTextBreak(1);
 
         // Strip HTML and render as plain text
@@ -320,52 +355,77 @@ class MeetingReportService
         $content = preg_replace('/<[^>]+>/', '', $content);
         $content = html_entity_decode(trim($content));
 
-        $section->addText($content, ['size' => 11]);
-        $section->addTextBreak(1);
+        $section->addText("Ringkasan Pembahasan & Keputusan:", ['size' => 10, 'bold' => true]);
+        $section->addText($content, ['size' => 9.5]);
+        $section->addTextBreak(2);
 
-        $section->addText("Dibuat oleh: " . ($meeting->minutes->creator?->name ?? 'Admin'), ['size' => 10, 'italic' => true]);
-        $section->addText("Tanggal: " . $meeting->minutes->created_at->format('d-m-Y H:i:s'), ['size' => 10, 'italic' => true]);
+        // Signatures for notulensi
+        $notulisName = $meeting->minutes->creator?->name ?? 'Notulis';
+        $pimpinanName = $meeting->creator?->name ?? 'Pimpinan Rapat';
+        $tanggalRapat = $meeting->started_at ? $meeting->started_at->translatedFormat('d F Y') : now()->translatedFormat('d F Y');
+
+        $notulensiSignTable = $section->addTable(['borderSize' => 0, 'cellMargin' => 40]);
+        $notulensiSignTable->addRow();
+        $notulensiSignTable->addCell(4500)->addText("Notulis Rapat,\n\n\n\n\n( {$notulisName} )", ['size' => 9], ['alignment' => 'center']);
+        $notulensiSignTable->addCell(4500)->addText("Cilacap, {$tanggalRapat}\nMengetahui,\nPimpinan Rapat,\n\n\n\n( {$pimpinanName} )", ['size' => 9], ['alignment' => 'center']);
     }
 
     private function addPhotosPage(PhpWord $phpWord, Meeting $meeting, array &$tempFiles = []): void
     {
         $section = $phpWord->addSection([
             'orientation' => 'portrait',
+            'marginTop' => 500,
+            'marginBottom' => 500,
+            'marginLeft' => 700,
+            'marginRight' => 700,
         ]);
 
-        $section->addText('FOTO KEGIATAN RAPAT', ['bold' => true, 'size' => 14]);
+        $section->addText('DOKUMENTASI FOTO KEGIATAN RAPAT', ['bold' => true, 'size' => 13], ['alignment' => 'center', 'spaceAfter' => 60]);
+        $section->addText(strtoupper($meeting->title), ['size' => 11, 'bold' => true], ['alignment' => 'center', 'spaceAfter' => 120]);
         $section->addTextBreak(1);
 
         $photos = $meeting->photos;
-        $section->addText("Total foto: {$photos->count()}", ['size' => 11]);
+        $section->addText("Lampiran Dokumentasi ({$photos->count()} Foto Terverifikasi):", ['size' => 9.5, 'italic' => true]);
         $section->addTextBreak(1);
 
-        foreach ($photos as $photo) {
-            try {
-                // Read photo binary from storage directly (not via URL)
-                if (Storage::exists($photo->storage_path)) {
-                    $imageContent = Storage::get($photo->storage_path);
-                    $tempImagePath = tempnam(sys_get_temp_dir(), 'photo_') . '.' . pathinfo($photo->original_filename, PATHINFO_EXTENSION);
-                    file_put_contents($tempImagePath, $imageContent);
+        $photoTable = $section->addTable(['borderSize' => 1, 'borderColor' => 'CCCCCC', 'cellMargin' => 60]);
+        $chunks = $photos->chunk(2);
 
-                    $section->addImage($tempImagePath, [
-                        'width' => 400,
-                        'height' => 300,
-                        'alignment' => 'center',
-                    ]);
+        foreach ($chunks as $chunk) {
+            $photoTable->addRow();
+            foreach ($chunk as $photo) {
+                $cell = $photoTable->addCell(4500);
+                try {
+                    // Read photo binary from storage directly (not via URL)
+                    if (Storage::exists($photo->storage_path)) {
+                        $imageContent = Storage::get($photo->storage_path);
+                        $tempImagePath = tempnam(sys_get_temp_dir(), 'photo_') . '.' . pathinfo($photo->original_filename, PATHINFO_EXTENSION);
+                        file_put_contents($tempImagePath, $imageContent);
 
-                    // Track temp file for cleanup AFTER save() — PHPWord reads images at save time
-                    $tempFiles[] = $tempImagePath;
-                } else {
-                    $section->addText("[Foto tidak ditemukan: {$photo->original_filename}]", ['italic' => true, 'size' => 9]);
+                        $cell->addImage($tempImagePath, [
+                            'width' => 210,
+                            'height' => 155,
+                            'alignment' => 'center',
+                        ]);
+
+                        // Track temp file for cleanup AFTER save() — PHPWord reads images at save time
+                        $tempFiles[] = $tempImagePath;
+                    } else {
+                        $cell->addText("[Foto tidak ditemukan: {$photo->original_filename}]", ['italic' => true, 'size' => 8]);
+                    }
+                } catch (\Exception $e) {
+                    $cell->addText("[Gagal memuat foto: {$photo->original_filename}]", ['italic' => true, 'size' => 8]);
                 }
-            } catch (\Exception $e) {
-                $section->addText("[Gagal memuat foto: {$photo->original_filename}]", ['italic' => true, 'size' => 9]);
+
+                $cell->addText($photo->original_filename, ['size' => 8, 'bold' => true], ['alignment' => 'center']);
+                $uploaderName = $photo->uploader?->name ?? 'Admin';
+                $cell->addText("Diupload: " . $photo->created_at->format('d-m-Y H:i') . " ({$uploaderName})", ['size' => 7.5, 'italic' => true, 'color' => '666666'], ['alignment' => 'center']);
             }
 
-            $section->addText($photo->original_filename, ['size' => 9]);
-            $section->addText("Diupload: " . $photo->created_at->format('d-m-Y H:i') . " oleh " . ($photo->uploader?->name ?? 'Admin'), ['size' => 9, 'italic' => true]);
-            $section->addTextBreak(1);
+            // Fill empty cell if odd number of photos in the row
+            if ($chunk->count() < 2) {
+                $photoTable->addCell(4500)->addText('');
+            }
         }
     }
 

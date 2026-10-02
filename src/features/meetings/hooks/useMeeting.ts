@@ -115,12 +115,12 @@ export const useDownloadMeetingPdf = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `laporan-rapat-${meetingId}.pdf`;
+      link.download = `LPJ_Rapat_${meetingId}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      toast.success('Laporan PDF berhasil diunduh');
+      toast.success('Dokumen LPJ Rapat (PDF) berhasil diunduh');
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Gagal mengunduh laporan PDF';

@@ -37,7 +37,8 @@ class MeetingReportController extends Controller
     public function pdf(Meeting $meeting, Request $request): \Illuminate\Http\Response|JsonResponse
     {
         try {
-            $fileName = "Laporan_Kehadiran_{$meeting->title}_" . now()->format('Y-m-d_H-i-s') . '.pdf';
+            $sanitizedTitle = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $meeting->title);
+            $fileName = "LPJ_Rapat_{$sanitizedTitle}_" . now()->format('Y-m-d') . '.pdf';
 
             $pdf = $this->reportService->generatePdf($meeting);
 

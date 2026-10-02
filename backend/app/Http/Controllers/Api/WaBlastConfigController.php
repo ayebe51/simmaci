@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WaBlast\StoreWaBlastConfigRequest;
-use App\Services\GoWaGatewayService;
 use App\Services\WahaGatewayService;
 use App\Services\WaBlastConfigService;
 use App\Traits\ApiResponse;

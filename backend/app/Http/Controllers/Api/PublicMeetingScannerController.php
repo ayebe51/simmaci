@@ -112,66 +112,141 @@ class PublicMeetingScannerController extends Controller
     public function scan(Request $request): JsonResponse
     {
         $request->validate([
-            'pin'    => 'required|string',
-            'qr_url' => 'required|string',
+            'pin'           => 'required|string',
+            'qr_url'        => 'required|string',
+            'checked_in_at' => 'nullable|string',
         ]);
 
-        // Validate scanner PIN
         if (!$this->validatePin($request->pin)) {
             return $this->errorResponse('PIN tidak valid.', null, 401);
         }
 
-        $qrUrl = trim($request->qr_url);
+        $result = $this->processSingleScan($request->qr_url, $request->input('checked_in_at'), $request->ip());
 
-        \Log::info('MeetingScanner::scan received', [
-            'qr_url' => substr($qrUrl, 0, 120),
+        if ($result['code'] === 201) {
+            return $this->successResponse($result['data'], $result['message'], 201);
+        }
+
+        return $this->errorResponse($result['message'], $result['data'] ?? null, $result['code']);
+    }
+
+    /**
+     * Batch process scanned QR codes for offline queue synchronization.
+     *
+     * POST /api/public/meetings/batch-sync
+     * Body: {
+     *   pin: string,
+     *   items: array of { client_id: string, qr_url: string, checked_in_at?: string }
+     * }
+     */
+    public function batchSync(Request $request): JsonResponse
+    {
+        $request->validate([
+            'pin'                   => 'required|string',
+            'items'                 => 'required|array|min:1|max:100',
+            'items.*.qr_url'        => 'required|string',
+            'items.*.client_id'     => 'nullable|string',
+            'items.*.checked_in_at' => 'nullable|string',
         ]);
 
-        // Parse the URL to extract meeting ID and participant ID
+        if (!$this->validatePin($request->pin)) {
+            return $this->errorResponse('PIN tidak valid.', null, 401);
+        }
+
+        $results = [];
+        $syncedCount = 0;
+        $duplicateCount = 0;
+        $failedCount = 0;
+
+        foreach ($request->items as $item) {
+            $clientId = $item['client_id'] ?? null;
+            $qrUrl = trim($item['qr_url']);
+            $customCheckedInAt = $item['checked_in_at'] ?? null;
+
+            $scanResult = $this->processSingleScan($qrUrl, $customCheckedInAt, $request->ip());
+
+            $results[] = [
+                'client_id' => $clientId,
+                'qr_url'    => $qrUrl,
+                'status'    => $scanResult['status'],
+                'message'   => $scanResult['message'],
+                'data'      => $scanResult['data'] ?? null,
+            ];
+
+            if ($scanResult['status'] === 'synced') {
+                $syncedCount++;
+            } elseif ($scanResult['status'] === 'already_checked_in') {
+                $duplicateCount++;
+            } else {
+                $failedCount++;
+            }
+        }
+
+        return $this->successResponse([
+            'total'           => count($request->items),
+            'synced_count'    => $syncedCount,
+            'duplicate_count' => $duplicateCount,
+            'failed_count'    => $failedCount,
+            'items'           => $results,
+        ], "Sinkronisasi selesai: {$syncedCount} berhasil, {$duplicateCount} sudah tercatat, {$failedCount} gagal.");
+    }
+
+    /**
+     * Process a single scanned QR code.
+     */
+    public function processSingleScan(string $qrUrl, ?string $customCheckedInAt = null, ?string $ip = null): array
+    {
+        $qrUrl = trim($qrUrl);
+
         $parsed = parse_url($qrUrl);
         if (!$parsed) {
-            return $this->errorResponse('QR Code tidak valid.', null, 400);
+            return [
+                'status'  => 'invalid_qr',
+                'code'    => 400,
+                'message' => 'QR Code tidak valid.',
+            ];
         }
 
         $path = $parsed['path'] ?? '';
         parse_str($parsed['query'] ?? '', $queryParams);
 
-        // Match /meetings/{id}/check-in pattern (handles both frontend and backend URL formats)
         if (!preg_match('#/meetings/(\d+)/check-in#', $path, $matches)) {
-            return $this->errorResponse(
-                'QR Code bukan untuk absensi rapat. Pastikan Anda scan QR undangan rapat.',
-                null,
-                400
-            );
+            return [
+                'status'  => 'invalid_qr',
+                'code'    => 400,
+                'message' => 'QR Code bukan untuk absensi rapat. Pastikan Anda scan QR undangan rapat.',
+            ];
         }
 
         $meetingId     = (int) $matches[1];
         $participantId = $queryParams['participant'] ?? null;
 
-        // Walk-in mode (no participant ID)
         if (!$participantId) {
-            return $this->errorResponse(
-                'QR ini adalah QR Umum (walk-in). Minta peserta mengisi data di halaman check-in mereka.',
-                null,
-                400
-            );
+            return [
+                'status'  => 'walk_in',
+                'code'    => 400,
+                'message' => 'QR ini adalah QR Umum (walk-in). Minta peserta mengisi data di halaman check-in mereka.',
+            ];
         }
 
-        // ── Lookup meeting and participant ──
         $meeting = Meeting::find($meetingId);
         if (!$meeting) {
-            return $this->errorResponse('Rapat tidak ditemukan.', null, 404);
+            return [
+                'status'  => 'not_found',
+                'code'    => 404,
+                'message' => 'Rapat tidak ditemukan.',
+            ];
         }
 
         $participant = MeetingParticipant::find($participantId);
         if (!$participant || $participant->meeting_id !== $meeting->id) {
-            return $this->errorResponse('Peserta tidak ditemukan dalam rapat ini.', null, 404);
+            return [
+                'status'  => 'not_found',
+                'code'    => 404,
+                'message' => 'Peserta tidak ditemukan dalam rapat ini.',
+            ];
         }
 
-        // ── Validate QR token by matching against stored token in DB ──
-        // This is more robust than signed URL validation which is fragile
-        // across different URL formats (frontend vs backend, http vs https).
-        // The scanner is already PIN-protected, so this is secure.
         if (!$this->isQrTokenValid($qrUrl, $participant)) {
             \Log::warning('MeetingScanner: QR token mismatch', [
                 'meeting_id'     => $meetingId,
@@ -180,85 +255,108 @@ class PublicMeetingScannerController extends Controller
                 'stored_token'   => substr($participant->qr_token ?? '', 0, 120),
             ]);
 
-            return $this->errorResponse(
-                'QR Code tidak valid. Pastikan peserta menunjukkan QR dari undangan rapat yang benar.',
-                null,
-                403
-            );
+            return [
+                'status'  => 'token_mismatch',
+                'code'    => 403,
+                'message' => 'QR Code tidak valid. Pastikan peserta menunjukkan QR dari undangan rapat yang benar.',
+            ];
         }
 
-        // ── Check time window: H-24 to ended_at + 48 hours ──
         $now = now();
         $startWindow = $meeting->started_at->copy()->subHours(24);
         $endWindow   = $meeting->ended_at->copy()->addHours(48);
 
         if ($now->isBefore($startWindow)) {
-            return $this->errorResponse(
-                'Check-in dibuka 24 jam sebelum rapat dimulai.',
-                null,
-                403
-            );
+            return [
+                'status'  => 'outside_window',
+                'code'    => 403,
+                'message' => 'Check-in dibuka 24 jam sebelum rapat dimulai.',
+            ];
         }
 
         if ($now->isAfter($endWindow)) {
-            return $this->errorResponse(
-                'Waktu check-in telah berakhir (lebih dari 48 jam setelah rapat selesai).',
-                null,
-                410
-            );
+            return [
+                'status'  => 'outside_window',
+                'code'    => 410,
+                'message' => 'Waktu check-in telah berakhir (lebih dari 48 jam setelah rapat selesai).',
+            ];
         }
 
-        // ── Process check-in with pessimistic locking ──
         try {
-            return \Illuminate\Support\Facades\DB::transaction(function () use ($meeting, $participant, $request) {
-                // Lock participant record
+            return \Illuminate\Support\Facades\DB::transaction(function () use ($meeting, $participant, $customCheckedInAt, $startWindow, $ip) {
                 $locked = MeetingParticipant::lockForUpdate()->find($participant->id);
 
-                // Check if token has been revoked
                 if ($locked->token_revoked) {
-                    return $this->errorResponse('QR Code sudah dicabut.', null, 410);
+                    return [
+                        'status'  => 'token_revoked',
+                        'code'    => 410,
+                        'message' => 'QR Code sudah dicabut.',
+                    ];
                 }
 
-                // Check if already checked in (one-time use)
                 if ($locked->is_token_used) {
-                    return $this->errorResponse(
-                        "{$locked->name} sudah check-in sebelumnya.",
-                        null,
-                        409
-                    );
+                    return [
+                        'status'  => 'already_checked_in',
+                        'code'    => 409,
+                        'message' => "{$locked->name} sudah check-in sebelumnya.",
+                        'data'    => [
+                            'participant_name' => $locked->name,
+                            'jabatan'          => $locked->jabatan,
+                            'instansi'         => $locked->instansi,
+                            'meeting_title'    => $meeting->title,
+                        ],
+                    ];
                 }
 
-                // Create attendance record
+                $checkedInTime = now();
+                if ($customCheckedInAt) {
+                    try {
+                        $parsedTime = \Carbon\Carbon::parse($customCheckedInAt);
+                        if ($parsedTime->isBefore(now()->addMinutes(10)) && $parsedTime->isAfter($startWindow)) {
+                            $checkedInTime = $parsedTime;
+                        }
+                    } catch (\Throwable $e) {}
+                }
+
                 $attendance = \App\Models\MeetingAttendance::create([
                     'meeting_id'      => $meeting->id,
                     'participant_id'  => $participant->id,
                     'attendance_type' => 'qr_personal',
                     'is_delegation'   => false,
-                    'checked_in_at'   => now(),
-                    'ip_address'      => $request->ip(),
+                    'checked_in_at'   => $checkedInTime,
+                    'ip_address'      => $ip,
                 ]);
 
-                // Mark token as used
                 $locked->update([
                     'is_token_used' => true,
-                    'token_used_at' => now(),
+                    'token_used_at' => $checkedInTime,
                 ]);
 
-                return $this->successResponse([
-                    'participant_name' => $locked->name,
-                    'jabatan'          => $locked->jabatan,
-                    'instansi'         => $locked->instansi,
-                    'meeting_title'    => $meeting->title,
-                    'checked_in_at'    => $attendance->checked_in_at,
-                ], "Check-in {$locked->name} berhasil dicatat.", 201);
+                return [
+                    'status'  => 'synced',
+                    'code'    => 201,
+                    'message' => "Check-in {$locked->name} berhasil dicatat.",
+                    'data'    => [
+                        'participant_name' => $locked->name,
+                        'jabatan'          => $locked->jabatan,
+                        'instansi'         => $locked->instansi,
+                        'meeting_title'    => $meeting->title,
+                        'checked_in_at'    => $attendance->checked_in_at,
+                    ],
+                ];
             });
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('Meeting scanner check-in failed', [
                 'meeting_id'     => $meetingId,
                 'participant_id' => $participantId,
                 'error'          => $e->getMessage(),
             ]);
-            return $this->errorResponse('Gagal memproses QR. Silakan coba lagi.', null, 500);
+
+            return [
+                'status'  => 'server_error',
+                'code'    => 500,
+                'message' => 'Gagal memproses QR. Silakan coba lagi.',
+            ];
         }
     }
 

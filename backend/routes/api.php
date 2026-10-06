@@ -113,6 +113,7 @@ Route::prefix('public/attendance')->group(function () {
 Route::prefix('public/meetings')->group(function () {
     Route::post('verify-pin', [PublicMeetingScannerController::class, 'verifyPin'])->middleware('throttle:10,1');
     Route::post('scan',       [PublicMeetingScannerController::class, 'scan']);
+    Route::post('batch-sync', [PublicMeetingScannerController::class, 'batchSync']);
     Route::get('active',      [PublicMeetingScannerController::class, 'activeList']);
 });
 

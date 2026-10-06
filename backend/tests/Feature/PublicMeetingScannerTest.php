@@ -365,4 +365,90 @@ class PublicMeetingScannerTest extends TestCase
         $this->assertEquals(1, $stats['present']);
         $this->assertEquals(1, $stats['total']);
     }
+
+    /** @test */
+    public function scan_with_custom_checked_in_at_records_offline_timestamp(): void
+    {
+        $meeting = Meeting::factory()->create([
+            'created_by'          => $this->creator->id,
+            'started_at'          => now()->subMinutes(30),
+            'ended_at'            => now()->addHours(3),
+            'geolocation_enabled' => false,
+        ]);
+
+        $participant = MeetingParticipant::factory()->forMeeting($meeting)->create([
+            'is_token_used' => false,
+            'token_revoked' => false,
+        ]);
+
+        $qrUrl = $this->qrService->generatePersonalQrUrl($meeting, $participant);
+        $offlineTime = now()->subMinutes(5)->toIso8601String();
+
+        $response = $this->postJson('/api/public/meetings/scan', [
+            'pin'           => self::VALID_PIN,
+            'qr_url'        => $qrUrl,
+            'checked_in_at' => $offlineTime,
+        ]);
+
+        $response->assertStatus(201);
+        $this->assertDatabaseHas('meeting_attendances', [
+            'meeting_id'     => $meeting->id,
+            'participant_id' => $participant->id,
+        ]);
+    }
+
+    /** @test */
+    public function batch_sync_processes_multiple_scans_and_handles_duplicates(): void
+    {
+        $meeting = Meeting::factory()->create([
+            'created_by'          => $this->creator->id,
+            'started_at'          => now()->subMinutes(30),
+            'ended_at'            => now()->addHours(3),
+            'geolocation_enabled' => false,
+        ]);
+
+        $p1 = MeetingParticipant::factory()->forMeeting($meeting)->create(['is_token_used' => false]);
+        $p2 = MeetingParticipant::factory()->forMeeting($meeting)->create(['is_token_used' => false]);
+        $pAlready = MeetingParticipant::factory()->forMeeting($meeting)->create([
+            'is_token_used' => true,
+            'token_used_at' => now(),
+        ]);
+
+        $qr1 = $this->qrService->generatePersonalQrUrl($meeting, $p1);
+        $qr2 = $this->qrService->generatePersonalQrUrl($meeting, $p2);
+        $qrAlready = $this->qrService->generatePersonalQrUrl($meeting, $pAlready);
+
+        $response = $this->postJson('/api/public/meetings/batch-sync', [
+            'pin'   => self::VALID_PIN,
+            'items' => [
+                ['client_id' => 'c1', 'qr_url' => $qr1, 'checked_in_at' => now()->subMinutes(2)->toIso8601String()],
+                ['client_id' => 'c2', 'qr_url' => $qr2, 'checked_in_at' => now()->subMinutes(1)->toIso8601String()],
+                ['client_id' => 'c3', 'qr_url' => $qrAlready],
+            ],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.total', 3);
+        $response->assertJsonPath('data.synced_count', 2);
+        $response->assertJsonPath('data.duplicate_count', 1);
+        $response->assertJsonPath('data.failed_count', 0);
+
+        $this->assertDatabaseHas('meeting_attendances', ['participant_id' => $p1->id]);
+        $this->assertDatabaseHas('meeting_attendances', ['participant_id' => $p2->id]);
+    }
+
+    /** @test */
+    public function batch_sync_returns_401_with_invalid_pin(): void
+    {
+        $response = $this->postJson('/api/public/meetings/batch-sync', [
+            'pin'   => 'invalid-pin',
+            'items' => [
+                ['client_id' => 'c1', 'qr_url' => 'https://simmaci.com/meetings/1/check-in?participant=1'],
+            ],
+        ]);
+
+        $response->assertStatus(401);
+        $response->assertJsonPath('success', false);
+    }
 }

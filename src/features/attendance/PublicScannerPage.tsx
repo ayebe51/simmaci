@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { publicAttendanceApi, staffAttendanceApi, API_URL } from "@/lib/api";
 import axios from "axios";
 import * as faceapi from 'face-api.js';
+import { enqueueOfflineScan, syncOfflineQueue } from "@/lib/offlineQueue";
 
 // ── Public Meeting Scanner API ─────────────────────────────────────────────
 
@@ -961,6 +962,30 @@ function MeetingScannerScreen({ session, onBack }: { session: Session; onBack: (
         const msg = err.response?.data?.message || "QR tidak valid atau sudah digunakan";
         const status = err.response?.status;
         const debugInfo = err.response?.data?.debug || '';
+
+        // If network outage (offline, timeout, or 504), automatically save to offline queue!
+        if (!err.response || !navigator.onLine || status >= 500) {
+          try {
+            await enqueueOfflineScan({
+              clientId: `scan_${Date.now()}_${Math.random().toString(36).substr(2, 7)}`,
+              type: 'meeting',
+              pin: session.pin,
+              qrUrl: code,
+              scannedAt: new Date().toISOString(),
+            });
+            toast.warning("[MODE OFFLINE] Presensi tersimpan di HP. Otomatis disinkronkan saat sinyal pulih.");
+            setScanResults((prev) => [{
+              name: 'Peserta (Offline)',
+              jabatan: 'Tersimpan di Memori HP',
+              instansi: 'Menunggu Sinyal',
+              time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+              status: 'success',
+              message: 'Tersimpan lokal',
+            }, ...prev.slice(0, 19)]);
+            return;
+          } catch {}
+        }
+
         if (status === 409) {
           toast.info(msg);
         } else {

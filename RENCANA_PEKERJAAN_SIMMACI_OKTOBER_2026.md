@@ -123,11 +123,12 @@ quadrantChart
   - Frontend: [src/features/meetings/MeetingLiveDisplayPage.tsx](file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingLiveDisplayPage.tsx) *(Baru)*, [src/App.tsx](file:///d:/apss-source/SIMMACI/src/App.tsx).
 * **Estimasi:** 1.5 Hari Kerja.
 
-#### Task 2.3: Offline Scanner PWA Mode (Penyelamat Sinyal Lemah)
+#### Task 2.3: Offline Scanner PWA Mode (Penyelamat Sinyal Lemah) — [STATUS: SELESAI / DONE] ✅
 * **Deskripsi:** Memanfaatkan Service Worker & IndexedDB agar kamera pemindai presensi di pintu masuk tetap bisa membaca QR dan menyimpan data secara lokal saat koneksi internet gedung rapat terputus, lalu otomatis menyinkronkan data ke server saat sinyal pulih.
 * **Target File:**
-  - Frontend: [src/features/meetings/MeetingScannerPage.tsx](file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingScannerPage.tsx), [src/lib/offlineQueue.ts](file:///d:/apss-source/SIMMACI/src/lib/offlineQueue.ts) *(Baru)*.
-* **Estimasi:** 2 Hari Kerja.
+  - Frontend: [src/features/meetings/MeetingScannerPage.tsx](file:///d:/apss-source/SIMMACI/src/features/meetings/MeetingScannerPage.tsx), [src/lib/offlineQueue.ts](file:///d:/apss-source/SIMMACI/src/lib/offlineQueue.ts), [src/features/attendance/PublicScannerPage.tsx](file:///d:/apss-source/SIMMACI/src/features/attendance/PublicScannerPage.tsx).
+  - Backend: [backend/app/Http/Controllers/Api/PublicMeetingScannerController.php](file:///d:/apss-source/SIMMACI/backend/app/Http/Controllers/Api/PublicMeetingScannerController.php) (`batchSync` & `checked_in_at`), [backend/routes/api.php](file:///d:/apss-source/SIMMACI/backend/routes/api.php).
+* **Hasil:** Scanner presensi rapat offline-first selesai. Scan tersimpan lokal di IndexedDB saat offline/sinyal lemah, dilengkapi audio feedback chime, sinkronisasi otomatis saat online kembali, serta endpoint `POST /api/public/meetings/batch-sync`. Unit & feature test lulus 100%.
 
 ---
 
@@ -192,11 +193,11 @@ quadrantChart
   - [scripts/backup-db-offsite.sh](file:///d:/apss-source/SIMMACI/scripts/backup-db-offsite.sh) *(Baru)*.
 * **Hasil:** Skrip executable `backup-db-offsite.sh` siap dijalankan mandiri maupun via cronjob VPS harian.
 
-#### Task 5.3: Optimasi Slow Query & Indexing Skala Besar
-* **Deskripsi:** Memperbaiki index pada tabel `meeting_attendances`, `sk_documents`, dan `activity_logs` guna mencegah timeout query saat data mencapai ratusan ribu baris.
+#### Task 5.3: Optimasi Slow Query & Indexing Skala Besar — [STATUS: SELESAI / DONE] ✅
+* **Deskripsi:** Memperbaiki index pada tabel `meeting_attendances`, `meeting_participants`, `sk_documents`, `activity_logs`, dan `headmaster_tenures` guna mencegah timeout query saat data mencapai ratusan ribu baris.
 * **Target File:**
   - [backend/database/migrations/2026_10_06_000001_optimize_performance_indexes.php](file:///d:/apss-source/SIMMACI/backend/database/migrations/2026_10_06_000001_optimize_performance_indexes.php) *(Baru)*.
-* **Estimasi:** 1 Hari Kerja.
+* **Hasil:** Komposit index terpasang untuk query feed proyektor rapat, token presensi, audit log, dan masa berlaku SK/kamad. Tested 100% pass up & down migration.
 
 ---
 

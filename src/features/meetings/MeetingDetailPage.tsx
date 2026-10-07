@@ -23,7 +23,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Edit2, ArrowLeft, Pencil, FileText, FileSpreadsheet,
   MapPin, Clock, Users, CheckCircle2, XCircle, UserCheck, QrCode, ExternalLink,
-  Download, Printer, Share2, Loader2, UserPlus, Trash2, RotateCcw,
+  Download, Printer, Share2, Loader2, UserPlus, Trash2, RotateCcw, Camera,
 } from 'lucide-react';
 import { MeetingQrModal } from './components/MeetingQrModal';
 import { downloadQrCodeImage, downloadQrCardImage, sanitizeFilename } from './utils/qrDownload';
@@ -248,6 +248,15 @@ export const MeetingDetailPage: React.FC = () => {
                       QR Code Absensi Rapat (Walk-In)
                     </CardTitle>
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/meetings/${meeting.id}/scan`)}
+                        className="h-8 text-xs bg-emerald-600 text-white hover:bg-emerald-700 border-0 font-medium"
+                      >
+                        <Camera className="h-3.5 w-3.5 mr-1.5" />
+                        Buka Scanner PWA
+                      </Button>
                       <MeetingQrModal
                         meeting={meeting}
                         trigger={

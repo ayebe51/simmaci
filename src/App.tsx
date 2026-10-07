@@ -103,6 +103,7 @@ const MeetingEditPage = lazyWithRetry(() => import("./features/meetings/pages/Me
 const MeetingDetailPage = lazyWithRetry(() => import("./features/meetings/MeetingDetailPage").then(m => ({ default: m.MeetingDetailPage })))
 const MeetingCheckInPage = lazyWithRetry(() => import("./features/meetings/pages/MeetingCheckInPage"))
 const MeetingWalkInPage = lazyWithRetry(() => import("./features/meetings/pages/MeetingWalkInPage"))
+const MeetingScannerPage = lazyWithRetry(() => import("./features/meetings/MeetingScannerPage"))
 
 // ── Staff ──────────────────────────────────────────────────────────────────
 const StaffPage = lazyWithRetry(() => import("./features/staff/StaffPage"))
@@ -195,6 +196,10 @@ export default function App() {
 
             {/* Public Meeting Walk-In — self-service check-in via QR Umum */}
             <Route path="/meetings/:id/walk-in" element={<MeetingWalkInPage />} />
+
+            {/* Public Meeting Scanner — PWA offline-first */}
+            <Route path="/meetings/scan" element={<MeetingScannerPage />} />
+            <Route path="/meetings/:id/scan" element={<MeetingScannerPage />} />
 
             {/* Public Event Registration — no login required */}
             <Route path="/daftar/:eventId" element={<PublicEventRegistrationPage />} />

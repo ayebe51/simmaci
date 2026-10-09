@@ -92,6 +92,9 @@ jobs:
       run: npm run lint
       continue-on-error: true
 
+    - name: Frontend Unit Tests (Offline Queue & Sync)
+      run: npm run test:offline
+
     - name: Production Build
       run: npm run build
       env:

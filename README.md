@@ -149,12 +149,27 @@ The app will be accessible at `http://localhost`.
 
 ---
 
-## ⚙️ CI/CD Pipeline
+## ⚙️ CI/CD Pipeline & Automated Testing
 
-Uses **GitHub Actions** for automated quality assurance:
+Uses **GitHub Actions** for continuous integration and automated quality assurance:
 
-- **Backend-CI**: PHP 8.2 Unit Tests via `Tests\Feature\SkDocumentApiTest`.
-- **Frontend-CI**: Node 20 ESLint + Vite Production Build verification.
+- **Backend-CI**: PHP 8.3 Feature & Unit Tests (`php artisan test`).
+- **Frontend-CI**: Node 20 ESLint, Vitest Offline-first Unit Tests, and Vite Production Build verification.
+- **Automated Test Report**: Lihat dokumen resmi [LAPORAN_PENGUJIAN_DAN_HARDENING_OKTOBER_2026.md](LAPORAN_PENGUJIAN_DAN_HARDENING_OKTOBER_2026.md).
+
+### 🧪 Menjalankan Pengujian Otomatis (1-Klik)
+
+```bash
+# Di Windows:
+run_tests.bat
+
+# Di Linux / Mac / CI:
+bash scripts/run-all-tests.sh
+
+# Di NPM:
+npm run test:offline
+npm run test:all
+```
 
 ---
 

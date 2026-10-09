@@ -29,15 +29,15 @@ services:
     image: redis:7-alpine
     container_name: simmaci-redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74} --protected-mode no
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required} --protected-mode yes
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis-data:/data
     networks:
       - simmaci-network
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74} ping || redis-cli ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"${REDIS_PASSWORD:?REDIS_PASSWORD is required}\" ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,7 +117,9 @@ services:
       QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      SESSION_SECURE_COOKIE: "true"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -192,7 +194,9 @@ services:
       QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      SESSION_SECURE_COOKIE: "true"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -240,7 +244,9 @@ services:
       QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-R3d1s_S1mm4c1_9f8a7b6c5d4e3f2nd74}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      SESSION_SECURE_COOKIE: "true"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
       FILESYSTEM_DISK: s3
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
@@ -265,13 +271,13 @@ services:
     environment:
       - WAHA_WORKER_ID=waha
       - WAHA_PRINT_QR=false
-      - WAHA_API_KEY=${WAHA_API_KEY:-${GOWA_BASIC_AUTH:-secret123}}
-      - WHATSAPP_API_KEY=${WAHA_API_KEY:-${GOWA_BASIC_AUTH:-secret123}}
+      - WAHA_API_KEY=${WAHA_API_KEY:?WAHA_API_KEY is required}
+      - WHATSAPP_API_KEY=${WAHA_API_KEY:?WAHA_API_KEY is required}
       - WAHA_DASHBOARD_ENABLED=true
       - WAHA_DASHBOARD_USERNAME=admin
-      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-admin}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD:?WAHA_DASHBOARD_PASSWORD is required}
       - WHATSAPP_SWAGGER_USERNAME=admin
-      - WHATSAPP_SWAGGER_PASSWORD=${WAHA_DASHBOARD_PASSWORD:-admin}
+      - WHATSAPP_SWAGGER_PASSWORD=${WAHA_DASHBOARD_PASSWORD:?WAHA_DASHBOARD_PASSWORD is required}
       - WHATSAPP_DEFAULT_ENGINE=NOWEB
       - WAHA_NOWEB_WA_VERSION=auto-web
     volumes:
@@ -281,19 +287,10 @@ services:
         aliases:
           - waha
           - gowa
-      coolify: {}
     expose:
       - "3000"
     healthcheck:
       disable: true
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=coolify"
-      - "traefik.http.routers.waha.rule=Host(`waha.simmaci.com`)"
-      - "traefik.http.routers.waha.entrypoints=https"
-      - "traefik.http.routers.waha.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.waha.service=waha"
-      - "traefik.http.services.waha.loadbalancer.server.port=3000"
 
   # ── Frontend (React + Nginx) ───────────────────────────────
   frontend:

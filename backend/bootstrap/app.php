@@ -21,6 +21,19 @@ $app = Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware) {
+        $trustedProxies = env('TRUSTED_PROXIES', '127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16');
+        $proxies = is_string($trustedProxies)
+            ? (in_array(trim($trustedProxies), ['*', '**'], true) ? trim($trustedProxies) : array_values(array_filter(array_map('trim', explode(',', $trustedProxies)))))
+            : $trustedProxies;
+
+        $middleware->trustProxies(
+            at: $proxies,
+            headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
+
         // Note: NOT using EnsureFrontendRequestsAreStateful because
         // this app uses token-based auth (Bearer), not cookie/session auth.
         // Adding it causes "CSRF token mismatch" errors on login.

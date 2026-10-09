@@ -21,6 +21,7 @@ use App\Repositories\WaBlastRecipientRepository;
 use App\Repositories\WaBlastRepository;
 use App\Repositories\WaBlastTemplateRepository;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -57,6 +58,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force HTTPS in production environment or when configured with https URL
+        if (config('app.env') === 'production' || str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         // Register resilient Redis connector that gracefully handles WRONGPASS (password mismatch / unauthenticated Redis)
         if ($this->app->bound('redis')) {
             $this->app->make('redis')->extend('phpredis', function () {

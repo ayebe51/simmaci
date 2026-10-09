@@ -113,6 +113,11 @@ class WahaGatewayService
      */
     protected function getApiUrl(WaBlastConfig $config): string
     {
+        // When running unit tests, explicitly configured mock URL on WaBlastConfig takes precedence
+        if (app()->environment('testing') && !empty($config->api_url)) {
+            return rtrim((string) $config->api_url, '/');
+        }
+
         $internal = config('services.waha.internal_url') ?? config('services.gowa.internal_url');
         if (!empty($internal)) {
             return rtrim($internal, '/');

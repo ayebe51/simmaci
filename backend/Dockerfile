@@ -30,12 +30,13 @@ RUN install-php-extensions \
     opcache \
     redis
 
-# PHP configuration for file uploads and memory
+# PHP configuration for file uploads, memory, and security
 RUN echo "upload_max_filesize=50M" > /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "memory_limit=256M" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "max_execution_time=300" >> /usr/local/etc/php/conf.d/uploads.ini \
     && echo "upload_tmp_dir=/tmp" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "expose_php=Off" >> /usr/local/etc/php/conf.d/uploads.ini \
     && chmod 1777 /tmp
 
 # Install Composer
@@ -63,6 +64,7 @@ RUN mkdir -p storage/fonts storage/temp && \
     chmod -R 775 /tmp
 
 # Copy Nginx configuration
+COPY ./docker/nginx/hsts_map.conf /etc/nginx/conf.d/hsts_map.conf
 COPY ./docker/nginx/backend.conf /etc/nginx/sites-available/default
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 

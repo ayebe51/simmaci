@@ -298,8 +298,11 @@ export default function TeacherListPage() {
   const handleExportExcel = async () => {
     setIsExporting(true)
     try {
-      const res = await teacherApi.list({ per_page: 9999, is_active: activeFilter === 'all' ? undefined : (activeFilter === 'active' ? 1 : 0) })
-      const allTeachers: any[] = res.data || []
+      const res = await teacherApi.list({ 
+        all: true, 
+        is_active: activeFilter === 'all' ? undefined : (activeFilter === 'active' ? 1 : 0) 
+      })
+      const allTeachers: any[] = Array.isArray(res) ? res : (res?.data || [])
 
       // Sheet "Semua Kecamatan": Kecamatan muncul di kolom ke-2
       const HEADERS_ALL = [

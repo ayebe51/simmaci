@@ -60,7 +60,7 @@ export default function MutationPage() {
 
   const { data: teachersRes } = useQuery({
     queryKey: ['teachers-mutation'],
-    queryFn: () => teacherApi.list({ per_page: 1000 })
+    queryFn: () => teacherApi.list({ all: true })
   })
 
   const mutations = mutationsRes || []

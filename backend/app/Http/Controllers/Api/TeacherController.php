@@ -58,6 +58,26 @@ class TeacherController extends Controller
             $query->where('school_id', $request->school_id);
         }
 
+        // Unpaginated mode for exports or full dataset selection
+        if ($request->boolean('all') || $request->boolean('export')) {
+            $teachers = $query->orderByDesc('updated_at')->get();
+
+            // Sanitize output to prevent UTF-8 errors
+            $teachers->transform(function ($teacher) {
+                foreach ($teacher->getAttributes() as $key => $value) {
+                    if (is_string($value)) {
+                        $teacher->$key = htmlspecialchars_decode(htmlspecialchars($value, ENT_SUBSTITUTE, 'UTF-8'));
+                    }
+                }
+                return $teacher;
+            });
+
+            return response()->json([
+                'data'  => $teachers,
+                'total' => $teachers->count(),
+            ]);
+        }
+
         $perPage = min(max(1, $request->integer('per_page', 25)), 100);
         $teachers = $query->orderByDesc('updated_at')
             ->paginate($perPage);

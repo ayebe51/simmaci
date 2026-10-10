@@ -98,6 +98,18 @@ class DashboardCacheService
     }
 
     /**
+     * Get distribution map statistics (schools, teachers, tendiks, students per kecamatan).
+     */
+    public function getDistributionMap(User $user): array
+    {
+        $key = $this->buildKey('distribution-map', $user);
+
+        return $this->remember($key, self::DASHBOARD_TTL, function () use ($user) {
+            return $this->computeDistributionMap($user);
+        });
+    }
+
+    /**
      * Get all school id→name pairs, cached for 300 seconds.
      */
     public function getSchoolNames(): array
@@ -500,6 +512,205 @@ class DashboardCacheService
                 'undefined' => (int) ($jenjangStats['undefined'] ?? 0),
             ],
             'total' => $total,
+        ];
+    }
+
+    /**
+     * Compute distribution map statistics by kecamatan in Kabupaten Cilacap.
+     */
+    private function computeDistributionMap(User $user): array
+    {
+        $officialDistricts = [
+            'Dayeuhluhur'   => '33.01.01',
+            'Wanareja'      => '33.01.02',
+            'Majenang'      => '33.01.03',
+            'Cimanggu'      => '33.01.04',
+            'Karangpucung'  => '33.01.05',
+            'Cipari'        => '33.01.06',
+            'Sidareja'      => '33.01.07',
+            'Kedungreja'    => '33.01.08',
+            'Patimuan'      => '33.01.09',
+            'Gandrungmangu' => '33.01.10',
+            'Bantarsari'    => '33.01.11',
+            'Kampung Laut'  => '33.01.12',
+            'Kawunganten'   => '33.01.13',
+            'Jeruklegi'     => '33.01.14',
+            'Kesugihan'     => '33.01.15',
+            'Adipala'       => '33.01.16',
+            'Maos'          => '33.01.17',
+            'Sampang'       => '33.01.18',
+            'Kroya'         => '33.01.19',
+            'Binangun'      => '33.01.20',
+            'Nusawungu'     => '33.01.21',
+            'Cilacap Selatan' => '33.01.71',
+            'Cilacap Tengah'  => '33.01.72',
+            'Cilacap Utara'   => '33.01.73',
+        ];
+
+        $districtMap = [];
+        foreach ($officialDistricts as $name => $code) {
+            $districtMap[strtolower($name)] = [
+                'nama' => $name,
+                'kode' => $code,
+                'schools_count' => 0,
+                'teachers_count' => 0,
+                'tendiks_count' => 0,
+                'students_count' => 0,
+                'jenjang_breakdown' => [
+                    'RA' => 0,
+                    'MI' => 0,
+                    'MTs' => 0,
+                    'MA' => 0,
+                    'Lainnya' => 0,
+                ],
+                'schools' => [],
+            ];
+        }
+
+        $schools = DB::table('schools')
+            ->whereNull('deleted_at')
+            ->select([
+                'id',
+                'nama',
+                'npsn',
+                'nsm',
+                'jenjang',
+                'status_jamiyyah',
+                'alamat',
+                'kecamatan',
+            ])
+            ->orderBy('nama')
+            ->get();
+
+        if ($schools->isEmpty()) {
+            return [
+                'summary' => [
+                    'total_schools' => 0,
+                    'total_teachers' => 0,
+                    'total_tendiks' => 0,
+                    'total_students' => 0,
+                    'total_districts_covered' => 0,
+                    'total_districts' => count($officialDistricts),
+                ],
+                'districts' => array_values($districtMap),
+            ];
+        }
+
+        $schoolIds = $schools->pluck('id')->toArray();
+
+        $teacherCounts = DB::table('teachers')
+            ->whereIn('school_id', $schoolIds)
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('status')
+                  ->orWhere('status', '!=', 'Tendik');
+            })
+            ->selectRaw('school_id, count(*) as count')
+            ->groupBy('school_id')
+            ->pluck('count', 'school_id')
+            ->toArray();
+
+        $tendikCounts = DB::table('teachers')
+            ->whereIn('school_id', $schoolIds)
+            ->whereNull('deleted_at')
+            ->where('is_active', true)
+            ->where('status', 'Tendik')
+            ->selectRaw('school_id, count(*) as count')
+            ->groupBy('school_id')
+            ->pluck('count', 'school_id')
+            ->toArray();
+
+        $studentCounts = DB::table('students')
+            ->whereIn('school_id', $schoolIds)
+            ->whereNull('deleted_at')
+            ->selectRaw('school_id, count(*) as count')
+            ->groupBy('school_id')
+            ->pluck('count', 'school_id')
+            ->toArray();
+
+        $totalSchools = 0;
+        $totalTeachers = 0;
+        $totalTendiks = 0;
+        $totalStudents = 0;
+
+        foreach ($schools as $school) {
+            $rawKecamatan = trim($school->kecamatan ?? '');
+            $cleanKecamatan = strtolower($rawKecamatan);
+
+            $matchedKey = null;
+            if (isset($districtMap[$cleanKecamatan])) {
+                $matchedKey = $cleanKecamatan;
+            } else {
+                foreach (array_keys($districtMap) as $k) {
+                    if ($cleanKecamatan !== '' && (str_contains($cleanKecamatan, $k) || str_contains($k, $cleanKecamatan))) {
+                        $matchedKey = $k;
+                        break;
+                    }
+                }
+            }
+
+            $tCount = (int) ($teacherCounts[$school->id] ?? 0);
+            $tendCount = (int) ($tendikCounts[$school->id] ?? 0);
+            $sCount = (int) ($studentCounts[$school->id] ?? 0);
+
+            $totalSchools++;
+            $totalTeachers += $tCount;
+            $totalTendiks += $tendCount;
+            $totalStudents += $sCount;
+
+            $rawJenjang = strtoupper(trim($school->jenjang ?? ''));
+            $jenjangKey = 'Lainnya';
+            if (str_contains($rawJenjang, 'RA') || str_contains($rawJenjang, 'TK') || str_contains($rawJenjang, 'BA')) {
+                $jenjangKey = 'RA';
+            } elseif (str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD')) {
+                $jenjangKey = 'MI';
+            } elseif (str_contains($rawJenjang, 'MTS') || str_contains($rawJenjang, 'SMP')) {
+                $jenjangKey = 'MTs';
+            } elseif (str_contains($rawJenjang, 'MA') || str_contains($rawJenjang, 'SMA') || str_contains($rawJenjang, 'SMK')) {
+                $jenjangKey = 'MA';
+            }
+
+            $schoolData = [
+                'id' => $school->id,
+                'nama' => $school->nama,
+                'npsn' => $school->npsn,
+                'nsm' => $school->nsm,
+                'jenjang' => $school->jenjang ?: $jenjangKey,
+                'status_jamiyyah' => $school->status_jamiyyah,
+                'alamat' => $school->alamat,
+                'teachers_count' => $tCount,
+                'tendiks_count' => $tendCount,
+                'students_count' => $sCount,
+            ];
+
+            if ($matchedKey) {
+                $districtMap[$matchedKey]['schools_count']++;
+                $districtMap[$matchedKey]['teachers_count'] += $tCount;
+                $districtMap[$matchedKey]['tendiks_count'] += $tendCount;
+                $districtMap[$matchedKey]['students_count'] += $sCount;
+                $districtMap[$matchedKey]['jenjang_breakdown'][$jenjangKey] = ($districtMap[$matchedKey]['jenjang_breakdown'][$jenjangKey] ?? 0) + 1;
+                $districtMap[$matchedKey]['schools'][] = $schoolData;
+            }
+        }
+
+        $coveredCount = 0;
+        foreach ($districtMap as $d) {
+            if ($d['schools_count'] > 0) {
+                $coveredCount++;
+            }
+        }
+
+        return [
+            'summary' => [
+                'total_schools' => $totalSchools,
+                'total_teachers' => $totalTeachers,
+                'total_tendiks' => $totalTendiks,
+                'total_students' => $totalStudents,
+                'total_districts_covered' => $coveredCount,
+                'total_districts' => count($officialDistricts),
+            ],
+            'districts' => array_values($districtMap),
         ];
     }
 

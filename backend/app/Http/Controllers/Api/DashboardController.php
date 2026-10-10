@@ -110,4 +110,30 @@ class DashboardController extends Controller
 
         return $this->successResponse($data);
     }
+
+    /**
+     * GET /api/dashboard/distribution-map
+     * Returns school and PTK distribution across 24 kecamatan in Cilacap
+     */
+    public function distributionMap(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $data = $this->cacheService->getDistributionMap($user);
+
+            return $this->successResponse($data, 'Data sebaran wilayah berhasil diambil');
+        } catch (\Exception $e) {
+            \Log::error('Failed to get distribution map data', [
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return $this->errorResponse(
+                'Gagal mengambil data peta sebaran wilayah',
+                $e->getMessage(),
+                500
+            );
+        }
+    }
 }

@@ -158,6 +158,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('sk-statistics',    [DashboardController::class, 'skStatistics']);
             Route::get('sk-trend',         [DashboardController::class, 'skTrend']);
             Route::get('school-breakdown', [DashboardController::class, 'schoolBreakdown']);
+            Route::get('distribution-map', [DashboardController::class, 'distributionMap']);
         });
         // Teachers
         Route::middleware('role:super_admin')->group(function () {

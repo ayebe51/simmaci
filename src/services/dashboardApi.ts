@@ -28,6 +28,42 @@ export interface SchoolStatisticsData {
   total: number;
 }
 
+export interface DistrictSchool {
+  id: number;
+  nama: string;
+  npsn?: string | null;
+  nsm?: string | null;
+  jenjang: string;
+  status_jamiyyah?: string | null;
+  alamat?: string | null;
+  teachers_count: number;
+  tendiks_count: number;
+  students_count: number;
+}
+
+export interface DistrictStat {
+  nama: string;
+  kode: string;
+  schools_count: number;
+  teachers_count: number;
+  tendiks_count: number;
+  students_count: number;
+  jenjang_breakdown: Record<string, number>;
+  schools: DistrictSchool[];
+}
+
+export interface DistributionMapData {
+  summary: {
+    total_schools: number;
+    total_teachers: number;
+    total_tendiks: number;
+    total_students: number;
+    total_districts_covered: number;
+    total_districts: number;
+  };
+  districts: DistrictStat[];
+}
+
 // ── Dashboard API Methods ──
 
 export const dashboardApi = {
@@ -49,4 +85,23 @@ export const dashboardApi = {
       throw error;
     }
   },
+
+  /**
+   * Get distribution map statistics (by 24 kecamatan in Kab. Cilacap)
+   * 
+   * @returns Promise<DistributionMapData>
+   * @throws Error if request fails
+   */
+  getDistributionMap: async (): Promise<DistributionMapData> => {
+    try {
+      const response = await apiClient.get('/dashboard/distribution-map', {
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch distribution map data:', error);
+      throw error;
+    }
+  },
 };
+

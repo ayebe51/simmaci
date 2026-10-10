@@ -30,6 +30,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { DashboardCharts } from "./components/DashboardCharts"
 import DashboardOperator from "./components/DashboardOperator"
 import { SchoolStatisticsCards } from "./components/SchoolStatisticsCards"
+import { DistributionMap } from "./components/DistributionMap"
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -467,6 +468,7 @@ export default function DashboardPage() {
 
         {/* TAB 2: LEMBAGA & WILAYAH */}
         <TabsContent value="institutions" className="space-y-6 mt-0">
+          <DistributionMap />
           <SchoolStatisticsCards />
         </TabsContent>
 

@@ -140,6 +140,9 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::get('schools/profile/me', [SchoolController::class, 'profile']);
     Route::get('schools/autocomplete', [SchoolController::class, 'autocomplete']);
+    Route::get('schools/data-readiness', [SchoolController::class, 'dataReadiness'])
+        ->middleware('role:super_admin,admin_yayasan,admin');
+    Route::patch('schools/{school}/manual-students', [SchoolController::class, 'quickUpdateManualStudents']);
     Route::patch('schools/{school}/sk-submission-unlock', [SchoolController::class, 'toggleSkSubmission'])
         ->middleware('role:super_admin,admin_yayasan');
     Route::patch('schools/sk-submission-reset-all', [SchoolController::class, 'resetAllSkSubmission'])

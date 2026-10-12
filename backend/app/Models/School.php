@@ -18,12 +18,14 @@ class School extends Model
         'kepala_nim', 'kepala_nuptk', 'kepala_whatsapp',
         'kepala_jabatan_mulai', 'kepala_jabatan_selesai',
         'sk_submission_unlocked',
+        'jumlah_siswa_manual',
     ];
 
     protected function casts(): array
     {
         return [
             'sk_submission_unlocked' => 'boolean',
+            'jumlah_siswa_manual' => 'integer',
         ];
     }
 

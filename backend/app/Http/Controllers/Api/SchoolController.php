@@ -203,6 +203,7 @@ class SchoolController extends Controller
             'kepala_whatsapp' => 'nullable|string|max:20',
             'kepala_jabatan_mulai' => 'nullable|date',
             'kepala_jabatan_selesai' => 'nullable|date|after_or_equal:kepala_jabatan_mulai',
+            'jumlah_siswa_manual' => 'nullable|integer|min:0|max:100000',
         ]);
 
         // Only update fields that are actually present in the request
@@ -237,6 +238,8 @@ class SchoolController extends Controller
                     'causer_type' => get_class($user),
                     'school_id' => $school->id,
                 ]);
+
+                app(\App\Services\DashboardCacheService::class)->invalidateForSchool($school->id);
             });
         }
 
@@ -633,4 +636,240 @@ class SchoolController extends Controller
             ],
         ]);
     }
+
+    /**
+     * GET /api/schools/data-readiness
+     * Returns statistics & list of schools with teacher & student data completeness status.
+     * Supports filtering: search, kecamatan, jenjang, status (all, incomplete, complete, teachers_only, students_only, empty).
+     */
+    public function dataReadiness(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan', 'admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke fitur monitoring kesiapan data'
+            ], 403);
+        }
+
+        // Base query with subquery aggregates for performance (Zero N+1)
+        $query = DB::table('schools as s')
+            ->leftJoin(DB::raw('(SELECT school_id, COUNT(*) as teachers_count FROM teachers WHERE deleted_at IS NULL AND is_active = true GROUP BY school_id) as t'), 't.school_id', '=', 's.id')
+            ->leftJoin(DB::raw('(SELECT school_id, COUNT(*) as students_count FROM students WHERE deleted_at IS NULL GROUP BY school_id) as st'), 'st.school_id', '=', 's.id')
+            ->whereNull('s.deleted_at')
+            ->select([
+                's.id',
+                's.nama',
+                's.nsm',
+                's.npsn',
+                's.npsm_nu',
+                's.jenjang',
+                's.kecamatan',
+                's.alamat',
+                's.telepon',
+                's.email',
+                's.kepala_madrasah',
+                's.kepala_whatsapp',
+                's.status_jamiyyah',
+                's.jumlah_siswa_manual',
+                DB::raw('COALESCE(t.teachers_count, 0) as teachers_count'),
+                DB::raw('COALESCE(st.students_count, 0) as students_detail_count'),
+                DB::raw('CASE WHEN COALESCE(st.students_count, 0) > 0 THEN st.students_count ELSE COALESCE(s.jumlah_siswa_manual, 0) END as effective_students_count'),
+                DB::raw("CASE WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail' WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual' ELSE 'empty' END as student_source"),
+                DB::raw("CASE 
+                    WHEN COALESCE(t.teachers_count, 0) > 0 AND (COALESCE(st.students_count, 0) > 0 OR COALESCE(s.jumlah_siswa_manual, 0) > 0) THEN 'complete'
+                    WHEN COALESCE(t.teachers_count, 0) > 0 THEN 'teachers_only'
+                    WHEN (COALESCE(st.students_count, 0) > 0 OR COALESCE(s.jumlah_siswa_manual, 0) > 0) THEN 'students_only'
+                    ELSE 'empty'
+                END as completeness_status")
+            ]);
+
+        // Filters: Search
+        if ($request->filled('search')) {
+            $search = '%' . strtoupper(trim($request->search)) . '%';
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('UPPER(s.nama) LIKE ?', [$search])
+                  ->orWhereRaw('UPPER(COALESCE(s.nsm, \'\')) LIKE ?', [$search])
+                  ->orWhereRaw('UPPER(COALESCE(s.npsn, \'\')) LIKE ?', [$search])
+                  ->orWhereRaw('UPPER(COALESCE(s.kepala_madrasah, \'\')) LIKE ?', [$search]);
+            });
+        }
+
+        // Filters: Kecamatan
+        if ($request->filled('kecamatan') && $request->kecamatan !== 'all') {
+            $query->where('s.kecamatan', $request->kecamatan);
+        }
+
+        // Filters: Jenjang
+        if ($request->filled('jenjang') && $request->jenjang !== 'all') {
+            $jenjang = strtoupper(trim($request->jenjang));
+            $query->where(function ($q) use ($jenjang) {
+                if ($jenjang === 'RA') {
+                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) IN ('RA', 'TK', 'PAUD', 'BA')")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'RA %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%RAUDHATUL%'");
+                } elseif ($jenjang === 'MI') {
+                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'MI'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'MI %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%IBTIDAIYAH%'");
+                } elseif ($jenjang === 'MTS') {
+                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'MTS'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'MTS %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%TSANAWIYAH%'");
+                } elseif ($jenjang === 'MA') {
+                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'MA'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'MA %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%ALIYAH%'");
+                } elseif ($jenjang === 'SMK') {
+                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'SMK'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'SMK %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%KEJURUAN%'");
+                } else {
+                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = ?", [$jenjang]);
+                }
+            });
+        }
+
+        // Calculate summary from the full set (matching search, kecamatan, jenjang) BEFORE status filter
+        $summarySubquery = clone $query;
+        $summaryStats = DB::query()->fromSub($summarySubquery, 'stats')
+            ->selectRaw("
+                COUNT(*) as total_schools,
+                SUM(CASE WHEN completeness_status = 'complete' THEN 1 ELSE 0 END) as complete_count,
+                SUM(CASE WHEN completeness_status != 'complete' THEN 1 ELSE 0 END) as incomplete_count,
+                SUM(CASE WHEN completeness_status = 'teachers_only' THEN 1 ELSE 0 END) as teachers_only_count,
+                SUM(CASE WHEN completeness_status = 'students_only' THEN 1 ELSE 0 END) as students_only_count,
+                SUM(CASE WHEN completeness_status = 'empty' THEN 1 ELSE 0 END) as empty_count,
+                SUM(CASE WHEN student_source = 'manual' THEN 1 ELSE 0 END) as using_manual_count
+            ")
+            ->first();
+
+        // Apply status filter on the paginated query
+        $status = $request->input('status', 'all');
+        if ($status === 'incomplete') {
+            $query->where(function ($q) {
+                $q->whereNull('t.teachers_count')
+                  ->orWhere('t.teachers_count', '<=', 0)
+                  ->orWhere(function ($sub) {
+                      $sub->where(function ($stSub) {
+                          $stSub->whereNull('st.students_count')->orWhere('st.students_count', '<=', 0);
+                      })->where(function ($mSub) {
+                          $mSub->whereNull('s.jumlah_siswa_manual')->orWhere('s.jumlah_siswa_manual', '<=', 0);
+                      });
+                  });
+            });
+        } elseif ($status === 'complete') {
+            $query->where('t.teachers_count', '>', 0)
+                  ->where(function ($q) {
+                      $q->where('st.students_count', '>', 0)
+                        ->orWhere('s.jumlah_siswa_manual', '>', 0);
+                  });
+        } elseif ($status === 'teachers_only') {
+            $query->where('t.teachers_count', '>', 0)
+                  ->where(function ($q) {
+                      $q->whereNull('st.students_count')->orWhere('st.students_count', '<=', 0);
+                  })
+                  ->where(function ($q) {
+                      $q->whereNull('s.jumlah_siswa_manual')->orWhere('s.jumlah_siswa_manual', '<=', 0);
+                  });
+        } elseif ($status === 'students_only') {
+            $query->where(function ($q) {
+                $q->whereNull('t.teachers_count')->orWhere('t.teachers_count', '<=', 0);
+            })->where(function ($q) {
+                $q->where('st.students_count', '>', 0)
+                  ->orWhere('s.jumlah_siswa_manual', '>', 0);
+            });
+        } elseif ($status === 'empty') {
+            $query->where(function ($q) {
+                $q->whereNull('t.teachers_count')->orWhere('t.teachers_count', '<=', 0);
+            })->where(function ($q) {
+                $q->whereNull('st.students_count')->orWhere('st.students_count', '<=', 0);
+            })->where(function ($q) {
+                $q->whereNull('s.jumlah_siswa_manual')->orWhere('s.jumlah_siswa_manual', '<=', 0);
+            });
+        }
+
+        $perPage = min(max(1, $request->integer('per_page', 20)), 500);
+        $paginated = $query->orderBy('s.nama')->paginate($perPage);
+
+        $totalSchools = (int) ($summaryStats->total_schools ?? 0);
+        $completeCount = (int) ($summaryStats->complete_count ?? 0);
+        $completionPercentage = $totalSchools > 0 ? round(($completeCount / $totalSchools) * 100, 1) : 0;
+
+        return response()->json([
+            'summary' => [
+                'total_schools' => $totalSchools,
+                'complete_count' => $completeCount,
+                'incomplete_count' => (int) ($summaryStats->incomplete_count ?? 0),
+                'teachers_only_count' => (int) ($summaryStats->teachers_only_count ?? 0),
+                'students_only_count' => (int) ($summaryStats->students_only_count ?? 0),
+                'empty_count' => (int) ($summaryStats->empty_count ?? 0),
+                'using_manual_count' => (int) ($summaryStats->using_manual_count ?? 0),
+                'completion_percentage' => $completionPercentage,
+            ],
+            'data' => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
+    }
+
+    /**
+     * PATCH /api/schools/{id}/manual-students
+     * Quick update of manual student count by admin_yayasan, super_admin, or the school's operator.
+     */
+    public function quickUpdateManualStudents(Request $request, School $school): JsonResponse
+    {
+        $user = $request->user();
+
+        // Operator can only update their own school
+        if ($user->role === 'operator' && (int) $user->school_id !== (int) $school->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses untuk mengubah madrasah ini'
+            ], 403);
+        }
+
+        // Disallow other unprivileged roles
+        if (!in_array($user->role, ['super_admin', 'admin_yayasan', 'admin', 'operator'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'jumlah_siswa_manual' => 'nullable|integer|min:0|max:100000',
+        ]);
+
+        $oldCount = $school->jumlah_siswa_manual;
+        $newCount = array_key_exists('jumlah_siswa_manual', $validated) ? $validated['jumlah_siswa_manual'] : null;
+
+        DB::transaction(function () use ($school, $newCount, $oldCount, $user) {
+            $school->update(['jumlah_siswa_manual' => $newCount]);
+
+            ActivityLog::log(
+                description: "Memperbarui estimasi jumlah siswa {$school->nama}: " . ($newCount !== null ? "{$newCount} siswa" : 'dikosongkan') . " (sebelumnya: " . ($oldCount !== null ? "{$oldCount} siswa" : '-') . ")",
+                event: 'update_school',
+                logName: 'school',
+                subject: $school,
+                causer: $user,
+                schoolId: $school->id,
+            );
+
+            app(\App\Services\DashboardCacheService::class)->invalidateForSchool($school->id);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Jumlah siswa estimasi {$school->nama} berhasil diperbarui",
+            'data' => [
+                'id' => $school->id,
+                'nama' => $school->nama,
+                'jumlah_siswa_manual' => $newCount,
+            ]
+        ]);
+    }
 }
+

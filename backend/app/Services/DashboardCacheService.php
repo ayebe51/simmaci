@@ -137,15 +137,15 @@ class DashboardCacheService
      */
     public function invalidateForSchool(int $schoolId): void
     {
-        $endpoints = ['stats', 'school-stats', 'charts', 'sk-statistics', 'sk-trend', 'school-breakdown', 'school-statistics'];
-        $roles = ['operator', 'admin_yayasan', 'super_admin'];
+        $endpoints = ['stats', 'school-stats', 'charts', 'sk-statistics', 'sk-trend', 'school-breakdown', 'school-statistics', 'distribution-map'];
+        $roles = ['operator', 'admin_yayasan', 'super_admin', 'admin'];
 
         foreach ($endpoints as $endpoint) {
             // Invalidate operator-scoped key for this school
             $this->forget("dashboard:{$endpoint}:operator:{$schoolId}");
 
             // Invalidate global keys for admin roles
-            foreach (['admin_yayasan', 'super_admin'] as $role) {
+            foreach (['admin_yayasan', 'super_admin', 'admin'] as $role) {
                 $this->forget("dashboard:{$endpoint}:{$role}:all");
             }
         }
@@ -578,6 +578,7 @@ class DashboardCacheService
                 'status_jamiyyah',
                 'alamat',
                 'kecamatan',
+                'jumlah_siswa_manual',
             ])
             ->orderBy('nama')
             ->get();
@@ -652,7 +653,10 @@ class DashboardCacheService
 
             $tCount = (int) ($teacherCounts[$school->id] ?? 0);
             $tendCount = (int) ($tendikCounts[$school->id] ?? 0);
-            $sCount = (int) ($studentCounts[$school->id] ?? 0);
+            $detailStudents = (int) ($studentCounts[$school->id] ?? 0);
+            $manualStudents = (int) ($school->jumlah_siswa_manual ?? 0);
+            $sCount = $detailStudents > 0 ? $detailStudents : $manualStudents;
+            $studentSource = $detailStudents > 0 ? 'detail' : ($manualStudents > 0 ? 'manual' : 'empty');
 
             $totalSchools++;
             $totalTeachers += $tCount;
@@ -682,6 +686,9 @@ class DashboardCacheService
                 'teachers_count' => $tCount,
                 'tendiks_count' => $tendCount,
                 'students_count' => $sCount,
+                'students_source' => $studentSource,
+                'students_detail_count' => $detailStudents,
+                'students_manual_count' => $manualStudents,
             ];
 
             if ($matchedKey) {

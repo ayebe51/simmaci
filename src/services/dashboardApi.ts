@@ -39,6 +39,9 @@ export interface DistrictSchool {
   teachers_count: number;
   tendiks_count: number;
   students_count: number;
+  students_source?: 'detail' | 'manual' | 'empty';
+  students_detail_count?: number;
+  students_manual_count?: number | null;
 }
 
 export interface DistrictStat {

@@ -289,8 +289,53 @@ export interface School {
   email?: string;
   jenjang?: string;
   status?: string;
+  jumlah_siswa_manual?: number | null;
+  kepala_madrasah?: string;
+  kepala_whatsapp?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SchoolReadinessItem {
+  id: number;
+  nama: string;
+  nsm?: string;
+  npsn?: string;
+  npsm_nu?: string;
+  jenjang?: string;
+  kecamatan?: string;
+  alamat?: string;
+  telepon?: string;
+  email?: string;
+  kepala_madrasah?: string;
+  kepala_whatsapp?: string;
+  status_jamiyyah?: string;
+  jumlah_siswa_manual?: number | null;
+  teachers_count: number;
+  students_detail_count: number;
+  effective_students_count: number;
+  student_source: 'detail' | 'manual' | 'empty';
+  completeness_status: 'complete' | 'teachers_only' | 'students_only' | 'empty';
+}
+
+export interface SchoolReadinessSummary {
+  total_schools: number;
+  complete_count: number;
+  incomplete_count: number;
+  teachers_only_count: number;
+  students_only_count: number;
+  empty_count: number;
+  using_manual_count: number;
+  completion_percentage: number;
+}
+
+export interface SchoolReadinessResponse {
+  summary: SchoolReadinessSummary;
+  data: SchoolReadinessItem[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 }
 
 export const schoolApi = {
@@ -325,6 +370,17 @@ export const schoolApi = {
     apiClient.patch(`/schools/${schoolId}/sk-submission-unlock`, { sk_submission_unlocked: unlocked }).then((r) => r.data),
   resetAllSkSubmission: () =>
     apiClient.patch('/schools/sk-submission-reset-all').then((r) => r.data),
+  getDataReadiness: (params?: {
+    search?: string;
+    kecamatan?: string;
+    jenjang?: string;
+    status?: string;
+    page?: number;
+    per_page?: number;
+  }): Promise<SchoolReadinessResponse> =>
+    apiClient.get('/schools/data-readiness', { params }).then((r) => r.data),
+  updateManualStudents: (schoolId: number, count: number | null): Promise<{ success: boolean; message: string; data: any }> =>
+    apiClient.patch(`/schools/${schoolId}/manual-students`, { jumlah_siswa_manual: count }).then((r) => r.data),
 };
 
 

@@ -930,9 +930,19 @@ export function DistributionMap() {
                             <span>
                               👨‍🏫 <b>{sch.teachers_count}</b> Guru • <b>{sch.tendiks_count}</b> Tendik
                             </span>
-                            {sch.students_count > 0 && (
-                              <span className="text-blue-600 font-bold">
-                                🎓 {sch.students_count} Siswa
+                            {sch.students_count > 0 ? (
+                              sch.students_source === 'manual' ? (
+                                <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                  📝 {sch.students_count} Siswa (Est)
+                                </span>
+                              ) : (
+                                <span className="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                                  🎓 {sch.students_count} Siswa
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-slate-400 italic">
+                                Belum ada siswa
                               </span>
                             )}
                           </div>

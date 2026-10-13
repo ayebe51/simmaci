@@ -23,7 +23,8 @@ export default function SchoolProfilePage() {
     npsn: "",
     npsmnu: "",
     status_jamiyyah: "",
-    nsm: ""
+    nsm: "",
+    jumlah_siswa_manual: ""
   })
 
   // 🔥 REST API QUERY
@@ -42,7 +43,8 @@ export default function SchoolProfilePage() {
         npsn: school.npsn || "",
         npsmnu: school.npsm_nu || "",
         status_jamiyyah: school.status_jamiyyah || "",
-        nsm: school.nsm || ""
+        nsm: school.nsm || "",
+        jumlah_siswa_manual: school.jumlah_siswa_manual !== null && school.jumlah_siswa_manual !== undefined ? String(school.jumlah_siswa_manual) : ""
       })
     }
   }, [school])
@@ -54,7 +56,11 @@ export default function SchoolProfilePage() {
   const updateMutation = useMutation({
     mutationFn: (data: any) => {
       // Map frontend field name to DB column name
-      const payload = { ...data, npsm_nu: data.npsmnu }
+      const payload = {
+        ...data,
+        npsm_nu: data.npsmnu,
+        jumlah_siswa_manual: data.jumlah_siswa_manual === "" ? null : parseInt(data.jumlah_siswa_manual, 10),
+      }
       delete payload.npsmnu
       return schoolApi.update(school.id, payload)
     },
@@ -76,7 +82,8 @@ export default function SchoolProfilePage() {
           npsn: updated.npsn || "",
           npsmnu: updated.npsm_nu || "",
           status_jamiyyah: updated.status_jamiyyah || "",
-          nsm: updated.nsm || ""
+          nsm: updated.nsm || "",
+          jumlah_siswa_manual: updated.jumlah_siswa_manual !== null && updated.jumlah_siswa_manual !== undefined ? String(updated.jumlah_siswa_manual) : ""
         })
       }
     },
@@ -186,9 +193,25 @@ export default function SchoolProfilePage() {
                         <Input name="akreditasi" value={formData.akreditasi} onChange={handleChange} placeholder="A / B / C" className="h-12 rounded-xl border-slate-200 font-bold" />
                     </div>
 
-                    <div className="space-y-2 lg:col-span-4">
+                    <div className="space-y-2 lg:col-span-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status Afiliasi (Jam'iyyah / Jamaah)</Label>
                         <Input name="status_jamiyyah" value={formData.status_jamiyyah} onChange={handleChange} placeholder="Contoh: Jam'iyyah" className="h-12 rounded-xl border-slate-200 font-bold" />
+                    </div>
+
+                    <div className="space-y-2 lg:col-span-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest text-emerald-700">Estimasi Jumlah Siswa (Agregat)</Label>
+                        <Input 
+                          type="number"
+                          min="0"
+                          name="jumlah_siswa_manual" 
+                          value={formData.jumlah_siswa_manual} 
+                          onChange={handleChange} 
+                          placeholder="Contoh: 150" 
+                          className="h-12 rounded-xl border-emerald-200 bg-emerald-50/20 font-bold text-emerald-900" 
+                        />
+                        <p className="text-[10px] text-slate-400">
+                          Isi estimasi jika data siswa rinci belum selesai diinput (otomatis terpakai di peta & statistik).
+                        </p>
                     </div>
                 </div>
               </CardContent>

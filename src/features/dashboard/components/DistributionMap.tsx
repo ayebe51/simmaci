@@ -330,7 +330,7 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
         return [mapOffsetX + x * mapScale, mapOffsetY + y * mapScale];
       };
 
-      // Draw Polygons onto Canvas
+      // Pass 1: Draw ALL Polygons onto Canvas first
       geoFeatures.forEach((feat) => {
         const dName = feat.properties.nama;
         const val = getDistrictValue(dName);
@@ -360,39 +360,58 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
             poly.forEach((ring: number[][]) => drawRing(ring));
           });
         }
+      });
 
-        // Draw District Labels & Counts
+      // Pass 2: Draw ALL District Labels & Counts ON TOP of all polygons
+      geoFeatures.forEach((feat) => {
+        const dName = feat.properties.nama;
+        const val = getDistrictValue(dName);
         const center = feat.properties.center;
         if (center) {
           const [cx, cy] = projectCanvas(center[0], center[1]);
 
-          // Small white badge pill
+          // Clean, prominent white badge pill
           const labelText = dName;
           const countText = `${val} ${metric === 'schools' ? 'Lembaga' : metric === 'ptk' ? 'PTK' : 'Siswa'}`;
 
-          ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+          ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
           const tw1 = ctx.measureText(labelText).width;
-          ctx.font = '18px system-ui, -apple-system, sans-serif';
+          ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
           const tw2 = ctx.measureText(countText).width;
-          const boxW = Math.max(tw1, tw2) + 24;
-          const boxH = 46;
+          const boxW = Math.max(tw1, tw2) + 28;
+          const boxH = 48;
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-          ctx.shadowBlur = 8;
+          // Drop shadow & badge background
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
+          ctx.shadowBlur = 10;
+          ctx.shadowOffsetY = 4;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
           ctx.beginPath();
           ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 10);
           ctx.fill();
-          ctx.shadowColor = 'transparent';
+          ctx.restore();
+
+          // Subtle border to crisply separate badge from background
+          ctx.strokeStyle = '#e2e8f0';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 10);
+          ctx.stroke();
+
+          // District name & count text (rendered on top of everything)
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
 
           ctx.fillStyle = '#0f172a';
           ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(labelText, cx, cy - 3);
+          ctx.fillText(labelText, cx, cy - 8);
 
           ctx.fillStyle = '#047857';
-          ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
-          ctx.fillText(countText, cx, cy + 16);
+          ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+          ctx.fillText(countText, cx, cy + 12);
+
+          ctx.textBaseline = 'alphabetic';
           ctx.textAlign = 'start';
         }
       });

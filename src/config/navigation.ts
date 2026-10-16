@@ -19,7 +19,8 @@ import {
   CheckSquare,
   BadgeCheck,
   Archive,
-  GraduationCap
+  GraduationCap,
+  ClipboardCheck,
 } from "lucide-react";
 
 export type Role = "super_admin" | "admin_yayasan" | "operator" | "staff" | "admin";
@@ -48,6 +49,7 @@ export const navigationConfig: NavGroup[] = [
       { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, exact: true },
       { id: "school_profile", label: "Profil Lembaga", href: "/dashboard/school/profile", icon: School, roles: ["operator"] },
       { id: "school_manage", label: "Data Satpend", href: "/dashboard/master/schools", icon: School, roles: ["super_admin", "admin_yayasan", "admin"] },
+      { id: "monitoring_readiness", label: "Monitoring Pendataan", href: "/dashboard/monitoring/data-readiness", icon: ClipboardCheck, roles: ["super_admin", "admin_yayasan", "admin"] },
       { id: "teachers", label: "Data Guru & Tendik", href: "/dashboard/master/teachers", icon: Users },
       { id: "students_center", label: "Data Siswa", href: "/dashboard/students-center", icon: User },
       { id: "ppdb_center", label: "Pusat PPDB Terpadu", href: "/dashboard/ppdb-center", icon: GraduationCap },

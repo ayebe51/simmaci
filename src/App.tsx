@@ -40,6 +40,7 @@ const TeacherListPage = lazyWithRetry(() => import("./features/master-data/Teach
 const StudentListPage = lazyWithRetry(() => import("./features/master-data/StudentListPage"))
 const DataAuditPage = lazyWithRetry(() => import("@/features/master-data/DataAuditPage"))
 const ActivityLogPage = lazyWithRetry(() => import("@/features/master-data/ActivityLogPage"))
+const DataReadinessPage = lazyWithRetry(() => import("./features/master-data/DataReadinessPage"))
 
 // ── Student Statistics ────────────────────────────────────────────────────────
 const StudentStatisticsPage = lazyWithRetry(() => import("./features/student-statistics/StudentStatisticsPage"))
@@ -246,11 +247,13 @@ export default function App() {
                           <Route path="sk-revisions" element={<SkRevisionListPage />} />
                           <Route path="generator" element={<SkGeneratorPage />} />
                           <Route path="audit" element={<DataAuditPage />} />
+                          <Route path="audit-center" element={<AuditCenterPage />} />
                           <Route path="activity-logs" element={<ActivityLogPage />} />
                           <Route path="settings" element={<SettingsPage />} />
                           <Route path="sk-templates" element={<SkTemplateManagementPage />} />
                           <Route path="change-password" element={<ChangePasswordPage />} />
                           <Route path="monitoring/headmasters" element={<HeadmasterExpiryPage />} />
+                          <Route path="monitoring/data-readiness" element={<DataReadinessPage />} />
                           <Route path="reports" element={<ReportPage />} />
                           <Route path="kta" element={<KtaGeneratorPage />} />
                           <Route path="student-card" element={<StudentCardPage />} />

@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog, School as SchoolIcon, Filter, Layers, CheckCircle2 } from "lucide-react"
+import { Search, Plus, Trash2, Edit, FileSpreadsheet, Download, Eye, KeyRound, Loader2, MapPin, AlertTriangle, LockOpen, Lock, LockKeyhole, LockKeyholeOpen, UserCog, School as SchoolIcon, Filter, Layers, CheckCircle2, ClipboardCheck } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState, useEffect, useMemo } from "react"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -552,6 +552,12 @@ export default function SchoolListPage() {
             onClick: () => setIsDownloadModalOpen(true),
             variant: 'outline',
             icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-emerald-600" />
+          },
+          {
+            label: 'Monitoring Kesiapan Data',
+            onClick: () => navigate('/dashboard/monitoring/data-readiness?status=incomplete'),
+            variant: 'outline',
+            icon: <ClipboardCheck className="h-4 w-4 text-amber-600" />
           },
           ...(canToggleSk ? [
               { label: 'Tutup Pengajuan SK', onClick: () => setIsConfirmTutupSkOpen(true), variant: 'outline', icon: <Lock className="h-4 w-4 text-amber-600" /> },

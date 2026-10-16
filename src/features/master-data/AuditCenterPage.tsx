@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import DataAuditPage from "./DataAuditPage"
 import ActivityLogPage from "./ActivityLogPage"
-import { Stethoscope, Activity, ShieldAlert } from "lucide-react"
+import DataReadinessPage from "./DataReadinessPage"
+import { Stethoscope, Activity, ShieldAlert, ClipboardCheck } from "lucide-react"
 
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 
@@ -27,7 +28,7 @@ export default function AuditCenterPage() {
     <div className="space-y-6 pb-10">
       <SoftPageHeader
         title="Audit & Log Sistem"
-        description="Diagnosa kesehatan basis data (Health Data), temukan anomali data ganda/kosong, serta pantau log aktivitas sistem."
+        description="Diagnosa kesehatan basis data (Health Data), pantau kelengkapan pendataan satpen, serta pantau log aktivitas sistem."
         icon={<ShieldAlert className="w-6 h-6 text-emerald-600" />}
       />
 
@@ -45,6 +46,14 @@ export default function AuditCenterPage() {
               </TabsTrigger>
 
               <TabsTrigger
+                value="readiness"
+                className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
+              >
+                <ClipboardCheck className="w-4 h-4 text-emerald-600" />
+                <span>Monitoring Pendataan</span>
+              </TabsTrigger>
+
+              <TabsTrigger
                 value="logs"
                 className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
               >
@@ -57,6 +66,10 @@ export default function AuditCenterPage() {
 
         <TabsContent value="health" className="mt-0 focus-visible:outline-none">
           <DataAuditPage />
+        </TabsContent>
+
+        <TabsContent value="readiness" className="mt-0 focus-visible:outline-none">
+          <DataReadinessPage />
         </TabsContent>
 
         <TabsContent value="logs" className="mt-0 focus-visible:outline-none">

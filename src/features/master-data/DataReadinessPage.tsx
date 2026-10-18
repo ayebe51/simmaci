@@ -1,17 +1,27 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { schoolApi } from '@/lib/api';
+import { schoolApi, SchoolReadinessItem } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import SoftPageHeader from '@/components/ui/SoftPageHeader';
 import { Button } from '@/components/ui/button';
-import { ClipboardCheck, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, Download, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+import {
+  normalizeWhatsappNumber,
+  generateWaMessage,
+} from './components/readiness/readinessConstants';
+import { exportReadinessToExcel } from './components/readiness/readinessExport';
 import { ReadinessKpiCards } from './components/readiness/ReadinessKpiCards';
 import { ReadinessFilterBar } from './components/readiness/ReadinessFilterBar';
+import { ReadinessTable } from './components/readiness/ReadinessTable';
+import { QuickEditManualModal } from './components/readiness/QuickEditManualModal';
+import { WhatsAppReminderModal } from './components/readiness/WhatsAppReminderModal';
 
 export default function DataReadinessPage() {
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL state management
@@ -27,6 +37,14 @@ export default function DataReadinessPage() {
   const [filterJenjang, setFilterJenjang] = useState<string>(initialJenjang);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [perPage, setPerPage] = useState<number>(20);
+
+  // Quick edit modal state
+  const [editSchool, setEditSchool] = useState<SchoolReadinessItem | null>(null);
+  const [manualCountInput, setManualCountInput] = useState<string>('');
+
+  // WhatsApp dialog state
+  const [waSchool, setWaSchool] = useState<SchoolReadinessItem | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Sync state with URL when filters change
   const handleStatusChange = (newStatus: string) => {
@@ -71,7 +89,7 @@ export default function DataReadinessPage() {
   };
 
   // API Query
-  const { data, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: [
       'schools-data-readiness',
       debouncedSearch,
@@ -93,6 +111,81 @@ export default function DataReadinessPage() {
   });
 
   const summary = data?.summary;
+  const schools = data?.data || [];
+  const totalPages = data?.last_page || 1;
+
+  // Quick update mutation
+  const quickUpdateMutation = useMutation({
+    mutationFn: ({ schoolId, count }: { schoolId: number; count: number | null }) =>
+      schoolApi.updateManualStudents(schoolId, count),
+    onSuccess: (res) => {
+      toast.success(res.message || 'Jumlah siswa berhasil diperbarui!');
+      setEditSchool(null);
+      queryClient.invalidateQueries({ queryKey: ['schools-data-readiness'] });
+      queryClient.invalidateQueries({ queryKey: ['distribution-map-data'] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Gagal menyimpan jumlah siswa');
+    },
+  });
+
+  const handleOpenQuickEdit = (school: SchoolReadinessItem) => {
+    setEditSchool(school);
+    setManualCountInput(
+      school.jumlah_siswa_manual !== null && school.jumlah_siswa_manual !== undefined
+        ? String(school.jumlah_siswa_manual)
+        : ''
+    );
+  };
+
+  const handleSaveQuickEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editSchool) return;
+
+    const trimmed = manualCountInput.trim();
+    const countVal = trimmed === '' ? null : parseInt(trimmed, 10);
+
+    if (countVal !== null && (isNaN(countVal) || countVal < 0)) {
+      toast.error('Masukkan angka jumlah siswa yang valid (minimal 0)');
+      return;
+    }
+
+    quickUpdateMutation.mutate({
+      schoolId: editSchool.id,
+      count: countVal,
+    });
+  };
+
+  const handleSendWa = (school: SchoolReadinessItem) => {
+    const rawPhone = school.kepala_whatsapp || school.telepon;
+    const phone = normalizeWhatsappNumber(rawPhone);
+    if (!phone) {
+      toast.warning('Nomor WhatsApp Kepala Madrasah / Lembaga belum terdata');
+      setWaSchool(school);
+      return;
+    }
+
+    const msg = generateWaMessage(school);
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCopyWaMessage = (school: SchoolReadinessItem) => {
+    const msg = generateWaMessage(school);
+    navigator.clipboard.writeText(msg);
+    toast.success('Pesan pengingat WhatsApp berhasil disalin ke clipboard!');
+  };
+
+  const handleExportExcel = async (exportType: 'incomplete' | 'all') => {
+    setIsExporting(true);
+    await exportReadinessToExcel({
+      exportType,
+      debouncedSearch,
+      filterKecamatan,
+      filterJenjang,
+    });
+    setIsExporting(false);
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -114,6 +207,27 @@ export default function DataReadinessPage() {
           >
             <RefreshCw className={cn('w-4 h-4 text-emerald-600', isFetching && 'animate-spin')} />
             <span>Segarkan</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleExportExcel('incomplete')}
+            disabled={isExporting}
+            className="rounded-xl h-10 border-amber-300 text-amber-800 bg-amber-50/60 hover:bg-amber-100 font-bold gap-2 shadow-sm"
+          >
+            <Download className="w-4 h-4 text-amber-600" />
+            <span>Ekspor Belum Lengkap (.xlsx)</span>
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => handleExportExcel('all')}
+            disabled={isExporting}
+            className="rounded-xl h-10 bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-2 shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span>Ekspor Semua (.xlsx)</span>
           </Button>
         </div>
       </div>
@@ -137,6 +251,42 @@ export default function DataReadinessPage() {
         onKecamatanChange={handleKecamatanChange}
         onJenjangChange={handleJenjangChange}
         onResetAll={handleResetAll}
+      />
+
+      {/* Main Table */}
+      <ReadinessTable
+        schools={schools}
+        totalSchools={data?.total ?? 0}
+        isLoading={isLoading}
+        filterStatus={filterStatus}
+        currentPage={currentPage}
+        perPage={perPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        onPerPageChange={(newPerPage) => {
+          setPerPage(newPerPage);
+          setCurrentPage(1);
+        }}
+        onOpenQuickEdit={handleOpenQuickEdit}
+        onSendWa={handleSendWa}
+      />
+
+      {/* Quick Edit Modal */}
+      <QuickEditManualModal
+        editSchool={editSchool}
+        manualCountInput={manualCountInput}
+        isPending={quickUpdateMutation.isPending}
+        onClose={() => setEditSchool(null)}
+        onInputChange={setManualCountInput}
+        onSubmit={handleSaveQuickEdit}
+      />
+
+      {/* WhatsApp Reminder Template Modal */}
+      <WhatsAppReminderModal
+        school={waSchool}
+        onClose={() => setWaSchool(null)}
+        onCopy={handleCopyWaMessage}
+        onSend={handleSendWa}
       />
     </div>
   );

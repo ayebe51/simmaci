@@ -19,6 +19,7 @@ class School extends Model
         'kepala_jabatan_mulai', 'kepala_jabatan_selesai',
         'sk_submission_unlocked',
         'jumlah_siswa_manual',
+        'jumlah_siswa_per_kelas',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class School extends Model
         return [
             'sk_submission_unlocked' => 'boolean',
             'jumlah_siswa_manual' => 'integer',
+            'jumlah_siswa_per_kelas' => 'array',
         ];
     }
 

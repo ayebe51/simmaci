@@ -557,10 +557,10 @@ class DashboardCacheService
                 'tendiks_count' => 0,
                 'students_count' => 0,
                 'jenjang_breakdown' => [
-                    'RA' => 0,
                     'MI' => 0,
                     'MTs' => 0,
                     'MA' => 0,
+                    'SMK' => 0,
                     'Lainnya' => 0,
                 ],
                 'schools' => [],
@@ -569,6 +569,14 @@ class DashboardCacheService
 
         $schools = DB::table('schools')
             ->whereNull('deleted_at')
+            ->where(function ($q) {
+                $q->whereNull('jenjang')
+                  ->orWhereRaw("UPPER(TRIM(jenjang)) NOT IN ('RA', 'TK', 'PAUD', 'BA')");
+            })
+            ->whereRaw("UPPER(TRIM(nama)) NOT LIKE 'RA %'")
+            ->whereRaw("UPPER(TRIM(nama)) NOT LIKE 'TK %'")
+            ->whereRaw("UPPER(TRIM(nama)) NOT LIKE 'PAUD %'")
+            ->whereRaw("UPPER(TRIM(nama)) NOT LIKE 'BA %'")
             ->select([
                 'id',
                 'nama',
@@ -665,13 +673,13 @@ class DashboardCacheService
 
             $rawJenjang = strtoupper(trim($school->jenjang ?? ''));
             $jenjangKey = 'Lainnya';
-            if (str_contains($rawJenjang, 'RA') || str_contains($rawJenjang, 'TK') || str_contains($rawJenjang, 'BA')) {
-                $jenjangKey = 'RA';
+            if (str_contains($rawJenjang, 'SMK')) {
+                $jenjangKey = 'SMK';
             } elseif (str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD')) {
                 $jenjangKey = 'MI';
             } elseif (str_contains($rawJenjang, 'MTS') || str_contains($rawJenjang, 'SMP')) {
                 $jenjangKey = 'MTs';
-            } elseif (str_contains($rawJenjang, 'MA') || str_contains($rawJenjang, 'SMA') || str_contains($rawJenjang, 'SMK')) {
+            } elseif (str_contains($rawJenjang, 'MA') || str_contains($rawJenjang, 'SMA')) {
                 $jenjangKey = 'MA';
             }
 

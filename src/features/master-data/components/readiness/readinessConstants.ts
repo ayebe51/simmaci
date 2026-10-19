@@ -27,7 +27,60 @@ export const CILACAP_KECAMATAN = [
   'Cilacap Utara',
 ];
 
-export const JENJANG_LIST = ['RA', 'MI', 'MTs', 'MA', 'SMK'];
+export const JENJANG_LIST = ['MI', 'MTs', 'MA', 'SMK'];
+
+/**
+ * Formal grade levels for LP Ma'arif madrasahs (MI, MTs, MA, SMK).
+ * Note: RA/PAUD/TK is excluded from formal per-class student reporting.
+ */
+export const FORMAL_GRADE_LEVELS: Record<string, string[]> = {
+  MI: ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'],
+  SD: ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'],
+  MTS: ['Kelas 7', 'Kelas 8', 'Kelas 9'],
+  SMP: ['Kelas 7', 'Kelas 8', 'Kelas 9'],
+  MA: ['Kelas 10', 'Kelas 11', 'Kelas 12'],
+  SMA: ['Kelas 10', 'Kelas 11', 'Kelas 12'],
+  SMK: ['Kelas 10', 'Kelas 11', 'Kelas 12'],
+};
+
+/**
+ * Resolves list of grade levels for a given school jenjang/nama.
+ * Returns null if jenjang is RA/TK/PAUD or non-formal.
+ */
+export function getGradeLevelsForSchool(jenjang?: string | null, nama?: string | null): string[] | null {
+  const rawJenjang = (jenjang || '').toUpperCase().trim();
+  const rawNama = (nama || '').toUpperCase().trim();
+
+  // Exclude RA / TK / PAUD
+  if (
+    rawJenjang === 'RA' ||
+    rawJenjang === 'TK' ||
+    rawJenjang === 'PAUD' ||
+    rawJenjang === 'BA' ||
+    rawNama.startsWith('RA ') ||
+    rawNama.startsWith('TK ') ||
+    rawNama.startsWith('PAUD ') ||
+    rawNama.startsWith('BA ')
+  ) {
+    return null;
+  }
+
+  if (rawJenjang.includes('SMK') || rawNama.includes('SMK')) {
+    return FORMAL_GRADE_LEVELS.SMK;
+  }
+  if (rawJenjang.includes('MI') || rawNama.includes('MI ') || rawNama.includes('SD ')) {
+    return FORMAL_GRADE_LEVELS.MI;
+  }
+  if (rawJenjang.includes('MTS') || rawNama.includes('MTS ') || rawNama.includes('SMP ')) {
+    return FORMAL_GRADE_LEVELS.MTS;
+  }
+  if (rawJenjang.includes('MA') || rawNama.includes('MA ') || rawNama.includes('SMA ')) {
+    return FORMAL_GRADE_LEVELS.MA;
+  }
+
+  // Default fallback for formal primary madrasah
+  return FORMAL_GRADE_LEVELS.MI;
+}
 
 /**
  * Normalizes phone number to international WhatsApp format (e.g. 0812 -> 62812)
@@ -69,7 +122,7 @@ Kami dari Pengurus Cabang Lembaga Pendidikan Ma'arif NU Kabupaten Cilacap mengin
 
 Mohon perkenan Bapak/Ibu Kepala Madrasah atau Operator untuk segera melengkapi data tersebut melalui SIMMACI:
 - Alamat Sistem: https://simmaci.com
-- Jika data siswa per individu belum selesai diinput, Bapak/Ibu dapat mengisi "Estimasi Jumlah Siswa" terlebih dahulu pada Profil Lembaga.
+- Jika data siswa per individu belum selesai diinput, Bapak/Ibu dapat mengisi "Estimasi Jumlah Siswa Per Kelas" pada Profil Lembaga.
 
 Demikian pengingat ini kami sampaikan untuk kelancaran pendataan dan peta sebaran pendidikan Ma'arif NU Cilacap. Terima kasih atas kerja samanya.
 

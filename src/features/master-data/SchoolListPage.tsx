@@ -553,12 +553,14 @@ export default function SchoolListPage() {
             variant: 'outline',
             icon: isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 text-emerald-600" />
           },
-          {
-            label: 'Monitoring Kesiapan Data',
-            onClick: () => navigate('/dashboard/monitoring/data-readiness?status=incomplete'),
-            variant: 'outline',
-            icon: <ClipboardCheck className="h-4 w-4 text-amber-600" />
-          },
+          ...(isSuperAdmin ? [
+            {
+              label: 'Monitoring Kesiapan Data',
+              onClick: () => navigate('/dashboard/monitoring/data-readiness?status=incomplete'),
+              variant: 'outline',
+              icon: <ClipboardCheck className="h-4 w-4 text-amber-600" />
+            },
+          ] : []),
           ...(canToggleSk ? [
               { label: 'Tutup Pengajuan SK', onClick: () => setIsConfirmTutupSkOpen(true), variant: 'outline', icon: <Lock className="h-4 w-4 text-amber-600" /> },
           ] : []),

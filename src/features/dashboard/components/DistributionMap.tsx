@@ -559,7 +559,7 @@ export function DistributionMap() {
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-slate-500 mt-1">
-              Visualisasi poligon resmi Kabupaten Cilacap. Arahkan kursor atau klik kecamatan untuk rincian madrasah.
+              Visualisasi poligon resmi 24 Kecamatan Kabupaten Cilacap untuk madrasah formal (MI, MTs, MA, SMK).
             </CardDescription>
           </div>
 

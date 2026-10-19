@@ -8,16 +8,26 @@ import { Stethoscope, Activity, ShieldAlert, ClipboardCheck } from "lucide-react
 
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 
+import { getCurrentUser } from "@/lib/authHelpers"
+
 export default function AuditCenterPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const user = getCurrentUser()
+  const isSuperAdmin = user?.role === "super_admin"
+
   const tabFromUrl = searchParams.get("tab") || "health"
-  const [activeTab, setActiveTab] = useState(tabFromUrl)
+  const initialTab = (!isSuperAdmin && tabFromUrl === "readiness") ? "health" : tabFromUrl
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
-      setActiveTab(tabFromUrl)
+      if (!isSuperAdmin && tabFromUrl === "readiness") {
+        setActiveTab("health")
+      } else {
+        setActiveTab(tabFromUrl)
+      }
     }
-  }, [tabFromUrl])
+  }, [tabFromUrl, isSuperAdmin])
 
   const handleTabChange = (val: string) => {
     setActiveTab(val)
@@ -45,13 +55,15 @@ export default function AuditCenterPage() {
                 <span>Health Data / Audit</span>
               </TabsTrigger>
 
-              <TabsTrigger
-                value="readiness"
-                className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
-              >
-                <ClipboardCheck className="w-4 h-4 text-emerald-600" />
-                <span>Monitoring Pendataan</span>
-              </TabsTrigger>
+              {isSuperAdmin && (
+                <TabsTrigger
+                  value="readiness"
+                  className="h-11 px-5 rounded-xl font-extrabold text-xs tracking-wider transition-all duration-200 flex items-center gap-2.5 text-slate-600 hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-md data-[state=active]:shadow-slate-200/80 border border-transparent data-[state=active]:border-slate-200/60"
+                >
+                  <ClipboardCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Monitoring Pendataan</span>
+                </TabsTrigger>
+              )}
 
               <TabsTrigger
                 value="logs"
@@ -68,9 +80,11 @@ export default function AuditCenterPage() {
           <DataAuditPage />
         </TabsContent>
 
-        <TabsContent value="readiness" className="mt-0 focus-visible:outline-none">
-          <DataReadinessPage />
-        </TabsContent>
+        {isSuperAdmin && (
+          <TabsContent value="readiness" className="mt-0 focus-visible:outline-none">
+            <DataReadinessPage />
+          </TabsContent>
+        )}
 
         <TabsContent value="logs" className="mt-0 focus-visible:outline-none">
           <ActivityLogPage />

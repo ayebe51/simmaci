@@ -204,6 +204,8 @@ class SchoolController extends Controller
             'kepala_jabatan_mulai' => 'nullable|date',
             'kepala_jabatan_selesai' => 'nullable|date|after_or_equal:kepala_jabatan_mulai',
             'jumlah_siswa_manual' => 'nullable|integer|min:0|max:100000',
+            'jumlah_siswa_per_kelas' => 'nullable|array',
+            'jumlah_siswa_per_kelas.*' => 'nullable|integer|min:0|max:100000',
         ]);
 
         // Only update fields that are actually present in the request
@@ -218,6 +220,20 @@ class SchoolController extends Controller
         // Filter out null values - only update fields with actual data
         $updateData = array_filter($updateData, fn($value) => !is_null($value));
         
+        if (isset($updateData['jumlah_siswa_per_kelas']) && is_array($updateData['jumlah_siswa_per_kelas'])) {
+            $sum = 0;
+            $hasVal = false;
+            foreach ($updateData['jumlah_siswa_per_kelas'] as $v) {
+                if ($v !== null && $v !== '') {
+                    $sum += (int) $v;
+                    $hasVal = true;
+                }
+            }
+            if ($hasVal) {
+                $updateData['jumlah_siswa_manual'] = $sum;
+            }
+        }
+
         if (isset($updateData['nama'])) {
             $updateData['nama'] = app(\App\Services\NormalizationService::class)->normalizeSchoolName($updateData['nama']);
         }
@@ -645,10 +661,10 @@ class SchoolController extends Controller
     public function dataReadiness(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!in_array($user->role, ['super_admin', 'admin_yayasan', 'admin'], true)) {
+        if ($user->role !== 'super_admin') {
             return response()->json([
                 'success' => false,
-                'message' => 'Anda tidak memiliki akses ke fitur monitoring kesiapan data'
+                'message' => 'Akses ditolak. Fitur monitoring pendataan hanya dapat diakses oleh Super Admin.'
             ], 403);
         }
 
@@ -672,6 +688,7 @@ class SchoolController extends Controller
                 's.kepala_whatsapp',
                 's.status_jamiyyah',
                 's.jumlah_siswa_manual',
+                's.jumlah_siswa_per_kelas',
                 DB::raw('COALESCE(t.teachers_count, 0) as teachers_count'),
                 DB::raw('COALESCE(st.students_count, 0) as students_detail_count'),
                 DB::raw('CASE WHEN COALESCE(st.students_count, 0) > 0 THEN st.students_count ELSE COALESCE(s.jumlah_siswa_manual, 0) END as effective_students_count'),
@@ -841,13 +858,35 @@ class SchoolController extends Controller
 
         $validated = $request->validate([
             'jumlah_siswa_manual' => 'nullable|integer|min:0|max:100000',
+            'jumlah_siswa_per_kelas' => 'nullable|array',
+            'jumlah_siswa_per_kelas.*' => 'nullable|integer|min:0|max:100000',
         ]);
 
         $oldCount = $school->jumlah_siswa_manual;
-        $newCount = array_key_exists('jumlah_siswa_manual', $validated) ? $validated['jumlah_siswa_manual'] : null;
 
-        DB::transaction(function () use ($school, $newCount, $oldCount, $user) {
-            $school->update(['jumlah_siswa_manual' => $newCount]);
+        $perClassData = null;
+        if (array_key_exists('jumlah_siswa_per_kelas', $validated) && is_array($validated['jumlah_siswa_per_kelas'])) {
+            $perClassData = $validated['jumlah_siswa_per_kelas'];
+            $sum = 0;
+            $hasAnyValue = false;
+            foreach ($perClassData as $k => $v) {
+                if ($v !== null && $v !== '') {
+                    $val = (int) $v;
+                    $sum += $val;
+                    $hasAnyValue = true;
+                }
+            }
+            $newCount = $hasAnyValue ? $sum : null;
+        } else {
+            $newCount = array_key_exists('jumlah_siswa_manual', $validated) ? $validated['jumlah_siswa_manual'] : null;
+        }
+
+        DB::transaction(function () use ($school, $newCount, $perClassData, $oldCount, $user, $validated) {
+            $payload = ['jumlah_siswa_manual' => $newCount];
+            if (array_key_exists('jumlah_siswa_per_kelas', $validated)) {
+                $payload['jumlah_siswa_per_kelas'] = $perClassData;
+            }
+            $school->update($payload);
 
             ActivityLog::log(
                 description: "Memperbarui estimasi jumlah siswa {$school->nama}: " . ($newCount !== null ? "{$newCount} siswa" : 'dikosongkan') . " (sebelumnya: " . ($oldCount !== null ? "{$oldCount} siswa" : '-') . ")",
@@ -868,6 +907,7 @@ class SchoolController extends Controller
                 'id' => $school->id,
                 'nama' => $school->nama,
                 'jumlah_siswa_manual' => $newCount,
+                'jumlah_siswa_per_kelas' => $perClassData ?? $school->fresh()->jumlah_siswa_per_kelas,
             ]
         ]);
     }

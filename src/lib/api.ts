@@ -311,6 +311,7 @@ export interface SchoolReadinessItem {
   kepala_whatsapp?: string;
   status_jamiyyah?: string;
   jumlah_siswa_manual?: number | null;
+  jumlah_siswa_per_kelas?: Record<string, number> | null;
   teachers_count: number;
   students_detail_count: number;
   effective_students_count: number;
@@ -379,8 +380,15 @@ export const schoolApi = {
     per_page?: number;
   }): Promise<SchoolReadinessResponse> =>
     apiClient.get('/schools/data-readiness', { params }).then((r) => r.data),
-  updateManualStudents: (schoolId: number, count: number | null): Promise<{ success: boolean; message: string; data: any }> =>
-    apiClient.patch(`/schools/${schoolId}/manual-students`, { jumlah_siswa_manual: count }).then((r) => r.data),
+  updateManualStudents: (
+    schoolId: number,
+    count: number | null,
+    perClass?: Record<string, number> | null
+  ): Promise<{ success: boolean; message: string; data: any }> =>
+    apiClient.patch(`/schools/${schoolId}/manual-students`, {
+      jumlah_siswa_manual: count,
+      jumlah_siswa_per_kelas: perClass,
+    }).then((r) => r.data),
 };
 
 

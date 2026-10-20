@@ -89,12 +89,21 @@ export function ReadinessTableRow({
                 </span>
               </div>
             ) : item.student_source === 'manual' ? (
-              <div className="flex items-center gap-1.5">
+              <div
+                className="flex items-center gap-1.5"
+                title={
+                  item.jumlah_siswa_per_kelas
+                    ? Object.entries(item.jumlah_siswa_per_kelas)
+                        .map(([k, v]) => `${k}: ${v} siswa`)
+                        .join(' • ')
+                    : 'Estimasi Agregat'
+                }
+              >
                 <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[11px] font-black hover:bg-amber-100">
                   📝 {item.effective_students_count} Siswa
                 </Badge>
-                <span className="text-[10px] text-amber-600 font-semibold">
-                  (Estimasi)
+                <span className="text-[10px] text-amber-600 font-semibold cursor-help">
+                  {item.jumlah_siswa_per_kelas ? '(Per Kelas)' : '(Estimasi)'}
                 </span>
               </div>
             ) : (

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { schoolApi, SchoolReadinessItem } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
+import { getCurrentUser } from '@/lib/authHelpers';
 import SoftPageHeader from '@/components/ui/SoftPageHeader';
 import { Button } from '@/components/ui/button';
-import { ClipboardCheck, Download, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, Download, RefreshCw, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,12 @@ import { WhatsAppReminderModal } from './components/readiness/WhatsAppReminderMo
 
 export default function DataReadinessPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Strict Role Guard: Only Super Admin can access Monitoring Pendataan
+  const currentUser = getCurrentUser();
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   // URL state management
   const initialStatus = searchParams.get('status') || 'incomplete';
@@ -40,7 +46,6 @@ export default function DataReadinessPage() {
 
   // Quick edit modal state
   const [editSchool, setEditSchool] = useState<SchoolReadinessItem | null>(null);
-  const [manualCountInput, setManualCountInput] = useState<string>('');
 
   // WhatsApp dialog state
   const [waSchool, setWaSchool] = useState<SchoolReadinessItem | null>(null);
@@ -108,6 +113,7 @@ export default function DataReadinessPage() {
         page: currentPage,
         per_page: perPage,
       }),
+    enabled: isSuperAdmin,
   });
 
   const summary = data?.summary;
@@ -116,8 +122,15 @@ export default function DataReadinessPage() {
 
   // Quick update mutation
   const quickUpdateMutation = useMutation({
-    mutationFn: ({ schoolId, count }: { schoolId: number; count: number | null }) =>
-      schoolApi.updateManualStudents(schoolId, count),
+    mutationFn: ({
+      schoolId,
+      count,
+      perClass,
+    }: {
+      schoolId: number;
+      count: number | null;
+      perClass?: Record<string, number> | null;
+    }) => schoolApi.updateManualStudents(schoolId, count, perClass),
     onSuccess: (res) => {
       toast.success(res.message || 'Jumlah siswa berhasil diperbarui!');
       setEditSchool(null);
@@ -131,28 +144,15 @@ export default function DataReadinessPage() {
 
   const handleOpenQuickEdit = (school: SchoolReadinessItem) => {
     setEditSchool(school);
-    setManualCountInput(
-      school.jumlah_siswa_manual !== null && school.jumlah_siswa_manual !== undefined
-        ? String(school.jumlah_siswa_manual)
-        : ''
-    );
   };
 
-  const handleSaveQuickEdit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveQuickEdit = (data: { total: number | null; perClass: Record<string, number> | null }) => {
     if (!editSchool) return;
-
-    const trimmed = manualCountInput.trim();
-    const countVal = trimmed === '' ? null : parseInt(trimmed, 10);
-
-    if (countVal !== null && (isNaN(countVal) || countVal < 0)) {
-      toast.error('Masukkan angka jumlah siswa yang valid (minimal 0)');
-      return;
-    }
 
     quickUpdateMutation.mutate({
       schoolId: editSchool.id,
-      count: countVal,
+      count: data.total,
+      perClass: data.perClass,
     });
   };
 
@@ -186,6 +186,29 @@ export default function DataReadinessPage() {
     });
     setIsExporting(false);
   };
+
+  // Access Denied screen for non-Super Admin
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center max-w-md mx-auto space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shadow-sm">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-black text-slate-900 tracking-tight">
+          Akses Khusus Super Admin
+        </h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Mohon maaf, menu dan fitur Monitoring Kesiapan Data hanya dapat diakses oleh akun Super Administrator PC LP Ma'arif NU Kabupaten Cilacap.
+        </p>
+        <Button
+          onClick={() => navigate('/dashboard')}
+          className="rounded-xl font-bold text-xs bg-emerald-700 hover:bg-emerald-800 text-white"
+        >
+          Kembali ke Dashboard
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-20">
@@ -274,10 +297,8 @@ export default function DataReadinessPage() {
       {/* Quick Edit Modal */}
       <QuickEditManualModal
         editSchool={editSchool}
-        manualCountInput={manualCountInput}
         isPending={quickUpdateMutation.isPending}
         onClose={() => setEditSchool(null)}
-        onInputChange={setManualCountInput}
         onSubmit={handleSaveQuickEdit}
       />
 

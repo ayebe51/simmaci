@@ -1,7 +1,8 @@
-import { Suspense } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { MAINTENANCE_MODE, API_URL } from "@/lib/api"
+import { EmergencyLockdownScreen } from "./components/EmergencyLockdownScreen"
 import { Toaster } from "@/components/ui/sonner"
 import { lazyWithRetry } from "./utils/lazyWithRetry"
 import { NetworkStatusBanner } from "./components/common/NetworkStatusBanner"
@@ -168,17 +169,41 @@ const queryClient = new QueryClient({
 
 export default function App() {
   usePwaUpdate()
+  const [isBypassed, setIsBypassed] = useState(() => {
+    return localStorage.getItem('simmaci_lockdown_bypass') === 'true'
+  })
+
+  // Support URL query ?bypass=simmaci2026 for administrator
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('bypass') === 'simmaci2026' || params.get('bypass') === 'admin123') {
+      localStorage.setItem('simmaci_lockdown_bypass', 'true')
+      setIsBypassed(true)
+    }
+  }, [])
+
+  if (MAINTENANCE_MODE && !isBypassed) {
+    return <EmergencyLockdownScreen onBypass={() => setIsBypassed(true)} />
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <NetworkStatusBanner />
-        {MAINTENANCE_MODE && (
-          <div className="bg-red-700 text-white p-3.5 text-center font-bold sticky top-0 z-[9999] shadow-lg flex items-center justify-center gap-2 border-b-2 border-red-900 text-xs sm:text-sm md:text-base animate-pulse">
-            <span className="text-lg">🛡️</span>
-            <span>
-              PEMBERITAHUAN: Sistem SIMMACI dinonaktifkan sementara untuk Mitigasi Darurat Serangan Siber Global (Zero-Day CVE-2026-109618 - NSA Alert). Tim Teknis sedang melakukan patching keamanan tingkat tinggi.
-            </span>
-            <span className="text-lg">⚠️</span>
+        {MAINTENANCE_MODE && isBypassed && (
+          <div className="bg-amber-600 text-white px-3 py-1.5 text-center font-bold sticky top-0 z-[9999] shadow-md flex items-center justify-center gap-2 text-xs">
+            <span>⚠️</span>
+            <span>MODE BYPASS ADMINISTRATOR AKTIF: Sistem sedang dalam Lockdown Darurat untuk publik.</span>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem('simmaci_lockdown_bypass')
+                setIsBypassed(false)
+              }}
+              className="underline ml-2 text-white hover:text-amber-100 font-semibold cursor-pointer"
+            >
+              Kunci Kembali
+            </button>
           </div>
         )}
         <ChunkErrorBoundary>

@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\StudentStatisticsController;
 use App\Http\Controllers\Api\PublicPpdbController;
 use App\Http\Controllers\Api\PpdbPeriodController;
 use App\Http\Controllers\Api\PpdbManagementController;
+use App\Http\Controllers\Api\PublicPortalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,6 +71,13 @@ use App\Http\Controllers\Api\PpdbManagementController;
 Route::prefix('auth')->middleware('throttle:10,1')->group(function () {
     Route::post('login',    [AuthController::class, 'login']);
     Route::post('register', [AuthController::class, 'register']);
+});
+
+// ── Public Portal & Statistics ──
+Route::prefix('public/portal')->middleware('throttle:60,1')->group(function () {
+    Route::get('stats',             [PublicPortalController::class, 'stats']);
+    Route::get('distribution-map',  [PublicPortalController::class, 'distributionMap']);
+    Route::get('schools-directory', [PublicPortalController::class, 'schoolsDirectory']);
 });
 
 // ── Public SK Verification ──

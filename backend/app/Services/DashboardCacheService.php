@@ -110,6 +110,18 @@ class DashboardCacheService
     }
 
     /**
+     * Get public distribution map statistics (cached for 30 minutes).
+     */
+    public function getPublicDistributionMap(): array
+    {
+        $key = 'public:distribution-map';
+
+        return $this->remember($key, 1800, function () {
+            return $this->computeDistributionMap();
+        });
+    }
+
+    /**
      * Get all school id→name pairs, cached for 300 seconds.
      */
     public function getSchoolNames(): array
@@ -149,6 +161,10 @@ class DashboardCacheService
                 $this->forget("dashboard:{$endpoint}:{$role}:all");
             }
         }
+
+        // Invalidate public landing caches
+        $this->forget("public:landing-stats");
+        $this->forget("public:distribution-map");
     }
 
     // ─── Private compute methods ───────────────────────────────────────────────
@@ -518,7 +534,7 @@ class DashboardCacheService
     /**
      * Compute distribution map statistics by kecamatan in Kabupaten Cilacap.
      */
-    private function computeDistributionMap(User $user): array
+    private function computeDistributionMap(?User $user = null): array
     {
         $officialDistricts = [
             'Dayeuhluhur'   => '33.01.01',

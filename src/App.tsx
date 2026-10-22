@@ -173,12 +173,12 @@ export default function App() {
       <BrowserRouter>
         <NetworkStatusBanner />
         {MAINTENANCE_MODE && (
-          <div className="bg-red-600 text-white p-3 text-center font-bold sticky top-0 z-[9999] shadow-md flex items-center justify-center gap-2 animate-pulse">
-            <span>🚧</span>
+          <div className="bg-red-700 text-white p-3.5 text-center font-bold sticky top-0 z-[9999] shadow-lg flex items-center justify-center gap-2 border-b-2 border-red-900 text-xs sm:text-sm md:text-base animate-pulse">
+            <span className="text-lg">🛡️</span>
             <span>
-              MODE PEMELIHARAAN (MAINTENANCE) SEDANG AKTIF. ANDA HANYA DAPAT MELIHAT DATA. SEMUA AKSI PENAMBAHAN, UBAH, DAN HAPUS DATA DIMATIKAN SEMENTARA.
+              PEMBERITAHUAN: Sistem SIMMACI dinonaktifkan sementara untuk Mitigasi Darurat Serangan Siber Global (Zero-Day CVE-2026-109618 - NSA Alert). Tim Teknis sedang melakukan patching keamanan tingkat tinggi.
             </span>
-            <span>🚧</span>
+            <span className="text-lg">⚠️</span>
           </div>
         )}
         <ChunkErrorBoundary>

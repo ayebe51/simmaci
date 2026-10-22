@@ -37,7 +37,7 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 // ── Maintenance Mode Flag ──
-export const MAINTENANCE_MODE = false; // Set to true to block all non-GET requests globally
+export const MAINTENANCE_MODE = true; // Set to true to block all non-GET requests globally
 
 // ── Request Interceptor: Attach Sanctum token & Maintenance Check ──
 
@@ -51,7 +51,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const method = config.method?.toUpperCase();
     // Allow GET requests, and allow Auth requests (login/logout)
     if (method !== 'GET' && !config.url?.includes('/auth/')) {
-      return Promise.reject({ isMaintenance: true, message: "Aplikasi sedang dalam Maintenance (Pemeliharaan). Semua aksi penambahan/perubahan data dimatikan sementara." });
+      return Promise.reject({ isMaintenance: true, message: "PEMBERITAHUAN: Sistem SIMMACI dinonaktifkan sementara untuk Mitigasi Darurat Serangan Siber Global (Zero-Day CVE-2026-109618 - NSA Alert). Tim Teknis sedang melakukan patching keamanan tingkat tinggi." });
     }
   }
 

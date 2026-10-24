@@ -85,7 +85,9 @@ interface GeoFeature {
   projectedCenter?: [number, number];
 }
 
-export function DistributionMap() {
+import { publicPortalApi } from '@/features/public-portal/api/publicPortalApi';
+
+export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {}) {
   const [metric, setMetric] = useState<MapMetric>('schools');
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [hoveredDistrict, setHoveredDistrict] = useState<string | null>(null);
@@ -97,8 +99,8 @@ export function DistributionMap() {
 
   // 1. Fetch Aggregation Data from Backend
   const { data: apiData, isLoading: isLoadingStats, refetch } = useQuery({
-    queryKey: ['distribution-map-data'],
-    queryFn: () => dashboardApi.getDistributionMap(),
+    queryKey: [isPublic ? 'public-distribution-map-data' : 'distribution-map-data'],
+    queryFn: () => (isPublic ? publicPortalApi.getDistributionMap() : dashboardApi.getDistributionMap()),
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });

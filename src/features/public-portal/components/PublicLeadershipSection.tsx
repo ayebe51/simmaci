@@ -15,7 +15,7 @@ const LEADERS: LeaderProfile[] = [
   {
     name: 'H. Ali Sodiqin, S.Ag., M.Pd.I.',
     role: 'Ketua Pengurus Cabang',
-    subRole: 'LP Ma\'arif NU Kabupaten Cilacap',
+    subRole: 'LP Ma\'arif NU Cilacap',
     imageSrc: '/images/pimpinan/ketua.png',
     quote:
       'Transformasi digital SIMMACI adalah ikhtiar strategis dalam menghadirkan tata kelola pendidikan madrasah Ma\'arif yang transparan, akuntabel, dan bermartabat demi melahirkan generasi unggul Ahlussunnah wal Jama\'ah.',
@@ -24,7 +24,7 @@ const LEADERS: LeaderProfile[] = [
   {
     name: 'Ngadino, S.Pd.I., M.Pd.',
     role: 'Sekretaris Pengurus Cabang',
-    subRole: 'LP Ma\'arif NU Kabupaten Cilacap',
+    subRole: 'LP Ma\'arif NU Cilacap',
     imageSrc: '/images/pimpinan/sekretaris.png',
     quote:
       'Integrasi dan keandalan data pendidik, tenaga kependidikan, serta peserta didik menjadi pondasi utama kami dalam melayani, membina, dan memajukan seluruh satuan pendidikan Ma\'arif se-Kabupaten Cilacap.',
@@ -51,7 +51,7 @@ export const PublicLeadershipSection: React.FC = () => {
             Kepemimpinan & Amanat
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Pimpinan Pengurus Cabang LP Ma'arif NU
+            Pimpinan LP Ma'arif NU Cilacap
           </h2>
           <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
             Komitmen teguh dalam mengawal mutu pendidikan, digitalisasi layanan kelembagaan, dan pemberdayaan madrasah se-Kabupaten Cilacap.

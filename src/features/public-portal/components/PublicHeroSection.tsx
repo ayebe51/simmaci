@@ -25,7 +25,7 @@ export const PublicHeroSection: React.FC = () => {
           {/* Official Verification Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wider uppercase backdrop-blur-md">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Portal Basis Data Resmi • PC LP Ma'arif NU Kabupaten Cilacap</span>
+            <span>Portal Basis Data Resmi • LP Ma'arif NU Cilacap</span>
           </div>
 
           {/* Main Title */}
@@ -71,11 +71,11 @@ export const PublicHeroSection: React.FC = () => {
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kecamatan Terdata</div>
             </div>
             <div className="p-3 text-center">
-              <div className="text-2xl font-black text-emerald-400">MI • MTs</div>
+              <div className="text-2xl font-black text-emerald-400">MI</div>
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pendidikan Dasar</div>
             </div>
             <div className="p-3 text-center">
-              <div className="text-2xl font-black text-emerald-400">MA • SMK</div>
+              <div className="text-2xl font-black text-emerald-400">MTs • MA • SMK</div>
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pendidikan Menengah</div>
             </div>
             <div className="p-3 text-center">

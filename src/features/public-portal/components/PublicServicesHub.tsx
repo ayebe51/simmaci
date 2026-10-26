@@ -89,7 +89,7 @@ export const PublicServicesHub: React.FC = () => {
           <div className="flex items-center gap-4">
             <img src="/logo-maarif-hijau.png" alt="Logo Ma'arif" className="h-12 w-auto object-contain" />
             <div>
-              <h4 className="text-sm font-black text-slate-900">PC LP Ma'arif NU Kabupaten Cilacap</h4>
+              <h4 className="text-sm font-black text-slate-900">LP Ma'arif NU Cilacap</h4>
               <p className="text-xs text-slate-500">Sistem Informasi Manajemen Terpadu (SIMMACI)</p>
             </div>
           </div>
@@ -97,7 +97,7 @@ export const PublicServicesHub: React.FC = () => {
           <div className="text-xs text-slate-500 space-y-1.5 md:text-right">
             <p className="font-semibold text-slate-700 flex items-center justify-center md:justify-end gap-1.5">
               <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>Sekretariat PC LP Ma'arif NU Cilacap:</span>
+              <span>Sekretariat LP Ma'arif NU Cilacap:</span>
             </p>
             <p className="text-slate-600">
               Jl. Masjid No. 1/36, RT 01/RW 01, Kel. Sidanegara, Kec. Cilacap Tengah, Kab. Cilacap, Jawa Tengah 53223
@@ -114,7 +114,7 @@ export const PublicServicesHub: React.FC = () => {
               </span>
             </p>
             <p className="text-slate-400 text-[11px] pt-1">
-              © {new Date().getFullYear()} PC LP Ma'arif NU Kabupaten Cilacap. All rights reserved.
+              © {new Date().getFullYear()} LP Ma'arif NU Cilacap. All rights reserved.
             </p>
           </div>
         </footer>

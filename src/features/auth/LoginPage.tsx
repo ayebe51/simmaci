@@ -116,7 +116,15 @@ export default function LoginPage() {
             <Button variant="default" size="lg" className="w-full font-bold shadow-lg" type="submit" isLoading={loading}>
               Masuk ke Sistem
             </Button>
-            <div className="w-full text-center text-xs text-emerald-200/60 font-medium">
+            <div className="w-full flex items-center justify-between text-xs text-emerald-200/80 font-medium pt-1">
+              <Link to="/" className="hover:text-white transition-colors underline underline-offset-4">
+                &larr; Kembali ke Portal Publik
+              </Link>
+              <Link to="/ppdb" className="hover:text-white transition-colors underline underline-offset-4">
+                Portal PPDB
+              </Link>
+            </div>
+            <div className="w-full text-center text-[11px] text-emerald-200/50 font-medium pt-2 border-t border-white/10">
               <p>v1.0 &bull; Lembaga Pendidikan Ma'arif NU Cilacap</p>
             </div>
           </CardFooter>

@@ -1,0 +1,106 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { GraduationCap, FileCheck, ScanLine, ArrowRight, Building, Mail, Phone, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+export const PublicServicesHub: React.FC = () => {
+  const navigate = useNavigate();
+
+  const services = [
+    {
+      title: 'Penerimaan Peserta Didik Baru (PPDB)',
+      desc: 'Portal pendaftaran siswa baru secara online untuk seluruh madrasah MI, MTs, MA, dan SMK Ma\'arif se-Kabupaten Cilacap.',
+      link: '/ppdb',
+      btnLabel: 'Buka Portal PPDB',
+      icon: GraduationCap,
+      color: 'bg-emerald-600',
+    },
+    {
+      title: 'Verifikasi Keaslian SK & Dokumen',
+      desc: 'Cek validitas dan keaslian Surat Keputusan (SK) dan sertifikat resmi terbitan PC LP Ma\'arif NU Cilacap berbasis QR Code.',
+      link: '/verify/sk/sample',
+      btnLabel: 'Cek Verifikasi',
+      icon: FileCheck,
+      color: 'bg-blue-600',
+    },
+    {
+      title: 'Scanner Presensi Kegiatan & Acara',
+      desc: 'Akses scanner publik untuk presensi mandiri kegiatan rapat, seminar, dan acara resmi jam\'iyyah tanpa login.',
+      link: '/scan',
+      btnLabel: 'Buka Scanner',
+      icon: ScanLine,
+      color: 'bg-teal-600',
+    },
+  ];
+
+  return (
+    <section id="layanan" className="py-20 bg-white">
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+        {/* Title */}
+        <div className="text-center max-w-3xl mx-auto space-y-3">
+          <span className="text-xs font-black uppercase text-emerald-700 tracking-widest">
+            Akses Layanan Publik
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            Pusat Layanan Terpadu SIMMACI
+          </h2>
+          <p className="text-slate-600 text-sm sm:text-base">
+            Layanan digital resmi untuk masyarakat umum, wali murid, pendidik, dan pengurus madrasah.
+          </p>
+        </div>
+
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {services.map((srv) => {
+            const Icon = srv.icon;
+            return (
+              <div
+                key={srv.title}
+                className="p-8 rounded-3xl bg-slate-50 border border-slate-200/80 hover:border-emerald-300 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+              >
+                <div className="space-y-4">
+                  <div className={`w-14 h-14 rounded-2xl ${srv.color} text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300`}>
+                    <Icon className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 leading-snug">
+                    {srv.title}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                    {srv.desc}
+                  </p>
+                </div>
+
+                <div className="pt-6 mt-6 border-t border-slate-200/60">
+                  <Button
+                    onClick={() => navigate(srv.link)}
+                    className="w-full h-11 rounded-xl bg-white hover:bg-slate-900 text-slate-900 hover:text-white border border-slate-200 font-bold text-xs uppercase tracking-wider transition-all duration-200 shadow-2xs gap-2"
+                  >
+                    <span>{srv.btnLabel}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Official Footer */}
+        <footer className="pt-16 mt-16 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+          <div className="flex items-center gap-4">
+            <img src="/logo-maarif-hijau.png" alt="Logo Ma'arif" className="h-12 w-auto object-contain" />
+            <div>
+              <h4 className="text-sm font-black text-slate-900">PC LP Ma'arif NU Kabupaten Cilacap</h4>
+              <p className="text-xs text-slate-500">Sistem Informasi Manajemen Terpadu (SIMMACI)</p>
+            </div>
+          </div>
+
+          <div className="text-xs text-slate-500 space-y-1">
+            <p className="font-semibold text-slate-700">Sekretariat Pengurus Cabang:</p>
+            <p>Gedung PCNU Cilacap • Jl. Mas Sigit No. 27, Cilacap, Jawa Tengah</p>
+            <p className="text-slate-400">© {new Date().getFullYear()} PC LP Ma'arif NU Kabupaten Cilacap. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
+    </section>
+  );
+};

@@ -14,9 +14,10 @@ import SkeletonPage from "./components/common/SkeletonPage"
 import AppShell from "./components/layout/AppShell"
 import ProtectedLayout from "./components/layout/ProtectedLayout"
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Auth & Public ─────────────────────────────────────────────────────────────
 const LoginPage = lazyWithRetry(() => import("./features/auth/LoginPage"))
 const ChangePasswordPage = lazyWithRetry(() => import("./features/auth/ChangePasswordPage"))
+const PublicLandingPage = lazyWithRetry(() => import("./features/public-portal/PublicLandingPage"))
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 const DashboardPage = lazyWithRetry(() => import("./features/dashboard/DashboardPage"))
@@ -315,7 +316,7 @@ export default function App() {
               }
             />
 
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<PublicLandingPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>

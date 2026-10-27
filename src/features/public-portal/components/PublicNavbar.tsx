@@ -34,12 +34,12 @@ export const PublicNavbar: React.FC = () => {
           {/* Logo Brand */}
           <a href="#hero" className="flex items-center gap-3 group">
             <img
-              src="/logo-maarif-hijau.png"
+              src="/images/logo-maarif-hijau.png"
               alt="Logo LP Ma'arif NU Cilacap"
-              className="h-11 w-auto object-contain transition-transform group-hover:scale-105"
+              className="h-11 w-auto object-contain rounded-xs transition-transform group-hover:scale-105"
               onError={(e) => {
                 // Fallback icon if specific green logo missing
-                (e.target as HTMLImageElement).src = '/logo-icon.png';
+                (e.target as HTMLImageElement).src = '/logo-maarif-hijau.png';
               }}
             />
             <div className="flex flex-col">

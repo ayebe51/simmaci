@@ -87,7 +87,14 @@ export const PublicServicesHub: React.FC = () => {
         {/* Official Footer */}
         <footer className="pt-16 mt-16 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
           <div className="flex items-center gap-4">
-            <img src="/logo-maarif-hijau.png" alt="Logo Ma'arif" className="h-12 w-auto object-contain" />
+            <img
+              src="/images/logo-maarif-hijau.png"
+              alt="Logo LP Ma'arif NU"
+              className="h-12 w-auto object-contain rounded-xs"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/logo-maarif-hijau.png';
+              }}
+            />
             <div>
               <h4 className="text-sm font-black text-slate-900">LP Ma'arif NU Cilacap</h4>
               <p className="text-xs text-slate-500">Sistem Informasi Manajemen Terpadu (SIMMACI)</p>

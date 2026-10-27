@@ -128,7 +128,7 @@ export const PublicHeroSection: React.FC = () => {
           {/* Official Verification Badge dengan Micro-Float */}
           <motion.div variants={itemVariants} className="flex justify-center">
             <motion.div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wider uppercase backdrop-blur-md shadow-lg shadow-emerald-950/40"
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-bold tracking-wider uppercase backdrop-blur-md shadow-lg shadow-emerald-950/40"
               animate={{
                 y: [-2, 2, -2],
               }}
@@ -138,7 +138,14 @@ export const PublicHeroSection: React.FC = () => {
                 ease: 'easeInOut',
               }}
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <img
+                src="/images/logo-maarif-hijau.png"
+                alt="Logo LP Ma'arif NU"
+                className="w-4 h-4 object-contain rounded-xs shrink-0"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/logo-maarif-hijau.png';
+                }}
+              />
               <span>Portal Basis Data Resmi • LP Ma'arif NU Cilacap</span>
               <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
             </motion.div>

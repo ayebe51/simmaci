@@ -28,9 +28,15 @@ export const PublicSchoolsDirectory: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const schools = data?.data || [];
+  const schools: PublicSchoolItem[] = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray((data as any)?.items)
+    ? (data as any).items
+    : [];
   const totalPages = data?.last_page || 1;
-  const totalItems = data?.total || 0;
+  const totalItems = data?.total ?? (Array.isArray(data) ? data.length : schools.length);
 
   return (
     <section id="direktori" className="py-20 bg-slate-50 border-t border-slate-200/60">

@@ -68,11 +68,29 @@ apiClient.interceptors.response.use(
       return response;
     }
     // If the response follows Requirement 6 (Standardized API Response)
-    // and it was successful, we extract the nested 'data' field.
+    // and it was successful, we extract the nested 'data' field, preserving pagination if present.
     if (response.data && response.data.success === true && response.data.data !== undefined) {
+      if (
+        response.data.current_page !== undefined ||
+        response.data.last_page !== undefined ||
+        response.data.total !== undefined ||
+        response.data.meta !== undefined
+      ) {
+        return {
+          ...response,
+          data: {
+            data: response.data.data,
+            current_page: response.data.current_page,
+            last_page: response.data.last_page,
+            per_page: response.data.per_page,
+            total: response.data.total,
+            meta: response.data.meta,
+          },
+        };
+      }
       return {
         ...response,
-        data: response.data.data
+        data: response.data.data,
       };
     }
     return response;

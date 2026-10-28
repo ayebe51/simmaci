@@ -1,8 +1,11 @@
-import { useParams, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { verificationApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   FileCheck,
   XCircle,
@@ -54,6 +57,8 @@ interface SkData {
 
 export default function VerifySkPage() {
   const { nomor } = useParams<{ nomor: string }>();
+  const navigate = useNavigate();
+  const [retryNomor, setRetryNomor] = useState("");
 
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ["verify", "sk", nomor],
@@ -105,13 +110,47 @@ export default function VerifySkPage() {
               berstatus aktif.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-8 flex justify-center border-t border-slate-50 mt-4">
-            <Link
-              to="/"
-              className="text-xs font-black text-slate-400 hover:text-slate-800 flex items-center gap-2 uppercase tracking-widest transition-colors"
+          <CardContent className="p-8 space-y-5 border-t border-slate-50 mt-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (retryNomor.trim()) {
+                  navigate(`/verify/sk/${encodeURIComponent(retryNomor.trim())}`);
+                }
+              }}
+              className="space-y-2 text-left"
             >
-              <ArrowLeft className="w-4 h-4" /> Kembali ke Beranda
-            </Link>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                Periksa dengan Nomor SK Lain:
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={retryNomor}
+                  onChange={(e) => setRetryNomor(e.target.value)}
+                  placeholder="Contoh: 012/PC/LP.Maarif/..."
+                  className="h-10 text-xs rounded-xl"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-10 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shrink-0"
+                >
+                  Cek SK
+                </Button>
+              </div>
+            </form>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-bold text-slate-400">
+              <Link to="/verify" className="hover:text-emerald-700 transition-colors">
+                Portal Verifikasi Lengkap
+              </Link>
+              <Link
+                to="/"
+                className="hover:text-slate-800 flex items-center gap-1 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Beranda
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>

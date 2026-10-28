@@ -156,7 +156,7 @@ export const PublicHeroSection: React.FC = () => {
             variants={itemVariants}
             className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.15] text-white"
           >
-            Sistem Informasi Manajemen Terpadu{' '}
+            Sistem Informasi Manajemen{' '}
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-200 bg-clip-text text-transparent">
               Ma'arif NU Cilacap
             </span>
@@ -202,7 +202,7 @@ export const PublicHeroSection: React.FC = () => {
                 className="w-full sm:w-auto h-13 px-8 rounded-2xl bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold text-sm uppercase tracking-wider backdrop-blur-md gap-2.5 transition-all"
               >
                 <GraduationCap className="w-4 h-4 text-emerald-300" />
-                <span>Pusat PPDB Terpadu</span>
+                <span>Pusat Layanan PPDB</span>
                 <ArrowRight className="w-4 h-4 text-slate-400" />
               </Button>
             </motion.div>

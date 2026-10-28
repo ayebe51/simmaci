@@ -27,15 +27,17 @@ export default function PublicLandingPage() {
         {/* 5. Interactive Distribution Map */}
         <section id="sebaran" className="py-20 bg-white border-t border-slate-200/60">
           <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            <div className="text-center max-w-3xl mx-auto space-y-3">
+            <div className="text-center max-w-4xl mx-auto space-y-3">
               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 px-3 py-1 font-bold tracking-wider text-xs uppercase hover:bg-emerald-100">
                 Peta Sebaran Interaktif
               </Badge>
-              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight sm:whitespace-nowrap">
                 Sebaran Madrasah & Sekolah se-Kabupaten Cilacap
               </h2>
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                Visualisasi geografis sebaran satuan pendidikan formal (MI, MTs, MA, SMK), pendidik, dan peserta didik di 24 kecamatan.
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
+                Visualisasi geografis sebaran satuan pendidikan formal (MI, MTs, MA, SMK),
+                <br className="hidden sm:inline" />
+                {' '}serta persebaran pendidik dan peserta didik di 24 wilayah kecamatan.
               </p>
             </div>
 

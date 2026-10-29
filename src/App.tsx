@@ -79,6 +79,7 @@ const PublicScoreboardPage = lazyWithRetry(() => import("./features/events/publi
 const YayasanApprovalPage = lazyWithRetry(() => import("./features/approval/YayasanApprovalPage"))
 
 // ── Verification (public) ─────────────────────────────────────────────────────
+const PublicVerificationPortalPage = lazyWithRetry(() => import("./features/verification/PublicVerificationPortalPage"))
 const PublicVerificationPage = lazyWithRetry(() => import("./features/verification/PublicVerificationPage"))
 const VerifyTeacherPage = lazyWithRetry(() => import("./features/verification/VerifyTeacherPage"))
 const VerifyStudentPage = lazyWithRetry(() => import("./features/verification/VerifyStudentPage"))
@@ -185,6 +186,7 @@ export default function App() {
           <Routes>
 
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/verify" element={<PublicVerificationPortalPage />} />
             <Route path="/verify/:id" element={<PublicVerificationPage />} />
             <Route path="/verify/sk/:nomor" element={<VerifySkPage />} />
             <Route path="/verify/teacher/:nim" element={<VerifyTeacherPage />} />

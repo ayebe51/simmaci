@@ -18,7 +18,7 @@ export const PublicServicesHub: React.FC = () => {
     {
       title: 'Verifikasi Keaslian SK & Dokumen',
       desc: 'Cek validitas dan keaslian Surat Keputusan (SK) dan sertifikat resmi terbitan PC LP Ma\'arif NU Cilacap berbasis QR Code.',
-      link: '/verify/sk/sample',
+      link: '/verify',
       btnLabel: 'Cek Verifikasi',
       icon: FileCheck,
       color: 'bg-blue-600',
@@ -42,7 +42,7 @@ export const PublicServicesHub: React.FC = () => {
             Akses Layanan Publik
           </span>
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Pusat Layanan Terpadu SIMMACI
+            Pusat Layanan SIMMACI
           </h2>
           <p className="text-slate-600 text-sm sm:text-base">
             Layanan digital resmi untuk masyarakat umum, wali murid, pendidik, dan pengurus madrasah.
@@ -97,7 +97,7 @@ export const PublicServicesHub: React.FC = () => {
             />
             <div>
               <h4 className="text-sm font-black text-slate-900">LP Ma'arif NU Cilacap</h4>
-              <p className="text-xs text-slate-500">Sistem Informasi Manajemen Terpadu (SIMMACI)</p>
+              <p className="text-xs text-slate-500">Sistem Informasi Manajemen (SIMMACI)</p>
             </div>
           </div>
 

@@ -691,8 +691,12 @@ class SchoolController extends Controller
                 's.jumlah_siswa_per_kelas',
                 DB::raw('COALESCE(t.teachers_count, 0) as teachers_count'),
                 DB::raw('COALESCE(st.students_count, 0) as students_detail_count'),
-                DB::raw('CASE WHEN COALESCE(st.students_count, 0) > 0 THEN st.students_count ELSE COALESCE(s.jumlah_siswa_manual, 0) END as effective_students_count'),
-                DB::raw("CASE WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail' WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual' ELSE 'empty' END as student_source"),
+                DB::raw('GREATEST(COALESCE(st.students_count, 0), COALESCE(s.jumlah_siswa_manual, 0)) as effective_students_count'),
+                DB::raw("CASE 
+                    WHEN COALESCE(s.jumlah_siswa_manual, 0) >= COALESCE(st.students_count, 0) AND COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
+                    WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
+                    ELSE 'empty'
+                END as student_source"),
                 DB::raw("CASE 
                     WHEN COALESCE(t.teachers_count, 0) > 0 AND (COALESCE(st.students_count, 0) > 0 OR COALESCE(s.jumlah_siswa_manual, 0) > 0) THEN 'complete'
                     WHEN COALESCE(t.teachers_count, 0) > 0 THEN 'teachers_only'

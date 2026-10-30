@@ -173,7 +173,22 @@ class DashboardCacheService
     {
         // Use aggregate COUNT queries without loading model instances
         $teachers = DB::table('teachers')->whereNull('deleted_at')->where('is_active', true)->count();
-        $students = DB::table('students')->whereNull('deleted_at')->count();
+
+        // Calculate total students by taking the maximum between uploaded detail and manual input per school
+        $studentDetailCounts = DB::table('students')->whereNull('deleted_at')
+            ->selectRaw('school_id, count(*) as count')
+            ->groupBy('school_id')
+            ->pluck('count', 'school_id')
+            ->toArray();
+        $schoolManualCounts = DB::table('schools')->whereNull('deleted_at')
+            ->pluck('jumlah_siswa_manual', 'id')
+            ->toArray();
+        $allSchoolIds = array_unique(array_merge(array_keys($studentDetailCounts), array_keys($schoolManualCounts)));
+        $students = 0;
+        foreach ($allSchoolIds as $sId) {
+            $students += max((int) ($studentDetailCounts[$sId] ?? 0), (int) ($schoolManualCounts[$sId] ?? 0));
+        }
+
         $schools = DB::table('schools')->whereNull('deleted_at')->count();
 
         // Single query for all SK status counts
@@ -246,10 +261,12 @@ class DashboardCacheService
             ->where('is_active', true)
             ->first();
 
-        $students = DB::table('students')
+        $detailStudents = DB::table('students')
             ->whereNull('deleted_at')
             ->where('school_id', $schoolId)
             ->count();
+        $manualStudents = (int) (DB::table('schools')->where('id', $schoolId)->value('jumlah_siswa_manual') ?? 0);
+        $students = max($detailStudents, $manualStudents);
 
         // Single query for all SK status counts
         $skCounts = DB::table('sk_documents')
@@ -679,8 +696,8 @@ class DashboardCacheService
             $tendCount = (int) ($tendikCounts[$school->id] ?? 0);
             $detailStudents = (int) ($studentCounts[$school->id] ?? 0);
             $manualStudents = (int) ($school->jumlah_siswa_manual ?? 0);
-            $sCount = $detailStudents > 0 ? $detailStudents : $manualStudents;
-            $studentSource = $detailStudents > 0 ? 'detail' : ($manualStudents > 0 ? 'manual' : 'empty');
+            $sCount = max($detailStudents, $manualStudents);
+            $studentSource = ($sCount === 0) ? 'empty' : ($manualStudents >= $detailStudents && $manualStudents > 0 ? 'manual' : 'detail');
 
             $totalSchools++;
             $totalTeachers += $tCount;

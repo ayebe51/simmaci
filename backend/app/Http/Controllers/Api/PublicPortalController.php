@@ -73,7 +73,7 @@ class PublicPortalController extends Controller
             foreach ($schoolIds as $sId) {
                 $detail = (int) ($studentDetailCounts[$sId] ?? 0);
                 $manual = (int) ($schoolsManual[$sId] ?? 0);
-                $totalStudents += ($detail > 0 ? $detail : $manual);
+                $totalStudents += max($detail, $manual);
             }
 
             return [

@@ -66,8 +66,8 @@ export function ReadinessTable({
                 <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-wider text-center w-28">
                   Guru Aktif
                 </TableHead>
-                <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-wider text-center min-w-[220px]">
-                  Data Siswa
+                <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-wider text-center min-w-[260px]">
+                  Data Siswa (Max Rinci / Manual)
                 </TableHead>
                 <TableHead className="text-[10px] font-black uppercase text-slate-400 tracking-wider text-center w-36">
                   Status

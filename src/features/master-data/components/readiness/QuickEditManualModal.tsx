@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Edit3, GraduationCap, Calculator, Info } from 'lucide-react';
+import { Edit3, GraduationCap, Calculator, Info, Layers, Hash, Sparkles } from 'lucide-react';
 import { getGradeLevelsForSchool } from './readinessConstants';
 
 interface QuickEditManualModalProps {
@@ -32,6 +32,7 @@ export function QuickEditManualModal({
     return getGradeLevelsForSchool(editSchool.jenjang, editSchool.nama);
   }, [editSchool]);
 
+  const [inputMode, setInputMode] = useState<'per_class' | 'total'>('per_class');
   const [classCounts, setClassCounts] = useState<Record<string, string>>({});
   const [singleManualInput, setSingleManualInput] = useState<string>('');
 
@@ -43,7 +44,14 @@ export function QuickEditManualModal({
       return;
     }
 
+    const hasPerClassData =
+      editSchool.jumlah_siswa_per_kelas &&
+      Object.keys(editSchool.jumlah_siswa_per_kelas).length > 0;
+
+    // Default to per_class if grade levels are available, else direct total
     if (gradeLevels && gradeLevels.length > 0) {
+      setInputMode(hasPerClassData || !editSchool.jumlah_siswa_manual ? 'per_class' : 'total');
+
       const initialMap: Record<string, string> = {};
       const existing = editSchool.jumlah_siswa_per_kelas || {};
       gradeLevels.forEach((lvl) => {
@@ -52,15 +60,17 @@ export function QuickEditManualModal({
       });
       setClassCounts(initialMap);
     } else {
-      setSingleManualInput(
-        editSchool.jumlah_siswa_manual !== null && editSchool.jumlah_siswa_manual !== undefined
-          ? String(editSchool.jumlah_siswa_manual)
-          : ''
-      );
+      setInputMode('total');
     }
+
+    setSingleManualInput(
+      editSchool.jumlah_siswa_manual !== null && editSchool.jumlah_siswa_manual !== undefined
+        ? String(editSchool.jumlah_siswa_manual)
+        : ''
+    );
   }, [editSchool, gradeLevels]);
 
-  // Live Auto-Sum calculation
+  // Live Auto-Sum calculation for per-class mode
   const autoSum = useMemo(() => {
     if (!gradeLevels) return 0;
     let sum = 0;
@@ -80,11 +90,23 @@ export function QuickEditManualModal({
     }));
   };
 
+  // Current computed manual count based on active mode
+  const activeManualTotal = useMemo(() => {
+    if (inputMode === 'per_class') {
+      return autoSum;
+    }
+    const parsed = parseInt(singleManualInput.trim(), 10);
+    return isNaN(parsed) || parsed < 0 ? 0 : parsed;
+  }, [inputMode, autoSum, singleManualInput]);
+
+  const detailCount = editSchool?.students_detail_count ?? 0;
+  const effectivePreview = Math.max(detailCount, activeManualTotal);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editSchool) return;
 
-    if (gradeLevels && gradeLevels.length > 0) {
+    if (inputMode === 'per_class' && gradeLevels && gradeLevels.length > 0) {
       const numericMap: Record<string, number> = {};
       let hasAnyValue = false;
 
@@ -114,33 +136,86 @@ export function QuickEditManualModal({
 
   return (
     <Dialog open={Boolean(editSchool)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="rounded-2xl sm:max-w-[480px]">
+      <DialogContent className="rounded-2xl sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
             <Edit3 className="w-5 h-5 text-emerald-600" />
-            <span>Input Siswa Per Tingkat Kelas</span>
+            <span>Input Jumlah Siswa Manual</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Isi perkiraan jumlah siswa per rombel kelas untuk <b>{editSchool?.nama}</b>. Total akan dihitung otomatis.
+            Isi atau sesuaikan jumlah siswa manual untuk <b>{editSchool?.nama}</b>.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Info Card */}
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
-            <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-bold">Wilayah & Jenjang:</span>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+          {/* Info & Comparison Card */}
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800">
                 Kec. {editSchool?.kecamatan} • Jenjang {editSchool?.jenjang || '-'}
               </span>
+              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-extrabold">
+                {gradeLevels ? `${gradeLevels.length} Tingkat Kelas` : 'Agregat'}
+              </Badge>
             </div>
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-extrabold">
-              {gradeLevels ? `${gradeLevels.length} Tingkat Kelas` : 'Agregat'}
-            </Badge>
+
+            {/* Comparison Metrics: Detail vs Manual vs Effective Max */}
+            <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-200/60">
+              <div className="bg-white p-2 rounded-lg border border-slate-100 text-center">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Rinci Upload:</span>
+                <span className="text-sm font-black text-blue-700">{detailCount}</span>
+                <span className="text-[9px] text-slate-400 block">Siswa</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-100 text-center">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Input Manual:</span>
+                <span className="text-sm font-black text-amber-700">{activeManualTotal}</span>
+                <span className="text-[9px] text-slate-400 block">Siswa</span>
+              </div>
+              <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-200 text-center">
+                <span className="text-[9px] uppercase font-black text-emerald-800 block">Max Aktif:</span>
+                <span className="text-sm font-black text-emerald-800">{effectivePreview}</span>
+                <span className="text-[9px] text-emerald-600 font-bold block">Tampil di Peta</span>
+              </div>
+            </div>
           </div>
 
-          {/* Form Content: Per-Class Grid or Fallback */}
-          {gradeLevels && gradeLevels.length > 0 ? (
+          {/* Mode Selector Toggle (if grade levels supported) */}
+          {gradeLevels && gradeLevels.length > 0 && (
+            <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-1">
+              <button
+                type="button"
+                onClick={() => setInputMode('per_class')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  inputMode === 'per_class'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Rincian Per Kelas</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode('total');
+                  if (!singleManualInput && autoSum > 0) {
+                    setSingleManualInput(String(autoSum));
+                  }
+                }}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  inputMode === 'total'
+                    ? 'bg-white text-emerald-800 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <Hash className="w-3.5 h-3.5" />
+                <span>Total Langsung</span>
+              </button>
+            </div>
+          )}
+
+          {/* Mode 1: Per-Class Grid */}
+          {inputMode === 'per_class' && gradeLevels && gradeLevels.length > 0 ? (
             <div className="space-y-3">
               <label className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                 <GraduationCap className="w-4 h-4 text-emerald-600" />
@@ -167,15 +242,15 @@ export function QuickEditManualModal({
               {/* Real-time Auto-Sum Card */}
               <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-white p-3.5 rounded-xl border border-emerald-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
                     <Calculator className="w-4 h-4" />
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-black text-emerald-800 tracking-wider block">
-                      Total Jumlah Siswa (Otomatis):
+                      Total Siswa Manual (Auto-Sum):
                     </span>
                     <span className="text-xs text-slate-500 font-medium">
-                      Hasil penjumlahan seluruh tingkat kelas
+                      Penjumlahan otomatis seluruh rombel
                     </span>
                   </div>
                 </div>
@@ -188,24 +263,39 @@ export function QuickEditManualModal({
               </div>
             </div>
           ) : (
+            /* Mode 2: Single Total Direct Input */
             <div className="space-y-2">
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  Jenjang <b>{editSchool?.jenjang || editSchool?.nama}</b> tidak memiliki tingkatan kelas formal MI/MTs/MA/SMK. Masukkan total siswa secara manual di bawah ini jika diperlukan.
+              <label className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Hash className="w-4 h-4 text-emerald-600" />
+                <span>Total Jumlah Siswa Manual:</span>
+              </label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min="0"
+                  max="100000"
+                  placeholder="Masukkan total siswa (misal: 416)"
+                  value={singleManualInput}
+                  onChange={(e) => setSingleManualInput(e.target.value)}
+                  className="h-11 rounded-xl text-base font-extrabold text-slate-900 pl-4 pr-16 bg-white"
+                />
+                <span className="absolute right-3.5 top-3 text-xs font-bold text-slate-400">
+                  Siswa
                 </span>
               </div>
-              <Input
-                type="number"
-                min="0"
-                max="100000"
-                placeholder="Total Siswa"
-                value={singleManualInput}
-                onChange={(e) => setSingleManualInput(e.target.value)}
-                className="h-10 rounded-xl text-sm font-bold text-slate-900"
-              />
+              <p className="text-[11px] text-slate-500">
+                Masukkan total siswa riil sekolah secara langsung jika tidak ingin mengisi rincian per kelas.
+              </p>
             </div>
           )}
+
+          {/* Educational Note */}
+          <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-200/60 text-[11px] text-blue-900 flex items-start gap-2">
+            <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+            <span>
+              <b>Aturan Peta Sebaran & Statistik:</b> Sistem otomatis mengambil nilai terbanyak antara <b>data rinci upload ({detailCount} siswa)</b> dan <b>input manual ({activeManualTotal} siswa)</b>.
+            </span>
+          </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
             <Button
@@ -219,9 +309,9 @@ export function QuickEditManualModal({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-extrabold text-xs px-5 shadow-sm"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-extrabold text-xs px-5 shadow-xs"
             >
-              {isPending ? 'Menyimpan...' : 'Simpan Rincian Siswa'}
+              {isPending ? 'Menyimpan...' : 'Simpan Jumlah Siswa'}
             </Button>
           </DialogFooter>
         </form>

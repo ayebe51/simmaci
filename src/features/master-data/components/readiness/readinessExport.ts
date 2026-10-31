@@ -143,10 +143,13 @@ export function detectSchoolJenjang(school: SchoolReadinessItem): string {
 /**
  * Extracts student count for a specific class column
  */
+/**
+ * Extracts student count for a specific class column
+ * Priority: manual per-class input first; fallback to detail_students_per_kelas if manual not entered
+ */
 export function getGradeCount(
   school: SchoolReadinessItem,
-  col: GradeColumn,
-  isMiSd: boolean = false
+  col: GradeColumn
 ): number {
   let manualPerClass = school.jumlah_siswa_per_kelas;
   if (typeof manualPerClass === 'string') {
@@ -157,10 +160,11 @@ export function getGradeCount(
     }
   }
 
-  // Untuk tingkat MI/SD, data yang terpercaya adalah input manual (tidak mengambil data rinci yang belum valid)
-  const sources: (Record<string, number> | null | undefined)[] = isMiSd
-    ? [manualPerClass]
-    : [manualPerClass, school.detail_students_per_kelas];
+  // Data terpercaya adalah manual. Jika belum diinput manual, pakai data sebelumnya
+  const sources: (Record<string, number> | null | undefined)[] = [
+    manualPerClass,
+    school.detail_students_per_kelas,
+  ];
 
   const romanMap: Record<number, string> = {
     1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI',
@@ -228,6 +232,109 @@ export function getGradeCount(
   return 0;
 }
 
+export interface SiswaBaruThreeYears {
+  years: string[];
+  counts: [number, number, number];
+}
+
+/**
+ * Returns labels for 3 academic years back: e.g. ["2024/2025", "2025/2026", "2026/2027"]
+ */
+export function getNewStudentYears(academicYearStr: string): string[] {
+  const parts = academicYearStr.split(/[-/]/);
+  const startYear = parseInt(parts[0], 10) || 2026;
+  return [
+    `${startYear - 2}/${startYear - 1}`,
+    `${startYear - 1}/${startYear}`,
+    `${startYear}/${startYear + 1}`,
+  ];
+}
+
+/**
+ * Resolves new student intake for the past 3 academic years.
+ * Checks explicit keys first; otherwise maps cohorts from class grades.
+ */
+export function getSiswaBaruThreeYears(
+  school: SchoolReadinessItem,
+  config: JenjangConfig,
+  academicYear: string,
+  classCounts: number[],
+  effectiveTotal: number
+): SiswaBaruThreeYears {
+  const years = getNewStudentYears(academicYear);
+
+  let manualMap = school.jumlah_siswa_per_kelas;
+  if (typeof manualMap === 'string') {
+    try {
+      manualMap = JSON.parse(manualMap);
+    } catch {
+      manualMap = null;
+    }
+  }
+
+  const parseExplicit = (keys: string[]): number | null => {
+    if (!manualMap || typeof manualMap !== 'object') return null;
+    for (const k of keys) {
+      if (manualMap[k] !== undefined && manualMap[k] !== null && manualMap[k] !== '') {
+        const val = Number(manualMap[k]);
+        if (!isNaN(val) && val >= 0) return val;
+      }
+    }
+    return null;
+  };
+
+  const expY1 = parseExplicit(['siswa_baru_2024', 'siswa_baru_2024_2025', '2024/2025', '2024-2025', '2024']);
+  const expY2 = parseExplicit(['siswa_baru_2025', 'siswa_baru_2025_2026', '2025/2026', '2025-2026', '2025']);
+  const expY3 = parseExplicit(['siswa_baru_2026', 'siswa_baru_2026_2027', '2026/2027', '2026-2027', '2026']);
+
+  if (expY1 !== null || expY2 !== null || expY3 !== null) {
+    return {
+      years,
+      counts: [expY1 ?? 0, expY2 ?? 0, expY3 ?? 0],
+    };
+  }
+
+  // Derive by cohort entry grade:
+  // Year 3 (this academic year intake) = Entry class (Kls 7 / Kls 1 / Kls 10 / Kel. A)
+  // Year 2 (1 year ago intake) = Second class (Kls 8 / Kls 2 / Kls 11 / Kel. B)
+  // Year 1 (2 years ago intake) = Third class (Kls 9 / Kls 3 / Kls 12)
+  let y1 = 0;
+  let y2 = 0;
+  let y3 = 0;
+
+  if (config.code === 'MTS' || config.code === 'MA' || config.code === 'SMK') {
+    y3 = classCounts[0] || 0; // Kls 7 / 10
+    y2 = classCounts[1] || 0; // Kls 8 / 11
+    y1 = classCounts[2] || 0; // Kls 9 / 12
+  } else if (config.code === 'MI') {
+    y3 = classCounts[0] || 0; // Kls 1
+    y2 = classCounts[1] || 0; // Kls 2
+    y1 = classCounts[2] || 0; // Kls 3
+  } else if (config.code === 'RA') {
+    y3 = classCounts[0] || 0; // Kel. A
+    y2 = classCounts[1] || 0; // Kel. B
+    y1 = classCounts[1] || classCounts[0] || 0;
+  } else {
+    y3 = classCounts[0] || 0;
+    y2 = classCounts[1] || 0;
+    y1 = classCounts[2] || 0;
+  }
+
+  // Fallback: If no per-class distribution exists but total students is positive
+  if (y1 === 0 && y2 === 0 && y3 === 0 && effectiveTotal > 0) {
+    const divisor = config.classes.length || 3;
+    const est = Math.round(effectiveTotal / divisor);
+    y1 = est;
+    y2 = est;
+    y3 = est;
+  }
+
+  return {
+    years,
+    counts: [y1, y2, y3],
+  };
+}
+
 /**
  * Builds formatted Excel Worksheet matching official PC LP Ma'arif NU Cilacap standard
  */
@@ -238,7 +345,14 @@ function buildJenjangWorksheet(
 ): XLSX.WorkSheet {
   const ws: XLSX.WorkSheet = {};
   const numClasses = config.classes.length;
-  const totalCols = 8 + numClasses; // NO, Kec, Satpen, Alamat, Status, [classes], Jumlah, Kamad, WA
+  // Columns: NO, Kec, Satpen, Alamat, Status, [classes], Jumlah, [Siswa Baru Y1, Y2, Y3], Kamad, WA
+  const totalCols = 11 + numClasses;
+  const colJumlah = 5 + numClasses;
+  const colSiswaBaruStart = colJumlah + 1;
+  const colKamad = colJumlah + 4;
+  const colWa = colJumlah + 5;
+
+  const newStudentYears = getNewStudentYears(academicYear);
 
   // ── Cell Styles ──
   const title1Style = {
@@ -332,9 +446,15 @@ function buildJenjangWorksheet(
     setCell(2, 5 + i, '', headerStyle);
   }
 
-  setCell(2, 5 + numClasses, 'Jumlah', headerStyle);
-  setCell(2, 6 + numClasses, 'Nama Kepala Madrasah', headerStyle);
-  setCell(2, 7 + numClasses, 'Nomor WA Kepala Madrasah', headerStyle);
+  setCell(2, colJumlah, 'Jumlah', headerStyle);
+
+  // Jumlah Siswa Baru 3 Tahun Terakhir group header (span 3 cols)
+  setCell(2, colSiswaBaruStart, "Jumlah Siswa Baru\n(3 Tahun Terakhir)", headerStyle);
+  setCell(2, colSiswaBaruStart + 1, '', headerStyle);
+  setCell(2, colSiswaBaruStart + 2, '', headerStyle);
+
+  setCell(2, colKamad, 'Nama Kepala Madrasah', headerStyle);
+  setCell(2, colWa, 'Nomor WA Kepala Madrasah', headerStyle);
 
   // Row 3 (Excel Row 4) - Subheaders
   setCell(3, 0, '', headerStyle);
@@ -347,9 +467,15 @@ function buildJenjangWorksheet(
     setCell(3, 5 + i, cls.label, headerStyle);
   });
 
-  setCell(3, 5 + numClasses, '', headerStyle);
-  setCell(3, 6 + numClasses, '', headerStyle);
-  setCell(3, 7 + numClasses, '', headerStyle);
+  setCell(3, colJumlah, '', headerStyle);
+
+  // Siswa Baru 3 Tahun Subheaders
+  setCell(3, colSiswaBaruStart, newStudentYears[0], headerStyle);
+  setCell(3, colSiswaBaruStart + 1, newStudentYears[1], headerStyle);
+  setCell(3, colSiswaBaruStart + 2, newStudentYears[2], headerStyle);
+
+  setCell(3, colKamad, '', headerStyle);
+  setCell(3, colWa, '', headerStyle);
 
   const merges: XLSX.Range[] = [
     { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } }, // NO
@@ -357,14 +483,16 @@ function buildJenjangWorksheet(
     { s: { r: 2, c: 2 }, e: { r: 3, c: 2 } }, // Nama Satpen
     { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } }, // Alamat
     { s: { r: 2, c: 4 }, e: { r: 3, c: 4 } }, // Status
-    { s: { r: 2, c: 5 }, e: { r: 2, c: 5 + numClasses - 1 } }, // Jumlah Siswa span
-    { s: { r: 2, c: 5 + numClasses }, e: { r: 3, c: 5 + numClasses } }, // Jumlah
-    { s: { r: 2, c: 6 + numClasses }, e: { r: 3, c: 6 + numClasses } }, // Nama Kamad
-    { s: { r: 2, c: 7 + numClasses }, e: { r: 3, c: 7 + numClasses } }, // WA Kamad
+    { s: { r: 2, c: 5 }, e: { r: 2, c: colJumlah - 1 } }, // Jumlah Siswa span
+    { s: { r: 2, c: colJumlah }, e: { r: 3, c: colJumlah } }, // Jumlah
+    { s: { r: 2, c: colSiswaBaruStart }, e: { r: 2, c: colSiswaBaruStart + 2 } }, // Siswa Baru span 3 cols
+    { s: { r: 2, c: colKamad }, e: { r: 3, c: colKamad } }, // Nama Kamad
+    { s: { r: 2, c: colWa }, e: { r: 3, c: colWa } }, // WA Kamad
   ];
 
   // ── Data Rows ──
   const classSums = new Array(numClasses).fill(0);
+  const sbYearSums = [0, 0, 0];
   let grandTotalStudents = 0;
 
   schools.forEach((s, idx) => {
@@ -376,23 +504,24 @@ function buildJenjangWorksheet(
     setCell(r, 3, s.alamat || '-', dataStyleLeft);
     setCell(r, 4, s.status_jamiyyah || "Jam'iyyah", dataStyleCenter);
 
-    const isMiSd = config.code === 'MI' || detectSchoolJenjang(s) === 'MI';
-    const counts = config.classes.map((cls) => getGradeCount(s, cls, isMiSd));
+    const counts = config.classes.map((cls) => getGradeCount(s, cls));
     const sumOfClasses = counts.reduce((a, b) => a + b, 0);
 
+    // Data terpercaya adalah manual. Jika belum diinput manual, pakai data sebelumnya
     let effectiveTotal = 0;
-    if (isMiSd) {
-      // Untuk tingkat MI/SD, data yang terpercaya adalah input manual
-      if (s.jumlah_siswa_manual && s.jumlah_siswa_manual > 0) {
-        effectiveTotal = s.jumlah_siswa_manual;
-      } else if (sumOfClasses > 0) {
-        effectiveTotal = sumOfClasses;
-      } else {
-        effectiveTotal = 0;
-      }
+    if (s.jumlah_siswa_manual && s.jumlah_siswa_manual > 0) {
+      effectiveTotal = s.jumlah_siswa_manual;
+    } else if (sumOfClasses > 0) {
+      effectiveTotal = sumOfClasses;
+    } else if (s.effective_students_count && s.effective_students_count > 0) {
+      effectiveTotal = s.effective_students_count;
+    } else if (s.students_detail_count && s.students_detail_count > 0) {
+      effectiveTotal = s.students_detail_count;
     } else {
-      effectiveTotal = s.effective_students_count || sumOfClasses || 0;
+      effectiveTotal = 0;
     }
+
+    const sbData = getSiswaBaruThreeYears(s, config, academicYear, counts, effectiveTotal);
 
     // Fill class counts
     counts.forEach((cVal, cIdx) => {
@@ -407,14 +536,23 @@ function buildJenjangWorksheet(
 
     // Jumlah total
     grandTotalStudents += effectiveTotal;
-    setCell(r, 5 + numClasses, effectiveTotal, dataStyleCenter, 'n');
+    setCell(r, colJumlah, effectiveTotal, dataStyleCenter, 'n');
+
+    // Siswa Baru 3 Tahun Terakhir
+    sbYearSums[0] += sbData.counts[0];
+    sbYearSums[1] += sbData.counts[1];
+    sbYearSums[2] += sbData.counts[2];
+
+    setCell(r, colSiswaBaruStart, sbData.counts[0], dataStyleCenter, 'n');
+    setCell(r, colSiswaBaruStart + 1, sbData.counts[1], dataStyleCenter, 'n');
+    setCell(r, colSiswaBaruStart + 2, sbData.counts[2], dataStyleCenter, 'n');
 
     // Kepala Madrasah
-    setCell(r, 6 + numClasses, s.kepala_madrasah || '-', dataStyleLeft);
+    setCell(r, colKamad, s.kepala_madrasah || '-', dataStyleLeft);
 
     // Nomor WA Kepala Madrasah (stored as string to protect leading zeroes)
     const rawPhone = s.kepala_whatsapp || s.telepon || '-';
-    setCell(r, 7 + numClasses, rawPhone, dataStyleCenter, 's');
+    setCell(r, colWa, rawPhone, dataStyleCenter, 's');
   });
 
   // ── Summary / Total Row ──
@@ -431,12 +569,17 @@ function buildJenjangWorksheet(
     setCell(totalRowIdx, 5 + cIdx, sumVal, totalNumStyle, 'n');
   });
 
-  // Grand total
-  setCell(totalRowIdx, 5 + numClasses, grandTotalStudents, totalNumStyle, 'n');
+  // Grand total active students
+  setCell(totalRowIdx, colJumlah, grandTotalStudents, totalNumStyle, 'n');
+
+  // Sums for Siswa Baru 3 Tahun
+  setCell(totalRowIdx, colSiswaBaruStart, sbYearSums[0], totalNumStyle, 'n');
+  setCell(totalRowIdx, colSiswaBaruStart + 1, sbYearSums[1], totalNumStyle, 'n');
+  setCell(totalRowIdx, colSiswaBaruStart + 2, sbYearSums[2], totalNumStyle, 'n');
 
   // Empty cells for Kamad & WA
-  setCell(totalRowIdx, 6 + numClasses, '', totalNumStyle);
-  setCell(totalRowIdx, 7 + numClasses, '', totalNumStyle);
+  setCell(totalRowIdx, colKamad, '', totalNumStyle);
+  setCell(totalRowIdx, colWa, '', totalNumStyle);
 
   // ── Sheet Dimensions & Metadata ──
   ws['!ref'] = XLSX.utils.encode_range({
@@ -454,6 +597,9 @@ function buildJenjangWorksheet(
     { wch: 18 }, // Status
     ...config.classes.map(() => ({ wch: 10 })), // Classes
     { wch: 12 }, // Jumlah
+    { wch: 13 }, // Siswa Baru Th 1 (2024/2025)
+    { wch: 13 }, // Siswa Baru Th 2 (2025/2026)
+    { wch: 13 }, // Siswa Baru Th 3 (2026/2027)
     { wch: 28 }, // Kepala
     { wch: 22 }, // WA
   ];

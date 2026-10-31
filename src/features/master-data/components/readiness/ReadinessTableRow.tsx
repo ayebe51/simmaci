@@ -90,28 +90,19 @@ export function ReadinessTableRow({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {item.student_source === 'manual' ? (
                     <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[11px] font-black hover:bg-amber-100">
-                      📝 {item.effective_students_count} Siswa {isMiSd ? '(Manual Terpercaya)' : '(Manual)'}
+                      📝 {item.effective_students_count} Siswa (Manual Terpercaya)
                     </Badge>
                   ) : (
                     <Badge className="bg-blue-100 text-blue-900 border-blue-300 text-[11px] font-black hover:bg-blue-100">
-                      🎓 {item.effective_students_count} Siswa (Rinci)
+                      🎓 {item.effective_students_count} Siswa (Data Tersedia)
                     </Badge>
                   )}
                   {item.students_detail_count > 0 && item.jumlah_siswa_manual && item.jumlah_siswa_manual > 0 && (
                     <span
-                      className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${
-                        isMiSd
-                          ? 'text-amber-800 bg-amber-50 border-amber-300'
-                          : 'text-emerald-800 bg-emerald-50 border-emerald-200'
-                      }`}
-                      title={isMiSd ? 'Untuk MI/SD data terpercaya adalah input manual' : 'Mengambil nilai tertinggi'}
+                      className="text-[9px] font-black px-1.5 py-0.5 rounded border text-amber-800 bg-amber-50 border-amber-300"
+                      title="Data input manual dijadikan acuan terpercaya"
                     >
-                      {isMiSd ? 'Prioritas Manual (MI)' : 'Max Aktif'}
-                    </span>
-                  )}
-                  {isMiSd && item.students_detail_count > 0 && (!item.jumlah_siswa_manual || item.jumlah_siswa_manual <= 0) && (
-                    <span className="text-[9px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                      Perlu Input Manual
+                      Prioritas Manual
                     </span>
                   )}
                 </div>
@@ -120,20 +111,11 @@ export function ReadinessTableRow({
                 <div className="text-[10px] text-slate-500 font-medium pt-0.5">
                   {item.students_detail_count > 0 && item.jumlah_siswa_manual && item.jumlah_siswa_manual > 0 ? (
                     <span>
-                      {isMiSd ? (
-                        <>Manual (Terpercaya): <b>{item.jumlah_siswa_manual}</b> • Rinci: <span className="text-slate-400">{item.students_detail_count}</span></>
-                      ) : (
-                        <>Rinci: <b>{item.students_detail_count}</b> • Manual: <b>{item.jumlah_siswa_manual}</b></>
-                      )}
+                      Manual (Terpercaya): <b>{item.jumlah_siswa_manual}</b> • Rinci: <span className="text-slate-400">{item.students_detail_count}</span>
                     </span>
                   ) : item.students_detail_count > 0 ? (
                     <span>
-                      Rinci: <b>{item.students_detail_count}</b> •{' '}
-                      {isMiSd ? (
-                        <span className="text-rose-600 font-bold">Manual: Belum Diinput</span>
-                      ) : (
-                        <span className="text-slate-400">Manual: -</span>
-                      )}
+                      Data Tersedia (Rinci): <b>{item.students_detail_count}</b> siswa • <span className="text-slate-400">Manual: -</span>
                     </span>
                   ) : item.jumlah_siswa_manual && item.jumlah_siswa_manual > 0 ? (
                     <span

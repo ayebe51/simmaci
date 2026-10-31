@@ -585,7 +585,7 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
             {metric === 'students' && (
               <div className="mt-2 text-[11px] text-blue-700 bg-blue-50/80 border border-blue-200/60 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 font-medium">
                 <Info className="w-3.5 h-3.5 shrink-0 text-blue-600" />
-                <span>Khusus jenjang <b>MI (Madrasah Ibtidaiyah)</b>, data siswa dihitung berdasarkan <b>input manual resmi</b>.</span>
+                <span>Data siswa memprioritaskan input manual resmi terverifikasi, atau menggunakan data riil sebelumnya jika belum diinput manual.</span>
               </div>
             )}
           </div>
@@ -958,27 +958,22 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
                               👨‍🏫 <b>{sch.teachers_count}</b> Guru • <b>{sch.tendiks_count}</b> Tendik
                             </span>
                             {(() => {
-                              const rawJ = sch.jenjang?.toUpperCase() || '';
-                              const rawN = sch.nama?.toUpperCase() || '';
-                              const isMi = rawJ.includes('MI') || rawJ.includes('SD') || rawN.startsWith('MI ');
                               if (sch.students_count > 0) {
                                 return (
                                   <span
                                     className={`font-bold px-1.5 py-0.5 rounded border ${
-                                      isMi
+                                      sch.students_source === 'manual'
                                         ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                                        : sch.students_source === 'manual'
-                                        ? 'text-amber-700 bg-amber-50 border-amber-200'
                                         : 'text-blue-700 bg-blue-50 border-blue-200'
                                     }`}
                                   >
-                                    {isMi ? '📝' : sch.students_source === 'manual' ? '📝' : '🎓'} {sch.students_count} Siswa {isMi ? '(Manual)' : ''}
+                                    {sch.students_source === 'manual' ? '📝' : '🎓'} {sch.students_count} Siswa {sch.students_source === 'manual' ? '(Manual)' : ''}
                                   </span>
                                 );
                               }
                               return (
-                                <span className={`italic ${isMi ? 'text-amber-600 font-semibold' : 'text-slate-400'}`}>
-                                  {isMi ? 'Perlu input manual' : 'Belum ada siswa'}
+                                <span className="italic text-slate-400">
+                                  Belum ada siswa
                                 </span>
                               );
                             })()}

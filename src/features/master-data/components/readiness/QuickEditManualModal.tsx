@@ -35,12 +35,18 @@ export function QuickEditManualModal({
   const [inputMode, setInputMode] = useState<'per_class' | 'total'>('per_class');
   const [classCounts, setClassCounts] = useState<Record<string, string>>({});
   const [singleManualInput, setSingleManualInput] = useState<string>('');
+  const [siswaBaruCounts, setSiswaBaruCounts] = useState<{ y1: string; y2: string; y3: string }>({
+    y1: '',
+    y2: '',
+    y3: '',
+  });
 
   // Initialize inputs whenever editSchool changes
   useEffect(() => {
     if (!editSchool) {
       setClassCounts({});
       setSingleManualInput('');
+      setSiswaBaruCounts({ y1: '', y2: '', y3: '' });
       return;
     }
 
@@ -48,12 +54,13 @@ export function QuickEditManualModal({
       editSchool.jumlah_siswa_per_kelas &&
       Object.keys(editSchool.jumlah_siswa_per_kelas).length > 0;
 
+    const existing = editSchool.jumlah_siswa_per_kelas || {};
+
     // Default to per_class if grade levels are available, else direct total
     if (gradeLevels && gradeLevels.length > 0) {
       setInputMode(hasPerClassData || !editSchool.jumlah_siswa_manual ? 'per_class' : 'total');
 
       const initialMap: Record<string, string> = {};
-      const existing = editSchool.jumlah_siswa_per_kelas || {};
       gradeLevels.forEach((lvl) => {
         const val = existing[lvl] ?? existing[lvl.replace('Kelas ', '')] ?? '';
         initialMap[lvl] = val !== '' && val !== null && val !== undefined ? String(val) : '';
@@ -62,6 +69,12 @@ export function QuickEditManualModal({
     } else {
       setInputMode('total');
     }
+
+    setSiswaBaruCounts({
+      y1: existing.siswa_baru_2024 !== undefined && existing.siswa_baru_2024 !== null ? String(existing.siswa_baru_2024) : '',
+      y2: existing.siswa_baru_2025 !== undefined && existing.siswa_baru_2025 !== null ? String(existing.siswa_baru_2025) : '',
+      y3: existing.siswa_baru_2026 !== undefined && existing.siswa_baru_2026 !== null ? String(existing.siswa_baru_2026) : '',
+    });
 
     setSingleManualInput(
       editSchool.jumlah_siswa_manual !== null && editSchool.jumlah_siswa_manual !== undefined
@@ -113,11 +126,8 @@ export function QuickEditManualModal({
   }, [editSchool]);
 
   const effectivePreview = useMemo(() => {
-    if (isMiSd) {
-      return activeManualTotal > 0 ? activeManualTotal : detailCount;
-    }
-    return Math.max(detailCount, activeManualTotal);
-  }, [isMiSd, detailCount, activeManualTotal]);
+    return activeManualTotal > 0 ? activeManualTotal : detailCount;
+  }, [detailCount, activeManualTotal]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +148,21 @@ export function QuickEditManualModal({
         }
       });
 
-      if (!hasAnyValue) {
+      // Optional Siswa Baru 3 Tahun overrides
+      if (siswaBaruCounts.y1.trim() !== '') {
+        const p1 = parseInt(siswaBaruCounts.y1.trim(), 10);
+        if (!isNaN(p1) && p1 >= 0) numericMap['siswa_baru_2024'] = p1;
+      }
+      if (siswaBaruCounts.y2.trim() !== '') {
+        const p2 = parseInt(siswaBaruCounts.y2.trim(), 10);
+        if (!isNaN(p2) && p2 >= 0) numericMap['siswa_baru_2025'] = p2;
+      }
+      if (siswaBaruCounts.y3.trim() !== '') {
+        const p3 = parseInt(siswaBaruCounts.y3.trim(), 10);
+        if (!isNaN(p3) && p3 >= 0) numericMap['siswa_baru_2026'] = p3;
+      }
+
+      if (!hasAnyValue && Object.keys(numericMap).length === 0) {
         // All emptied -> clear manual students
         onSubmit({ total: null, perClass: null });
       } else {
@@ -190,21 +214,14 @@ export function QuickEditManualModal({
               </div>
               <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-200 text-center">
                 <span className="text-[9px] uppercase font-black text-emerald-800 block">
-                  {isMiSd ? 'Prioritas Efektif:' : 'Max Aktif:'}
+                  Data Efektif:
                 </span>
                 <span className="text-sm font-black text-emerald-800">{effectivePreview}</span>
                 <span className="text-[9px] text-emerald-600 font-bold block">
-                  {isMiSd ? 'Rujukan Utama MI' : 'Tampil di Peta'}
+                  {activeManualTotal > 0 ? 'Manual Terpercaya' : detailCount > 0 ? 'Data Tersedia (Rinci)' : 'Belum Ada Data'}
                 </span>
               </div>
             </div>
-
-            {isMiSd && (
-              <div className="p-2 rounded-lg bg-amber-50/90 border border-amber-200 text-[10px] text-amber-900 font-medium flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>Untuk tingkat MI/SD, data jumlah siswa yang terpercaya dan menjadi rujukan utama pendataan adalah hasil input manual per kelas.</span>
-              </div>
-            )}
           </div>
 
           {/* Mode Selector Toggle (if grade levels supported) */}
@@ -317,11 +334,57 @@ export function QuickEditManualModal({
             </div>
           )}
 
+          {/* Section: Siswa Baru 3 Tahun Terakhir (Optional Override) */}
+          <div className="bg-slate-50/70 p-3 rounded-xl border border-slate-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Siswa Baru 3 Tahun Terakhir (Opsional):</span>
+              </span>
+              <span className="text-[10px] text-slate-400">Otomatis terisi jika kosong</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 block">2024/2025</span>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Auto"
+                  value={siswaBaruCounts.y1}
+                  onChange={(e) => setSiswaBaruCounts((p) => ({ ...p, y1: e.target.value }))}
+                  className="h-8 rounded-lg text-xs font-bold bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 block">2025/2026</span>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Auto"
+                  value={siswaBaruCounts.y2}
+                  onChange={(e) => setSiswaBaruCounts((p) => ({ ...p, y2: e.target.value }))}
+                  className="h-8 rounded-lg text-xs font-bold bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 block">2026/2027</span>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Auto"
+                  value={siswaBaruCounts.y3}
+                  onChange={(e) => setSiswaBaruCounts((p) => ({ ...p, y3: e.target.value }))}
+                  className="h-8 rounded-lg text-xs font-bold bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Educational Note */}
           <div className="p-2.5 bg-blue-50/70 rounded-xl border border-blue-200/60 text-[11px] text-blue-900 flex items-start gap-2">
             <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <span>
-              <b>Aturan Peta Sebaran & Statistik:</b> Sistem otomatis mengambil nilai terbanyak antara <b>data rinci upload ({detailCount} siswa)</b> dan <b>input manual ({activeManualTotal} siswa)</b>.
+              <b>Aturan Terpercaya:</b> Data input manual dijadikan acuan terpercaya utama. Jika madrasah belum diinput manual, sistem otomatis menggunakan data siswa yang sudah ada sebelumnya ({detailCount} siswa) sehingga data tetap lengkap.
             </span>
           </div>
 

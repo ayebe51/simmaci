@@ -223,7 +223,8 @@ class SchoolController extends Controller
         if (isset($updateData['jumlah_siswa_per_kelas']) && is_array($updateData['jumlah_siswa_per_kelas'])) {
             $sum = 0;
             $hasVal = false;
-            foreach ($updateData['jumlah_siswa_per_kelas'] as $v) {
+            foreach ($updateData['jumlah_siswa_per_kelas'] as $k => $v) {
+                if (str_starts_with((string) $k, 'siswa_baru_')) continue;
                 if ($v !== null && $v !== '') {
                     $sum += (int) $v;
                     $hasVal = true;
@@ -692,27 +693,14 @@ class SchoolController extends Controller
                 DB::raw('COALESCE(t.teachers_count, 0) as teachers_count'),
                 DB::raw('COALESCE(st.students_count, 0) as students_detail_count'),
                 DB::raw("CASE 
-                    WHEN (UPPER(COALESCE(s.jenjang, '')) IN ('MI', 'SD') OR UPPER(s.nama) LIKE 'MI %' OR UPPER(s.nama) LIKE '%IBTIDAIYAH%') THEN
-                        CASE 
-                            WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN s.jumlah_siswa_manual
-                            ELSE COALESCE(st.students_count, 0)
-                        END
-                    ELSE
-                        GREATEST(COALESCE(st.students_count, 0), COALESCE(s.jumlah_siswa_manual, 0))
+                    WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN s.jumlah_siswa_manual
+                    WHEN COALESCE(st.students_count, 0) > 0 THEN st.students_count
+                    ELSE 0
                 END as effective_students_count"),
                 DB::raw("CASE 
-                    WHEN (UPPER(COALESCE(s.jenjang, '')) IN ('MI', 'SD') OR UPPER(s.nama) LIKE 'MI %' OR UPPER(s.nama) LIKE '%IBTIDAIYAH%') THEN
-                        CASE 
-                            WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
-                            WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
-                            ELSE 'empty'
-                        END
-                    ELSE
-                        CASE 
-                            WHEN COALESCE(s.jumlah_siswa_manual, 0) >= COALESCE(st.students_count, 0) AND COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
-                            WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
-                            ELSE 'empty'
-                        END
+                    WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
+                    WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
+                    ELSE 'empty'
                 END as student_source"),
                 DB::raw("CASE 
                     WHEN COALESCE(t.teachers_count, 0) > 0 AND (COALESCE(st.students_count, 0) > 0 OR COALESCE(s.jumlah_siswa_manual, 0) > 0) THEN 'complete'
@@ -923,6 +911,7 @@ class SchoolController extends Controller
             $sum = 0;
             $hasAnyValue = false;
             foreach ($perClassData as $k => $v) {
+                if (str_starts_with((string) $k, 'siswa_baru_')) continue;
                 if ($v !== null && $v !== '') {
                     $val = (int) $v;
                     $sum += $val;

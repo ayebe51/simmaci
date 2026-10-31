@@ -185,14 +185,12 @@ class DashboardCacheService
             ->get();
         $students = 0;
         foreach ($schoolRows as $sch) {
-            $rawJenjang = strtoupper(trim($sch->jenjang ?? ''));
-            $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($sch->nama ?? ''), 'MI ');
             $manualCount = (int) ($sch->jumlah_siswa_manual ?? 0);
             $detailCount = (int) ($studentDetailCounts[$sch->id] ?? 0);
-            if ($isMiSd) {
-                $students += ($manualCount > 0 ? $manualCount : 0);
-            } else {
-                $students += max($detailCount, $manualCount);
+            if ($manualCount > 0) {
+                $students += $manualCount;
+            } elseif ($detailCount > 0) {
+                $students += $detailCount;
             }
         }
 
@@ -274,12 +272,12 @@ class DashboardCacheService
             ->count();
         $schoolRow = DB::table('schools')->where('id', $schoolId)->first(['jenjang', 'nama', 'jumlah_siswa_manual']);
         $manualStudents = (int) ($schoolRow->jumlah_siswa_manual ?? 0);
-        $rawJenjang = strtoupper(trim($schoolRow->jenjang ?? ''));
-        $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($schoolRow->nama ?? ''), 'MI ');
-        if ($isMiSd) {
-            $students = $manualStudents > 0 ? $manualStudents : 0;
+        if ($manualStudents > 0) {
+            $students = $manualStudents;
+        } elseif ($detailStudents > 0) {
+            $students = $detailStudents;
         } else {
-            $students = max($detailStudents, $manualStudents);
+            $students = 0;
         }
 
         // Single query for all SK status counts
@@ -710,15 +708,15 @@ class DashboardCacheService
             $tendCount = (int) ($tendikCounts[$school->id] ?? 0);
             $detailStudents = (int) ($studentCounts[$school->id] ?? 0);
             $manualStudents = (int) ($school->jumlah_siswa_manual ?? 0);
-            $rawJenjang = strtoupper(trim($school->jenjang ?? ''));
-            $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($school->nama ?? ''), 'MI ');
-            if ($isMiSd) {
-                // Untuk jenjang MI, yang dihitung pada peta sebaran adalah input manual
-                $sCount = $manualStudents > 0 ? $manualStudents : 0;
-                $studentSource = $manualStudents > 0 ? 'manual' : 'empty';
+            if ($manualStudents > 0) {
+                $sCount = $manualStudents;
+                $studentSource = 'manual';
+            } elseif ($detailStudents > 0) {
+                $sCount = $detailStudents;
+                $studentSource = 'detail';
             } else {
-                $sCount = max($detailStudents, $manualStudents);
-                $studentSource = ($sCount === 0) ? 'empty' : ($manualStudents >= $detailStudents && $manualStudents > 0 ? 'manual' : 'detail');
+                $sCount = 0;
+                $studentSource = 'empty';
             }
 
             $totalSchools++;

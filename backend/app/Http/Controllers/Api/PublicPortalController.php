@@ -73,15 +73,12 @@ class PublicPortalController extends Controller
             $totalStudents = 0;
             foreach ($schoolIds as $sId) {
                 $sch = $schoolsMeta->get($sId);
-                $rawJenjang = strtoupper(trim($sch->jenjang ?? ''));
-                $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($sch->nama ?? ''), 'MI ');
                 $detail = (int) ($studentDetailCounts[$sId] ?? 0);
-                $manual = (int) ($sch->jumlah_siswa_manual ?? 0);
-
-                if ($isMiSd) {
-                    $totalStudents += ($manual > 0 ? $manual : 0);
-                } else {
-                    $totalStudents += max($detail, $manual);
+                $manual = (int) ($sch?->jumlah_siswa_manual ?? 0);
+                if ($manual > 0) {
+                    $totalStudents += $manual;
+                } elseif ($detail > 0) {
+                    $totalStudents += $detail;
                 }
             }
 

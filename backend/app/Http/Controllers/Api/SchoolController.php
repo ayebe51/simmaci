@@ -691,11 +691,28 @@ class SchoolController extends Controller
                 's.jumlah_siswa_per_kelas',
                 DB::raw('COALESCE(t.teachers_count, 0) as teachers_count'),
                 DB::raw('COALESCE(st.students_count, 0) as students_detail_count'),
-                DB::raw('GREATEST(COALESCE(st.students_count, 0), COALESCE(s.jumlah_siswa_manual, 0)) as effective_students_count'),
                 DB::raw("CASE 
-                    WHEN COALESCE(s.jumlah_siswa_manual, 0) >= COALESCE(st.students_count, 0) AND COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
-                    WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
-                    ELSE 'empty'
+                    WHEN (UPPER(COALESCE(s.jenjang, '')) IN ('MI', 'SD') OR UPPER(s.nama) LIKE 'MI %' OR UPPER(s.nama) LIKE '%IBTIDAIYAH%') THEN
+                        CASE 
+                            WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN s.jumlah_siswa_manual
+                            ELSE COALESCE(st.students_count, 0)
+                        END
+                    ELSE
+                        GREATEST(COALESCE(st.students_count, 0), COALESCE(s.jumlah_siswa_manual, 0))
+                END as effective_students_count"),
+                DB::raw("CASE 
+                    WHEN (UPPER(COALESCE(s.jenjang, '')) IN ('MI', 'SD') OR UPPER(s.nama) LIKE 'MI %' OR UPPER(s.nama) LIKE '%IBTIDAIYAH%') THEN
+                        CASE 
+                            WHEN COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
+                            WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
+                            ELSE 'empty'
+                        END
+                    ELSE
+                        CASE 
+                            WHEN COALESCE(s.jumlah_siswa_manual, 0) >= COALESCE(st.students_count, 0) AND COALESCE(s.jumlah_siswa_manual, 0) > 0 THEN 'manual'
+                            WHEN COALESCE(st.students_count, 0) > 0 THEN 'detail'
+                            ELSE 'empty'
+                        END
                 END as student_source"),
                 DB::raw("CASE 
                     WHEN COALESCE(t.teachers_count, 0) > 0 AND (COALESCE(st.students_count, 0) > 0 OR COALESCE(s.jumlah_siswa_manual, 0) > 0) THEN 'complete'
@@ -810,8 +827,40 @@ class SchoolController extends Controller
             });
         }
 
-        $perPage = min(max(1, $request->integer('per_page', 20)), 500);
+        $perPage = min(max(1, $request->integer('per_page', 20)), 2000);
         $paginated = $query->orderBy('s.nama')->paginate($perPage);
+
+        // Extract school IDs to fetch detail student class distribution
+        $schoolIds = collect($paginated->items())->pluck('id')->filter()->all();
+        $detailClassCounts = [];
+        if (!empty($schoolIds)) {
+            $studentRows = DB::table('students')
+                ->whereIn('school_id', $schoolIds)
+                ->whereNull('deleted_at')
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', 'Aktif');
+                })
+                ->whereNotNull('kelas')
+                ->whereRaw("TRIM(kelas) != ''")
+                ->select('school_id', 'kelas', DB::raw('COUNT(*) as total'))
+                ->groupBy('school_id', 'kelas')
+                ->get();
+
+            foreach ($studentRows as $sr) {
+                $detailClassCounts[$sr->school_id][$sr->kelas] = (int) $sr->total;
+            }
+        }
+
+        $paginated->getCollection()->transform(function ($item) use ($detailClassCounts) {
+            if (isset($item->jumlah_siswa_per_kelas) && is_string($item->jumlah_siswa_per_kelas)) {
+                $decoded = json_decode($item->jumlah_siswa_per_kelas, true);
+                $item->jumlah_siswa_per_kelas = is_array($decoded) ? $decoded : null;
+            }
+
+            $item->detail_students_per_kelas = $detailClassCounts[$item->id] ?? null;
+
+            return $item;
+        });
 
         $totalSchools = (int) ($summaryStats->total_schools ?? 0);
         $completeCount = (int) ($summaryStats->complete_count ?? 0);

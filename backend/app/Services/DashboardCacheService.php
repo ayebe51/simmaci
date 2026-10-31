@@ -174,19 +174,26 @@ class DashboardCacheService
         // Use aggregate COUNT queries without loading model instances
         $teachers = DB::table('teachers')->whereNull('deleted_at')->where('is_active', true)->count();
 
-        // Calculate total students by taking the maximum between uploaded detail and manual input per school
+        // Calculate total students (for MI/SD strictly trusting manual input)
         $studentDetailCounts = DB::table('students')->whereNull('deleted_at')
             ->selectRaw('school_id, count(*) as count')
             ->groupBy('school_id')
             ->pluck('count', 'school_id')
             ->toArray();
-        $schoolManualCounts = DB::table('schools')->whereNull('deleted_at')
-            ->pluck('jumlah_siswa_manual', 'id')
-            ->toArray();
-        $allSchoolIds = array_unique(array_merge(array_keys($studentDetailCounts), array_keys($schoolManualCounts)));
+        $schoolRows = DB::table('schools')->whereNull('deleted_at')
+            ->select('id', 'jenjang', 'nama', 'jumlah_siswa_manual')
+            ->get();
         $students = 0;
-        foreach ($allSchoolIds as $sId) {
-            $students += max((int) ($studentDetailCounts[$sId] ?? 0), (int) ($schoolManualCounts[$sId] ?? 0));
+        foreach ($schoolRows as $sch) {
+            $rawJenjang = strtoupper(trim($sch->jenjang ?? ''));
+            $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($sch->nama ?? ''), 'MI ');
+            $manualCount = (int) ($sch->jumlah_siswa_manual ?? 0);
+            $detailCount = (int) ($studentDetailCounts[$sch->id] ?? 0);
+            if ($isMiSd) {
+                $students += ($manualCount > 0 ? $manualCount : 0);
+            } else {
+                $students += max($detailCount, $manualCount);
+            }
         }
 
         $schools = DB::table('schools')->whereNull('deleted_at')->count();
@@ -265,8 +272,15 @@ class DashboardCacheService
             ->whereNull('deleted_at')
             ->where('school_id', $schoolId)
             ->count();
-        $manualStudents = (int) (DB::table('schools')->where('id', $schoolId)->value('jumlah_siswa_manual') ?? 0);
-        $students = max($detailStudents, $manualStudents);
+        $schoolRow = DB::table('schools')->where('id', $schoolId)->first(['jenjang', 'nama', 'jumlah_siswa_manual']);
+        $manualStudents = (int) ($schoolRow->jumlah_siswa_manual ?? 0);
+        $rawJenjang = strtoupper(trim($schoolRow->jenjang ?? ''));
+        $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($schoolRow->nama ?? ''), 'MI ');
+        if ($isMiSd) {
+            $students = $manualStudents > 0 ? $manualStudents : 0;
+        } else {
+            $students = max($detailStudents, $manualStudents);
+        }
 
         // Single query for all SK status counts
         $skCounts = DB::table('sk_documents')
@@ -696,8 +710,16 @@ class DashboardCacheService
             $tendCount = (int) ($tendikCounts[$school->id] ?? 0);
             $detailStudents = (int) ($studentCounts[$school->id] ?? 0);
             $manualStudents = (int) ($school->jumlah_siswa_manual ?? 0);
-            $sCount = max($detailStudents, $manualStudents);
-            $studentSource = ($sCount === 0) ? 'empty' : ($manualStudents >= $detailStudents && $manualStudents > 0 ? 'manual' : 'detail');
+            $rawJenjang = strtoupper(trim($school->jenjang ?? ''));
+            $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($school->nama ?? ''), 'MI ');
+            if ($isMiSd) {
+                // Untuk jenjang MI, yang dihitung pada peta sebaran adalah input manual
+                $sCount = $manualStudents > 0 ? $manualStudents : 0;
+                $studentSource = $manualStudents > 0 ? 'manual' : 'empty';
+            } else {
+                $sCount = max($detailStudents, $manualStudents);
+                $studentSource = ($sCount === 0) ? 'empty' : ($manualStudents >= $detailStudents && $manualStudents > 0 ? 'manual' : 'detail');
+            }
 
             $totalSchools++;
             $totalTeachers += $tCount;

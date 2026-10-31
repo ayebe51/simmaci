@@ -100,7 +100,24 @@ export function QuickEditManualModal({
   }, [inputMode, autoSum, singleManualInput]);
 
   const detailCount = editSchool?.students_detail_count ?? 0;
-  const effectivePreview = Math.max(detailCount, activeManualTotal);
+
+  const isMiSd = useMemo(() => {
+    if (!editSchool) return false;
+    const rawJenjang = (editSchool.jenjang || '').toUpperCase().trim();
+    return (
+      rawJenjang.includes('MI') ||
+      rawJenjang.includes('SD') ||
+      editSchool.nama.toUpperCase().startsWith('MI ') ||
+      editSchool.nama.toUpperCase().includes('IBTIDAIYAH')
+    );
+  }, [editSchool]);
+
+  const effectivePreview = useMemo(() => {
+    if (isMiSd) {
+      return activeManualTotal > 0 ? activeManualTotal : detailCount;
+    }
+    return Math.max(detailCount, activeManualTotal);
+  }, [isMiSd, detailCount, activeManualTotal]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,11 +189,22 @@ export function QuickEditManualModal({
                 <span className="text-[9px] text-slate-400 block">Siswa</span>
               </div>
               <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-200 text-center">
-                <span className="text-[9px] uppercase font-black text-emerald-800 block">Max Aktif:</span>
+                <span className="text-[9px] uppercase font-black text-emerald-800 block">
+                  {isMiSd ? 'Prioritas Efektif:' : 'Max Aktif:'}
+                </span>
                 <span className="text-sm font-black text-emerald-800">{effectivePreview}</span>
-                <span className="text-[9px] text-emerald-600 font-bold block">Tampil di Peta</span>
+                <span className="text-[9px] text-emerald-600 font-bold block">
+                  {isMiSd ? 'Rujukan Utama MI' : 'Tampil di Peta'}
+                </span>
               </div>
             </div>
+
+            {isMiSd && (
+              <div className="p-2 rounded-lg bg-amber-50/90 border border-amber-200 text-[10px] text-amber-900 font-medium flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Untuk tingkat MI/SD, data jumlah siswa yang terpercaya dan menjadi rujukan utama pendataan adalah hasil input manual per kelas.</span>
+              </div>
+            )}
           </div>
 
           {/* Mode Selector Toggle (if grade levels supported) */}

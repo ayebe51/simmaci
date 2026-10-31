@@ -330,6 +330,7 @@ export interface SchoolReadinessItem {
   status_jamiyyah?: string;
   jumlah_siswa_manual?: number | null;
   jumlah_siswa_per_kelas?: Record<string, number> | null;
+  detail_students_per_kelas?: Record<string, number> | null;
   teachers_count: number;
   students_detail_count: number;
   effective_students_count: number;

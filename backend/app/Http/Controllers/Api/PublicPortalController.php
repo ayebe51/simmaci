@@ -55,7 +55,7 @@ class PublicPortalController extends Controller
                 ->where('status', 'Tendik')
                 ->count();
 
-            // Student count: use detailed students if present, otherwise manual aggregate
+            // Student count: for MI/SD strictly prioritize manual input; for other levels use max(detail, manual)
             $studentDetailCounts = DB::table('students')
                 ->whereIn('school_id', $schoolIds)
                 ->whereNull('deleted_at')
@@ -64,16 +64,25 @@ class PublicPortalController extends Controller
                 ->pluck('count', 'school_id')
                 ->toArray();
 
-            $schoolsManual = DB::table('schools')
+            $schoolsMeta = DB::table('schools')
                 ->whereIn('id', $schoolIds)
-                ->pluck('jumlah_siswa_manual', 'id')
-                ->toArray();
+                ->select('id', 'jenjang', 'nama', 'jumlah_siswa_manual')
+                ->get()
+                ->keyBy('id');
 
             $totalStudents = 0;
             foreach ($schoolIds as $sId) {
+                $sch = $schoolsMeta->get($sId);
+                $rawJenjang = strtoupper(trim($sch->jenjang ?? ''));
+                $isMiSd = str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_starts_with(strtoupper($sch->nama ?? ''), 'MI ');
                 $detail = (int) ($studentDetailCounts[$sId] ?? 0);
-                $manual = (int) ($schoolsManual[$sId] ?? 0);
-                $totalStudents += max($detail, $manual);
+                $manual = (int) ($sch->jumlah_siswa_manual ?? 0);
+
+                if ($isMiSd) {
+                    $totalStudents += ($manual > 0 ? $manual : 0);
+                } else {
+                    $totalStudents += max($detail, $manual);
+                }
             }
 
             return [

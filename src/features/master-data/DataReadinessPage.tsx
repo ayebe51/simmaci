@@ -250,7 +250,7 @@ export default function DataReadinessPage() {
             className="rounded-xl h-10 bg-emerald-700 hover:bg-emerald-800 text-white font-bold gap-2 shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Ekspor Semua (.xlsx)</span>
+            <span>Ekspor Data Siswa (.xlsx)</span>
           </Button>
         </div>
       </div>

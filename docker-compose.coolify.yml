@@ -44,7 +44,7 @@ services:
 
   # ── MinIO (S3-compatible storage) ─────────────────────────
   minio:
-    image: quay.io/minio/minio
+    image: cgr.dev/chainguard/minio:latest-dev
     container_name: simmaci-minio
     restart: unless-stopped
     environment:

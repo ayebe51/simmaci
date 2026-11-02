@@ -145,7 +145,45 @@ class PublicPortalController extends Controller
 
         if ($request->filled('jenjang') && $request->jenjang !== 'all') {
             $jenjang = strtoupper(trim($request->jenjang));
-            $query->whereRaw("UPPER(COALESCE(jenjang, '')) = ?", [$jenjang]);
+            $isMtsSmp = in_array($jenjang, ['MTS', 'SMP', 'MTS / SMP', 'MTS/SMP', 'MTS - SMP']);
+            $isMaSmkSma = in_array($jenjang, ['MA', 'SMK', 'SMA', 'MA / SMK / SMA', 'MA/SMK/SMA', 'MA - SMK - SMA']);
+            $isMiSd = in_array($jenjang, ['MI', 'SD', 'MI / SD', 'MI/SD', 'MI - SD']);
+
+            $query->where(function ($q) use ($jenjang, $isMtsSmp, $isMaSmkSma, $isMiSd) {
+                if ($isMtsSmp) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['MTS', 'SMP'])
+                      ->orWhereRaw("UPPER(nama) LIKE 'MTS %'")
+                      ->orWhereRaw("UPPER(nama) LIKE '% MTS %'")
+                      ->orWhereRaw("UPPER(nama) LIKE '%TSANAWIYAH%'")
+                      ->orWhereRaw("UPPER(nama) LIKE 'SMP %'")
+                      ->orWhereRaw("UPPER(nama) LIKE '% SMP %'");
+                } elseif ($isMaSmkSma) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['MA', 'SMK', 'SMA'])
+                      ->orWhere(function ($sub) {
+                          $sub->where(function ($s2) {
+                              $s2->whereRaw("UPPER(nama) LIKE 'MA %'")
+                                 ->whereRaw("UPPER(nama) NOT LIKE 'SMA %'")
+                                 ->whereRaw("UPPER(nama) NOT LIKE 'SMK %'");
+                          })
+                          ->orWhereRaw("UPPER(nama) LIKE '% MA %'")
+                          ->orWhereRaw("UPPER(nama) LIKE '%ALIYAH%'")
+                          ->orWhereRaw("UPPER(nama) LIKE 'SMK %'")
+                          ->orWhereRaw("UPPER(nama) LIKE '% SMK %'")
+                          ->orWhereRaw("UPPER(nama) LIKE '%KEJURUAN%'")
+                          ->orWhereRaw("UPPER(nama) LIKE 'SMA %'")
+                          ->orWhereRaw("UPPER(nama) LIKE '% SMA %'");
+                      });
+                } elseif ($isMiSd) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['MI', 'SD'])
+                      ->orWhereRaw("UPPER(nama) LIKE 'MI %'")
+                      ->orWhereRaw("UPPER(nama) LIKE '% MI %'")
+                      ->orWhereRaw("UPPER(nama) LIKE '%IBTIDAIYAH%'")
+                      ->orWhereRaw("UPPER(nama) LIKE 'SD %'")
+                      ->orWhereRaw("UPPER(nama) LIKE '% SD %'");
+                } else {
+                    $q->whereRaw("UPPER(COALESCE(jenjang, '')) = ?", [$jenjang]);
+                }
+            });
         }
 
         $paginated = $query

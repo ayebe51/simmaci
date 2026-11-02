@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
+import { CILACAP_KECAMATAN } from '@/features/master-data/components/readiness/readinessConstants';
 
 // GeoJSON coordinate bounds for Cilacap
 const GEO_BOUNDS = {
@@ -245,9 +246,19 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
 
       // Top Decorative Accent Bar
       const topBarGrad = ctx.createLinearGradient(0, 0, width, 0);
-      topBarGrad.addColorStop(0, '#047857'); // Emerald-700
-      topBarGrad.addColorStop(0.5, '#10b981'); // Emerald-500
-      topBarGrad.addColorStop(1, '#0f766e'); // Teal-700
+      if (metric === 'schools') {
+        topBarGrad.addColorStop(0, '#047857');
+        topBarGrad.addColorStop(0.5, '#10b981');
+        topBarGrad.addColorStop(1, '#0f766e');
+      } else if (metric === 'ptk') {
+        topBarGrad.addColorStop(0, '#0f766e');
+        topBarGrad.addColorStop(0.5, '#14b8a6');
+        topBarGrad.addColorStop(1, '#0d9488');
+      } else {
+        topBarGrad.addColorStop(0, '#1d4ed8');
+        topBarGrad.addColorStop(0.5, '#3b82f6');
+        topBarGrad.addColorStop(1, '#2563eb');
+      }
       ctx.fillStyle = topBarGrad;
       ctx.fillRect(0, 0, width, 24);
 
@@ -262,19 +273,32 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
       ctx.shadowColor = 'transparent';
 
       // Header Texts
-      ctx.fillStyle = '#064e3b';
+      const titleColor =
+        metric === 'schools'
+          ? '#064e3b'
+          : metric === 'ptk'
+          ? '#134e4a'
+          : '#1e3a8a';
+
+      ctx.fillStyle = titleColor;
       ctx.font = 'bold 52px system-ui, -apple-system, sans-serif';
-      ctx.fillText("PETA SEBARAN MADRASAH & PTK LP MA'ARIF NU", 120, 130);
+      const mainTitle =
+        metric === 'schools'
+          ? 'PETA SEBARAN MADRASAH'
+          : metric === 'ptk'
+          ? 'PETA SEBARAN GURU & TENDIK'
+          : 'PETA SEBARAN SISWA';
+      ctx.fillText(mainTitle, 120, 130);
 
       ctx.fillStyle = '#475569';
       ctx.font = '600 28px system-ui, -apple-system, sans-serif';
       const metricLabel =
         metric === 'schools'
-          ? 'Sebaran Satuan Pendidikan (RA / MI / MTs / MA)'
+          ? 'KABUPATEN CILACAP • SEBARAN SATUAN PENDIDIKAN (MI / MTS / MA / SMK)'
           : metric === 'ptk'
-          ? 'Sebaran Pendidik & Tenaga Kependidikan (Guru & Tendik)'
-          : 'Sebaran Peserta Didik (Data Berjalan)';
-      ctx.fillText(`KABUPATEN CILACAP • ${metricLabel.toUpperCase()}`, 120, 175);
+          ? 'KABUPATEN CILACAP • SEBARAN PENDIDIK & TENAGA KEPENDIDIKAN (GURU & TENDIK)'
+          : 'KABUPATEN CILACAP • SEBARAN PESERTA DIDIK (MI / MTS / MA / SMK)';
+      ctx.fillText(metricLabel, 120, 175);
 
       // Timestamp Badge
       const nowStr = new Date().toLocaleDateString('id-ID', {
@@ -282,11 +306,17 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
         month: 'long',
         year: 'numeric',
       });
-      ctx.fillStyle = '#047857';
+      const badgeAccentColor =
+        metric === 'schools'
+          ? '#047857'
+          : metric === 'ptk'
+          ? '#0f766e'
+          : '#1d4ed8';
+      ctx.fillStyle = badgeAccentColor;
       ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
       ctx.fillText(`Tanggal Cetak: ${nowStr} • SIMMACI Official GIS`, 120, 210);
 
-      // Draw Summary Statistics Card in Header (Right Side)
+      // Draw Summary Statistics Card in Header (Right Side) - Tailored per metric
       const summary = apiData?.summary || {
         total_schools: 0,
         total_teachers: 0,
@@ -294,31 +324,79 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
         total_students: 0,
       };
 
-      const statBoxX = width - 820;
-      ctx.fillStyle = '#f0fdf4';
-      ctx.strokeStyle = '#bbf7d0';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(statBoxX, 85, 700, 130, 20);
-      ctx.fill();
-      ctx.stroke();
+      if (metric === 'schools') {
+        const statBoxW = 460;
+        const statBoxX = width - 120 - statBoxW;
+        ctx.fillStyle = '#f0fdf4';
+        ctx.strokeStyle = '#bbf7d0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(statBoxX, 85, statBoxW, 130, 20);
+        ctx.fill();
+        ctx.stroke();
 
-      const kpiItems = [
-        { label: 'MADRASAH', val: summary.total_schools },
-        { label: 'GURU', val: summary.total_teachers },
-        { label: 'TENDIK', val: summary.total_tendiks },
-        { label: 'SISWA', val: summary.total_students },
-      ];
-
-      kpiItems.forEach((kpi, idx) => {
-        const itemX = statBoxX + 35 + idx * 165;
         ctx.fillStyle = '#065f46';
-        ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
-        ctx.fillText(String(kpi.val), itemX, 140);
+        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+        ctx.fillText(String(summary.total_schools), statBoxX + 35, 142);
+
         ctx.fillStyle = '#047857';
         ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-        ctx.fillText(kpi.label, itemX, 175);
-      });
+        ctx.fillText('MADRASAH', statBoxX + 35, 175);
+
+        ctx.fillStyle = '#059669';
+        ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+        ctx.fillText('Total Satuan Pendidikan Terdata', statBoxX + 160, 142);
+        ctx.fillText('Tersebar di 24 Kecamatan', statBoxX + 160, 172);
+      } else if (metric === 'ptk') {
+        const statBoxW = 680;
+        const statBoxX = width - 120 - statBoxW;
+        ctx.fillStyle = '#f0fdfa';
+        ctx.strokeStyle = '#99f6e4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(statBoxX, 85, statBoxW, 130, 20);
+        ctx.fill();
+        ctx.stroke();
+
+        const ptkKpis = [
+          { label: 'GURU', val: summary.total_teachers },
+          { label: 'TENDIK', val: summary.total_tendiks },
+          { label: 'TOTAL PTK', val: summary.total_teachers + summary.total_tendiks },
+        ];
+
+        ptkKpis.forEach((kpi, idx) => {
+          const itemX = statBoxX + 35 + idx * 215;
+          ctx.fillStyle = '#134e4a';
+          ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
+          ctx.fillText(kpi.val.toLocaleString('id-ID'), itemX, 140);
+          ctx.fillStyle = '#0f766e';
+          ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+          ctx.fillText(kpi.label, itemX, 175);
+        });
+      } else {
+        const statBoxW = 480;
+        const statBoxX = width - 120 - statBoxW;
+        ctx.fillStyle = '#eff6ff';
+        ctx.strokeStyle = '#bfdbfe';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(statBoxX, 85, statBoxW, 130, 20);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#1e3a8a';
+        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+        ctx.fillText(summary.total_students.toLocaleString('id-ID'), statBoxX + 35, 142);
+
+        ctx.fillStyle = '#1d4ed8';
+        ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+        ctx.fillText('SISWA', statBoxX + 35, 175);
+
+        ctx.fillStyle = '#2563eb';
+        ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+        ctx.fillText('Total Peserta Didik Terdata', statBoxX + 220, 142);
+        ctx.fillText('Data Siswa Terpercaya & Efektif', statBoxX + 220, 172);
+      }
 
       // Canvas Map Projection Scaler (3x scale)
       const mapOffsetX = 120;
@@ -407,7 +485,12 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
           ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
           ctx.fillText(labelText, cx, cy - 8);
 
-          ctx.fillStyle = '#047857';
+          ctx.fillStyle =
+            metric === 'schools'
+              ? '#047857'
+              : metric === 'ptk'
+              ? '#0f766e'
+              : '#1d4ed8';
           ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
           ctx.fillText(countText, cx, cy + 12);
 
@@ -415,6 +498,164 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
           ctx.textAlign = 'start';
         }
       });
+
+      // Pass 3: Draw List Kecamatan & Jumlah Card (Top-Right of Map)
+      const districtList = CILACAP_KECAMATAN.map((kName) => {
+        const stat = districtStatsMap.get(kName.toLowerCase().trim());
+        return {
+          nama: kName,
+          schools_count: stat?.schools_count || 0,
+          teachers_count: stat?.teachers_count || 0,
+          tendiks_count: stat?.tendiks_count || 0,
+          students_count: stat?.students_count || 0,
+        };
+      }).sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+
+      const listPanelX = width - 820;
+      const listPanelY = 270;
+      const listPanelW = 740;
+      const listPanelH = 960;
+
+      // Card Background & Soft Shadow
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.06)';
+      ctx.shadowBlur = 24;
+      ctx.shadowOffsetY = 10;
+      ctx.beginPath();
+      ctx.roundRect(listPanelX, listPanelY, listPanelW, listPanelH, 24);
+      ctx.fill();
+      ctx.restore();
+
+      // Card Border
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(listPanelX, listPanelY, listPanelW, listPanelH, 24);
+      ctx.stroke();
+
+      // Header inside Card
+      const panelThemeColor =
+        metric === 'schools'
+          ? '#047857'
+          : metric === 'ptk'
+          ? '#0f766e'
+          : '#1d4ed8';
+
+      const panelTitle =
+        metric === 'schools'
+          ? 'DAFTAR KECAMATAN & JUMLAH MADRASAH'
+          : metric === 'ptk'
+          ? 'DAFTAR KECAMATAN & JUMLAH GURU / TENDIK'
+          : 'DAFTAR KECAMATAN & JUMLAH SISWA';
+
+      const panelSubtitle =
+        metric === 'schools'
+          ? `24 Kecamatan • Total ${summary.total_schools} Madrasah`
+          : metric === 'ptk'
+          ? `24 Kecamatan • Total ${(summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')} PTK`
+          : `24 Kecamatan • Total ${summary.total_students.toLocaleString('id-ID')} Siswa`;
+
+      ctx.fillStyle = panelThemeColor;
+      ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+      ctx.fillText(panelTitle, listPanelX + 32, listPanelY + 45);
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+      ctx.fillText(panelSubtitle, listPanelX + 32, listPanelY + 75);
+
+      // Divider line
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(listPanelX + 24, listPanelY + 95);
+      ctx.lineTo(listPanelX + listPanelW - 24, listPanelY + 95);
+      ctx.stroke();
+
+      // 2-Column Table of 24 Districts (12 per column)
+      const colWidth = 330;
+      const col1Left = listPanelX + 28;
+      const col2Left = listPanelX + 382;
+      const rowStartY = listPanelY + 130;
+      const rowHeight = 57;
+
+      districtList.forEach((dItem, idx) => {
+        const isCol2 = idx >= 12;
+        const rowIdx = isCol2 ? idx - 12 : idx;
+        const colX = isCol2 ? col2Left : col1Left;
+        const rowY = rowStartY + rowIdx * rowHeight;
+
+        // Alternate subtle row background
+        if (rowIdx % 2 === 1) {
+          ctx.fillStyle = '#f8fafc';
+          ctx.beginPath();
+          ctx.roundRect(colX - 8, rowY - 26, colWidth, 48, 8);
+          ctx.fill();
+        }
+
+        // District Name
+        ctx.fillStyle = '#1e293b';
+        ctx.font = '600 16px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(dItem.nama, colX, rowY);
+
+        // Value text
+        ctx.textAlign = 'right';
+        const rightX = colX + colWidth - 12;
+
+        if (metric === 'schools') {
+          ctx.fillStyle = dItem.schools_count > 0 ? '#047857' : '#94a3b8';
+          ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+          ctx.fillText(`${dItem.schools_count} Lembaga`, rightX, rowY);
+        } else if (metric === 'ptk') {
+          const ptkSum = dItem.teachers_count + dItem.tendiks_count;
+          ctx.fillStyle = ptkSum > 0 ? '#0f766e' : '#94a3b8';
+          ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+          ctx.fillText(`${ptkSum} PTK`, rightX, rowY);
+        } else {
+          ctx.fillStyle = dItem.students_count > 0 ? '#1d4ed8' : '#94a3b8';
+          ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+          ctx.fillText(`${dItem.students_count.toLocaleString('id-ID')} Siswa`, rightX, rowY);
+        }
+
+        ctx.textAlign = 'left';
+      });
+
+      // Bottom Total Summary Strip inside Panel
+      const bottomStripY = listPanelY + listPanelH - 80;
+      ctx.fillStyle =
+        metric === 'schools'
+          ? '#f0fdf4'
+          : metric === 'ptk'
+          ? '#f0fdfa'
+          : '#eff6ff';
+      ctx.strokeStyle =
+        metric === 'schools'
+          ? '#bbf7d0'
+          : metric === 'ptk'
+          ? '#99f6e4'
+          : '#bfdbfe';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(listPanelX + 24, bottomStripY, listPanelW - 48, 56, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#334155';
+      ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
+      ctx.fillText('TOTAL KESELURUHAN (24 KEC):', listPanelX + 42, bottomStripY + 34);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = panelThemeColor;
+      ctx.font = 'bold 19px system-ui, -apple-system, sans-serif';
+      const bottomSummaryVal =
+        metric === 'schools'
+          ? `${summary.total_schools} Madrasah`
+          : metric === 'ptk'
+          ? `${(summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')} PTK (${summary.total_teachers} Guru, ${summary.total_tendiks} Tendik)`
+          : `${summary.total_students.toLocaleString('id-ID')} Siswa`;
+      ctx.fillText(bottomSummaryVal, listPanelX + listPanelW - 42, bottomStripY + 34);
+      ctx.textAlign = 'left';
 
       // Bottom Legend Card
       const legendX = 80;
@@ -468,7 +709,13 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
       // Trigger download
       canvas.toBlob((blob) => {
         if (blob) {
-          saveAs(blob, `peta-sebaran-maarif-cilacap-${metric}-hd.png`);
+          const filename =
+            metric === 'schools'
+              ? 'peta-sebaran-madrasah-maarif-cilacap.png'
+              : metric === 'ptk'
+              ? 'peta-sebaran-guru-tendik-maarif-cilacap.png'
+              : 'peta-sebaran-siswa-maarif-cilacap.png';
+          saveAs(blob, filename);
           toast.success('Peta resolusi tinggi (HD) berhasil diunduh!');
         } else {
           toast.error('Gagal membuat file gambar');

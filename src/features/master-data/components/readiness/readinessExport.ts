@@ -18,8 +18,8 @@ export interface JenjangConfig {
 export const JENJANG_CONFIGS: Record<string, JenjangConfig> = {
   MTS: {
     code: 'MTS',
-    displayName: 'MTs',
-    title: 'DATA SISWA MTs LP MAARIF NU PCNU CILACAP',
+    displayName: 'MTs - SMP',
+    title: 'DATA SISWA MTs/SMP LP MAARIF NU PCNU CILACAP',
     classes: [
       { label: 'Kls 7', gradeNum: 7 },
       { label: 'Kls 8', gradeNum: 8 },
@@ -28,8 +28,8 @@ export const JENJANG_CONFIGS: Record<string, JenjangConfig> = {
   },
   MI: {
     code: 'MI',
-    displayName: 'MI',
-    title: 'DATA SISWA MI LP MAARIF NU PCNU CILACAP',
+    displayName: 'MI - SD',
+    title: 'DATA SISWA MI/SD LP MAARIF NU PCNU CILACAP',
     classes: [
       { label: 'Kls 1', gradeNum: 1 },
       { label: 'Kls 2', gradeNum: 2 },
@@ -41,18 +41,8 @@ export const JENJANG_CONFIGS: Record<string, JenjangConfig> = {
   },
   MA: {
     code: 'MA',
-    displayName: 'MA',
-    title: 'DATA SISWA MA LP MAARIF NU PCNU CILACAP',
-    classes: [
-      { label: 'Kls 10', gradeNum: 10 },
-      { label: 'Kls 11', gradeNum: 11 },
-      { label: 'Kls 12', gradeNum: 12 },
-    ],
-  },
-  SMK: {
-    code: 'SMK',
-    displayName: 'SMK',
-    title: 'DATA SISWA SMK LP MAARIF NU PCNU CILACAP',
+    displayName: 'MA - SMK - SMA',
+    title: 'DATA SISWA MA/SMK/SMA LP MAARIF NU PCNU CILACAP',
     classes: [
       { label: 'Kls 10', gradeNum: 10 },
       { label: 'Kls 11', gradeNum: 11 },
@@ -61,8 +51,8 @@ export const JENJANG_CONFIGS: Record<string, JenjangConfig> = {
   },
   RA: {
     code: 'RA',
-    displayName: 'RA',
-    title: 'DATA SISWA RA LP MAARIF NU PCNU CILACAP',
+    displayName: 'RA - TK',
+    title: 'DATA SISWA RA/TK LP MAARIF NU PCNU CILACAP',
     classes: [
       { label: 'Kel. A', pattern: /a\b|kelompok\s*a/i },
       { label: 'Kel. B', pattern: /b\b|kelompok\s*b/i },
@@ -85,59 +75,49 @@ export function getAcademicYearString(): string {
 }
 
 /**
- * Resolves school jenjang into standardized category code
+ * Resolves school jenjang into standardized category code:
+ * - 'MTS': MTs & SMP (3 Tingkat: Kls 7 - 9)
+ * - 'MA': MA, SMK, SMA (3 Tingkat: Kls 10 - 12)
+ * - 'MI': MI & SD (6 Tingkat: Kls 1 - 6)
+ * - 'RA': RA & TK (Kel. A & B)
  */
 export function detectSchoolJenjang(school: SchoolReadinessItem): string {
   const jenjang = (school.jenjang || '').toUpperCase().trim();
-  const nama = (school.nama || '').toUpperCase().trim();
+  const nama = (school.nama || '').trim();
 
-  if (
-    jenjang === 'MTS' ||
-    jenjang === 'SMP' ||
-    nama.startsWith('MTS ') ||
-    nama.includes(' MTS ') ||
-    nama.includes('TSANAWIYAH')
-  ) {
-    return 'MTS';
-  }
-  if (
-    jenjang === 'MI' ||
-    jenjang === 'SD' ||
-    nama.startsWith('MI ') ||
-    nama.includes(' MI ') ||
-    nama.includes('IBTIDAIYAH')
-  ) {
-    return 'MI';
-  }
-  if (
-    jenjang === 'SMK' ||
-    nama.startsWith('SMK ') ||
-    nama.includes(' SMK ') ||
-    nama.includes('KEJURUAN')
-  ) {
-    return 'SMK';
-  }
-  if (
-    jenjang === 'MA' ||
-    jenjang === 'SMA' ||
-    nama.startsWith('MA ') ||
-    nama.includes(' MA ') ||
-    nama.includes('ALIYAH')
-  ) {
-    return 'MA';
-  }
-  if (
-    jenjang === 'RA' ||
-    jenjang === 'TK' ||
-    jenjang === 'PAUD' ||
-    jenjang === 'BA' ||
-    nama.startsWith('RA ') ||
-    nama.includes('RAUDHATUL')
-  ) {
-    return 'RA';
+  // 1. If jenjang is explicitly defined, resolve directly from jenjang
+  if (jenjang && jenjang !== 'LAINNYA' && jenjang !== '-' && jenjang !== 'UNDEFINED' && jenjang !== 'NULL') {
+    if (['RA', 'TK', 'PAUD', 'BA'].includes(jenjang) || jenjang.includes('RA') || jenjang.includes('TK')) {
+      return 'RA';
+    }
+    if (['MTS', 'SMP'].includes(jenjang) || jenjang.includes('MTS') || jenjang.includes('SMP')) {
+      return 'MTS';
+    }
+    if (['MA', 'SMA', 'SMK'].includes(jenjang) || jenjang.includes('SMK') || jenjang.includes('SMA') || jenjang.includes('MA')) {
+      return 'MA';
+    }
+    if (['MI', 'SD'].includes(jenjang) || jenjang.includes('MI') || jenjang.includes('SD')) {
+      return 'MI';
+    }
   }
 
-  return 'MTS';
+  // 2. If jenjang is unassigned, inspect school name
+  if (nama) {
+    if (/\b(ra|tk|paud|ba)\b|raudhatul|bustanul/i.test(nama)) {
+      return 'RA';
+    }
+    if (/\b(mts|smp|tsanawiyah)\b/i.test(nama)) {
+      return 'MTS';
+    }
+    if (/\b(mi|sd|ibtidaiyah)\b/i.test(nama)) {
+      return 'MI';
+    }
+    if (/\b(smk|sma|aliyah|kejuruan)\b/i.test(nama) || /\bma\b(?!['’]?arif)/i.test(nama)) {
+      return 'MA';
+    }
+  }
+
+  return 'MI';
 }
 
 /**
@@ -673,18 +653,26 @@ export async function exportReadinessToExcel({
     // If filtered by specific Jenjang
     if (filterJenjang !== 'all') {
       const targetJenjang = filterJenjang.toUpperCase().trim();
-      const configKey = Object.keys(JENJANG_CONFIGS).find((k) => k === targetJenjang) || 'MTS';
+      let configKey = 'MTS';
+      if (targetJenjang.includes('MI') || targetJenjang.includes('SD')) {
+        configKey = 'MI';
+      } else if (targetJenjang.includes('MTS') || targetJenjang.includes('SMP')) {
+        configKey = 'MTS';
+      } else if (targetJenjang.includes('MA') || targetJenjang.includes('SMK') || targetJenjang.includes('SMA')) {
+        configKey = 'MA';
+      } else if (targetJenjang.includes('RA') || targetJenjang.includes('TK')) {
+        configKey = 'RA';
+      }
       const config = JENJANG_CONFIGS[configKey];
 
       const worksheet = buildJenjangWorksheet(config, allSchools, academicYear);
       XLSX.utils.book_append_sheet(workbook, worksheet, config.displayName);
     } else {
-      // Group by Jenjang: MTs, MI, MA, SMK, RA
+      // Group by Jenjang: MTs - SMP, MI - SD, MA - SMK - SMA, RA - TK
       const grouped: Record<string, SchoolReadinessItem[]> = {
         MTS: [],
         MI: [],
         MA: [],
-        SMK: [],
         RA: [],
       };
 
@@ -693,18 +681,18 @@ export async function exportReadinessToExcel({
         if (grouped[detected]) {
           grouped[detected].push(s);
         } else {
-          grouped.MTS.push(s);
+          grouped.MI.push(s);
         }
       });
 
-      // Priority order for sheets: MTs first (as requested), then MI, MA, SMK, RA
-      const sheetOrder = ['MTS', 'MI', 'MA', 'SMK', 'RA'];
+      // Unified sheet order: MTs - SMP first, then MI - SD, MA - SMK - SMA, RA - TK
+      const sheetOrder = ['MTS', 'MI', 'MA', 'RA'];
       let addedSheetCount = 0;
 
       sheetOrder.forEach((code) => {
         const config = JENJANG_CONFIGS[code];
         const schoolsInGroup = grouped[code] || [];
-        if (schoolsInGroup.length > 0 || allSchools.length > 0) {
+        if (schoolsInGroup.length > 0) {
           const worksheet = buildJenjangWorksheet(config, schoolsInGroup, academicYear);
           XLSX.utils.book_append_sheet(workbook, worksheet, config.displayName);
           addedSheetCount++;

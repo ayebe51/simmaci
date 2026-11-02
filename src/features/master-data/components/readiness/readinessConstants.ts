@@ -27,13 +27,29 @@ export const CILACAP_KECAMATAN = [
   'Cilacap Utara',
 ];
 
-export const JENJANG_LIST = ['MI', 'MTs', 'MA', 'SMK'];
+export const JENJANG_GROUPS = {
+  MI_SD: 'MI / SD',
+  MTS_SMP: 'MTs / SMP',
+  MA_SMK_SMA: 'MA / SMK / SMA',
+} as const;
+
+export const JENJANG_LIST = [
+  'MI / SD',
+  'MTs / SMP',
+  'MA / SMK / SMA',
+];
 
 /**
- * Formal grade levels for LP Ma'arif madrasahs (MI, MTs, MA, SMK).
- * Note: RA/PAUD/TK is excluded from formal per-class student reporting.
+ * Formal grade levels for LP Ma'arif madrasahs.
+ * Unified groups:
+ * - MI / SD: Kelas 1 s.d. 6
+ * - MTs / SMP: Kelas 7 s.d. 9
+ * - MA / SMK / SMA: Kelas 10 s.d. 12
  */
 export const FORMAL_GRADE_LEVELS: Record<string, string[]> = {
+  'MI / SD': ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'],
+  'MTs / SMP': ['Kelas 7', 'Kelas 8', 'Kelas 9'],
+  'MA / SMK / SMA': ['Kelas 10', 'Kelas 11', 'Kelas 12'],
   MI: ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'],
   SD: ['Kelas 1', 'Kelas 2', 'Kelas 3', 'Kelas 4', 'Kelas 5', 'Kelas 6'],
   MTS: ['Kelas 7', 'Kelas 8', 'Kelas 9'],
@@ -44,42 +60,59 @@ export const FORMAL_GRADE_LEVELS: Record<string, string[]> = {
 };
 
 /**
+ * Resolves standard 3-tier jenjang label from school jenjang or name.
+ * Uses strict word-boundary matching and negative lookaheads to prevent false positives
+ * (e.g. 'Al Jawami' matching 'MI', or 'Ma\'arif' matching 'MA').
+ */
+export function resolveSchoolJenjang(jenjang?: string | null, nama?: string | null): string {
+  const rawJenjang = (jenjang || '').toUpperCase().trim();
+  const rawNama = (nama || '').trim();
+
+  // 1. If jenjang is explicitly defined, resolve directly from jenjang
+  if (rawJenjang && rawJenjang !== 'LAINNYA' && rawJenjang !== '-' && rawJenjang !== 'UNDEFINED' && rawJenjang !== 'NULL') {
+    if (['RA', 'TK', 'PAUD', 'BA'].includes(rawJenjang) || rawJenjang.includes('RA') || rawJenjang.includes('TK')) {
+      return 'RA / TK';
+    }
+    if (['MTS', 'SMP'].includes(rawJenjang) || rawJenjang.includes('MTS') || rawJenjang.includes('SMP')) {
+      return 'MTs / SMP';
+    }
+    if (['MA', 'SMA', 'SMK'].includes(rawJenjang) || rawJenjang.includes('SMK') || rawJenjang.includes('SMA') || rawJenjang.includes('MA')) {
+      return 'MA / SMK / SMA';
+    }
+    if (['MI', 'SD'].includes(rawJenjang) || rawJenjang.includes('MI') || rawJenjang.includes('SD')) {
+      return 'MI / SD';
+    }
+  }
+
+  // 2. If jenjang is empty/unassigned, inspect school name
+  if (rawNama) {
+    if (/\b(ra|tk|paud|ba)\b|raudhatul|bustanul/i.test(rawNama)) {
+      return 'RA / TK';
+    }
+    if (/\b(mts|smp|tsanawiyah)\b/i.test(rawNama)) {
+      return 'MTs / SMP';
+    }
+    if (/\b(mi|sd|ibtidaiyah)\b/i.test(rawNama)) {
+      return 'MI / SD';
+    }
+    if (/\b(smk|sma|aliyah|kejuruan)\b/i.test(rawNama) || /\bma\b(?!['’]?arif)/i.test(rawNama)) {
+      return 'MA / SMK / SMA';
+    }
+  }
+
+  return 'MI / SD';
+}
+
+/**
  * Resolves list of grade levels for a given school jenjang/nama.
  * Returns null if jenjang is RA/TK/PAUD or non-formal.
  */
 export function getGradeLevelsForSchool(jenjang?: string | null, nama?: string | null): string[] | null {
-  const rawJenjang = (jenjang || '').toUpperCase().trim();
-  const rawNama = (nama || '').toUpperCase().trim();
-
-  // Exclude RA / TK / PAUD
-  if (
-    rawJenjang === 'RA' ||
-    rawJenjang === 'TK' ||
-    rawJenjang === 'PAUD' ||
-    rawJenjang === 'BA' ||
-    rawNama.startsWith('RA ') ||
-    rawNama.startsWith('TK ') ||
-    rawNama.startsWith('PAUD ') ||
-    rawNama.startsWith('BA ')
-  ) {
+  const tier = resolveSchoolJenjang(jenjang, nama);
+  if (tier === 'RA / TK') {
     return null;
   }
-
-  if (rawJenjang.includes('SMK') || rawNama.includes('SMK')) {
-    return FORMAL_GRADE_LEVELS.SMK;
-  }
-  if (rawJenjang.includes('MI') || rawNama.includes('MI ') || rawNama.includes('SD ')) {
-    return FORMAL_GRADE_LEVELS.MI;
-  }
-  if (rawJenjang.includes('MTS') || rawNama.includes('MTS ') || rawNama.includes('SMP ')) {
-    return FORMAL_GRADE_LEVELS.MTS;
-  }
-  if (rawJenjang.includes('MA') || rawNama.includes('MA ') || rawNama.includes('SMA ')) {
-    return FORMAL_GRADE_LEVELS.MA;
-  }
-
-  // Default fallback for formal primary madrasah
-  return FORMAL_GRADE_LEVELS.MI;
+  return FORMAL_GRADE_LEVELS[tier] || FORMAL_GRADE_LEVELS['MI / SD'];
 }
 
 /**

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Edit3, GraduationCap, Calculator, Info, Layers, Hash, Sparkles } from 'lucide-react';
-import { getGradeLevelsForSchool } from './readinessConstants';
+import { getGradeLevelsForSchool, resolveSchoolJenjang } from './readinessConstants';
 
 interface QuickEditManualModalProps {
   editSchool: SchoolReadinessItem | null;
@@ -193,7 +193,7 @@ export function QuickEditManualModal({
           <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800">
-                Kec. {editSchool?.kecamatan} • Jenjang {editSchool?.jenjang || '-'}
+                Kec. {editSchool?.kecamatan} • Jenjang {editSchool ? resolveSchoolJenjang(editSchool.jenjang, editSchool.nama) : '-'}
               </span>
               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-extrabold">
                 {gradeLevels ? `${gradeLevels.length} Tingkat Kelas` : 'Agregat'}

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit3, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { resolveSchoolJenjang } from './readinessConstants';
 
 interface ReadinessTableRowProps {
   item: SchoolReadinessItem;
@@ -20,12 +21,7 @@ export function ReadinessTableRow({
   onSendWa,
 }: ReadinessTableRowProps) {
   const hasWhatsapp = Boolean(item.kepala_whatsapp || item.telepon);
-  const rawJenjang = (item.jenjang || '').toUpperCase().trim();
-  const isMiSd =
-    rawJenjang.includes('MI') ||
-    rawJenjang.includes('SD') ||
-    item.nama.toUpperCase().startsWith('MI ') ||
-    item.nama.toUpperCase().includes('IBTIDAIYAH');
+  const resolvedJenjang = resolveSchoolJenjang(item.jenjang, item.nama);
 
   return (
     <TableRow
@@ -64,7 +60,7 @@ export function ReadinessTableRow({
           variant="outline"
           className="bg-emerald-50 text-emerald-800 border-emerald-200 font-black text-[10px]"
         >
-          {item.jenjang || 'Lainnya'}
+          {resolvedJenjang}
         </Badge>
       </TableCell>
 

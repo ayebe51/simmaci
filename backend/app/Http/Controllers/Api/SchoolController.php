@@ -30,35 +30,45 @@ class SchoolController extends Controller
 
         if ($request->filled('jenjang') && $request->jenjang !== 'all') {
             $jenjang = strtoupper(trim($request->jenjang));
-            $query->where(function ($q) use ($jenjang) {
-                if ($jenjang === 'MI') {
-                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['MI'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['MI %'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% MI %'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%IBTIDAIYAH%']);
-                } elseif ($jenjang === 'MTS') {
-                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['MTS'])
+            $isMtsSmp = in_array($jenjang, ['MTS', 'SMP', 'MTS / SMP', 'MTS/SMP', 'MTS - SMP']);
+            $isMaSmkSma = in_array($jenjang, ['MA', 'SMK', 'SMA', 'MA / SMK / SMA', 'MA/SMK/SMA', 'MA - SMK - SMA']);
+            $isMiSd = in_array($jenjang, ['MI', 'SD', 'MI / SD', 'MI/SD', 'MI - SD']);
+            $isRaTk = in_array($jenjang, ['RA', 'TK', 'PAUD', 'BA', 'RA / TK', 'RA/TK', 'RA - TK']);
+
+            $query->where(function ($q) use ($jenjang, $isMtsSmp, $isMaSmkSma, $isMiSd, $isRaTk) {
+                if ($isMtsSmp) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['MTS', 'SMP'])
                       ->orWhereRaw('UPPER(nama) LIKE ?', ['MTS %'])
                       ->orWhereRaw('UPPER(nama) LIKE ?', ['% MTS %'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%TSANAWIYAH%']);
-                } elseif ($jenjang === 'MA') {
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%TSANAWIYAH%'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['SMP %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% SMP %']);
+                } elseif ($isMaSmkSma) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['MA', 'SMK', 'SMA'])
+                      ->orWhere(function ($sub) {
+                          $sub->where(function ($s2) {
+                              $s2->whereRaw('UPPER(nama) LIKE ?', ['MA %'])
+                                 ->whereRaw('UPPER(nama) NOT LIKE ?', ['SMA %'])
+                                 ->whereRaw('UPPER(nama) NOT LIKE ?', ['SMK %']);
+                          })
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['% MA %'])
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['%ALIYAH%'])
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['SMK %'])
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['% SMK %'])
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['%KEJURUAN%'])
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['SMA %'])
+                          ->orWhereRaw('UPPER(nama) LIKE ?', ['% SMA %']);
+                      });
+                } elseif ($isMiSd) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['MI', 'SD'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['MI %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% MI %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%IBTIDAIYAH%'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['SD %'])
+                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% SD %']);
+                } elseif ($isRaTk) {
                     $q->where(function ($sub) {
-                        $sub->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['MA'])
-                            ->orWhere(function ($s2) {
-                                $s2->whereRaw('UPPER(nama) LIKE ?', ['MA %'])
-                                   ->whereRaw('UPPER(nama) NOT LIKE ?', ['SMA %'])
-                                   ->whereRaw('UPPER(nama) NOT LIKE ?', ['SMK %']);
-                            })
-                            ->orWhereRaw('UPPER(nama) LIKE ?', ['%ALIYAH%']);
-                    });
-                } elseif ($jenjang === 'SMK') {
-                    $q->whereRaw('UPPER(COALESCE(jenjang, \'\')) = ?', ['SMK'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['SMK %'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['% SMK %'])
-                      ->orWhereRaw('UPPER(nama) LIKE ?', ['%KEJURUAN%']);
-                } elseif ($jenjang === 'RA') {
-                    $q->where(function ($sub) {
-                        $sub->whereRaw('UPPER(COALESCE(jenjang, \'\')) IN (?, ?, ?, ?)', ['RA', 'TK', 'PAUD', 'BA'])
+                        $sub->whereIn(DB::raw("UPPER(COALESCE(jenjang, ''))"), ['RA', 'TK', 'PAUD', 'BA'])
                             ->orWhereRaw('UPPER(nama) LIKE ?', ['RA %'])
                             ->orWhereRaw('UPPER(nama) LIKE ?', ['TK %'])
                             ->orWhereRaw('UPPER(nama) LIKE ?', ['PAUD %'])
@@ -729,27 +739,51 @@ class SchoolController extends Controller
         // Filters: Jenjang
         if ($request->filled('jenjang') && $request->jenjang !== 'all') {
             $jenjang = strtoupper(trim($request->jenjang));
-            $query->where(function ($q) use ($jenjang) {
-                if ($jenjang === 'RA') {
-                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) IN ('RA', 'TK', 'PAUD', 'BA')")
-                      ->orWhereRaw("UPPER(s.nama) LIKE 'RA %'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE '%RAUDHATUL%'");
-                } elseif ($jenjang === 'MI') {
-                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'MI'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE 'MI %'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE '%IBTIDAIYAH%'");
-                } elseif ($jenjang === 'MTS') {
-                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'MTS'")
+            $isMtsSmp = in_array($jenjang, ['MTS', 'SMP', 'MTS / SMP', 'MTS/SMP', 'MTS - SMP']);
+            $isMaSmkSma = in_array($jenjang, ['MA', 'SMK', 'SMA', 'MA / SMK / SMA', 'MA/SMK/SMA', 'MA - SMK - SMA']);
+            $isMiSd = in_array($jenjang, ['MI', 'SD', 'MI / SD', 'MI/SD', 'MI - SD']);
+            $isRaTk = in_array($jenjang, ['RA', 'TK', 'PAUD', 'BA', 'RA / TK', 'RA/TK', 'RA - TK']);
+
+            $query->where(function ($q) use ($jenjang, $isMtsSmp, $isMaSmkSma, $isMiSd, $isRaTk) {
+                if ($isMtsSmp) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(s.jenjang, ''))"), ['MTS', 'SMP'])
                       ->orWhereRaw("UPPER(s.nama) LIKE 'MTS %'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE '%TSANAWIYAH%'");
-                } elseif ($jenjang === 'MA') {
-                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'MA'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE 'MA %'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE '%ALIYAH%'");
-                } elseif ($jenjang === 'SMK') {
-                    $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = 'SMK'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE 'SMK %'")
-                      ->orWhereRaw("UPPER(s.nama) LIKE '%KEJURUAN%'");
+                      ->orWhereRaw("UPPER(s.nama) LIKE '% MTS %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%TSANAWIYAH%'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'SMP %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '% SMP %'");
+                } elseif ($isMaSmkSma) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(s.jenjang, ''))"), ['MA', 'SMK', 'SMA'])
+                      ->orWhere(function ($sub) {
+                          $sub->where(function ($s2) {
+                              $s2->whereRaw("UPPER(s.nama) LIKE 'MA %'")
+                                 ->whereRaw("UPPER(s.nama) NOT LIKE 'SMA %'")
+                                 ->whereRaw("UPPER(s.nama) NOT LIKE 'SMK %'");
+                          })
+                          ->orWhereRaw("UPPER(s.nama) LIKE '% MA %'")
+                          ->orWhereRaw("UPPER(s.nama) LIKE '%ALIYAH%'")
+                          ->orWhereRaw("UPPER(s.nama) LIKE 'SMK %'")
+                          ->orWhereRaw("UPPER(s.nama) LIKE '% SMK %'")
+                          ->orWhereRaw("UPPER(s.nama) LIKE '%KEJURUAN%'")
+                          ->orWhereRaw("UPPER(s.nama) LIKE 'SMA %'")
+                          ->orWhereRaw("UPPER(s.nama) LIKE '% SMA %'");
+                      });
+                } elseif ($isMiSd) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(s.jenjang, ''))"), ['MI', 'SD'])
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'MI %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '% MI %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%IBTIDAIYAH%'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'SD %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '% SD %'");
+                } elseif ($isRaTk) {
+                    $q->whereIn(DB::raw("UPPER(COALESCE(s.jenjang, ''))"), ['RA', 'TK', 'PAUD', 'BA'])
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'RA %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '% RA %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%RAUDHATUL%'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'TK %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '% TK %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE 'PAUD %'")
+                      ->orWhereRaw("UPPER(s.nama) LIKE '%BUSTANUL%'");
                 } else {
                     $q->whereRaw("UPPER(COALESCE(s.jenjang, '')) = ?", [$jenjang]);
                 }

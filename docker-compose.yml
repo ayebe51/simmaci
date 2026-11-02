@@ -90,6 +90,7 @@ services:
       image: cgr.dev/chainguard/minio:latest-dev
       container_name: simmaci-minio
       restart: always
+      user: "0:0"
       environment:
           MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
           MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}

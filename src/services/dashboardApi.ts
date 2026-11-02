@@ -55,6 +55,13 @@ export interface DistrictStat {
   schools: DistrictSchool[];
 }
 
+export interface JenjangTierCount {
+  schools: number;
+  teachers: number;
+  tendiks: number;
+  students: number;
+}
+
 export interface DistributionMapData {
   summary: {
     total_schools: number;
@@ -63,6 +70,12 @@ export interface DistributionMapData {
     total_students: number;
     total_districts_covered: number;
     total_districts: number;
+    jenjang?: {
+      MI: JenjangTierCount;
+      MTs: JenjangTierCount;
+      MA: JenjangTierCount;
+      SMK: JenjangTierCount;
+    };
   };
   districts: DistrictStat[];
 }

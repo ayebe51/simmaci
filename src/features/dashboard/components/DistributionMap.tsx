@@ -136,6 +136,82 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
     return map;
   }, [apiData]);
 
+  // Aggregated Jenjang Statistics (MI, MTs, MA, SMK)
+  const jenjangStats = useMemo(() => {
+    const backendJenjang = apiData?.summary?.jenjang;
+    if (backendJenjang && (backendJenjang.MI || backendJenjang.MTs || backendJenjang.MA || backendJenjang.SMK)) {
+      return {
+        MI: {
+          schools: backendJenjang.MI?.schools || 0,
+          teachers: backendJenjang.MI?.teachers || 0,
+          tendiks: backendJenjang.MI?.tendiks || 0,
+          ptk: (backendJenjang.MI?.teachers || 0) + (backendJenjang.MI?.tendiks || 0),
+          students: backendJenjang.MI?.students || 0,
+        },
+        MTs: {
+          schools: backendJenjang.MTs?.schools || 0,
+          teachers: backendJenjang.MTs?.teachers || 0,
+          tendiks: backendJenjang.MTs?.tendiks || 0,
+          ptk: (backendJenjang.MTs?.teachers || 0) + (backendJenjang.MTs?.tendiks || 0),
+          students: backendJenjang.MTs?.students || 0,
+        },
+        MA: {
+          schools: backendJenjang.MA?.schools || 0,
+          teachers: backendJenjang.MA?.teachers || 0,
+          tendiks: backendJenjang.MA?.tendiks || 0,
+          ptk: (backendJenjang.MA?.teachers || 0) + (backendJenjang.MA?.tendiks || 0),
+          students: backendJenjang.MA?.students || 0,
+        },
+        SMK: {
+          schools: backendJenjang.SMK?.schools || 0,
+          teachers: backendJenjang.SMK?.teachers || 0,
+          tendiks: backendJenjang.SMK?.tendiks || 0,
+          ptk: (backendJenjang.SMK?.teachers || 0) + (backendJenjang.SMK?.tendiks || 0),
+          students: backendJenjang.SMK?.students || 0,
+        },
+      };
+    }
+
+    const stats = {
+      MI: { schools: 0, teachers: 0, tendiks: 0, ptk: 0, students: 0 },
+      MTs: { schools: 0, teachers: 0, tendiks: 0, ptk: 0, students: 0 },
+      MA: { schools: 0, teachers: 0, tendiks: 0, ptk: 0, students: 0 },
+      SMK: { schools: 0, teachers: 0, tendiks: 0, ptk: 0, students: 0 },
+    };
+
+    if (apiData?.districts) {
+      apiData.districts.forEach((d) => {
+        (d.schools || []).forEach((sch) => {
+          const rawJ = (sch.jenjang || '').toUpperCase().trim();
+          const rawN = (sch.nama || '').toUpperCase().trim();
+          let key: 'MI' | 'MTs' | 'MA' | 'SMK' = 'MI';
+
+          if (rawJ === 'SMK' || rawN.startsWith('SMK ') || rawN.includes(' SMK ') || rawN.includes('KEJURUAN')) {
+            key = 'SMK';
+          } else if (rawJ === 'MTS' || rawJ === 'SMP' || rawN.startsWith('MTS ') || rawN.includes(' MTS ') || rawN.includes('TSANAWIYAH') || rawN.startsWith('SMP ') || rawN.includes(' SMP ')) {
+            key = 'MTs';
+          } else if (rawJ === 'MA' || rawJ === 'SMA' || rawN.startsWith('MA ') || rawN.includes(' MA ') || rawN.includes('ALIYAH') || rawN.startsWith('SMA ') || rawN.includes(' SMA ')) {
+            key = 'MA';
+          } else {
+            key = 'MI';
+          }
+
+          const t = Number(sch.teachers_count) || 0;
+          const tend = Number(sch.tendiks_count) || 0;
+          const s = Number(sch.students_count) || 0;
+
+          stats[key].schools += 1;
+          stats[key].teachers += t;
+          stats[key].tendiks += tend;
+          stats[key].ptk += t + tend;
+          stats[key].students += s;
+        });
+      });
+    }
+
+    return stats;
+  }, [apiData]);
+
   // Determine min and max values for choropleth scale
   const { maxVal, totalVal } = useMemo(() => {
     let max = 1;
@@ -324,79 +400,154 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
         total_students: 0,
       };
 
-      if (metric === 'schools') {
-        const statBoxW = 460;
-        const statBoxX = width - 120 - statBoxW;
-        ctx.fillStyle = '#f0fdf4';
-        ctx.strokeStyle = '#bbf7d0';
-        ctx.lineWidth = 2;
+      // Draw 5 Executive Statistics Cards in Header Banner (Right Side)
+      // Card 1: Grand Total Card (Width: 310)
+      // Cards 2-5: Jenjang MI, MTs, MA, SMK (Width: 285 each)
+      const cardHeight = 136;
+      const cardY = 82;
+      const totalBoxW = 310;
+      const jenjangCardW = 285;
+      const cardGap = 15;
+      const totalCardsSpan = totalBoxW + 4 * jenjangCardW + 4 * cardGap;
+      const startCardsX = width - 100 - totalCardsSpan;
+
+      // 1. Draw Grand Total Card
+      ctx.save();
+      const totalBg =
+        metric === 'schools' ? '#f0fdf4' : metric === 'ptk' ? '#f0fdfa' : '#eff6ff';
+      const totalBorder =
+        metric === 'schools' ? '#86efac' : metric === 'ptk' ? '#5eead4' : '#93c5fd';
+      const totalPrimaryColor =
+        metric === 'schools' ? '#065f46' : metric === 'ptk' ? '#134e4a' : '#1e3a8a';
+      const totalAccentColor =
+        metric === 'schools' ? '#047857' : metric === 'ptk' ? '#0f766e' : '#1d4ed8';
+
+      ctx.fillStyle = totalBg;
+      ctx.strokeStyle = totalBorder;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(startCardsX, cardY, totalBoxW, cardHeight, 18);
+      ctx.fill();
+      ctx.stroke();
+
+      // Pill tag inside total card
+      ctx.fillStyle = metric === 'schools' ? '#dcfce7' : metric === 'ptk' ? '#ccfbf1' : '#dbeafe';
+      ctx.beginPath();
+      ctx.roundRect(startCardsX + 18, cardY + 14, 150, 26, 6);
+      ctx.fill();
+
+      ctx.fillStyle = totalAccentColor;
+      ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      const totalPillLabel = metric === 'schools' ? 'TOTAL MADRASAH' : metric === 'ptk' ? 'TOTAL PTK' : 'TOTAL SISWA';
+      ctx.fillText(totalPillLabel, startCardsX + 18 + 75, cardY + 31);
+      ctx.textAlign = 'left';
+
+      // Value inside total card
+      ctx.fillStyle = totalPrimaryColor;
+      ctx.font = 'bold 38px system-ui, -apple-system, sans-serif';
+      const totalDisplayVal =
+        metric === 'schools'
+          ? String(summary.total_schools)
+          : metric === 'ptk'
+          ? (summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')
+          : summary.total_students.toLocaleString('id-ID');
+      ctx.fillText(totalDisplayVal, startCardsX + 18, cardY + 84);
+
+      // Subtitle inside total card
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 13px system-ui, -apple-system, sans-serif';
+      const totalSubLabel =
+        metric === 'schools'
+          ? '24 Kecamatan Terdata'
+          : metric === 'ptk'
+          ? `${summary.total_teachers} Guru • ${summary.total_tendiks} Tendik`
+          : 'Data Siswa Resmi & Riil';
+      ctx.fillText(totalSubLabel, startCardsX + 18, cardY + 115);
+      ctx.restore();
+
+      // 2. Draw 4 Jenjang Cards: MI, MTs, MA, SMK
+      const jenjangCardConfigs = [
+        {
+          key: 'MI' as const,
+          badgeLabel: 'JENJANG MI',
+          badgeBg: '#dcfce7',
+          badgeText: '#15803d',
+          cardBg: '#ffffff',
+          cardBorder: '#bbf7d0',
+          titleColor: '#065f46',
+          subLabel: metric === 'schools' ? 'Madrasah Ibtidaiyah' : metric === 'ptk' ? `${jenjangStats.MI.teachers} Guru • ${jenjangStats.MI.tendiks} Tendik` : `${jenjangStats.MI.schools} Madrasah MI`,
+          val: metric === 'schools' ? `${jenjangStats.MI.schools} Lembaga` : metric === 'ptk' ? `${jenjangStats.MI.ptk.toLocaleString('id-ID')} PTK` : `${jenjangStats.MI.students.toLocaleString('id-ID')} Siswa`,
+        },
+        {
+          key: 'MTs' as const,
+          badgeLabel: 'JENJANG MTS',
+          badgeBg: '#dbeafe',
+          badgeText: '#1d4ed8',
+          cardBg: '#ffffff',
+          cardBorder: '#bfdbfe',
+          titleColor: '#1e3a8a',
+          subLabel: metric === 'schools' ? 'Madrasah Tsanawiyah' : metric === 'ptk' ? `${jenjangStats.MTs.teachers} Guru • ${jenjangStats.MTs.tendiks} Tendik` : `${jenjangStats.MTs.schools} Madrasah MTs`,
+          val: metric === 'schools' ? `${jenjangStats.MTs.schools} Lembaga` : metric === 'ptk' ? `${jenjangStats.MTs.ptk.toLocaleString('id-ID')} PTK` : `${jenjangStats.MTs.students.toLocaleString('id-ID')} Siswa`,
+        },
+        {
+          key: 'MA' as const,
+          badgeLabel: 'JENJANG MA',
+          badgeBg: '#f3e8ff',
+          badgeText: '#7e22ce',
+          cardBg: '#ffffff',
+          cardBorder: '#e9d5ff',
+          titleColor: '#581c87',
+          subLabel: metric === 'schools' ? 'Madrasah Aliyah' : metric === 'ptk' ? `${jenjangStats.MA.teachers} Guru • ${jenjangStats.MA.tendiks} Tendik` : `${jenjangStats.MA.schools} Madrasah MA`,
+          val: metric === 'schools' ? `${jenjangStats.MA.schools} Lembaga` : metric === 'ptk' ? `${jenjangStats.MA.ptk.toLocaleString('id-ID')} PTK` : `${jenjangStats.MA.students.toLocaleString('id-ID')} Siswa`,
+        },
+        {
+          key: 'SMK' as const,
+          badgeLabel: 'JENJANG SMK',
+          badgeBg: '#ffedd5',
+          badgeText: '#c2410c',
+          cardBg: '#ffffff',
+          cardBorder: '#fed7aa',
+          titleColor: '#7c2d12',
+          subLabel: metric === 'schools' ? 'SMK LP Ma\'arif' : metric === 'ptk' ? `${jenjangStats.SMK.teachers} Guru • ${jenjangStats.SMK.tendiks} Tendik` : `${jenjangStats.SMK.schools} Sekolah SMK`,
+          val: metric === 'schools' ? `${jenjangStats.SMK.schools} Lembaga` : metric === 'ptk' ? `${jenjangStats.SMK.ptk.toLocaleString('id-ID')} PTK` : `${jenjangStats.SMK.students.toLocaleString('id-ID')} Siswa`,
+        },
+      ];
+
+      jenjangCardConfigs.forEach((jc, idx) => {
+        const jcX = startCardsX + totalBoxW + cardGap + idx * (jenjangCardW + cardGap);
+        ctx.save();
+        ctx.fillStyle = jc.cardBg;
+        ctx.strokeStyle = jc.cardBorder;
+        ctx.lineWidth = 1.75;
         ctx.beginPath();
-        ctx.roundRect(statBoxX, 85, statBoxW, 130, 20);
+        ctx.roundRect(jcX, cardY, jenjangCardW, cardHeight, 18);
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#065f46';
-        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-        ctx.fillText(String(summary.total_schools), statBoxX + 35, 142);
-
-        ctx.fillStyle = '#047857';
-        ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-        ctx.fillText('MADRASAH', statBoxX + 35, 175);
-
-        ctx.fillStyle = '#059669';
-        ctx.font = '600 15px system-ui, -apple-system, sans-serif';
-        ctx.fillText('Total Satuan Pendidikan Terdata', statBoxX + 160, 142);
-        ctx.fillText('Tersebar di 24 Kecamatan', statBoxX + 160, 172);
-      } else if (metric === 'ptk') {
-        const statBoxW = 680;
-        const statBoxX = width - 120 - statBoxW;
-        ctx.fillStyle = '#f0fdfa';
-        ctx.strokeStyle = '#99f6e4';
-        ctx.lineWidth = 2;
+        // Top Badge pill
+        ctx.fillStyle = jc.badgeBg;
         ctx.beginPath();
-        ctx.roundRect(statBoxX, 85, statBoxW, 130, 20);
+        ctx.roundRect(jcX + 16, cardY + 14, 115, 26, 6);
         ctx.fill();
-        ctx.stroke();
 
-        const ptkKpis = [
-          { label: 'GURU', val: summary.total_teachers },
-          { label: 'TENDIK', val: summary.total_tendiks },
-          { label: 'TOTAL PTK', val: summary.total_teachers + summary.total_tendiks },
-        ];
+        ctx.fillStyle = jc.badgeText;
+        ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(jc.badgeLabel, jcX + 16 + 57.5, cardY + 31);
+        ctx.textAlign = 'left';
 
-        ptkKpis.forEach((kpi, idx) => {
-          const itemX = statBoxX + 35 + idx * 215;
-          ctx.fillStyle = '#134e4a';
-          ctx.font = 'bold 36px system-ui, -apple-system, sans-serif';
-          ctx.fillText(kpi.val.toLocaleString('id-ID'), itemX, 140);
-          ctx.fillStyle = '#0f766e';
-          ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-          ctx.fillText(kpi.label, itemX, 175);
-        });
-      } else {
-        const statBoxW = 480;
-        const statBoxX = width - 120 - statBoxW;
-        ctx.fillStyle = '#eff6ff';
-        ctx.strokeStyle = '#bfdbfe';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(statBoxX, 85, statBoxW, 130, 20);
-        ctx.fill();
-        ctx.stroke();
+        // Value
+        ctx.fillStyle = jc.titleColor;
+        ctx.font = 'bold 27px system-ui, -apple-system, sans-serif';
+        ctx.fillText(jc.val, jcX + 16, cardY + 84);
 
-        ctx.fillStyle = '#1e3a8a';
-        ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-        ctx.fillText(summary.total_students.toLocaleString('id-ID'), statBoxX + 35, 142);
-
-        ctx.fillStyle = '#1d4ed8';
-        ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-        ctx.fillText('SISWA', statBoxX + 35, 175);
-
-        ctx.fillStyle = '#2563eb';
-        ctx.font = '600 15px system-ui, -apple-system, sans-serif';
-        ctx.fillText('Total Peserta Didik Terdata', statBoxX + 220, 142);
-        ctx.fillText('Data Siswa Terpercaya & Efektif', statBoxX + 220, 172);
-      }
+        // Subtitle
+        ctx.fillStyle = '#64748b';
+        ctx.font = '600 13px system-ui, -apple-system, sans-serif';
+        ctx.fillText(jc.subLabel, jcX + 16, cardY + 115);
+        ctx.restore();
+      });
 
       // Canvas Map Projection Scaler (3x scale)
       const mapOffsetX = 120;
@@ -551,10 +702,10 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
 
       const panelSubtitle =
         metric === 'schools'
-          ? `24 Kecamatan • Total ${summary.total_schools} Madrasah`
+          ? `24 Kecamatan • Total ${summary.total_schools} Madrasah (MI: ${jenjangStats.MI.schools} | MTs: ${jenjangStats.MTs.schools} | MA: ${jenjangStats.MA.schools} | SMK: ${jenjangStats.SMK.schools})`
           : metric === 'ptk'
-          ? `24 Kecamatan • Total ${(summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')} PTK`
-          : `24 Kecamatan • Total ${summary.total_students.toLocaleString('id-ID')} Siswa`;
+          ? `24 Kecamatan • Total ${(summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')} PTK (MI: ${jenjangStats.MI.ptk} | MTs: ${jenjangStats.MTs.ptk} | MA: ${jenjangStats.MA.ptk} | SMK: ${jenjangStats.SMK.ptk})`
+          : `24 Kecamatan • Total ${summary.total_students.toLocaleString('id-ID')} Siswa (MI: ${jenjangStats.MI.students.toLocaleString('id-ID')} | MTs: ${jenjangStats.MTs.students.toLocaleString('id-ID')} | MA: ${jenjangStats.MA.students.toLocaleString('id-ID')} | SMK: ${jenjangStats.SMK.students.toLocaleString('id-ID')})`;
 
       ctx.fillStyle = panelThemeColor;
       ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
@@ -835,6 +986,25 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
                 <span>Data siswa memprioritaskan input manual resmi terverifikasi, atau menggunakan data riil sebelumnya jika belum diinput manual.</span>
               </div>
             )}
+
+            {/* Live Jenjang Breakdown Pills */}
+            <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
+                Per Jenjang:
+              </span>
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs font-bold py-0.5 px-2">
+                MI: {metric === 'schools' ? `${jenjangStats.MI.schools} Lembaga` : metric === 'students' ? `${jenjangStats.MI.students.toLocaleString('id-ID')} Siswa` : `${jenjangStats.MI.ptk.toLocaleString('id-ID')} PTK`}
+              </Badge>
+              <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200 text-xs font-bold py-0.5 px-2">
+                MTs: {metric === 'schools' ? `${jenjangStats.MTs.schools} Lembaga` : metric === 'students' ? `${jenjangStats.MTs.students.toLocaleString('id-ID')} Siswa` : `${jenjangStats.MTs.ptk.toLocaleString('id-ID')} PTK`}
+              </Badge>
+              <Badge variant="outline" className="bg-purple-50 text-purple-800 border-purple-200 text-xs font-bold py-0.5 px-2">
+                MA: {metric === 'schools' ? `${jenjangStats.MA.schools} Lembaga` : metric === 'students' ? `${jenjangStats.MA.students.toLocaleString('id-ID')} Siswa` : `${jenjangStats.MA.ptk.toLocaleString('id-ID')} PTK`}
+              </Badge>
+              <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 text-xs font-bold py-0.5 px-2">
+                SMK: {metric === 'schools' ? `${jenjangStats.SMK.schools} Lembaga` : metric === 'students' ? `${jenjangStats.SMK.students.toLocaleString('id-ID')} Siswa` : `${jenjangStats.SMK.ptk.toLocaleString('id-ID')} PTK`}
+              </Badge>
+            </div>
           </div>
 
           {/* Action Buttons: Metric Switcher & HD Download */}

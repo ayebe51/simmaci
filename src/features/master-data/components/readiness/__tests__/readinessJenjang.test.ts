@@ -4,7 +4,11 @@ import {
   getGradeLevelsForSchool,
   FORMAL_GRADE_LEVELS,
 } from '../readinessConstants';
-import { detectSchoolJenjang, JENJANG_CONFIGS } from '../readinessExport';
+import {
+  detectSchoolJenjang,
+  JENJANG_CONFIGS,
+  sortSchoolsByKecamatanAndName,
+} from '../readinessExport';
 
 describe('Jenjang Unification & Resolution Unit Tests', () => {
   it('correctly handles MTs Plus Al Jawami Tritih Kulon without falsely matching MI', () => {
@@ -90,4 +94,55 @@ describe('Jenjang Unification & Resolution Unit Tests', () => {
     expect(JENJANG_CONFIGS.MI.displayName).toBe('MI - SD');
     expect(JENJANG_CONFIGS.MA.displayName).toBe('MA - SMK - SMA');
   });
+
+  it('correctly groups and sorts schools by kecamatan then by school name', () => {
+    const rawSchools = [
+      { id: 1, nama: 'MI Al Falaah 01 Tritih Wetan', kecamatan: 'Jeruklegi' },
+      { id: 2, nama: 'MI Al Falah Bulaksari', kecamatan: 'Bantarsari' },
+      { id: 3, nama: 'MI Al Hasan Mulyadadi', kecamatan: 'Cipari' },
+      { id: 4, nama: 'MI Al Hassan Pasirgaru Bojongsari', kecamatan: 'Kedungreja' },
+      { id: 5, nama: 'MI Al Hidayah Kamulyan', kecamatan: 'Bantarsari' },
+      { id: 6, nama: 'MI Al Hidayah Mulyadadi', kecamatan: 'Cipari' },
+      { id: 7, nama: 'MI Al Hidayah Sidasari', kecamatan: 'Cipari' },
+      { id: 8, nama: 'MI Al Ihya Mulyadadi', kecamatan: 'Majenang' },
+      { id: 9, nama: 'MI Al Kholidiyah', kecamatan: 'Binangun' },
+      { id: 10, nama: 'MI Al Ma\'arif 01 Bumireja', kecamatan: 'Kedungreja' },
+    ] as any[];
+
+    const sorted = sortSchoolsByKecamatanAndName(rawSchools);
+
+    // Grouped by Kecamatan A-Z:
+    // 1 & 2: Bantarsari
+    expect(sorted[0].kecamatan).toBe('Bantarsari');
+    expect(sorted[0].nama).toBe('MI Al Falah Bulaksari');
+    expect(sorted[1].kecamatan).toBe('Bantarsari');
+    expect(sorted[1].nama).toBe('MI Al Hidayah Kamulyan');
+
+    // 3: Binangun
+    expect(sorted[2].kecamatan).toBe('Binangun');
+    expect(sorted[2].nama).toBe('MI Al Kholidiyah');
+
+    // 4, 5, 6: Cipari
+    expect(sorted[3].kecamatan).toBe('Cipari');
+    expect(sorted[3].nama).toBe('MI Al Hasan Mulyadadi');
+    expect(sorted[4].kecamatan).toBe('Cipari');
+    expect(sorted[4].nama).toBe('MI Al Hidayah Mulyadadi');
+    expect(sorted[5].kecamatan).toBe('Cipari');
+    expect(sorted[5].nama).toBe('MI Al Hidayah Sidasari');
+
+    // 7: Jeruklegi
+    expect(sorted[6].kecamatan).toBe('Jeruklegi');
+    expect(sorted[6].nama).toBe('MI Al Falaah 01 Tritih Wetan');
+
+    // 8 & 9: Kedungreja
+    expect(sorted[7].kecamatan).toBe('Kedungreja');
+    expect(sorted[7].nama).toBe('MI Al Hassan Pasirgaru Bojongsari');
+    expect(sorted[8].kecamatan).toBe('Kedungreja');
+    expect(sorted[8].nama).toBe('MI Al Ma\'arif 01 Bumireja');
+
+    // 10: Majenang
+    expect(sorted[9].kecamatan).toBe('Majenang');
+    expect(sorted[9].nama).toBe('MI Al Ihya Mulyadadi');
+  });
 });
+

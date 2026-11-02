@@ -316,6 +316,29 @@ export function getSiswaBaruThreeYears(
 }
 
 /**
+ * Sorts schools primarily by Kecamatan (A-Z) and secondarily by School Name (A-Z).
+ * Empty or missing kecamatan values are placed at the end.
+ */
+export function sortSchoolsByKecamatanAndName(
+  schools: SchoolReadinessItem[]
+): SchoolReadinessItem[] {
+  return [...schools].sort((a, b) => {
+    const kecA = (a.kecamatan || '').trim();
+    const kecB = (b.kecamatan || '').trim();
+
+    if (!kecA && kecB) return 1;
+    if (kecA && !kecB) return -1;
+
+    const kecCmp = kecA.localeCompare(kecB, 'id', { sensitivity: 'base' });
+    if (kecCmp !== 0) return kecCmp;
+
+    const namaA = (a.nama || '').trim();
+    const namaB = (b.nama || '').trim();
+    return namaA.localeCompare(namaB, 'id', { sensitivity: 'base' });
+  });
+}
+
+/**
  * Builds formatted Excel Worksheet matching official PC LP Ma'arif NU Cilacap standard
  */
 function buildJenjangWorksheet(
@@ -324,6 +347,7 @@ function buildJenjangWorksheet(
   academicYear: string
 ): XLSX.WorkSheet {
   const ws: XLSX.WorkSheet = {};
+  const sortedSchools = sortSchoolsByKecamatanAndName(schools);
   const numClasses = config.classes.length;
   // Columns: NO, Kec, Satpen, Alamat, Status, [classes], Jumlah, [Siswa Baru Y1, Y2, Y3], Kamad, WA
   const totalCols = 11 + numClasses;
@@ -475,7 +499,7 @@ function buildJenjangWorksheet(
   const sbYearSums = [0, 0, 0];
   let grandTotalStudents = 0;
 
-  schools.forEach((s, idx) => {
+  sortedSchools.forEach((s, idx) => {
     const r = 4 + idx;
 
     setCell(r, 0, idx + 1, dataStyleCenter, 'n');
@@ -536,7 +560,7 @@ function buildJenjangWorksheet(
   });
 
   // ── Summary / Total Row ──
-  const totalRowIdx = 4 + schools.length;
+  const totalRowIdx = 4 + sortedSchools.length;
   merges.push({ s: { r: totalRowIdx, c: 0 }, e: { r: totalRowIdx, c: 4 } });
 
   setCell(totalRowIdx, 0, 'JUMLAH TOTAL', totalLabelStyle);
@@ -590,7 +614,7 @@ function buildJenjangWorksheet(
     { hpt: 28 }, // Row 3
     { hpt: 24 }, // Row 4
   ];
-  for (let i = 0; i < schools.length; i++) {
+  for (let i = 0; i < sortedSchools.length; i++) {
     rowsMeta.push({ hpt: 20 });
   }
   rowsMeta.push({ hpt: 22 }); // Total row

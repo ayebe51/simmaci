@@ -850,7 +850,7 @@ class SchoolController extends Controller
         }
 
         $perPage = min(max(1, $request->integer('per_page', 20)), 2000);
-        $paginated = $query->orderBy('s.nama')->paginate($perPage);
+        $paginated = $query->orderBy('s.kecamatan')->orderBy('s.nama')->paginate($perPage);
 
         // Extract school IDs to fetch detail student class distribution
         $schoolIds = collect($paginated->items())->pluck('id')->filter()->all();

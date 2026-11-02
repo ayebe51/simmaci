@@ -645,6 +645,12 @@ class DashboardCacheService
                     'total_students' => 0,
                     'total_districts_covered' => 0,
                     'total_districts' => count($officialDistricts),
+                    'jenjang' => [
+                        'MI' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+                        'MTs' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+                        'MA' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+                        'SMK' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+                    ],
                 ],
                 'districts' => array_values($districtMap),
             ];
@@ -688,6 +694,13 @@ class DashboardCacheService
         $totalTendiks = 0;
         $totalStudents = 0;
 
+        $jenjangSummary = [
+            'MI' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+            'MTs' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+            'MA' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+            'SMK' => ['schools' => 0, 'teachers' => 0, 'tendiks' => 0, 'students' => 0],
+        ];
+
         foreach ($schools as $school) {
             $rawKecamatan = trim($school->kecamatan ?? '');
             $cleanKecamatan = strtolower($rawKecamatan);
@@ -725,15 +738,23 @@ class DashboardCacheService
             $totalStudents += $sCount;
 
             $rawJenjang = strtoupper(trim($school->jenjang ?? ''));
-            $jenjangKey = 'Lainnya';
-            if (str_contains($rawJenjang, 'SMK')) {
+            $rawNama = strtoupper(trim($school->nama ?? ''));
+            $jenjangKey = 'MI';
+            if (str_contains($rawJenjang, 'SMK') || str_contains($rawNama, 'SMK') || str_contains($rawNama, 'KEJURUAN')) {
                 $jenjangKey = 'SMK';
-            } elseif (str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD')) {
-                $jenjangKey = 'MI';
-            } elseif (str_contains($rawJenjang, 'MTS') || str_contains($rawJenjang, 'SMP')) {
+            } elseif (str_contains($rawJenjang, 'MTS') || str_contains($rawJenjang, 'SMP') || str_contains($rawNama, 'MTS') || str_contains($rawNama, 'SMP') || str_contains($rawNama, 'TSANAWIYAH')) {
                 $jenjangKey = 'MTs';
-            } elseif (str_contains($rawJenjang, 'MA') || str_contains($rawJenjang, 'SMA')) {
+            } elseif (str_contains($rawJenjang, 'MA') || str_contains($rawJenjang, 'SMA') || str_contains($rawNama, 'MA ') || str_contains($rawNama, 'SMA ') || str_contains($rawNama, 'ALIYAH')) {
                 $jenjangKey = 'MA';
+            } elseif (str_contains($rawJenjang, 'MI') || str_contains($rawJenjang, 'SD') || str_contains($rawNama, 'MI ') || str_contains($rawNama, 'SD ') || str_contains($rawNama, 'IBTIDAIYAH')) {
+                $jenjangKey = 'MI';
+            }
+
+            if (isset($jenjangSummary[$jenjangKey])) {
+                $jenjangSummary[$jenjangKey]['schools']++;
+                $jenjangSummary[$jenjangKey]['teachers'] += $tCount;
+                $jenjangSummary[$jenjangKey]['tendiks'] += $tendCount;
+                $jenjangSummary[$jenjangKey]['students'] += $sCount;
             }
 
             $schoolData = [
@@ -777,6 +798,7 @@ class DashboardCacheService
                 'total_students' => $totalStudents,
                 'total_districts_covered' => $coveredCount,
                 'total_districts' => count($officialDistricts),
+                'jenjang' => $jenjangSummary,
             ],
             'districts' => array_values($districtMap),
         ];

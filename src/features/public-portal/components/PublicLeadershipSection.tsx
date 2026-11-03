@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Award, CheckCircle2, Quote } from 'lucide-react';
+import { Award, CheckCircle2, Quote, ZoomIn } from 'lucide-react';
+import Lightbox from 'yet-another-react-lightbox';
+import 'yet-another-react-lightbox/styles.css';
 import { Badge } from '@/components/ui/badge';
 
 interface LeaderProfile {
@@ -34,6 +36,8 @@ const LEADERS: LeaderProfile[] = [
 
 export const PublicLeadershipSection: React.FC = () => {
   const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const handleImgError = (name: string) => {
     setImgErrors((prev) => ({ ...prev, [name]: true }));
@@ -60,7 +64,7 @@ export const PublicLeadershipSection: React.FC = () => {
 
         {/* Leaders Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          {LEADERS.map((leader) => {
+          {LEADERS.map((leader, idx) => {
             const hasError = imgErrors[leader.name];
 
             return (
@@ -86,27 +90,45 @@ export const PublicLeadershipSection: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start pt-6">
                   {/* Photo Frame */}
                   <div className="relative shrink-0">
-                    <div className="w-32 h-40 sm:w-36 sm:h-44 rounded-2xl overflow-hidden bg-gradient-to-tr from-emerald-800 to-teal-600 p-1 shadow-md shadow-emerald-950/10 group-hover:scale-[1.02] transition-transform duration-300">
-                      {!hasError ? (
-                        <img
-                          src={leader.imageSrc}
-                          alt={leader.name}
-                          onError={() => handleImgError(leader.name)}
-                          className="w-full h-full object-cover rounded-xl bg-slate-100"
-                        />
-                      ) : (
-                        <div className="w-full h-full rounded-xl bg-emerald-800 flex flex-col items-center justify-center text-white p-2">
-                          <span className="text-2xl font-black">{leader.initials}</span>
-                          <span className="text-[10px] text-emerald-200 uppercase tracking-widest text-center mt-1">
-                            Foto Pimpinan
-                          </span>
-                        </div>
-                      )}
+                    <div
+                      className="w-44 h-56 sm:w-48 sm:h-60 rounded-2xl overflow-hidden bg-gradient-to-tr from-emerald-800 to-teal-600 p-1 shadow-md shadow-emerald-950/10 hover:shadow-xl hover:border-emerald-500 transition-all duration-300 cursor-pointer group/photo relative"
+                      onClick={() => {
+                        setLightboxIndex(idx);
+                        setLightboxOpen(true);
+                      }}
+                      title="Klik untuk melihat foto resolusi penuh"
+                    >
+                      <div className="w-full h-full rounded-xl overflow-hidden bg-slate-100 relative">
+                        {!hasError ? (
+                          <>
+                            <img
+                              src={leader.imageSrc}
+                              alt={leader.name}
+                              onError={() => handleImgError(leader.name)}
+                              className="w-full h-full object-cover object-center scale-[1.18] transition-transform duration-300 group-hover/photo:scale-[1.24]"
+                            />
+                            {/* Hover overlay hint */}
+                            <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                              <div className="bg-white/95 backdrop-blur-sm text-emerald-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transform translate-y-1 group-hover/photo:translate-y-0 transition-transform duration-300">
+                                <ZoomIn className="w-3.5 h-3.5 text-emerald-700" />
+                                <span>Perbesar Foto</span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full rounded-xl bg-emerald-800 flex flex-col items-center justify-center text-white p-2">
+                            <span className="text-2xl font-black">{leader.initials}</span>
+                            <span className="text-[10px] text-emerald-200 uppercase tracking-widest text-center mt-1">
+                              Foto Pimpinan
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Info & Title */}
-                  <div className="flex-1 text-center sm:text-left space-y-2">
+                  <div className="flex-1 text-center sm:text-left space-y-2.5 sm:pt-2">
                     <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug">
                       {leader.name}
                     </h3>
@@ -133,6 +155,17 @@ export const PublicLeadershipSection: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Lightbox Preview */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        index={lightboxIndex}
+        slides={LEADERS.map((leader) => ({
+          src: leader.imageSrc,
+          title: `${leader.name} - ${leader.role} (${leader.subRole})`,
+        }))}
+      />
     </section>
   );
 };

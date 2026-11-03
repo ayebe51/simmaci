@@ -299,11 +299,51 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
     );
   }, [activeDistrictData, searchSchool]);
 
+  // Helper to load canvas image safely with timeout
+  const loadCanvasImage = (src: string, timeoutMs: number = 2000): Promise<HTMLImageElement | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      let settled = false;
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(null);
+        }
+      }, timeoutMs);
+
+      img.onload = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(img);
+        }
+      };
+
+      img.onerror = () => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      };
+
+      img.src = src;
+    });
+  };
+
   // 3. HD PNG Export Functionality
   const handleExportHdPng = async () => {
     try {
       setIsExporting(true);
       toast.info('Menyiapkan gambar resolusi tinggi (HD)...');
+
+      // Attempt to load official LP Ma'arif logo
+      const logoImg =
+        (await loadCanvasImage('/logo-maarif-hijau.png', 1800)) ||
+        (await loadCanvasImage('/images/logo-maarif-hijau.png', 1500)) ||
+        (await loadCanvasImage('/logo_maarif.png', 1500)) ||
+        (await loadCanvasImage('/logo-maarif.png', 1000));
 
       const width = 2760;
       const height = 2040;
@@ -348,6 +388,29 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
       ctx.fill();
       ctx.shadowColor = 'transparent';
 
+      // Header Official LP Ma'arif Logo & Texts
+      const logoBoxSize = 136;
+      const logoX = 115;
+      const logoY = 82;
+      let textStartX = 120;
+
+      if (logoImg) {
+        try {
+          const nw = logoImg.naturalWidth || logoImg.width || 1;
+          const nh = logoImg.naturalHeight || logoImg.height || 1;
+          const scale = Math.min(logoBoxSize / nw, logoBoxSize / nh);
+          const drawW = nw * scale;
+          const drawH = nh * scale;
+          const drawX = logoX + (logoBoxSize - drawW) / 2;
+          const drawY = logoY + (logoBoxSize - drawH) / 2;
+
+          ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
+          textStartX = logoX + logoBoxSize + 25; // 276px
+        } catch {
+          textStartX = 120;
+        }
+      }
+
       // Header Texts
       const titleColor =
         metric === 'schools'
@@ -357,24 +420,28 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
           : '#1e3a8a';
 
       ctx.fillStyle = titleColor;
-      ctx.font = 'bold 50px system-ui, -apple-system, sans-serif';
+      ctx.font = logoImg
+        ? 'bold 44px system-ui, -apple-system, sans-serif'
+        : 'bold 50px system-ui, -apple-system, sans-serif';
       const mainTitle =
         metric === 'schools'
           ? 'PETA SEBARAN MADRASAH & SEKOLAH'
           : metric === 'ptk'
           ? 'PETA SEBARAN GURU & TENDIK'
           : 'PETA SEBARAN SISWA';
-      ctx.fillText(mainTitle, 120, 130);
+      ctx.fillText(mainTitle, textStartX, 126);
 
       ctx.fillStyle = '#475569';
-      ctx.font = '600 28px system-ui, -apple-system, sans-serif';
+      ctx.font = logoImg
+        ? '600 23px system-ui, -apple-system, sans-serif'
+        : '600 28px system-ui, -apple-system, sans-serif';
       const metricLabel =
         metric === 'schools'
-          ? 'KABUPATEN CILACAP • SEBARAN SATUAN PENDIDIKAN (MI / MTS / MA / SMK)'
+          ? "LP MA'ARIF NU CILACAP • SEBARAN SATUAN PENDIDIKAN (MI / MTS / MA / SMK)"
           : metric === 'ptk'
-          ? 'KABUPATEN CILACAP • SEBARAN PENDIDIK & TENAGA KEPENDIDIKAN (GURU & TENDIK)'
-          : 'KABUPATEN CILACAP • SEBARAN PESERTA DIDIK (MI / MTS / MA / SMK)';
-      ctx.fillText(metricLabel, 120, 175);
+          ? "LP MA'ARIF NU CILACAP • SEBARAN PENDIDIK & TENAGA KEPENDIDIKAN (GURU & TENDIK)"
+          : "LP MA'ARIF NU CILACAP • SEBARAN PESERTA DIDIK (MI / MTS / MA / SMK)";
+      ctx.fillText(metricLabel, textStartX, 168);
 
       // Timestamp Badge
       const nowStr = new Date().toLocaleDateString('id-ID', {
@@ -389,8 +456,10 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
           ? '#0f766e'
           : '#1d4ed8';
       ctx.fillStyle = badgeAccentColor;
-      ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
-      ctx.fillText(`Tanggal Cetak: ${nowStr} • SIMMACI Official GIS`, 120, 210);
+      ctx.font = logoImg
+        ? 'bold 19px system-ui, -apple-system, sans-serif'
+        : 'bold 22px system-ui, -apple-system, sans-serif';
+      ctx.fillText(`Tanggal Cetak: ${nowStr} • SIMMACI Official GIS`, textStartX, 204);
 
       // Draw Summary Statistics Card in Header (Right Side) - Tailored per metric
       const summary = apiData?.summary || {
@@ -854,14 +923,21 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
       });
 
       // Footer Watermark
+      const footerText = "© SIMMACI • Sistem Informasi Manajemen LP Ma'arif NU Kabupaten Cilacap";
       ctx.fillStyle = '#64748b';
       ctx.font = '500 18px system-ui, -apple-system, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(
-        "© SIMMACI • Sistem Informasi Manajemen LP Ma'arif NU Kabupaten Cilacap",
-        width - 80,
-        height - 60
-      );
+      ctx.fillText(footerText, width - 80, height - 60);
+
+      if (logoImg) {
+        try {
+          const footerLogoSize = 28;
+          const textW = ctx.measureText(footerText).width;
+          ctx.drawImage(logoImg, width - 80 - textW - footerLogoSize - 12, height - 80, footerLogoSize, footerLogoSize);
+        } catch {
+          // ignore
+        }
+      }
 
       // Trigger download
       canvas.toBlob((blob) => {

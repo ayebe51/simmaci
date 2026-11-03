@@ -357,10 +357,10 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
           : '#1e3a8a';
 
       ctx.fillStyle = titleColor;
-      ctx.font = 'bold 52px system-ui, -apple-system, sans-serif';
+      ctx.font = 'bold 50px system-ui, -apple-system, sans-serif';
       const mainTitle =
         metric === 'schools'
-          ? 'PETA SEBARAN MADRASAH'
+          ? 'PETA SEBARAN MADRASAH & SEKOLAH'
           : metric === 'ptk'
           ? 'PETA SEBARAN GURU & TENDIK'
           : 'PETA SEBARAN SISWA';
@@ -431,16 +431,22 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
       ctx.stroke();
 
       // Pill tag inside total card
+      const totalPillW = metric === 'schools' ? 210 : 150;
       ctx.fillStyle = metric === 'schools' ? '#dcfce7' : metric === 'ptk' ? '#ccfbf1' : '#dbeafe';
       ctx.beginPath();
-      ctx.roundRect(startCardsX + 18, cardY + 14, 150, 26, 6);
+      ctx.roundRect(startCardsX + 18, cardY + 14, totalPillW, 26, 6);
       ctx.fill();
 
       ctx.fillStyle = totalAccentColor;
       ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
       ctx.textAlign = 'center';
-      const totalPillLabel = metric === 'schools' ? 'TOTAL MADRASAH' : metric === 'ptk' ? 'TOTAL PTK' : 'TOTAL SISWA';
-      ctx.fillText(totalPillLabel, startCardsX + 18 + 75, cardY + 31);
+      const totalPillLabel =
+        metric === 'schools'
+          ? 'TOTAL MADRASAH & SEKOLAH'
+          : metric === 'ptk'
+          ? 'TOTAL PTK'
+          : 'TOTAL SISWA';
+      ctx.fillText(totalPillLabel, startCardsX + 18 + totalPillW / 2, cardY + 31);
       ctx.textAlign = 'left';
 
       // Value inside total card
@@ -509,7 +515,7 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
           cardBg: '#ffffff',
           cardBorder: '#fed7aa',
           titleColor: '#7c2d12',
-          subLabel: metric === 'schools' ? 'SMK LP Ma\'arif' : metric === 'ptk' ? `${jenjangStats.SMK.teachers} Guru • ${jenjangStats.SMK.tendiks} Tendik` : `${jenjangStats.SMK.schools} Sekolah SMK`,
+          subLabel: metric === 'schools' ? 'Sekolah Menengah Kejuruan' : metric === 'ptk' ? `${jenjangStats.SMK.teachers} Guru • ${jenjangStats.SMK.tendiks} Tendik` : `${jenjangStats.SMK.schools} Sekolah SMK`,
           val: metric === 'schools' ? `${jenjangStats.SMK.schools} Lembaga` : metric === 'ptk' ? `${jenjangStats.SMK.ptk.toLocaleString('id-ID')} PTK` : `${jenjangStats.SMK.students.toLocaleString('id-ID')} Siswa`,
         },
       ];
@@ -695,14 +701,14 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
 
       const panelTitle =
         metric === 'schools'
-          ? 'DAFTAR KECAMATAN & JUMLAH MADRASAH'
+          ? 'DAFTAR KECAMATAN & JUMLAH MADRASAH & SEKOLAH'
           : metric === 'ptk'
           ? 'DAFTAR KECAMATAN & JUMLAH GURU / TENDIK'
           : 'DAFTAR KECAMATAN & JUMLAH SISWA';
 
       const panelSubtitle =
         metric === 'schools'
-          ? `24 Kecamatan • Total ${summary.total_schools} Madrasah (MI: ${jenjangStats.MI.schools} | MTs: ${jenjangStats.MTs.schools} | MA: ${jenjangStats.MA.schools} | SMK: ${jenjangStats.SMK.schools})`
+          ? `24 Kecamatan • Total ${summary.total_schools} Madrasah & Sekolah (MI: ${jenjangStats.MI.schools} | MTs: ${jenjangStats.MTs.schools} | MA: ${jenjangStats.MA.schools} | SMK: ${jenjangStats.SMK.schools})`
           : metric === 'ptk'
           ? `24 Kecamatan • Total ${(summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')} PTK (MI: ${jenjangStats.MI.ptk} | MTs: ${jenjangStats.MTs.ptk} | MA: ${jenjangStats.MA.ptk} | SMK: ${jenjangStats.SMK.ptk})`
           : `24 Kecamatan • Total ${summary.total_students.toLocaleString('id-ID')} Siswa (MI: ${jenjangStats.MI.students.toLocaleString('id-ID')} | MTs: ${jenjangStats.MTs.students.toLocaleString('id-ID')} | MA: ${jenjangStats.MA.students.toLocaleString('id-ID')} | SMK: ${jenjangStats.SMK.students.toLocaleString('id-ID')})`;
@@ -801,7 +807,7 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
       ctx.font = 'bold 19px system-ui, -apple-system, sans-serif';
       const bottomSummaryVal =
         metric === 'schools'
-          ? `${summary.total_schools} Madrasah`
+          ? `${summary.total_schools} Madrasah & Sekolah`
           : metric === 'ptk'
           ? `${(summary.total_teachers + summary.total_tendiks).toLocaleString('id-ID')} PTK (${summary.total_teachers} Guru, ${summary.total_tendiks} Tendik)`
           : `${summary.total_students.toLocaleString('id-ID')} Siswa`;
@@ -862,7 +868,7 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
         if (blob) {
           const filename =
             metric === 'schools'
-              ? 'peta-sebaran-madrasah-maarif-cilacap.png'
+              ? 'peta-sebaran-madrasah-sekolah-maarif-cilacap.png'
               : metric === 'ptk'
               ? 'peta-sebaran-guru-tendik-maarif-cilacap.png'
               : 'peta-sebaran-siswa-maarif-cilacap.png';
@@ -971,7 +977,7 @@ export function DistributionMap({ isPublic = false }: { isPublic?: boolean } = {
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <CardTitle className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Peta Sebaran Madrasah & Wilayah</span>
+                <span>Peta Sebaran Madrasah & Sekolah</span>
                 <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
                   24 Kecamatan Asli Cilacap
                 </Badge>

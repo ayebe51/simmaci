@@ -209,6 +209,56 @@ class HeadmasterController extends Controller
         return response()->json(['message' => 'Pengajuan kepala madrasah berhasil dihapus.']);
     }
 
+    /**
+     * Mendapatkan nomor urut SK Kepala terakhir dan nomor urut berikutnya dari database.
+     * Nomor urut pokok (4 digit depan) harus selalu berlanjut dan tidak boleh mereset
+     * meskipun bulan terbit berubah.
+     */
+    public function nextNomor(): JsonResponse
+    {
+        $tenureNomors = HeadmasterTenure::withoutTenantScope()->withTrashed()
+            ->whereNotNull('nomor_sk')
+            ->pluck('nomor_sk');
+
+        $skDocNomors = \App\Models\SkDocument::withoutTenantScope()->withTrashed()
+            ->where(function ($q) {
+                $q->where('nomor_sk', 'like', '%H-34.B%')
+                  ->orWhere('jenis_sk', 'ilike', '%kepala%')
+                  ->orWhere('jenis_sk', 'ilike', '%kamad%');
+            })
+            ->pluck('nomor_sk');
+
+        $allNomors = $tenureNomors->merge($skDocNomors)->unique();
+
+        $maxSeq = 0;
+        $lastNomor = null;
+
+        foreach ($allNomors as $nomor) {
+            $nomor = trim((string) $nomor);
+            if (empty($nomor) || str_starts_with($nomor, 'REQ/')) {
+                continue;
+            }
+
+            if (preg_match('/^(\d+)\//', $nomor, $m)) {
+                $seq = (int) $m[1];
+                if ($seq > $maxSeq) {
+                    $maxSeq = $seq;
+                    $lastNomor = $nomor;
+                }
+            }
+        }
+
+        $nextSeq = $maxSeq + 1;
+        $nextFormatted = str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+
+        return response()->json([
+            'last_seq'           => $maxSeq,
+            'last_nomor_sk'      => $lastNomor,
+            'next_seq'           => $nextSeq,
+            'next_seq_formatted' => $nextFormatted,
+        ]);
+    }
+
     public function expiring(Request $request): JsonResponse
     {
         $limit = strtotime('+180 days'); // 6 bulan sebelum berakhir

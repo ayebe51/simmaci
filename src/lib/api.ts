@@ -570,6 +570,7 @@ export const headmasterApi = {
   list: (params?: Record<string, any>) => apiClient.get('/headmasters', { params }).then((r) => r.data),
   get: (id: number) => apiClient.get(`/headmasters/${id}`).then((r) => r.data),
   expiring: () => apiClient.get('/headmasters/expiring').then((r) => r.data),
+  getNextNomor: () => apiClient.get<{ last_seq: number; last_nomor_sk: string | null; next_seq: number; next_seq_formatted: string }>('/headmasters/next-nomor').then((r) => r.data),
   create: (data: Record<string, any>) => apiClient.post('/headmasters', data).then((r) => r.data),
   approve: (id: number, data?: Record<string, any>) => apiClient.post(`/headmasters/${id}/approve`, data ?? {}).then((r) => r.data),
   reject: (id: number, data?: Record<string, any>) => apiClient.post(`/headmasters/${id}/reject`, data ?? {}).then((r) => r.data),

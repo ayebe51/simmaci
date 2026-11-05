@@ -210,6 +210,7 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('slow_queries');
 
         // Headmasters — route statis HARUS sebelum apiResource agar tidak bentrok dengan {headmaster} parameter
+        Route::get('headmasters/next-nomor',                  [HeadmasterController::class, 'nextNomor']);
         Route::get('headmasters/expiring',                    [HeadmasterController::class, 'expiring']);
         Route::apiResource('headmasters', HeadmasterController::class)->only(['index', 'show', 'store', 'update', 'destroy']);
 

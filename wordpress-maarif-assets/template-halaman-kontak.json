@@ -1,0 +1,103 @@
+{
+  "version": "0.4",
+  "title": "Halaman Kontak & Sekretariat LP Maarif NU Cilacap",
+  "type": "page",
+  "content": [
+    {
+      "id": "kontak_header_sec",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "gradient",
+        "background_color": "#022c22",
+        "background_color_b": "#064e3b",
+        "background_gradient_type": "linear",
+        "background_gradient_angle": { "unit": "deg", "size": 135 },
+        "padding": { "unit": "px", "top": "65", "right": "20", "bottom": "65", "left": "20", "isLinked": false }
+      },
+      "elements": [
+        {
+          "id": "kontak_header_col",
+          "elType": "column",
+          "settings": { "_column_size": 100 },
+          "elements": [
+            {
+              "id": "kontak_badge",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"text-align: center; margin-bottom: 12px;\"><span style=\"display: inline-block; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 16px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase;\">Layanan Informasi</span></div>"
+              }
+            },
+            {
+              "id": "kontak_title",
+              "elType": "widget",
+              "widgetType": "heading",
+              "settings": {
+                "title": "Hubungi Sekretariat LP Ma'arif NU Cilacap",
+                "header_size": "h1",
+                "align": "center",
+                "title_color": "#ffffff",
+                "typography_typography": "custom",
+                "typography_font_family": "Plus Jakarta Sans",
+                "typography_font_size": { "unit": "px", "size": 34 },
+                "typography_font_weight": "900"
+              }
+            },
+            {
+              "id": "kontak_desc",
+              "elType": "widget",
+              "widgetType": "text-editor",
+              "settings": {
+                "editor": "<p style=\"text-align: center; color: #cbd5e1; font-size: 15px; max-width: 650px; margin: 10px auto 0 auto;\">Silakan menghubungi kami untuk koordinasi kelembagaan, administrasi madrasah, dan informasi layanan pendidikan.</p>",
+                "align": "center"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kontak_body_sec",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#f8fafc",
+        "padding": { "unit": "px", "top": "60", "right": "20", "bottom": "70", "left": "20", "isLinked": false }
+      },
+      "elements": [
+        {
+          "id": "kontak_left_col",
+          "elType": "column",
+          "settings": { "_column_size": 40 },
+          "elements": [
+            {
+              "id": "kontak_info_card",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);\"><h3 style=\"font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 20px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Kantor Sekretariat</h3><div style=\"margin-bottom: 18px;\"><div style=\"font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;\">📍 Alamat Kantor</div><div style=\"font-size: 14px; color: #334155; margin-top: 4px; line-height: 1.5;\">Gedung Pusdiklat PC LP Ma'arif NU Cilacap, Kabupaten Cilacap, Jawa Tengah</div></div><div style=\"margin-bottom: 18px;\"><div style=\"font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;\">✉️ Email Resmi</div><div style=\"font-size: 14px; color: #334155; margin-top: 4px;\"><a href=\"mailto:sekretariat@maarifnucilacap.or.id\" style=\"color: #047857; text-decoration: none;\">sekretariat@maarifnucilacap.or.id</a></div></div><div style=\"margin-bottom: 18px;\"><div style=\"font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase;\">⏰ Jam Layanan</div><div style=\"font-size: 14px; color: #334155; margin-top: 4px;\">Senin – Sabtu: 08.00 – 16.00 WIB</div></div><a href=\"https://wa.me/6281234567890\" target=\"_blank\" style=\"display: inline-block; width: 100%; text-align: center; background: #047857; color: #ffffff; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; text-decoration: none; text-transform: uppercase;\">💬 Hubungi via WhatsApp</a></div>"
+              }
+            }
+          ]
+        },
+        {
+          "id": "kontak_right_col",
+          "elType": "column",
+          "settings": { "_column_size": 60 },
+          "elements": [
+            {
+              "id": "kontak_maps_card",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);\"><h3 style=\"font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Lokasi di Google Maps</h3><div style=\"border-radius: 16px; overflow: hidden; height: 350px;\"><iframe src=\"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126497.10825316393!2d108.91572183204787!3d-7.669866164282572!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e650c897f7422f7%3A0x3027a76e352bb40!2sCilacap%2C%20Cilacap%20Regency%2C%20Central%20Java!5e0!3m2!1sen!2sid!4v1700000000000!5m2!1sen!2sid\" width=\"100%\" height=\"100%\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div></div>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

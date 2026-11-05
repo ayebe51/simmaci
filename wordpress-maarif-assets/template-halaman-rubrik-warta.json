@@ -1,0 +1,96 @@
+{
+  "version": "0.4",
+  "title": "Halaman Rubrik Warta & Literasi - Modern Style",
+  "type": "page",
+  "content": [
+    {
+      "id": "rubrik_header_sec",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "gradient",
+        "background_color": "#022c22",
+        "background_color_b": "#064e3b",
+        "background_gradient_type": "linear",
+        "background_gradient_angle": { "unit": "deg", "size": 135 },
+        "padding": { "unit": "px", "top": "65", "right": "20", "bottom": "65", "left": "20", "isLinked": false }
+      },
+      "elements": [
+        {
+          "id": "rubrik_header_col",
+          "elType": "column",
+          "settings": { "_column_size": 100 },
+          "elements": [
+            {
+              "id": "rubrik_header_badge",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"text-align: center; margin-bottom: 14px;\"><span style=\"display: inline-block; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 16px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;\">Media Informasi Resmi</span></div>"
+              }
+            },
+            {
+              "id": "rubrik_header_title",
+              "elType": "widget",
+              "widgetType": "heading",
+              "settings": {
+                "title": "Warta, Khazanah & Literasi Ma'arif",
+                "header_size": "h1",
+                "align": "center",
+                "title_color": "#ffffff",
+                "typography_typography": "custom",
+                "typography_font_family": "Plus Jakarta Sans",
+                "typography_font_size": { "unit": "px", "size": 36 },
+                "typography_font_weight": "900"
+              }
+            },
+            {
+              "id": "rubrik_header_desc",
+              "elType": "widget",
+              "widgetType": "text-editor",
+              "settings": {
+                "editor": "<p style=\"text-align: center; color: #cbd5e1; font-size: 15px; max-width: 650px; margin: 10px auto 0 auto;\">Kanal publikasi resmi kegiatan madrasah, ruang dialektika pemikiran pendidikan Islam Aswaja, dan ensiklopedia wawasan edukasi.</p>",
+                "align": "center"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rubrik_filter_and_grid_sec",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#f8fafc",
+        "padding": { "unit": "px", "top": "50", "right": "20", "bottom": "70", "left": "20", "isLinked": false }
+      },
+      "elements": [
+        {
+          "id": "rubrik_grid_col",
+          "elType": "column",
+          "settings": { "_column_size": 100 },
+          "elements": [
+            {
+              "id": "rubrik_filter_nav",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 35px;\"><button onclick=\"filterRubrik(0, this)\" class=\"rubrik-btn active\" style=\"background: #047857; color: #fff; border: none; padding: 10px 22px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer; transition: all .2s;\">Semua Warta</button><button onclick=\"filterRubrik(1, this)\" class=\"rubrik-btn\" style=\"background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; padding: 10px 22px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer; transition: all .2s;\">Berita</button><button onclick=\"filterRubrik(6, this)\" class=\"rubrik-btn\" style=\"background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; padding: 10px 22px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer; transition: all .2s;\">Khazanah</button><button onclick=\"filterRubrik(5, this)\" class=\"rubrik-btn\" style=\"background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; padding: 10px 22px; border-radius: 12px; font-weight: 800; font-size: 12px; text-transform: uppercase; cursor: pointer; transition: all .2s;\">Ma'arif Pedia</button></div>"
+              }
+            },
+            {
+              "id": "rubrik_posts_grid",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div id=\"rubrik-content-grid\"><div style=\"text-align: center; padding: 50px; color: #94a3b8; font-weight: 600;\">Memuat daftar artikel...</div></div><script>var curCat=0;function filterRubrik(catId, btn){curCat=catId;var btns=document.querySelectorAll('.rubrik-btn');btns.forEach(b=>{b.style.background='#ffffff';b.style.color='#0f172a';b.style.border='1px solid #e2e8f0';});btn.style.background='#047857';btn.style.color='#ffffff';btn.style.border='none';loadRubrik(catId);}function loadRubrik(catId){var el=document.getElementById('rubrik-content-grid');el.innerHTML='<div style=\"text-align: center; padding: 50px; color: #94a3b8; font-weight: 600;\">Memuat warta...</div>';var url='https://maarifnucilacap.or.id/wp-json/wp/v2/posts?per_page=12&_embed=1';if(catId>0){url+='&categories='+catId;}fetch(url).then(r=>r.json()).then(posts=>{if(!posts||posts.length===0){el.innerHTML='<div style=\"text-align:center; padding:50px; color:#64748b;\">Belum ada artikel pada rubrik ini.</div>';return;}var html='<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 26px;\">';posts.forEach(function(p){var img=p._embedded&&p._embedded['wp:featuredmedia']&&p._embedded['wp:featuredmedia'][0]?p._embedded['wp:featuredmedia'][0].source_url:'https://maarifnucilacap.or.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-25-at-15.03.53-scaled.jpeg';var title=p.title.rendered;var link=p.link;var author=p._embedded&&p._embedded.author&&p._embedded.author[0]?p._embedded.author[0].name:'Redaksi';var date=new Date(p.date).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});var excerpt=p.excerpt&&p.excerpt.rendered?p.excerpt.rendered.replace(/<[^>]+>/g,'').trim().slice(0,120)+'...':'';html+='<article style=\"background:#ffffff; border:1px solid #e2e8f0; border-radius:20px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:between; transition:transform .25s ease, box-shadow .25s ease;\" onmouseover=\"this.style.transform=\\'translateY(-4px)\\'; this.style.boxShadow=\\'0 12px 20px -3px rgba(4,120,87,0.1)\\'\" onmouseout=\"this.style.transform=\\'none\\'; this.style.boxShadow=\\'0 4px 6px -1px rgba(0,0,0,0.03)\\'\"><div style=\"aspect-ratio:16/9; overflow:hidden; position:relative;\"><img src=\"'+img+'\" alt=\"'+title+'\" style=\"width:100%; height:100%; object-fit:cover;\" loading=\"lazy\"/></div><div style=\"padding:24px; flex:1; display:flex; flex-direction:column; justify-content:between;\"><div><div style=\"font-size:11px; font-weight:700; color:#047857; margin-bottom:8px;\">📅 '+date+' • '+author+'</div><h2 style=\"font-size:17px; font-weight:800; color:#0f172a; margin:0 0 10px 0; line-height:1.4;\"><a href=\"'+link+'\" style=\"color:#0f172a; text-decoration:none;\">'+title+'</a></h2><p style=\"color:#64748b; font-size:13px; line-height:1.5; margin:0 0 16px 0;\">'+excerpt+'</p></div><div><a href=\"'+link+'\" style=\"display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#047857; text-decoration:none;\">Baca Selengkapnya →</a></div></div></article>';});html+='</div>';el.innerHTML=html;}).catch(e=>{el.innerHTML='<div style=\"text-align:center; padding:50px; color:#ef4444;\">Gagal memuat artikel. Silakan muat ulang halaman.</div>';});}loadRubrik(0);</script>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+========================================================================
+PANDUAN PENGGUNAAN ASET TEMPLATE WORDPRESS LP MA'ARIF NU CILACAP
+========================================================================
+
+Folder ini berisi seluruh file siap pakai untuk website:
+https://maarifnucilacap.or.id
+
+DAFTAR LENGKAP KODE HALAMAN SIAP PAKAI (WIDGET HTML ELEMENTOR):
+------------------------------------------------------------------------
+1. kode-beranda-lengkap.html
+   -> Untuk Halaman Beranda (Home / Beranda Utama)
+   -> Fitur: Hero Full-Width + Quick Search + 4 Pilar + 4 Statistik Live
+      + Foto HD Pimpinan Resmi (H. Ali Sodiqin & Ngadino)
+      + Peta SVG 24 Kecamatan Cilacap + Direktori 207 Madrasah Lengkap
+      + Services Hub (PPDB/Verifikasi SK/SIMMACI) + Mega Footer 4 Kolom
+
+2. kode-halaman-profil.html
+   -> Untuk Halaman Profil (/profil)
+   -> Fitur: Sejarah & Khidmah, Visi & 5 Misi Strategis, Profil Lengkap
+      Ketua & Sekretaris PC LP Ma'arif NU Cilacap, 5 Nilai Mabadi' Khaira Ummah,
+      Services Hub, dan Mega Footer 4 Kolom.
+
+3. kode-halaman-berita.html
+   -> Untuk Halaman Warta / Berita (/berita)
+   -> Fitur: Hero Warta, Live Search Berita, Filter Kategori (Pendidikan,
+      Kegiatan Cabang, Prestasi, Pengumuman), Warta Utama (Featured Headline),
+      Grid Berita 16:9, Live Fetch WordPress REST API, Pagination, dan Mega Footer.
+
+4. kode-halaman-khazanah.html
+   -> Untuk Halaman Khazanah Aswaja (/khazanah)
+   -> Fitur: Hero Khazanah, Kutipan Mutiara Hikmah Hadits/Dawuh Ulama,
+      Filter Topik (Fikih Pendidikan, Amaliah NU, Biografi Ulama Cilacap,
+      Adab Santri), Grid Artikel Keislaman, dan Mega Footer.
+
+5. kode-halaman-maarif-pedia.html
+   -> Untuk Halaman Ma'arif Pedia (/maarif-pedia)
+   -> Fitur: Hero Pedia, 4 Pilar Riset & Modul (Kurikulum Aswaja, Sains & Riset,
+      Best Practice Manajemen, Ensiklopedia Tokoh), Search & Filter Topik,
+      Grid Artikel Ensiklopedia Ilmiah, dan Mega Footer.
+
+6. kode-halaman-dokumen.html
+   -> Untuk Halaman Dokumen & Regulasi (/dokumen)
+   -> Fitur: Hero Dokumen, Callout QR Code Verifier SIMMACI (Validasi SK),
+      Live Search Dokumen, Filter Tab (Juknis PPDB, Kurikulum & Kalender,
+      Surat Edaran, Formulir Administrasi), Kartu Unduhan Berkas (PDF/DOCX),
+      dan Mega Footer.
+
+CARA MEMAKAI DI SETIAP HALAMAN ELEMENTOR (SANGAT MUDAH & BEBAS GAGAL):
+------------------------------------------------------------------------
+1. Buka salah satu file HTML di atas sesuai halamannya, tekan Ctrl+A lalu Ctrl+C.
+2. Di WordPress, buka halaman yang bersangkutan (misal Halaman "Profil"), klik "Edit with Elementor".
+3. Buat 1 Seksi/Container baru:
+   - Tab Layout: Set "Content Width" = "Full Width" (Lebar Penuh).
+   - Set "Columns Gap" / Padding = "No Gap" (0).
+4. Tarik widget "HTML" ke dalam seksi tersebut.
+5. Paste (Ctrl+V) seluruh kode ke kotak HTML widget tersebut.
+6. Hapus seksi/elemen lama yang tidak terpakai.
+7. Pada menu Pengaturan (ikon Gerigi di pojok kiri bawah Elementor), pastikan "Page Layout" disetel ke "Elementor Full Width".
+8. Klik tombol "Update / Perbarui". Halaman Anda langsung tampil seragam dan profesional!
+========================================================================

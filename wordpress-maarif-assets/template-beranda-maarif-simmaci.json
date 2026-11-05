@@ -1,0 +1,265 @@
+{
+  "version": "0.4",
+  "title": "Beranda LP Maarif NU Cilacap - SIMMACI Style",
+  "type": "page",
+  "content": [
+    {
+      "id": "hero_section_simmaci",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "gradient",
+        "background_color": "#022c22",
+        "background_color_b": "#0f172a",
+        "background_gradient_type": "linear",
+        "background_gradient_angle": {
+          "unit": "deg",
+          "size": 135
+        },
+        "padding": {
+          "unit": "px",
+          "top": "90",
+          "right": "20",
+          "bottom": "90",
+          "left": "20",
+          "isLinked": false
+        }
+      },
+      "elements": [
+        {
+          "id": "hero_col_main",
+          "elType": "column",
+          "settings": {
+            "_column_size": 100
+          },
+          "elements": [
+            {
+              "id": "hero_badge_pill",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"text-align: center; margin-bottom: 24px;\"><span style=\"display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); padding: 6px 18px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.15);\">✨ Portal Resmi • LP Ma'arif NU Cilacap</span></div>"
+              }
+            },
+            {
+              "id": "hero_title",
+              "elType": "widget",
+              "widgetType": "heading",
+              "settings": {
+                "title": "Lembaga Pendidikan Ma'arif NU Cilacap",
+                "header_size": "h1",
+                "align": "center",
+                "title_color": "#ffffff",
+                "typography_typography": "custom",
+                "typography_font_family": "Plus Jakarta Sans",
+                "typography_font_size": {
+                  "unit": "px",
+                  "size": 44
+                },
+                "typography_font_weight": "900",
+                "typography_line_height": {
+                  "unit": "em",
+                  "size": 1.15
+                }
+              }
+            },
+            {
+              "id": "hero_subtitle",
+              "elType": "widget",
+              "widgetType": "text-editor",
+              "settings": {
+                "editor": "<p style=\"text-align: center; color: #cbd5e1; font-size: 16px; max-width: 760px; margin: 16px auto 32px auto; line-height: 1.6;\">Mewujudkan tata kelola madrasah dan sekolah Ma'arif yang mandiri, berkarakter Aswaja An-Nahdliyah, dan berbasis data digital terpadu di 24 kecamatan se-Kabupaten Cilacap.</p>",
+                "align": "center"
+              }
+            },
+            {
+              "id": "hero_buttons",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;\"><a href=\"#warta\" style=\"display: inline-flex; align-items: center; gap: 8px; background: #10b981; color: #022c22; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; padding: 14px 28px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35); transition: all 0.25s ease;\">📰 Jelajahi Warta & Khazanah</a><a href=\"https://simmaci.com/login\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.1); color: #ffffff; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; padding: 14px 28px; border-radius: 12px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); transition: all 0.25s ease;\">🔐 Masuk SIMMACI</a></div>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stats_section_simmaci",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#f8fafc",
+        "padding": {
+          "unit": "px",
+          "top": "50",
+          "right": "20",
+          "bottom": "50",
+          "left": "20",
+          "isLinked": false
+        }
+      },
+      "elements": [
+        {
+          "id": "stats_col",
+          "elType": "column",
+          "settings": {
+            "_column_size": 100
+          },
+          "elements": [
+            {
+              "id": "stats_heading",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"text-align: center; max-width: 680px; margin: 0 auto 30px auto;\"><span style=\"display: inline-block; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 4px 14px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;\">Live Data • SIMMACI</span><h2 style=\"font-size: 28px; font-weight: 900; color: #0f172a; margin: 0 0 8px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Statistik Pendidikan Ma'arif Cilacap</h2><p style=\"color: #64748b; font-size: 14px; margin: 0;\">Data terintegrasi secara otomatis dari Sistem Informasi Manajemen SIMMACI</p></div>"
+              }
+            },
+            {
+              "id": "stats_shortcode_widget",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div id=\"simmaci-stats-elementor-box\"><div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 1100px; margin: 0 auto;\"><div style=\"background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 26px 18px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);\"><div style=\"font-size: 32px; margin-bottom: 8px;\">🏫</div><div id=\"el-stat-schools\" style=\"font-size: 34px; font-weight: 900; color: #047857; line-height: 1.1; margin-bottom: 4px;\">207+</div><div style=\"font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 3px;\">Madrasah & Sekolah</div><div style=\"font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em;\">MI • MTs • MA • SMK</div></div><div style=\"background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 26px 18px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);\"><div style=\"font-size: 32px; margin-bottom: 8px;\">👨‍🏫</div><div id=\"el-stat-teachers\" style=\"font-size: 34px; font-weight: 900; color: #047857; line-height: 1.1; margin-bottom: 4px;\">1.719+</div><div style=\"font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 3px;\">Tenaga Pendidik (Guru)</div><div style=\"font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em;\">Aktif Terdata</div></div><div style=\"background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 26px 18px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);\"><div style=\"font-size: 32px; margin-bottom: 8px;\">👔</div><div id=\"el-stat-tendiks\" style=\"font-size: 34px; font-weight: 900; color: #047857; line-height: 1.1; margin-bottom: 4px;\">225+</div><div style=\"font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 3px;\">Tenaga Kependidikan</div><div style=\"font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em;\">Staf & Administrasi</div></div><div style=\"background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 26px 18px; text-align: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);\"><div style=\"font-size: 32px; margin-bottom: 8px;\">🎒</div><div id=\"el-stat-students\" style=\"font-size: 34px; font-weight: 900; color: #047857; line-height: 1.1; margin-bottom: 4px;\">39.424+</div><div style=\"font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 3px;\">Peserta Didik</div><div style=\"font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em;\">Siswa Terdaftar</div></div></div><p style=\"text-align: center; font-size: 12px; color: #64748b; font-weight: 600; margin-top: 20px;\">Tersebar di 24 Wilayah Kecamatan se-Kabupaten Cilacap</p></div><script>(function(){function fmt(n){return new Intl.NumberFormat('id-ID').format(n);}fetch('https://simmaci.com/api/public/portal/stats').then(r=>r.json()).then(res=>{if(res&&res.data){var d=res.data;if(d.total_schools)document.getElementById('el-stat-schools').innerText=fmt(d.total_schools);if(d.total_teachers)document.getElementById('el-stat-teachers').innerText=fmt(d.total_teachers);if(d.total_tendiks)document.getElementById('el-stat-tendiks').innerText=fmt(d.total_tendiks);if(d.total_students)document.getElementById('el-stat-students').innerText=fmt(d.total_students);}}).catch(function(e){console.warn('Fallback static stats:',e);});})();</script>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leadership_section_simmaci",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#ffffff",
+        "padding": {
+          "unit": "px",
+          "top": "70",
+          "right": "20",
+          "bottom": "70",
+          "left": "20",
+          "isLinked": false
+        }
+      },
+      "elements": [
+        {
+          "id": "lead_col_left",
+          "elType": "column",
+          "settings": {
+            "_column_size": 50
+          },
+          "elements": [
+            {
+              "id": "lead_card_ketua",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"border: 1px solid #e2e8f0; border-radius: 24px; padding: 28px; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); display: flex; gap: 20px; align-items: center; flex-wrap: wrap;\"><img src=\"https://simmaci.com/images/foto-ketua.png\" alt=\"Ketua PC LP Maarif NU Cilacap\" style=\"width: 110px; height: 130px; object-fit: cover; border-radius: 16px; border: 2px solid #10b981; flex-shrink: 0;\" onerror=\"this.src='https://maarifnucilacap.or.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-25-at-15.03.53-scaled.jpeg'\"/><div style=\"flex: 1; min-width: 180px;\"><span style=\"display: inline-block; background: #ecfdf5; color: #047857; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; text-transform: uppercase; margin-bottom: 6px;\">Ketua PC LP Ma'arif NU</span><h3 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0 0 6px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Munir Dinullah, M.Pd.</h3><p style=\"color: #64748b; font-size: 13px; line-height: 1.5; margin: 0;\">\"Menjaga tradisi Aswaja An-Nahdliyah seraya terus berinovasi memajukan mutu pendidikan madrasah secara terintegrasi.\"</p></div></div>"
+              }
+            }
+          ]
+        },
+        {
+          "id": "lead_col_right",
+          "elType": "column",
+          "settings": {
+            "_column_size": 50
+          },
+          "elements": [
+            {
+              "id": "lead_card_sekretaris",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"border: 1px solid #e2e8f0; border-radius: 24px; padding: 28px; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); display: flex; gap: 20px; align-items: center; flex-wrap: wrap;\"><img src=\"https://simmaci.com/images/foto-sekretaris.png\" alt=\"Sekretaris PC LP Maarif NU Cilacap\" style=\"width: 110px; height: 130px; object-fit: cover; border-radius: 16px; border: 2px solid #047857; flex-shrink: 0;\" onerror=\"this.src='https://maarifnucilacap.or.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-25-at-15.03.53-scaled.jpeg'\"/><div style=\"flex: 1; min-width: 180px;\"><span style=\"display: inline-block; background: #ecfdf5; color: #047857; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; text-transform: uppercase; margin-bottom: 6px;\">Sekretaris PC LP Ma'arif NU</span><h3 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0 0 6px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Baharudin Yusuf, M.Pd.</h3><p style=\"color: #64748b; font-size: 13px; line-height: 1.5; margin: 0;\">\"Tertib administrasi, akuntabilitas kelembagaan, dan pelayanan digital untuk segenap madrasah di Cilacap.\"</p></div></div>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "news_section_simmaci",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#f8fafc",
+        "padding": {
+          "unit": "px",
+          "top": "70",
+          "right": "20",
+          "bottom": "70",
+          "left": "20",
+          "isLinked": false
+        }
+      },
+      "elements": [
+        {
+          "id": "news_col",
+          "elType": "column",
+          "settings": {
+            "_column_size": 100
+          },
+          "elements": [
+            {
+              "id": "news_heading",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div id=\"warta\" style=\"display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; flex-wrap: wrap; gap: 14px;\"><div><span style=\"display: inline-block; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 4px 14px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;\">Warta & Literasi</span><h2 style=\"font-size: 28px; font-weight: 900; color: #0f172a; margin: 0 0 6px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Kabar, Khazanah & Edukasi Terkini</h2><p style=\"color: #64748b; font-size: 14px; margin: 0;\">Publikasi resmi kegiatan madrasah, esai pemikiran keaswajaan, dan wawasan regulasi.</p></div><div style=\"display: flex; gap: 8px; flex-wrap: wrap;\"><a href=\"/berita\" style=\"background: #047857; color: #ffffff; font-size: 11px; font-weight: 800; padding: 8px 16px; border-radius: 10px; text-decoration: none; text-transform: uppercase;\">Berita</a><a href=\"/khazanah\" style=\"background: #ffffff; color: #047857; border: 1px solid #e2e8f0; font-size: 11px; font-weight: 800; padding: 8px 16px; border-radius: 10px; text-decoration: none; text-transform: uppercase;\">Khazanah</a><a href=\"/maarif-pedia\" style=\"background: #ffffff; color: #047857; border: 1px solid #e2e8f0; font-size: 11px; font-weight: 800; padding: 8px 16px; border-radius: 10px; text-decoration: none; text-transform: uppercase;\">Ma'arif Pedia</a></div></div>"
+              }
+            },
+            {
+              "id": "news_feed_widget",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div id=\"simmaci-warta-feed\"><div style=\"text-align: center; padding: 40px; color: #94a3b8; font-weight: 600;\">Memuat warta terbaru...</div></div><script>(function(){fetch('https://maarifnucilacap.or.id/wp-json/wp/v2/posts?per_page=6&_embed=1').then(r=>r.json()).then(posts=>{if(!posts||posts.length===0){document.getElementById('simmaci-warta-feed').innerHTML='<p style=\"text-align:center;\">Belum ada artikel.</p>';return;}var html='<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;\">';posts.forEach(function(p){var img=p._embedded&&p._embedded['wp:featuredmedia']&&p._embedded['wp:featuredmedia'][0]?p._embedded['wp:featuredmedia'][0].source_url:'https://maarifnucilacap.or.id/wp-content/uploads/2026/09/WhatsApp-Image-2026-09-25-at-15.03.53-scaled.jpeg';var title=p.title.rendered;var link=p.link;var author=p._embedded&&p._embedded.author&&p._embedded.author[0]?p._embedded.author[0].name:'Redaksi';var date=new Date(p.date).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});html+='<article style=\"background:#ffffff; border:1px solid #e2e8f0; border-radius:20px; overflow:hidden; box-shadow:0 4px 6px -1px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:between;\"><div style=\"aspect-ratio:16/9; overflow:hidden;\"><img src=\"'+img+'\" alt=\"'+title+'\" style=\"width:100%; height:100%; object-fit:cover; transition:transform .3s;\" onmouseover=\"this.style.transform=\\'scale(1.04)\\'\" onmouseout=\"this.style.transform=\\'scale(1)\\'\" loading=\"lazy\"/></div><div style=\"padding:20px;\"><div style=\"font-size:11px; font-weight:600; color:#10b981; margin-bottom:6px;\">📅 '+date+' • '+author+'</div><h3 style=\"font-size:16px; font-weight:800; color:#0f172a; margin:0 0 10px 0; line-height:1.4;\"><a href=\"'+link+'\" style=\"color:#0f172a; text-decoration:none;\">'+title+'</a></h3><a href=\"'+link+'\" style=\"display:inline-block; font-size:12px; font-weight:800; color:#047857; text-decoration:none;\">Baca Selengkapnya →</a></div></article>';});html+='</div>';document.getElementById('simmaci-warta-feed').innerHTML=html;}).catch(function(e){document.getElementById('simmaci-warta-feed').innerHTML='<p style=\"text-align:center; color:#ef4444;\">Gagal memuat warta terkini.</p>';});})();</script>"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "map_cta_section_simmaci",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#ffffff",
+        "padding": {
+          "unit": "px",
+          "top": "70",
+          "right": "20",
+          "bottom": "70",
+          "left": "20",
+          "isLinked": false
+        }
+      },
+      "elements": [
+        {
+          "id": "map_col",
+          "elType": "column",
+          "settings": {
+            "_column_size": 100
+          },
+          "elements": [
+            {
+              "id": "map_banner",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #0f172a 100%); border-radius: 28px; padding: 50px 30px; text-align: center; color: #ffffff; box-shadow: 0 15px 30px -10px rgba(2, 44, 34, 0.4); border: 1px solid rgba(16, 185, 129, 0.3);\"><span style=\"display: inline-block; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(110, 231, 183, 0.4); padding: 5px 16px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;\">Geospasial Interaktif</span><h2 style=\"color: #ffffff; font-size: 30px; font-weight: 900; margin: 0 0 12px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Peta Sebaran Madrasah & Sekolah se-Kabupaten Cilacap</h2><p style=\"color: #cbd5e1; font-size: 15px; max-width: 680px; margin: 0 auto 30px auto; line-height: 1.6;\">Visualisasi sebaran 207+ satuan pendidikan formal (MI, MTs, MA, SMK) serta persebaran pendidik dan peserta didik di 24 wilayah kecamatan.</p><div style=\"display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;\"><a href=\"https://simmaci.com/#sebaran\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"background: #10b981; color: #022c22; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; padding: 15px 30px; border-radius: 12px; text-decoration: none; transition: all 0.25s ease; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);\">🗺️ Buka Peta Sebaran Interaktif</a><a href=\"https://simmaci.com/#direktori\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"background: rgba(255, 255, 255, 0.12); color: #ffffff; font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; padding: 15px 30px; border-radius: 12px; text-decoration: none; border: 1px solid rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); transition: all 0.25s ease;\">🔍 Cari di Direktori Madrasah</a></div></div>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

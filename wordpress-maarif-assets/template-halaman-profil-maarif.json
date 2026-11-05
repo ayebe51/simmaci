@@ -1,0 +1,96 @@
+{
+  "version": "0.4",
+  "title": "Halaman Profil & Sejarah LP Maarif NU Cilacap",
+  "type": "page",
+  "content": [
+    {
+      "id": "profil_header_sec",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "gradient",
+        "background_color": "#022c22",
+        "background_color_b": "#064e3b",
+        "background_gradient_type": "linear",
+        "background_gradient_angle": { "unit": "deg", "size": 135 },
+        "padding": { "unit": "px", "top": "70", "right": "20", "bottom": "70", "left": "20", "isLinked": false }
+      },
+      "elements": [
+        {
+          "id": "profil_header_col",
+          "elType": "column",
+          "settings": { "_column_size": 100 },
+          "elements": [
+            {
+              "id": "profil_badge",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"text-align: center; margin-bottom: 12px;\"><span style=\"display: inline-block; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 16px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase;\">Profil Kelembagaan</span></div>"
+              }
+            },
+            {
+              "id": "profil_title",
+              "elType": "widget",
+              "widgetType": "heading",
+              "settings": {
+                "title": "Profil & Sejarah LP Ma'arif NU Cilacap",
+                "header_size": "h1",
+                "align": "center",
+                "title_color": "#ffffff",
+                "typography_typography": "custom",
+                "typography_font_family": "Plus Jakarta Sans",
+                "typography_font_size": { "unit": "px", "size": 36 },
+                "typography_font_weight": "900"
+              }
+            },
+            {
+              "id": "profil_desc",
+              "elType": "widget",
+              "widgetType": "text-editor",
+              "settings": {
+                "editor": "<p style=\"text-align: center; color: #cbd5e1; font-size: 15px; max-width: 680px; margin: 10px auto 0 auto;\">Menelusuri jejak khidmah, visi-misi luhur, dan komitmen memajukan peradaban pendidikan Islam Ahlussunnah wal Jama'ah An-Nahdliyah di Kabupaten Cilacap.</p>",
+                "align": "center"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "profil_content_sec",
+      "elType": "section",
+      "settings": {
+        "layout": "boxed",
+        "background_background": "classic",
+        "background_color": "#ffffff",
+        "padding": { "unit": "px", "top": "60", "right": "20", "bottom": "70", "left": "20", "isLinked": false }
+      },
+      "elements": [
+        {
+          "id": "profil_body_col",
+          "elType": "column",
+          "settings": { "_column_size": 100 },
+          "elements": [
+            {
+              "id": "profil_visi_misi_cards",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 50px;\"><div style=\"background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 20px; padding: 30px;\"><span style=\"font-size: 28px;\">🎯</span><h3 style=\"font-size: 20px; font-weight: 800; color: #064e3b; margin: 12px 0 8px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Visi LP Ma'arif NU Cilacap</h3><p style=\"color: #047857; font-size: 14px; line-height: 1.6; margin: 0;\">Terwujudnya sistem pendidikan madrasah dan sekolah yang bermutu, mandiri, unggul dalam prestasi, kokoh dalam aqidah Aswaja An-Nahdliyah, dan berdaya saing global.</p></div><div style=\"background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px; padding: 30px;\"><span style=\"font-size: 28px;\">🚀</span><h3 style=\"font-size: 20px; font-weight: 800; color: #0f172a; margin: 12px 0 8px 0; font-family: 'Plus Jakarta Sans', sans-serif;\">Misi Strategis</h3><ul style=\"color: #475569; font-size: 14px; line-height: 1.6; margin: 0; padding-left: 18px;\"><li>Meningkatkan kompetensi dan kesejahteraan tenaga pendidik madrasah.</li><li>Digitalisasi tata kelola administrasi kelembagaan terpadu via SIMMACI.</li><li>Penguatan kurikulum ke-NU-an dan karakter moderasi beragama.</li><li>Pengembangan sarana prasarana satuan pendidikan secara merata.</li></ul></div></div>"
+              }
+            },
+            {
+              "id": "profil_sejarah_body",
+              "elType": "widget",
+              "widgetType": "html",
+              "settings": {
+                "html": "<div style=\"max-width: 820px; margin: 0 auto; line-height: 1.8; color: #334155; font-size: 15px;\"><h2 style=\"font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 16px; border-bottom: 2px solid #10b981; padding-bottom: 8px;\">Sejarah Singkat & Khidmah Keumatan</h2><p>Lembaga Pendidikan Ma'arif Nahdlatul Ulama (LP Ma'arif NU) Cabang Kabupaten Cilacap merupakan pilar utama perjuangan Pengurus Cabang Nahdlatul Ulama (PCNU) Cilacap dalam bidang pendidikan formal dan non-formal.</p><p>Hingga saat ini, LP Ma'arif NU Cilacap menaungi lebih dari <strong>207 satuan pendidikan</strong> yang mencakup jenjang Madrasah Ibtidaiyah (MI), Madrasah Tsanawiyah (MTs), Madrasah Aliyah (MA), dan Sekolah Menengah Kejuruan (SMK) dengan ribuan guru aktif dan puluhan ribu peserta didik yang tersebar di seluruh 24 kecamatan.</p><div style=\"background: #f1f5f9; border-left: 4px solid #047857; padding: 20px; border-radius: 0 16px 16px 0; margin: 25px 0;\"><p style=\"margin: 0; font-style: italic; color: #1e293b; font-weight: 600;\">\"Pendidikan Ma'arif bukan sekadar transfer ilmu pengetahuan, melainkan penanaman nilai budi pekerti, akhlaqul karimah, dan cinta tanah air berlandaskan paham Ahlussunnah wal Jama'ah.\"</p></div></div>"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

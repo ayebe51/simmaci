@@ -7,7 +7,7 @@ import {
   Building2, CheckCircle2, AlertCircle, RefreshCw, GraduationCap,
   Award, FileCheck
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { headmasterApi, mediaApi, authApi, skTemplateApi, schoolApi, API_BASE_URL } from "@/lib/api"
 import { getActiveSkTemplateBinary } from "@/lib/templateFetcher"
 import { getSkVerificationUrl } from "@/utils/verification"
@@ -99,6 +99,12 @@ export default function YayasanApprovalPage() {
     staleTime: 0, // Selalu fetch fresh — jangan pakai cache
   })
 
+  // 🔥 REST API QUERY NOMOR SK KEPALA BERIKUTNYA DARI DATABASE
+  const { data: nextNomorData } = useQuery({
+    queryKey: ['headmaster-next-nomor'],
+    queryFn: () => headmasterApi.getNextNomor(),
+  })
+
   const requests = requestsRes?.data || []
 
   // --- UI STATES ---
@@ -149,6 +155,22 @@ export default function YayasanApprovalPage() {
   const updateJenisKepala = (v: string) => { setJenisKepala(v as any); localStorage.setItem('kamad_jenis_kepala', v) }
   const updateTahunAjaran = (v: string) => { setTahunAjaran(v); localStorage.setItem('kamad_tahun_ajaran', v) }
 
+  // Sinkronkan nomorStart otomatis dengan nomor urut berikutnya dari database
+  useEffect(() => {
+    if (nextNomorData?.next_seq_formatted) {
+      const dbNext = nextNomorData.next_seq_formatted
+      const savedLocal = localStorage.getItem('kamad_nomor_start')
+      const localNum = parseInt(savedLocal || "0", 10)
+      const dbNum = nextNomorData.next_seq
+
+      // Jika nomor di database lebih besar, atau local masih default 0001, atau belum ada di localStorage
+      if (dbNum > localNum || !savedLocal || localNum <= 1) {
+        setNomorStart(dbNext)
+        localStorage.setItem('kamad_nomor_start', dbNext)
+      }
+    }
+  }, [nextNomorData])
+
 
   const handleDeleteTenure = async () => {
     if (!deleteTarget || isProcessing) return
@@ -177,6 +199,7 @@ export default function YayasanApprovalPage() {
         })
         toast.success("SK Kepala Disetujui!")
         queryClient.invalidateQueries({ queryKey: ['schools'] })
+        queryClient.invalidateQueries({ queryKey: ['headmaster-next-nomor'] })
         refetch()
     } catch (e: any) {
         toast.error("Gagal: " + (e.response?.data?.message || "Unknown error"))
@@ -569,6 +592,8 @@ export default function YayasanApprovalPage() {
         if (!isNaN(currentNum)) {
             updateNomorStart(String(currentNum + 1).padStart(nomorStart.length, '0'))
         }
+        queryClient.invalidateQueries({ queryKey: ['headmaster-next-nomor'] })
+        queryClient.invalidateQueries({ queryKey: ['headmaster-approvals'] })
     } catch (e: any) {
         console.error(e)
         toast.error(e.message || "Gagal membuat SK", { id: loaderId })
@@ -595,10 +620,17 @@ export default function YayasanApprovalPage() {
             </CardHeader>
             <CardContent className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
                 <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Penomoran Otomatis</Label>
+                    <div className="flex items-center justify-between">
+                        <Label className="text-[10px] font-black uppercase text-slate-400">Penomoran Otomatis</Label>
+                        {nextNomorData?.last_nomor_sk && (
+                            <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded" title={`SK Terakhir di Database: ${nextNomorData.last_nomor_sk}`}>
+                                Terakhir: {nextNomorData.last_nomor_sk.split('/')[0]}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex gap-2">
-                        <Input value={nomorStart} onChange={e => updateNomorStart(e.target.value)} className="w-24 h-12 rounded-xl font-black text-center border-slate-200" />
-                        <Input value={nomorFormat} onChange={e => updateNomorFormat(e.target.value)} className="flex-1 h-12 rounded-xl font-bold text-xs border-slate-200" />
+                        <Input value={nomorStart} onChange={e => updateNomorStart(e.target.value)} className="w-24 h-12 rounded-xl font-black text-center border-slate-200" title="Nomor Urut SK Berikutnya" />
+                        <Input value={nomorFormat} onChange={e => updateNomorFormat(e.target.value)} className="flex-1 h-12 rounded-xl font-bold text-xs border-slate-200" title="Format Nomor SK" />
                     </div>
                 </div>
                 <div className="space-y-3">

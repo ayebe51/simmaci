@@ -133,12 +133,58 @@ class StrictDateValidationService
             ];
         }
 
+        // Bersihkan non-breaking spaces dan whitespace ganda
+        $trimmed = trim(str_replace("\xC2\xA0", ' ', $value));
+
+        // ── 1. Penolakan Format Numerik Ambigu / Terlarang ──────────────────
+
+        // Angka murni (misal: "11122022", "44876", dll)
+        if (ctype_digit($trimmed) || (is_numeric($trimmed) && !str_contains($trimmed, ' '))) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Format tanggal numerik atau angka serial Excel tanpa nama bulan tidak diterima ('{$value}'). Wajib mencantumkan nama bulan (contoh: 11 Nov 2022 atau 11 November 2022).",
+            ];
+        }
+
+        // Numerik dengan slash: DD/MM/YYYY, MM/DD/YYYY, YYYY/MM/DD, DD/MM/YY
+        if (preg_match('/^\d{1,4}\/\d{1,2}\/\d{1,4}$/', $trimmed)) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Format tanggal numerik dengan garis miring ('{$value}') tidak diterima karena berisiko pertukaran interpretasi antara tanggal dan bulan. Wajib mencantumkan nama bulan (contoh: 11 Nov 2022 atau 11 November 2022).",
+            ];
+        }
+
+        // Numerik dengan dash: DD-MM-YYYY, YYYY-MM-DD (ISO), MM-DD-YYYY, DD-MM-YY
+        if (preg_match('/^\d{1,4}-\d{1,2}-\d{1,4}$/', $trimmed)) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Format tanggal numerik dengan tanda hubung ('{$value}') tidak diterima. Wajib mencantumkan nama bulan (contoh: 11 Nov 2022 atau 11 November 2022).",
+            ];
+        }
+
+        // Numerik dengan titik: DD.MM.YYYY, YYYY.MM.DD
+        if (preg_match('/^\d{1,4}\.\d{1,2}\.\d{1,4}$/', $trimmed)) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Format tanggal numerik dengan titik ('{$value}') tidak diterima. Wajib mencantumkan nama bulan (contoh: 11 Nov 2022 atau 11 November 2022).",
+            ];
+        }
+
+        // ── 2. Pemeriksaan Struktur: Hari, Nama Bulan, Tahun 4 Digit ─────────
         return [
             'valid'        => false,
             'is_empty'     => false,
             'normalized'   => null,
             'standardized' => null,
-            'reason'       => 'Validasi tanggal belum lengkap.',
+            'reason'       => 'Pemeriksaan pola numerik awal selesai.',
         ];
     }
 }

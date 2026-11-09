@@ -302,5 +302,120 @@ class StrictDateValidationService
         return $result;
     }
 
+    /**
+     * Validasi PhpSpreadsheet Cell.
+     *
+     * Menangani kondisi:
+     * - Cell kosong / null
+     * - Cell string
+     * - Numeric serial dengan number format `dd mmm yyyy` atau `dd mmmm yyyy` (DITERIMA)
+     * - Numeric serial dengan number format `dd/mm/yyyy`, `mm-dd-yyyy`, atau numerik lain (DITOLAK)
+     * - Cell numeric tanpa format tanggal (General, 0) (DITOLAK)
+     *
+     * @return array{
+     *     valid: bool,
+     *     normalized: ?string,
+     *     standardized: ?string,
+     *     reason: ?string,
+     *     is_empty?: bool
+     * }
+     */
+    public function validateCell(Cell $cell): array
+    {
+        $val = $cell->getValue();
+
+        if ($val === null || trim((string) $val) === '') {
+            return [
+                'valid'        => true,
+                'is_empty'     => true,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => null,
+            ];
+        }
+
+        $dataType   = $cell->getDataType();
+        $isNumeric  = ($dataType === DataType::TYPE_NUMERIC) || is_numeric($val);
+        $formatCode = (string) $cell->getStyle()->getNumberFormat()->getFormatCode();
+
+        if ($isNumeric) {
+            // Evaluasi format tampilan Excel
+            // Excel number format rules:
+            // "mmm" = 3-letter month abbreviation (e.g. "Nov")
+            // "mmmm" = full month name (e.g. "November")
+            // Token "m" atau "mm" bisa berarti bulan angka atau menit. Menit TIDAK PERNAH menggunakan "mmm".
+            $hasMonthNameFormat = (bool) preg_match('/mmm/i', $formatCode);
+
+            // Periksa juga apakah tahun diformat 4 digit
+            $hasFourDigitYear = (bool) preg_match('/yyyy|0000/i', $formatCode);
+            $hasTwoDigitYear  = (bool) (preg_match('/yy/i', $formatCode) && !$hasFourDigitYear);
+
+            if ($hasTwoDigitYear) {
+                return [
+                    'valid'        => false,
+                    'normalized'   => null,
+                    'standardized' => null,
+                    'reason'       => "Format tampilan Excel menggunakan tahun 2 digit (format: '{$formatCode}'). Tahun wajib 4 digit (contoh: dd mmm yyyy).",
+                ];
+            }
+
+            if ($hasMonthNameFormat) {
+                // Konversi numeric serial ke DateTime objek
+                try {
+                    $dateTime = ExcelDate::excelToDateTimeObject((float) $val);
+                    $day      = (int) $dateTime->format('j');
+                    $monthNum = (int) $dateTime->format('n');
+                    $year     = (int) $dateTime->format('Y');
+
+                    $monthName = self::INDONESIAN_MONTH_NAMES[$monthNum] ?? $dateTime->format('F');
+                    $dateText  = "{$day} {$monthName} {$year}";
+
+                    return $this->validateDateString($dateText);
+                } catch (\Throwable $e) {
+                    return [
+                        'valid'        => false,
+                        'normalized'   => null,
+                        'standardized' => null,
+                        'reason'       => "Gagal membaca serial tanggal Excel ('{$val}'): {$e->getMessage()}",
+                    ];
+                }
+            }
+
+            // Numeric serial tanpa format tampilan nama bulan (misal: dd/mm/yyyy, mm-dd-yyyy, General, dll)
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Format Excel berupa angka serial tanpa format tampilan nama bulan (format: '{$formatCode}') tidak diterima. Tampilkan tanggal menggunakan format nama bulan (contoh: dd mmm yyyy atau dd mmmm yyyy).",
+            ];
+        }
+
+        // Tipe string biasa
+        return $this->validateDateString((string) $val);
+    }
+
+    /**
+     * Parse dan normalisasi nilai tanggal jika valid.
+     * Mengembalikan format "YYYY-MM-DD" jika valid, atau null jika kosong/tidak valid.
+     * Jika tidak valid, variabel $error akan diisi alasan penolakan.
+     */
+    public function parseAndNormalize(mixed $value, ?string &$error = null): ?string
+    {
+        $error = null;
+
+        if ($value instanceof Cell) {
+            $res = $this->validateCell($value);
+        } else {
+            $res = $this->validateDateString(is_string($value) ? $value : (is_null($value) ? null : (string) $value));
+        }
+
+        if (!$res['valid']) {
+            $error = $res['reason'];
+            return null;
+        }
+
+        return $res['normalized'];
+    }
+
 
 }

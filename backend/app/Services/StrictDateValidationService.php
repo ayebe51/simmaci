@@ -179,12 +179,128 @@ class StrictDateValidationService
         }
 
         // ── 2. Pemeriksaan Struktur: Hari, Nama Bulan, Tahun 4 Digit ─────────
+
+        // Normalisasi spasi dan tanda hubung pemisah antar komponen
+        // Format yang diterima: "11 Nov 2022", "11 November 2022", "11-Nov-2022", "05 Januari 2023"
+        $collapsed = preg_replace('/\s+/', ' ', $trimmed);
+
+        // Cek jika tahun hanya 2 digit dengan nama bulan (misal: "11 Nov 22")
+        if (preg_match('/^(\d{1,2})[\s\-]+([a-zA-Z]+)[\s\-]+(\d{2})$/u', $collapsed)) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Tahun harus terdiri dari 4 digit ('{$value}'). Contoh yang benar: 11 Nov 2022.",
+            ];
+        }
+
+        if (!preg_match('/^(\d{1,2})[\s\-]+([a-zA-Z]+)[\s\-]+(\d+)$/u', $collapsed, $matches)) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Format tanggal tidak sesuai ('{$value}'). Tanggal wajib mencantumkan hari, nama bulan, dan 4 digit tahun (contoh: 11 Nov 2022 atau 11 November 2022).",
+            ];
+        }
+
+        $dayStr    = $matches[1];
+        $monthRaw  = $matches[2];
+        $yearStr   = $matches[3];
+
+        $day       = (int) $dayStr;
+        $monthKey  = strtolower($monthRaw);
+        $year      = (int) $yearStr;
+
+        // Pastikan tahun tepat 4 digit
+        if (strlen($yearStr) !== 4) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Tahun harus terdiri dari 4 digit ('{$value}'). Ditemukan: {$yearStr}.",
+            ];
+        }
+
+        // Cek pengenalan nama bulan
+        if (!isset(self::MONTH_MAP[$monthKey])) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => "Nama bulan '{$monthRaw}' tidak dikenali. Gunakan nama bulan Indonesia atau singkatannya yang baku (contoh: Januari, Februari, Nov, Agu).",
+            ];
+        }
+
+        $monthNum = self::MONTH_MAP[$monthKey];
+
+        // ── 3. Pemeriksaan Validitas Kalender (checkdate) ────────────────────
+
+        if (!checkdate($monthNum, $day, $year)) {
+            $monthCanonical = self::INDONESIAN_MONTH_NAMES[$monthNum] ?? $monthRaw;
+
+            if ($monthNum === 2) {
+                $isLeap = ($year % 4 === 0 && ($year % 100 !== 0 || $year % 400 === 0));
+                if ($day > 29) {
+                    $reason = "Tanggal tidak valid secara kalender: bulan Februari maksimal 29 hari ('{$value}').";
+                } elseif ($day === 29 && !$isLeap) {
+                    $reason = "Tanggal tidak valid secara kalender: tahun {$year} bukan tahun kabisat (29 Februari {$year} tidak ada).";
+                } else {
+                    $reason = "Tanggal tidak valid secara kalender: {$day} {$monthCanonical} {$year} tidak ada dalam kalender.";
+                }
+            } elseif (in_array($monthNum, [4, 6, 9, 11], true) && $day > 30) {
+                $reason = "Tanggal tidak valid secara kalender: bulan {$monthCanonical} hanya memiliki 30 hari ('{$value}').";
+            } elseif ($day < 1 || $day > 31) {
+                $reason = "Tanggal tidak valid secara kalender: hari harus antara 1 dan 31 (ditemukan: {$day}).";
+            } else {
+                $reason = "Tanggal tidak valid secara kalender: {$day} {$monthCanonical} {$year} tidak ada dalam kalender.";
+            }
+
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => null,
+                'reason'       => $reason,
+            ];
+        }
+
+        // ── 4. Standardisasi Alias Bulan ─────────────────────────────────────
+        // Contoh: "11 Nopember 2022" → "11 November 2022"
+        $standardized = $this->standardizeMonthAlias($collapsed);
+
+        // ── 5. Normalisasi Menggunakan Existing Normalization Service ─────────
+        // Menghasilkan format baku SIMMACI "YYYY-MM-DD"
+        $normalized = $this->normalizationService->parseIndonesianDate($standardized);
+
+        if (!$normalized) {
+            return [
+                'valid'        => false,
+                'normalized'   => null,
+                'standardized' => $standardized,
+                'reason'       => "Gagal menormalisasi tanggal '{$value}' menggunakan mekanisme baku sistem.",
+            ];
+        }
+
         return [
-            'valid'        => false,
-            'is_empty'     => false,
-            'normalized'   => null,
-            'standardized' => null,
-            'reason'       => 'Pemeriksaan pola numerik awal selesai.',
+            'valid'        => true,
+            'normalized'   => $normalized,
+            'standardized' => $standardized,
+            'reason'       => null,
         ];
     }
+
+    /**
+     * Standardisasi alias ejaan nama bulan tidak baku menjadi baku.
+     * Contoh: "11 Nopember 2022" → "11 November 2022", "21 Ags 2024" → "21 Agu 2024"
+     */
+    public function standardizeMonthAlias(string $dateStr): string
+    {
+        $result = $dateStr;
+        foreach (self::MONTH_ALIASES as $alias => $standard) {
+            $pattern = '/\b' . preg_quote($alias, '/') . '\b/iu';
+            $result  = preg_replace($pattern, $standard, $result);
+        }
+        return $result;
+    }
+
+
 }

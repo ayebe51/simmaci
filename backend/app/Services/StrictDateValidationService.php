@@ -539,5 +539,126 @@ class StrictDateValidationService
         return $errors;
     }
 
+    /**
+     * Validasi spreadsheet PhpSpreadsheet secara langsung sebelum diproses.
+     *
+     * @param array<string, string> $headerToDateLabelMap Peta nama header => Label
+     * @return array<int, array{sheet: string, row: int, column: string, value: string, reason: string}>
+     */
+    public function validateSpreadsheet(
+        Spreadsheet $spreadsheet,
+        array $headerToDateLabelMap = []
+    ): array {
+        $errors = [];
 
+        foreach ($spreadsheet->getAllSheets() as $sheet) {
+            $sheetName   = $sheet->getTitle();
+            $highestRow  = $sheet->getHighestRow();
+            $highestCol  = $sheet->getHighestColumn();
+            $highestColI = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestCol);
+
+            if ($highestRow < 2) {
+                continue;
+            }
+
+            // Baca header di baris 1
+            $dateColumns = []; // colIndex => label
+            for ($col = 1; $col <= $highestColI; $col++) {
+                $headerCell = $sheet->getCell([$col, 1]);
+                $headerText = trim((string) $headerCell->getValue());
+                if ($headerText === '') continue;
+
+                $cleanHeader = preg_replace('/[^a-z0-9]/', '_', trim(strtolower($headerText)));
+                $cleanHeader = trim(preg_replace('/_+/', '_', $cleanHeader), '_');
+
+                // Cocokkan apakah ini kolom tanggal
+                foreach ($headerToDateLabelMap as $key => $label) {
+                    if ($cleanHeader === $key || str_contains($cleanHeader, $key)) {
+                        $dateColumns[$col] = $label;
+                        break;
+                    }
+                }
+
+                if (!isset($dateColumns[$col]) && (
+                    str_contains($cleanHeader, 'tgl') ||
+                    str_contains($cleanHeader, 'tanggal') ||
+                    $cleanHeader === 'tmt' ||
+                    str_contains($cleanHeader, 'lahir')
+                )) {
+                    $dateColumns[$col] = $headerText;
+                }
+            }
+
+            if (empty($dateColumns)) {
+                continue;
+            }
+
+            // Validasi setiap baris
+            for ($row = 2; $row <= $highestRow; $row++) {
+                // Lewati baris yang seluruh kolom tanggalnya kosong
+                foreach ($dateColumns as $col => $colLabel) {
+                    $cell = $sheet->getCell([$col, $row]);
+                    if ($cell->getValue() === null || trim((string) $cell->getValue()) === '') {
+                        continue;
+                    }
+
+                    $res = $this->validateCell($cell);
+                    if (!$res['valid']) {
+                        $errors[] = [
+                            'sheet'  => $sheetName,
+                            'row'    => $row,
+                            'column' => $colLabel,
+                            'value'  => (string) $cell->getValue(),
+                            'reason' => $res['reason'],
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Bangun pesan kesalahan format tanggal yang terstruktur dan mudah dipahami.
+     * Sesuai ketentuan spesifikasi Section 5.
+     *
+     * @param array<int, array{sheet: string, row: int, column: string, value: string, reason: string}> $errors
+     */
+    public function formatErrorMessage(array $errors): string
+    {
+        $count = count($errors);
+
+        $msg = "Format tanggal tidak sesuai!\n\n";
+        $msg .= "SIMMACI hanya menerima tanggal yang mencantumkan nama bulan.\n\n";
+        $msg .= "Contoh format yang diterima:\n";
+        $msg .= "- 11 Nov 2022\n";
+        $msg .= "- 11 November 2022\n";
+        $msg .= "- 11 Nopember 2022\n";
+        $msg .= "- 05 Januari 2023\n";
+        $msg .= "- 21 Agu 2024\n";
+        $msg .= "- 21 Agustus 2024\n\n";
+        $msg .= "Contoh format yang ditolak:\n";
+        $msg .= "- 11/12/2022\n";
+        $msg .= "- 11-12-2022\n";
+        $msg .= "- 11.12.2022\n";
+        $msg .= "- 2022-12-11\n";
+        $msg .= "- 12/11/22\n";
+        $msg .= "- 11122022\n\n";
+        $msg .= "Ditemukan {$count} kesalahan format tanggal:\n\n";
+        $msg .= "| Baris | Kolom | Nilai | Alasan Penolakan |\n";
+        $msg .= "|---|---|---|---|\n";
+
+        foreach ($errors as $err) {
+            $row    = $err['row'] ?? '-';
+            $col    = $err['column'] ?? '-';
+            $val    = $err['value'] ?? '-';
+            $reason = $err['reason'] ?? 'Format tidak valid';
+            $msg .= "| {$row} | {$col} | {$val} | {$reason} |\n";
+        }
+
+        $msg .= "\nSilakan perbaiki format tanggal pada file Excel dan unggah kembali.";
+
+        return $msg;
+    }
 }

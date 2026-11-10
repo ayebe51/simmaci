@@ -417,5 +417,127 @@ class StrictDateValidationService
         return $res['normalized'];
     }
 
+    /**
+     * Validasi kumpulan baris data import sebelum proses penyimpanan.
+     * Menemukan dan mengumpulkan SELURUH kesalahan tanggal di semua baris dan kolom.
+     *
+     * @param array<int, array<string, mixed>> $rows
+     * @param array<string, string> $dateColumnLabels Peta field/kolom => Label manusiawi
+     * @param string $sheetName
+     * @param int $startRowIndex Nomor baris Excel fisik (default: 2, baris 1 adalah header)
+     * @return array<int, array{
+     *     sheet: string,
+     *     row: int,
+     *     column: string,
+     *     value: string,
+     *     reason: string
+     * }>
+     */
+    public function validateRows(
+        array $rows,
+        array $dateColumnLabels = [],
+        string $sheetName = 'Sheet1',
+        int $startRowIndex = 2
+    ): array {
+        if (empty($dateColumnLabels)) {
+            $dateColumnLabels = [
+                'tanggal_lahir'            => 'Tanggal Lahir',
+                'tgl_lahir'                => 'Tanggal Lahir',
+                'tempat_tanggal_lahir'     => 'Tempat, Tanggal Lahir',
+                'ttl'                      => 'Tempat, Tanggal Lahir',
+                'tempat_tgl_lahir'         => 'Tempat, Tanggal Lahir',
+                'tmt'                      => 'Tanggal Mulai Tugas (TMT)',
+                'mulai_tugas'              => 'Tanggal Mulai Tugas (TMT)',
+                'tanggal_tugas'            => 'Tanggal Mulai Tugas (TMT)',
+                'penugasan'                => 'Tanggal Penugasan',
+                'tanggal_penetapan'        => 'Tanggal Penetapan SK',
+                'tanggal_sk'               => 'Tanggal SK',
+                'tanggal_surat_permohonan' => 'Tanggal Surat Permohonan',
+            ];
+        }
+
+        $errors = [];
+
+        foreach ($rows as $idx => $row) {
+            $excelRowNum = $startRowIndex + $idx;
+
+            // Cari kolom tanggal dalam baris (pencocokan case-insensitive / normalized key)
+            foreach ($row as $rawKey => $rawVal) {
+                if ($rawVal === null || $rawVal === '') {
+                    continue;
+                }
+
+                $cleanKey = preg_replace('/[^a-z0-9]/', '_', trim(strtolower($rawKey)));
+                $cleanKey = trim(preg_replace('/_+/', '_', $cleanKey), '_');
+
+                // 1. Tangani kolom kombinasi Tempat Tanggal Lahir (TTL)
+                $isTtl = str_contains($cleanKey, 'tempat_tanggal_lahir')
+                    || $cleanKey === 'ttl'
+                    || str_contains($cleanKey, 'tempat_tgl_lahir');
+
+                if ($isTtl) {
+                    $ttlStr = (string) $rawVal;
+                    $parts  = explode(',', $ttlStr);
+                    if (count($parts) >= 2) {
+                        $datePart = trim($parts[1]);
+                        $res      = $this->validateDateString($datePart);
+                        if (!$res['valid']) {
+                            $errors[] = [
+                                'sheet'  => $sheetName,
+                                'row'    => $excelRowNum,
+                                'column' => $dateColumnLabels[$cleanKey] ?? ($rawKey ?: 'Tempat, Tanggal Lahir'),
+                                'value'  => $ttlStr,
+                                'reason' => $res['reason'],
+                            ];
+                        }
+                    }
+                    continue;
+                }
+
+                // 2. Tangani kolom tanggal independen
+                $isDateCol = false;
+                $colLabel  = $rawKey;
+
+                foreach ($dateColumnLabels as $targetKey => $label) {
+                    if ($cleanKey === $targetKey || str_contains($cleanKey, $targetKey)) {
+                        $isDateCol = true;
+                        $colLabel  = $label;
+                        break;
+                    }
+                }
+
+                // Deteksi tambahan jika mengandung kata kunci tanggal/tgl/tmt/lahir/penugasan
+                if (!$isDateCol && (
+                    str_contains($cleanKey, 'tgl') ||
+                    str_contains($cleanKey, 'tanggal') ||
+                    $cleanKey === 'tmt' ||
+                    str_contains($cleanKey, '_tmt') ||
+                    str_contains($cleanKey, 'tmt_')
+                )) {
+                    $isDateCol = true;
+                    $colLabel  = ucwords(str_replace('_', ' ', $cleanKey));
+                }
+
+                if ($isDateCol) {
+                    $valStr = is_string($rawVal) ? $rawVal : (is_numeric($rawVal) ? (string) $rawVal : null);
+                    if ($valStr !== null) {
+                        $res = $this->validateDateString($valStr);
+                        if (!$res['valid']) {
+                            $errors[] = [
+                                'sheet'  => $sheetName,
+                                'row'    => $excelRowNum,
+                                'column' => $colLabel,
+                                'value'  => (string) $rawVal,
+                                'reason' => $res['reason'],
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        return $errors;
+    }
+
 
 }

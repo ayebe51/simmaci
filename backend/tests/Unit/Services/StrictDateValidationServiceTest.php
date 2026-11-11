@@ -124,5 +124,92 @@ class StrictDateValidationServiceTest extends TestCase
         $this->assertTrue($this->service->validateDateString('   ')['valid']);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // NEGATIVE CASES
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function test_rejects_numeric_slash_format(): void
+    {
+        $res = $this->service->validateDateString('11/12/2022');
+        $this->assertFalse($res['valid']);
+        $this->assertNotNull($res['reason']);
+        $this->assertStringContainsString('garis miring', $res['reason']);
+    }
+
+    public function test_rejects_numeric_dash_format(): void
+    {
+        $res = $this->service->validateDateString('11-12-2022');
+        $this->assertFalse($res['valid']);
+        $this->assertNotNull($res['reason']);
+        $this->assertStringContainsString('tanda hubung', $res['reason']);
+    }
+
+    public function test_rejects_numeric_dot_format(): void
+    {
+        $res = $this->service->validateDateString('11.12.2022');
+        $this->assertFalse($res['valid']);
+        $this->assertNotNull($res['reason']);
+        $this->assertStringContainsString('titik', $res['reason']);
+    }
+
+    public function test_rejects_iso_numeric_format(): void
+    {
+        $res = $this->service->validateDateString('2022-12-11');
+        $this->assertFalse($res['valid']);
+        $this->assertNotNull($res['reason']);
+    }
+
+    public function test_rejects_two_digit_year(): void
+    {
+        $res = $this->service->validateDateString('12/11/22');
+        $this->assertFalse($res['valid']);
+
+        $resWithMonth = $this->service->validateDateString('11 Nov 22');
+        $this->assertFalse($resWithMonth['valid']);
+        $this->assertStringContainsString('4 digit', $resWithMonth['reason']);
+    }
+
+    public function test_rejects_pure_numeric_digits(): void
+    {
+        $res = $this->service->validateDateString('11122022');
+        $this->assertFalse($res['valid']);
+    }
+
+    public function test_rejects_raw_excel_serial_number_string(): void
+    {
+        $res = $this->service->validateDateString('44876');
+        $this->assertFalse($res['valid']);
+        $this->assertStringContainsString('tanpa nama bulan', $res['reason']);
+    }
+
+    public function test_rejects_unknown_month_name(): void
+    {
+        $res = $this->service->validateDateString('11 Foobar 2022');
+        $this->assertFalse($res['valid']);
+        $this->assertStringContainsString('tidak dikenali', $res['reason']);
+    }
+
+    public function test_rejects_calendar_invalid_31_februari(): void
+    {
+        $res = $this->service->validateDateString('31 Februari 2023');
+        $this->assertFalse($res['valid']);
+        $this->assertStringContainsString('Februari maksimal 29 hari', $res['reason']);
+    }
+
+    public function test_rejects_calendar_invalid_non_leap_february_29(): void
+    {
+        $res = $this->service->validateDateString('29 Februari 2023');
+        $this->assertFalse($res['valid']);
+        $this->assertStringContainsString('bukan tahun kabisat', $res['reason']);
+    }
+
+    public function test_rejects_calendar_invalid_31_april(): void
+    {
+        $res = $this->service->validateDateString('31 April 2023');
+        $this->assertFalse($res['valid']);
+        $this->assertStringContainsString('hanya memiliki 30 hari', $res['reason']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
 }

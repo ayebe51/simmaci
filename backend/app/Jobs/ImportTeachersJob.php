@@ -51,7 +51,7 @@ class ImportTeachersJob implements ShouldQueue
                     'nip' => $row['nip'] ?? null,
                     'jenis_kelamin' => $row['jenis_kelamin'] ?? null,
                     'tempat_lahir' => $row['tempat_lahir'] ?? null,
-                    'tanggal_lahir' => $row['tanggal_lahir'] ?? null,
+                    'tanggal_lahir' => isset($row['tanggal_lahir']) ? app(\App\Services\StrictDateValidationService::class)->parseAndNormalize((string)$row['tanggal_lahir']) : null,
                     'pendidikan_terakhir' => $row['pendidikan_terakhir'] ?? null,
                     'mapel' => $row['mapel'] ?? null,
                     'unit_kerja' => $unitKerja,

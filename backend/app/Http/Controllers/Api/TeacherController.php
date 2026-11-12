@@ -11,6 +11,7 @@ use App\Models\School;
 use App\Models\Teacher;
 use App\Services\MatchingService;
 use App\Services\NormalizationService;
+use App\Services\StrictDateValidationService;
 use App\Services\TeacherService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,8 @@ class TeacherController extends Controller
     public function __construct(
         private TeacherService $teacherService,
         private NormalizationService $normalizationService,
-        private MatchingService $matchingService
+        private MatchingService $matchingService,
+        private StrictDateValidationService $strictDateValidationService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -567,6 +569,16 @@ class TeacherController extends Controller
     {
         $request->validate(['teachers' => 'required|array']);
 
+        $dateErrors = $this->strictDateValidationService->validateRows($request->teachers);
+        if (!empty($dateErrors)) {
+            return response()->json([
+                'success'     => false,
+                'message'     => $this->strictDateValidationService->formatErrorMessage($dateErrors),
+                'errors'      => $dateErrors,
+                'date_errors' => $dateErrors,
+            ], 422);
+        }
+
         $created = 0;
         $errors = [];
 
@@ -727,42 +739,10 @@ class TeacherController extends Controller
                     }
                 }
 
-                // Parse Tanggal Lahir (Mencegah Error 500 PostgreSQL dari Excel Serial Date)
+                // Parse Tanggal Lahir (Strict Date Validation & Normalization)
                 $tglLahirRaw = $normalizedRow['tanggal_lahir'] ?? $normalizedRow['tgl_lahir'] ?? null;
                 if ($tglLahirRaw !== null && (string)$tglLahirRaw !== '') {
-                    $tglStr = trim((string)$tglLahirRaw);
-                    if (is_numeric($tglStr)) {
-                        try {
-                            $normalizedRow['tanggal_lahir'] = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tglStr)->format('Y-m-d');
-                        } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
-                    } else {
-                        // Jika string, coba diparse biasa dengan translasi bulan Indonesia
-                        try {
-                            $indoMonths = [
-                                'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
-                                'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
-                                'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
-                                'november' => 'november', 'desember' => 'december',
-                                'jan' => 'jan', 'feb' => 'feb', 'mar' => 'mar', 'apr' => 'apr',
-                                'jun' => 'jun', 'jul' => 'jul', 'agu' => 'aug', 'sep' => 'sep', 'okt' => 'oct',
-                                'nov' => 'nov', 'des' => 'dec'
-                            ];
-                            $translatedTgl = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tglStr);
-                            
-                            $tglDate = null;
-                            $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd F Y', 'd M Y', 'd-M-Y', 'd/M/Y'];
-                            foreach ($formats as $format) {
-                                try {
-                                    $tglDate = \Carbon\Carbon::createFromFormat($format, $translatedTgl);
-                                    if ($tglDate !== false) break;
-                                } catch (\Exception $e) { $tglDate = null; }
-                            }
-                            if (!$tglDate) {
-                                $tglDate = \Carbon\Carbon::parse($translatedTgl);
-                            }
-                            $normalizedRow['tanggal_lahir'] = $tglDate->format('Y-m-d');
-                        } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
-                    }
+                    $normalizedRow['tanggal_lahir'] = $this->strictDateValidationService->parseAndNormalize($tglLahirRaw);
                 } else {
                     $normalizedRow['tanggal_lahir'] = null;
                 }
@@ -780,7 +760,7 @@ class TeacherController extends Controller
                     $normalizedRow['pdpkpnu'] = in_array($val2, ['sudah', 'ya', '1', 'true', 'yes', 'v']) ? 'Sudah' : 'Belum';
                 }
 
-                // Parse TMT Date (Excel Serial OR String)
+                // Parse TMT Date (Strict Date Validation & Normalization)
                 $tmtRaw = null;
                 foreach($normalizedRow as $k => $v) {
                     if (str_contains($k, 'tmt') || str_contains($k, 'mulai_tugas') || str_contains($k, 'tanggal_tugas') || str_contains($k, 'penugasan')) {
@@ -790,39 +770,9 @@ class TeacherController extends Controller
                 }
                 $tmtDate = null;
                 if ($tmtRaw !== null && (string)$tmtRaw !== '') {
-                    $tmtStr = trim((string)$tmtRaw);
-                    if (is_numeric($tmtStr)) {
-                        $tmtDate = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tmtStr);
-                    } else {
-                        // Terjemahkan nama bulan Indonesia ke Inggris untuk Carbon
-                        $indoMonths = [
-                            'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
-                            'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
-                            'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
-                            'november' => 'november', 'desember' => 'december',
-                            // Singkatan
-                            'jan' => 'jan', 'feb' => 'feb', 'mar' => 'mar', 'apr' => 'apr',
-                            'jun' => 'jun', 'jul' => 'jul', 'agu' => 'aug', 'sep' => 'sep', 'okt' => 'oct',
-                            'nov' => 'nov', 'des' => 'dec'
-                        ];
-                        $translatedTmt = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tmtStr);
-
-                        // Coba beberapa format tanggal populer di Indonesia / Excel
-                        $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd F Y', 'd M Y', 'd-M-Y', 'd/M/Y'];
-                        foreach ($formats as $format) {
-                            try {
-                                $tmtDate = \Carbon\Carbon::createFromFormat($format, $translatedTmt);
-                                if ($tmtDate !== false) break;
-                            } catch (\Exception $e) { $tmtDate = null; }
-                        }
-                        // Fallback terakhir jika semua format gagal
-                        if (!$tmtDate) {
-                            try { $tmtDate = \Carbon\Carbon::parse($translatedTmt); } catch (\Exception $e) { $tmtDate = null; }
-                        }
-                    }
-                    if ($tmtDate) {
-                        $normalizedRow['tmt'] = $tmtDate->format('Y-m-d');
-                    }
+                    $normalizedTmt = $this->strictDateValidationService->parseAndNormalize($tmtRaw);
+                    $normalizedRow['tmt'] = $normalizedTmt;
+                    $tmtDate = $normalizedTmt ? \Carbon\Carbon::parse($normalizedTmt) : null;
                 }
 
                 // Kalkulasi Status berdasarkan Pendidikan Terakhir, TMT Lama Pengabdian, dan Sertifikasi
@@ -1693,41 +1643,10 @@ class TeacherController extends Controller
             }
         }
 
-        // Parse Tanggal Lahir
+        // Parse Tanggal Lahir (Strict Date Validation & Normalization)
         $tglLahirRaw = $normalizedRow['tanggal_lahir'] ?? $normalizedRow['tgl_lahir'] ?? null;
         if ($tglLahirRaw !== null && (string)$tglLahirRaw !== '') {
-            $tglStr = trim((string)$tglLahirRaw);
-            if (is_numeric($tglStr)) {
-                try {
-                    $normalizedRow['tanggal_lahir'] = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tglStr)->format('Y-m-d');
-                } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
-            } else {
-                try {
-                    $indoMonths = [
-                        'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
-                        'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
-                        'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
-                        'november' => 'november', 'desember' => 'december',
-                        'jan' => 'jan', 'feb' => 'feb', 'mar' => 'mar', 'apr' => 'apr',
-                        'jun' => 'jun', 'jul' => 'jul', 'agu' => 'aug', 'sep' => 'sep', 'okt' => 'oct',
-                        'nov' => 'nov', 'des' => 'dec'
-                    ];
-                    $translatedTgl = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tglStr);
-                    
-                    $tglDate = null;
-                    $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd F Y', 'd M Y', 'd-M-Y', 'd/M/Y'];
-                    foreach ($formats as $format) {
-                        try {
-                            $tglDate = \Carbon\Carbon::createFromFormat($format, $translatedTgl);
-                            if ($tglDate !== false) break;
-                        } catch (\Exception $e) { $tglDate = null; }
-                    }
-                    if (!$tglDate) {
-                        $tglDate = \Carbon\Carbon::parse($translatedTgl);
-                    }
-                    $normalizedRow['tanggal_lahir'] = $tglDate->format('Y-m-d');
-                } catch (\Exception $e) { $normalizedRow['tanggal_lahir'] = null; }
-            }
+            $normalizedRow['tanggal_lahir'] = $this->strictDateValidationService->parseAndNormalize($tglLahirRaw);
         } else {
             $normalizedRow['tanggal_lahir'] = null;
         }
@@ -1745,7 +1664,7 @@ class TeacherController extends Controller
             $normalizedRow['pdpkpnu'] = in_array($val2, ['sudah', 'ya', '1', 'true', 'yes', 'v']) ? 'Sudah' : 'Belum';
         }
 
-        // Parse TMT Date
+        // Parse TMT Date (Strict Date Validation & Normalization)
         $tmtRaw = null;
         foreach($normalizedRow as $k => $v) {
             if (str_contains($k, 'tmt') || str_contains($k, 'mulai_tugas') || str_contains($k, 'tanggal_tugas') || str_contains($k, 'penugasan')) {
@@ -1755,35 +1674,9 @@ class TeacherController extends Controller
         }
         $tmtDate = null;
         if ($tmtRaw !== null && (string)$tmtRaw !== '') {
-            $tmtStr = trim((string)$tmtRaw);
-            if (is_numeric($tmtStr)) {
-                $tmtDate = \Carbon\Carbon::createFromDate(1899, 12, 30)->addDays((int)$tmtStr);
-            } else {
-                $indoMonths = [
-                    'januari' => 'january', 'februari' => 'february', 'maret' => 'march',
-                    'april' => 'april', 'mei' => 'may', 'juni' => 'june', 'juli' => 'july',
-                    'agustus' => 'august', 'september' => 'september', 'oktober' => 'october',
-                    'november' => 'november', 'desember' => 'december',
-                    'jan' => 'jan', 'feb' => 'feb', 'mar' => 'mar', 'apr' => 'apr',
-                    'jun' => 'jun', 'jul' => 'jul', 'agu' => 'aug', 'sep' => 'sep', 'okt' => 'oct',
-                    'nov' => 'nov', 'des' => 'dec'
-                ];
-                $translatedTmt = str_ireplace(array_keys($indoMonths), array_values($indoMonths), $tmtStr);
-
-                $formats = ['d/m/Y', 'Y-m-d', 'd-m-Y', 'Y/m/d', 'm/d/Y', 'd F Y', 'd M Y', 'd-M-Y', 'd/M/Y'];
-                foreach ($formats as $format) {
-                    try {
-                        $tmtDate = \Carbon\Carbon::createFromFormat($format, $translatedTmt);
-                        if ($tmtDate !== false) break;
-                    } catch (\Exception $e) { $tmtDate = null; }
-                }
-                if (!$tmtDate) {
-                    try { $tmtDate = \Carbon\Carbon::parse($translatedTmt); } catch (\Exception $e) { $tmtDate = null; }
-                }
-            }
-            if ($tmtDate) {
-                $normalizedRow['tmt'] = $tmtDate->format('Y-m-d');
-            }
+            $normalizedTmt = $this->strictDateValidationService->parseAndNormalize($tmtRaw);
+            $normalizedRow['tmt'] = $normalizedTmt;
+            $tmtDate = $normalizedTmt ? \Carbon\Carbon::parse($normalizedTmt) : null;
         }
 
         // Kalkulasi Status
@@ -1877,6 +1770,16 @@ class TeacherController extends Controller
     public function importPreview(Request $request): JsonResponse
     {
         $request->validate(['teachers' => 'required|array']);
+
+        $dateErrors = $this->strictDateValidationService->validateRows($request->teachers);
+        if (!empty($dateErrors)) {
+            return response()->json([
+                'success'     => false,
+                'message'     => $this->strictDateValidationService->formatErrorMessage($dateErrors),
+                'errors'      => $dateErrors,
+                'date_errors' => $dateErrors,
+            ], 422);
+        }
         
         $previews = [];
         $indexCounter = 0;
@@ -1969,6 +1872,21 @@ class TeacherController extends Controller
     public function importCommit(Request $request): JsonResponse
     {
         $request->validate(['teachers' => 'required|array']);
+
+        $rowsToValidate = [];
+        foreach ($request->teachers as $row) {
+            $rowsToValidate[] = $row['payload'] ?? $row;
+        }
+        $dateErrors = $this->strictDateValidationService->validateRows($rowsToValidate);
+        if (!empty($dateErrors)) {
+            return response()->json([
+                'success'     => false,
+                'message'     => $this->strictDateValidationService->formatErrorMessage($dateErrors),
+                'errors'      => $dateErrors,
+                'date_errors' => $dateErrors,
+            ], 422);
+        }
+
         $user = $request->user();
         $isOperator = $user?->isOperator();
         $operatorSchoolId = (int) $user?->school_id;

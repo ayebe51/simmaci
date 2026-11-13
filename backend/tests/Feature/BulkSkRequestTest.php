@@ -57,7 +57,7 @@ class BulkSkRequestTest extends TestCase
             'status'            => 'GTY',
             'nip'               => '123456',
             'nomor_induk_maarif'=> $nim ?? 'NIM-' . str_pad(++self::$nimCounter, 4, '0', STR_PAD_LEFT),
-            'tanggal_lahir'     => '1990-01-01',
+            'tanggal_lahir'     => '01 Januari 1990',
             'tempat_lahir'      => 'Cilacap',
         ];
     }
@@ -70,7 +70,7 @@ class BulkSkRequestTest extends TestCase
             'status'            => 'PNS',
             'nip'               => '123456',
             'nomor_induk_maarif'=> 'NIM-002',
-            'tanggal_lahir'     => '1985-05-10',
+            'tanggal_lahir'     => '10 Mei 1985',
             'tempat_lahir'      => 'Cilacap',
         ];
     }
@@ -83,7 +83,7 @@ class BulkSkRequestTest extends TestCase
             'status'            => 'GTY', // status bukan PNS, tapi NIP 18 digit
             'nip'               => '199001012015041001', // 18 digit = PNS NIP format
             'nomor_induk_maarif'=> 'NIM-003',
-            'tanggal_lahir'     => '1990-01-01',
+            'tanggal_lahir'     => '01 Januari 1990',
             'tempat_lahir'      => 'Cilacap',
         ];
     }

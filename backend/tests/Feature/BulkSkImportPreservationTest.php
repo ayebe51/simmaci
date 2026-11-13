@@ -101,7 +101,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'status'             => 'GTY',
                 'nuptk'              => '1234567890123456',
                 'nomor_induk_maarif' => '113400001',
-                'tmt'                => '2018-01-01',
+                'tmt'                => '01 Januari 2018',
             ],
         ]);
 
@@ -160,7 +160,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400002',
-                'tmt'                => '2019-06-01',
+                'tmt'                => '01 Juni 2019',
             ],
         ]);
 
@@ -219,7 +219,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400003',
-                'tmt'                => '2020-01-01',
+                'tmt'                => '01 Januari 2020',
             ],
         ]);
 
@@ -278,7 +278,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400004',
-                'tmt'                => '2021-01-01',
+                'tmt'                => '01 Januari 2021',
             ],
         ]);
 
@@ -329,7 +329,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400099',
-                'tmt'                => '2023-01-01',
+                'tmt'                => '01 Januari 2023',
             ],
         ]);
 
@@ -385,7 +385,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'PNS',
                 'nomor_induk_maarif' => '113400PNS',
-                'tmt'                => '2015-01-01',
+                'tmt'                => '01 Januari 2015',
             ],
         ]);
 
@@ -437,7 +437,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'status'             => 'GTY',
                 'nip'                => '199001012015041001', // 18 digits = PNS
                 'nomor_induk_maarif' => '113400NIP',
-                'tmt'                => '2015-01-01',
+                'tmt'                => '01 Januari 2015',
             ],
         ]);
 
@@ -546,7 +546,7 @@ class BulkSkImportPreservationTest extends TestCase
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400005',
-                'tmt'                => '2020-01-01',
+                'tmt'                => '01 Januari 2020',
             ],
         ]);
 
@@ -629,21 +629,21 @@ class BulkSkImportPreservationTest extends TestCase
                 'status'             => 'GTY',
                 'nuptk'              => '9999888877776666',
                 'nomor_induk_maarif' => '113400010',
-                'tmt'                => '2018-01-01',
+                'tmt'                => '01 Januari 2018',
             ],
             [
                 'nama'               => 'TEACHER NIM BATCH',
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400011',
-                'tmt'                => '2019-01-01',
+                'tmt'                => '01 Januari 2019',
             ],
             [
                 'nama'               => 'TEACHER EXACT NAME BATCH',
                 'unit_kerja'         => $this->school->nama,
                 'status'             => 'GTY',
                 'nomor_induk_maarif' => '113400012',
-                'tmt'                => '2020-01-01',
+                'tmt'                => '01 Januari 2020',
             ],
         ]);
 

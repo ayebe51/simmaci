@@ -6,13 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Student\StoreStudentRequest;
 use App\Http\Requests\Student\UpdateStudentRequest;
 use App\Models\Student;
+use App\Services\StrictDateValidationService;
 use App\Services\StudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    public function __construct(private StudentService $studentService) {}
+    public function __construct(
+        private StudentService $studentService,
+        private StrictDateValidationService $strictDateValidationService
+    ) {}
     public function index(Request $request): JsonResponse
     {
         $query = Student::with('school');
@@ -93,6 +97,16 @@ class StudentController extends Controller
     {
         $request->validate(['students' => 'required|array']);
 
+        $dateErrors = $this->strictDateValidationService->validateRows($request->students);
+        if (!empty($dateErrors)) {
+            return response()->json([
+                'success'     => false,
+                'message'     => $this->strictDateValidationService->formatErrorMessage($dateErrors),
+                'errors'      => $dateErrors,
+                'date_errors' => $dateErrors,
+            ], 422);
+        }
+
         $schoolId = auth()->user()->school_id;
         
         // If the user is Super Admin (no specific school), they cannot import without specifying it 
@@ -171,20 +185,7 @@ class StudentController extends Controller
                     } elseif ((str_contains($key, 'tempat') || str_contains($key, 'tmp') || str_contains($key, 'kota') || str_contains($key, 'kab')) && (str_contains($key, 'lahir') || str_contains($key, 'tpt'))) {
                         $dataToSave['tempat_lahir'] = $value;
                     } elseif ((str_contains($key, 'tanggal') || str_contains($key, 'tgl') || str_contains($key, 'waktu') || str_contains($key, 'birth')) && str_contains($key, 'lahir')) {
-                        // Attempt to parse Excel serial date if numeric, or parse string
-                        if (is_numeric($value)) {
-                            try {
-                                $dataToSave['tanggal_lahir'] = \Carbon\Carbon::createFromTimestamp(\PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($value))->format('Y-m-d');
-                            } catch (\Exception $e) {
-                                $dataToSave['tanggal_lahir'] = $value; // Fallback to raw string
-                            }
-                        } else {
-                            try {
-                                $dataToSave['tanggal_lahir'] = \Carbon\Carbon::parse($value)->format('Y-m-d');
-                            } catch (\Exception $e) {
-                                $dataToSave['tanggal_lahir'] = $value; // Fallback for unparseable natively
-                            }
-                        }
+                        $dataToSave['tanggal_lahir'] = $this->strictDateValidationService->parseAndNormalize($value);
                     } else {
                         // Allow exact matches from our explicit allowlist if it didn't trigger fuzzy logic
                         if (in_array($key, $allowedFields)) {

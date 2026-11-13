@@ -193,7 +193,7 @@ class ProcessBulkSkSubmission implements ShouldQueue
                 // Normalize date fields — convert Indonesian date strings to ISO YYYY-MM-DD
                 foreach (['tanggal_lahir', 'tmt'] as $dateField) {
                     if (isset($teacherData[$dateField]) && is_string($teacherData[$dateField])) {
-                        $parsed = $normalizationService->parseIndonesianDate($teacherData[$dateField]);
+                        $parsed = app(\App\Services\StrictDateValidationService::class)->parseAndNormalize($teacherData[$dateField]) ?: $normalizationService->parseIndonesianDate($teacherData[$dateField]);
                         $teacherData[$dateField] = $parsed; // null if unparseable — safer than bad string
                     }
                 }

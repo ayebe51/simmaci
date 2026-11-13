@@ -15,6 +15,7 @@ use App\Http\Requests\SkDocument\StoreSkPemberhentianRequest;
 use App\Services\DashboardCacheService;
 use App\Services\NormalizationService;
 use App\Services\SkPemberhentianService;
+use App\Services\StrictDateValidationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,7 @@ class SkDocumentController extends Controller
         private NormalizationService $normalizationService,
         private DashboardCacheService $dashboardCacheService,
         private SkPemberhentianService $pemberhentianService,
+        private StrictDateValidationService $strictDateValidationService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -1148,6 +1150,16 @@ class SkDocumentController extends Controller
             'surat_permohonan_url' => 'required|string',
         ]);
 
+        $dateErrors = $this->strictDateValidationService->validateRows($request->documents);
+        if (!empty($dateErrors)) {
+            return response()->json([
+                'success'     => false,
+                'message'     => $this->strictDateValidationService->formatErrorMessage($dateErrors),
+                'errors'      => $dateErrors,
+                'date_errors' => $dateErrors,
+            ], 422);
+        }
+
         $documentCount = count($request->documents);
 
         // For very small batches (<= 3 rows), process synchronously for immediate feedback.
@@ -1352,8 +1364,11 @@ class SkDocumentController extends Controller
             // Normalize date fields — convert Indonesian date strings to ISO YYYY-MM-DD
             foreach (['tanggal_lahir', 'tmt'] as $dateField) {
                 if (isset($teacherData[$dateField]) && is_string($teacherData[$dateField])) {
-                    $parsed = $this->normalizationService->parseIndonesianDate($teacherData[$dateField]);
-                    $teacherData[$dateField] = $parsed; // null if unparseable — safer than bad string
+                    $parsed = $this->strictDateValidationService->parseAndNormalize($teacherData[$dateField]);
+                    if (!$parsed) {
+                        $parsed = $this->normalizationService->parseIndonesianDate($teacherData[$dateField]);
+                    }
+                    $teacherData[$dateField] = $parsed;
                 }
             }
 

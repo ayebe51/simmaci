@@ -6,6 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table"
 import { GlobalErrorBoundary } from "@/components/common/GlobalErrorBoundary"
+import { DateValidationErrorDialog, DateValidationErrorItem } from "@/components/common/DateValidationErrorDialog"
 interface ExcelImportModalProps {
   title: string
   description: string
@@ -38,6 +39,7 @@ export default function ExcelImportModal({
 }: ExcelImportModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [dateValidationErrors, setDateValidationErrors] = useState<DateValidationErrorItem[] | null>(null)
   
   // Preview states
   const [previewData, setPreviewData] = useState<Record<string, unknown>[] | null>(null)
@@ -71,9 +73,14 @@ export default function ExcelImportModal({
             closeModal()
             if (onImportSuccess) onImportSuccess()
             toast.success("Berhasil mengimpor data!")
-        } catch(error: unknown) {
+        } catch(error: any) {
             setIsUploading(false)
-            toast.error("Gagal import: " + (error as Error).message)
+            const dErrors = error.response?.data?.date_errors || (Array.isArray(error.response?.data?.errors) ? error.response?.data?.errors : null)
+            if (Array.isArray(dErrors) && dErrors.length > 0 && dErrors[0].column) {
+                setDateValidationErrors(dErrors)
+            } else {
+                toast.error("Gagal import: " + (error.response?.data?.message || error.message))
+            }
         }
     } else if (onImport) {
         try {
@@ -82,9 +89,14 @@ export default function ExcelImportModal({
             setIsUploading(false)
             closeModal()
             if (onImportSuccess) onImportSuccess()
-        } catch(error: unknown) {
+        } catch(error: any) {
             setIsUploading(false)
-            toast.error("Gagal import: " + (error as Error).message)
+            const dErrors = error.response?.data?.date_errors || (Array.isArray(error.response?.data?.errors) ? error.response?.data?.errors : null)
+            if (Array.isArray(dErrors) && dErrors.length > 0 && dErrors[0].column) {
+                setDateValidationErrors(dErrors)
+            } else {
+                toast.error("Gagal import: " + (error.response?.data?.message || error.message))
+            }
         }
     }
   }
@@ -208,6 +220,12 @@ export default function ExcelImportModal({
           )}
         </GlobalErrorBoundary>
       </DialogContent>
+
+      <DateValidationErrorDialog
+        isOpen={!!dateValidationErrors}
+        onClose={() => setDateValidationErrors(null)}
+        errors={dateValidationErrors || []}
+      />
     </Dialog>
   )
 }

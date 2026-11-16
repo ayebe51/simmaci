@@ -27,6 +27,8 @@ describe('parseIndonesianDate', () => {
     it('"25 September 2021"→ "2021-09-25"', () => expect(parseIndonesianDate('25 September 2021')).toBe('2021-09-25'))
     it('"3 Oktober 2017"   → "2017-10-03"', () => expect(parseIndonesianDate('3 Oktober 2017')).toBe('2017-10-03'))
     it('"11 November 2016" → "2016-11-11"', () => expect(parseIndonesianDate('11 November 2016')).toBe('2016-11-11'))
+    it('"11 Nopember 2016" → "2016-11-11" (alias nopember)', () => expect(parseIndonesianDate('11 Nopember 2016')).toBe('2016-11-11'))
+    it('"20 Pebruari 2024" → "2024-02-20" (alias pebruari)', () => expect(parseIndonesianDate('20 Pebruari 2024')).toBe('2024-02-20'))
   })
 
   describe('Format 4: DD MMM YYYY — Indonesia singkat (3 huruf)', () => {

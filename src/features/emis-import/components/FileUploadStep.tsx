@@ -5,6 +5,7 @@ import { API_URL } from "@/lib/api"
 import { toast } from "sonner"
 import * as XLSX from "xlsx"
 import * as mammoth from "mammoth"
+import { DateFormatInfoAlert } from "@/components/common/DateFormatInfoAlert"
 
 interface FileUploadStepProps {
   onFileAccepted: (file: File, headers: string[], data: Record<string, unknown>[]) => void
@@ -64,10 +65,10 @@ export default function FileUploadStep({
                  }
             } else {
                 // EXCEL / CSV Processing
-                const workbook = XLSX.read(data, { type: 'binary' })
+                const workbook = XLSX.read(data, { type: 'binary', cellDates: false, cellNF: true })
                 const sheetName = workbook.SheetNames[0]
                 const sheet = workbook.Sheets[sheetName]
-                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" }) as Record<string, unknown>[]
+                const rawData = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false }) as Record<string, unknown>[]
 
                 // Strip leading apostrophe from all string values (Excel adds ' prefix to
                 // force text format on numeric fields like NUPTK, NIK, NISN, phone numbers)
@@ -124,9 +125,13 @@ export default function FileUploadStep({
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center p-12 text-center">
+    <div className="flex h-full flex-col items-center justify-center p-6 text-center space-y-4">
+      <div className="w-full max-w-xl">
+        <DateFormatInfoAlert />
+      </div>
+
       <div 
-        className={`flex w-full max-w-xl flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 transition-colors
+        className={`flex w-full max-w-xl flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors
             ${isDragOver ? "border-primary bg-blue-50" : "border-slate-200 bg-slate-50"}
         `}
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}

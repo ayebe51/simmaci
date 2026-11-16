@@ -47,11 +47,11 @@ export function getCurrentSkYear(): number {
  */
 const BULAN_MAP: Record<string, number> = {
   // Panjang
-  januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6,
-  juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, desember: 12,
+  januari: 1, februari: 2, pebruari: 2, maret: 3, april: 4, mei: 5, juni: 6,
+  juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, nopember: 11, desember: 12,
   // Singkat (3 huruf)
-  jan: 1, feb: 2, mar: 3, apr: 4, // mei sudah ada di atas
-  jun: 6, jul: 7, agu: 8, ags: 8, sep: 9, okt: 10, nov: 11, des: 12,
+  jan: 1, feb: 2, peb: 2, mar: 3, apr: 4, // mei sudah ada di atas
+  jun: 6, jul: 7, agu: 8, ags: 8, sep: 9, okt: 10, nov: 11, nop: 11, des: 12,
 }
 
 /** Buat string ISO "YYYY-MM-DD" dari komponen angka. */

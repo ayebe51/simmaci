@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { parseIndonesianDate } from "@/features/sk-management/utils/skDateUtils"
+import { DateFormatInfoAlert } from "@/components/common/DateFormatInfoAlert"
+import { DateValidationErrorDialog, DateValidationErrorItem } from "@/components/common/DateValidationErrorDialog"
 
 export function BulkSkSubmission() {
   const navigate = useNavigate()
@@ -48,6 +50,7 @@ export function BulkSkSubmission() {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successCount, setSuccessCount] = useState(0)
   const [rejectedList, setRejectedList] = useState<{ nama: string; alasan: string }[]>([])
+  const [dateValidationErrors, setDateValidationErrors] = useState<DateValidationErrorItem[] | null>(null)
 
   // Mapping Configuration
     const HEADER_MAP: Record<string, string[]> = {
@@ -67,7 +70,7 @@ export function BulkSkSubmission() {
     }
   const handleDownloadTemplate = () => {
     const headers = ["Nama", "Tempat Lahir", "Tanggal Lahir", "NIM", "Pendidikan Terakhir", "Unit Kerja", "TMT", "Status", "PDPKPNU", "Kecamatan", "Baru/Perpanjangan"];
-    const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "1990-05-12", "123456789", "S1 PAI", "MI Ma'arif 01", "2015-07-01", "GTY", "Lulus", "Cilacap Selatan", "Perpanjangan"]]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ["Ahmad Contoh", "Cilacap", "12 Mei 1990", "123456789", "S1 PAI", "MI Ma'arif 01", "01 Juli 2015", "GTY", "Lulus", "Cilacap Selatan", "Perpanjangan"]]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
     const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -81,9 +84,9 @@ export function BulkSkSubmission() {
     const reader = new FileReader()
     reader.onload = (evt) => {
       try {
-        const wb = XLSX.read(evt.target?.result, { type: "binary" })
+        const wb = XLSX.read(evt.target?.result, { type: "binary", cellDates: false, cellNF: true })
         const ws = wb.Sheets[wb.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][]
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" }) as any[][]
         
         if (rows.length < 1) throw new Error("File Excel kosong")
 
@@ -154,14 +157,8 @@ export function BulkSkSubmission() {
             }
              if (key.includes('tanggal') || key === 'tmt') {
                 if (typeof val === 'number') {
-                   if (val > 1000 && val <= 3000) {
-                      // If it's just a year number (e.g., 2020), set it to July 1st of that year
-                      val = `${val}-07-01`
-                   } else {
-                      // Excel serial date number → ISO string
-                      const d = new Date((val - 25569) * 86400 * 1000)
-                      val = d.toISOString().split('T')[0]
-                   }
+                   // Keep as string representation of numeric value
+                   val = String(val)
                 } else if (typeof val === 'string' && val.trim()) {
                    let dateStr = val.trim();
                    // Toleransi: Jika Tempat dan Tanggal Lahir digabung (misal: "Cilacap, 31 Desember 1988")
@@ -172,8 +169,7 @@ export function BulkSkSubmission() {
                           dateStr = parts.slice(1).join(',').trim();
                       }
                    }
-                   // Normalize Indonesian month names to English before parsing
-                   val = parseIndonesianDate(dateStr)
+                   val = dateStr
                 }
              }
             obj[key] = val
@@ -351,10 +347,15 @@ export function BulkSkSubmission() {
             { duration: 8000 }
           )
         } else {
-          toast.error(
-            "Gagal mengirim pengajuan: " +
-            (submitErr.response?.data?.message || submitErr.message)
-          )
+          const dErrors = submitErr.response?.data?.date_errors || (Array.isArray(submitErr.response?.data?.errors) ? submitErr.response?.data?.errors : null)
+          if (Array.isArray(dErrors) && dErrors.length > 0 && dErrors[0].column) {
+            setDateValidationErrors(dErrors)
+          } else {
+            toast.error(
+              "Gagal mengirim pengajuan: " +
+              (submitErr.response?.data?.message || submitErr.message)
+            )
+          }
         }
       }
     } finally {
@@ -373,7 +374,8 @@ export function BulkSkSubmission() {
           Upload daftar guru untuk pengajuan SK massal. Data akan masuk sebagai antrian verifikasi.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-10 space-y-10">
+      <CardContent className="p-10 space-y-8">
+        <DateFormatInfoAlert />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-6">
@@ -517,6 +519,12 @@ export function BulkSkSubmission() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DateValidationErrorDialog
+        isOpen={!!dateValidationErrors}
+        onClose={() => setDateValidationErrors(null)}
+        errors={dateValidationErrors || []}
+      />
     </Card>
   )
 }

@@ -183,5 +183,189 @@ class StrictDateImportIntegrationTest extends TestCase
         }
     }
 
+    public function test_teacher_import_rejects_invalid_calendar_date(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/teachers/import', [
+                'teachers' => [
+                    [
+                        'nama' => 'Guru Tanggal 31 Februari',
+                        'nuptk' => '9999000011113333',
+                        'tanggal_lahir' => '31 Februari 2023',
+                    ],
+                ],
+            ]);
 
+        $response->assertStatus(422);
+        $errors = $response->json('date_errors');
+        $this->assertStringContainsString('tidak valid secara kalender', $errors[0]['reason']);
+    }
+
+    public function test_teacher_import_rejects_invalid_ttl_combined_column(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/teachers/import', [
+                'teachers' => [
+                    [
+                        'nama' => 'Guru TTL Invalid',
+                        'tempat_tanggal_lahir' => 'Cilacap, 11/12/2022',
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $errors = $response->json('date_errors');
+        $this->assertEquals('Tempat, Tanggal Lahir', $errors[0]['column']);
+        $this->assertEquals('Cilacap, 11/12/2022', $errors[0]['value']);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Teacher Import Preview & Commit Tests
+    // ══════════════════════════════════════════════════════════════════════
+
+    public function test_teacher_import_preview_rejects_invalid_date(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/teachers/import/preview', [
+                'teachers' => [
+                    [
+                        'nama' => 'Guru Preview Invalid',
+                        'tanggal_lahir' => '11-12-2022',
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertNotEmpty($response->json('date_errors'));
+    }
+
+    public function test_teacher_import_commit_rejects_invalid_date_and_rolls_back(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/teachers/import/commit', [
+                'teachers' => [
+                    [
+                        'action' => 'INSERT',
+                        'payload' => [
+                            'nama' => 'Guru Commit Invalid',
+                            'tanggal_lahir' => '2022-12-11',
+                        ],
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertNotEmpty($response->json('date_errors'));
+        $this->assertEquals(0, Teacher::withoutTenantScope()->where('nama', 'Guru Commit Invalid')->count());
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Student Import Tests
+    // ══════════════════════════════════════════════════════════════════════
+
+    public function test_student_import_accepts_valid_month_dates(): void
+    {
+        $students = [
+            [
+                'nama' => 'Siswa A',
+                'nisn' => '0012345678',
+                'tanggal_lahir' => '11 Nopember 2022',
+                'tempat_lahir' => 'Cilacap',
+            ],
+            [
+                'nama' => 'Siswa B',
+                'nisn' => '0012345679',
+                'tanggal_lahir' => '21 Agu 2024',
+                'tempat_lahir' => 'Banyumas',
+            ],
+        ];
+
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/students/import', [
+                'students' => $students,
+            ]);
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('students', [
+            'nisn' => '0012345678',
+            'tanggal_lahir' => '2022-11-11',
+        ]);
+
+        $this->assertDatabaseHas('students', [
+            'nisn' => '0012345679',
+            'tanggal_lahir' => '2024-08-21',
+        ]);
+    }
+
+    public function test_student_import_rejects_numeric_date_and_aborts_completely(): void
+    {
+        $students = [
+            [
+                'nama' => 'Siswa Valid',
+                'nisn' => '0099887711',
+                'tanggal_lahir' => '11 Nov 2022',
+            ],
+            [
+                'nama' => 'Siswa Invalid',
+                'nisn' => '0099887722',
+                'tanggal_lahir' => '11/12/2022',
+            ],
+        ];
+
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/students/import', [
+                'students' => $students,
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertNotEmpty($response->json('date_errors'));
+
+        // Ensure zero students were saved
+        $this->assertEquals(0, Student::withoutTenantScope()->where('school_id', $this->school->id)->count());
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SK Bulk Request Tests
+    // ══════════════════════════════════════════════════════════════════════
+
+    public function test_sk_bulk_request_rejects_numeric_dates(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/sk-documents/bulk-request', [
+                'surat_permohonan_url' => 'https://example.com/surat.pdf',
+                'documents' => [
+                    [
+                        'nama' => 'Guru SK Invalid Date',
+                        'unit_kerja' => $this->school->nama,
+                        'status' => 'GTY',
+                        'nomor_induk_maarif' => '113400888',
+                        'tmt' => '11/12/2022',
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertNotEmpty($response->json('date_errors'));
+    }
+
+    public function test_sk_bulk_request_accepts_valid_month_name_dates(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson('/api/sk-documents/bulk-request', [
+                'surat_permohonan_url' => 'https://example.com/surat.pdf',
+                'documents' => [
+                    [
+                        'nama' => 'Guru SK Valid Date',
+                        'unit_kerja' => $this->school->nama,
+                        'status' => 'GTY',
+                        'nomor_induk_maarif' => '113400889',
+                        'tmt' => '11 November 2022',
+                    ],
+                ],
+            ]);
+
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('count'));
+    }
 }

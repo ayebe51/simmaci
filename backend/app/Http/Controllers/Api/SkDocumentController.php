@@ -22,12 +22,16 @@ use Illuminate\Support\Facades\DB;
 
 class SkDocumentController extends Controller
 {
+    private StrictDateValidationService $strictDateValidationService;
+
     public function __construct(
         private NormalizationService $normalizationService,
         private DashboardCacheService $dashboardCacheService,
         private SkPemberhentianService $pemberhentianService,
-        private StrictDateValidationService $strictDateValidationService,
-    ) {}
+        ?StrictDateValidationService $strictDateValidationService = null,
+    ) {
+        $this->strictDateValidationService = $strictDateValidationService ?? app(StrictDateValidationService::class);
+    }
 
     public function index(Request $request): JsonResponse
     {

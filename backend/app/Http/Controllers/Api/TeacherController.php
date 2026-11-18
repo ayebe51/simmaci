@@ -18,12 +18,16 @@ use Illuminate\Http\Request;
 
 class TeacherController extends Controller
 {
+    private StrictDateValidationService $strictDateValidationService;
+
     public function __construct(
         private TeacherService $teacherService,
         private NormalizationService $normalizationService,
         private MatchingService $matchingService,
-        private StrictDateValidationService $strictDateValidationService
-    ) {}
+        ?StrictDateValidationService $strictDateValidationService = null
+    ) {
+        $this->strictDateValidationService = $strictDateValidationService ?? app(StrictDateValidationService::class);
+    }
 
     public function index(Request $request): JsonResponse
     {

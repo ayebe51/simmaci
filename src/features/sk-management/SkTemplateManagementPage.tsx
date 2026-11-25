@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Upload, FileText, Loader2, CheckCircle2, Download, Trash2,
-  Zap, FileUp, LayoutTemplate, FileDown, FilePlus,
+  Zap, FileUp, LayoutTemplate, FileDown, FilePlus, BookOpen,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import PageHeader from '@/components/ui/PageHeader'
+import { PlaceholderGuideModal } from './components/PlaceholderGuideModal'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +84,7 @@ function formatDate(dateStr: string) {
 
 // ── Upload Form ────────────────────────────────────────────────────────────
 
-function UploadForm({ onSuccess }: { onSuccess: () => void }) {
+function UploadForm({ onSuccess, onOpenGuide }: { onSuccess: () => void; onOpenGuide?: () => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -219,6 +220,18 @@ function UploadForm({ onSuccess }: { onSuccess: () => void }) {
             )}
             Unggah Template
           </Button>
+
+          {onOpenGuide && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onOpenGuide}
+              className="w-full h-10 rounded-xl border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-100/70 text-blue-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Lihat Panduan Tag Placeholder
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>
@@ -626,6 +639,7 @@ export default function SkTemplateManagementPage() {
   const [activatingId, setActivatingId] = useState<number | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [showGuideModal, setShowGuideModal] = useState(false)
   // Optimistic active state: sk_type → active template id (null = revert to server state)
   const [optimisticActiveIds, setOptimisticActiveIds] = useState<Record<string, number | null>>({})
 
@@ -705,6 +719,14 @@ export default function SkTemplateManagementPage() {
         description="Kelola template dokumen SK untuk setiap jenis surat keputusan"
         icon={<LayoutTemplate className="h-7 w-7 text-white" />}
         gradient="from-blue-600 via-blue-700 to-indigo-800"
+        actions={[
+          {
+            label: 'Panduan Placeholder',
+            onClick: () => setShowGuideModal(true),
+            variant: 'secondary',
+            icon: <BookOpen className="h-4 w-4" />,
+          },
+        ]}
       />
 
       {/* Template Surat Permohonan — full width */}
@@ -715,6 +737,7 @@ export default function SkTemplateManagementPage() {
         <div className="lg:col-span-1">
           <UploadForm
             onSuccess={() => queryClient.invalidateQueries({ queryKey: ['sk-templates'] })}
+            onOpenGuide={() => setShowGuideModal(true)}
           />
         </div>
 
@@ -777,6 +800,12 @@ export default function SkTemplateManagementPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Placeholder Guide Modal */}
+      <PlaceholderGuideModal
+        open={showGuideModal}
+        onOpenChange={setShowGuideModal}
+      />
     </div>
   )
 }

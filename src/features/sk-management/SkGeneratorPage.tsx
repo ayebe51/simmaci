@@ -772,6 +772,9 @@ export default function SkGeneratorPage() {
                 "STATUS_GURU": (periodeValue >= 2) ? "Guru Tetap Yayasan" : "Guru Tidak Tetap",
                 "JABATAN_GURU": (periodeValue >= 2) ? "Guru Tetap Yayasan" : "Guru Tidak Tetap",
                 "JABATAN_UPPER": (periodeValue >= 2) ? "GURU TETAP YAYASAN" : "GURU TIDAK TETAP",
+                "JENIS_SK_UPPER": (periodeValue >= 2) ? "GURU TETAP YAYASAN" : "GURU TIDAK TETAP",
+                "STATUS_GURU_UPPER": (periodeValue >= 2) ? "GURU TETAP YAYASAN" : "GURU TIDAK TETAP",
+                "JUDUL_PENGANGKATAN": (periodeValue >= 2) ? "PENGANGKATAN GURU TETAP YAYASAN" : "PENGANGKATAN GURU TIDAK TETAP",
                 // SK Pemberhentian placeholders (safe to include for all templates — unused ones are ignored)
                 "ALASAN_PEMBERHENTIAN": formatAlasanPemberhentian(t.alasan_pemberhentian) || "-",
                 "KETERANGAN_PEMBERHENTIAN": t.keterangan_pemberhentian || "-",

@@ -23,14 +23,16 @@ use Illuminate\Support\Facades\DB;
 class SkDocumentController extends Controller
 {
     private StrictDateValidationService $strictDateValidationService;
+    private \App\Services\SkPerubahanStatusService $perubahanStatusService;
 
     public function __construct(
         private NormalizationService $normalizationService,
         private DashboardCacheService $dashboardCacheService,
         private SkPemberhentianService $pemberhentianService,
-        private \App\Services\SkPerubahanStatusService $perubahanStatusService,
+        ?\App\Services\SkPerubahanStatusService $perubahanStatusService = null,
         ?StrictDateValidationService $strictDateValidationService = null,
     ) {
+        $this->perubahanStatusService = $perubahanStatusService ?? app(\App\Services\SkPerubahanStatusService::class);
         $this->strictDateValidationService = $strictDateValidationService ?? app(StrictDateValidationService::class);
     }
 

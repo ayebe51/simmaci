@@ -31,7 +31,7 @@ class SkVerificationController extends Controller
 
         if (! $sk) {
             return $this->errorResponse(
-                'Dokumen SK tidak ditemukan.',
+                'Dokumen SK tidak ditemukan atau tidak aktif.',
                 null,
                 404
             );
@@ -55,7 +55,7 @@ class SkVerificationController extends Controller
 
         if (! in_array(strtolower($sk->status), ['approved', 'active'])) {
             return $this->errorResponse(
-                'Dokumen SK tidak aktif.',
+                'Dokumen SK tidak ditemukan atau tidak aktif.',
                 null,
                 404
             );

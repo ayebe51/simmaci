@@ -207,7 +207,12 @@ export default function SkDetailPage() {
         NOMOR_SK_LAMA: skDoc.nomor_sk_lama || "-",
         "NOMOR SK LAMA": skDoc.nomor_sk_lama || "-",
         GELAR_BARU: skDoc.gelar_baru || "-",
-        STATUS_GURU: skDoc.jabatan || "Guru Tetap Yayasan",
+        STATUS_GURU: skDoc.jabatan?.includes("GTT") || skDoc.jabatan?.toLowerCase().includes("tidak tetap") ? "Guru Tidak Tetap" : "Guru Tetap Yayasan",
+        JABATAN_GURU: skDoc.jabatan?.includes("GTT") || skDoc.jabatan?.toLowerCase().includes("tidak tetap") ? "Guru Tidak Tetap" : "Guru Tetap Yayasan",
+        JABATAN_UPPER: skDoc.jabatan?.includes("GTT") || skDoc.jabatan?.toLowerCase().includes("tidak tetap") ? "GURU TIDAK TETAP" : "GURU TETAP YAYASAN",
+        JENIS_SK_UPPER: skDoc.jabatan?.includes("GTT") || skDoc.jabatan?.toLowerCase().includes("tidak tetap") ? "GURU TIDAK TETAP" : "GURU TETAP YAYASAN",
+        STATUS_GURU_UPPER: skDoc.jabatan?.includes("GTT") || skDoc.jabatan?.toLowerCase().includes("tidak tetap") ? "GURU TIDAK TETAP" : "GURU TETAP YAYASAN",
+        JUDUL_PENGANGKATAN: skDoc.jabatan?.includes("GTT") || skDoc.jabatan?.toLowerCase().includes("tidak tetap") ? "PENGANGKATAN GURU TIDAK TETAP" : "PENGANGKATAN GURU TETAP YAYASAN",
         tanggal_sk: formatIndoDate(skDoc.tanggal_penetapan),
         qrcode: qrDataUrl,
       };

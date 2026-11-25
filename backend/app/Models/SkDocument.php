@@ -24,6 +24,10 @@ class SkDocument extends Model
         'alasan_pemberhentian',
         'keterangan_pemberhentian',
         'tanggal_efektif_pemberhentian',
+        // SK Perubahan Status fields
+        'sk_lama_id',
+        'nomor_sk_lama',
+        'gelar_baru',
     ];
 
     protected function casts(): array
@@ -45,6 +49,11 @@ class SkDocument extends Model
     public function school()
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function skLama()
+    {
+        return $this->belongsTo(self::class, 'sk_lama_id');
     }
 
     // ── Scopes ──

@@ -27,12 +27,35 @@ class SkVerificationController extends Controller
         $sk = SkDocument::withoutTenantScope()
             ->with('school:id,nama')
             ->whereRaw('LOWER(nomor_sk) = LOWER(?)', [$nomor])
-            ->whereIn('status', ['approved', 'Approved', 'active', 'Active'])
             ->first();
 
         if (! $sk) {
             return $this->errorResponse(
-                'Dokumen SK tidak ditemukan atau tidak aktif.',
+                'Dokumen SK tidak ditemukan.',
+                null,
+                404
+            );
+        }
+
+        if (in_array(strtolower($sk->status), ['archived', 'revoked'])) {
+            $reason = $sk->archive_reason ?: 'Dokumen SK ini telah dicabut dan dinyatakan tidak berlaku lagi.';
+            return response()->json([
+                'success' => false,
+                'message' => $reason,
+                'data'    => [
+                    'nomor_sk'       => $sk->nomor_sk,
+                    'nama'           => $sk->nama,
+                    'status'         => 'archived',
+                    'is_valid'       => false,
+                    'archive_reason' => $reason,
+                    'archived_at'    => $sk->archived_at?->translatedFormat('j F Y'),
+                ],
+            ], 410);
+        }
+
+        if (! in_array(strtolower($sk->status), ['approved', 'active'])) {
+            return $this->errorResponse(
+                'Dokumen SK tidak aktif.',
                 null,
                 404
             );

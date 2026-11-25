@@ -28,6 +28,7 @@ class SkDocumentController extends Controller
         private NormalizationService $normalizationService,
         private DashboardCacheService $dashboardCacheService,
         private SkPemberhentianService $pemberhentianService,
+        private \App\Services\SkPerubahanStatusService $perubahanStatusService,
         ?StrictDateValidationService $strictDateValidationService = null,
     ) {
         $this->strictDateValidationService = $strictDateValidationService ?? app(StrictDateValidationService::class);
@@ -395,6 +396,15 @@ class SkDocumentController extends Controller
                 $this->pemberhentianService->onApproved($freshSk, $request->user());
             }
 
+            // Trigger perubahan status untuk SK Perubahan Status yang disetujui
+            if ($oldStatus !== $newStatus
+                && $newStatus === 'approved'
+                && $skDocument->jenis_sk === 'SK Perubahan Status'
+            ) {
+                $freshSk = $skDocument->fresh()->load('teacher');
+                $this->perubahanStatusService->onApproved($freshSk, $request->user());
+            }
+
             // Sync profil kepala madrasah ke tabel schools setelah SK Kamad disetujui
             if ($oldStatus !== $newStatus && $newStatus === 'approved' && $skDocument->school_id) {
                 $this->maybeSyncHeadmasterProfile($skDocument->fresh()->load('teacher'));
@@ -657,6 +667,11 @@ class SkDocumentController extends Controller
                         $this->pemberhentianService->onApproved($sk, $user);
                     }
 
+                    // Trigger perubahan status untuk SK Perubahan Status yang disetujui
+                    if ($isApproved && $oldStatus !== $newStatus && $sk->jenis_sk === 'SK Perubahan Status') {
+                        $this->perubahanStatusService->onApproved($sk, $user);
+                    }
+
                     // Sync profil kepala madrasah ke tabel schools setelah SK Kamad disetujui
                     if ($isApproved && $oldStatus !== $newStatus && $sk->school_id) {
                         $this->maybeSyncHeadmasterProfile($sk);
@@ -743,6 +758,11 @@ class SkDocumentController extends Controller
                 'alasan_pemberhentian' => 'nullable|string|in:pengunduran_diri,pensiun,meninggal_dunia,pelanggaran_disiplin,habis_kontrak,lainnya',
                 'keterangan_pemberhentian' => 'nullable|string|max:1000',
                 'tanggal_efektif_pemberhentian' => 'nullable|date',
+                // SK Perubahan Status fields
+                'teacher_id' => 'nullable|integer',
+                'sk_lama_id' => 'nullable|integer',
+                'nomor_sk_lama' => 'nullable|string',
+                'gelar_baru' => 'nullable|string',
             ]);
 
             // Validasi tambahan khusus SK Pemberhentian
@@ -806,8 +826,10 @@ class SkDocumentController extends Controller
 
             // Block SK submission for non-RA/TK schools (MI, MTs, MA, dll)
             // kecuali madrasah yang sudah di-unlock secara khusus oleh admin
+            // SK Pemberhentian & SK Perubahan Status dikecualikan dari lock karena bersifat insidentil di tengah semester berjalan
+            $isIncidental = in_array($data['jenis_sk'] ?? '', ['SK Pemberhentian', 'SK Perubahan Status'], true);
             $detectedJenjang = $this->detectJenjang($school, $data['unit_kerja']);
-            if (in_array($detectedJenjang, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
+            if (! $isIncidental && in_array($detectedJenjang, ['MI', 'SD', 'MTS', 'SMP', 'MA', 'SMA', 'SMK'])) {
                 // Cek apakah madrasah sudah dibuka khusus oleh admin
                 $isUnlocked = $school && $school->sk_submission_unlocked === true;
 
@@ -878,11 +900,17 @@ class SkDocumentController extends Controller
 
             // Upsert Teacher logic
             $teacher = null;
-            if (!empty($data['nuptk'])) {
+            $isPerubahanStatus = ($data['jenis_sk'] ?? '') === 'SK Perubahan Status';
+
+            if (!empty($data['teacher_id'])) {
+                $teacher = Teacher::where('id', $data['teacher_id'])->where('school_id', $schoolId)->first();
+            }
+
+            if (!$teacher && !empty($data['nuptk'])) {
                 $teacher = Teacher::where('nuptk', $data['nuptk'])->first();
-            } elseif (!empty($data['nip'])) {
+            } elseif (!$teacher && !empty($data['nip'])) {
                 $teacher = Teacher::where('nip', $data['nip'])->first();
-            } else {
+            } elseif (!$teacher) {
                 // Try exact match first, then fall back to bare-name match
                 // (handles cases where DB has "MAILID" but input is "MAILID, S.Pd." or vice versa)
                 $teacher = Teacher::where('nama', $data['nama'])->where('school_id', $schoolId)->first();
@@ -913,6 +941,28 @@ class SkDocumentController extends Controller
                 'status' => $data['status_kepegawaian'] ?? 'Draft',
                 'is_verified' => false,
             ];
+
+            // Status Guard for SK Perubahan Status:
+            // Do NOT update status or name of teacher before SK is approved by yayasan
+            if ($isPerubahanStatus && $teacher) {
+                unset($teacherData['status']);
+                $teacherData['nama'] = $teacher->nama;
+            }
+
+            // Auto-detect or resolve SK Lama for SK Perubahan Status
+            $skLamaId = $data['sk_lama_id'] ?? null;
+            $nomorSkLama = $data['nomor_sk_lama'] ?? null;
+            if ($isPerubahanStatus && empty($skLamaId) && $teacher) {
+                $activeOldSk = SkDocument::withoutTenantScope()
+                    ->where('teacher_id', $teacher->id)
+                    ->whereIn('status', ['approved', 'Approved', 'active', 'Active'])
+                    ->latest('id')
+                    ->first();
+                if ($activeOldSk) {
+                    $skLamaId = $activeOldSk->id;
+                    $nomorSkLama = $nomorSkLama ?: $activeOldSk->nomor_sk;
+                }
+            }
 
             // Merge personal data fields only when provided — avoid overwriting existing
             // Teacher data with empty values (e.g. if operator re-submits without filling them)
@@ -981,6 +1031,10 @@ class SkDocumentController extends Controller
                         'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
                         'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
                         'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
+                        // SK Perubahan Status fields
+                        'sk_lama_id'                    => $skLamaId,
+                        'nomor_sk_lama'                 => $nomorSkLama,
+                        'gelar_baru'                    => $data['gelar_baru'] ?? null,
                     ]);
                 } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
                     // Race condition on nomor_sk — rollback, generate a new nomor_sk, and throw
@@ -1014,6 +1068,10 @@ class SkDocumentController extends Controller
                         'alasan_pemberhentian'          => $data['alasan_pemberhentian'] ?? null,
                         'keterangan_pemberhentian'      => $data['keterangan_pemberhentian'] ?? null,
                         'tanggal_efektif_pemberhentian' => $data['tanggal_efektif_pemberhentian'] ?? null,
+                        // SK Perubahan Status fields
+                        'sk_lama_id'                    => $skLamaId,
+                        'nomor_sk_lama'                 => $nomorSkLama,
+                        'gelar_baru'                    => $data['gelar_baru'] ?? null,
                     ]);
                 }
 

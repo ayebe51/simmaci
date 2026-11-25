@@ -12,13 +12,14 @@ import { ArrowLeft, Save, FileText, Upload, Loader2, Download, AlertTriangle, Ch
 import SoftPageHeader from "@/components/ui/SoftPageHeader"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BulkSkSubmission } from "./components/BulkSkSubmission"
 import { SchoolAutocomplete } from "./components/SchoolAutocomplete"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { skApi, mediaApi, authApi, schoolApi, skTemplateApi } from "@/lib/api"
+import { skApi, mediaApi, authApi, schoolApi, skTemplateApi, teacherApi } from "@/lib/api"
 import { DASHBOARD_QUERY_KEYS } from "@/features/dashboard/utils/queryKeys"
+import { Badge } from "@/components/ui/badge"
 
 type SkFormValues = {
   jenisSk: string
@@ -41,6 +42,11 @@ type SkFormValues = {
   alasan_pemberhentian?: string
   keterangan_pemberhentian?: string
   tanggal_efektif_pemberhentian?: string
+  // SK Perubahan Status
+  teacher_id?: number
+  sk_lama_id?: number
+  nomor_sk_lama?: string
+  gelar_baru?: string
 }
 
 const ALASAN_PEMBERHENTIAN_OPTIONS = [
@@ -132,6 +138,11 @@ export default function SkSubmissionPage() {
     alasan_pemberhentian: z.string().optional(),
     keterangan_pemberhentian: z.string().max(1000).optional(),
     tanggal_efektif_pemberhentian: z.string().optional(),
+    // SK Perubahan Status fields
+    teacher_id: z.number().optional(),
+    sk_lama_id: z.number().optional(),
+    nomor_sk_lama: z.string().optional(),
+    gelar_baru: z.string().optional(),
   }).refine(
     (data) => data.jenisSk !== 'SK Pemberhentian' || !!data.alasan_pemberhentian,
     { message: 'Alasan pemberhentian wajib diisi', path: ['alasan_pemberhentian'] }
@@ -141,6 +152,9 @@ export default function SkSubmissionPage() {
   ).refine(
     (data) => data.alasan_pemberhentian !== 'lainnya' || !!data.keterangan_pemberhentian,
     { message: 'Keterangan wajib diisi jika alasan adalah "Lainnya"', path: ['keterangan_pemberhentian'] }
+  ).refine(
+    (data) => data.jenisSk !== 'SK Perubahan Status' || !!data.nomor_sk_lama,
+    { message: 'Nomor SK Tendik lama yang dicabut wajib diisi', path: ['nomor_sk_lama'] }
   )
 
   const form = useForm<SkFormValues>({
@@ -155,6 +169,60 @@ export default function SkSubmissionPage() {
   const watchedJenisSk = form.watch("jenisSk")
   const watchedAlasan = form.watch("alasan_pemberhentian")
   const isPemberhentian = watchedJenisSk === 'SK Pemberhentian'
+  const isPerubahanStatus = watchedJenisSk === 'SK Perubahan Status'
+
+  // Query Tendik list for the operator's school (or all if admin)
+  const { data: tendikData } = useQuery({
+    queryKey: ['tendik-options', user?.school_id],
+    queryFn: () => teacherApi.list({ status: 'Tendik', per_page: 200 }),
+    enabled: isPerubahanStatus,
+  })
+
+  const tendikList: any[] = Array.isArray(tendikData)
+    ? tendikData
+    : tendikData?.data || []
+
+  const handleSelectTendik = async (teacherIdStr: string) => {
+    const tId = parseInt(teacherIdStr)
+    const t = tendikList.find((item) => item.id === tId)
+    if (!t) return
+
+    form.setValue("teacher_id", t.id)
+    form.setValue("nama", t.nama, { shouldValidate: true })
+    form.setValue("tempat_lahir", t.tempat_lahir || "", { shouldValidate: true })
+    form.setValue("tanggal_lahir", t.tanggal_lahir ? t.tanggal_lahir.split("T")[0] : "", { shouldValidate: true })
+    form.setValue("tmt", t.tmt ? t.tmt.split("T")[0] : "", { shouldValidate: true })
+    form.setValue("nuptk", t.nuptk || "")
+    form.setValue("nip", t.nip || "")
+    form.setValue("nomor_induk_maarif", t.nomor_induk_maarif || "")
+    form.setValue("pendidikan_terakhir", "S1", { shouldValidate: true })
+    form.setValue("jabatan", "Guru Mapel", { shouldValidate: true })
+
+    // Fetch active SK Tendik to auto-populate nomor_sk_lama & sk_lama_id
+    try {
+      const skRes = await skApi.list({ search: t.nama, per_page: 5 })
+      const docs = Array.isArray(skRes) ? skRes : skRes?.data || []
+      const activeOldSk = docs.find((doc: any) =>
+        (doc.teacher_id === t.id || doc.nama?.toLowerCase().includes(t.nama.toLowerCase())) &&
+        ['approved', 'active'].includes(doc.status?.toLowerCase())
+      )
+      if (activeOldSk) {
+        form.setValue("sk_lama_id", activeOldSk.id)
+        form.setValue("nomor_sk_lama", activeOldSk.nomor_sk, { shouldValidate: true })
+      }
+    } catch (e) {
+      console.warn("Gagal fetch SK lama:", e)
+    }
+  }
+
+  const watchedTmt = form.watch("tmt")
+  const calculatedStatus = useMemo(() => {
+    if (!watchedTmt) return null
+    const tmtDate = new Date(watchedTmt)
+    if (isNaN(tmtDate.getTime())) return null
+    const diffYears = (new Date().getTime() - tmtDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    return diffYears >= 2 ? "GTY" : "GTT"
+  }, [watchedTmt])
 
   // Auto-fill unit_kerja for operator from school profile
   const { data: schoolProfile } = useQuery({
@@ -264,6 +332,13 @@ export default function SkSubmissionPage() {
           alasan_pemberhentian: data.alasan_pemberhentian,
           keterangan_pemberhentian: data.keterangan_pemberhentian || undefined,
           tanggal_efektif_pemberhentian: data.tanggal_efektif_pemberhentian,
+        }),
+        // SK Perubahan Status fields
+        ...(data.jenisSk === 'SK Perubahan Status' && {
+          teacher_id: data.teacher_id,
+          sk_lama_id: data.sk_lama_id,
+          nomor_sk_lama: data.nomor_sk_lama,
+          gelar_baru: data.gelar_baru,
         }),
       })
     } catch (err: any) {
@@ -379,6 +454,7 @@ export default function SkSubmissionPage() {
                                 <SelectItem value="SK Guru Tetap Yayasan">SK Guru Tetap Yayasan (GTY)</SelectItem>
                                 <SelectItem value="SK Guru Tidak Tetap">SK Guru Tidak Tetap (GTT)</SelectItem>
                                 <SelectItem value="SK Tenaga Kependidikan">SK Tenaga Kependidikan</SelectItem>
+                                <SelectItem value="SK Perubahan Status">SK Perubahan Status (Tendik ke Guru)</SelectItem>
                                 <SelectItem value="SK Pemberhentian">SK Pemberhentian</SelectItem>
                             </SelectContent>
                         </Select>
@@ -397,6 +473,98 @@ export default function SkSubmissionPage() {
                             ))}
                         </div>
                     </div>
+
+                    {/* ── SK Perubahan Status Selector & Info Box ── */}
+                    {isPerubahanStatus && (
+                      <div className="md:col-span-2 space-y-6 border-l-4 border-blue-600 pl-6 py-4 bg-blue-50/50 rounded-r-2xl border border-blue-100">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-black uppercase text-blue-700 tracking-wider">Perubahan Status Tendik ke Guru</p>
+                            <p className="text-[11px] text-slate-500">Pilih Tendik aktif untuk mengisi otomatis identitas, TMT, dan nomor SK lama.</p>
+                          </div>
+                          {calculatedStatus && (
+                            <Badge className={calculatedStatus === "GTY" ? "bg-emerald-600 text-white font-bold" : "bg-amber-600 text-white font-bold"}>
+                              Status Otomatis: {calculatedStatus === "GTY" ? "Guru Tetap Yayasan (GTY)" : "Guru Tidak Tetap (GTT)"}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                            Pilih Tendik yang Mengajukan <span className="text-blue-600">*</span>
+                          </Label>
+                          <Select onValueChange={handleSelectTendik}>
+                            <SelectTrigger className="h-12 rounded-xl bg-white border border-slate-200 focus:ring-blue-500 font-bold text-slate-700">
+                              <SelectValue placeholder="Pilih Tendik dari daftar madrasah..." />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl max-h-60">
+                              {tendikList.length === 0 ? (
+                                <SelectItem value="none" disabled>Tidak ada data Tendik aktif</SelectItem>
+                              ) : (
+                                tendikList.map((t) => (
+                                  <SelectItem key={t.id} value={String(t.id)}>
+                                    {t.nama} {t.nomor_induk_maarif ? `(NIM: ${t.nomor_induk_maarif})` : ''}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                              Nomor SK Tendik Lama (Dicabut) <span className="text-blue-600">*</span>
+                            </Label>
+                            <Input
+                              {...form.register("nomor_sk_lama")}
+                              placeholder="Cth: 447/PC.L/A.II/H-34.B/24.29/5/7/2025"
+                              className="h-12 rounded-xl bg-white border border-slate-200 focus:ring-blue-500 font-mono font-bold"
+                            />
+                            {form.formState.errors.nomor_sk_lama && (
+                              <p className="text-xs text-red-500 font-medium">{form.formState.errors.nomor_sk_lama.message}</p>
+                            )}
+                            <p className="text-[9px] text-slate-400">
+                              Nomor SK ini akan dicantumkan pada klausul pencabutan di surat keputusan baru.
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                              Gelar Baru
+                            </Label>
+                            <Input
+                              {...form.register("gelar_baru")}
+                              onChange={(e) => {
+                                const g = e.target.value
+                                form.setValue("gelar_baru", g)
+                                const currentNama = form.getValues("nama") || ""
+                                if (g && !currentNama.includes(g)) {
+                                  const base = currentNama.split(',')[0].trim()
+                                  form.setValue("nama", `${base}, ${g}`)
+                                }
+                              }}
+                              placeholder="Cth: S.Pd."
+                              className="h-12 rounded-xl bg-white border border-slate-200 focus:ring-blue-500 font-bold"
+                            />
+                            <p className="text-[9px] text-slate-400">
+                              Gelar akan otomatis ditambahkan ke kolom nama lengkap.
+                            </p>
+                          </div>
+                        </div>
+
+                        {calculatedStatus && (
+                          <div className="p-3 bg-white rounded-xl border border-blue-200 text-xs text-slate-700 space-y-1">
+                            <p className="font-bold text-blue-700">Penetapan Otomatis Berdasarkan TMT:</p>
+                            <p>
+                              TMT terdata: <span className="font-mono font-bold">{form.watch("tmt") || "-"}</span>. Karena masa kerja{' '}
+                              <span className="font-bold">{calculatedStatus === "GTY" ? "≥ 2 tahun" : "< 2 tahun"}</span>, SK ini otomatis diterbitkan sebagai{' '}
+                              <span className="font-bold text-blue-700">{calculatedStatus === "GTY" ? "Guru Tetap Yayasan (GTY)" : "Guru Tidak Tetap (GTT)"}</span>.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div className="space-y-3 md:col-span-2">
                         <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nama Lengkap & Gelar</Label>

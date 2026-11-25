@@ -43,6 +43,8 @@ export const getTemplateId = (data: any) => {
     const jabatan = (data.jabatan || "").toLowerCase()
     const nip = (data.nip || "").replace(/[^0-9]/g, "")
 
+    if (jenis.includes("perubahan")) return "sk_template_perubahan_status"
+    if (jenis.includes("pemberhentian")) return "sk_template_pemberhentian"
     if (jenis.includes("tetap yayasan") || jenis.includes("gty")) return "sk_template_gty"
     if (jenis.includes("tidak tetap") || jenis.includes("gtt")) return "sk_template_gtt"
     

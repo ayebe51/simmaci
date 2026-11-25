@@ -304,6 +304,7 @@ export default function SkDashboardPage() {
                             <SelectItem value="SK Guru Tetap Yayasan">SK GTY</SelectItem>
                             <SelectItem value="SK Guru Tidak Tetap">SK GTT</SelectItem>
                             <SelectItem value="SK Tenaga Kependidikan">SK Tendik</SelectItem>
+                            <SelectItem value="SK Perubahan Status">SK Perubahan Status</SelectItem>
                             <SelectItem value="SK Pemberhentian">SK Pemberhentian</SelectItem>
                         </SelectContent>
                     </Select>
@@ -379,7 +380,10 @@ export default function SkDashboardPage() {
                               {item.school?.nama || item.unit_kerja || "-"}
                           </TableCell>
                           <TableCell className="text-xs font-bold text-slate-800">
-                              {item.jenis_sk || (item.nuptk ? "Verifikasi Baru" : "-")}
+                              <div>{item.jenis_sk || (item.nuptk ? "Verifikasi Baru" : "-")}</div>
+                              {item.nomor_sk_lama && (
+                                <div className="text-[10px] text-purple-600 font-mono mt-0.5">Cabut: {item.nomor_sk_lama}</div>
+                              )}
                           </TableCell>
                           <TableCell>
                               <div className="flex items-center gap-2">

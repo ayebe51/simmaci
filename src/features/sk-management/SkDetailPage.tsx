@@ -135,7 +135,11 @@ export default function SkDetailPage() {
       const nip = (teacherData.nip || "").replace(/[^0-9]/g, "");
       
       let templateId = "sk_template_tendik";
-      if (jenis.includes("tetap yayasan") || jenis.includes("gty"))
+      if (jenis.includes("perubahan"))
+        templateId = "sk_template_perubahan_status";
+      else if (jenis.includes("pemberhentian"))
+        templateId = "sk_template_pemberhentian";
+      else if (jenis.includes("tetap yayasan") || jenis.includes("gty"))
         templateId = "sk_template_gty";
       else if (jenis.includes("tidak tetap") || jenis.includes("gtt"))
         templateId = "sk_template_gtt";
@@ -200,6 +204,10 @@ export default function SkDetailPage() {
         nomor_sk: skDoc.nomor_sk || "-",
         unit_kerja: skDoc.unit_kerja || "-",
         jabatan: skDoc.jabatan || "Guru",
+        NOMOR_SK_LAMA: skDoc.nomor_sk_lama || "-",
+        "NOMOR SK LAMA": skDoc.nomor_sk_lama || "-",
+        GELAR_BARU: skDoc.gelar_baru || "-",
+        STATUS_GURU: skDoc.jabatan || "Guru Tetap Yayasan",
         tanggal_sk: formatIndoDate(skDoc.tanggal_penetapan),
         qrcode: qrDataUrl,
       };

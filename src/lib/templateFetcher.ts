@@ -20,6 +20,8 @@ export const STATIC_SK_TEMPLATES: Record<string, string> = {
   sk_template_kamad_plt: '/templates/sk-plt kamad-template.docx',
   pemberhentian: '/templates/TEMPLATE SK PEMBERHENTIAN.docx',
   sk_template_pemberhentian: '/templates/TEMPLATE SK PEMBERHENTIAN.docx',
+  perubahan_status: '/templates/TEMPLATE SK PERUBAHAN STATUS.docx',
+  sk_template_perubahan_status: '/templates/TEMPLATE SK PERUBAHAN STATUS.docx',
 };
 
 /**

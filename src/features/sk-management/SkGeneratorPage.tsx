@@ -268,6 +268,7 @@ export default function SkGeneratorPage() {
   const skTemplateKamad = useSkTemplate('kamad')
   const skTemplateTendik = useSkTemplate('tendik')
   const skTemplatePemberhentian = useSkTemplate('pemberhentian')
+  const skTemplatePerubahanStatus = useSkTemplate('perubahan_status')
 
   const skTemplateByType: Record<string, ReturnType<typeof useSkTemplate>> = {
     sk_template_gty: skTemplateGty,
@@ -275,6 +276,7 @@ export default function SkGeneratorPage() {
     sk_template_kamad: skTemplateKamad,
     sk_template_tendik: skTemplateTendik,
     sk_template_pemberhentian: skTemplatePemberhentian,
+    sk_template_perubahan_status: skTemplatePerubahanStatus,
   }
 
   // 🔥 REST API QUERIES
@@ -421,6 +423,7 @@ export default function SkGeneratorPage() {
             'sk_template_kamad': 'Kepala_Madrasah',
             'sk_template_tendik': 'Tenaga_Kependidikan',
             'sk_template_pemberhentian': 'Pemberhentian',
+            'sk_template_perubahan_status': 'Perubahan_Status',
         }
 
         // Custom parser to handle spaces inside braces { NAMA } -> {NAMA}
@@ -504,12 +507,16 @@ export default function SkGeneratorPage() {
             const jenis = (t.jenis_sk || "").toLowerCase()
             const isKamad = jenis.includes("kamad") || jenis.includes("kepala")
             const isPemberhentianSk = jenis.includes("pemberhentian")
+            const isPerubahanStatusSk = jenis.includes("perubahan")
 
             let templateId: string
 
             if (isPemberhentianSk) {
                 // SK Pemberhentian selalu pakai template sendiri
                 templateId = "sk_template_pemberhentian"
+            } else if (isPerubahanStatusSk) {
+                // SK Perubahan Status selalu pakai template perubahan status
+                templateId = "sk_template_perubahan_status"
             } else {
                 // 1. Abaikan status dari excel karena operator sering salah input
                 // 2. Cek apakah memiliki gelar atau pendidikan S1+
@@ -758,6 +765,13 @@ export default function SkGeneratorPage() {
                 "qrcode": qrCodeData,
                 "image": qrCodeData,
                 "PERIODE": periodeStr,
+                // SK Perubahan Status placeholders
+                "NOMOR_SK_LAMA": t.nomor_sk_lama || t.sk_lama?.nomor_sk || "-",
+                "NOMOR SK LAMA": t.nomor_sk_lama || t.sk_lama?.nomor_sk || "-",
+                "GELAR_BARU": t.gelar_baru || "-",
+                "STATUS_GURU": (periodeValue >= 2) ? "Guru Tetap Yayasan" : "Guru Tidak Tetap",
+                "JABATAN_GURU": (periodeValue >= 2) ? "Guru Tetap Yayasan" : "Guru Tidak Tetap",
+                "JABATAN_UPPER": (periodeValue >= 2) ? "GURU TETAP YAYASAN" : "GURU TIDAK TETAP",
                 // SK Pemberhentian placeholders (safe to include for all templates — unused ones are ignored)
                 "ALASAN_PEMBERHENTIAN": formatAlasanPemberhentian(t.alasan_pemberhentian) || "-",
                 "KETERANGAN_PEMBERHENTIAN": t.keterangan_pemberhentian || "-",

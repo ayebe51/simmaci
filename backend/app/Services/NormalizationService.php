@@ -930,21 +930,25 @@ class NormalizationService
     }
 
     /**
-     * Map nama bulan Indonesia (panjang & singkat) ke nomor bulan.
+     * Single source of truth peta nama bulan (panjang, singkat, alias Indonesia & Inggris) ke nomor bulan 1-12.
+     * Digunakan bersama oleh NormalizationService dan StrictDateValidationService.
      */
-    private const BULAN_MAP = [
-        'januari' => 1,  'februari' => 2,  'maret' => 3,    'april' => 4,
-        'mei'     => 5,  'juni'     => 6,  'juli'  => 7,    'agustus'   => 8,
-        'september' => 9, 'oktober' => 10, 'november' => 11, 'desember' => 12,
-        // Ejaan lama / umum
-        'pebruari' => 2, 'nopember' => 11,
-        // Bahasa Inggris (berjaga-jaga)
-        'january' => 1, 'february' => 2, 'march' => 3, 'may' => 5,
-        'june' => 6, 'july' => 7, 'august' => 8, 'october' => 10, 'december' => 12,
-        // Singkat
-        'jan' => 1, 'feb' => 2, 'peb' => 2, 'mar' => 3, 'apr' => 4,
-        'jun' => 6, 'jul' => 7, 'agu' => 8, 'ags' => 8,
-        'sep' => 9, 'okt' => 10, 'nov' => 11, 'nop' => 11, 'des' => 12,
+    public const BULAN_MAP = [
+        // Nama bulan Indonesia baku (lengkap)
+        'januari'   => 1,  'februari' => 2,  'maret'    => 3,  'april'    => 4,
+        'mei'       => 5,  'juni'     => 6,  'juli'     => 7,  'agustus'  => 8,
+        'september' => 9,  'oktober'  => 10, 'november' => 11, 'desember' => 12,
+        // Ejaan lama / alias umum Indonesia
+        'pebruari'  => 2,  'nopember' => 11,
+        // Bahasa Inggris lengkap (output SheetJS dd mmmm yyyy / ekspor software tertentu)
+        'january'   => 1,  'february' => 2,  'march'    => 3,  'may'      => 5,
+        'june'      => 6,  'july'     => 7,  'august'   => 8,  'october'  => 10, 'december' => 12,
+        // Singkatan Indonesia & variasi umum
+        'jan'       => 1,  'feb'      => 2,  'peb'      => 2,  'mar'      => 3,  'apr'      => 4,
+        'jun'       => 6,  'jul'      => 7,  'agu'      => 8,  'ags'      => 8,  'agst'     => 8,
+        'sep'       => 9,  'okt'      => 10, 'nov'      => 11, 'nop'      => 11, 'des'      => 12,
+        // Singkatan Inggris 3 huruf (output SheetJS dd mmm yyyy)
+        'aug'       => 8,  'oct'      => 10, 'dec'      => 12,
     ];
 
     /**
@@ -970,9 +974,9 @@ class NormalizationService
         // Replace non-breaking spaces (\xC2\xA0) with standard spaces before trimming
         $trimmed = trim(str_replace("\xC2\xA0", ' ', $val));
 
-        // 1. Sudah ISO YYYY-MM-DD
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/u', $trimmed)) {
-            return $trimmed;
+        // 1. Sudah ISO YYYY-MM-DD (tetap verifikasi validitas kalender agar tanggal mustahil seperti 2023-02-29 ditolak)
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/u', $trimmed, $m)) {
+            return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $trimmed : null;
         }
 
         // 2. YYYY/MM/DD
@@ -980,8 +984,8 @@ class NormalizationService
             return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
         }
 
-        // 3 & 4. DD MMMM YYYY atau DD MMM YYYY (nama bulan Indonesia)
-        if (preg_match('/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/u', $trimmed, $m)) {
+        // 3 & 4. DD MMMM YYYY, DD MMM YYYY, atau DD-MMM-YYYY (nama bulan Indonesia/Inggris, spasi atau tanda hubung)
+        if (preg_match('/^(\d{1,2})[\s\-]+([a-zA-Z]+)[\s\-]+(\d{4})$/u', $trimmed, $m)) {
             $monthNum = self::BULAN_MAP[strtolower($m[2])] ?? null;
             if ($monthNum) {
                 return sprintf('%04d-%02d-%02d', $m[3], $monthNum, $m[1]);

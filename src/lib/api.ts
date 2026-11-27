@@ -421,7 +421,13 @@ export const skApi = {
   delete: (id: number) => apiClient.delete(`/sk-documents/${id}`).then((r) => r.data),
   bulkCreate: (documents: any[]) => apiClient.post('/sk-documents/bulk', { documents }).then((r) => r.data),
   submitRequest: (data: any) => apiClient.post('/sk-documents/submit-request', data).then((r) => r.data),
-  bulkRequest: (data: { documents: any[]; surat_permohonan_url: string }) =>
+  bulkRequest: (data: {
+    documents: any[];
+    surat_permohonan_url: string;
+    nomor_permohonan?: string;
+    tanggal_permohonan?: string;
+    meta?: Record<string, any>;
+  }) =>
     apiClient.post('/sk-documents/bulk-request', data, { timeout: 180000 }).then((r) => r.data),
   batchUpdateStatus: (ids: number[], status: string, rejectionReason?: string) =>
     apiClient.patch('/sk-documents/batch-status', { ids, status, rejection_reason: rejectionReason }).then((r) => r.data),

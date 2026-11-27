@@ -42,16 +42,20 @@ export function getCurrentSkYear(): number {
 }
 
 /**
- * Map nama bulan Indonesia (panjang & singkat) ke nomor bulan 1-indexed.
+ * Map nama bulan Indonesia & Inggris (panjang, singkat, alias) ke nomor bulan 1-indexed.
+ * Selaras dengan NormalizationService::BULAN_MAP di backend (termasuk output SheetJS).
  * Kunci dalam huruf kecil semua.
  */
 const BULAN_MAP: Record<string, number> = {
-  // Panjang
+  // Indonesia panjang & alias ejaan
   januari: 1, februari: 2, pebruari: 2, maret: 3, april: 4, mei: 5, juni: 6,
   juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, nopember: 11, desember: 12,
-  // Singkat (3 huruf)
-  jan: 1, feb: 2, peb: 2, mar: 3, apr: 4, // mei sudah ada di atas
-  jun: 6, jul: 7, agu: 8, ags: 8, sep: 9, okt: 10, nov: 11, nop: 11, des: 12,
+  // Indonesia singkat & variasi umum
+  jan: 1, feb: 2, peb: 2, mar: 3, apr: 4,
+  jun: 6, jul: 7, agu: 8, ags: 8, agst: 8, sep: 9, okt: 10, nov: 11, nop: 11, des: 12,
+  // Bahasa Inggris panjang & singkat (output SheetJS untuk Excel Date Cell)
+  january: 1, february: 2, march: 3, may: 5, june: 6, july: 7,
+  august: 8, aug: 8, october: 10, oct: 10, december: 12, dec: 12,
 }
 
 /** Buat string ISO "YYYY-MM-DD" dari komponen angka. */
@@ -88,8 +92,8 @@ export function parseIndonesianDate(val: string): string {
   const isoSlash = trimmed.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
   if (isoSlash) return toIso(isoSlash[1], isoSlash[2], isoSlash[3])
 
-  // 3 & 4. DD MMMM YYYY atau DD MMM YYYY (nama bulan Indonesia)
-  const textMonth = trimmed.match(/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})$/)
+  // 3 & 4. DD MMMM YYYY, DD MMM YYYY, atau DD-MMM-YYYY (nama bulan Indonesia/Inggris, spasi atau tanda hubung)
+  const textMonth = trimmed.match(/^(\d{1,2})[\s-]+([a-zA-Z]+)[\s-]+(\d{4})$/)
   if (textMonth) {
     const monthNum = BULAN_MAP[textMonth[2].toLowerCase()]
     if (monthNum) return toIso(textMonth[3], monthNum, textMonth[1])

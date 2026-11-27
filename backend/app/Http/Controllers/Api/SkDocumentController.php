@@ -1210,14 +1210,26 @@ class SkDocumentController extends Controller
         }
         
         $request->validate([
-            'documents'            => 'required|array',
-            'surat_permohonan_url' => 'required|string',
+            'documents'                      => 'required|array',
+            'surat_permohonan_url'           => 'required|string',
+            'nomor_permohonan'               => 'nullable|string|max:255',
+            'tanggal_permohonan'             => 'nullable|date_format:Y-m-d',
+            'documents.*.tanggal_permohonan' => 'nullable|date_format:Y-m-d',
+        ], [
+            'tanggal_permohonan.date_format'             => 'Format Tanggal Surat Permohonan pada formulir tidak valid. Gunakan pemilih tanggal (format YYYY-MM-DD).',
+            'documents.*.tanggal_permohonan.date_format' => 'Format Tanggal Surat Permohonan pada formulir tidak valid. Gunakan pemilih tanggal (format YYYY-MM-DD).',
         ]);
 
-        $dateErrors = $this->strictDateValidationService->validateRows($request->documents);
+        // Validasi ketat tanggal khusus untuk kolom data guru yang berasal dari Excel.
+        // Field metadata formulir 'tanggal_permohonan' sudah divalidasi terpisah di atas (date_format:Y-m-d).
+        $dateErrors = $this->strictDateValidationService->validateRows(
+            rows: $request->documents,
+            excludedKeys: ['tanggal_permohonan']
+        );
         if (!empty($dateErrors)) {
             return response()->json([
                 'success'     => false,
+                'source'      => 'excel',
                 'message'     => $this->strictDateValidationService->formatErrorMessage($dateErrors),
                 'errors'      => $dateErrors,
                 'date_errors' => $dateErrors,
@@ -1232,14 +1244,16 @@ class SkDocumentController extends Controller
             return $this->processBulkRequestSync($request);
         }
 
-        // For large batches (> 10 rows), dispatch to queue for background processing
+        // For large batches (> 3 rows), dispatch to queue for background processing
         \App\Jobs\ProcessBulkSkSubmission::dispatch(
             documents: $request->documents,
             suratPermohonanUrl: $request->surat_permohonan_url,
             userId: $request->user()->id,
             userEmail: $request->user()->email,
             userSchoolId: $request->user()->school_id,
-            userRole: $request->user()->role
+            userRole: $request->user()->role,
+            nomorPermohonan: $request->input('nomor_permohonan'),
+            tanggalPermohonan: $request->input('tanggal_permohonan')
         );
 
         return response()->json([
@@ -1652,8 +1666,8 @@ class SkDocumentController extends Controller
                     'unit_kerja'           => $doc['unit_kerja'] ?? null,
                     'school_id'            => $schoolId,
                     'surat_permohonan_url' => $request->surat_permohonan_url,
-                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
-                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
+                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? $request->input('nomor_permohonan') ?? null,
+                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? $request->input('tanggal_permohonan') ?? null,
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
@@ -1690,8 +1704,8 @@ class SkDocumentController extends Controller
                     'unit_kerja'           => $doc['unit_kerja'] ?? null,
                     'school_id'            => $schoolId,
                     'surat_permohonan_url' => $request->surat_permohonan_url,
-                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
-                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
+                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? $request->input('nomor_permohonan') ?? null,
+                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? $request->input('tanggal_permohonan') ?? null,
                     'status'               => 'pending',
                     'created_by'           => $request->user()->email,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),

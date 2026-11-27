@@ -51,6 +51,7 @@ export function BulkSkSubmission() {
   const [successCount, setSuccessCount] = useState(0)
   const [rejectedList, setRejectedList] = useState<{ nama: string; alasan: string }[]>([])
   const [dateValidationErrors, setDateValidationErrors] = useState<DateValidationErrorItem[] | null>(null)
+  const [dateValidationSource, setDateValidationSource] = useState<"excel" | "form">("excel")
 
   // Mapping Configuration
     const HEADER_MAP: Record<string, string[]> = {
@@ -249,7 +250,13 @@ export function BulkSkSubmission() {
   }
 
   const importMutation = useMutation({
-    mutationFn: (data: { documents: any[], surat_permohonan_url: string, meta?: any }) => skApi.bulkRequest(data),
+    mutationFn: (data: {
+      documents: any[]
+      surat_permohonan_url: string
+      nomor_permohonan?: string
+      tanggal_permohonan?: string
+      meta?: any
+    }) => skApi.bulkRequest(data),
     onSuccess: (res) => {
       // Handle both immediate success and queued responses
       if (res.queued) {
@@ -286,6 +293,10 @@ export function BulkSkSubmission() {
       toast.error("Wajib mengunggah Surat Permohonan resmi (PDF).")
       return
     }
+    if (tanggalPermohonanUi && !/^\d{4}-\d{2}-\d{2}$/.test(tanggalPermohonanUi)) {
+      toast.error("Kesalahan pada formulir pengajuan: Tanggal Surat Permohonan tidak valid.")
+      return
+    }
 
     setIsProcessing(true)
     try {
@@ -315,18 +326,20 @@ export function BulkSkSubmission() {
       }
 
       // Step 2: Submit bulk SK request
+      // Pisahkan metadata surat permohonan (form UI) ke root payload agar tidak tercampur
+      // dengan data guru dari Excel yang divalidasi oleh StrictDateValidationService.
       toast.loading(`Memproses ${candidates.length} data...`, { id: 'bulk-upload' })
       const documents = candidates.map(c => ({
         ...c,
         status_kepegawaian: c.status || 'GTY',
-        nomor_permohonan:   nomorPermohonanUi || undefined,
-        tanggal_permohonan: tanggalPermohonanUi || undefined
       }))
 
       try {
         await importMutation.mutateAsync({ 
           documents, 
           surat_permohonan_url: permohonanUrl,
+          nomor_permohonan: nomorPermohonanUi || undefined,
+          tanggal_permohonan: tanggalPermohonanUi || undefined,
           meta: { detected_headers: detectedHeaders }
         })
         toast.dismiss('bulk-upload')
@@ -347,13 +360,22 @@ export function BulkSkSubmission() {
             { duration: 8000 }
           )
         } else {
-          const dErrors = submitErr.response?.data?.date_errors || (Array.isArray(submitErr.response?.data?.errors) ? submitErr.response?.data?.errors : null)
+          const respData = submitErr.response?.data
+          const dErrors = respData?.date_errors || (Array.isArray(respData?.errors) ? respData?.errors : null)
           if (Array.isArray(dErrors) && dErrors.length > 0 && dErrors[0].column) {
+            setDateValidationSource(respData?.source === "form" ? "form" : "excel")
             setDateValidationErrors(dErrors)
+          } else if (respData?.errors && typeof respData.errors === "object" && !Array.isArray(respData.errors)) {
+            const fieldMessages = Object.values(respData.errors).flat().join(" ")
+            toast.error(
+              "Kesalahan pada formulir pengajuan: " +
+              (fieldMessages || respData?.message || submitErr.message),
+              { duration: 8000 }
+            )
           } else {
             toast.error(
               "Gagal mengirim pengajuan: " +
-              (submitErr.response?.data?.message || submitErr.message)
+              (respData?.message || submitErr.message)
             )
           }
         }
@@ -524,6 +546,7 @@ export function BulkSkSubmission() {
         isOpen={!!dateValidationErrors}
         onClose={() => setDateValidationErrors(null)}
         errors={dateValidationErrors || []}
+        source={dateValidationSource}
       />
     </Card>
   )

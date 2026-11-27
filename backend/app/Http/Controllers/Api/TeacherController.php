@@ -1821,6 +1821,14 @@ class TeacherController extends Controller
                          }
                     }
                     $potentialMatches = $nameMatchQuery->get()->toArray();
+                    // Jangan mencocokkan dua guru berbeda bernama sama bila tanggal_lahir keduanya ada dan berbeda
+                    if (!empty($parsedData['tanggal_lahir'])) {
+                        $incomingDob = $parsedData['tanggal_lahir'];
+                        $potentialMatches = array_values(array_filter(
+                            $potentialMatches,
+                            fn(array $candidate) => empty($candidate['tanggal_lahir']) || $candidate['tanggal_lahir'] === $incomingDob
+                        ));
+                    }
                     $matchResult = $this->matchingService->determineStatusByName($potentialMatches, $parsedData);
                 }
                 
@@ -1846,6 +1854,12 @@ class TeacherController extends Controller
                     $dbUnit = $dbMatches[0]['unit_kerja'];
                 }
 
+                $signature = $this->strictDateValidationService->signNormalizedDates(
+                    $parsedData,
+                    $request->user()?->id,
+                    $request->user()?->school_id
+                );
+
                 $previews[] = [
                     'id' => $indexCounter++,
                     'nim' => $nim,
@@ -1857,8 +1871,20 @@ class TeacherController extends Controller
                     'action' => $matchResult['action'],
                     'message' => $matchResult['message'],
                     'target_id' => $matchResult['target_id'],
-                    'payload' => $parsedData
+                    'payload' => $parsedData,
+                    'preview_date_signature' => $signature,
                 ];
+            } catch (\RuntimeException $e) {
+                // F-03: Fail-closed jika signing key tidak terkonfigurasi (jangan ditelan)
+                \Illuminate\Support\Facades\Log::error('TeacherController::importPreview signing error', [
+                    'user_id'   => $request->user()?->id,
+                    'school_id' => $request->user()?->school_id,
+                    'message'   => $e->getMessage(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Konfigurasi keamanan import belum lengkap. Hubungi administrator.',
+                ], 500);
             } catch (\Exception $e) {
                 // Log and continue
                 continue;
@@ -1877,11 +1903,19 @@ class TeacherController extends Controller
     {
         $request->validate(['teachers' => 'required|array']);
 
-        $rowsToValidate = [];
-        foreach ($request->teachers as $row) {
-            $rowsToValidate[] = $row['payload'] ?? $row;
-        }
-        $dateErrors = $this->strictDateValidationService->validateRows($rowsToValidate);
+        $user = $request->user();
+        $isOperator = $user?->isOperator();
+        $operatorSchoolId = (int) $user?->school_id;
+
+        // Validasi ulang ketat di tahap commit:
+        // - Payload ber-tanda-tangan preview yang utuh diverifikasi HMAC + validasi kalender ISO YYYY-MM-DD.
+        // - Payload yang dimanipulasi pasca-preview atau tanpa provenance preview wajib melewati strict validation penuh.
+        $commitValidation = $this->strictDateValidationService->validateCommitRows(
+            $request->teachers,
+            $user?->id,
+            $user?->school_id
+        );
+        $dateErrors = $commitValidation['errors'];
         if (!empty($dateErrors)) {
             return response()->json([
                 'success'     => false,
@@ -1891,67 +1925,652 @@ class TeacherController extends Controller
             ], 422);
         }
 
-        $user = $request->user();
-        $isOperator = $user?->isOperator();
-        $operatorSchoolId = (int) $user?->school_id;
-        
-        $created = 0;
-        $updated = 0;
-        $takeovers = 0;
+        $normalizedByIndex = $commitValidation['normalized_by_index'];
 
-        \DB::beginTransaction();
+        // F-02 / VA-01 / VA-02: Tentukan scope school_id + identitas global (NIM & NUPTK) secara deterministik & terurut (mencegah deadlock)
+        $lockTargets = $this->resolveCommitLockTargets($request->teachers, (bool) $isOperator, $operatorSchoolId);
+
         try {
-            foreach ($request->teachers as $row) {
-                $payload = $row['payload'] ?? [];
-                $action = $row['action'] ?? 'INSERT';
-                $targetId = $row['target_id'] ?? null;
+            return $this->withCommitLocks($lockTargets, function () use (
+                $request,
+                $isOperator,
+                $operatorSchoolId,
+                $normalizedByIndex,
+                $lockTargets
+            ): JsonResponse {
+                $created = 0;
+                $updated = 0;
 
-                if ($isOperator) {
-                    // Operator must only insert for their own school
-                    $payload['school_id'] = $operatorSchoolId;
-                    // Never allow operator to self-verify or mark SK generated
-                    unset($payload['is_verified'], $payload['is_sk_generated'], $payload['deleted_at']);
+                if (\DB::getDriverName() === 'sqlite' && config('database.connections.sqlite.database') !== ':memory:') {
+                    \DB::statement('PRAGMA busy_timeout = 10000');
                 }
 
-                if ($action === 'INSERT' || ($action === 'MANUAL' && !$targetId)) {
-                    Teacher::create($payload);
-                    $created++;
-                } 
-                elseif ($action === 'UPDATE' || ($action === 'MANUAL' && $targetId)) {
-                    $teacher = Teacher::withoutTenantScope()->find($targetId);
-                    if ($teacher) {
-                        // Tenant check: operator can only update teachers belonging to their school
-                        if ($isOperator && (int) $teacher->school_id !== $operatorSchoolId) {
-                            \DB::rollBack();
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'Akses ditolak: Anda tidak memiliki wewenang memperbarui data guru madrasah lain.'
-                            ], 403);
+                \DB::beginTransaction();
+                try {
+                    // F-02 / VA-02: PostgreSQL transaction-scoped advisory lock (otomatis dilepas saat COMMIT/ROLLBACK)
+                    // Urutan akuisisi kanonik global: Tier 1 school_id -> Tier 2 NIM -> Tier 3 NUPTK (bebas deadlock).
+                    if (\DB::getDriverName() === 'pgsql') {
+                        $pgLockTimeoutSec = max(1, (int) config('app.import_commit_lock_block_seconds', 15));
+                        \DB::statement("SET LOCAL lock_timeout = '{$pgLockTimeoutSec}s'");
+
+                        foreach ($lockTargets['school_ids'] as $sid) {
+                            $advisoryKey = 7100000000 + (int) $sid;
+                            \DB::statement('SELECT pg_advisory_xact_lock(?)', [$advisoryKey]);
+                        }
+                        foreach ($lockTargets['nims'] as $nimKey) {
+                            \DB::statement("SELECT pg_advisory_xact_lock(7101, hashtext('teacher_nim:' || CAST(? AS text)))", [$nimKey]);
+                        }
+                        foreach ($lockTargets['nuptks'] as $nuptkKey) {
+                            \DB::statement("SELECT pg_advisory_xact_lock(7102, hashtext('teacher_nuptk:' || CAST(? AS text)))", [$nuptkKey]);
+                        }
+                    }
+
+                    foreach ($request->teachers as $idx => $row) {
+                        $payload = $row['payload'] ?? [];
+                        $action = $row['action'] ?? 'INSERT';
+                        $targetId = $row['target_id'] ?? null;
+
+                        // Pastikan tanggal yang telah lolos re-validasi tersimpan dalam format internal standar YYYY-MM-DD
+                        if (!empty($normalizedByIndex[$idx])) {
+                            foreach ($normalizedByIndex[$idx] as $dateKey => $isoDate) {
+                                $payload[$dateKey] = $isoDate;
+                            }
                         }
 
-                        // User instruction: For safe update, KEEP database name.
-                        // So we remove 'nama' from payload so it doesn't overwrite.
-                        if (isset($payload['nama'])) {
-                            unset($payload['nama']);
-                        }
                         if ($isOperator) {
-                            unset($payload['school_id']); // Cannot transfer school via import
+                            // Operator must only insert for their own school
+                            $payload['school_id'] = $operatorSchoolId;
+                            // Never allow operator to self-verify or mark SK generated
+                            unset($payload['is_verified'], $payload['is_sk_generated'], $payload['deleted_at']);
                         }
-                        $teacher->update($payload);
-                        $updated++;
+
+                        if ($action === 'INSERT' || ($action === 'MANUAL' && !$targetId)) {
+                            // F-01: Resolusi identitas guru yang ketat (NIM utama, tanpa fallback nama saja, tolak konflik/ambigu)
+                            $resolution = $this->resolveExistingTeacherForCommit($payload, (bool) $isOperator, $operatorSchoolId);
+
+                            if ($resolution['status'] === 'forbidden') {
+                                \DB::rollBack();
+                                return response()->json([
+                                    'success' => false,
+                                    'message' => $resolution['message'],
+                                ], 403);
+                            }
+
+                            if ($resolution['status'] === 'conflict') {
+                                \DB::rollBack();
+                                return response()->json([
+                                    'success' => false,
+                                    'message' => $resolution['message'],
+                                ], 422);
+                            }
+
+                            if ($resolution['status'] === 'found' && $resolution['teacher'] instanceof Teacher) {
+                                $existingTeacher = $resolution['teacher'];
+                                $updatePayload = $payload;
+                                if ($isOperator) {
+                                    unset($updatePayload['school_id']);
+                                }
+                                // Jangan pernah menimpa NIM eksisting yang sudah terisi dengan NIM berbeda atau kosong
+                                if (!empty($existingTeacher->nomor_induk_maarif)) {
+                                    unset($updatePayload['nomor_induk_maarif']);
+                                }
+                                $existingTeacher->update($updatePayload);
+                                $updated++;
+                            } else {
+                                Teacher::create($payload);
+                                $created++;
+                            }
+                        } 
+                        elseif ($action === 'UPDATE' || ($action === 'MANUAL' && $targetId)) {
+                            $teacher = Teacher::withoutTenantScope()->find($targetId);
+                            if ($teacher) {
+                                // Tenant check: operator can only update teachers belonging to their school
+                                if ($isOperator && (int) $teacher->school_id !== $operatorSchoolId) {
+                                    \DB::rollBack();
+                                    return response()->json([
+                                        'success' => false,
+                                        'message' => 'Akses ditolak: Anda tidak memiliki wewenang memperbarui data guru madrasah lain.'
+                                    ], 403);
+                                }
+
+                                // F-01: Cegah penggantian NIM eksisting dengan NIM berbeda saat UPDATE
+                                $incomingNim = isset($payload['nomor_induk_maarif']) ? trim((string) $payload['nomor_induk_maarif']) : '';
+                                if ($incomingNim !== '' && !empty($teacher->nomor_induk_maarif) && $teacher->nomor_induk_maarif !== $incomingNim) {
+                                    \DB::rollBack();
+                                    return response()->json([
+                                        'success' => false,
+                                        'message' => "Konflik identitas: NIM guru eksisting ({$teacher->nomor_induk_maarif}) tidak boleh ditimpa menjadi {$incomingNim}."
+                                    ], 422);
+                                }
+
+                                // VA-01: Cegah klaim NIM atau NUPTK milik guru/madrasah lain saat UPDATE
+                                if ($incomingNim !== '' && $incomingNim !== (string) $teacher->nomor_induk_maarif) {
+                                    if ($this->existsOtherTeacherWithIdentifier('nomor_induk_maarif', $incomingNim, (int) $teacher->id)) {
+                                        \DB::rollBack();
+                                        return response()->json([
+                                            'success' => false,
+                                            'message' => "Konflik identitas: NIM {$incomingNim} sudah terdaftar pada madrasah/guru lain dan tidak dapat ditimpa."
+                                        ], 422);
+                                    }
+                                }
+
+                                $incomingNuptk = isset($payload['nuptk']) ? trim((string) $payload['nuptk']) : '';
+                                if ($incomingNuptk !== '' && $incomingNuptk !== (string) $teacher->nuptk) {
+                                    if ($this->existsOtherTeacherWithIdentifier('nuptk', $incomingNuptk, (int) $teacher->id)) {
+                                        \DB::rollBack();
+                                        return response()->json([
+                                            'success' => false,
+                                            'message' => "Konflik identitas: NUPTK {$incomingNuptk} sudah terdaftar pada madrasah/guru lain."
+                                        ], 422);
+                                    }
+                                }
+
+                                // User instruction: For safe update, KEEP database name.
+                                // So we remove 'nama' from payload so it doesn't overwrite.
+                                if (isset($payload['nama'])) {
+                                    unset($payload['nama']);
+                                }
+                                if ($isOperator) {
+                                    unset($payload['school_id']); // Cannot transfer school via import
+                                }
+                                $teacher->update($payload);
+                                $updated++;
+                            }
+                        }
                     }
+                    \DB::commit();
+                    
+                    return response()->json([
+                        'success' => true,
+                        'summary' => "Berhasil: $created Ditambahkan, $updated Diperbarui."
+                    ]);
+                } catch (\Throwable $e) {
+                    if (\DB::transactionLevel() > 0) {
+                        \DB::rollBack();
+                    }
+
+                    // VA-03 / VA-02: Tangani timeout lock (Cache::lock atau PostgreSQL SQLSTATE 55P03) -> HTTP 409
+                    if ($this->isLockTimeoutException($e)) {
+                        \Illuminate\Support\Facades\Log::warning('TeacherController::importCommit lock timeout inside transaction', [
+                            'user_id'   => $request->user()?->id,
+                            'school_id' => $request->user()?->school_id,
+                            'exception' => get_class($e),
+                            'message'   => $e->getMessage(),
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Sistem sedang memproses data untuk madrasah terkait. Silakan coba beberapa saat lagi.',
+                            'code'    => 'LOCK_TIMEOUT',
+                        ], 409);
+                    }
+
+                    // VA-01: Tangani UniqueConstraintViolationException (SQLSTATE 23505) secara bersih -> HTTP 422
+                    if ($this->isUniqueConstraintViolation($e)) {
+                        \Illuminate\Support\Facades\Log::warning('TeacherController::importCommit unique constraint conflict', [
+                            'user_id'   => $request->user()?->id,
+                            'school_id' => $request->user()?->school_id,
+                            'exception' => get_class($e),
+                            'message'   => $e->getMessage(),
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Konflik identitas: NIM atau NUPTK sudah terdaftar pada madrasah lain dan tidak dapat diduplikasi.',
+                        ], 422);
+                    }
+
+                    \Illuminate\Support\Facades\Log::error('TeacherController::importCommit failed', [
+                        'user_id'   => $request->user()?->id,
+                        'school_id' => $request->user()?->school_id,
+                        'exception' => get_class($e),
+                        'message'   => $e->getMessage(),
+                        'file'      => $e->getFile(),
+                        'line'      => $e->getLine(),
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Terjadi kesalahan saat menyimpan data guru. Seluruh perubahan telah dibatalkan. Silakan coba lagi atau hubungi administrator.',
+                    ], 500);
+                } finally {
+                    $this->disconnectGlobalIdentityLookupConnection();
+                }
+            });
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+            \Illuminate\Support\Facades\Log::warning('TeacherController::importCommit cache lock timeout', [
+                'user_id'   => $request->user()?->id,
+                'school_id' => $request->user()?->school_id,
+                'schools'   => $lockTargets['school_ids'],
+                'message'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Sistem sedang memproses data untuk madrasah terkait. Silakan coba beberapa saat lagi.',
+                'code'    => 'LOCK_TIMEOUT',
+            ], 409);
+        }
+    }
+
+    /**
+     * Kumpulkan daftar school_id serta identitas global (NIM & NUPTK) secara unik dan terurut kanonik (F-02 / VA-01 / VA-02).
+     * Untuk non-operator pada aksi UPDATE/MANUAL tanpa payload.school_id, resolve school_id riil dari record guru target.
+     *
+     * @return array{school_ids: array<int, int>, nims: array<int, string>, nuptks: array<int, string>}
+     */
+    private function resolveCommitLockTargets(array $rows, bool $isOperator, int $operatorSchoolId): array
+    {
+        $schoolIds = [];
+        $nims = [];
+        $nuptks = [];
+
+        if ($isOperator) {
+            $schoolIds[$operatorSchoolId] = $operatorSchoolId;
+        } else {
+            // Kumpulkan target_id yang tidak memiliki payload.school_id agar dapat di-resolve dalam 1 query batch
+            $targetIdsToResolve = [];
+            foreach ($rows as $row) {
+                $payload = is_array($row['payload'] ?? null) ? $row['payload'] : [];
+                $hasPayloadSchool = isset($payload['school_id']) && is_numeric($payload['school_id']);
+                $targetId = $row['target_id'] ?? null;
+                if (!$hasPayloadSchool && is_numeric($targetId)) {
+                    $targetIdsToResolve[(int) $targetId] = (int) $targetId;
                 }
             }
-            \DB::commit();
-            
-            return response()->json([
-                'success' => true,
-                'summary' => "Berhasil: $created Ditambahkan, $updated Diperbarui."
-            ]);
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+
+            $targetSchoolMap = [];
+            if (!empty($targetIdsToResolve)) {
+                $targetSchoolMap = Teacher::withoutTenantScope()
+                    ->whereIn('id', array_values($targetIdsToResolve))
+                    ->pluck('school_id', 'id')
+                    ->all();
+            }
+
+            foreach ($rows as $row) {
+                $payload = is_array($row['payload'] ?? null) ? $row['payload'] : [];
+                $targetId = $row['target_id'] ?? null;
+
+                if (isset($payload['school_id']) && is_numeric($payload['school_id'])) {
+                    $sid = (int) $payload['school_id'];
+                } elseif (is_numeric($targetId) && array_key_exists((int) $targetId, $targetSchoolMap) && $targetSchoolMap[(int) $targetId] !== null) {
+                    $sid = (int) $targetSchoolMap[(int) $targetId];
+                } else {
+                    $sid = 0;
+                }
+                $schoolIds[$sid] = $sid;
+            }
+
+            if (empty($schoolIds)) {
+                $schoolIds[0] = 0;
+            }
         }
+
+        foreach ($rows as $row) {
+            $payload = is_array($row['payload'] ?? null) ? $row['payload'] : [];
+            $nim = isset($payload['nomor_induk_maarif']) ? trim((string) $payload['nomor_induk_maarif']) : '';
+            if ($nim !== '') {
+                $nims[$nim] = $nim;
+            }
+            $nuptk = isset($payload['nuptk']) ? trim((string) $payload['nuptk']) : '';
+            if ($nuptk !== '') {
+                $nuptks[$nuptk] = $nuptk;
+            }
+        }
+
+        $sortedSchools = array_values($schoolIds);
+        sort($sortedSchools, SORT_NUMERIC);
+
+        $sortedNims = array_values($nims);
+        sort($sortedNims, SORT_STRING);
+
+        $sortedNuptks = array_values($nuptks);
+        sort($sortedNuptks, SORT_STRING);
+
+        return [
+            'school_ids' => $sortedSchools,
+            'nims'       => $sortedNims,
+            'nuptks'     => $sortedNuptks,
+        ];
+    }
+
+    /**
+     * Backward-compatible wrapper untuk resolusi daftar school_id lock.
+     *
+     * @return array<int, int>
+     */
+    private function resolveCommitLockSchoolIds(array $rows, bool $isOperator, int $operatorSchoolId): array
+    {
+        return $this->resolveCommitLockTargets($rows, $isOperator, $operatorSchoolId)['school_ids'];
+    }
+
+    /**
+     * Eksekusi callback commit di bawah proteksi lock berurutan kanonik (school_id -> NIM -> NUPTK)
+     * dengan TTL >= PHP-FPM request_terminate_timeout (default 90s) dan pelepasan terjamin di finally (F-02 / VA-03).
+     *
+     * @param array{school_ids: array<int, int>, nims: array<int, string>, nuptks: array<int, string>} $lockTargets
+     */
+    private function withCommitLocks(array $lockTargets, callable $callback): mixed
+    {
+        $storeName = config('cache.default');
+        // Pada file-backed SQLite dengan CACHE_STORE=array, gunakan file lock agar sinkron lintas proses
+        if ($storeName === 'array' && \DB::getDriverName() === 'sqlite' && config('database.connections.sqlite.database') !== ':memory:') {
+            $storeName = 'file';
+        }
+
+        $cacheRepo = \Illuminate\Support\Facades\Cache::store($storeName);
+        $ttlSeconds = max(60, (int) config('app.import_commit_lock_ttl_seconds', 90));
+        $blockSeconds = max(1, (int) config('app.import_commit_lock_block_seconds', 15));
+
+        $lockKeys = [];
+        foreach ($lockTargets['school_ids'] ?? [] as $sid) {
+            $lockKeys[] = "teacher_import_commit:school:{$sid}";
+        }
+        foreach ($lockTargets['nims'] ?? [] as $nim) {
+            $lockKeys[] = "teacher_import_commit:nim:{$nim}";
+        }
+        foreach ($lockTargets['nuptks'] ?? [] as $nuptk) {
+            $lockKeys[] = "teacher_import_commit:nuptk:{$nuptk}";
+        }
+
+        $acquiredLocks = [];
+
+        try {
+            foreach ($lockKeys as $lockKey) {
+                $lock = $cacheRepo->lock($lockKey, $ttlSeconds);
+                $lock->block($blockSeconds);
+                $acquiredLocks[] = $lock;
+            }
+
+            return $callback();
+        } finally {
+            foreach (array_reverse($acquiredLocks) as $lock) {
+                try {
+                    $lock->release();
+                } catch (\Throwable) {
+                    // Best-effort release
+                }
+            }
+        }
+    }
+
+    /**
+     * Deteksi apakah exception merupakan pelanggaran unique constraint DB (PostgreSQL SQLSTATE 23505 / Laravel UniqueConstraintViolationException).
+     */
+    private function isUniqueConstraintViolation(\Throwable $e): bool
+    {
+        if ($e instanceof \Illuminate\Database\UniqueConstraintViolationException) {
+            return true;
+        }
+
+        $current = $e;
+        while ($current !== null) {
+            $code = (string) $current->getCode();
+            if ($code === '23505') {
+                return true;
+            }
+            if ($current instanceof \PDOException && is_array($current->errorInfo ?? null) && ($current->errorInfo[0] ?? null) === '23505') {
+                return true;
+            }
+            if ($current instanceof \Illuminate\Database\QueryException && is_array($current->errorInfo ?? null) && ($current->errorInfo[0] ?? null) === '23505') {
+                return true;
+            }
+            $current = $current->getPrevious();
+        }
+
+        return false;
+    }
+
+    /**
+     * Deteksi apakah exception merupakan kegagalan memperoleh lock (Cache LockTimeoutException atau PostgreSQL SQLSTATE 55P03).
+     */
+    private function isLockTimeoutException(\Throwable $e): bool
+    {
+        $current = $e;
+        while ($current !== null) {
+            if ($current instanceof \Illuminate\Contracts\Cache\LockTimeoutException) {
+                return true;
+            }
+            $code = (string) $current->getCode();
+            if ($code === '55P03') {
+                return true;
+            }
+            if (($current instanceof \PDOException || $current instanceof \Illuminate\Database\QueryException)
+                && is_array($current->errorInfo ?? null)
+                && ($current->errorInfo[0] ?? null) === '55P03'
+            ) {
+                return true;
+            }
+            $current = $current->getPrevious();
+        }
+
+        return false;
+    }
+
+    /**
+     * Cek keberadaan NIM atau NUPTK aktif pada guru lain (termasuk lintas madrasah) secara aman meskipun
+     * koneksi PostgreSQL utama menggunakan role non-superuser dengan RLS aktif (VA-01).
+     * Hanya mengembalikan boolean (tidak pernah mengekspos data/PII madrasah lain).
+     */
+    private function existsOtherTeacherWithIdentifier(string $column, string $value, ?int $excludeTeacherId = null): bool
+    {
+        if (!in_array($column, ['nomor_induk_maarif', 'nuptk'], true)) {
+            return false;
+        }
+
+        // 1. Cek pada koneksi transaksional utama (menangkap baris uncommitted dalam batch yang sama)
+        $mainQuery = Teacher::withoutTenantScope()->where($column, $value);
+        if ($excludeTeacherId !== null) {
+            $mainQuery->where('id', '!=', $excludeTeacherId);
+        }
+        if ($mainQuery->exists()) {
+            return true;
+        }
+
+        // 2. Pada PostgreSQL dengan role non-superuser, sesi utama sudah mengeksekusi SET app.current_school_id
+        //    sehingga RLS menyembunyikan baris madrasah lain. Gunakan koneksi read-only bersih (tanpa SET app.current_school_id,
+        //    sehingga current_setting('app.current_school_id', true) IS NULL) khusus untuk pengecekan eksistensi boolean.
+        if (\DB::getDriverName() === 'pgsql') {
+            $lookupConn = $this->getGlobalIdentityLookupConnection();
+            $lookupQuery = $lookupConn->table('teachers')
+                ->where($column, $value)
+                ->whereNull('deleted_at');
+            if ($excludeTeacherId !== null) {
+                $lookupQuery->where('id', '!=', $excludeTeacherId);
+            }
+            return $lookupQuery->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Dapatkan koneksi PostgreSQL bersih tanpa session variable app.current_school_id
+     * khusus untuk pengecekan eksistensi konflik identitas global (read-only boolean).
+     */
+    private function getGlobalIdentityLookupConnection(): \Illuminate\Database\ConnectionInterface
+    {
+        $connName = 'pgsql_global_identity_lookup';
+        if (!config()->has("database.connections.{$connName}")) {
+            $baseConfig = config('database.connections.pgsql');
+            $baseConfig['options'] = array_merge($baseConfig['options'] ?? [], [
+                \PDO::ATTR_PERSISTENT => false,
+            ]);
+            config(["database.connections.{$connName}" => $baseConfig]);
+        }
+
+        return \DB::connection($connName);
+    }
+
+    /**
+     * Tutup koneksi lookup identitas global bila sempat dibuka agar tidak menyisakan koneksi idle.
+     */
+    private function disconnectGlobalIdentityLookupConnection(): void
+    {
+        $connName = 'pgsql_global_identity_lookup';
+        if (config()->has("database.connections.{$connName}")) {
+            try {
+                \DB::purge($connName);
+            } catch (\Throwable) {
+                // Best-effort cleanup
+            }
+        }
+    }
+
+    /**
+     * Resolusi identitas guru secara ketat pada tahap commit (F-01):
+     * 1. NIM (nomor_induk_maarif) adalah identitas pencocokan utama bila tersedia.
+     *    - Bila NIM ada di madrasah lain -> conflict (422), tidak pernah menyentuh tenant lain.
+     *    - Bila NIM tidak ditemukan di DB -> TIDAK fallback ke nama (mencegah NIM hijacking).
+     * 2. NUPTK / NIP sebagai identifier kuat sekunder (dalam sekolah yang sama, dengan proteksi NIM).
+     * 3. Tanpa identifier kuat: nama saja BUKAN identitas unik.
+     *    - Wajib dilengkapi tanggal_lahir yang cocok persis (1 kandidat) untuk dianggap identik.
+     *    - Bila ada guru bernama sama di sekolah sama tanpa tanggal_lahir pembeda (atau >1 kandidat) -> conflict (422).
+     *
+     * @return array{status: 'found'|'not_found'|'conflict'|'forbidden', teacher: ?Teacher, message: ?string}
+     */
+    private function resolveExistingTeacherForCommit(array $payload, bool $isOperator, int $operatorSchoolId): array
+    {
+        $schoolId = isset($payload['school_id']) && $payload['school_id'] !== '' ? (int) $payload['school_id'] : null;
+        $nim   = isset($payload['nomor_induk_maarif']) && trim((string) $payload['nomor_induk_maarif']) !== '' ? trim((string) $payload['nomor_induk_maarif']) : null;
+        $nuptk = isset($payload['nuptk']) && trim((string) $payload['nuptk']) !== '' ? trim((string) $payload['nuptk']) : null;
+        $nip   = isset($payload['nip']) && trim((string) $payload['nip']) !== '' ? trim((string) $payload['nip']) : null;
+        $nama  = isset($payload['nama']) && trim((string) $payload['nama']) !== '' ? trim((string) $payload['nama']) : null;
+        $dob   = isset($payload['tanggal_lahir']) && trim((string) $payload['tanggal_lahir']) !== '' ? trim((string) $payload['tanggal_lahir']) : null;
+
+        // 1. Pencocokan utama berdasarkan NIM (nomor_induk_maarif)
+        if ($nim !== null) {
+            $sameSchoolQuery = Teacher::withoutTenantScope()->where('nomor_induk_maarif', $nim);
+            if ($schoolId !== null) {
+                $sameSchoolQuery->where('school_id', $schoolId);
+            } else {
+                $sameSchoolQuery->whereNull('school_id');
+            }
+            if ($found = $sameSchoolQuery->first()) {
+                return ['status' => 'found', 'teacher' => $found, 'message' => null];
+            }
+
+            // Cek konflik NIM pada madrasah/tenant lain (andal bahkan di bawah PostgreSQL RLS non-superuser; tidak pernah menyentuh tenant lain)
+            if ($this->existsOtherTeacherWithIdentifier('nomor_induk_maarif', $nim)) {
+                return [
+                    'status'  => 'conflict',
+                    'teacher' => null,
+                    'message' => "Konflik identitas: NIM {$nim} sudah terdaftar pada madrasah lain dan tidak dapat ditimpa.",
+                ];
+            }
+
+            // NIM baru tidak ada di DB -> guru baru yang berbeda; JANGAN fallback ke pencocokan nama
+            return ['status' => 'not_found', 'teacher' => null, 'message' => null];
+        }
+
+        // 2. Pencocokan identifier kuat sekunder: NUPTK (dalam batas sekolah/tenant yang sama)
+        if ($nuptk !== null) {
+            $q = Teacher::withoutTenantScope()->where('nuptk', $nuptk);
+            if ($schoolId !== null) {
+                $q->where('school_id', $schoolId);
+            } else {
+                $q->whereNull('school_id');
+            }
+            if ($found = $q->first()) {
+                if ($isOperator && (int) $found->school_id !== $operatorSchoolId) {
+                    return [
+                        'status'  => 'forbidden',
+                        'teacher' => null,
+                        'message' => 'Akses ditolak: Anda tidak memiliki wewenang memperbarui data guru madrasah lain.',
+                    ];
+                }
+                return ['status' => 'found', 'teacher' => $found, 'message' => null];
+            }
+
+            if ($this->existsOtherTeacherWithIdentifier('nuptk', $nuptk)) {
+                return [
+                    'status'  => 'conflict',
+                    'teacher' => null,
+                    'message' => "Konflik identitas: NUPTK {$nuptk} sudah terdaftar pada madrasah lain.",
+                ];
+            }
+
+            return ['status' => 'not_found', 'teacher' => null, 'message' => null];
+        }
+
+        // 3. Pencocokan identifier kuat sekunder: NIP (dalam batas sekolah/tenant yang sama)
+        if ($nip !== null) {
+            $q = Teacher::withoutTenantScope()->where('nip', $nip);
+            if ($schoolId !== null) {
+                $q->where('school_id', $schoolId);
+            } else {
+                $q->whereNull('school_id');
+            }
+            if ($found = $q->first()) {
+                if ($isOperator && (int) $found->school_id !== $operatorSchoolId) {
+                    return [
+                        'status'  => 'forbidden',
+                        'teacher' => null,
+                        'message' => 'Akses ditolak: Anda tidak memiliki wewenang memperbarui data guru madrasah lain.',
+                    ];
+                }
+                return ['status' => 'found', 'teacher' => $found, 'message' => null];
+            }
+
+            return ['status' => 'not_found', 'teacher' => null, 'message' => null];
+        }
+
+        // 4. Tanpa NIM/NUPTK/NIP: NAMA SAJA BUKAN IDENTITAS UNIK.
+        //    Gunakan tanggal_lahir sebagai atribut pembeda/pendukung wajib bila nama sudah ada di sekolah yang sama.
+        if ($nama !== null && $schoolId !== null) {
+            $sameNameCandidates = Teacher::withoutTenantScope()
+                ->where('school_id', $schoolId)
+                ->whereRaw('LOWER(nama) = LOWER(?)', [$nama])
+                ->get();
+
+            if ($sameNameCandidates->isEmpty()) {
+                return ['status' => 'not_found', 'teacher' => null, 'message' => null];
+            }
+
+            if ($dob === null) {
+                return [
+                    'status'  => 'conflict',
+                    'teacher' => null,
+                    'message' => "Identitas guru '{$nama}' ambigu: sudah terdapat guru dengan nama sama di madrasah ini tanpa NIM/NUPTK/NIP atau Tanggal Lahir pembeda. Lengkapi NIM atau Tanggal Lahir terlebih dahulu.",
+                ];
+            }
+
+            $exactDobMatches = $sameNameCandidates->filter(fn(Teacher $t) => $t->tanggal_lahir === $dob);
+            if ($exactDobMatches->count() === 1) {
+                return ['status' => 'found', 'teacher' => $exactDobMatches->first(), 'message' => null];
+            }
+            if ($exactDobMatches->count() > 1) {
+                return [
+                    'status'  => 'conflict',
+                    'teacher' => null,
+                    'message' => "Identitas guru '{$nama}' ambigu: ditemukan lebih dari satu guru dengan nama dan tanggal lahir sama di madrasah ini. Gunakan NIM untuk membedakan.",
+                ];
+            }
+
+            // Tidak ada kandidat dengan DOB yang sama: pastikan tidak ada kandidat eksisting yang DOB-nya kosong (tidak dapat dipastikan berbeda)
+            $hasMissingDobCandidate = $sameNameCandidates->contains(fn(Teacher $t) => empty($t->tanggal_lahir));
+            if ($hasMissingDobCandidate) {
+                return [
+                    'status'  => 'conflict',
+                    'teacher' => null,
+                    'message' => "Identitas guru '{$nama}' ambigu: terdapat guru eksisting bernama sama tanpa Tanggal Lahir di madrasah ini. Lengkapi NIM untuk menghindari bentrok data.",
+                ];
+            }
+
+            // Seluruh kandidat bernama sama memiliki tanggal_lahir berbeda secara pasti -> guru berbeda (aman INSERT)
+            return ['status' => 'not_found', 'teacher' => null, 'message' => null];
+        }
+
+        return ['status' => 'not_found', 'teacher' => null, 'message' => null];
+    }
+
+    /**
+     * Backward-compatible wrapper untuk pencarian guru eksisting pada commit.
+     */
+    private function findExistingTeacherForCommit(array $payload): ?Teacher
+    {
+        $res = $this->resolveExistingTeacherForCommit($payload, false, 0);
+        return $res['status'] === 'found' ? $res['teacher'] : null;
     }
 }
 

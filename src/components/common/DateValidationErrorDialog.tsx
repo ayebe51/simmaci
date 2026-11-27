@@ -31,6 +31,7 @@ interface DateValidationErrorDialogProps {
   onClose: () => void
   errors: DateValidationErrorItem[]
   title?: string
+  source?: "excel" | "form"
 }
 
 export function DateValidationErrorDialog({
@@ -38,7 +39,10 @@ export function DateValidationErrorDialog({
   onClose,
   errors,
   title = "Format Tanggal Tidak Sesuai!",
+  source = "excel",
 }: DateValidationErrorDialogProps) {
+  const isFormSource = source === "form"
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
@@ -52,17 +56,29 @@ export function DateValidationErrorDialog({
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs text-slate-600 leading-relaxed">
-            SIMMACI hanya menerima tanggal yang <strong>mencantumkan nama bulan</strong> (contoh: <code>11 Nov 2022</code>, <code>11 November 2022</code>, <code>11 Nopember 2022</code>). Format numerik ambigu (seperti <code>11/12/2022</code> atau <code>2022-12-11</code>) ditolak untuk menjaga integritas data. Seluruh proses import telah <strong>dibatalkan tanpa perubahan data</strong>.
+            {isFormSource ? (
+              <>
+                Tanggal pada <strong>formulir pengajuan</strong> tidak valid. Pastikan tanggal dipilih melalui pemilih tanggal yang tersedia. Pengajuan telah <strong>dibatalkan tanpa perubahan data</strong>.
+              </>
+            ) : (
+              <>
+                SIMMACI hanya menerima tanggal yang <strong>mencantumkan nama bulan</strong> (contoh: <code>11 Nov 2022</code>, <code>11 November 2022</code>, <code>11 Nopember 2022</code>). Format numerik ambigu (seperti <code>11/12/2022</code> atau <code>2022-12-11</code>) ditolak untuk menjaga integritas data. Seluruh proses import telah <strong>dibatalkan tanpa perubahan data</strong>.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="my-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3 text-xs text-rose-800">
           <div className="flex items-center gap-1.5 font-semibold mb-1">
             <AlertTriangle className="h-4 w-4 text-rose-600" />
-            Ditemukan {errors.length} kesalahan tanggal pada file Excel:
+            {isFormSource
+              ? `Ditemukan ${errors.length} kesalahan tanggal pada formulir pengajuan:`
+              : `Ditemukan ${errors.length} kesalahan tanggal pada file Excel:`}
           </div>
           <p className="text-[11px] text-rose-700">
-            Silakan perbaiki format tanggal pada sel terkait di file Excel Anda, lalu unggah kembali.
+            {isFormSource
+              ? "Silakan perbaiki tanggal pada formulir pengajuan Anda, lalu kirim kembali."
+              : "Silakan perbaiki format tanggal pada sel terkait di file Excel Anda, lalu unggah kembali."}
           </p>
         </div>
 
@@ -72,7 +88,7 @@ export function DateValidationErrorDialog({
               <TableRow>
                 <TableHead className="w-16 text-center text-xs font-bold">Baris</TableHead>
                 <TableHead className="text-xs font-bold">Kolom</TableHead>
-                <TableHead className="text-xs font-bold">Nilai di Excel</TableHead>
+                <TableHead className="text-xs font-bold">{isFormSource ? "Nilai Input" : "Nilai di Excel"}</TableHead>
                 <TableHead className="text-xs font-bold">Alasan Penolakan</TableHead>
               </TableRow>
             </TableHeader>
@@ -101,7 +117,7 @@ export function DateValidationErrorDialog({
 
         <DialogFooter className="pt-3 border-t">
           <Button onClick={onClose} variant="default" className="w-full sm:w-auto">
-            Tutup & Perbaiki File
+            {isFormSource ? "Tutup & Perbaiki Formulir" : "Tutup & Perbaiki File"}
           </Button>
         </DialogFooter>
       </DialogContent>

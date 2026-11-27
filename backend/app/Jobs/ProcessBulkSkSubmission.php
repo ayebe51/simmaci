@@ -32,7 +32,9 @@ class ProcessBulkSkSubmission implements ShouldQueue
         public int $userId,
         public string $userEmail,
         public ?int $userSchoolId = null,
-        public string $userRole = 'operator'
+        public string $userRole = 'operator',
+        public ?string $nomorPermohonan = null,
+        public ?string $tanggalPermohonan = null
     ) {}
 
     /**
@@ -420,8 +422,8 @@ class ProcessBulkSkSubmission implements ShouldQueue
                     'unit_kerja'           => $doc['unit_kerja'] ?? null,
                     'school_id'            => $schoolId,
                     'surat_permohonan_url' => $this->suratPermohonanUrl,
-                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? null,
-                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? null,
+                    'nomor_permohonan'     => $doc['nomor_permohonan'] ?? $this->nomorPermohonan ?? null,
+                    'tanggal_permohonan'   => $doc['tanggal_permohonan'] ?? $this->tanggalPermohonan ?? null,
                     'status'               => 'pending',
                     'created_by'           => $this->userEmail,
                     'tanggal_penetapan'    => now()->format('Y-m-d'),
@@ -441,7 +443,8 @@ class ProcessBulkSkSubmission implements ShouldQueue
 
                 // Log progress every 10 records
                 if ($created % 10 === 0) {
-                    Log::info("ProcessBulkSkSubmission: Progress {$created}/{$this->documents->count()}");
+                    $totalDocs = count($this->documents);
+                    Log::info("ProcessBulkSkSubmission: Progress {$created}/{$totalDocs}");
                 }
             } catch (\Throwable $e) {
                 $skipped++;

@@ -98,6 +98,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Import Preview Date Signing Configuration (F-03 / F-04)
+    |--------------------------------------------------------------------------
+    | Dedicated secret key for HMAC-SHA256 preview-to-commit date attestation.
+    | Falls back to APP_KEY when unset, and fails closed if both are empty.
+    */
+    'import_date_signing_key' => env('IMPORT_DATE_SIGNING_KEY'),
+    'import_preview_signature_ttl' => (int) env('IMPORT_PREVIEW_SIGNATURE_TTL', 3600),
+
+    /*
+    |--------------------------------------------------------------------------
     | Maintenance Mode Driver
     |--------------------------------------------------------------------------
     */
